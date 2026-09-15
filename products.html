@@ -136,8 +136,18 @@ async function loadList(){
     </div>`;
   };
 
+  /* ⚠️ [실사고 2026-09-15] 같은 세트가 두 번 그려졌다.
+        검색어가 낱개 SKU 면 그 세트도 ilike 에 걸려 목록 본체에 들어오는데,
+        펼친 부모의 자식으로도 그려져서 둘이 겹쳤다(BNAT57623 → BNAT57623-12).
+     ⇒ 펼쳐서 이미 보인 것은 본체에서 건너뛴다. */
+  const shownAsKid = new Set();
+  data.forEach(r => {
+    if(openSets[r.id]) (hasKids[r.id]||[]).forEach(k => shownAsKid.add(k.id));
+  });
+
   let html = "";
   data.forEach(r => {
+    if(shownAsKid.has(r.id)) return;
     html += rowHtml(r, false);
     if(openSets[r.id]) (hasKids[r.id]||[]).forEach(k => { html += rowHtml(k, true); });
   });
@@ -347,9 +357,8 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   const p = new URLSearchParams(location.search);
   const wantId = p.get("id"), wantSku = p.get("sku");
   if(wantId || wantSku){
-    // 넘어온 제품은 비활성이거나 세트일 수 있다 — 필터를 풀어 목록에 보이게 한다
+    // 넘어온 제품은 비활성일 수 있다 — Active only 는 푼다
     onlyActive = false; document.getElementById("onlyActive").checked = false;
-    kind = ""; document.getElementById("kind").value = "";
   }
   if(wantSku){
     q = wantSku;
@@ -358,10 +367,13 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   if(wantId){
     // 목록이 「고른 것」으로 알아보게 먼저 세운다 — 그래야 loadList 가 상세를 지우지 않는다
     curId = wantId;
-    const { data } = await sb.from("product").select("sku").eq("id", wantId).maybeSingle();
+    const { data } = await sb.from("product").select("sku,parent_product_id").eq("id", wantId).maybeSingle();
     if(data){
       q = data.sku;
       document.getElementById("q").value = data.sku;
+      /* ⚠️ Kind 를 무조건 풀면 낱개로 넘어와도 세트가 목록에 따라 나온다(2026-09-15).
+         넘어온 것이 세트일 때만 푼다 — 낱개면 Singles 그대로 두고 세트는 캐럿으로 본다. */
+      if(data.parent_product_id){ kind = ""; document.getElementById("kind").value = ""; }
     }
   }
 

@@ -4,61 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Families · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header .who{font-size:13px;color:var(--muted)}
-  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  header button:hover{background:#f2f4f8}
-
-  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
-  .list{width:330px;flex:0 0 330px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
-  .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-  .list input[type=search]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
-  .list input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-  .list select{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
-  .list .rows{max-height:calc(100vh - 225px);overflow:auto}
-  .list .row{padding:8px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer}
-  .list .row:hover{background:#fafbfd}
-  .list .row.cur{background:#eef3ff}
-  .list .row .sk{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 225px)}
+  .list select{width:100%}
+  .list .row{padding:8px 12px}
+  .list .row .sk{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
   .list .row.cur .sk{color:#3b5bdb}
   .list .row .nm{font-size:13px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .list .row .tag{font-size:10px;font-family:ui-monospace,Menlo,monospace;border:1px solid var(--line);border-radius:999px;padding:0 6px}
-  .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
-  .list .foot .sp{flex:1}
-  .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
-  .list .foot button:disabled{opacity:.45;cursor:default}
-  .range{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted)}
-
-  main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .card h3{margin:0;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;font-family:ui-monospace,Menlo,monospace;
-    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
-  .card h3 .n{color:var(--ink);font-weight:700}
-  .head{padding:16px}
-  .head .sk{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--muted)}
-  .head .nm{font-size:19px;font-weight:700;margin:3px 0 8px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted)}
-  .note{padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);background:#fafbfd}
-
-  table{border-collapse:collapse;width:100%;font-size:13px}
-  thead th{background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
-    font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-  tbody td{padding:7px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-  tbody tr:hover{background:#fafbfd}
-  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .dim{color:#9aa4b2}
-  .on{color:#16a34a;font-weight:600} .off{color:#b42318;font-weight:600}
-  .lnk{color:var(--accent);text-decoration:none}
-  .lnk:hover{text-decoration:underline}
-  .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-  .err{color:#dc2626;font-weight:600}
+  main{display:flex;flex-direction:column;gap:14px}
 </style>
 </head>
 <body>
@@ -89,6 +45,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -108,8 +65,8 @@
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-const PAGE = 100;
-let sb=null, page=0, q="", axis="", total=0, curId=null;
+let sb=null, q="", axis="", curId=null;
+const pg = imsPage(100);
 
 /* ⚠️ 옵션 축 이름이 갈려 있다(2026-09-15 실측) — Color 463 / color 38 · Flavor 4 / Flavour 3.
    ⭐ 화면에서만 합친다. 데이터는 Cin7 에서 온 값이라 고쳐도 다음 재적재가 되돌린다.
@@ -128,12 +85,8 @@ const canonAxis = n => AXIS_ALIAS[n] || n;
 const axisVariants = canon =>
   [canon].concat(Object.keys(AXIS_ALIAS).filter(k => AXIS_ALIAS[k] === canon && k !== canon));
 
-const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
-const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span class="off">✗</span>' : '<span class="dim">—</span>';
 
 async function loadList(){
-  const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("product_family")
     .select("id,sku,name,brand_name,option1_name,option2_name", { count:"exact" });
   if(axis){
@@ -144,9 +97,8 @@ async function loadList(){
   }
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
 
-  const { data, count, error } = await qry.order("sku").range(from, to);
+  const { data, error } = await pg.run(qry.order("sku"));
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  total = count || 0;
 
   document.getElementById("rows").innerHTML = data.length ? data.map(r => `
     <div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
@@ -164,10 +116,7 @@ async function loadList(){
     document.getElementById("detail").innerHTML = '<div class="card"><div class="msg">Select a family.</div></div>';
   }
 
-  const f = total ? from+1 : 0, t2 = Math.min(from+data.length, total);
-  document.getElementById("range").textContent = `${f.toLocaleString()}–${t2.toLocaleString()} / ${total.toLocaleString()}`;
-  document.getElementById("prev").disabled = page===0;
-  document.getElementById("next").disabled = (from+PAGE) >= total;
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
 
 async function loadDetail(id){
@@ -224,18 +173,9 @@ async function loadDetail(id){
 
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
-  document.getElementById("who").textContent = me.name + " · " + me.role;
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
-
-  document.getElementById("prev").onclick = () => { if(page>0){ page--; loadList(); } };
-  document.getElementById("next").onclick = () => { page++; loadList(); };
-  document.getElementById("axis").onchange = e => { axis = e.target.value; page=0; loadList(); };
-
-  let timer=null;
-  document.getElementById("q").addEventListener("input", e => {
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ q = e.target.value.trim(); page=0; loadList(); }, 250);
-  });
+  imsHeader(me);
+  document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
 
   /* 옵션 축 목록 — 1,141행을 다 읽어 고유값을 뽑는다(캡 아래라 두 번이면 된다) */
   const seen = {};
