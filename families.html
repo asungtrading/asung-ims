@@ -111,6 +111,23 @@
 const PAGE = 100;
 let sb=null, page=0, q="", axis="", total=0, curId=null;
 
+/* ⚠️ 옵션 축 이름이 갈려 있다(2026-09-15 실측) — Color 463 / color 38 · Flavor 4 / Flavour 3.
+   ⭐ 화면에서만 합친다. 데이터는 Cin7 에서 온 값이라 고쳐도 다음 재적재가 되돌린다.
+   ⚠️ 명백한 것만 넣는다 — Size/Volume/Length, Type/Style/Design/Shape 는 실무에서
+      구별하는 것일 수 있어 합치지 않는다. 필요해지면 그때 늘린다.
+   ⬜ Shopify 연동 때는 데이터를 정리해야 한다(우리 칸을 두거나 Cin7 을 고치거나). */
+const AXIS_ALIAS = {
+  "color":   "Color",
+  "Flavour": "Flavor",
+  "flavour": "Flavor",
+  "flavor":  "Flavor",
+  "size":    "Size",
+};
+const canonAxis = n => AXIS_ALIAS[n] || n;
+/* 고른 축에 해당하는 원문들 — 검색은 원문으로 걸어야 한다 */
+const axisVariants = canon =>
+  [canon].concat(Object.keys(AXIS_ALIAS).filter(k => AXIS_ALIAS[k] === canon && k !== canon));
+
 const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
 const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span class="off">✗</span>' : '<span class="dim">—</span>';
@@ -119,7 +136,12 @@ async function loadList(){
   const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("product_family")
     .select("id,sku,name,brand_name,option1_name,option2_name", { count:"exact" });
-  if(axis) qry = qry.eq("option1_name", axis);
+  if(axis){
+    const vs = axisVariants(axis);
+    qry = vs.length > 1
+      ? qry.or(vs.map(v => `option1_name.eq.${v}`).join(","))
+      : qry.eq("option1_name", axis);
+  }
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
 
   const { data, count, error } = await qry.order("sku").range(from, to);
@@ -219,7 +241,11 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   const seen = {};
   for(let p=0; p<2; p++){
     const { data } = await sb.from("product_family").select("option1_name").range(p*1000, p*1000+999);
-    (data||[]).forEach(x => { if(x.option1_name) seen[x.option1_name] = (seen[x.option1_name]||0)+1; });
+    (data||[]).forEach(x => {
+      if(!x.option1_name) return;
+      const k = canonAxis(x.option1_name);      // ⭐ 합쳐서 센다
+      seen[k] = (seen[k]||0)+1;
+    });
     if(!data || data.length < 1000) break;
   }
   document.getElementById("axis").innerHTML = '<option value="">All option axes</option>' +
