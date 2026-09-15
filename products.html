@@ -122,7 +122,8 @@
    ───────────────────────────────────────────────────────────── */
 
 const PAGE = 100;
-let sb=null, page=0, q="", onlyActive=true, kind="", total=0, curId=null;
+let sb=null, isAdmin=false, showDead=false;
+let page=0, q="", onlyActive=true, kind="", total=0, curId=null;
 
 const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
@@ -235,7 +236,16 @@ async function loadDetail(id){
       <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary)}</td>
       <td class="mono">${dim(b.valid_from)}</td><td>${yn(b.is_active)}</td></tr>`);
 
-  const supRows = (sup.data||[]).map(x => `<tr>
+  // ⚠️⚠️ [2026-09-15 실사고] AS92082-6(세트)에 공급처가 붙어 보였다. 데이터는 맞았다 —
+  //    어제 Cin7 에서 지우고 is_active=false 로 내린 줄인데 화면이 그대로 띄웠다.
+  //    §3-f 는 「읽는 쪽이 is_active 를 건다」이고 suppliers.html 은 걸었는데 여기서 빠뜨렸다.
+  //    ⇒ 기본은 감춘다. admin 은 토글로 꺼내 본다(지운 것이 실제로 내려갔는지 확인할 자리).
+  const supAll  = sup.data || [];
+  const supLive = supAll.filter(x => x.is_active);
+  const supShow = showDead ? supAll : supLive;
+  const supDead = supAll.length - supLive.length;
+
+  const supRows = supShow.map(x => `<tr${x.is_active ? "" : ' style="opacity:.5"'}>
       <td>${esc(x.supplier ? x.supplier.name : "")}</td>
       <td class="mono">${dim(x.supplier_sku)}</td>
       <td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
@@ -261,12 +271,19 @@ async function loadDetail(id){
       </div>
       <div class="cols">${kvT(left)}${kvT(right)}</div>
     </div>
-    ${tbl("Suppliers", (sup.data||[]).length, ["Supplier","Supplier SKU","Fixed","Latest","Last supplied","Default","Active"], supRows,
-          r.parent_product_id ? "None — sets are bought through the parent." : "None.")}
+    ${tbl("Suppliers" + (supDead && isAdmin
+            ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
+                 <input type="checkbox" id="showDead" ${showDead?"checked":""}> show ${supDead} inactive</label>` : ""),
+          supShow.length, ["Supplier","Supplier SKU","Fixed","Latest","Last supplied","Default","Active"], supRows,
+          r.parent_product_id ? "None — sets are bought through the parent."
+                              : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", (bar.data||[]).length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
     ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name","Pack factor","Active"], kidRows) : ""}
   `;
+
+  const sd = box.querySelector("#showDead");
+  if(sd) sd.onchange = e => { showDead = e.target.checked; loadDetail(id); };
 
   box.querySelectorAll("[data-go]").forEach(el => {
     el.onclick = () => { curId = el.dataset.go; loadDetail(curId); loadList(); };
@@ -275,7 +292,7 @@ async function loadDetail(id){
 
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
-  sb = client;
+  sb = client; isAdmin = (me.role === "admin");
   document.getElementById("who").textContent = me.name + " · " + me.role;
   document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
 
