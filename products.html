@@ -30,6 +30,12 @@
   .list .row .sku{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
   .list .row.cur .sku{color:#3b5bdb}
   .list .row .nm{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .row{display:flex;gap:7px;align-items:flex-start}
+  .list .row .car{width:14px;flex:0 0 14px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center;border-radius:4px}
+  .list .row .car:hover{background:#eef1f6;color:var(--ink)}
+  .list .row .car.none{visibility:hidden}
+  .list .row .body{flex:1;min-width:0}
+  .list .kid{padding-left:33px;background:#fcfdfe}
   .list .row .tag{font-size:10px;font-family:ui-monospace,Menlo,monospace;border-radius:999px;padding:0 6px;border:1px solid var(--line);color:var(--muted);font-weight:500}
   .list .row .tag.off{color:#b42318;border-color:#f3d3cf}
   .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
@@ -86,11 +92,18 @@
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
         <label>Kind
           <select id="kind">
-            <option value="">All</option>
             <option value="single">Singles</option>
-            <option value="set">Sets</option>
+            <option value="set">Sets only</option>
+            <option value="">All</option>
           </select>
         </label>
+      </div>
+      <div class="opts">
+        <input list="brandList" id="brand" placeholder="Brand" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px">
+        <datalist id="brandList"></datalist>
+        <select id="cat" style="flex:1;min-width:0">
+          <option value="">All categories</option>
+        </select>
       </div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
@@ -123,7 +136,8 @@
 
 const PAGE = 100;
 let sb=null, isAdmin=false, showDead=false;
-let page=0, q="", onlyActive=true, kind="", total=0, curId=null;
+let page=0, q="", onlyActive=true, kind="single", brand="", cat="", total=0, curId=null;
+let openSets = {};   // 펼친 낱개 id → 그 세트들 (캐럿)
 
 const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
@@ -133,29 +147,80 @@ const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span c
 async function loadList(){
   const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("product")
-    .select("id,sku,name,is_active,parent_product_id,pack_factor,is_discontinued", { count:"exact" });
+    .select("id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name", { count:"exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
   if(kind==="single") qry = qry.is("parent_product_id", null);
   if(kind==="set")    qry = qry.not("parent_product_id", "is", null);
+  if(brand) qry = qry.eq("brand_name", brand);
+  if(cat)   qry = qry.eq("category_name", cat);
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
 
   const { data, count, error } = await qry.order("sku").range(from, to);
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   total = count || 0;
 
-  document.getElementById("rows").innerHTML = data.length ? data.map(r => {
+  /* ⭐ 캐럿 — 이 페이지의 낱개 중 세트가 딸린 것을 한 번에 묻는다.
+     ⚠️ 낱개 100개의 자식을 각각 물으면 요청이 100번이다. .in() 으로 한 번에 받는다. */
+  let hasKids = {};
+  if(kind !== "set" && data.length){
+    const ids = data.filter(r => !r.parent_product_id).map(r => r.id);
+    if(ids.length){
+      const { data: kd } = await sb.from("product")
+        .select("id,sku,name,pack_factor,is_active,parent_product_id")
+        .in("parent_product_id", ids).order("pack_factor");
+      (kd||[]).forEach(k => { (hasKids[k.parent_product_id] = hasKids[k.parent_product_id] || []).push(k); });
+    }
+  }
+
+  const rowHtml = (r, isKid) => {
+    const kids = hasKids[r.id] || [];
+    const car = (!isKid && kids.length)
+      ? `<span class="car" data-toggle="${r.id}">${openSets[r.id] ? "▾" : "▸"}</span>`
+      : `<span class="car none">·</span>`;
     const tags = [];
-    if(r.parent_product_id) tags.push(`<span class="tag">set ×${esc(r.pack_factor)}</span>`);
+    if(r.parent_product_id) tags.push(`<span class="tag">×${esc(r.pack_factor)}</span>`);
+    else if(kids.length)    tags.push(`<span class="tag">${kids.length} set${kids.length>1?"s":""}</span>`);
     if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
-    return `<div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
-      <div class="sku">${esc(r.sku)}${tags.join("")}</div>
-      <div class="nm">${esc(r.name)}</div>
+    return `<div class="row ${isKid?"kid":""} ${r.id===curId?"cur":""}" data-id="${r.id}">
+      ${car}
+      <div class="body">
+        <div class="sku">${esc(r.sku)}${tags.join("")}</div>
+        <div class="nm">${esc(r.name)}</div>
+      </div>
     </div>`;
-  }).join("") : '<div class="msg">No products match.</div>';
+  };
+
+  let html = "";
+  data.forEach(r => {
+    html += rowHtml(r, false);
+    if(openSets[r.id]) (hasKids[r.id]||[]).forEach(k => { html += rowHtml(k, true); });
+  });
+  document.getElementById("rows").innerHTML = html || '<div class="msg">No products match.</div>';
 
   document.querySelectorAll(".list .row").forEach(el => {
-    el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
+    el.onclick = (ev) => {
+      if(ev.target.dataset.toggle) return;      // 캐럿은 따로
+      curId = el.dataset.id; loadList(); loadDetail(curId);
+    };
   });
+  document.querySelectorAll("[data-toggle]").forEach(el => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      const k = el.dataset.toggle;
+      openSets[k] = !openSets[k];
+      loadList();
+    };
+  });
+
+  // 필터를 바꿔 고른 제품이 목록에서 사라지면 상세도 비운다
+  // ⚠️ suppliers.html 에서 고쳤는데 여기서 빠뜨렸다(2026-09-15 · Kind=Singles 인데 세트 상세가 남아 있었다)
+  const shown = new Set();
+  data.forEach(r => { shown.add(r.id); (hasKids[r.id]||[]).forEach(k => shown.add(k.id)); });
+  if(curId && !shown.has(curId)){
+    curId = null;
+    document.getElementById("detail").innerHTML =
+      '<div class="card"><div class="msg">Search for a product.</div></div>';
+  }
 
   const f = total ? from+1 : 0, t2 = Math.min(from+data.length, total);
   document.getElementById("range").textContent = `${f.toLocaleString()}–${t2.toLocaleString()} / ${total.toLocaleString()}`;
@@ -299,7 +364,21 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("prev").onclick = () => { if(page>0){ page--; loadList(); } };
   document.getElementById("next").onclick = () => { page++; loadList(); };
   document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; page=0; loadList(); };
-  document.getElementById("kind").onchange = e => { kind = e.target.value; page=0; loadList(); };
+  document.getElementById("kind").value = kind;
+  document.getElementById("kind").onchange = e => { kind = e.target.value; page=0; openSets={}; loadList(); };
+  document.getElementById("cat").onchange  = e => { cat  = e.target.value; page=0; loadList(); };
+  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); page=0; loadList(); };
+
+  /* 브랜드·카테고리 — ref_ 표에서 받는다. ⚠️ 브랜드 415 중 제품이 없는 것도 섞여 있다(고르면 빈 목록이 뜬다) */
+  const [bl, cl] = await Promise.all([
+    sb.from("ref_brand").select("name").eq("is_active", true).order("name").range(0, 999),
+    sb.from("ref_category").select("name").eq("is_active", true).order("name").range(0, 999),
+  ]);
+  document.getElementById("brandList").innerHTML =
+    (bl.data||[]).map(x => `<option value="${esc(x.name)}">`).join("");
+  document.getElementById("cat").innerHTML =
+    '<option value="">All categories</option>' +
+    (cl.data||[]).map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
 
   let timer=null;
   document.getElementById("q").addEventListener("input", e => {
