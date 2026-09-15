@@ -257,9 +257,18 @@ async function loadDetail(id){
     const { data } = await sb.from("product").select("id,sku,name").eq("id", r.parent_product_id).maybeSingle();
     parent = data;
   }
+  let sibs = [];
   if(r.family_id){
     const { data } = await sb.from("product_family").select("id,sku,name,option1_name,option2_name,option3_name").eq("id", r.family_id).maybeSingle();
     family = data;
+    /* ⭐ 같은 패밀리의 형제들 — 「이거 다른 용량도 있나」가 여기서 풀린다.
+       ⚠️ 패밀리는 느슨한 묶음이다(Caleb 2026-09-15) — 안 묶여도 재고·발주가 안 깨진다.
+          Shopify 에서 한 상품의 변형으로 보일지를 정하는 축이라 묶고 푸는 것이 판매 쪽 판단이다.
+          product_bom(디스플레이↔낱개)과 다르다 — 그쪽은 재고가 실제로 흐르는 단단한 묶음. */
+    const { data: sb2 } = await sb.from("product")
+      .select("id,sku,name,is_active,option1_value,option2_value,option3_value")
+      .eq("family_id", r.family_id).is("parent_product_id", null).order("sku").range(0, 199);
+    sibs = (sb2||[]).filter(x => x.id !== id);
   }
 
   const chips = [];
@@ -276,7 +285,7 @@ async function loadDetail(id){
     ["UOM", `<span class="mono">${dim(r.uom_name)}</span>`],
     ["Pack factor", `<span class="mono">${dim(r.pack_factor)}</span>`],
     ["Parent", parent ? `<span class="mono lnk" data-go="${parent.id}">${esc(parent.sku)}</span>` : '<span class="dim">—</span>'],
-    ["Family", family ? `<span class="mono">${esc(family.sku)}</span> ${esc(family.name)}` : '<span class="dim">—</span>'],
+    ["Family", family ? `<a class="lnk mono" href="families.html?id=${esc(family.id)}">${esc(family.sku)}</a> ${esc(family.name)}` : '<span class="dim">—</span>'],
     ["Options", [r.option1_value,r.option2_value,r.option3_value].filter(Boolean).map(esc).join(" · ") || '<span class="dim">—</span>'],
     ["Weight", r.weight ? `${esc(r.weight)} ${esc(r.weight_unit||"")}` : '<span class="dim">—</span>'],
   ];
@@ -345,6 +354,15 @@ async function loadDetail(id){
     ${tbl("Barcodes", (bar.data||[]).length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
     ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name","Pack factor","Active"], kidRows) : ""}
+    ${sibs.length ? tbl(
+        `Same family <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted)">${esc(family.name)}</span>`,
+        sibs.length,
+        [family.option1_name || "Option 1", family.option2_name || "", "SKU", "Name", "Active"].filter((h,i)=> i!==1 || family.option2_name),
+        sibs.map(x => `<tr>
+          <td>${dim(x.option1_value)}</td>
+          ${family.option2_name ? `<td>${dim(x.option2_value)}</td>` : ""}
+          <td class="mono"><span class="lnk" data-go="${x.id}">${esc(x.sku)}</span></td>
+          <td>${esc(x.name)}</td><td>${yn(x.is_active)}</td></tr>`)) : ""}
   `;
 
   const sd = box.querySelector("#showDead");

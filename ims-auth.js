@@ -209,6 +209,7 @@
       ["Settings","settings.html",null],
       ["Suppliers","suppliers.html",null],
       ["Products","products.html",null],
+      ["Families","families.html",null],
       ["Supplier Products","supplier-products.html",null],
       ["Home","index.html",null],
     ];
