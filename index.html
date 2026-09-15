@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asung IMS</title>
+<style>
+  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:#f7f8fa;color:#12161c}
+  header{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-bottom:1px solid #e5e9ef}
+  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
+  header .sp{flex:1}
+  header button{border:1px solid #e5e9ef;background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  main{max-width:820px;margin:28px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid #e5e9ef;border-radius:14px;padding:22px 24px;margin-bottom:16px}
+  h2{margin:0 0 14px;font-size:16px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid #eef1f5}
+  th{width:150px;color:#6b7686;font-weight:600;font-size:12px;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace}
+  code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+  .ok{color:#16a34a;font-weight:700} .no{color:#dc2626;font-weight:700}
+</style>
+</head>
+<body>
+
+<header>
+  <button title="Main menu">☰ Menu</button>
+  <span class="brand">ASUNG IMS</span>
+  <span class="sp"></span>
+  <span id="who" style="font-size:13px;color:#6b7686"></span>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main>
+  <div class="card">
+    <h2>로그인 확인</h2>
+    <table id="meTbl"></table>
+  </div>
+  <div class="card">
+    <h2>연결 확인</h2>
+    <table id="dbTbl"></table>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+imsAuth.start({ changePw:true }, async (sb, me) => {
+  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
+  document.getElementById("who").textContent = me.name + " · " + me.role;
+
+  const rows = [
+    ["name", me.name], ["email", me.email], ["role", me.role],
+    ["perms", JSON.stringify(me.perms)], ["is_active", String(me.is_active)],
+    ["auth_user_id", me.auth_user_id]
+  ];
+  document.getElementById("meTbl").innerHTML =
+    rows.map(r => `<tr><th>${r[0]}</th><td><code>${r[1]}</code></td></tr>`).join("");
+
+  // 마스터 표가 실제로 읽히는지 — 행 수만 센다
+  const out = [];
+  for (const t of ["supplier","product","product_supplier","ref_brand","ims_staff"]) {
+    const { count, error } = await sb.from(t).select("*", { count:"exact", head:true });
+    out.push([t, error ? `<span class="no">${error.message}</span>`
+                       : `<span class="ok">${count.toLocaleString()}</span> 행`]);
+  }
+  document.getElementById("dbTbl").innerHTML =
+    out.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("");
+});
+</script>
+</body>
+</html>
