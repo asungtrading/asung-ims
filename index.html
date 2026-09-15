@@ -32,11 +32,11 @@
 
 <main>
   <div class="card">
-    <h2>로그인 확인</h2>
+    <h2>Signed in as</h2>
     <table id="meTbl"></table>
   </div>
   <div class="card">
-    <h2>연결 확인</h2>
+    <h2>Database connection</h2>
     <table id="dbTbl"></table>
   </div>
 </main>
@@ -51,7 +51,7 @@ imsAuth.start({ changePw:true }, async (sb, me) => {
 
   const rows = [
     ["name", me.name], ["email", me.email], ["role", me.role],
-    ["perms", JSON.stringify(me.perms)], ["is_active", String(me.is_active)],
+    ["perms", JSON.stringify(me.perms).replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))], ["is_active", String(me.is_active)],
     ["auth_user_id", me.auth_user_id]
   ];
   document.getElementById("meTbl").innerHTML =
@@ -62,7 +62,7 @@ imsAuth.start({ changePw:true }, async (sb, me) => {
   for (const t of ["supplier","product","product_supplier","ref_brand","ims_staff"]) {
     const { count, error } = await sb.from(t).select("*", { count:"exact", head:true });
     out.push([t, error ? `<span class="no">${error.message}</span>`
-                       : `<span class="ok">${count.toLocaleString()}</span> 행`]);
+                       : `<span class="ok">${count.toLocaleString()}</span> rows`]);
   }
   document.getElementById("dbTbl").innerHTML =
     out.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("");
