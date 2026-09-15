@@ -211,6 +211,7 @@
       ["Products","products.html",null],
       ["Families","families.html",null],
       ["Supplier Products","supplier-products.html",null],
+      ["Staff","staff.html",null],
       ["Home","index.html",null],
     ];
     const isAdmin=meData.role==="admin", isMgr=meData.role==="manager";
