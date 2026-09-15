@@ -26,7 +26,9 @@
   .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
   .list .row:hover{background:#fafbfd}
   .list .row.cur{background:#eef3ff;color:#3b5bdb;font-weight:600}
-  .list .row .tag{font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:#b42318;border:1px solid #f3d3cf;border-radius:999px;padding:0 6px;white-space:nowrap}
+  .list .row .tag{font-size:10.5px;font-family:ui-monospace,Menlo,monospace;border-radius:999px;padding:0 6px;white-space:nowrap;
+    color:#b42318;border:1px solid #f3d3cf}
+  .list .row .tag.disc{color:#92640a;border-color:#ecdcb4}
   .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
   .list .foot .sp{flex:1}
   .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
@@ -76,6 +78,7 @@
       <div class="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
         <label><input type="checkbox" id="onlyPurch"> Purchasable</label>
+        <label><input type="checkbox" id="hideDisc"> Hide discontinued</label>
       </div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
@@ -106,7 +109,7 @@
    ───────────────────────────────────────────────────────────── */
 
 const PAGE = 100;
-let sb=null, page=0, q="", onlyActive=true, onlyPurch=false, total=0, curId=null;
+let sb=null, page=0, q="", onlyActive=true, onlyPurch=false, hideDisc=false, total=0, curId=null;
 
 const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
@@ -119,6 +122,9 @@ async function loadList(){
     .select("id,name,is_active,is_purchasable,is_discontinued", { count:"exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
   if(onlyPurch)  qry = qry.eq("is_purchasable", true);
+  // ⭐ is_active(Cin7 에 살아 있나) · is_purchasable(살 수 있는 곳인가) · is_discontinued(지금도 사는가)
+  //    셋은 서로 다른 축이다 — discontinued 인데 active 인 곳이 실제로 있다(②에서 두 칸으로 가른 이유)
+  if(hideDisc)   qry = qry.eq("is_discontinued", false);
   if(q) qry = qry.ilike("name", `%${q}%`);
   const { data, count, error } = await qry.order("name").range(from, to);
 
@@ -127,11 +133,11 @@ async function loadList(){
 
   document.getElementById("rows").innerHTML = data.length ? data.map(r => {
     const tags = [];
-    if(!r.is_active) tags.push("inactive");
-    if(r.is_discontinued) tags.push("discontinued");
+    if(!r.is_active) tags.push(`<span class="tag">inactive</span>`);
+    if(r.is_discontinued) tags.push(`<span class="tag disc">discontinued</span>`);
     return `<div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
       <span>${esc(r.name)}</span>
-      ${tags.length ? `<span class="tag">${tags.join(" · ")}</span>` : ""}
+      <span style="display:flex;gap:4px">${tags.join("")}</span>
     </div>`;
   }).join("") : '<div class="msg">No suppliers match.</div>';
 
@@ -150,12 +156,13 @@ async function loadDetail(id){
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
-  const [s, addr, cont, disc, prod] = await Promise.all([
+  const [s, addr, cont, disc, prod, dflt] = await Promise.all([
     sb.from("supplier").select("*, ref_currency(code)").eq("id", id).maybeSingle(),
     sb.from("supplier_address").select("*").eq("supplier_id", id).order("type"),
     sb.from("supplier_contact").select("*").eq("supplier_id", id).order("is_default", {ascending:false}),
     sb.from("supplier_discount").select("*").eq("supplier_id", id).order("seq"),
     sb.from("product_supplier").select("id", { count:"exact", head:true }).eq("supplier_id", id).eq("is_active", true),
+    sb.from("product_supplier").select("id", { count:"exact", head:true }).eq("supplier_id", id).eq("is_active", true).eq("is_default", true),
   ]);
 
   if(s.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(s.error.message)}</div></div>`; return; }
@@ -175,6 +182,7 @@ async function loadDetail(id){
     ["Currency",      `<span class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</span>`],
     ["Tax rule",      dim(r.tax_rule)],
     ["Products linked", `<span class="mono">${(prod.count||0).toLocaleString()}</span>`],
+    ["— of which default", `<span class="mono">${(dflt.count||0).toLocaleString()}</span>`],
     ["Cin7 comments", dim(r.cin7_comments)],
     ["Note",          dim(r.note)],
   ];
@@ -230,6 +238,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("next").onclick = () => { page++; loadList(); };
   document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; page=0; loadList(); };
   document.getElementById("onlyPurch").onchange  = e => { onlyPurch  = e.target.checked; page=0; loadList(); };
+  document.getElementById("hideDisc").onchange   = e => { hideDisc   = e.target.checked; page=0; loadList(); };
 
   let timer=null;
   document.getElementById("q").addEventListener("input", e => {
