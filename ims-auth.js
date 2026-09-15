@@ -208,6 +208,7 @@
     const items=[
       ["Settings","settings.html",null],
       ["Suppliers","suppliers.html",null],
+      ["Products","products.html",null],
       ["Home","index.html",null],
     ];
     const isAdmin=meData.role==="admin", isMgr=meData.role==="manager";
