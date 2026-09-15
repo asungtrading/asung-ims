@@ -4,74 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Products · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header .who{font-size:13px;color:var(--muted)}
-  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  header button:hover{background:#f2f4f8}
-
-  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
-  .list{width:360px;flex:0 0 360px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
-  .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-  .list input[type=search]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
-  .list input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-  .list .opts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
-  .list .opts label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-  .list select{border:1px solid var(--line);border-radius:8px;padding:5px 7px;font:inherit;font-size:12.5px}
-  .list .rows{max-height:calc(100vh - 235px);overflow:auto}
-  .list .row{padding:8px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer}
-  .list .row:hover{background:#fafbfd}
-  .list .row.cur{background:#eef3ff}
-  .list .row .sku{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
-  .list .row.cur .sku{color:#3b5bdb}
-  .list .row .nm{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .list .row{display:flex;gap:7px;align-items:flex-start}
-  .list .row .car{width:14px;flex:0 0 14px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center;border-radius:4px}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:360px;flex:0 0 360px}
+  .list .rows{max-height:calc(100vh - 235px)}
+  main{display:flex;flex-direction:column;gap:14px}
+  /* 목록 한 줄: 캐럿 + 본문 */
+  .list .row{display:flex;gap:7px;align-items:flex-start;padding:8px 12px}
+  .list .row .car{width:14px;flex:0 0 14px;color:var(--muted);font-size:11px;line-height:1.5;
+    text-align:center;border-radius:4px}
   .list .row .car:hover{background:#eef1f6;color:var(--ink)}
   .list .row .car.none{visibility:hidden}
   .list .row .body{flex:1;min-width:0}
+  .list .row .sku{font-family:var(--mono);font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .list .row.cur .sku{color:#3b5bdb}
+  .list .row .nm{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap}
   .list .kid{padding-left:33px;background:#fcfdfe}
-  .list .row .tag{font-size:10px;font-family:ui-monospace,Menlo,monospace;border-radius:999px;padding:0 6px;border:1px solid var(--line);color:var(--muted);font-weight:500}
-  .list .row .tag.off{color:#b42318;border-color:#f3d3cf}
-  .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
-  .list .foot .sp{flex:1}
-  .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
-  .list .foot button:disabled{opacity:.45;cursor:default}
-  .range{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted)}
-
-  main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .card h3{margin:0;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;font-family:ui-monospace,Menlo,monospace;
-    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
-  .card h3 .n{color:var(--ink);font-weight:700}
-  .head{padding:16px}
-  .head .sk{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--muted)}
-  .head .nm{font-size:19px;font-weight:700;margin:3px 0 8px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted)}
-  .chip.bad{border-color:#f3d3cf;color:#b42318}
-  .chip.good{border-color:#cfe9d7;color:#16794a}
-  .chip.warn{border-color:#ecdcb4;color:#92640a}
-
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
-  table{border-collapse:collapse;width:100%;font-size:13px}
-  thead th{background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
-    font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-  tbody td{padding:7px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-  .kv td:first-child{width:150px;color:var(--muted);font-size:10.5px;font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;white-space:nowrap}
-  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .num{font-family:ui-monospace,Menlo,monospace;text-align:right}
-  .dim{color:#9aa4b2}
-  .on{color:#16a34a;font-weight:600} .off{color:#b42318;font-weight:600}
-  .lnk{color:var(--accent);cursor:pointer;text-decoration:none}
-  .lnk:hover{text-decoration:underline}
-  .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-  .err{color:#dc2626;font-weight:600}
 </style>
 </head>
 <body>
@@ -118,6 +68,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -134,18 +85,14 @@
         콤보  product_bom 의 부모다 · 구성품이 서로 다른 제품
    ───────────────────────────────────────────────────────────── */
 
-const PAGE = 100;
 let sb=null, isAdmin=false, showDead=false;
-let page=0, q="", onlyActive=true, kind="single", brand="", cat="", total=0, curId=null;
+let q="", onlyActive=true, kind="single", brand="", cat="", curId=null;
+const pg = imsPage(100);
 let openSets = {};   // 펼친 낱개 id → 그 세트들 (캐럿)
 
-const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
-const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span class="off">✗</span>' : '<span class="dim">—</span>';
 
 /* ── 목록 ─────────────────────────────────────────────── */
 async function loadList(){
-  const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("product")
     .select("id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name", { count:"exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
@@ -155,9 +102,8 @@ async function loadList(){
   if(cat)   qry = qry.eq("category_name", cat);
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
 
-  const { data, count, error } = await qry.order("sku").range(from, to);
+  const { data, error } = await pg.run(qry.order("sku"));
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  total = count || 0;
 
   /* ⭐ 캐럿 — 이 페이지의 낱개 중 세트가 딸린 것을 한 번에 묻는다.
      ⚠️ 낱개 100개의 자식을 각각 물으면 요청이 100번이다. .in() 으로 한 번에 받는다. */
@@ -222,10 +168,7 @@ async function loadList(){
       '<div class="card"><div class="msg">Search for a product.</div></div>';
   }
 
-  const f = total ? from+1 : 0, t2 = Math.min(from+data.length, total);
-  document.getElementById("range").textContent = `${f.toLocaleString()}–${t2.toLocaleString()} / ${total.toLocaleString()}`;
-  document.getElementById("prev").disabled = page===0;
-  document.getElementById("next").disabled = (from+PAGE) >= total;
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
 
 /* ── 상세 ─────────────────────────────────────────────── */
@@ -307,7 +250,7 @@ async function loadDetail(id){
                     : `<div class="msg">${empty||"None."}</div>`}</div>`;
 
   const barRows = (bar.data||[]).map(b => `<tr>
-      <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary)}</td>
+      <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary, false)}</td>
       <td class="mono">${dim(b.valid_from)}</td><td>${yn(b.is_active)}</td></tr>`);
 
   // ⚠️⚠️ [2026-09-15 실사고] AS92082-6(세트)에 공급처가 붙어 보였다. 데이터는 맞았다 —
@@ -325,7 +268,7 @@ async function loadDetail(id){
       <td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
       <td class="num">${x.cost==null?'<span class="dim">—</span>':esc(x.cost)}</td>
       <td class="mono">${dim(x.last_supplied)}</td>
-      <td>${yn(x.is_default)}</td><td>${yn(x.is_active)}</td></tr>`);
+      <td>${yn(x.is_default, false)}</td><td>${yn(x.is_active)}</td></tr>`);
 
   const bomRows = comps.map(x => `<tr>
       <td class="mono">${x.c ? `<span class="lnk" data-go="${x.c.id}">${esc(x.c.sku)}</span>` : '<span class="dim">?</span>'}</td>
@@ -376,18 +319,16 @@ async function loadDetail(id){
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
-  document.getElementById("who").textContent = me.name + " · " + me.role;
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
+  imsHeader(me);
 
-  document.getElementById("prev").onclick = () => { if(page>0){ page--; loadList(); } };
-  document.getElementById("next").onclick = () => { page++; loadList(); };
-  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; page=0; loadList(); };
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
   document.getElementById("kind").value = kind;
-  document.getElementById("kind").onchange = e => { kind = e.target.value; page=0; openSets={}; loadList(); };
-  document.getElementById("cat").onchange  = e => { cat  = e.target.value; page=0; loadList(); };
-  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); page=0; loadList(); };
+  document.getElementById("kind").onchange = e => { kind = e.target.value; pg.reset(); openSets={}; loadList(); };
+  document.getElementById("cat").onchange  = e => { cat  = e.target.value; pg.reset(); loadList(); };
+  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
 
-  /* 브랜드·카테고리 — ref_ 표에서 받는다. ⚠️ 브랜드 415 중 제품이 없는 것도 섞여 있다(고르면 빈 목록이 뜬다) */
+  /* 브랜드·카테고리 — ref_ 표에서 받는다. ⚠️ 브랜드 중에는 제품이 없는 것도 있다(고르면 빈 목록) */
   const [bl, cl] = await Promise.all([
     sb.from("ref_brand").select("name").eq("is_active", true).order("name").range(0, 999),
     sb.from("ref_category").select("name").eq("is_active", true).order("name").range(0, 999),
@@ -397,12 +338,6 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("cat").innerHTML =
     '<option value="">All categories</option>' +
     (cl.data||[]).map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
-
-  let timer=null;
-  document.getElementById("q").addEventListener("input", e => {
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ q = e.target.value.trim(); page=0; loadList(); }, 250);
-  });
 
   /* ⭐ 다른 화면에서 넘어올 수 있게 — products.html?id=… 또는 ?sku=…
      (supplier-products.html 이 제품을 눌렀을 때 이리로 보낸다)
