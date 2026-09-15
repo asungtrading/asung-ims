@@ -4,61 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suppliers · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header .who{font-size:13px;color:var(--muted)}
-  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  header button:hover{background:#f2f4f8}
-
-  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
-  .list{width:330px;flex:0 0 330px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
-  .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-  .list input[type=search]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
-  .list input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-  .list .opts{display:flex;align-items:center;gap:12px;font-size:12.5px;color:var(--muted)}
-  .list .opts label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-  .list .rows{max-height:calc(100vh - 230px);overflow:auto}
-  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .list .row:hover{background:#fafbfd}
-  .list .row.cur{background:#eef3ff;color:#3b5bdb;font-weight:600}
-  .list .row .tag{font-size:10.5px;font-family:ui-monospace,Menlo,monospace;border-radius:999px;padding:0 6px;white-space:nowrap;
-    color:#b42318;border:1px solid #f3d3cf}
-  .list .row .tag.disc{color:#92640a;border-color:#ecdcb4}
-  .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
-  .list .foot .sp{flex:1}
-  .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
-  .list .foot button:disabled{opacity:.45;cursor:default}
-  .range{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted)}
-
-  main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .card h3{margin:0;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;font-family:ui-monospace,Menlo,monospace;
-    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
-  .card h3 .n{color:var(--ink);font-weight:700}
-  .head{padding:16px 16px 14px}
-  .head .nm{font-size:19px;font-weight:700;margin-bottom:6px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted)}
-  .chip.bad{border-color:#f3d3cf;color:#b42318}
-  .chip.good{border-color:#cfe9d7;color:#16794a}
-
-  table{border-collapse:collapse;width:100%;font-size:13px}
-  thead th{background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
-    font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-  tbody td{padding:8px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-  tbody tr:last-child td{border-bottom:0}
-  .kv td:first-child{width:170px;color:var(--muted);font-size:11px;font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;white-space:nowrap}
-  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .num{font-family:ui-monospace,Menlo,monospace;text-align:right}
-  .dim{color:#9aa4b2}
-  .on{color:#16a34a;font-weight:600} .off{color:#b42318;font-weight:600}
-  .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-  .err{color:#dc2626;font-weight:600}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 230px)}
+  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  main{display:flex;flex-direction:column;gap:14px}
+  .list .row.cur{color:#3b5bdb;font-weight:600}
 </style>
 </head>
 <body>
@@ -93,6 +46,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -108,17 +62,13 @@
    ⚠️ supplier_discount 는 0행이다 — 사람이 채울 표인데 채울 자리가 아직 없다.
    ───────────────────────────────────────────────────────────── */
 
-const PAGE = 100;
 let sb=null, me=null, isAdmin=false;
-let page=0, q="", onlyActive=true, onlyPurch=false, hideDisc=false, total=0, curId=null;
+let q="", onlyActive=true, onlyPurch=false, hideDisc=false, curId=null;
+const pg = imsPage(100);
 
-const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
-const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span class="off">✗</span>' : '<span class="dim">—</span>';
 
 /* ── 목록 ─────────────────────────────────────────────── */
 async function loadList(){
-  const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("supplier")
     .select("id,name,is_active,is_purchasable,is_discontinued", { count:"exact" });
   // ⭐ 매니저는 정돈된 목록만 본다 — 살아 있고 · 살 수 있고 · 지금도 거래하는 곳(2026-09-15 실측 138곳)
@@ -133,11 +83,8 @@ async function loadList(){
     if(hideDisc)   qry = qry.eq("is_discontinued", false);
   }
   if(q) qry = qry.ilike("name", `%${q}%`);
-  const { data, count, error } = await qry.order("name").range(from, to);
-
+  const { data, error } = await pg.run(qry.order("name"));
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  total = count || 0;
-
   document.getElementById("rows").innerHTML = data.length ? data.map(r => {
     const tags = [];
     if(!r.is_active) tags.push(`<span class="tag">inactive</span>`);
@@ -159,10 +106,7 @@ async function loadList(){
       '<div class="card"><div class="msg">Select a supplier.</div></div>';
   }
 
-  const f = total ? from+1 : 0, t2 = Math.min(from+data.length, total);
-  document.getElementById("range").textContent = `${f}–${t2} / ${total.toLocaleString()}`;
-  document.getElementById("prev").disabled = page===0;
-  document.getElementById("next").disabled = (from+PAGE) >= total;
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
 
 /* ── 상세 ─────────────────────────────────────────────── */
@@ -217,7 +161,7 @@ async function loadDetail(id){
 
   const cRows = (cont.data||[]).map(c => `<tr>
       <td>${dim(c.name)}</td><td class="mono">${dim(c.phone)}</td><td class="mono">${dim(c.mobile_phone)}</td>
-      <td>${dim(c.email)}</td><td>${yn(c.is_default)}</td></tr>`);
+      <td>${dim(c.email)}</td><td>${yn(c.is_default, false)}</td></tr>`);
 
   const dRows = (disc.data||[]).map(d => `<tr>
       <td class="num">${dim(d.seq)}</td><td>${dim(d.name)}</td>
@@ -245,21 +189,13 @@ async function loadDetail(id){
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
-  document.getElementById("who").textContent = me.name + " · " + me.role;
+  imsHeader(me);
   if(isAdmin) document.getElementById("opts").hidden = false;
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
 
-  document.getElementById("prev").onclick = () => { if(page>0){ page--; loadList(); } };
-  document.getElementById("next").onclick = () => { page++; loadList(); };
-  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; page=0; loadList(); };
-  document.getElementById("onlyPurch").onchange  = e => { onlyPurch  = e.target.checked; page=0; loadList(); };
-  document.getElementById("hideDisc").onchange   = e => { hideDisc   = e.target.checked; page=0; loadList(); };
-
-  let timer=null;
-  document.getElementById("q").addEventListener("input", e => {
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ q = e.target.value.trim(); page=0; loadList(); }, 250);
-  });
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
+  document.getElementById("onlyPurch").onchange  = e => { onlyPurch  = e.target.checked; pg.reset(); loadList(); };
+  document.getElementById("hideDisc").onchange   = e => { hideDisc   = e.target.checked; pg.reset(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
 
   await loadList();
 });
