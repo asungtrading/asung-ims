@@ -1,0 +1,142 @@
+/* Asung IMS — 화면 공통 스타일
+   ─────────────────────────────────────────────
+   ⚠️ 여기를 고치면 모든 화면이 바뀐다. 고친 뒤 CHECKLIST.md 를 처음부터 훑는다.
+   ⚠️ 화면마다 다른 것(열 너비 · 그 화면에만 있는 덩어리)은 각 html 의 <style> 에 남긴다.
+   📌 2026-09-15 · 화면 다섯에 복사돼 있던 것을 모았다. */
+
+:root{
+  --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6;
+  --warn:#92640a; --bad:#b42318; --good:#16794a;
+  --mono:ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+}
+
+/* ── 헤더 ─────────────────────────────────────
+   ⚠️ ☰ Menu 는 이름·역할 바로 옆 · 다른 버튼보다 앞 (WMS UI 규칙과 같다) */
+header{
+  display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;
+}
+header .brand{font-family:var(--mono);font-weight:800;font-size:14px}
+header .sp{flex:1}
+header .who{font-size:13px;color:var(--muted)}
+header button{
+  border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;
+  font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+}
+header button:hover{background:#f2f4f8}
+
+/* ── 배치 ───────────────────────────────────── */
+.wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
+main{flex:1;min-width:0}
+main.stack{display:flex;flex-direction:column;gap:14px}
+
+/* ── 왼쪽 목록 패널 ───────────────────────────
+   폭은 화면마다 다르다 — 각 html 에서 .list{width:…;flex:0 0 …} 로 덮는다 */
+.list{
+  background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  position:sticky;top:70px;
+}
+.list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.list input[type=search]{
+  width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px;
+}
+.list select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
+.list .opts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.list .opts label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+.list .rows{overflow:auto}
+.list .row{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+.list .row:hover{background:#fafbfd}
+.list .row.cur{background:#eef3ff}
+.list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
+.list .foot .sp{flex:1}
+.list .foot button,
+.bar button{
+  border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;
+  font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
+}
+.list .foot button:disabled,
+.bar button:disabled{opacity:.45;cursor:default}
+.range{font-family:var(--mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12);
+}
+
+/* ── 카드 ───────────────────────────────────── */
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card h3{
+  margin:0;padding:11px 14px;border-bottom:1px solid var(--line);
+  font-size:12px;font-family:var(--mono);color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:8px;
+}
+.card h3 .n{color:var(--ink);font-weight:700}
+.head{padding:16px}
+.head .sk{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.head .nm{font-size:19px;font-weight:700;margin:3px 0 8px}
+.note{padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);background:#fafbfd}
+
+/* 카드 위쪽 도구 줄 (제목 · 검색 · 페이징) */
+.bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar .sp{flex:1}
+.bar .nm{font-size:16px;font-weight:700}
+.bar h2{margin:0;font-size:15px;font-family:var(--mono)}
+.bar input[type=search]{border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;width:200px}
+.bar label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+
+/* 숫자 요약 */
+.stats{display:flex;gap:16px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.stat{font-size:12px;color:var(--muted)}
+.stat b{display:block;font-size:17px;color:var(--ink);font-family:var(--mono);font-weight:700;margin-top:1px}
+.stat.warn b{color:var(--warn)}
+
+/* ── 칩 ─────────────────────────────────────── */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  border:1px solid var(--line);border-radius:999px;padding:2px 9px;
+  font-size:11.5px;font-family:var(--mono);color:var(--muted);
+}
+.chip.bad{border-color:#f3d3cf;color:var(--bad)}
+.chip.good{border-color:#cfe9d7;color:var(--good)}
+.chip.warn{border-color:#ecdcb4;color:var(--warn)}
+
+/* 목록 행에 붙는 작은 꼬리표 */
+.tag{
+  font-size:10.5px;font-family:var(--mono);border:1px solid var(--line);border-radius:999px;
+  padding:0 6px;white-space:nowrap;color:var(--muted);font-weight:500;
+}
+.tag.off{color:var(--bad);border-color:#f3d3cf}
+.tag.disc{color:var(--warn);border-color:#ecdcb4}
+
+/* ── 표 ─────────────────────────────────────── */
+table{border-collapse:collapse;width:100%;font-size:13px}
+thead th{
+  background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
+  font-size:10.5px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;white-space:nowrap;
+}
+tbody td{padding:7px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
+tbody tr:hover{background:#fafbfd}
+.kv td:first-child{
+  width:150px;color:var(--muted);font-size:10.5px;font-family:var(--mono);
+  text-transform:uppercase;white-space:nowrap;
+}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+
+/* ── 값 표시 ──────────────────────────────────
+   ⚠️ 색은 is_active 에만 쓴다. staging·default·primary 는 false 가 정상인데
+      빨갛게 칠하면 전 행이 경고처럼 보인다(2026-09-15 화면에서 드러남).
+   ⬜ suppliers · products · supplier-products 는 아직 is_default·is_primary 를 칠한다 */
+.mono{font-family:var(--mono);font-size:12.5px}
+.num{font-family:var(--mono);text-align:right}
+.dim{color:#9aa4b2}
+.on{color:#16a34a;font-weight:600}
+.off{color:var(--bad);font-weight:600}
+.neutral{color:#4b5565;font-weight:600}
+.lnk{color:var(--accent);text-decoration:none;cursor:pointer}
+.lnk:hover{text-decoration:underline}
+.msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
+.err{color:#dc2626;font-weight:600}
