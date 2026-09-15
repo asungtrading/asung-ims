@@ -386,6 +386,24 @@ imsAuth.start({ changePw:true }, async (client, me) => {
     timer = setTimeout(()=>{ q = e.target.value.trim(); page=0; loadList(); }, 250);
   });
 
+  /* ⭐ 다른 화면에서 넘어올 수 있게 — products.html?id=… 또는 ?sku=…
+     (supplier-products.html 이 제품을 눌렀을 때 이리로 보낸다) */
+  const p = new URLSearchParams(location.search);
+  const wantId = p.get("id"), wantSku = p.get("sku");
+  if(wantSku){
+    q = wantSku;
+    document.getElementById("q").value = wantSku;
+    onlyActive = false; document.getElementById("onlyActive").checked = false;
+    kind = ""; document.getElementById("kind").value = "";
+  }
+  if(wantId){
+    // ⚠️ 목록 필터에 걸려 안 보일 수 있다 — 상세는 id 로 바로 연다
+    curId = wantId;
+    onlyActive = false; document.getElementById("onlyActive").checked = false;
+    kind = ""; document.getElementById("kind").value = "";
+    loadDetail(wantId);
+  }
+
   await loadList();
 });
 </script>
