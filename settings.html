@@ -46,6 +46,7 @@
   .off{color:#b42318;font-weight:600}
   .on{color:#16a34a;font-weight:600}
   .dim{color:#9aa4b2}
+  .neutral{color:#4b5565;font-weight:600}
   .msg{padding:26px 14px;text-align:center;color:var(--muted);font-size:13.5px}
   .err{color:#dc2626;font-weight:600}
   .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
@@ -69,13 +70,13 @@
         <h2 id="tblName">—</h2>
         <span class="pill" id="tblNote"></span>
         <span class="sp"></span>
-        <label><input type="checkbox" id="onlyActive"> 활성만</label>
-        <input type="search" id="q" placeholder="이름으로 검색">
+        <label><input type="checkbox" id="onlyActive"> Active only</label>
+        <input type="search" id="q" placeholder="Search">
         <span class="range" id="range"></span>
         <button id="prev">←</button>
         <button id="next">→</button>
       </div>
-      <div id="body"><div class="msg">불러오는 중…</div></div>
+      <div id="body"><div class="msg">Loading…</div></div>
     </div>
   </main>
 </div>
@@ -97,42 +98,42 @@
 const PAGE = 100;
 
 /* 여러 표가 함께 쓰는 칸 — ⚠️ TABLES 보다 먼저 선언해야 한다(const 는 호이스팅되지 않는다) */
-const C_ACTIVE = { key:"is_active", label:"활성", bool:1 };
-const C_SOURCE = { key:"source",    label:"출처", mono:1, dim:1 };
+const C_ACTIVE = { key:"is_active", label:"Active", bool:1 };
+const C_SOURCE = { key:"source",    label:"Source", mono:1, dim:1 };
 
 /* 표마다 칸이 다르다 — information_schema 실측(2026-09-15) 기준. 기억으로 쓰지 않는다. */
 const TABLES = [
-  { t:"ref_brand",        label:"Brand",        note:"브랜드",
-    cols:[ C("name","이름") , C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+  { t:"ref_brand",        label:"Brand",        note:"Product brands",
+    cols:[ C("name","Name") , C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
-  { t:"ref_category",     label:"Category",     note:"카테고리",
-    cols:[ C("name","이름"), C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+  { t:"ref_category",     label:"Category",     note:"Product categories",
+    cols:[ C("name","Name"), C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
-  { t:"ref_unit",         label:"Unit",         note:"단위",
-    cols:[ C("name","이름"), C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+  { t:"ref_unit",         label:"Unit",         note:"Units of measure",
+    cols:[ C("name","Name"), C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
-  { t:"ref_currency",     label:"Currency",     note:"통화 · 자연키는 code",
-    search:["code","name"],
-    cols:[ C("code","코드",{mono:1}), C("name","이름"), C("symbol","기호",{mono:1}), C_ACTIVE, C_SOURCE ] },
-
-  { t:"ref_payment_term", label:"Payment Term", note:"결제조건 · ⚠️ Cin7 Duration 은 기일이 아니라 할인 기한",
-    cols:[ C("name","이름"), C("net_days","기일",{num:1}), C("discount_days","할인기한",{num:1}),
-           C("discount_percent","할인%",{num:1}), C("is_split","분할",{bool:1}), C_ACTIVE ] },
-
-  { t:"ref_account",      label:"Account",      note:"계정과목 · Cin7 이 Code 로 참조",
+  { t:"ref_currency",     label:"Currency",     note:"Natural key is code",
     search:["code","name"], order:"code",
-    cols:[ C("code","코드",{mono:1}), C("name","이름"), C("account_class","구분"),
-           C("account_type","유형"), C("for_payments","지급용",{bool:1}), C_ACTIVE ] },
+    cols:[ C("code","Code",{mono:1}), C("name","Name"), C("symbol","Symbol",{mono:1}), C_ACTIVE, C_SOURCE ] },
 
-  { t:"ref_warehouse",    label:"Warehouse",    note:"창고",
-    cols:[ C("name","이름"), C("city","도시"), C("state_province","주"), C("country","국가"),
-           C("is_default","기본",{bool:1}), C_ACTIVE ] },
+  { t:"ref_payment_term", label:"Payment Term", note:"Cin7 Duration is the discount window, not the due date",
+    cols:[ C("name","Name"), C("net_days","Net days",{num:1}), C("discount_days","Disc. days",{num:1}),
+           C("discount_percent","Disc. %",{num:1}), C("is_split","Split",{bool:1}), C_ACTIVE ] },
 
-  { t:"ref_bin",          label:"Bin",          note:"⚠️ 2,675행 — 1,000행 캡을 넘는다",
+  { t:"ref_account",      label:"Account",      note:"Cin7 refers to accounts by Code",
+    search:["code","name"], order:"code",
+    cols:[ C("code","Code",{mono:1}), C("name","Name"), C("account_class","Class"),
+           C("account_type","Type"), C("for_payments","For payments",{bool:1}), C_ACTIVE ] },
+
+  { t:"ref_warehouse",    label:"Warehouse",    note:"Warehouses",
+    cols:[ C("name","Name"), C("city","City"), C("state_province","Province"), C("country","Country"),
+           C("is_default","Default",{bool:1}), C_ACTIVE ] },
+
+  { t:"ref_bin",          label:"Bin",          note:"2,675 rows — above the 1,000-row cap",
     select:"*, ref_warehouse(name)",
-    cols:[ C("name","이름",{mono:1}),
-           { key:"warehouse", label:"창고", get:r => r.ref_warehouse ? r.ref_warehouse.name : "" },
-           C("zone","존"), C("is_staging","스테이징",{bool:1}), C_ACTIVE ] },
+    cols:[ C("name","Name",{mono:1}),
+           { key:"warehouse", label:"Warehouse", get:r => r.ref_warehouse ? r.ref_warehouse.name : "" },
+           C("zone","Zone"), C("is_staging","Staging",{bool:1}), C_ACTIVE ] },
 ];
 
 function C(key, label, o){ return Object.assign({ key, label }, o||{}); }
@@ -152,17 +153,21 @@ function drawNav(){
 
 function cellHtml(col, row){
   const v = col.get ? col.get(row) : row[col.key];
-  if(col.bool) return v===true ? '<span class="on">✓</span>'
-                : v===false ? '<span class="off">✗</span>'
-                : '<span class="dim">—</span>';
+  if(col.bool){
+    // ⚠️ 색은 is_active 에만 쓴다. staging·default·split 은 false 가 정상인데
+    //    빨갛게 칠하면 2,675행이 전부 경고처럼 보인다(2026-09-15 화면에서 드러남).
+    if(v===null || v===undefined) return '<span class="dim">—</span>';
+    if(col.key==="is_active") return v ? '<span class="on">✓</span>' : '<span class="off">✗</span>';
+    return v ? '<span class="neutral">✓</span>' : '<span class="dim">·</span>';
+  }
   if(v===null || v===undefined || v==="") return '<span class="dim">—</span>';
   return String(v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 }
 
 async function load(){
-  document.getElementById("tblName").textContent = cur.t;
+  document.getElementById("tblName").textContent = cur.label;   // ⭐ ref_ 는 화면에 보이지 않는다(표 이름은 그대로)
   document.getElementById("tblNote").textContent = cur.note || "";
-  document.getElementById("body").innerHTML = '<div class="msg">불러오는 중…</div>';
+  document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
   drawNav();
 
   const from = page*PAGE, to = from + PAGE - 1;
@@ -177,13 +182,13 @@ async function load(){
 
   const { data, count, error } = await qry;
   if(error){
-    document.getElementById("body").innerHTML = `<div class="msg err">읽기 실패 — ${error.message}</div>`;
+    document.getElementById("body").innerHTML = `<div class="msg err">Could not load — ${error.message}</div>`;
     return;
   }
   total = count; counts[cur.t] = count; drawNav();
 
   if(!data.length){
-    document.getElementById("body").innerHTML = '<div class="msg">해당하는 행이 없습니다.</div>';
+    document.getElementById("body").innerHTML = '<div class="msg">No rows match.</div>';
   } else {
     const head = cur.cols.map(c=>`<th>${c.label}</th>`).join("");
     const rows = data.map(r =>
