@@ -4,64 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Staff · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header .who{font-size:13px;color:var(--muted)}
-  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  header button:hover{background:#f2f4f8}
-
-  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
-  .list{width:330px;flex:0 0 330px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
-  .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-  .list input[type=search]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
-  .list input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-  .list .rows{max-height:calc(100vh - 230px);overflow:auto}
-  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .list .row:hover{background:#fafbfd}
-  .list .row.cur{background:#eef3ff;color:#3b5bdb;font-weight:600}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 230px)}
+  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .list .row.cur{color:#3b5bdb;font-weight:600}
   .list .row.off{color:#9aa4b2}
-  .list .row .sub{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);font-weight:400}
-  .list .row .tag{font-size:10.5px;font-family:ui-monospace,Menlo,monospace;border-radius:999px;padding:0 6px;white-space:nowrap;color:#b42318;border:1px solid #f3d3cf}
-  .list .row .tag.adm{color:#3b5bdb;border-color:#c9d6f5}
-  .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
-  .list .foot .sp{flex:1}
-  .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .list .row .sub{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
   .list .foot button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .range{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted)}
-
-  main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .card h3{margin:0;padding:11px 14px;border-bottom:1px solid var(--line);font-size:12px;font-family:ui-monospace,Menlo,monospace;
-    color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
-  .head{padding:16px 16px 14px}
-  .head .nm{font-size:19px;font-weight:700;margin-bottom:6px}
-  .chips{display:flex;flex-wrap:wrap;gap:6px}
-  .chip{border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted)}
-  .chip.bad{border-color:#f3d3cf;color:#b42318}
-  .chip.good{border-color:#cfe9d7;color:#16794a}
+  .tag.adm{color:#3b5bdb;border-color:#c9d6f5}
   .chip.adm{border-color:#c9d6f5;color:#3b5bdb}
 
-  table{border-collapse:collapse;width:100%;font-size:13px}
-  tbody td{padding:8px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-  tbody tr:last-child td{border-bottom:0}
-  .kv td:first-child{width:170px;color:var(--muted);font-size:11px;font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;white-space:nowrap;padding-top:11px}
-  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .dim{color:#9aa4b2}
-  .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-  .err{color:#dc2626;font-weight:600}
-  .note{font-size:12px;color:var(--muted);margin-top:4px}
-
-  /* 편집 폼 */
+  /* 편집 폼 — 쓰기 화면은 이것뿐이다 */
+  .kv td:first-child{width:170px;padding-top:11px}
   .kv input[type=text],.kv input[type=email],.kv select,.kv textarea{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
   .kv textarea{min-height:64px;resize:vertical}
-  .kv input:focus,.kv select:focus,.kv textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
   .kv input:disabled,.kv select:disabled{background:#f7f8fa;color:#9aa4b2}
   .kv label.ck{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}   /* ⚠️ 공통 .note 와 이름이 겹쳐 .hint 로 */
   .actions{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
   .actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
   .actions button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -72,8 +34,8 @@
   /* 임시 비밀번호 — 한 번만 보인다 */
   .cred{margin:0 14px 14px;border:1px solid #cfe9d7;background:#f3fbf6;border-radius:10px;padding:12px 14px}
   .cred .t{font-weight:700;margin-bottom:6px}
-  .cred .pw{font-family:ui-monospace,Menlo,monospace;font-size:18px;font-weight:800;letter-spacing:.04em;margin:6px 0}
-  .cred .warn{font-size:12px;color:#92640a}
+  .cred .pw{font-family:var(--mono);font-size:18px;font-weight:800;letter-spacing:.04em;margin:6px 0}
+  .cred .warn{font-size:12px;color:var(--warn)}
   .cred button{margin-top:8px;margin-right:6px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
 </style>
 </head>
@@ -99,35 +61,37 @@
     </div>
   </section>
 
-  <main id="detail"><div class="card"><div class="msg">Select a staff member.</div></div></main>
+  <main id="detail" class="stack"><div class="card"><div class="msg">Select a staff member.</div></div></main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
    Staff — ims_staff 목록 · 상세/편집 · 추가(ims-staff-create EF)
-   정본: docs/design/po-module.md §10-h(표·RLS) · §10-i(이 화면 · EF · 레포 갈림)
+   정본: docs/design/po-module.md §10-h(표·RLS) · §10-i(이 화면 · EF) · §10-j(화면 규칙)
    원본: asung-wms/staff-admin.html (WMS · 2026-07-21) — 틀은 suppliers.html 을 따른다
+   📌 2026-09-15 · 공통 파일(ims-ui.css · ims-ui.js)로 옮겼다 — esc·dim 은 ims-ui.js 것 · 저장 확인은 imsSaved()
 
    ⭐ 첫 쓰기 화면이다. 쓰기는 둘뿐:
       편집  PostgREST update — RLS(ims_is_admin) 가 막는다
       추가  EF ims-staff-create — Auth 계정 + 행을 한 번에. ⚠️ service_role 은 EF 안에만 있다(공개 레포)
    ⚠️ admin 이 아니면 편집·추가 UI 를 감춘다(읽기 전용). 감추는 것이고 막는 것은 RLS·EF 다.
    ⚠️ 자기 행에서는 role·is_active 를 못 바꾼다 — 스스로 잠긴다(ims_is_admin() 은 is_active 도 본다).
-   ⭐ RLS 에 막힌 update 는 에러가 아니라 0행이다(§10-h 실측) — .select() 로 되읽어 0행이면 「Not saved」.
+   ⭐ RLS 에 막힌 update 는 에러가 아니라 0행이다(§10-h 실측) — imsSaved() 가 .select() 결과를 보고 0행이면 「Not saved」.
    ❌ 삭제 없음 — is_active=false 로 내린다(delete 는 revoke 돼 있다).
-   페이지네이션 없음 — caps-ok: 직원 마스터 · 수십 명 · 채용 때만 늘어난다(WMS 도 같다).
-   ⚠️ 순서(§7): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
+   페이지네이션 없음 — caps-ok: 직원 마스터 · 수십 명 · 채용 때만 늘어난다(WMS 도 같다). 검색도 그래서 클라이언트에서 한다.
+   ⚠️ 입력칸의 값은 value="…" 속성이 아니라 DOM 으로 넣는다 — 공통 esc 는 " 를 안 바꾼다(속성 안에서 깨진다).
+   ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
 let sb=null, me=null, isAdmin=false;
 let all=[], q="", curId=null, mode="view";   // mode: view | add
 
-const esc = v => String(v==null?"":v).replace(/[<>&"]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
-const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
 const fmtTs = v => v ? esc(String(v).replace("T"," ").slice(0,16)) : '<span class="dim">—</span>';
+const setVal = (id, v) => { const el=document.getElementById(id); if(el) el.value = (v==null ? "" : v); };
 
 /* ── 읽기 ─────────────────────────────────────────────── */
 async function loadAll(){
@@ -145,7 +109,7 @@ function renderList(){
   document.getElementById("rows").innerHTML = list.length ? list.map(s => {
     const tags = [];
     if(s.role==="admin") tags.push('<span class="tag adm">admin</span>');
-    if(!s.is_active) tags.push('<span class="tag">inactive</span>');
+    if(!s.is_active) tags.push('<span class="tag off">inactive</span>');
     return `<div class="row ${s.id===curId&&mode==="view"?"cur":""} ${s.is_active?"":"off"}" data-id="${s.id}">
       <span>${esc(s.name)}<span class="sub">${esc(s.email)}</span></span>
       <span style="display:flex;gap:4px">${tags.join("")}</span>
@@ -176,7 +140,7 @@ function renderDetail(){
 
   // email · auth_user_id 는 보여만 준다 — 로그인의 열쇠다
   const keyRows = `
-    <tr><td>Email</td><td><span class="mono">${esc(s.email)}</span><div class="note">Login email — shown only. It is not the key (auth_user_id is).</div></td></tr>
+    <tr><td>Email</td><td><span class="mono">${esc(s.email)}</span><div class="hint">Login email — shown only. It is not the key (auth_user_id is).</div></td></tr>
     <tr><td>Auth user id</td><td><span class="mono">${esc(s.auth_user_id)}</span></td></tr>`;
 
   let body;
@@ -185,19 +149,19 @@ function renderDetail(){
     const lock = isSelf ? 'disabled' : '';
     body = `
       <table class="kv"><tbody>
-        <tr><td>Name</td><td><input type="text" id="fName" value="${esc(s.name)}"></td></tr>
+        <tr><td>Name</td><td><input type="text" id="fName"></td></tr>
         ${keyRows}
         <tr><td>Role</td><td>
           <select id="fRole" ${lock}>
-            <option value="manager" ${s.role==="manager"?"selected":""}>manager</option>
-            <option value="admin" ${s.role==="admin"?"selected":""}>admin</option>
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
           </select>
-          ${isSelf?'<div class="note">You can\'t change your own role or status — you would lock yourself out (and if you are the last admin, nobody could undo it).</div>':''}
+          ${isSelf?'<div class="hint">You can\'t change your own role or status — you would lock yourself out (and if you are the last admin, nobody could undo it).</div>':''}
         </td></tr>
-        <tr><td>Active</td><td><label class="ck"><input type="checkbox" id="fActive" ${s.is_active?"checked":""} ${lock}> is_active</label>
-          ${!isSelf?'<div class="note">There is no delete — inactive people keep their row (history points at it).</div>':''}</td></tr>
-        <tr><td>Note</td><td><textarea id="fNote">${esc(s.note||"")}</textarea></td></tr>
-        <tr><td>Perms</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span><div class="note">Not used yet — edited by SQL if ever needed.</div></td></tr>
+        <tr><td>Active</td><td><label class="ck"><input type="checkbox" id="fActive" ${lock}> is_active</label>
+          ${!isSelf?'<div class="hint">There is no delete — inactive people keep their row (history points at it).</div>':''}</td></tr>
+        <tr><td>Note</td><td><textarea id="fNote"></textarea></td></tr>
+        <tr><td>Perms</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span><div class="hint">Not used yet — edited by SQL if ever needed.</div></td></tr>
         <tr><td>Created</td><td class="mono">${fmtTs(s.created_at)}</td></tr>
         <tr><td>Updated</td><td class="mono">${fmtTs(s.updated_at)}</td></tr>
       </tbody></table>
@@ -229,6 +193,9 @@ function renderDetail(){
     </div>`;
 
   if(isAdmin){
+    // 값은 DOM 으로 — 이름에 " 가 있어도 속성이 깨지지 않는다
+    setVal("fName", s.name); setVal("fRole", s.role); setVal("fNote", s.note);
+    document.getElementById("fActive").checked = !!s.is_active;
     document.getElementById("saveBtn").onclick = () => save(s);
     document.getElementById("revertBtn").onclick = () => renderDetail();
   }
@@ -249,13 +216,12 @@ async function save(s){
   if(!patch.name){ st.className="st bad"; st.textContent="Name is required."; return; }
 
   btn.disabled=true; st.textContent="Saving…";
-  // ⭐ .select() 로 되읽는다 — RLS 에 막히면 에러 없이 0행이다
-  const { data, error } = await sb.from("ims_staff").update(patch).eq("id", s.id).select();
+  // ⭐ imsSaved — .select() 로 되읽고 0행이면 ok:false (RLS 에 막히면 에러 없이 0행이다)
+  const r = await imsSaved(sb.from("ims_staff").update(patch).eq("id", s.id).select());
   btn.disabled=false;
-  if(error){ st.className="st bad"; st.textContent="Save failed: "+error.message; return; }
-  if(!data || data.length===0){
+  if(!r.ok){
     st.className="st bad";
-    st.textContent="Not saved — the database refused the change (0 rows). Your admin access may have been revoked; sign out and in again.";
+    st.textContent = r.reason + (r.reason.startsWith("Not saved") ? " Your admin access may have been revoked — sign out and in again." : "");
     return;
   }
   await loadAll(); renderList(); renderDetail();
@@ -269,9 +235,9 @@ function renderAdd(box){
       <h3>Add staff</h3>
       <table class="kv"><tbody>
         <tr><td>Name</td><td><input type="text" id="aName" placeholder="Full name"></td></tr>
-        <tr><td>Email</td><td><input type="email" id="aEmail" placeholder="name@asung.ca"><div class="note">Stored in lower case. This becomes the login email.</div></td></tr>
+        <tr><td>Email</td><td><input type="email" id="aEmail" placeholder="name@asung.ca"><div class="hint">Stored in lower case. This becomes the login email.</div></td></tr>
         <tr><td>Role</td><td><select id="aRole"><option value="manager" selected>manager</option><option value="admin">admin</option></select>
-          <div class="note">manager = does the work · admin = can also add and deactivate people.</div></td></tr>
+          <div class="hint">manager = does the work · admin = can also add and deactivate people.</div></td></tr>
       </tbody></table>
       <div class="actions">
         <button class="pri" id="createBtn">Create account</button>
@@ -344,19 +310,15 @@ async function createStaff(){
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
-  document.getElementById("who").textContent = me.name + " · " + me.role;
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
+  imsHeader(me);   // 이름·역할 + Sign Out
 
   if(isAdmin){
     const b = document.getElementById("addBtn"); b.hidden = false;
     b.onclick = () => { mode="add"; renderList(); renderDetail(); };
   }
 
-  let timer=null;
-  document.getElementById("q").addEventListener("input", e => {
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ q = e.target.value.trim(); renderList(); }, 150);
-  });
+  // 전량을 받았으니 검색은 클라이언트 — imsQ 는 입력 지연만 쓴다
+  imsQ("#q", v => { q = v; renderList(); }, 150);
 
   if(await loadAll()){ curId = me.id; renderList(); renderDetail(); }   // 자기 행을 먼저 연다
 });

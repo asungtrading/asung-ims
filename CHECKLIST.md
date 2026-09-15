@@ -167,6 +167,9 @@
 
 ```
 ⬜ 매니저 화면 — 매니저 계정이 아직 없다. 추가한 뒤 3·7 의 매니저 항목을 본다
+⬜ staff.html — [2026-09-15] 공통 파일(ims-ui.css · ims-ui.js)로 옮겼다. 7절 항목은 코드로 되짚었다
+   (자기 행 role·is_active 잠김 · imsSaved 로 0행이면 Not saved · 삭제 버튼 없음 · 전량 읽기 caps-ok)
+   — ⚠️ 눈으로는 아직 안 봤다. 옮긴 뒤 7절을 처음부터 훑을 것(특히 Save 가 UPDATED 를 바꾸는지)
 ⬜ 불리언 색 — settings.html 만 고쳤다. suppliers/products/supplier-products 의
    is_default · is_primary 는 아직 false 를 빨갛게 칠한다
 ⬜ supplier-products.html 의 제품 검색은 받은 페이지(200줄) 안에서만 걸린다
