@@ -73,7 +73,7 @@
    Staff — ims_staff 목록 · 상세/편집 · 추가(ims-staff-create EF)
    정본: docs/design/po-module.md §10-h(표·RLS) · §10-i(이 화면 · EF) · §10-j(화면 규칙)
    원본: asung-wms/staff-admin.html (WMS · 2026-07-21) — 틀은 suppliers.html 을 따른다
-   📌 2026-09-15 · 공통 파일(ims-ui.css · ims-ui.js)로 옮겼다 — esc·dim 은 ims-ui.js 것 · 저장 확인은 imsSaved()
+   📌 2026-09-15 · 공통 파일(ims-ui.css · ims-ui.js)로 옮겼다 — esc·dim 은 ims-ui.js 것 · 저장 확인은 imsSaved() · 시각은 imsTs(토론토)
 
    ⭐ 첫 쓰기 화면이다. 쓰기는 둘뿐:
       편집  PostgREST update — RLS(ims_is_admin) 가 막는다
@@ -90,7 +90,6 @@
 let sb=null, me=null, isAdmin=false;
 let all=[], q="", curId=null, mode="view";   // mode: view | add
 
-const fmtTs = v => v ? esc(String(v).replace("T"," ").slice(0,16)) : '<span class="dim">—</span>';
 const setVal = (id, v) => { const el=document.getElementById(id); if(el) el.value = (v==null ? "" : v); };
 
 /* ── 읽기 ─────────────────────────────────────────────── */
@@ -162,8 +161,8 @@ function renderDetail(){
           ${!isSelf?'<div class="hint">There is no delete — inactive people keep their row (history points at it).</div>':''}</td></tr>
         <tr><td>Note</td><td><textarea id="fNote"></textarea></td></tr>
         <tr><td>Perms</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span><div class="hint">Not used yet — edited by SQL if ever needed.</div></td></tr>
-        <tr><td>Created</td><td class="mono">${fmtTs(s.created_at)}</td></tr>
-        <tr><td>Updated</td><td class="mono">${fmtTs(s.updated_at)}</td></tr>
+        <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
+        <tr><td>Updated</td><td class="mono">${imsTs(s.updated_at)}</td></tr>
       </tbody></table>
       <div class="actions">
         <button class="pri" id="saveBtn">Save</button>
@@ -178,7 +177,7 @@ function renderDetail(){
         <tr><td>Role</td><td>${esc(s.role)}</td></tr>
         <tr><td>Active</td><td>${s.is_active?"yes":"no"}</td></tr>
         <tr><td>Note</td><td>${dim(s.note)}</td></tr>
-        <tr><td>Created</td><td class="mono">${fmtTs(s.created_at)}</td></tr>
+        <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
       </tbody></table>
       <div class="actions"><span class="st">Read only — only an admin can edit staff.</span></div>`;
   }

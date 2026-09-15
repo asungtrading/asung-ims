@@ -6,6 +6,7 @@
 
    담은 것
      esc / dim / yn / num       값 표시
+     imsTs                      timestamptz → 토론토 시각(분까지) · ⚠️ date 칸에는 쓰지 않는다
      imsPage                    1,000행 캡을 넘지 않게 나눠 읽기(정본 §10-j 3-a)
      imsSaved                   ⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다
      imsQ                       검색창 지연 입력
@@ -31,6 +32,20 @@
 
   const num = (v) =>
     (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(v);
+
+  /* ── 시각 표시 ─────────────────────────────────
+     ⚠️ timestamptz(created_at · updated_at …)만 — 토론토 시각으로 보인다.
+        date 칸(valid_from · last_supplied · cin7_modified_on)은 시간대가 없다 — 그대로 dim() 으로 쓴다.
+     [실사고 2026-09-15] staff.html 이 ISO 문자열을 잘라 UTC 로 보였다(19:16 → 토론토 15:16). */
+  const imsTs = (v) => {
+    if (v === null || v === undefined || v === "") return '<span class="dim">—</span>';
+    const d = new Date(v);
+    if (isNaN(d)) return esc(v);
+    return esc(d.toLocaleString("sv-SE", {
+      timeZone: "America/Toronto",
+      year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+    }));
+  };
 
   /* ── 나눠 읽기 ─────────────────────────────────
      ⚠️⚠️ PostgREST 는 한 번에 1,000행까지만 준다. 조용히 잘린다(이 프로젝트 사고 5건).
@@ -114,6 +129,7 @@
   window.dim = dim;
   window.yn = yn;
   window.num = num;
+  window.imsTs = imsTs;
   window.imsPage = imsPage;
   window.imsSaved = imsSaved;
   window.imsQ = imsQ;
