@@ -86,6 +86,10 @@
    ───────────────────────────────────────────────────────────── */
 
 let sb=null, isAdmin=false, showDead=false;
+/* ⚠️ loadDetail 은 조회 여럿을 기다린 뒤 화면에 쓴다. 그 사이에 필터가 바뀌면
+   loadList 가 상세를 비우는데, 나중에 도착한 loadDetail 이 다시 써서 목록에 없는 것이 남는다.
+   ⇒ 요청마다 번호를 붙여 최신이 아니면 쓰지 않는다. */
+let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", curId=null;
 const pg = imsPage(100);
 let openSets = {};   // 펼친 낱개 id → 그 세트들 (캐럿)
@@ -183,6 +187,7 @@ async function loadList(){
 
 /* ── 상세 ─────────────────────────────────────────────── */
 async function loadDetail(id){
+  const seq = ++detailSeq;
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
@@ -289,6 +294,7 @@ async function loadDetail(id){
       <td class="mono"><span class="lnk" data-go="${k.id}">${esc(k.sku)}</span></td>
       <td>${esc(k.name)}</td><td class="num">${dim(k.pack_factor)}</td><td>${yn(k.is_active)}</td></tr>`);
 
+  if(seq !== detailSeq) return;   // 그 사이에 다른 요청이 들어왔다
   box.innerHTML = `
     <div class="card">
       <div class="head">
@@ -321,8 +327,26 @@ async function loadDetail(id){
   const sd = box.querySelector("#showDead");
   if(sd) sd.onchange = e => { showDead = e.target.checked; loadDetail(id); };
 
+  /* ⚠️⚠️ [실사고 2026-09-15] 구성품·부모·형제 SKU 를 눌러도 안 넘어갔다.
+        검색어가 앞 제품의 SKU 로 남아 있어 새로 고른 것이 목록에 없었고,
+        loadList 의 「고른 것이 목록에 없으면 상세를 비운다」가 방금 연 상세를 지웠다.
+        ?id= 진입에서 고친 것과 같은 뿌리인데 화면 안 이동은 손대지 않았다.
+     ⇒ 이동할 때도 그 제품의 SKU 로 검색어를 바꿔 목록에 들어오게 한다. */
   box.querySelectorAll("[data-go]").forEach(el => {
-    el.onclick = () => { curId = el.dataset.go; loadDetail(curId); loadList(); };
+    el.onclick = async () => {
+      const goId = el.dataset.go;
+      const { data } = await sb.from("product").select("sku,parent_product_id").eq("id", goId).maybeSingle();
+      if(data){
+        q = data.sku;
+        document.getElementById("q").value = data.sku;
+        // 넘어간 것이 세트면 Kind 를 푼다(Singles 로는 목록에 안 나온다)
+        if(data.parent_product_id){ kind = ""; document.getElementById("kind").value = ""; }
+      }
+      curId = goId;
+      pg.reset();
+      await loadList();
+      await loadDetail(goId);
+    };
   });
 }
 

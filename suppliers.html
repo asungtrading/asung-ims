@@ -63,6 +63,9 @@
    ───────────────────────────────────────────────────────────── */
 
 let sb=null, me=null, isAdmin=false;
+/* ⚠️ loadDetail 이 조회를 기다리는 사이에 필터가 바뀌면 loadList 가 상세를 비우는데,
+   나중에 도착한 loadDetail 이 다시 쓴다 ⇒ 번호를 붙여 최신이 아니면 쓰지 않는다. */
+let detailSeq = 0;
 let q="", onlyActive=true, onlyPurch=false, hideDisc=false, curId=null;
 const pg = imsPage(100);
 
@@ -111,6 +114,7 @@ async function loadList(){
 
 /* ── 상세 ─────────────────────────────────────────────── */
 async function loadDetail(id){
+  const seq = ++detailSeq;
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
@@ -167,6 +171,7 @@ async function loadDetail(id){
       <td class="num">${dim(d.seq)}</td><td>${dim(d.name)}</td>
       <td class="num">${d.percent==null?'<span class="dim">—</span>':esc(d.percent)+"%"}</td></tr>`);
 
+  if(seq !== detailSeq) return;   // 그 사이에 다른 요청이 들어왔다
   box.innerHTML = `
     <div class="card">
       <div class="head">
