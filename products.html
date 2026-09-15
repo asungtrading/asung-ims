@@ -387,24 +387,33 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   });
 
   /* ⭐ 다른 화면에서 넘어올 수 있게 — products.html?id=… 또는 ?sku=…
-     (supplier-products.html 이 제품을 눌렀을 때 이리로 보낸다) */
+     (supplier-products.html 이 제품을 눌렀을 때 이리로 보낸다)
+     ⚠️⚠️ [실사고 2026-09-15] loadDetail 을 loadList 보다 먼저 불렀더니 상세가 곧바로 지워졌다.
+        loadList 안에 「고른 제품이 목록에 없으면 상세를 비운다」가 있기 때문이다(어제 넣은 장치).
+        ⇒ 목록을 먼저 그리고, 그 뒤에 상세를 연다. */
   const p = new URLSearchParams(location.search);
   const wantId = p.get("id"), wantSku = p.get("sku");
+  if(wantId || wantSku){
+    // 넘어온 제품은 비활성이거나 세트일 수 있다 — 필터를 풀어 목록에 보이게 한다
+    onlyActive = false; document.getElementById("onlyActive").checked = false;
+    kind = ""; document.getElementById("kind").value = "";
+  }
   if(wantSku){
     q = wantSku;
     document.getElementById("q").value = wantSku;
-    onlyActive = false; document.getElementById("onlyActive").checked = false;
-    kind = ""; document.getElementById("kind").value = "";
   }
   if(wantId){
-    // ⚠️ 목록 필터에 걸려 안 보일 수 있다 — 상세는 id 로 바로 연다
+    // 목록이 「고른 것」으로 알아보게 먼저 세운다 — 그래야 loadList 가 상세를 지우지 않는다
     curId = wantId;
-    onlyActive = false; document.getElementById("onlyActive").checked = false;
-    kind = ""; document.getElementById("kind").value = "";
-    loadDetail(wantId);
+    const { data } = await sb.from("product").select("sku").eq("id", wantId).maybeSingle();
+    if(data){
+      q = data.sku;
+      document.getElementById("q").value = data.sku;
+    }
   }
 
   await loadList();
+  if(curId) await loadDetail(curId);
 });
 </script>
 </body>
