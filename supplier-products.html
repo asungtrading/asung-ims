@@ -4,60 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Supplier Products · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
-  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header .who{font-size:13px;color:var(--muted)}
-  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  header button:hover{background:#f2f4f8}
-
-  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
-  .list{width:300px;flex:0 0 300px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;position:sticky;top:70px}
-  .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-  .list input[type=search]{width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px}
-  .list input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-  .list .opts{display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
-  .list .opts label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-  .list .rows{max-height:calc(100vh - 210px);overflow:auto}
-  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .list .row:hover{background:#fafbfd}
-  .list .row.cur{background:#eef3ff;color:#3b5bdb;font-weight:600}
-  .list .row .cnt{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted);font-weight:500}
-  .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
-  .list .foot .sp{flex:1}
-  .list .foot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
-  .list .foot button:disabled{opacity:.45;cursor:default}
-  .range{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted)}
-
-  main{flex:1;min-width:0}
-  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .bar .nm{font-size:16px;font-weight:700}
-  .bar .sp{flex:1}
-  .bar input[type=search]{border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:12.5px;width:200px}
-  .bar label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
-  .stats{display:flex;gap:16px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .stat{font-size:12px;color:var(--muted)}
-  .stat b{display:block;font-size:17px;color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-weight:700;margin-top:1px}
-  .stat.warn b{color:#92640a}
-
-  table{border-collapse:collapse;width:100%;font-size:13px}
-  thead th{position:sticky;top:0;background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
-    font-size:10.5px;font-family:ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;white-space:nowrap}
-  tbody td{padding:7px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-  tbody tr:hover{background:#fafbfd}
-  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .num{font-family:ui-monospace,Menlo,monospace;text-align:right}
-  .dim{color:#9aa4b2}
-  .on{color:#16a34a;font-weight:600} .off{color:#b42318;font-weight:600}
-  .lnk{color:var(--accent);text-decoration:none}
-  .lnk:hover{text-decoration:underline}
-  .msg{padding:24px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-  .err{color:#dc2626;font-weight:600}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:300px;flex:0 0 300px}
+  .list .rows{max-height:calc(100vh - 210px)}
+  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .list .row.cur{color:#3b5bdb;font-weight:600}
+  .bar input[type=search]{width:200px}
+  thead th{position:sticky;top:0}
 </style>
 </head>
 <body>
@@ -90,6 +45,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -104,27 +60,23 @@
    ⭐ 단가가 둘 다 없는 줄(전체 1,227)이 공급처별로 몇인지 보인다 — 채울 자리를 찾는 재료다.
    ───────────────────────────────────────────────────────────── */
 
-const SPAGE = 100, PPAGE = 200;
 let sb=null, isAdmin=false, showAll=false;
-let spage=0, sq="", stotal=0, curSup=null, curName="";
-let ppage=0, pq="", onlyDefault=false, noPrice=false, ptotal=0;
+let sq="", curSup=null, curName="";
+let pq="", onlyDefault=false, noPrice=false;
+/* ⭐ 페이징이 둘이다 — 왼쪽 공급처(sp) · 오른쪽 그 공급처의 제품(pp) */
+const sp = imsPage(100), pp = imsPage(200);
 
-const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
-const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
-const yn  = v => v===true ? '<span class="on">✓</span>' : v===false ? '<span class="off">✗</span>' : '<span class="dim">—</span>';
 
 /* ── 공급처 목록 ──────────────────────────────────────── */
 async function loadSuppliers(){
-  const from = spage*SPAGE, to = from+SPAGE-1;
   let qry = sb.from("supplier").select("id,name", { count:"exact" });
   // ⭐ 매니저는 정돈된 목록만 본다 (suppliers.html 과 같은 규칙)
   if(!isAdmin || !showAll){
     qry = qry.eq("is_active", true).eq("is_purchasable", true).eq("is_discontinued", false);
   }
   if(sq) qry = qry.ilike("name", `%${sq}%`);
-  const { data, count, error } = await qry.order("name").range(from, to);
+  const { data, error } = await sp.run(qry.order("name"));
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  stotal = count || 0;
 
   document.getElementById("rows").innerHTML = data.length
     ? data.map(r => `<div class="row ${r.id===curSup?"cur":""}" data-id="${r.id}" data-name="${esc(r.name)}">
@@ -134,15 +86,12 @@ async function loadSuppliers(){
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = () => {
       curSup = el.dataset.id; curName = el.dataset.name;
-      ppage=0; pq=""; onlyDefault=false; noPrice=false;
+      pp.reset(); pq=""; onlyDefault=false; noPrice=false;
       loadSuppliers(); loadProducts();
     };
   });
 
-  const f = stotal ? from+1 : 0, t2 = Math.min(from+data.length, stotal);
-  document.getElementById("srange").textContent = `${f}–${t2} / ${stotal.toLocaleString()}`;
-  document.getElementById("sprev").disabled = spage===0;
-  document.getElementById("snext").disabled = (from+SPAGE) >= stotal;
+  sp.render({ range:"#srange", prev:"#sprev", next:"#snext" }, loadSuppliers);
 }
 
 /* ── 그 공급처의 제품 ─────────────────────────────────── */
@@ -154,18 +103,16 @@ async function loadProducts(){
       .select("*, product(id,sku,name,is_active,parent_product_id)", { count:"exact" })
       .eq("supplier_id", curSup).eq("is_active", true);
 
-  const from = ppage*PPAGE, to = from+PPAGE-1;
   let qry = base();
   if(onlyDefault) qry = qry.eq("is_default", true);
   if(noPrice)     qry = qry.or("and(cost.is.null,fixed_cost.is.null),and(cost.eq.0,fixed_cost.eq.0)");
 
-  const [{ data, count, error }, dflt, dead] = await Promise.all([
-    qry.order("last_supplied", { ascending:false, nullsFirst:false }).range(from, to),
+  const [{ data, error }, dflt, dead] = await Promise.all([
+    pp.run(qry.order("last_supplied", { ascending:false, nullsFirst:false })),
     base().eq("is_default", true).select("id", { count:"exact", head:true }),
     base().or("and(cost.eq.0,fixed_cost.eq.0)").select("id", { count:"exact", head:true }),
   ]);
   if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
-  ptotal = count || 0;
 
   const rows = (data||[]).map(x => {
     const p = x.product || {};
@@ -176,11 +123,10 @@ async function loadProducts(){
       <td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
       <td class="num">${x.cost==null?'<span class="dim">—</span>':esc(x.cost)}</td>
       <td class="mono">${dim(x.last_supplied)}</td>
-      <td>${yn(x.is_default)}</td>
+      <td>${yn(x.is_default, false)}</td>
     </tr>`;
   });
 
-  const f = ptotal ? from+1 : 0, t2 = Math.min(from+(data||[]).length, ptotal);
 
   box.innerHTML = `
     <div class="card">
@@ -192,31 +138,25 @@ async function loadProducts(){
         <input type="search" id="pq" value="${esc(pq)}" placeholder="Search SKU or name">
       </div>
       <div class="stats">
-        <div class="stat">Products linked<b>${ptotal.toLocaleString()}</b></div>
+        <div class="stat">Products linked<b>${pp.total.toLocaleString()}</b></div>
         <div class="stat">Default here<b>${(dflt.count||0).toLocaleString()}</b></div>
         <div class="stat ${dead.count?"warn":""}">No price<b>${(dead.count||0).toLocaleString()}</b></div>
       </div>
       ${rows.length ? `<table><thead><tr>
           <th>SKU</th><th>Name</th><th>Supplier SKU</th><th>Fixed</th><th>Latest</th><th>Last supplied</th><th>Default</th>
         </tr></thead><tbody>${rows.join("")}</tbody></table>
-        <div class="bar"><span class="range">${f.toLocaleString()}–${t2.toLocaleString()} / ${ptotal.toLocaleString()}</span>
+        <div class="bar"><span class="range" id="prange"></span>
           <span class="sp"></span>
-          <button id="pprev" ${ppage===0?"disabled":""}>←</button>
-          <button id="pnext" ${(from+PPAGE)>=ptotal?"disabled":""}>→</button></div>`
+          <button id="pprev">←</button><button id="pnext">→</button></div>`
         : '<div class="msg">No products linked.</div>'}
     </div>`;
 
   const $ = id => document.getElementById(id);
-  $("onlyDefault").onchange = e => { onlyDefault = e.target.checked; ppage=0; loadProducts(); };
-  $("noPrice").onchange     = e => { noPrice     = e.target.checked; ppage=0; loadProducts(); };
-  if($("pprev")) $("pprev").onclick = () => { if(ppage>0){ ppage--; loadProducts(); } };
-  if($("pnext")) $("pnext").onclick = () => { ppage++; loadProducts(); };
+  $("onlyDefault").onchange = e => { onlyDefault = e.target.checked; pp.reset(); loadProducts(); };
+  $("noPrice").onchange     = e => { noPrice     = e.target.checked; pp.reset(); loadProducts(); };
+  if($("prange")) pp.render({ range:"#prange", prev:"#pprev", next:"#pnext" }, loadProducts);
 
-  let t=null;
-  $("pq").addEventListener("input", e => {
-    clearTimeout(t);
-    t = setTimeout(()=>{ pq = e.target.value.trim(); ppage=0; loadProducts(); }, 300);
-  });
+  imsQ("#pq", v => { pq = v; pp.reset(); loadProducts(); }, 300);
   // ⚠️ 제품 이름·SKU 검색은 조인 쪽이라 서버에서 못 건다 — 지금은 받은 페이지 안에서만 거른다
   if(pq){
     const needle = pq.toLowerCase();
@@ -229,19 +169,11 @@ async function loadProducts(){
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
-  document.getElementById("who").textContent = me.name + " · " + me.role;
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
+  imsHeader(me);
   if(isAdmin) document.getElementById("opts").hidden = false;
 
-  document.getElementById("sprev").onclick = () => { if(spage>0){ spage--; loadSuppliers(); } };
-  document.getElementById("snext").onclick = () => { spage++; loadSuppliers(); };
-  document.getElementById("showAll").onchange = e => { showAll = e.target.checked; spage=0; loadSuppliers(); };
-
-  let timer=null;
-  document.getElementById("sq").addEventListener("input", e => {
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ sq = e.target.value.trim(); spage=0; loadSuppliers(); }, 250);
-  });
+  document.getElementById("showAll").onchange = e => { showAll = e.target.checked; sp.reset(); loadSuppliers(); };
+  imsQ("#sq", v => { sq = v; sp.reset(); loadSuppliers(); });
 
   await loadSuppliers();
 });
