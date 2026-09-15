@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings · Asung IMS</title>
+<style>
+  :root{ --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--ink)}
+  header{display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
+  header .sp{flex:1}
+  header .who{font-size:13px;color:var(--muted)}
+  header button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  header button:hover{background:#f2f4f8}
+
+  .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
+  nav.tables{width:210px;flex:0 0 210px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;position:sticky;top:70px}
+  nav.tables button{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:none;
+    border-radius:8px;padding:9px 11px;font:inherit;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;text-align:left}
+  nav.tables button:hover{background:#f2f4f8}
+  nav.tables button.cur{background:#eef3ff;color:#3b5bdb}
+  nav.tables .cnt{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted);font-weight:500}
+  nav.tables button.cur .cnt{color:#3b5bdb}
+
+  main{flex:1;min-width:0}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .bar h2{margin:0;font-size:15px;font-family:ui-monospace,Menlo,monospace}
+  .bar .sp{flex:1}
+  .bar input[type=search]{border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px;width:220px}
+  .bar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
+  .bar label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
+  .bar button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .bar button:disabled{opacity:.45;cursor:default}
+  .range{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  thead th{position:sticky;top:0;background:#fafbfd;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);
+    font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+  tbody td{padding:8px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
+  tbody tr:hover{background:#fafbfd}
+  td.num{font-family:ui-monospace,Menlo,monospace;text-align:right}
+  td.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+  .off{color:#b42318;font-weight:600}
+  .on{color:#16a34a;font-weight:600}
+  .dim{color:#9aa4b2}
+  .msg{padding:26px 14px;text-align:center;color:var(--muted);font-size:13.5px}
+  .err{color:#dc2626;font-weight:600}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="wrap">
+  <nav class="tables" id="nav"></nav>
+  <main>
+    <div class="card">
+      <div class="bar">
+        <h2 id="tblName">—</h2>
+        <span class="pill" id="tblNote"></span>
+        <span class="sp"></span>
+        <label><input type="checkbox" id="onlyActive"> 활성만</label>
+        <input type="search" id="q" placeholder="이름으로 검색">
+        <span class="range" id="range"></span>
+        <button id="prev">←</button>
+        <button id="next">→</button>
+      </div>
+      <div id="body"><div class="msg">불러오는 중…</div></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Settings — ref_ 여덟 표 보기 (읽기 전용)
+   정본: docs/design/po-module.md §3-a
+
+   ⚠️⚠️ PostgREST 는 한 번에 1,000행까지만 준다. 조용히 잘린다(이 프로젝트 사고 5건).
+        ⇒ 모든 표를 .range() 로 나눠 읽고 count:'exact' 로 총계를 받는다.
+        ref_bin 2,675 만 지금 캡을 넘지만 예외를 두지 않는다 — 나중에 늘면 그때 잘린다.
+   ⚠️ 검색은 서버에서 한다(ilike). 받아 와서 거르면 첫 100행 안에서만 찾게 된다.
+   ───────────────────────────────────────────────────────────── */
+
+const PAGE = 100;
+
+/* 여러 표가 함께 쓰는 칸 — ⚠️ TABLES 보다 먼저 선언해야 한다(const 는 호이스팅되지 않는다) */
+const C_ACTIVE = { key:"is_active", label:"활성", bool:1 };
+const C_SOURCE = { key:"source",    label:"출처", mono:1, dim:1 };
+
+/* 표마다 칸이 다르다 — information_schema 실측(2026-09-15) 기준. 기억으로 쓰지 않는다. */
+const TABLES = [
+  { t:"ref_brand",        label:"Brand",        note:"브랜드",
+    cols:[ C("name","이름") , C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+
+  { t:"ref_category",     label:"Category",     note:"카테고리",
+    cols:[ C("name","이름"), C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+
+  { t:"ref_unit",         label:"Unit",         note:"단위",
+    cols:[ C("name","이름"), C_ACTIVE, C_SOURCE, C("note","메모",{dim:1}) ] },
+
+  { t:"ref_currency",     label:"Currency",     note:"통화 · 자연키는 code",
+    search:["code","name"],
+    cols:[ C("code","코드",{mono:1}), C("name","이름"), C("symbol","기호",{mono:1}), C_ACTIVE, C_SOURCE ] },
+
+  { t:"ref_payment_term", label:"Payment Term", note:"결제조건 · ⚠️ Cin7 Duration 은 기일이 아니라 할인 기한",
+    cols:[ C("name","이름"), C("net_days","기일",{num:1}), C("discount_days","할인기한",{num:1}),
+           C("discount_percent","할인%",{num:1}), C("is_split","분할",{bool:1}), C_ACTIVE ] },
+
+  { t:"ref_account",      label:"Account",      note:"계정과목 · Cin7 이 Code 로 참조",
+    search:["code","name"], order:"code",
+    cols:[ C("code","코드",{mono:1}), C("name","이름"), C("account_class","구분"),
+           C("account_type","유형"), C("for_payments","지급용",{bool:1}), C_ACTIVE ] },
+
+  { t:"ref_warehouse",    label:"Warehouse",    note:"창고",
+    cols:[ C("name","이름"), C("city","도시"), C("state_province","주"), C("country","국가"),
+           C("is_default","기본",{bool:1}), C_ACTIVE ] },
+
+  { t:"ref_bin",          label:"Bin",          note:"⚠️ 2,675행 — 1,000행 캡을 넘는다",
+    select:"*, ref_warehouse(name)",
+    cols:[ C("name","이름",{mono:1}),
+           { key:"warehouse", label:"창고", get:r => r.ref_warehouse ? r.ref_warehouse.name : "" },
+           C("zone","존"), C("is_staging","스테이징",{bool:1}), C_ACTIVE ] },
+];
+
+function C(key, label, o){ return Object.assign({ key, label }, o||{}); }
+
+let sb=null, cur=TABLES[0], page=0, q="", onlyActive=false, total=null, counts={};
+
+/* ── 그리기 ───────────────────────────────────────────── */
+function drawNav(){
+  document.getElementById("nav").innerHTML = TABLES.map((x,i)=>
+    `<button data-i="${i}" class="${x===cur?"cur":""}">
+       <span>${x.label}</span><span class="cnt">${counts[x.t]==null?"":counts[x.t].toLocaleString()}</span>
+     </button>`).join("");
+  document.querySelectorAll("nav.tables button").forEach(b=>{
+    b.onclick = () => { cur = TABLES[+b.dataset.i]; page=0; q=""; document.getElementById("q").value=""; load(); };
+  });
+}
+
+function cellHtml(col, row){
+  const v = col.get ? col.get(row) : row[col.key];
+  if(col.bool) return v===true ? '<span class="on">✓</span>'
+                : v===false ? '<span class="off">✗</span>'
+                : '<span class="dim">—</span>';
+  if(v===null || v===undefined || v==="") return '<span class="dim">—</span>';
+  return String(v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+}
+
+async function load(){
+  document.getElementById("tblName").textContent = cur.t;
+  document.getElementById("tblNote").textContent = cur.note || "";
+  document.getElementById("body").innerHTML = '<div class="msg">불러오는 중…</div>';
+  drawNav();
+
+  const from = page*PAGE, to = from + PAGE - 1;
+  let qry = sb.from(cur.t).select(cur.select || "*", { count:"exact" });
+
+  if(onlyActive) qry = qry.eq("is_active", true);
+  if(q){
+    const fields = cur.search || ["name"];
+    qry = qry.or(fields.map(f => `${f}.ilike.%${q}%`).join(","));
+  }
+  qry = qry.order(cur.order || "name", { ascending:true }).range(from, to);
+
+  const { data, count, error } = await qry;
+  if(error){
+    document.getElementById("body").innerHTML = `<div class="msg err">읽기 실패 — ${error.message}</div>`;
+    return;
+  }
+  total = count; counts[cur.t] = count; drawNav();
+
+  if(!data.length){
+    document.getElementById("body").innerHTML = '<div class="msg">해당하는 행이 없습니다.</div>';
+  } else {
+    const head = cur.cols.map(c=>`<th>${c.label}</th>`).join("");
+    const rows = data.map(r =>
+      "<tr>" + cur.cols.map(c=>{
+        const cls = [c.num?"num":"", c.mono?"mono":"", c.dim?"dim":""].filter(Boolean).join(" ");
+        return `<td class="${cls}">${cellHtml(c,r)}</td>`;
+      }).join("") + "</tr>").join("");
+    document.getElementById("body").innerHTML =
+      `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  const shownFrom = total ? from+1 : 0, shownTo = Math.min(from+data.length, total);
+  document.getElementById("range").textContent =
+    `${shownFrom.toLocaleString()}–${shownTo.toLocaleString()} / ${(total||0).toLocaleString()}`;
+  document.getElementById("prev").disabled = page===0;
+  document.getElementById("next").disabled = (from + PAGE) >= total;
+}
+
+/* ── 시작 ─────────────────────────────────────────────── */
+imsAuth.start({ changePw:true }, async (client, me) => {
+  sb = client;
+  document.getElementById("who").textContent = me.name + " · " + me.role;
+  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
+
+  document.getElementById("prev").onclick = () => { if(page>0){ page--; load(); } };
+  document.getElementById("next").onclick = () => { page++; load(); };
+  document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; page=0; load(); };
+
+  let timer=null;
+  document.getElementById("q").addEventListener("input", (e)=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ q = e.target.value.trim(); page=0; load(); }, 250);
+  });
+
+  await load();
+});
+</script>
+</body>
+</html>

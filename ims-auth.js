@@ -206,6 +206,7 @@
     btn._imsNav=true;
     // ⬜ IMS 화면이 늘면 여기에 더한다. 셋째 값은 requirePerm — null 이면 로그인만으로 보인다
     const items=[
+      ["Settings","settings.html",null],
       ["Home","index.html",null],
     ];
     const isAdmin=meData.role==="admin", isMgr=meData.role==="manager";
