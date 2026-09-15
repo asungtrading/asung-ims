@@ -129,7 +129,7 @@ tbody tr:hover{background:#fafbfd}
 /* ── 값 표시 ──────────────────────────────────
    ⚠️ 색은 is_active 에만 쓴다. staging·default·primary 는 false 가 정상인데
       빨갛게 칠하면 전 행이 경고처럼 보인다(2026-09-15 화면에서 드러남).
-   ⬜ suppliers · products · supplier-products 는 아직 is_default·is_primary 를 칠한다 */
+   ✅ [2026-09-15 오후] 여섯 화면 전부 — is_default·is_primary 는 yn(v, false) 로 회색 */
 .mono{font-family:var(--mono);font-size:12.5px}
 .num{font-family:var(--mono);text-align:right}
 .dim{color:#9aa4b2}

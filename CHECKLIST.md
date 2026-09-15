@@ -27,6 +27,17 @@
 
 ⚠️ 콘솔(F12)에 빨간 오류가 없어야 한다. 화면이 떠도 오류가 나면 일부만 도는 것일 수 있다.
 
+### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
+
+한 곳을 고치면 여섯이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+```
+[ ] 여섯 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+[ ] 그 다음 2~7절을 처음부터 훑는다 — 숫자까지
+[ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 여섯 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+```
+📌 정본 규칙: `asung-wms/docs/design/po-module.md` §10-j 3-g.
+
 ---
 
 ## 1. `index.html` — 배선 확인
@@ -62,7 +73,8 @@
 ```
 [ ] 기본 상태(Active only 켜짐)에서 1–100 / 226
 [ ] Active only 를 풀면 / 257 · inactive 칩이 빨강
-[ ] Purchasable 을 켜면 / 217
+[ ] Purchasable 을 켜면 / 161   ← ⚠️ [정정 2026-09-15 오후 · SQL 실측] 처음엔 217 로 적었다 — 「226 − 판정없음 31」로
+    어림한 값을 실측처럼 적은 것. 판정 없음(null)은 40 이고 is_purchasable=false 인 곳도 있다
 [ ] Hide discontinued 까지 켜면 ⭐ / 138   ← 실제 매입처
 [ ] discontinued 칩이 황갈색 (inactive 의 빨강과 다르다)
 [ ] 한 곳을 누르면 오른쪽에 상세가 뜬다
@@ -170,8 +182,8 @@
 ⬜ staff.html — [2026-09-15] 공통 파일(ims-ui.css · ims-ui.js)로 옮겼다. 7절 항목은 코드로 되짚었다
    (자기 행 role·is_active 잠김 · imsSaved 로 0행이면 Not saved · 삭제 버튼 없음 · 전량 읽기 caps-ok)
    — ⚠️ 눈으로는 아직 안 봤다. 옮긴 뒤 7절을 처음부터 훑을 것(특히 Save 가 UPDATED 를 바꾸는지)
-⬜ 불리언 색 — settings.html 만 고쳤다. suppliers/products/supplier-products 의
-   is_default · is_primary 는 아직 false 를 빨갛게 칠한다
+✅ 불리언 색 — [2026-09-15 오후] suppliers/products/supplier-products 도 is_default · is_primary 를
+   yn(v, false) 로 회색으로 바꿨다(공통 파일로 옮기며). 색은 is_active 에만 — 여섯 화면 전부
 ⬜ supplier-products.html 의 제품 검색은 받은 페이지(200줄) 안에서만 걸린다
    — 조인된 칸이라 서버에서 못 거른다. 공급처 하나에 200줄이 넘으면 뒤쪽은 안 걸린다
 ```
