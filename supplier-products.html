@@ -66,6 +66,13 @@ let pq="", onlyDefault=false, noPrice=false;
 /* ⭐ 페이징이 둘이다 — 왼쪽 공급처(sp) · 오른쪽 그 공급처의 제품(pp) */
 const sp = imsPage(100), pp = imsPage(200);
 
+/* ⭐ 왼쪽 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb). */
+function clearDetail(){
+  curSup = null; curName = "";
+  document.getElementById("detail").innerHTML =
+    '<div class="card"><div class="msg">Select a supplier.</div></div>';
+}
+
 
 /* ── 공급처 목록 ──────────────────────────────────────── */
 async function loadSuppliers(){
@@ -172,8 +179,8 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   imsHeader(me);
   if(isAdmin) document.getElementById("opts").hidden = false;
 
-  document.getElementById("showAll").onchange = e => { showAll = e.target.checked; sp.reset(); loadSuppliers(); };
-  imsQ("#sq", v => { sq = v; sp.reset(); loadSuppliers(); });
+  document.getElementById("showAll").onchange = e => { showAll = e.target.checked; sp.reset(); clearDetail(); loadSuppliers(); };
+  imsQ("#sq", v => { sq = v; sp.reset(); clearDetail(); loadSuppliers(); });
 
   await loadSuppliers();
 });

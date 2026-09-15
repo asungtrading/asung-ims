@@ -90,6 +90,14 @@ let sb=null, isAdmin=false, showDead=false;
    loadList 가 상세를 비우는데, 나중에 도착한 loadDetail 이 다시 써서 목록에 없는 것이 남는다.
    ⇒ 요청마다 번호를 붙여 최신이 아니면 쓰지 않는다. */
 let detailSeq = 0;
+
+/* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb). */
+function clearDetail(){
+  curId = null;
+  detailSeq++;
+  document.getElementById("detail").innerHTML =
+    '<div class="card"><div class="msg">Search for a product.</div></div>';
+}
 let q="", onlyActive=true, kind="single", brand="", cat="", curId=null;
 const pg = imsPage(100);
 let openSets = {};   // 펼친 낱개 id → 그 세트들 (캐럿)
@@ -171,16 +179,6 @@ async function loadList(){
       loadList();
     };
   });
-
-  // 필터를 바꿔 고른 제품이 목록에서 사라지면 상세도 비운다
-  // ⚠️ suppliers.html 에서 고쳤는데 여기서 빠뜨렸다(2026-09-15 · Kind=Singles 인데 세트 상세가 남아 있었다)
-  const shown = new Set();
-  data.forEach(r => { shown.add(r.id); (hasKids[r.id]||[]).forEach(k => shown.add(k.id)); });
-  if(curId && !shown.has(curId)){
-    curId = null;
-    document.getElementById("detail").innerHTML =
-      '<div class="card"><div class="msg">Search for a product.</div></div>';
-  }
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
@@ -355,12 +353,12 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
   imsHeader(me);
 
-  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
   document.getElementById("kind").value = kind;
-  document.getElementById("kind").onchange = e => { kind = e.target.value; pg.reset(); openSets={}; loadList(); };
-  document.getElementById("cat").onchange  = e => { cat  = e.target.value; pg.reset(); loadList(); };
-  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
+  document.getElementById("kind").onchange = e => { kind = e.target.value; pg.reset(); openSets={}; clearDetail(); loadList(); };
+  document.getElementById("cat").onchange  = e => { cat  = e.target.value; pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
 
   /* 브랜드·카테고리 — ref_ 표에서 받는다. ⚠️ 브랜드 중에는 제품이 없는 것도 있다(고르면 빈 목록) */
   const [bl, cl] = await Promise.all([

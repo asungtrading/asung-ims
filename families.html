@@ -68,6 +68,13 @@
 let sb=null, q="", axis="", curId=null;
 const pg = imsPage(100);
 
+/* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb). */
+function clearDetail(){
+  curId = null;
+  document.getElementById("detail").innerHTML =
+    '<div class="card"><div class="msg">Select a family.</div></div>';
+}
+
 /* ⚠️ 옵션 축 이름이 갈려 있다(2026-09-15 실측) — Color 463 / color 38 · Flavor 4 / Flavour 3.
    ⭐ 화면에서만 합친다. 데이터는 Cin7 에서 온 값이라 고쳐도 다음 재적재가 되돌린다.
    ⚠️ 명백한 것만 넣는다 — Size/Volume/Length, Type/Style/Design/Shape 는 실무에서
@@ -110,11 +117,6 @@ async function loadList(){
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
   });
-
-  if(curId && !data.some(r => r.id === curId)){
-    curId = null;
-    document.getElementById("detail").innerHTML = '<div class="card"><div class="msg">Select a family.</div></div>';
-  }
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
@@ -174,8 +176,8 @@ async function loadDetail(id){
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   imsHeader(me);
-  document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
+  document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
 
   /* 옵션 축 목록 — 1,141행을 다 읽어 고유값을 뽑는다(캡 아래라 두 번이면 된다) */
   const seen = {};

@@ -66,6 +66,16 @@ let sb=null, me=null, isAdmin=false;
 /* ⚠️ loadDetail 이 조회를 기다리는 사이에 필터가 바뀌면 loadList 가 상세를 비우는데,
    나중에 도착한 loadDetail 이 다시 쓴다 ⇒ 번호를 붙여 최신이 아니면 쓰지 않는다. */
 let detailSeq = 0;
+
+/* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb).
+   ⚠️ 전에는 「고른 것이 이 페이지에 없으면 비운다」였는데, 알파벳 앞쪽이면 그대로 남고
+      2페이지로 넘기면 보던 상세가 사라져서 언제 비는지 알 수 없었다. */
+function clearDetail(){
+  curId = null;
+  detailSeq++;   // 날아오던 요청이 있으면 그것도 무효로
+  document.getElementById("detail").innerHTML =
+    '<div class="card"><div class="msg">Select a supplier.</div></div>';
+}
 let q="", onlyActive=true, onlyPurch=false, hideDisc=false, curId=null;
 const pg = imsPage(100);
 
@@ -101,13 +111,6 @@ async function loadList(){
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
   });
-
-  // 필터를 바꿔 고른 공급처가 목록에서 사라지면 상세도 비운다 (왼쪽·오른쪽이 어긋나 보인다)
-  if(curId && !data.some(r => r.id === curId)){
-    curId = null;
-    document.getElementById("detail").innerHTML =
-      '<div class="card"><div class="msg">Select a supplier.</div></div>';
-  }
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
@@ -197,10 +200,10 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   imsHeader(me);
   if(isAdmin) document.getElementById("opts").hidden = false;
 
-  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
-  document.getElementById("onlyPurch").onchange  = e => { onlyPurch  = e.target.checked; pg.reset(); loadList(); };
-  document.getElementById("hideDisc").onchange   = e => { hideDisc   = e.target.checked; pg.reset(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("onlyPurch").onchange  = e => { onlyPurch  = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("hideDisc").onchange   = e => { hideDisc   = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
 
   await loadList();
 });
