@@ -75,7 +75,7 @@
   <section class="list">
     <div class="top">
       <input type="search" id="q" placeholder="Search name">
-      <div class="opts">
+      <div class="opts" id="opts" hidden>
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
         <label><input type="checkbox" id="onlyPurch"> Purchasable</label>
         <label><input type="checkbox" id="hideDisc"> Hide discontinued</label>
@@ -109,7 +109,8 @@
    ───────────────────────────────────────────────────────────── */
 
 const PAGE = 100;
-let sb=null, page=0, q="", onlyActive=true, onlyPurch=false, hideDisc=false, total=0, curId=null;
+let sb=null, me=null, isAdmin=false;
+let page=0, q="", onlyActive=true, onlyPurch=false, hideDisc=false, total=0, curId=null;
 
 const esc = v => String(v==null?"":v).replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
 const dim = v => (v===null||v===undefined||v==="") ? '<span class="dim">—</span>' : esc(v);
@@ -120,11 +121,17 @@ async function loadList(){
   const from = page*PAGE, to = from+PAGE-1;
   let qry = sb.from("supplier")
     .select("id,name,is_active,is_purchasable,is_discontinued", { count:"exact" });
-  if(onlyActive) qry = qry.eq("is_active", true);
-  if(onlyPurch)  qry = qry.eq("is_purchasable", true);
-  // ⭐ is_active(Cin7 에 살아 있나) · is_purchasable(살 수 있는 곳인가) · is_discontinued(지금도 사는가)
-  //    셋은 서로 다른 축이다 — discontinued 인데 active 인 곳이 실제로 있다(②에서 두 칸으로 가른 이유)
-  if(hideDisc)   qry = qry.eq("is_discontinued", false);
+  // ⭐ 매니저는 정돈된 목록만 본다 — 살아 있고 · 살 수 있고 · 지금도 거래하는 곳(2026-09-15 실측 138곳)
+  //    admin 만 토글로 그 바깥을 꺼내 본다(판정이 없는 31곳 · 잘못 꺼진 곳을 정리하는 자리).
+  // ⚠️ 이것은 화면에서 감추는 것이지 막는 것이 아니다 — anon key 가 공개라 PostgREST 를 직접 치면 다 보인다.
+  //    지금은 감추는 것으로 충분하다(공급처 목록은 비밀이 아니다). 진짜 막을 것이 생기면 RLS 로 간다.
+  if(!isAdmin){
+    qry = qry.eq("is_active", true).eq("is_purchasable", true).eq("is_discontinued", false);
+  } else {
+    if(onlyActive) qry = qry.eq("is_active", true);
+    if(onlyPurch)  qry = qry.eq("is_purchasable", true);
+    if(hideDisc)   qry = qry.eq("is_discontinued", false);
+  }
   if(q) qry = qry.ilike("name", `%${q}%`);
   const { data, count, error } = await qry.order("name").range(from, to);
 
@@ -144,6 +151,13 @@ async function loadList(){
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
   });
+
+  // 필터를 바꿔 고른 공급처가 목록에서 사라지면 상세도 비운다 (왼쪽·오른쪽이 어긋나 보인다)
+  if(curId && !data.some(r => r.id === curId)){
+    curId = null;
+    document.getElementById("detail").innerHTML =
+      '<div class="card"><div class="msg">Select a supplier.</div></div>';
+  }
 
   const f = total ? from+1 : 0, t2 = Math.min(from+data.length, total);
   document.getElementById("range").textContent = `${f}–${t2} / ${total.toLocaleString()}`;
@@ -229,9 +243,10 @@ async function loadDetail(id){
 }
 
 /* ── 시작 ─────────────────────────────────────────────── */
-imsAuth.start({ changePw:true }, async (client, me) => {
-  sb = client;
+imsAuth.start({ changePw:true }, async (client, meData) => {
+  sb = client; me = meData; isAdmin = (me.role === "admin");
   document.getElementById("who").textContent = me.name + " · " + me.role;
+  if(isAdmin) document.getElementById("opts").hidden = false;
   document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
 
   document.getElementById("prev").onclick = () => { if(page>0){ page--; loadList(); } };
