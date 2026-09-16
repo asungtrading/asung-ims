@@ -87,6 +87,10 @@
      · 입고 줄 합이 발주 수량을 **넘을 수 있다**(초과 입고). 넘은 만큼은 원장에 안 간다 — 설계대로다
      · po_line 에 received_qty 칸은 **없다**. 입고 줄 합이다
      · closed 의 뜻은 **입고 종료**다. 비용은 그 뒤에 붙는다 — 닫힌 문서에도 붙는다
+     · ⭐ 크레딧 노트는 `po_invoice` 의 `doc_kind='credit'` 이다(별도 표가 아니다).
+       **금액은 양수로 담는다** — 공급처 문서에 찍힌 그대로다. 빼는 것은 계산에서 한다.
+       [실무] PO 100 · 인보이스 100 · 입고 90 인 공급처가 있다 — 그때 크레딧을 받는다
+     · ⚠️ 미지급이 **음수면 받을 돈**이다 — 이미 낸 인보이스에 크레딧이 붙은 경우다. 결함이 아니다
 
    ⚠️ 색은 절제한다(§10-j 3-e). draft·confirmed 는 정상 진행이라 회색이고,
       closed 만 초록(입고 종료 = 완료 신호) · cancelled 만 빨강이다.
@@ -108,6 +112,15 @@ const money = (v) => (v === null || v === undefined || v === "")
 const qty = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
   : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:4 }));
+
+/* ⭐ 미지급이 음수면 **받을 돈**이다 — 이미 낸 인보이스에 크레딧이 붙었다.
+   공급처가 우리에게 빚진 것이고 다음 결제에서 덜 내거나 환불받는다(§11-h). */
+function unpaidCell(v){
+  const n = Number(v);
+  if(n === 0) return '<span class="dim">0.00</span>';
+  if(n < 0)   return `<span class="on">${money(-n)} credit due</span>`;
+  return `<span class="neutral">${money(n)}</span>`;
+}
 
 /* ⚠️ 색은 절제한다 — cancelled 만 빨강, closed 만 초록(완료). draft·confirmed 는 회색. */
 function stChip(s){
@@ -290,8 +303,27 @@ async function loadDetail(id){
       <td class="num">${bad ? `<span class="off">${money(i.diff)}</span>` : '<span class="dim">0.00</span>'}</td>
       <td class="num">${money(i.payable_net)}</td>
       <td class="num">${money(i.paid)}</td>
-      <td class="num">${Number(i.unpaid) === 0 ? '<span class="dim">0.00</span>' : `<span class="neutral">${money(i.unpaid)}</span>`}</td>
+      <td class="num">${Number(i.credit_total) > 0 ? `<span class="neutral">${money(i.credit_total)}</span>` : '<span class="dim">—</span>'}</td>
+      <td class="num">${unpaidCell(i.unpaid)}</td>
       <td class="num"><span class="dim">${esc(i.lines_for_this_po)}/${esc(i.line_count)}</span></td>
+    </tr>`;
+  });
+
+  /* 크레딧 — ⭐ po_invoice 의 doc_kind='credit'. 인보이스와 같은 표·같은 줄 구조다.
+     ⚠️ warnings 는 RPC 가 잡는다 — 다른 행을 봐야 하는 규칙이라 DB 제약으로 못 건다 */
+  const creds = (data.credits || []).map(c => {
+    const bad = Number(c.diff) !== 0;
+    const w = c.warnings || [];
+    return `<tr>
+      <td><span class="mono">${esc(c.credit_number)}</span>${w.length?`<div class="off" style="font-size:11.5px">⚠ ${esc(w.join(" · "))}</div>`:""}</td>
+      <td>${dim(c.credit_date)}</td>
+      <td class="mono">${c.credit_for_number ? esc(c.credit_for_number) : '<span class="dim">unattached</span>'}</td>
+      <td class="num">${money(c.total_amount)}</td>
+      <td class="num">${bad ? `<span class="off">${money(c.diff)}</span>` : '<span class="dim">0.00</span>'}</td>
+      <td class="num">${money(c.credit_net)}</td>
+      <td class="num">${Number(c.used) > 0 ? money(c.used) : '<span class="dim">—</span>'}</td>
+      <td class="num">${(c.remaining === null || c.remaining === undefined) ? '<span class="dim">—</span>' : `<span class="neutral">${money(c.remaining)}</span>`}</td>
+      <td class="num"><span class="dim">${esc(c.lines_for_this_po)}/${esc(c.line_count)}</span></td>
     </tr>`;
   });
 
@@ -359,8 +391,15 @@ async function loadDetail(id){
 
     ${tbl("Invoices", (data.invoices||[]).length,
       [["Number",""],["Date",""],["Due",""],["Printed","num"],["Computed","num"],["Diff","num"],
-       ["Payable","num"],["Paid","num"],["Unpaid","num"],["Lines","num"]], invs,
-      "⚠️ Payable 은 청구 총액이 아니다 — 안 낼 줄(운임 등)이 빠진 값이다. Diff 가 0 이 아니면 찍힌 총액과 계산이 다르다.")}
+       ["Payable","num"],["Paid","num"],["Credit","num"],["Unpaid","num"],["Lines","num"]], invs,
+      "⚠️ Payable 은 청구 총액이 아니다 — 안 낼 줄(운임 등)이 빠진 값이다. Diff 가 0 이 아니면 찍힌 총액과 계산이 다르다. " +
+      "Unpaid 가 credit due 면 받을 돈이다 — 이미 낸 뒤에 크레딧이 붙었다.")}
+
+    ${tbl("Credits", (data.credits||[]).length,
+      [["Number",""],["Date",""],["For",""],["Amount","num"],["Diff","num"],
+       ["Net","num"],["Used","num"],["Remaining","num"],["Lines","num"]], creds,
+      "금액은 양수로 담는다 — 공급처 문서에 찍힌 그대로다. 빼는 것은 계산에서 한다. " +
+      "For 가 unattached 면 아직 어느 인보이스에도 안 붙은 크레딧이고, Remaining 이 다음 결제에서 쓸 수 있는 금액이다.")}
 
     ${tbl("Charges", (data.charges||[]).length,
       [["Number",""],["Kind",""],["Supplier",""],["Date",""],["Allocated here","num"],["Charge total","num"],["Unpaid","num"]], chgs,
