@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoices &amp; Credits · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css */
+  [hidden]{display:none !important}
+  #wide{padding:14px}
+  #wide .card{padding:0}
+  .wfilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .wfilt .sp{flex:1}
+  .wfilt input[type=search]{min-width:260px;flex:0 1 320px}
+  .wfilt input,.wfilt select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .wfilt .dash{color:var(--muted);font-size:12px}
+  #wide table{font-size:12.5px}
+  #wide tbody tr{cursor:pointer}
+  #wide tbody tr:hover{background:#fafbfd}
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .invbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .invbar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+  .invgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media (max-width:900px){ .invgrid{grid-template-columns:1fr} }
+  .invsub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .pobtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+         font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .pobtn:hover{background:#f2f4f8}
+  .pobtn:disabled{opacity:.45;cursor:default}
+  .pobtn.go{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+  .pobtn.go:hover{background:#3550c4}
+  .qin{width:84px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
+       font-family:var(--mono);font-size:12.5px;text-align:right}
+  .qin.pin{width:104px}
+  .tin{width:150px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;font-size:12.5px}
+  .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
+        font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
+  .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+  .pomodal{position:fixed;inset:0;z-index:5000;background:rgba(16,22,30,.45);
+           display:flex;align-items:center;justify-content:center;padding:20px}
+  .pobox{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:86vh;
+         display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,20,30,.28)}
+  .pobox h4{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .pobox .pbody{padding:14px 16px;overflow:auto;flex:1}
+  .pobox .pfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .pobox .pfoot .sp{flex:1}
+  .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .frow{display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px;color:var(--muted)}
+  .frow label{min-width:120px}
+  .frow input,.frow select{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wsup"><option value="">All suppliers</option></select>
+      <select id="wkind">
+        <option value="all">Invoices &amp; credits</option>
+        <option value="invoice">Invoices</option>
+        <option value="credit">Credits</option>
+      </select>
+      <input type="date" id="wfrom" title="Document date from">
+      <span class="dash">—</span>
+      <input type="date" id="wto" title="Document date to">
+      <select id="wst">
+        <option value="open">Draft &amp; confirmed</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <select id="wunp">
+        <option value="all">Any balance</option>
+        <option value="unpaid">Unpaid only</option>
+        <option value="due">Credit due only</option>
+      </select>
+      <input type="search" id="wq" placeholder="Number · supplier · PO number">
+      <button class="pobtn" id="wclear">Clear</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Invoices & Credits — supplier documents that land on purchase orders
+   Canon: docs/design/po-module.md §11-e (discounts) · §11-g (invoices, credits) · §13
+
+   ⭐ A credit note is NOT a separate table. It is po_invoice with doc_kind='credit'.
+      Amounts are stored POSITIVE, exactly as printed on the supplier document.
+      The subtraction happens in the calculation, never in the stored value.
+
+   ⭐ Discounts sit on the DOCUMENT, never on the line. One 10% row applies to every
+      goods line at once. Rows are multiplied in sequence, never added:
+      [measured] 2,755.80 chained through 17% and 1% = 2,264.44; added = 2,259.76 (4.68 apart).
+
+   ⚠️ Calculation lives in the database (po_invoice_money view, po_invoice_detail RPC).
+      This screen only draws what it is handed. Never recompute here — a second copy drifts.
+
+   ⚠️ Things that look wrong but are not:
+      · Unpaid can be negative. That is money owed TO us — a credit landed after we paid.
+      · Payable is smaller than the invoiced total when a line is marked not payable
+        (freight billed on the invoice that we settle separately).
+      · Diff is the printed total minus our calculation. Non-zero means they disagree;
+        the printed total stays the source of truth.
+   ───────────────────────────────────────────────────────────── */
+
+let sb=null, me=null, isAdmin=false;
+let q="", kindF="all", stFilter="open", supFilter="", dateFrom="", dateTo="", balF="all", curId=null;
+let detailSeq = 0;
+const pgW = imsPage(50);
+
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:4 }));
+
+/* ⭐ Negative balance = they owe us. Draw it as a credit, not as a debt. */
+function balCell(v){
+  const n = Number(v);
+  if(!isFinite(n) || n === 0) return '<span class="dim">0.00</span>';
+  if(n < 0) return `<span class="on">${money(-n)} credit due</span>`;
+  return `<span class="neutral">${money(n)}</span>`;
+}
+function stChip(s){
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(s === "confirmed") return '<span class="chip good">confirmed</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+const kindChip = (k) => k === "credit"
+  ? '<span class="tag">credit</span>' : '<span class="tag">invoice</span>';
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ⚠️ RPC errors arrive as error.message and already end with "nothing was saved".
+   Show that sentence as it is. If the slot is gone, fall back to alert — never swallow it. */
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+
+/* ── Two modes ─────────────────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  loadWide();
+}
+function openInv(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  loadDetail(id);
+}
+
+/* ── List ──────────────────────────────────────────── */
+function baseQuery(){
+  let qy = sb.from("po_invoice_list").select("*", { count:"exact" });
+  if(kindF !== "all") qy = qy.eq("doc_kind", kindF);
+  if(stFilter === "open")     qy = qy.in("status", ["draft","confirmed"]);
+  else if(stFilter !== "all") qy = qy.eq("status", stFilter);
+  if(supFilter) qy = qy.eq("supplier_id", supFilter);
+  if(dateFrom)  qy = qy.gte("invoice_date", dateFrom);
+  if(dateTo)    qy = qy.lte("invoice_date", dateTo);
+  if(balF === "unpaid") qy = qy.gt("unpaid", 0);
+  if(balF === "due")    qy = qy.lt("unpaid", 0);
+  // ⚠️ po_numbers is built by the view so one search box also finds a document by its PO
+  if(q) qy = qy.or(`invoice_number.ilike.%${q}%,supplier_name.ilike.%${q}%,po_numbers.ilike.%${q}%`);
+  return qy.order("invoice_date", { ascending:false }).order("invoice_number", { ascending:false });
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){
+    box.innerHTML = '<div class="msg">No documents match.</div>';
+    pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th>Number</th><th>Kind</th><th>Date</th><th>Due</th><th>Supplier</th><th>POs</th>
+      <th class="num">Printed</th><th class="num">Computed</th><th class="num">Diff</th>
+      <th class="num">Payable</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th>
+    </tr></thead><tbody>${data.map(r => {
+      const bad = Number(r.diff) !== 0;
+      return `<tr data-id="${r.id}">
+        <td><span class="mono">${esc(r.invoice_number)}</span>${
+          r.credit_for_number ? `<div class="dim" style="font-size:11.5px">for ${esc(r.credit_for_number)}</div>` : ""}</td>
+        <td>${kindChip(r.doc_kind)}</td>
+        <td>${dim(r.invoice_date)}</td>
+        <td>${dim(r.due_date)}</td>
+        <td>${esc(r.supplier_name)}</td>
+        <td class="mono" style="font-size:11.5px">${dim(r.po_numbers)}</td>
+        <td class="num">${money(r.total_amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${bad ? `<span class="off">${money(r.computed_total)}</span>` : money(r.computed_total)}</td>
+        <td class="num">${bad ? `<span class="off">${money(r.diff)}</span>` : '<span class="dim">0.00</span>'}</td>
+        <td class="num">${money(r.payable_net)}</td>
+        <td class="num">${money(r.alloc_total)}</td>
+        <td class="num">${balCell(r.unpaid)}</td>
+        <td>${stChip(r.status)}</td>
+      </tr>`;
+    }).join("")}</tbody></table>
+    <div class="invsub">⚠️ Printed is what the supplier put on the document and stays the source of truth.
+      Computed is ours, from the lines and the discount chain. A non-zero Diff means they disagree — check the lines.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openInv(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── Detail ────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+
+  const { data, error } = await sb.rpc("po_invoice_detail", { p_invoice_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That document is gone.</div></div>'; return; }
+
+  const h = data.header, m = data.money || {};
+  const isCredit = h.doc_kind === "credit";
+  /* ⚠️ Only a draft can be edited. Confirming is an accounting act — it creates the amount
+     owed and sends the discount down into cost. Editing after that would change both silently. */
+  const ed = h.status === "draft";
+  const bad = Number(m.diff) !== 0;
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All documents</button>'];
+  if(ed){
+    acts.push('<button class="pobtn" data-act="addline">Add a line</button>');
+    acts.push('<button class="pobtn" data-act="adddisc">Add a discount</button>');
+    acts.push('<button class="pobtn" data-act="addpo">Add lines from a PO</button>');
+    acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
+  } else if(h.status === "confirmed"){
+    acts.push('<button class="pobtn" data-act="reopen">Reopen</button>');
+  }
+
+  const chips = [kindChip(h.doc_kind), stChip(h.status)];
+  if(h.credit_for_number) chips.push(`<span class="chip">for ${esc(h.credit_for_number)}</span>`);
+
+  const kvL = [
+    ["Supplier",      esc(h.supplier_name)],
+    ["Document date", dim(h.invoice_date)],
+    // ⚠️ Due date is typed in. It should be invoice date plus the term's net days,
+    //    but ref_payment_term has no day counts yet, so nothing can propose it.
+    ["Due date",      dim(h.due_date)],
+    ["Payment term",  dim(h.payment_term_name)],
+  ];
+  const kvR = [
+    ["Currency",     `<span class="mono">${dim(h.currency_code)}</span>` +
+                     (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
+    ["Created by",   dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
+    ["Confirmed by", dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
+    ["Cancelled",    h.cancelled_at ? `<span class="off">${imsTs(h.cancelled_at)}</span>` : '<span class="dim">—</span>'],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  /* ⭐ The printed total is typed in from the document; leaving it at zero is normal
+     while the document is being entered, and the Diff makes that obvious. */
+  const stats = `
+    <div class="stats">
+      <div class="stat">Goods<b>${money(m.goods_sum)}</b></div>
+      <div class="stat">Discount<b>${esc(Number(m.discount_factor))}</b></div>
+      <div class="stat">Other lines<b>${money(m.other_sum)}</b></div>
+      <div class="stat">Computed<b>${money(m.computed_total)}</b></div>
+      <div class="stat ${bad ? "warn" : ""}">Printed<b>${money(h.total_amount)}</b></div>
+      <div class="stat ${bad ? "warn" : ""}">Diff<b>${money(m.diff)}</b></div>
+      <div class="stat">${isCredit ? "Credit net" : "Payable"}<b>${money(m.payable_net)}</b></div>
+      <div class="stat">${isCredit ? "Used" : "Paid"}<b>${money(m.alloc_total)}</b></div>
+      <div class="stat">${isCredit ? "Remaining" : "Balance"}<b>${
+        isCredit ? money(m.remaining) : balCell(m.unpaid)}</b></div>
+    </div>`;
+
+  /* Lines — each one carries what the purchase order says, so the two can be compared here. */
+  const lines = (data.lines || []).map(l => {
+    const diffQty = Number(l.qty_diff);
+    const priceOff = l.po_unit_price !== null && l.po_unit_price !== undefined
+                     && Number(l.po_unit_price) !== Number(l.unit_price);
+    return `<tr>
+      <td class="num">${esc(l.line_no)}</td>
+      <td><span class="tag">${esc(l.line_kind)}</span></td>
+      <td>${l.po_line_id
+            ? `<span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>`
+            : `${esc(l.description || "")}`}</td>
+      <td class="mono" style="font-size:11.5px">${dim(l.po_number)}${
+            l.po_line_no ? ` <span class="dim">#${esc(l.po_line_no)}</span>` : ""}</td>
+      <td class="num">${ed
+            ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ea)}" data-prev="${esc(l.qty_ea)}" data-line="${l.id}" data-f="qty_ea">`
+            : qty(l.qty_ea)}</td>
+      <td class="num">${ed
+            ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(l.unit_price)}" data-prev="${esc(l.unit_price)}" data-line="${l.id}" data-f="unit_price">`
+            : money(l.unit_price)}${priceOff ? `<div class="off" style="font-size:11.5px">PO ${money(l.po_unit_price)}</div>` : ""}</td>
+      <td class="num">${money(l.amount)}</td>
+      <td class="num">${l.po_line_id ? qty(l.po_qty_ea) : '<span class="dim">—</span>'}</td>
+      <td class="num">${l.po_line_id ? qty(l.received_qty) : '<span class="dim">—</span>'}</td>
+      <td class="num">${l.po_line_id
+            ? (diffQty ? `<span class="off">${qty(diffQty)}</span>` : '<span class="dim">0</span>')
+            : '<span class="dim">—</span>'}</td>
+      <td>${ed
+            ? `<input type="checkbox" data-pay="${l.id}" ${l.is_payable ? "checked" : ""} title="Counts toward the amount to settle">`
+            : (l.is_payable ? "" : '<span class="tag">not payable</span>')}</td>
+      ${ed ? `<td><button class="xbtn" data-del="${l.id}" title="Remove line">&#10005;</button></td>` : ""}
+    </tr>`;
+  });
+
+  /* Discounts — one row applies to every goods line. Rows multiply in sequence. */
+  const disc = (data.discounts || []).map(d => `<tr>
+      <td class="num">${esc(d.seq)}</td>
+      <td>${ed ? `<input class="tin" value="${esc(d.name)}" data-prev="${esc(d.name)}" data-disc="${d.id}" data-f="name">` : esc(d.name)}</td>
+      <td class="num">${ed
+          ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(d.percent)}" data-prev="${esc(d.percent)}" data-disc="${d.id}" data-f="percent">`
+          : esc(d.percent) + "%"}</td>
+      <td>${d.supplier_discount_id ? '<span class="dim">from supplier</span>' : '<span class="dim">added here</span>'}</td>
+      ${ed ? `<td><button class="xbtn" data-ddel="${d.id}" title="Remove discount">&#10005;</button></td>` : ""}
+    </tr>`);
+
+  const shares = (data.po_shares || []).map(s => `<tr>
+      <td class="mono">${esc(s.po_number)}</td>
+      <td><span class="tag">${esc(s.po_status)}</span></td>
+      <td class="num">${esc(s.line_count)}</td>
+      <td class="num">${qty(s.qty_ea)}</td>
+      <td class="num">${money(s.amount)}</td>
+    </tr>`);
+
+  const creds = (data.credits || []).map(c => `<tr>
+      <td class="mono">${esc(c.credit_number)}</td>
+      <td>${dim(c.credit_date)}</td>
+      <td>${stChip(c.status)}</td>
+      <td class="num">${money(c.total_amount)}</td>
+      <td class="num">${money(c.credit_net)}</td>
+      <td class="num">${Number(c.used) > 0 ? money(c.used) : '<span class="dim">—</span>'}</td>
+    </tr>`);
+
+  const pays = (data.payments || []).map(p => `<tr>
+      <td class="mono">${dim(p.reference)}</td>
+      <td>${dim(p.paid_on)}</td>
+      <td class="num">${money(p.payment_amount)} <span class="dim">${esc(p.currency_code || "")}</span></td>
+      <td class="num">${Number(p.discount_taken) > 0 ? money(p.discount_taken) : '<span class="dim">—</span>'}</td>
+      <td class="num">${money(p.alloc_amount)}</td>
+      <td>${dim(p.account_name)}</td>
+      <td>${dim(p.paid_by_name)}</td>
+    </tr>`);
+
+  const tbl = (title, n, head, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${head.map(x=>`<th${x[1]?' class="'+x[1]+'"':''}>${x[0]}</th>`).join("")}</tr></thead>
+        <tbody>${rows.join("")}</tbody></table>${sub?`<div class="invsub">${sub}</div>`:""}`
+      : `<div class="msg">None.</div>`}
+    </div>`;
+
+  if(seq !== detailSeq) return;
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="invbar">
+          <span class="pn">${esc(h.invoice_number)}</span>
+          <span class="chips">${chips.join("")}</span>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
+          <span>Printed total</span>
+          ${ed ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(h.total_amount)}" data-prev="${esc(h.total_amount)}" data-head="total_amount">`
+               : `<span class="mono">${money(h.total_amount)}</span>`}
+          <span>Due date</span>
+          ${ed ? `<input class="tin" type="date" value="${esc(h.due_date || "")}" data-prev="${esc(h.due_date || "")}" data-head="due_date">`
+               : `<span class="mono">${dim(h.due_date)}</span>`}
+          <span id="headMsg"></span>
+        </div>
+      </div>
+      ${stats}
+      <div class="invgrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
+      ${h.note ? `<div class="note">${esc(h.note)}</div>` : ""}
+    </div>
+
+    ${tbl("Lines", (data.lines||[]).length,
+      [["#","num"],["Kind",""],["Item",""],["PO",""],["Qty","num"],["Unit price","num"],
+       ["Amount","num"],["PO qty","num"],["Received","num"],["Qty diff","num"],["Payable",""]]
+        .concat(ed ? [["",""]] : []), lines,
+      "Qty diff compares what is billed with what actually arrived. A non-zero value is what a credit note is usually made from. " +
+      "Clearing Payable leaves a line out of the amount to settle — that is how freight billed here but paid elsewhere is handled." +
+      (ed ? " Quantity and unit price are edited in the cell." : ""))}
+
+    ${tbl("Discounts", (data.discounts||[]).length,
+      [["Seq","num"],["Name",""],["Percent","num"],["Source",""]].concat(ed ? [["",""]] : []), disc,
+      `Rows multiply in sequence, they are not added. Goods ${money(m.goods_sum)} × ${esc(Number(m.discount_factor))} = ${money(m.goods_payable)}. ` +
+      "A discount sits on the document and reaches every goods line at once — never enter it line by line. " +
+      "From supplier means it came across from the purchase order; added here means it applies to this document only.")}
+
+    ${tbl("Purchase orders", (data.po_shares||[]).length,
+      [["PO",""],["Status",""],["Lines","num"],["Qty","num"],["Amount","num"]], shares,
+      "One document can cover several purchase orders. Amount is the line total before the discount chain — " +
+      "the discount belongs to the document, so it is not split across POs.")}
+
+    ${isCredit ? "" : tbl("Credit notes against this invoice", (data.credits||[]).length,
+      [["Number",""],["Date",""],["Status",""],["Printed","num"],["Net","num"],["Used","num"]], creds,
+      "These reduce what is owed on this invoice. If the balance has gone negative, they arrived after payment.")}
+
+    ${tbl("Payments", (data.payments||[]).length,
+      [["Reference",""],["Date",""],["Paid","num"],["Discount","num"],["Applied","num"],["Account",""],["By",""]], pays,
+      "Paid plus Discount equals Applied. An early-payment discount is declared on the payment, not here.")}
+  `;
+
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if(a === "wide")    showWide();
+      if(a === "confirm") confirmInv(h.id, true);
+      if(a === "reopen")  confirmInv(h.id, false);
+      if(a === "addline") openAddLine(h.id);
+      if(a === "adddisc") openAddDiscount(h.id);
+      if(a === "addpo")   openAddPo(h.id, h.supplier_id);
+    };
+  });
+  if(ed){
+    box.querySelectorAll("input[data-line]").forEach(i => { i.onchange = () => saveLine(i); });
+    box.querySelectorAll("input[data-disc]").forEach(i => { i.onchange = () => saveDiscount(i); });
+    box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+    box.querySelectorAll("[data-pay]").forEach(c => { c.onchange = () => togglePayable(c); });
+    box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del); });
+    box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
+  }
+}
+
+/* ── Edits ─────────────────────────────────────────── */
+async function reload(){
+  const y = window.scrollY;
+  await loadDetail(curId);
+  window.scrollTo(0, y);
+}
+
+async function saveLine(inp){
+  const prev = inp.dataset.prev, val = Number(inp.value);
+  if(!isFinite(val) || inp.value.trim() === ""){ inp.value = prev; return; }
+  if(String(val) === String(Number(prev))) return;
+  inp.disabled = true;
+  const patch = {}; patch[inp.dataset.f] = val;
+  const { error } = await sb.rpc("po_invoice_line_update", { p_line_id: inp.dataset.line, p_patch: patch });
+  inp.disabled = false;
+  if(error){ inp.value = prev; alert(error.message); return; }
+  inp.dataset.prev = String(val);
+  reload();
+}
+
+async function togglePayable(cb){
+  cb.disabled = true;
+  const { error } = await sb.rpc("po_invoice_line_update",
+    { p_line_id: cb.dataset.pay, p_patch: { is_payable: cb.checked } });
+  cb.disabled = false;
+  if(error){ cb.checked = !cb.checked; alert(error.message); return; }
+  reload();
+}
+
+async function removeLine(id){
+  if(!confirm("Remove this line?")) return;
+  const { error } = await sb.rpc("po_invoice_line_delete", { p_line_id: id });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+
+async function saveDiscount(inp){
+  const prev = inp.dataset.prev;
+  const raw = inp.dataset.f === "percent" ? Number(inp.value) : inp.value.trim();
+  if(inp.dataset.f === "percent" && (!isFinite(raw) || inp.value.trim() === "")){ inp.value = prev; return; }
+  if(String(raw) === String(inp.dataset.f === "percent" ? Number(prev) : prev)) return;
+  inp.disabled = true;
+  const patch = {}; patch[inp.dataset.f] = raw;
+  const { error } = await sb.rpc("po_discount_save",
+    { p_target: "invoice", p_target_id: curId, p_patch: patch, p_id: inp.dataset.disc });
+  inp.disabled = false;
+  if(error){ inp.value = prev; alert(error.message); return; }
+  inp.dataset.prev = String(raw);
+  reload();
+}
+
+async function removeDiscount(id){
+  if(!confirm("Remove this discount row?")) return;
+  const { error } = await sb.rpc("po_discount_delete", { p_target: "invoice", p_id: id });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+
+/* ⚠️ The printed total is a cross-check, not a calculated field.
+   Type in what the supplier printed; if it disagrees with ours, Diff says so. */
+async function saveHead(id, inp){
+  const prev = inp.dataset.prev;
+  const field = inp.dataset.head;
+  const val = field === "total_amount" ? Number(inp.value) : (inp.value || null);
+  if(field === "total_amount" && (!isFinite(val) || inp.value.trim() === "")){ inp.value = prev; return; }
+  say("headMsg", "", "Saving…");
+  const patch = {}; patch[field] = val;
+  const res = await imsSaved(sb.from("po_invoice").update(patch).eq("id", id).select("id"));
+  if(!res.ok){ inp.value = prev; say("headMsg", "err", res.reason); return; }
+  inp.dataset.prev = String(inp.value);
+  say("headMsg", "on", "Saved");
+  reload();
+}
+
+async function confirmInv(id, on){
+  const msg = on
+    ? "Confirm this document?\n\nIt is then taken into the books: the amount owed appears and the discount reaches cost. Lines can no longer be edited."
+    : "Reopen this document for editing?";
+  if(!confirm(msg)) return;
+  const { data, error } = await sb.rpc("po_invoice_confirm", { p_invoice_id: id, p_confirm: on });
+  if(error){ alert(error.message); return; }
+  if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+  reload();
+}
+
+/* ── Adding things ─────────────────────────────────── */
+function openAddDiscount(invId){
+  modalOpen(`
+    <h4>Add a discount to this document</h4>
+    <div class="pbody">
+      <div class="frow"><label>Name</label><input id="dName" placeholder="Trade"></div>
+      <div class="frow"><label>Percent</label><input id="dPct" type="number" step="any" min="0" max="100" placeholder="10"></div>
+      <div class="dim" style="font-size:12.5px">
+        It applies to every goods line at once. Rows already on the document multiply with this one.
+      </div>
+      <div id="dMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="dGo">Add</button>
+    </div>`);
+  document.getElementById("dGo").onclick = async () => {
+    const name = document.getElementById("dName").value.trim();
+    const pct  = Number(document.getElementById("dPct").value);
+    if(!name || !isFinite(pct)){ say("dMsg", "err", "A name and a percent are needed."); return; }
+    say("dMsg", "", "Adding…");
+    const { error } = await sb.rpc("po_discount_save",
+      { p_target: "invoice", p_target_id: invId, p_patch: { name: name, percent: pct } });
+    if(error){ say("dMsg", "err", error.message); return; }
+    modalClose(); reload();
+  };
+}
+
+function openAddLine(invId){
+  modalOpen(`
+    <h4>Add a line</h4>
+    <div class="pbody">
+      <div class="frow"><label>Kind</label>
+        <select id="lKind"><option value="charge">charge</option><option value="other">other</option></select></div>
+      <div class="frow"><label>Description</label><input id="lDesc" placeholder="Freight - inland"></div>
+      <div class="frow"><label>Quantity</label><input id="lQty" type="number" step="any" min="0" value="1"></div>
+      <div class="frow"><label>Unit price</label><input id="lPrice" type="number" step="any" min="0" value="0"></div>
+      <div class="frow"><label>Payable</label>
+        <select id="lPay"><option value="true">counts toward what we settle</option>
+                          <option value="false">billed here but settled elsewhere</option></select></div>
+      <div class="dim" style="font-size:12.5px">
+        Goods lines come from a purchase order — use “Add lines from a PO” for those.
+        This is for freight, fees and anything the supplier billed that we never ordered.
+      </div>
+      <div id="lMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="lGo">Add</button>
+    </div>`);
+  document.getElementById("lGo").onclick = async () => {
+    const line = {
+      line_kind:   document.getElementById("lKind").value,
+      description: document.getElementById("lDesc").value.trim(),
+      qty_ea:      Number(document.getElementById("lQty").value),
+      unit_price:  Number(document.getElementById("lPrice").value),
+      is_payable:  document.getElementById("lPay").value === "true",
+    };
+    if(!line.description){ say("lMsg", "err", "A description is needed for this kind of line."); return; }
+    say("lMsg", "", "Adding…");
+    const { error } = await sb.rpc("po_invoice_line_add", { p_invoice_id: invId, p_line: line });
+    if(error){ say("lMsg", "err", error.message); return; }
+    modalClose(); reload();
+  };
+}
+
+/* ⭐ One document can cover several purchase orders, so lines are pulled in PO by PO.
+   Only what has not been billed yet comes across — a second invoice on the same PO
+   picks up the remainder instead of billing it twice. */
+async function openAddPo(invId, supplierId){
+  modalOpen(`
+    <h4>Add lines from a purchase order</h4>
+    <div class="pbody">
+      <input type="search" id="poQ" placeholder="Search PO number" autocomplete="off">
+      <div class="pick" id="poList" style="max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div id="poMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+    </div>`);
+  const draw = async () => {
+    const t = document.getElementById("poQ").value.trim();
+    let qy = sb.from("po_list").select("id,po_number,status,order_date,net_total,line_count")
+               .eq("supplier_id", supplierId).in("status", ["draft","confirmed","closed"]);
+    if(t) qy = qy.ilike("po_number", `%${t}%`);
+    const { data, error } = await qy.order("po_number", { ascending:false }).limit(40);
+    const box = document.getElementById("poList");
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-po="${r.id}" style="padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px">
+        <span class="mono">${esc(r.po_number)}</span>
+        <span class="tag" style="margin-left:6px">${esc(r.status)}</span>
+        <span class="dim" style="margin-left:8px">${dim(r.order_date)} · ${esc(r.line_count)} lines · ${money(r.net_total)}</span>
+      </div>`).join("") : '<div class="msg">No purchase orders for this supplier.</div>';
+    box.querySelectorAll("[data-po]").forEach(el => {
+      el.onclick = async () => {
+        say("poMsg", "", "Adding…");
+        const { data, error } = await sb.rpc("po_invoice_add_po_lines",
+          { p_invoice_id: invId, p_po_id: el.dataset.po });
+        if(error){ say("poMsg", "err", error.message); return; }
+        modalClose();
+        if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+        reload();
+      };
+    });
+  };
+  imsQ("#poQ", draw);
+  draw();
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true }, async (client, meData) => {
+  sb = client; me = meData; isAdmin = (me.role === "admin");
+  imsHeader(me);
+
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  if(sup.data) document.getElementById("wsup").innerHTML =
+    '<option value="">All suppliers</option>' +
+    sup.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+
+  const refilter = () => { pgW.reset(); loadWide(); };
+  document.getElementById("wsup").onchange  = e => { supFilter = e.target.value; refilter(); };
+  document.getElementById("wkind").onchange = e => { kindF     = e.target.value; refilter(); };
+  document.getElementById("wst").onchange   = e => { stFilter  = e.target.value; refilter(); };
+  document.getElementById("wunp").onchange  = e => { balF      = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom  = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo    = e.target.value; refilter(); };
+  imsQ("#wq", v => { q = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; supFilter = ""; dateFrom = ""; dateTo = ""; kindF = "all"; stFilter = "open"; balF = "all";
+    ["wq","wsup","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wkind").value = "all";
+    document.getElementById("wst").value = "open";
+    document.getElementById("wunp").value = "all";
+    refilter();
+  };
+
+  // ⭐ ?id=… opens one document straight away — po.html links here that way after creating one
+  const want = imsParam("id");
+  if(want){ openInv(want); return; }
+  showWide();
+});
+</script>
+</body>
+</html>

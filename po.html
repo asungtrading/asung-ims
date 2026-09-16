@@ -51,6 +51,7 @@
   .qin{width:84px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
        font-family:var(--mono);font-size:12.5px;text-align:right}
   .qin.pin{width:104px}
+  .tin{width:150px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;font-size:12.5px}
   .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
         font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
   .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
@@ -590,6 +591,152 @@ async function deleteLine(lineId, sku){
   window.scrollTo(0, y);
 }
 
+/* ── Discount rows ─────────────────────────────────────
+   A discount belongs to the document, not to a line. One row reaches every line at once,
+   which is the whole point — nobody wants to type 10% onto fifty lines.
+   ⚠️ Rows multiply in sequence. The database does that; this screen never recomputes it. */
+async function saveDiscount(inp){
+  const prev = inp.dataset.prev;
+  const raw = inp.dataset.f === "percent" ? Number(inp.value) : inp.value.trim();
+  if(inp.dataset.f === "percent" && (!isFinite(raw) || inp.value.trim() === "")){ inp.value = prev; return; }
+  if(String(raw) === String(inp.dataset.f === "percent" ? Number(prev) : prev)) return;
+  inp.disabled = true;
+  const patch = {}; patch[inp.dataset.f] = raw;
+  const { error } = await sb.rpc("po_discount_save",
+    { p_target: "po", p_target_id: curId, p_patch: patch, p_id: inp.dataset.disc });
+  inp.disabled = false;
+  if(error){ inp.value = prev; alert(error.message); return; }
+  inp.dataset.prev = String(raw);
+  const y = window.scrollY; await loadDetail(curId); await loadList(); window.scrollTo(0, y);
+}
+
+async function removeDiscount(id){
+  if(!confirm("Remove this discount row?")) return;
+  const { error } = await sb.rpc("po_discount_delete", { p_target: "po", p_id: id });
+  if(error){ alert(error.message); return; }
+  const y = window.scrollY; await loadDetail(curId); await loadList(); window.scrollTo(0, y);
+}
+
+function openAddDiscount(poId){
+  modalOpen(`
+    <h4>Add a discount to this purchase order</h4>
+    <div class="pbody">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:90px;font-size:12.5px;color:var(--muted)">Name</label>
+        <input type="text" id="dName" placeholder="Trade" style="flex:1">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:90px;font-size:12.5px;color:var(--muted)">Percent</label>
+        <input type="text" id="dPct" placeholder="10" style="flex:1">
+      </div>
+      <div class="dim" style="font-size:12.5px">
+        It applies to every line at once. Rows already here multiply with this one —
+        17% and 1% together come to 17.83%, not 18%.
+      </div>
+      <div id="dMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="dGo">Add</button>
+    </div>`);
+  document.getElementById("dGo").onclick = async () => {
+    const name = document.getElementById("dName").value.trim();
+    const pct  = Number(document.getElementById("dPct").value);
+    if(!name || !isFinite(pct)){ say("dMsg", "err", "A name and a percent are needed."); return; }
+    say("dMsg", "", "Adding…");
+    const { error } = await sb.rpc("po_discount_save",
+      { p_target: "po", p_target_id: poId, p_patch: { name: name, percent: pct } });
+    if(error){ say("dMsg", "err", error.message); return; }
+    modalClose();
+    const y = window.scrollY; await loadDetail(curId); await loadList(); window.scrollTo(0, y);
+  };
+}
+
+/* ── Raising a supplier document ───────────────────────
+   ⭐ Lines are copied at what has NOT been billed yet, not at the ordered quantity.
+      A second invoice on the same PO then picks up the remainder instead of billing it twice.
+   ⭐ The printed total is left for the person to type in. Filling it with our own
+      calculation would make the cross-check agree with itself and say nothing. */
+function openCreateInvoice(h){
+  modalOpen(`
+    <h4>Create a supplier document from ${esc(h.po_number)}</h4>
+    <div class="pbody">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Kind</label>
+        <select id="iKind" style="flex:1">
+          <option value="invoice">Invoice</option>
+          <option value="credit">Credit note</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Number</label>
+        <input type="text" id="iNum" placeholder="as printed on the document" style="flex:1">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Document date</label>
+        <input type="date" id="iDate" style="flex:1">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Printed total</label>
+        <input type="text" id="iTotal" placeholder="leave blank if not known yet" style="flex:1">
+      </div>
+      <div id="iOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="iMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="iChk">Check</button>
+      <button class="pobtn go" id="iGo" disabled>Create</button>
+    </div>`);
+  document.getElementById("iDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("iChk").onclick = () => runCreateInvoice(h, false);
+  document.getElementById("iGo").onclick  = () => runCreateInvoice(h, true);
+}
+
+async function runCreateInvoice(h, commit){
+  const num = document.getElementById("iNum").value.trim();
+  if(!num){ say("iMsg", "err", "The document number is needed."); return; }
+  const totalRaw = document.getElementById("iTotal").value.trim();
+  const args = {
+    p_doc_kind: document.getElementById("iKind").value,
+    p_invoice_number: num,
+    p_po_id: h.id,
+    p_invoice_date: document.getElementById("iDate").value || null,
+    p_commit: commit,
+  };
+  if(totalRaw !== "" && isFinite(Number(totalRaw))) args.p_total_amount = Number(totalRaw);
+
+  say("iMsg", "", commit ? "Creating…" : "Checking…");
+  const { data, error } = await sb.rpc("po_invoice_create", args);
+  if(error){ say("iMsg", "err", error.message); return; }
+
+  const rows = data.lines || [];
+  const ok = rows.filter(r => r.verdict === "ok").length;
+  say("iMsg", "", `${rows.length} lines · ${ok} will be copied`
+      + ((data.warnings || []).length ? " · " + data.warnings.join(" · ") : ""));
+
+  document.getElementById("iOut").innerHTML = rows.length ? `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th>
+      <th class="num">Already billed</th><th class="num">To bill</th><th class="num">Price</th><th>Note</th></tr></thead>
+    <tbody>${rows.map(l => `<tr>
+      <td class="num">${esc(l.n)}</td>
+      <td class="mono">${dim(l.sku)}</td>
+      <td class="num">${qty(l.qty_ordered)}</td>
+      <td class="num">${qty(l.invoiced_qty)}</td>
+      <td class="num">${qty(l.qty_ea)}</td>
+      <td class="num">${money(l.unit_price)}</td>
+      <td class="dim" style="font-size:11.5px">${esc(l.message || l.verdict || "")}</td>
+    </tr>`).join("")}</tbody></table>`
+    : '<div class="msg">Nothing left to bill on this purchase order.</div>';
+
+  document.getElementById("iGo").disabled = ok === 0;
+  if(commit && data.id){
+    modalClose();
+    // The rest of the work happens on the invoice screen — open it on the new document.
+    window.location.href = "invoices.html?id=" + encodeURIComponent(data.id);
+  }
+}
+
 /* ── 확정 · 취소 ───────────────────────────────────────
    ⚠️ 한 칸씩이라 PostgREST 로 한다. imsSaved() 로 되읽어 0행을 잡는다(§10-j 3-i). */
 async function setStatus(id, to){
@@ -656,8 +803,12 @@ async function loadDetail(id){
   if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
   if(ed){
     acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
+    acts.push('<button class="pobtn" data-act="adddisc">Add a discount</button>');
     acts.push('<button class="pobtn" data-act="cancel">Cancel PO</button>');
   }
+  // A supplier document is raised from the PO it belongs to; the rest is done on the invoice screen.
+  if(h.status !== "cancelled" && (data.lines || []).length)
+    acts.push('<button class="pobtn" data-act="invoice">Create an invoice</button>');
 
   const chips = [stChip(h.status)];
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
@@ -730,12 +881,16 @@ async function loadDetail(id){
     </tr>`;
   });
 
-  /* 할인 — ⚠️ 차례로 곱한다. 화면은 RPC 가 준 결과를 그리기만 한다 */
+  /* Discounts — one row reaches every line at once; rows multiply in sequence.
+     ⚠️ Never put a discount on the line. The chain is computed in the database. */
   const disc = (data.discounts || []).map(d => `<tr>
       <td class="num">${esc(d.seq)}</td>
-      <td>${esc(d.name)}</td>
-      <td class="num">${esc(d.percent)}%</td>
+      <td>${ed ? `<input class="tin" value="${esc(d.name)}" data-prev="${esc(d.name)}" data-disc="${d.id}" data-f="name">` : esc(d.name)}</td>
+      <td class="num">${ed
+          ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(d.percent)}" data-prev="${esc(d.percent)}" data-disc="${d.id}" data-f="percent">`
+          : esc(d.percent) + "%"}</td>
       <td>${d.supplier_discount_id ? '<span class="dim">from supplier</span>' : '<span class="dim">added here</span>'}</td>
+      ${ed ? `<td><button class="xbtn" data-ddel="${d.id}" title="Remove discount">&#10005;</button></td>` : ""}
     </tr>`);
 
   /* 입고 — ⭐ 한 라인이 여러 빈으로 나뉜다(실물) */
@@ -842,7 +997,7 @@ async function loadDetail(id){
       (ed ? " Edit quantity and unit price right in the cell. Going below what was received is refused by the database." : ""))}
 
     ${tbl("Discounts", (data.discounts||[]).length,
-      [["Seq","num"],["Name",""],["Percent","num"],["Source",""]], disc,
+      [["Seq","num"],["Name",""],["Percent","num"],["Source",""]].concat(ed ? [["",""]] : []), disc,
       `차례로 곱한다 — subtotal ${money(t.subtotal)} × factor ${esc(Number(t.discount_factor))} = ${money(t.net_total)}`)}
 
     ${tbl("Receipts", (data.receipts||[]).length,
@@ -883,6 +1038,8 @@ async function loadDetail(id){
       if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
       if(b.dataset.act === "cancel")  setStatus(h.id, "cancelled");
       if(b.dataset.act === "wide")    showWide();
+      if(b.dataset.act === "adddisc") openAddDiscount(h.id);
+      if(b.dataset.act === "invoice") openCreateInvoice(h);
       if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
     };
   });
@@ -902,6 +1059,8 @@ async function loadDetail(id){
     box.querySelectorAll("[data-del]").forEach(b => {
       b.onclick = () => deleteLine(b.dataset.del, b.dataset.sku);
     });
+    box.querySelectorAll("input[data-disc]").forEach(inp => { inp.onchange = () => saveDiscount(inp); });
+    box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
   }
 }
 
