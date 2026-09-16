@@ -261,11 +261,13 @@ function modalClose(){
 document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
 
 /* ⚠️ RPC 오류는 error.message 로 온다 — 함수가 「… nothing was saved」로 끝내 준다.
-   화면이 그 문장을 그대로 보여 준다. 다시 쓰지 않는다. */
-function showErr(where, msg){
+   화면이 그 문장을 그대로 보여 준다. 다시 쓰지 않는다.
+   ⚠️⚠️ [실사고 2026-09-16] 모달 안의 자리에 쓰려다 그 요소가 없어 화면이 죽었고,
+      **진짜 오류(RPC 가 뭐라 했는지)가 가려졌다.** 자리가 없으면 alert 로라도 반드시 보여 준다. */
+function say(where, cls, text){
   const el = document.getElementById(where);
-  if(el){ el.className = "err"; el.textContent = msg; }
-  else alert(msg);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);          // 자리가 없어도 오류는 삼키지 않는다
 }
 
 /* ── 새 발주 ─────────────────────────────────────────
@@ -307,12 +309,12 @@ async function openNewPo(){
 }
 
 async function createPo(supplierId){
-  document.getElementById("newMsg").className = "";
-  document.getElementById("newMsg").textContent = "Creating…";
+  say("newMsg", "", "Creating…");
   // ⚠️ created_by 를 화면이 주지 않는다 — 함수가 auth.uid() 로 찾는다.
   //    anon key 가 공개라 화면이 주면 아무 id 나 줄 수 있다(§10-h).
   const { data, error } = await sb.rpc("po_create", { p_supplier_id: supplierId });
-  if(error){ showErr("newMsg", error.message); return; }
+  if(error){ say("newMsg", "err", error.message); return; }
+  if(!data || !data.id){ say("newMsg", "err", "po_create returned nothing — nothing was saved."); return; }
   modalClose();
   // ⭐ 새 문서는 draft 라 Open 필터에 걸린다. 검색칸에 번호를 넣어 목록에 확실히 띄운다(§10-j 3-d ②)
   q = data.po_number; document.getElementById("q").value = q;
