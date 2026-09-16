@@ -54,6 +54,28 @@
   .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
         font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
   .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+  /* 넓은 목록 · 국면 · 캐럿 */
+  #wide{padding:14px}
+  #wide .card{padding:0}
+  .wfilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .wfilt .sp{flex:1}
+  .wfilt input[type=search]{min-width:280px;flex:0 1 340px}
+  .wfilt input,.wfilt select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .wfilt .dash{color:var(--muted);font-size:12px}
+  #wide table{font-size:12.5px}
+  #wide tbody tr{cursor:pointer}
+  #wide tbody tr:hover{background:#fafbfd}
+  /* ⭐ 국면 다섯 — 넓은 목록에만. 색은 셋뿐이다(아직 · 일부 · 다 됐다) */
+  .pdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;
+        border:1px solid rgba(0,0,0,.10);vertical-align:middle}
+  .pdot.pn{background:#dfe3ea}
+  .pdot.pp{background:#e8a33d}
+  .pdot.pd{background:#2f9e6f}
+  .phead{white-space:nowrap}
+  .cflip{border:none;background:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px}
+  .cflip:hover{color:var(--ink)}
+  tr.sub td{background:#fafbfd;font-size:12px;color:var(--muted)}
+  tr.sub td .mono{color:var(--ink)}
 </style>
 </head>
 <body>
@@ -66,10 +88,40 @@
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <!-- ⭐ 필터 순서는 실무 순서다 — 공급처가 첫째, 날짜가 둘째(Caleb 2026-09-16) -->
+      <select id="wsup"><option value="">All suppliers</option></select>
+      <input type="date" id="wfrom" title="Order date from">
+      <span class="dash">—</span>
+      <input type="date" id="wto" title="Order date to">
+      <select id="wst">
+        <option value="open">Open</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="closed">Closed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <!-- ⚠️ doc_numbers 덕분에 인보이스·크레딧·비용 번호로도 찾힌다 -->
+      <input type="search" id="wq" placeholder="PO · supplier · invoice/credit/charge number">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">+ New purchase order</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
     <div class="top">
-      <button class="pobtn go" id="newPo" style="width:100%">+ New purchase order</button>
+      <button class="pobtn" id="backWide" style="width:100%">‹ All purchase orders</button>
       <input type="search" id="q" placeholder="Search PO number or supplier">
       <div class="opts">
         <label>Status
@@ -132,9 +184,12 @@
 
 let sb=null, me=null, isAdmin=false;
 let q="", stFilter="open", curId=null;
+/* ⭐ 필터는 두 모드가 함께 쓴다 — 넓은 목록에서 걸러 두고 들어가면 좁은 목록도 같게 걸린다 */
+let supFilter="", dateFrom="", dateTo="";
 /* ⚠️ 상세 조회를 기다리는 사이 필터가 바뀌면 늦게 도착한 응답이 화면을 덮는다 — 번호로 막는다(§10-j 3-d) */
 let detailSeq = 0;
-const pg = imsPage(100);
+const pg  = imsPage(100);   // 좁은 목록
+const pgW = imsPage(50);    // 넓은 목록 — 열이 많아 한 화면에 덜 담긴다
 
 /* ── 값 표시 ───────────────────────────────────────
    ⚠️ 공통 num() 은 escape 만 한다 — 돈 서식은 여기서. */
@@ -171,28 +226,107 @@ function clearDetail(){
     '<div class="card"><div class="msg">Select a purchase order.</div></div>';
 }
 
-/* ── 목록 ─────────────────────────────────────────── */
-async function loadList(){
+/* ⭐⭐ 질의는 한곳에서 만든다 — 넓은 목록과 좁은 목록이 **같은 조건**을 본다.
+   ⚠️ 두 곳에 따로 쓰면 필터를 하나 더할 때마다 어긋난다. */
+function baseQuery(){
   let qry = sb.from("po_list").select("*", { count:"exact" });
   // ⚠️ 상태 필터는 매니저에게도 보인다 — 발주 목록은 감출 것이 아니다.
   //    §10-j 3-b 의 「admin 만 #opts」는 마스터에서 정돈된 목록을 주기 위한 규칙이고 여기는 그 경우가 아니다.
   if(stFilter === "open")       qry = qry.in("status", ["draft","confirmed"]);
   else if(stFilter !== "all")   qry = qry.eq("status", stFilter);
-  // ⚠️ 검색은 서버에서 돈다(§10-j 3-a). 번호와 공급처 이름 둘 다 본다.
-  if(q) qry = qry.or(`po_number.ilike.%${q}%,supplier_name.ilike.%${q}%`);
+  if(supFilter) qry = qry.eq("supplier_id", supFilter);
+  if(dateFrom)  qry = qry.gte("order_date", dateFrom);
+  if(dateTo)    qry = qry.lte("order_date", dateTo);
+  // ⚠️ 검색은 서버에서 돈다(§10-j 3-a).
+  //    ⭐ doc_numbers 는 뷰가 모아 둔 인보이스·크레딧·비용 번호다 — 공급처가 번호로 물어올 때 쓴다
+  if(q) qry = qry.or(`po_number.ilike.%${q}%,supplier_name.ilike.%${q}%,doc_numbers.ilike.%${q}%`);
+  return qry.order("po_number", { ascending:false });
+}
 
-  const { data, error } = await pg.run(qry.order("po_number", { ascending:false }));
+/* ⭐⭐ 국면 다섯 — 주문 · 청구 · 입고 · 비용 · 결제 · 각 셋(아직 · 일부 · 다 됐다).
+   ⚠️ **넓은 목록에만** 그린다(Caleb) — 좁은 목록은 자리가 없다.
+   ⚠️ 판정은 **뷰가 한다.** 화면은 색만 고른다 — 다음 화면이 다시 짜면 어긋난다(§13).
+   📌 주문은 상태가 아니라 **사실**로 판정한다 — 취소된 문서도 라인이 있으면 「만들다 접은 것」이다.
+   📌 국내 발주는 비용이 없어 늘 회색이다 — 구별하지 않는다(Caleb). */
+const PHASE_CLS = { none:"pn", partial:"pp", done:"pd" };
+const PHASE_KO  = { order:"주문", invoice:"청구", receipt:"입고", charge:"비용", payment:"결제" };
+const PHASE_ST  = { none:"아직", partial:"일부", done:"다 됐다" };
+function dots(r){
+  return ["order","invoice","receipt","charge","payment"].map(k => {
+    const v = r[k + "_phase"] || "none";
+    return `<span class="pdot ${PHASE_CLS[v] || "pn"}" title="${PHASE_KO[k]} — ${PHASE_ST[v] || v}"></span>`;
+  }).join("");
+}
+
+/* ⭐ 발주번호 옆 태그 — 진행도가 아니라 「이런 일이 있었다」 */
+function rowTags(r){
+  const t = [];
+  if(r.status === "cancelled") t.push('<span class="tag off">cancelled</span>');
+  else if(r.status === "closed") t.push('<span class="tag">closed</span>');
+  else if(r.status === "draft")  t.push('<span class="tag">draft</span>');
+  if(Number(r.split_to_count) > 0) t.push('<span class="tag">split</span>');
+  // ⚠️ 크레딧은 국면이 아니다 — 진행도가 아니라 사건이다(Caleb)
+  if(Number(r.credit_count) > 0)   t.push('<span class="tag">credit</span>');
+  return t.join(" ");
+}
+
+/* ── 두 모드 ───────────────────────────────────────────
+   아무것도 안 골랐으면 **넓은 목록**이 화면 전체 · 고르면 좁은 목록 + 상세.
+   ⭐ 상세에서 좁은 목록을 접을 수 있다 — 「들어갔다 나왔다 하는 게 Cin7 은 많이 불편하다」(Caleb) */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadWide();
+}
+function openPo(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  loadList(); loadDetail(id);
+}
+
+/* ── 넓은 목록 ─────────────────────────────────────── */
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){ box.innerHTML = '<div class="msg">No purchase orders match.</div>'; pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return; }
+
+  box.innerHTML = `<table><thead><tr>
+      <th class="phead">주문 청구 입고 비용 결제</th>
+      <th>PO</th><th>Ordered</th><th>Required</th><th>Supplier</th>
+      <th class="num">Lines</th><th class="num">Net</th>
+      <th class="num">Received</th><th class="num">Invoiced</th>
+      <th class="num">Charges</th><th class="num">Unpaid</th>
+    </tr></thead><tbody>${data.map(r => `
+      <tr data-id="${r.id}">
+        <td class="phead">${dots(r)}</td>
+        <td><span class="mono">${esc(r.po_number)}</span> ${rowTags(r)}</td>
+        <td>${dim(r.order_date)}</td>
+        <td>${dim(r.required_by)}</td>
+        <td>${esc(r.supplier_name)}</td>
+        <td class="num">${esc(r.line_count)}</td>
+        <td class="num">${money(r.net_total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${Number(r.ordered_qty) ? qty(r.received_qty) + ' <span class="dim">/ ' + qty(r.ordered_qty) + '</span>' : '<span class="dim">—</span>'}</td>
+        <td class="num">${Number(r.invoice_count) ? money(r.invoiced_total) : '<span class="dim">—</span>'}</td>
+        <td class="num">${Number(r.charge_count) ? money(r.charge_total) : '<span class="dim">—</span>'}</td>
+        <td class="num">${unpaidCell(r.unpaid_total)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="posub">⚠️ Unpaid 는 **문서 기준**이다 — 인보이스 하나가 발주 둘에 걸치면 그 미지급이 두 줄에 다 보인다.
+      ⇒ 이 열을 세로로 더하면 두 번 센다.</div>`;
+
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openPo(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── 좁은 목록 ───────────────────────────────────────── */
+async function loadList(){
+  const { data, error } = await pg.run(baseQuery());
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
 
   document.getElementById("rows").innerHTML = data.length ? data.map(r => {
-    const tags = [];
-    if(r.status === "cancelled") tags.push('<span class="tag off">cancelled</span>');
-    else if(r.status === "closed") tags.push('<span class="tag">closed</span>');
-    else if(r.status === "draft") tags.push('<span class="tag">draft</span>');
-    // ⭐ 갈라진 문서가 있으면 목록에서 보여야 한다 — 없으면 a 를 열어야만 b 를 찾는다
-    // ⚠️ tag.disc(황갈색)는 **단종** 색이다 — 빌려 쓰면 목록에서 「단종?」으로 읽힌다. 회색으로 둔다.
-    if(Number(r.split_to_count) > 0) tags.push('<span class="tag">split</span>');
-    // ⭐ 진짜 신호는 입고 진행이다. 다 받았으면 안 띄운다.
+    // ⭐ 진짜 신호는 입고 진행이다. 다 받았으면 안 띄운다. (국면 다섯은 넓은 목록에만 그린다)
     const recv = (r.status === "confirmed" && Number(r.ordered_qty) > 0)
       ? `<div class="sn">received ${qty(r.received_qty)} / ${qty(r.ordered_qty)}</div>` : "";
     return `<div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
@@ -203,7 +337,7 @@ async function loadList(){
       </span>
       <span class="r">
         <div class="amt">${money(r.net_total)}</div>
-        <div style="margin-top:3px">${tags.join(" ")}</div>
+        <div style="margin-top:3px">${rowTags(r)}</div>
       </span>
     </div>`;
   }).join("") : '<div class="msg">No purchase orders match.</div>';
@@ -223,6 +357,7 @@ async function gotoPo(poNumber, id){
   document.getElementById("q").value = q;
   stFilter = "all";                                   // 닫힌 문서도 보여야 한다
   document.getElementById("st").value = "all";
+  document.getElementById("wst").value = "all";
   pg.reset();
   if(id){ curId = id; await loadList(); loadDetail(id); return; }
   // id 를 모르는 쪽(split_from) — 목록을 먼저 읽고 번호로 찾는다
@@ -319,8 +454,9 @@ async function createPo(supplierId){
   // ⭐ 새 문서는 draft 라 Open 필터에 걸린다. 검색칸에 번호를 넣어 목록에 확실히 띄운다(§10-j 3-d ②)
   q = data.po_number; document.getElementById("q").value = q;
   stFilter = "all"; document.getElementById("st").value = "all";
-  pg.reset(); curId = data.id;
-  await loadList(); loadDetail(curId);
+  pg.reset();
+  // ⚠️ 넓은 목록에서도 만들 수 있다 — openPo 가 모드까지 바꾼다
+  openPo(data.id);
   if((data.warnings || []).length)
     setTimeout(() => alert("Created " + data.po_number + "\n\n⚠ " + data.warnings.join("\n⚠ ")), 50);
 }
@@ -482,7 +618,10 @@ async function loadDetail(id){
   /* ⭐ 할 수 있는 일 — 상태에 따라 갈린다.
      ⚠️ 확정은 잠금이 아니다(§11-b 정정). 확정 뒤에도 붙여넣기·수정이 열려 있다. */
   const acts = [];
-  if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm &mdash; sent to supplier</button>');
+  acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>');
+  acts.push('<button class="pobtn" data-act="wide">&lsaquo; All POs</button>');
+  // ⭐ Confirm 의 뜻: 「공급사에 보낼 **수량과 라인이 정해졌다**」 — 잠금도 아니고 메일을 보내는 것도 아니다(§11-b)
+  if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
   if(ed){
     acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
     acts.push('<button class="pobtn" data-act="cancel">Cancel PO</button>');
@@ -495,8 +634,21 @@ async function loadDetail(id){
   const kvL = [
     ["Supplier",      esc(h.supplier_name)],
     ["Order date",    dim(h.order_date)],
+    // ⭐ 납기 희망일 — Cin7 의 Required by(Caleb: 필요하다)
+    ["Required by",   dim(h.required_by)],
     ["Payment term",  dim(h.payment_term_name)],
     ["Ship to",       dim(h.ship_to_warehouse)],
+    // ⭐ 그날의 연락처·주소 — 결제조건과 같은 이유로 박아 둔다.
+    //    공급처 연락처가 나중에 바뀌어도 **이 발주는 이 사람에게 보낸 것**이다(§11-b)
+    ["Contact",       h.supplier_contact_name
+                        ? esc(h.supplier_contact_name)
+                          + (h.supplier_contact_phone ? ` <span class="dim">${esc(h.supplier_contact_phone)}</span>` : "")
+                          + (h.supplier_contact_email ? `<div class="dim" style="font-size:11.5px">${esc(h.supplier_contact_email)}</div>` : "")
+                        : '<span class="dim">—</span>'],
+    ["Bill to",       h.supplier_address_line1
+                        ? esc(h.supplier_address_line1)
+                          + `<div class="dim" style="font-size:11.5px">${esc([h.supplier_address_line2, h.supplier_city, h.supplier_state_province, h.supplier_postal_code, h.supplier_country].filter(Boolean).join(" "))}</div>`
+                        : '<span class="dim">—</span>'],
   ];
   const kvR = [
     ["Currency",      `<span class="mono">${dim(h.currency_code)}</span>` +
@@ -505,6 +657,11 @@ async function loadDetail(id){
     ["Confirmed by",  dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     // ⚠️ closed 는 「입고 종료」다 — 비용은 그 뒤에도 붙는다(§13)
     ["Closed",        h.closed_at ? imsTs(h.closed_at) : (h.cancelled_at ? `<span class="off">cancelled ${imsTs(h.cancelled_at)}</span>` : '<span class="dim">—</span>')],
+    // ⚠️ 세금은 **기록만** 한다 — ref_tax_rule 이 없어 세율을 모른다. totals 에 반영하지 않는다
+    ["Tax rule",      dim(h.tax_rule) + (h.tax_inclusive ? ' <span class="tag">tax inclusive</span>' : "")],
+    ["Inventory acct", h.inventory_account_code
+                        ? `<span class="mono">${esc(h.inventory_account_code)}</span> <span class="dim">${esc(h.inventory_account_name || "")}</span>`
+                        : '<span class="dim">—</span>'],
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${
     rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
@@ -564,7 +721,7 @@ async function loadDetail(id){
   const invs = (data.invoices || []).map(i => {
     const bad = Number(i.diff) !== 0;
     return `<tr>
-      <td class="mono">${esc(i.invoice_number)}</td>
+      <td>${caretBtn()}<span class="mono">${esc(i.invoice_number)}</span></td>
       <td>${dim(i.invoice_date)}</td>
       <td>${dim(i.due_date)}</td>
       <td class="num">${money(i.total_amount)}</td>
@@ -575,7 +732,7 @@ async function loadDetail(id){
       <td class="num">${Number(i.credit_total) > 0 ? `<span class="neutral">${money(i.credit_total)}</span>` : '<span class="dim">—</span>'}</td>
       <td class="num">${unpaidCell(i.unpaid)}</td>
       <td class="num"><span class="dim">${esc(i.lines_for_this_po)}/${esc(i.line_count)}</span></td>
-    </tr>`;
+    </tr>` + caretRow(11, i.po_shares, "이 인보이스가 걸린 발주");
   });
 
   /* 크레딧 — ⭐ po_invoice 의 doc_kind='credit'. 인보이스와 같은 표·같은 줄 구조다.
@@ -584,7 +741,7 @@ async function loadDetail(id){
     const bad = Number(c.diff) !== 0;
     const w = c.warnings || [];
     return `<tr>
-      <td><span class="mono">${esc(c.credit_number)}</span>${w.length?`<div class="off" style="font-size:11.5px">⚠ ${esc(w.join(" · "))}</div>`:""}</td>
+      <td>${caretBtn()}<span class="mono">${esc(c.credit_number)}</span>${w.length?`<div class="off" style="font-size:11.5px">⚠ ${esc(w.join(" · "))}</div>`:""}</td>
       <td>${dim(c.credit_date)}</td>
       <td class="mono">${c.credit_for_number ? esc(c.credit_for_number) : '<span class="dim">unattached</span>'}</td>
       <td class="num">${money(c.total_amount)}</td>
@@ -593,19 +750,35 @@ async function loadDetail(id){
       <td class="num">${Number(c.used) > 0 ? money(c.used) : '<span class="dim">—</span>'}</td>
       <td class="num">${(c.remaining === null || c.remaining === undefined) ? '<span class="dim">—</span>' : `<span class="neutral">${money(c.remaining)}</span>`}</td>
       <td class="num"><span class="dim">${esc(c.lines_for_this_po)}/${esc(c.line_count)}</span></td>
-    </tr>`;
+    </tr>` + caretRow(9, c.po_shares, "이 크레딧이 걸린 발주");
   });
 
-  /* 비용 — ⭐ 한 청구서가 발주 여럿에 걸친다. alloc 이 이 발주 몫이다 */
+  /* ⭐ 캐럿 — 문서 하나가 발주 여럿에 걸친다. 펼치면 어디에 얼마씩 갔는지 보인다.
+     ⚠️ 없으면 이 발주 몫만 보이고 청구서 전체 그림은 발주를 하나씩 열어야 안다. */
+  let caretN = 0;
+  const caretRow = (cols, rows, label) => {
+    if(!rows || !rows.length) return "";
+    const id = "cx" + (++caretN);
+    return `<tr class="sub" id="${id}" hidden><td colspan="${cols}">
+      <div style="padding:2px 0 4px">${label}</div>
+      ${rows.map(x => `<div><span class="mono">${esc(x.po_number)}</span>
+        <span class="tag">${esc(x.po_status)}</span>
+        <span style="margin-left:8px">${money(x.amount)}</span>
+        ${x.qty_ea !== undefined && x.qty_ea !== null ? ` <span class="dim">· qty ${qty(x.qty_ea)}</span>` : ""}</div>`).join("")}
+    </td></tr>`;
+  };
+  const caretBtn = () => `<button class="cflip" data-flip="cx${caretN + 1}">&#9656;</button>`;
+
+  /* 비용 — ⭐ 한 청구서가 발주 여럿에 걸친다. Allocated here 가 이 발주 몫이다 */
   const chgs = (data.charges || []).map(c => `<tr>
-      <td><span class="mono">${esc(c.charge_number)}</span>${c.description?`<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>`:""}</td>
+      <td>${caretBtn()}<span class="mono">${esc(c.charge_number)}</span>${c.description?`<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>`:""}</td>
       <td><span class="tag">${esc(c.kind)}</span></td>
       <td>${esc(c.supplier_name)}</td>
       <td>${dim(c.charge_date)}</td>
       <td class="num">${money(c.alloc_amount)}</td>
       <td class="num"><span class="dim">${money(c.total_amount)}</span></td>
       <td class="num">${Number(c.unpaid) === 0 ? '<span class="dim">0.00</span>' : `<span class="neutral">${money(c.unpaid)}</span>`}</td>
-    </tr>`);
+    </tr>` + caretRow(7, c.allocs, "이 청구서가 걸린 발주"));
 
   /* 결제 — ⭐ 인보이스와 비용 문서 둘 다 가리킨다 */
   const pays = (data.payments || []).map(p => `<tr>
@@ -692,6 +865,16 @@ async function loadDetail(id){
       if(b.dataset.act === "paste")   openPaste();
       if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
       if(b.dataset.act === "cancel")  setStatus(h.id, "cancelled");
+      if(b.dataset.act === "wide")    showWide();
+      if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
+    };
+  });
+  box.querySelectorAll("[data-flip]").forEach(b => {
+    b.onclick = () => {
+      const r = document.getElementById(b.dataset.flip);
+      if(!r) return;
+      r.hidden = !r.hidden;
+      b.innerHTML = r.hidden ? "&#9656;" : "&#9662;";
     };
   });
   if(ed){
@@ -710,11 +893,45 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
 
-  document.getElementById("newPo").onclick = openNewPo;
-  document.getElementById("st").onchange = e => {
-    stFilter = e.target.value; pg.reset(); clearDetail(); loadList();
+  document.getElementById("newPo").onclick   = openNewPo;
+  document.getElementById("wnew").onclick    = openNewPo;
+  document.getElementById("backWide").onclick = showWide;
+
+  // ⭐ 공급처 고르기 — 발주 목록을 여는 첫 이유다(Caleb: 「주로 공급처별이 가장 많다」)
+  //    ⚠️ 활성 공급처 전부를 한 번 읽는다(226행 · 1,000행 캡 아래)
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  if(sup.data) document.getElementById("wsup").innerHTML =
+    '<option value="">All suppliers</option>' +
+    sup.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+
+  // ⚠️ 두 모드가 같은 필터를 쓴다 — 넓은 목록에서 바꾸면 좁은 목록도 같게 걸린다
+  const refilter = () => { pg.reset(); pgW.reset(); loadWide(); };
+  document.getElementById("wsup").onchange  = e => { supFilter = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom  = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo    = e.target.value; refilter(); };
+  document.getElementById("wst").onchange   = e => {
+    stFilter = e.target.value;
+    document.getElementById("st").value = stFilter;
+    refilter();
   };
-  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+  imsQ("#wq", v => { q = v; document.getElementById("q").value = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; supFilter = ""; dateFrom = ""; dateTo = ""; stFilter = "open";
+    ["wq","wsup","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wst").value = "open";
+    document.getElementById("q").value = ""; document.getElementById("st").value = "open";
+    refilter();
+  };
+
+  document.getElementById("st").onchange = e => {
+    stFilter = e.target.value;
+    document.getElementById("wst").value = stFilter;
+    pg.reset(); clearDetail(); loadList();
+  };
+  imsQ("#q", v => {
+    q = v; document.getElementById("wq").value = v;
+    pg.reset(); clearDetail(); loadList();
+  });
 
   // ⭐ ?po=PO-02001a 로 들어오면 모체 번호를 검색칸에 넣고 그 문서를 연다(§10-j 3-d ③ 실사고)
   const want = imsParam("po");
@@ -723,17 +940,21 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
     document.getElementById("q").value = q;
     stFilter = "all";
     document.getElementById("st").value = "all";
+    document.getElementById("wst").value = "all";
+    document.getElementById("wide").hidden = true;
+    document.getElementById("wrapBox").hidden = false;
     await loadList();
     const el = Array.from(document.querySelectorAll(".list .row"))
       .find(r => r.querySelector(".pn").textContent === want);
-    if(el){ curId = el.dataset.id; await loadList(); loadDetail(curId); }
+    if(el){ openPo(el.dataset.id); }
     // ⚠️ 못 찾으면 조용히 목록만 남는다 — 지워진 문서거나 오타다. 사람이 알아야 한다.
     else document.getElementById("detail").innerHTML =
       `<div class="card"><div class="msg">${esc(want)} not found.</div></div>`;
     return;
   }
 
-  await loadList();
+  // ⭐ 기본은 **넓은 목록**이다 — 아무것도 안 골랐을 때 화면 전체를 쓴다(Caleb)
+  showWide();
 });
 </script>
 </body>
