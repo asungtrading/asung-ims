@@ -71,12 +71,16 @@
   #wide tbody tr{cursor:pointer}
   #wide tbody tr:hover{background:#fafbfd}
   /* ⭐ 국면 다섯 — 넓은 목록에만. 색은 셋뿐이다(아직 · 일부 · 다 됐다) */
-  .pdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;
-        border:1px solid rgba(0,0,0,.10);vertical-align:middle}
+  .pdot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;
+        border:1px solid rgba(0,0,0,.10);vertical-align:middle;cursor:help}
+  .pdot:last-child{margin-right:0}
   .pdot.pn{background:#dfe3ea}
   .pdot.pp{background:#e8a33d}
   .pdot.pd{background:#2f9e6f}
-  .phead{white-space:nowrap}
+  /* ⚠️ 머리글을 다섯 낱말로 두었더니 글자 폭이 제각각이라 아래 점과 세로로 안 맞았다.
+     ⇒ 머리는 Status 하나로 두고 점만 나란히 둔다. 무엇인지는 툴팁이 말한다(Cin7 도 아이콘만 둔다). */
+  .phead{white-space:nowrap;width:86px}
+  td.phead{padding-right:0}
   .cflip{border:none;background:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px}
   .cflip:hover{color:var(--ink)}
   tr.sub td{background:#fafbfd;font-size:12px;color:var(--muted)}
@@ -302,7 +306,7 @@ async function loadWide(){
   if(!data.length){ box.innerHTML = '<div class="msg">No purchase orders match.</div>'; pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return; }
 
   box.innerHTML = `<table><thead><tr>
-      <th class="phead">Order Inv Recv Chg Paid</th>
+      <th class="phead">Status</th>
       <th>PO</th><th>Ordered</th><th>Required</th><th>Supplier</th>
       <th class="num">Lines</th><th class="num">Net</th>
       <th class="num">Received</th><th class="num">Invoiced</th>
