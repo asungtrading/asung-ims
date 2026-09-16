@@ -17,8 +17,8 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 일곱이 보인다
-    Settings · Suppliers · Products · Families · Supplier Products · Staff · Home
+[ ] ☰ Menu 를 누르면 여덟이 보인다 (2026-09-16 Purchase Orders 추가)
+    Settings · Suppliers · Products · Families · Supplier Products · Purchase Orders · Staff · Home
 [ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
 [ ] Sign Out 이 되고, 다시 열면 로그인 화면이다
 [ ] 화면 글자가 전부 영문이다
@@ -185,6 +185,42 @@
 
 ---
 
+## 7-a. `po.html` — 발주 (⑤ 읽기 · 2026-09-16 신설)
+
+뒷단: 뷰 `po_list`(목록) · RPC `po_detail`(상세) — asung-wms `20260916163806` · `20260916164539`. ⭐ 계산(할인 체인 · 미지급 · 차이)은 RPC 값을 그리기만 한다.
+⚠️ 아래 숫자는 **검증 데이터**(2026-09-16 · Caleb 이 SQL 로 넣은 PO-02001a · PO-02001b · PO-02002)다. 발주를 만들면 늘고, 컷오버 때 지운다.
+   모집단은 항목마다 괄호에 적었다 — Status 드롭다운이 무엇인지에 따라 수가 다르다.
+
+```
+[ ] 열면 Status 가 Open(draft+confirmed)이고 1–2 / 2 — PO-02002 · PO-02001b (내림차순 · 검증 데이터 기준)
+[ ] Status 를 All 로 → / 3 · Closed 로 → / 1 (PO-02001a) · Draft · Cancelled 로 → No purchase orders match.
+[ ] 목록의 PO-02001a 행: 태그 closed(회색) + split(회색 — 단종 색이 아니다) · 금액 2,010.54
+[ ] 목록의 PO-02001b 행: 「received 0 / 100」 줄이 보인다 (confirmed 만 보인다) · PO-02002 는 「received 0 / 1,000」
+[ ] 검색칸에 PO-02001 을 치면(All 상태) a·b 둘이 나온다 · Ampro 를 치면 공급처 이름으로도 걸린다
+[ ] PO-02001a 를 열면
+    칩: closed 가 초록 · 「split into 1」 · 아래에 「PO-02001b →」 링크
+    Subtotal 2,446.80 · Discount −436.26 · Net 2,010.54 · Charges added 597.49 · Received 920 / 920 (경고색 아님)
+    Lines 3 — Remaining 전부 0(회색) · AMP00405 Received 600
+    Discounts 2 — 「× factor 0.8217 = 2,010.54」 (0.821700 처럼 뒷자리 0 이 붙지 않는다)
+    Receipts 4 — AMP00405 가 A010101 400 + A010102 200 두 줄
+    Invoices 1 — AMP-778812 · Printed 2,197.54 · Computed 2,197.54 · Diff 0.00(회색) · Payable 2,010.54 · Paid 2,010.54 · Unpaid 0.00 · Lines 3/4
+    Charges 1 — CBSA 10039192310530 · duty · Allocated here 597.49 · Charge total 2,547.37 · Unpaid 0.00 · 설명 줄이 번호 아래에
+    Payments 2 — invoice AMP-778812 2,010.54 USD (Discount —) · charge 10039192310530 2,496.42 CAD · Discount 50.95 · Applied 2,547.37
+    Created by · Confirmed by 옆 시각이 토론토다 (⚠️ UTC 로 보이면 틀린 것)
+[ ] 「PO-02001b →」 를 누르면 검색칸이 PO-02001 · Status 가 All 로 바뀌고 b 가 파란 표시로 열린다 · 상세는 비지 않는다
+    b 의 칩: confirmed(회색) · 「split from PO-02001a」 · Received 0 / 100 이 경고색 · Lines 1 Remaining 100 · Discounts 2 · Receipts·Invoices·Charges·Payments 전부 None.
+[ ] b 에서 「← PO-02001a」 를 누르면 a 로 돌아온다
+[ ] PO-02002 를 열면 Discounts None · Received 0 / 1,000 경고색 · Charges 1 (1,949.88 / 2,547.37)
+[ ] po.html?po=PO-02001b 로 들어오면 검색칸 PO-02001 · All · b 가 열린다 · po.html?po=PO-99999 는 「PO-99999 not found.」
+[ ] 검색어나 Status 를 바꾸면 오른쪽이 비워진다 · ← → 로 페이지를 넘기면 그대로다 (§10-j 3-d)
+[ ] 없는 발주(지워진 id)를 열면 「That purchase order is gone.」 — RPC 가 null 을 돌려준다
+```
+
+⚠️ **매니저로 로그인해도** Status 드롭다운이 보인다 — 발주 목록은 감출 것이 아니다(마스터의 「admin 만 토글」과 다른 경우 · 코드 주석).
+（매니저 계정이 아직 없다 — 추가한 뒤 확인한다）
+
+---
+
 ## 8. 로그인 · 계정
 
 ```
@@ -211,4 +247,8 @@
    yn(v, false) 로 회색으로 바꿨다(공통 파일로 옮기며). 색은 is_active 에만 — 여섯 화면 전부
 ⬜ supplier-products.html 의 제품 검색은 받은 페이지(200줄) 안에서만 걸린다
    — 조인된 칸이라 서버에서 못 거른다. 공급처 하나에 200줄이 넘으면 뒤쪽은 안 걸린다
+⬜ .or() 검색어에 쉼표·괄호가 들어가면 PostgREST 400 — [2026-09-16] po · products · families · settings 네 화면이 같은 모양이다.
+   ⚠️ 실물이 있다 — 공급처 이름에 쉼표(Ampro Industries, Inc.). ⇒ ims-ui.js 에 검색어 정리 헬퍼를 두고 넷이 함께 쓴다(공통 파일 · 별도 차수 · §0-a 대로 전 화면 확인)
+⬜ po.html 의 갈라진 문서 이동(gotoPo · ?po=)이 목록을 두 번 읽는다 — 뷰 po_list 에 split_from_id 가 없어 번호로 찾는다.
+   ⇒ 뷰에 split_from_id 를 더하면 한 번으로 끝난다(뒷단 asung-wms 변경 · 별도 차수). 행이 셋이라 지금은 체감 없다
 ```

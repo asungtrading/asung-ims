@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchase Orders · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 230px)}
+  .list .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .list .row .l{min-width:0}
+  .list .row .pn{font-family:var(--mono);font-size:13px}
+  .list .row .sn{font-size:11.5px;color:var(--muted);margin-top:2px;
+                 overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .row .r{text-align:right;white-space:nowrap}
+  .list .row .amt{font-family:var(--mono);font-size:12.5px}
+  .list .row.cur .pn{color:#3b5bdb;font-weight:700}
+  main{display:flex;flex-direction:column;gap:14px}
+  /* ⚠️ 이름은 공통과 겹치지 않는 것으로 골랐다(§10-j 3-g 의 .note 충돌 선례) */
+  .pobar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .pobar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+  .pogrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media (max-width:900px){ .pogrid{grid-template-columns:1fr} }
+  .posub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;
+         border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="wrap">
+  <section class="list">
+    <div class="top">
+      <input type="search" id="q" placeholder="Search PO number or supplier">
+      <div class="opts">
+        <label>Status
+          <select id="st">
+            <option value="open">Open</option>
+            <option value="draft">Draft</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="closed">Closed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+
+  <main id="detail"><div class="card"><div class="msg">Select a purchase order.</div></div></main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Purchase Orders — ⑤ PO 본체 · 읽기 화면
+   정본: docs/design/po-module.md §11(판단) · §13(표·검증) · §10-j(화면 규칙)
+
+   ⭐ 이 화면은 **읽기 전용**이다. 만들기·편집·입고는 다음 차수다.
+   ⭐⭐ 뒷단이 둘로 갈려 있다(Caleb 2026-09-16):
+        목록  뷰 `po_list`  — 표처럼 보이니 imsPage()·imsQ() 가 그대로 듣는다(§10-j 3-a)
+        상세  RPC `po_detail(p_po_id)` — 한 번에 받는다
+      ⚠️⚠️ **계산 규칙의 정본은 RPC 다.** 할인 체인 · 미지급 · 총액 대조를 **화면에서 다시 짜지 마라.**
+         화면마다 다시 짜면 어긋난다(§13). 여기서는 받은 값을 **그리기만** 한다.
+
+   ⚠️ 알아 둘 것 (전부 §13 의 실측):
+     · 할인은 차례로 **곱한다**(더하지 않는다) — 실물에서 4.68 어긋났다
+     · 인보이스 미지급은 **총액이 아니라 payable 줄 합**이다 — 운임 줄(is_payable=false)이 빠진다
+       [실물 AMP-778812] 청구 2,197.54 인데 갚을 돈은 2,010.54
+     · 입고 줄 합이 발주 수량을 **넘을 수 있다**(초과 입고). 넘은 만큼은 원장에 안 간다 — 설계대로다
+     · po_line 에 received_qty 칸은 **없다**. 입고 줄 합이다
+     · closed 의 뜻은 **입고 종료**다. 비용은 그 뒤에 붙는다 — 닫힌 문서에도 붙는다
+
+   ⚠️ 색은 절제한다(§10-j 3-e). draft·confirmed 는 정상 진행이라 회색이고,
+      closed 만 초록(입고 종료 = 완료 신호) · cancelled 만 빨강이다.
+      3-e 의 「색 절제」는 false 가 정상인 불리언 이야기라 여기는 해당하지 않는다.
+      진짜 신호는 **입고 진행(received/ordered)** 숫자다.
+   ───────────────────────────────────────────────────────────── */
+
+let sb=null, me=null, isAdmin=false;
+let q="", stFilter="open", curId=null;
+/* ⚠️ 상세 조회를 기다리는 사이 필터가 바뀌면 늦게 도착한 응답이 화면을 덮는다 — 번호로 막는다(§10-j 3-d) */
+let detailSeq = 0;
+const pg = imsPage(100);
+
+/* ── 값 표시 ───────────────────────────────────────
+   ⚠️ 공통 num() 은 escape 만 한다 — 돈 서식은 여기서. */
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:4 }));
+
+/* ⚠️ 색은 절제한다 — cancelled 만 빨강, closed 만 초록(완료). draft·confirmed 는 회색. */
+function stChip(s){
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(s === "closed")    return '<span class="chip good">closed</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+
+/* ⭐ 모체 번호 — PO-02001a → PO-02001. 갈라진 문서를 한 번에 찾는 열쇠다(§11-c 「찾기는 접두어로」) */
+const stem = (n) => String(n || "").replace(/[a-z]+$/, "");
+
+function clearDetail(){
+  curId = null;
+  detailSeq++;   // 날아오던 요청이 있으면 그것도 무효로
+  document.getElementById("detail").innerHTML =
+    '<div class="card"><div class="msg">Select a purchase order.</div></div>';
+}
+
+/* ── 목록 ─────────────────────────────────────────── */
+async function loadList(){
+  let qry = sb.from("po_list").select("*", { count:"exact" });
+  // ⚠️ 상태 필터는 매니저에게도 보인다 — 발주 목록은 감출 것이 아니다.
+  //    §10-j 3-b 의 「admin 만 #opts」는 마스터에서 정돈된 목록을 주기 위한 규칙이고 여기는 그 경우가 아니다.
+  if(stFilter === "open")       qry = qry.in("status", ["draft","confirmed"]);
+  else if(stFilter !== "all")   qry = qry.eq("status", stFilter);
+  // ⚠️ 검색은 서버에서 돈다(§10-j 3-a). 번호와 공급처 이름 둘 다 본다.
+  if(q) qry = qry.or(`po_number.ilike.%${q}%,supplier_name.ilike.%${q}%`);
+
+  const { data, error } = await pg.run(qry.order("po_number", { ascending:false }));
+  if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+
+  document.getElementById("rows").innerHTML = data.length ? data.map(r => {
+    const tags = [];
+    if(r.status === "cancelled") tags.push('<span class="tag off">cancelled</span>');
+    else if(r.status === "closed") tags.push('<span class="tag">closed</span>');
+    else if(r.status === "draft") tags.push('<span class="tag">draft</span>');
+    // ⭐ 갈라진 문서가 있으면 목록에서 보여야 한다 — 없으면 a 를 열어야만 b 를 찾는다
+    // ⚠️ tag.disc(황갈색)는 **단종** 색이다 — 빌려 쓰면 목록에서 「단종?」으로 읽힌다. 회색으로 둔다.
+    if(Number(r.split_to_count) > 0) tags.push('<span class="tag">split</span>');
+    // ⭐ 진짜 신호는 입고 진행이다. 다 받았으면 안 띄운다.
+    const recv = (r.status === "confirmed" && Number(r.ordered_qty) > 0)
+      ? `<div class="sn">received ${qty(r.received_qty)} / ${qty(r.ordered_qty)}</div>` : "";
+    return `<div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
+      <span class="l">
+        <div class="pn">${esc(r.po_number)}</div>
+        <div class="sn">${esc(r.supplier_name)}</div>
+        ${recv}
+      </span>
+      <span class="r">
+        <div class="amt">${money(r.net_total)}</div>
+        <div style="margin-top:3px">${tags.join(" ")}</div>
+      </span>
+    </div>`;
+  }).join("") : '<div class="msg">No purchase orders match.</div>';
+
+  document.querySelectorAll(".list .row").forEach(el => {
+    el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
+  });
+
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+}
+
+/* ⭐ 갈라진 문서 사이 이동 — 모체 번호를 검색칸에 넣어 a·b·c 가 한 화면에 보이게 한다.
+   ⚠️ [실사고 §10-j 3-d] 화면 안 이동에서 검색어를 안 바꾸면 고른 것이 목록에 없어 파란 표시가 사라진다.
+   ⚠️ 이것은 **코드가 넣는 값**이라 상세를 비우지 않는다. */
+async function gotoPo(poNumber, id){
+  q = stem(poNumber);
+  document.getElementById("q").value = q;
+  stFilter = "all";                                   // 닫힌 문서도 보여야 한다
+  document.getElementById("st").value = "all";
+  pg.reset();
+  if(id){ curId = id; await loadList(); loadDetail(id); return; }
+  // id 를 모르는 쪽(split_from) — 목록을 먼저 읽고 번호로 찾는다
+  await loadList();
+  const el = Array.from(document.querySelectorAll(".list .row"))
+    .find(r => r.querySelector(".pn").textContent === poNumber);
+  if(!el) return;                                     // 필터 밖이거나 다른 페이지에 있다
+  curId = el.dataset.id;
+  await loadList();                                   // 파란 표시를 다시 그린다
+  loadDetail(curId);
+}
+
+/* ── 상세 ─────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+
+  // ⭐ 조회 한 번이면 끝난다 — 머리·라인·할인·입고·인보이스·비용·결제가 다 들어 있다
+  const { data, error } = await sb.rpc("po_detail", { p_po_id: id });
+  if(seq !== detailSeq) return;                        // 그 사이 다른 요청이 들어왔다
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  // ⚠️ 없는 id 는 null 이 온다(빈 객체가 아니다) — RPC 가 그렇게 돌려준다
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That purchase order is gone.</div></div>'; return; }
+
+  const h = data.header, t = data.totals || {};
+  const cur = h.currency_code ? ` <span class="dim">${esc(h.currency_code)}</span>` : "";
+
+  /* 머리 */
+  const chips = [stChip(h.status)];
+  if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
+  if((h.split_to || []).length) chips.push(`<span class="chip">split into ${h.split_to.length}</span>`);
+
+  const kvL = [
+    ["Supplier",      esc(h.supplier_name)],
+    ["Order date",    dim(h.order_date)],
+    ["Payment term",  dim(h.payment_term_name)],
+    ["Ship to",       dim(h.ship_to_warehouse)],
+  ];
+  const kvR = [
+    ["Currency",      `<span class="mono">${dim(h.currency_code)}</span>` +
+                      (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
+    ["Created by",    dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
+    ["Confirmed by",  dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
+    // ⚠️ closed 는 「입고 종료」다 — 비용은 그 뒤에도 붙는다(§13)
+    ["Closed",        h.closed_at ? imsTs(h.closed_at) : (h.cancelled_at ? `<span class="off">cancelled ${imsTs(h.cancelled_at)}</span>` : '<span class="dim">—</span>')],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  /* ⭐ 진짜 신호 넷 — 소계 · 할인 후 · 붙은 비용 · 입고 진행 */
+  // ⚠️ 초안(draft)은 아직 받을 때가 아니다 — 경고로 칠하지 않는다(목록의 recv 와 같은 조건)
+  const shortQty = h.status === "confirmed" && Number(t.received_qty) < Number(t.ordered_qty);
+  const stats = `
+    <div class="stats">
+      <div class="stat">Subtotal<b>${money(t.subtotal)}</b></div>
+      <div class="stat">Discount<b>${t.discount_amount ? "−"+money(t.discount_amount) : money(0)}</b></div>
+      <div class="stat">Net<b>${money(t.net_total)}</b></div>
+      <div class="stat">Charges added<b>${money(t.charge_total)}</b></div>
+      <div class="stat ${shortQty ? "warn" : ""}">Received<b>${qty(t.received_qty)} / ${qty(t.ordered_qty)}</b></div>
+    </div>`;
+
+  /* 라인 */
+  const lines = (data.lines || []).map(l => {
+    const over = Number(l.remaining_qty) < 0;
+    const unit = l.entered_unit_sku
+      ? `<div class="dim" style="font-size:11.5px">entered ${qty(l.entered_qty)} × ${esc(l.entered_unit_sku)} (×${esc(l.entered_pack_factor)})</div>`
+      : "";
+    return `<tr>
+      <td class="num">${esc(l.line_no)}</td>
+      <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>${unit}</td>
+      <td class="mono">${dim(l.supplier_sku)}</td>
+      <td class="num">${qty(l.qty_ea)}</td>
+      <td class="num">${money(l.unit_price)}</td>
+      <td class="num">${money(l.amount)}</td>
+      <td class="num">${qty(l.received_qty)}</td>
+      <td class="num">${over ? `<span class="off">+${qty(-l.remaining_qty)}</span>`
+                             : (Number(l.remaining_qty) > 0 ? `<span class="neutral">${qty(l.remaining_qty)}</span>` : '<span class="dim">0</span>')}</td>
+    </tr>`;
+  });
+
+  /* 할인 — ⚠️ 차례로 곱한다. 화면은 RPC 가 준 결과를 그리기만 한다 */
+  const disc = (data.discounts || []).map(d => `<tr>
+      <td class="num">${esc(d.seq)}</td>
+      <td>${esc(d.name)}</td>
+      <td class="num">${esc(d.percent)}%</td>
+      <td>${d.supplier_discount_id ? '<span class="dim">from supplier</span>' : '<span class="dim">added here</span>'}</td>
+    </tr>`);
+
+  /* 입고 — ⭐ 한 라인이 여러 빈으로 나뉜다(실물) */
+  const recs = (data.receipts || []).map(r => `<tr>
+      <td class="num">${esc(r.line_no)}</td>
+      <td class="mono">${esc(r.sku)}</td>
+      <td class="num">${qty(r.qty_ea)}</td>
+      <td class="mono">${esc(r.bin_name)}</td>
+      <td>${dim(r.warehouse_name)}</td>
+      <td>${dim(r.received_on)}</td>
+      <td>${dim(r.received_by_name)}</td>
+    </tr>`);
+
+  /* 인보이스 — ⚠️ 미지급은 총액이 아니라 payable 줄 합이다 */
+  const invs = (data.invoices || []).map(i => {
+    const bad = Number(i.diff) !== 0;
+    return `<tr>
+      <td class="mono">${esc(i.invoice_number)}</td>
+      <td>${dim(i.invoice_date)}</td>
+      <td>${dim(i.due_date)}</td>
+      <td class="num">${money(i.total_amount)}</td>
+      <td class="num">${bad ? `<span class="off">${money(i.computed_total)}</span>` : money(i.computed_total)}</td>
+      <td class="num">${bad ? `<span class="off">${money(i.diff)}</span>` : '<span class="dim">0.00</span>'}</td>
+      <td class="num">${money(i.payable_net)}</td>
+      <td class="num">${money(i.paid)}</td>
+      <td class="num">${Number(i.unpaid) === 0 ? '<span class="dim">0.00</span>' : `<span class="neutral">${money(i.unpaid)}</span>`}</td>
+      <td class="num"><span class="dim">${esc(i.lines_for_this_po)}/${esc(i.line_count)}</span></td>
+    </tr>`;
+  });
+
+  /* 비용 — ⭐ 한 청구서가 발주 여럿에 걸친다. alloc 이 이 발주 몫이다 */
+  const chgs = (data.charges || []).map(c => `<tr>
+      <td><span class="mono">${esc(c.charge_number)}</span>${c.description?`<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>`:""}</td>
+      <td><span class="tag">${esc(c.kind)}</span></td>
+      <td>${esc(c.supplier_name)}</td>
+      <td>${dim(c.charge_date)}</td>
+      <td class="num">${money(c.alloc_amount)}</td>
+      <td class="num"><span class="dim">${money(c.total_amount)}</span></td>
+      <td class="num">${Number(c.unpaid) === 0 ? '<span class="dim">0.00</span>' : `<span class="neutral">${money(c.unpaid)}</span>`}</td>
+    </tr>`);
+
+  /* 결제 — ⭐ 인보이스와 비용 문서 둘 다 가리킨다 */
+  const pays = (data.payments || []).map(p => `<tr>
+      <td class="mono">${dim(p.reference)}</td>
+      <td>${dim(p.paid_on)}</td>
+      <td><span class="tag">${esc(p.target_kind)}</span> <span class="mono">${esc(p.target_number)}</span></td>
+      <td class="num">${money(p.amount)} <span class="dim">${esc(p.currency_code)}</span></td>
+      <td class="num">${Number(p.discount_taken) > 0 ? `<span class="neutral">${money(p.discount_taken)}</span>` : '<span class="dim">—</span>'}</td>
+      <td class="num">${money(p.alloc_amount)}</td>
+      <td>${dim(p.account_name)}</td>
+      <td>${dim(p.paid_by_name)}</td>
+    </tr>`);
+
+  const tbl = (title, n, head, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${head.map(x=>`<th${x[1]?' class="'+x[1]+'"':''}>${x[0]}</th>`).join("")}</tr></thead>
+        <tbody>${rows.join("")}</tbody></table>${sub?`<div class="posub">${sub}</div>`:""}`
+      : `<div class="msg">None.</div>`}
+    </div>`;
+
+  if(seq !== detailSeq) return;
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="pobar">
+          <span class="pn">${esc(h.po_number)}</span>
+          <span class="chips">${chips.join("")}</span>
+        </div>
+        ${(h.split_from_number || (h.split_to||[]).length) ? `<div style="margin-top:8px;font-size:12.5px">
+          ${h.split_from_number ? `<a class="lnk" data-goto="${esc(h.split_from_number)}">← ${esc(h.split_from_number)}</a>` : ""}
+          ${(h.split_to||[]).map(s=>`<a class="lnk" data-goto="${esc(s.po_number)}" data-id="${s.id}" style="margin-left:10px">${esc(s.po_number)} →</a>`).join("")}
+        </div>` : ""}
+      </div>
+      ${stats}
+      <div class="pogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
+      ${h.note ? `<div class="note">${esc(h.note)}</div>` : ""}
+    </div>
+
+    ${tbl("Lines", (data.lines||[]).length,
+      [["#","num"],["Product",""],["Supplier SKU",""],["Qty","num"],["Unit price","num"],
+       ["Amount","num"],["Received","num"],["Remaining","num"]], lines,
+      "⚠️ Remaining 이 음수(빨강)면 주문보다 많이 받은 것이다 — 넘은 만큼은 재고에 안 들어간다.")}
+
+    ${tbl("Discounts", (data.discounts||[]).length,
+      [["Seq","num"],["Name",""],["Percent","num"],["Source",""]], disc,
+      `차례로 곱한다 — subtotal ${money(t.subtotal)} × factor ${esc(Number(t.discount_factor))} = ${money(t.net_total)}`)}
+
+    ${tbl("Receipts", (data.receipts||[]).length,
+      [["#","num"],["SKU",""],["Qty","num"],["Bin",""],["Warehouse",""],["Date",""],["By",""]], recs,
+      "한 라인이 여러 빈으로 나뉠 수 있다.")}
+
+    ${tbl("Invoices", (data.invoices||[]).length,
+      [["Number",""],["Date",""],["Due",""],["Printed","num"],["Computed","num"],["Diff","num"],
+       ["Payable","num"],["Paid","num"],["Unpaid","num"],["Lines","num"]], invs,
+      "⚠️ Payable 은 청구 총액이 아니다 — 안 낼 줄(운임 등)이 빠진 값이다. Diff 가 0 이 아니면 찍힌 총액과 계산이 다르다.")}
+
+    ${tbl("Charges", (data.charges||[]).length,
+      [["Number",""],["Kind",""],["Supplier",""],["Date",""],["Allocated here","num"],["Charge total","num"],["Unpaid","num"]], chgs,
+      "한 청구서가 발주 여럿에 걸친다 — Allocated here 가 이 발주 몫이다.")}
+
+    ${tbl("Payments", (data.payments||[]).length,
+      [["Reference",""],["Date",""],["Target",""],["Paid","num"],["Discount","num"],["Applied","num"],["Account",""],["By",""]], pays,
+      "Paid + Discount = Applied. 인보이스와 비용 청구서 둘 다 결제 대상이다.")}
+  `;
+
+  // 갈라진 문서로 이동 — 모체 번호를 검색칸에 넣는다
+  document.querySelectorAll("[data-goto]").forEach(a => {
+    a.onclick = () => gotoPo(a.dataset.goto, a.dataset.id || null);
+  });
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true }, async (client, meData) => {
+  sb = client; me = meData; isAdmin = (me.role === "admin");
+  imsHeader(me);
+
+  document.getElementById("st").onchange = e => {
+    stFilter = e.target.value; pg.reset(); clearDetail(); loadList();
+  };
+  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+
+  // ⭐ ?po=PO-02001a 로 들어오면 모체 번호를 검색칸에 넣고 그 문서를 연다(§10-j 3-d ③ 실사고)
+  const want = imsParam("po");
+  if(want){
+    q = stem(want);
+    document.getElementById("q").value = q;
+    stFilter = "all";
+    document.getElementById("st").value = "all";
+    await loadList();
+    const el = Array.from(document.querySelectorAll(".list .row"))
+      .find(r => r.querySelector(".pn").textContent === want);
+    if(el){ curId = el.dataset.id; await loadList(); loadDetail(curId); }
+    // ⚠️ 못 찾으면 조용히 목록만 남는다 — 지워진 문서거나 오타다. 사람이 알아야 한다.
+    else document.getElementById("detail").innerHTML =
+      `<div class="card"><div class="msg">${esc(want)} not found.</div></div>`;
+    return;
+  }
+
+  await loadList();
+});
+</script>
+</body>
+</html>
