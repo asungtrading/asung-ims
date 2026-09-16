@@ -25,6 +25,35 @@
   @media (max-width:900px){ .pogrid{grid-template-columns:1fr} }
   .posub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;
          border-top:1px solid var(--line)}
+  /* 쓰기 — 모달 · 인라인 입력 */
+  .pobtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+         font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .pobtn:hover{background:#f2f4f8}
+  .pobtn:disabled{opacity:.45;cursor:default}
+  .pobtn.go{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+  .pobtn.go:hover{background:#3550c4}
+  .pomodal{position:fixed;inset:0;z-index:5000;background:rgba(16,22,30,.45);
+           display:flex;align-items:center;justify-content:center;padding:20px}
+  .pomodal[hidden]{display:none}
+  .pobox{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:86vh;
+         display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,20,30,.28)}
+  .pobox h4{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .pobox .pbody{padding:14px 16px;overflow:auto;flex:1}
+  .pobox .pfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .pobox .pfoot .sp{flex:1}
+  .pobox textarea{width:100%;min-height:200px;border:1px solid var(--line);border-radius:10px;
+                  padding:10px;font-family:var(--mono);font-size:12.5px}
+  .pobox input[type=search],.pobox input[type=text]{width:100%;border:1px solid var(--line);
+                  border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pick{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:#fafbfd}
+  .qin{width:84px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
+       font-family:var(--mono);font-size:12.5px;text-align:right}
+  .qin.pin{width:104px}
+  .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
+        font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
+  .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
 </style>
 </head>
 <body>
@@ -40,6 +69,7 @@
 <div class="wrap">
   <section class="list">
     <div class="top">
+      <button class="pobtn go" id="newPo" style="width:100%">+ New purchase order</button>
       <input type="search" id="q" placeholder="Search PO number or supplier">
       <div class="opts">
         <label>Status
@@ -63,6 +93,8 @@
 
   <main id="detail"><div class="card"><div class="msg">Select a purchase order.</div></div></main>
 </div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
@@ -203,6 +235,224 @@ async function gotoPo(poNumber, id){
   loadDetail(curId);
 }
 
+/* ══ 쓰기 ═══════════════════════════════════════════════
+   ⭐⭐ 나누는 기준(Caleb 2026-09-16): **일이 여럿이면 RPC · 한 가지면 PostgREST.**
+     RPC        po_create(초안 · 표 둘) · po_lines_paste(붙여넣기) ·
+                po_line_update / po_line_delete(다른 행을 저장 전에 봐야 한다)
+     PostgREST  확정 · 취소 · 메모 — 한 칸이면 충분하다. imsSaved() 로 되읽는다(§10-j 3-i)
+
+   ⭐ 확정은 **잠금이 아니다.** 「공급처에 보냈다」는 뜻이다(§11-b 정정 · Caleb 실측).
+      확정 뒤에도 라인을 고치고 더한다 — 전화하다 품목이 느는 것이 평소 일이다.
+   ⚠️ 막는 것은 둘뿐이고 **DB 가 막는다**(po_line_update / po_line_delete):
+        ① 입고가 붙은 라인을 받은 것보다 적게 줄이기
+        ② closed · cancelled 문서 고치기
+      ⇒ 화면은 그 예외 메시지를 그대로 보여 준다. 화면이 규칙을 따로 갖지 않는다. */
+
+const canEdit = (st) => st === "draft" || st === "confirmed";
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ⚠️ RPC 오류는 error.message 로 온다 — 함수가 「… nothing was saved」로 끝내 준다.
+   화면이 그 문장을 그대로 보여 준다. 다시 쓰지 않는다. */
+function showErr(where, msg){
+  const el = document.getElementById(where);
+  if(el){ el.className = "err"; el.textContent = msg; }
+  else alert(msg);
+}
+
+/* ── 새 발주 ─────────────────────────────────────────
+   ⚠️ 공급처 후보는 정돈된 목록이다 — 살아 있고 · 살 수 있고 · 미단종(§10-j 3-b · 2026-09-15 실측 138곳).
+      Show all 로 그 바깥도 볼 수 있다(판정이 없는 곳을 발주해야 할 때가 있다). */
+async function openNewPo(){
+  modalOpen(`
+    <h4>New purchase order — pick a supplier</h4>
+    <div class="pbody">
+      <input type="search" id="supQ" placeholder="Search supplier" autocomplete="off">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--muted)">
+        <input type="checkbox" id="supAll"> Show all (including not-purchasable)
+      </label>
+      <div class="pick" id="supList"><div class="msg">Loading…</div></div>
+      <div id="newMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+    </div>`);
+  const draw = async () => {
+    const all = document.getElementById("supAll").checked;
+    const t = document.getElementById("supQ").value.trim();
+    let qy = sb.from("supplier").select("id,name,payment_term_name,is_purchasable,is_active").eq("is_active", true);
+    if(!all) qy = qy.eq("is_purchasable", true).eq("is_discontinued", false);
+    if(t) qy = qy.ilike("name", `%${t}%`);
+    const { data, error } = await qy.order("name").limit(60);
+    const box = document.getElementById("supList");
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-sid="${r.id}">${esc(r.name)}
+        <span class="dim" style="font-size:11.5px"> · ${esc(r.payment_term_name || "")}</span>
+        ${r.is_purchasable ? "" : '<span class="tag" style="margin-left:6px">not purchasable</span>'}
+      </div>`).join("") : '<div class="msg">No suppliers match.</div>';
+    box.querySelectorAll(".prow").forEach(el => { el.onclick = () => createPo(el.dataset.sid); });
+  };
+  document.getElementById("supAll").onchange = draw;
+  imsQ("#supQ", draw);
+  draw();
+}
+
+async function createPo(supplierId){
+  document.getElementById("newMsg").className = "";
+  document.getElementById("newMsg").textContent = "Creating…";
+  // ⚠️ created_by 를 화면이 주지 않는다 — 함수가 auth.uid() 로 찾는다.
+  //    anon key 가 공개라 화면이 주면 아무 id 나 줄 수 있다(§10-h).
+  const { data, error } = await sb.rpc("po_create", { p_supplier_id: supplierId });
+  if(error){ showErr("newMsg", error.message); return; }
+  modalClose();
+  // ⭐ 새 문서는 draft 라 Open 필터에 걸린다. 검색칸에 번호를 넣어 목록에 확실히 띄운다(§10-j 3-d ②)
+  q = data.po_number; document.getElementById("q").value = q;
+  stFilter = "all"; document.getElementById("st").value = "all";
+  pg.reset(); curId = data.id;
+  await loadList(); loadDetail(curId);
+  if((data.warnings || []).length)
+    setTimeout(() => alert("Created " + data.po_number + "\n\n⚠ " + data.warnings.join("\n⚠ ")), 50);
+}
+
+/* ── 붙여넣기 ─────────────────────────────────────────
+   ⭐ [실무] 50줄 넘는 발주가 꽤 된다(Caleb) — 하나씩 골라 넣는 방식은 안 된다.
+   ⭐ 열쇠는 **우리 SKU** 다 — 공급처 SKU 는 다 갱신돼 있지 않고 아예 없는 공급처도 있다(Caleb).
+   ⭐⭐ 미리 보기가 반드시 있다(Caleb). 붙여넣는 데이터는 밖에서 온다 —
+        옛 SKU · 공백 · 칸 밀림이 있고, 50줄이 잘못 들어가면 하나씩 찾아 지워야 한다.
+   ⚠️ 미리 보기에서 **고치지 않는다.** 원본을 고쳐 다시 붙이는 것이 낫다(화면이 단순해진다). */
+function openPaste(){
+  modalOpen(`
+    <h4>Paste lines — one per row: SKU then quantity</h4>
+    <div class="pbody">
+      <textarea id="pasteBox" placeholder="ABE50205	10&#10;HBE00245	500&#10;…&#10;&#10;탭 · 쉼표 · 여러 칸 공백 — 다 됩니다."></textarea>
+      <div id="pasteOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="pasteMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="pasteChk">Check</button>
+      <button class="pobtn go" id="pasteGo" disabled>Add lines</button>
+    </div>`);
+  document.getElementById("pasteChk").onclick = () => runPaste(false);
+  document.getElementById("pasteGo").onclick  = () => runPaste(true);
+}
+
+/* ⚠️ 붙여넣기 칸을 SKU 와 수량으로 가른다. 탭 · 쉼표 · 여러 칸 공백을 다 받는다.
+   ⚠️ SKU 안쪽 공백·철자는 손대지 않는다 — SKU 정정은 적재 전에 끝난 일이다(§3-f). */
+function parsePaste(text){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split(/\t|,|\s{2,}|\s+/);
+    const qty = p.length > 1 ? p[p.length - 1] : "";
+    const sku = p.slice(0, Math.max(1, p.length - 1)).join(" ");
+    return { sku: sku, qty: Number(String(qty).replace(/[, ]/g, "")) };
+  });
+}
+
+const VERDICT = {
+  ok:        ["on",      "ok"],
+  no_link:   ["neutral", "no link — price 0"],
+  not_found: ["off",     "not found"],
+  duplicate: ["off",     "duplicate"],
+  exists:    ["off",     "already on this PO"],
+  bad_qty:   ["off",     "bad quantity"],
+};
+
+async function runPaste(commit){
+  const rows = parsePaste(document.getElementById("pasteBox").value);
+  const msg = document.getElementById("pasteMsg");
+  if(!rows.length){ msg.className = "err"; msg.textContent = "Nothing to read."; return; }
+  msg.className = ""; msg.textContent = commit ? "Adding…" : "Checking…";
+
+  const { data, error } = await sb.rpc("po_lines_paste",
+    { p_po_id: curId, p_lines: rows, p_commit: commit });
+  if(error){ msg.className = "err"; msg.textContent = error.message; return; }
+
+  const s = data.summary;
+  msg.className = "";
+  msg.textContent = s.too_many ? s.message
+    : `${s.total} rows · ok ${s.ok} · no link ${s.no_link} · not found ${s.not_found}`
+      + (s.duplicate ? ` · duplicate ${s.duplicate}` : "")
+      + (s.exists ? ` · already there ${s.exists}` : "")
+      + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "")
+      + (commit ? ` · added ${s.inserted}` : "");
+
+  document.getElementById("pasteOut").innerHTML = `
+    <table><thead><tr>
+      <th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th>
+      <th class="num">Price</th><th>Verdict</th><th>Note</th></tr></thead>
+    <tbody>${data.lines.map(l => {
+      const v = VERDICT[l.verdict] || ["dim", l.verdict];
+      return `<tr>
+        <td class="num">${esc(l.n)}</td>
+        <td class="mono">${esc(l.input_sku)}</td>
+        <td>${dim(l.product_name)}</td>
+        <td class="num">${qty(l.input_qty)}</td>
+        <td class="num">${l.unit_price === null || l.unit_price === undefined ? '<span class="dim">—</span>'
+            : money(l.unit_price) + (l.price_source && l.price_source !== "none"
+               ? ` <span class="dim">${esc(l.price_source)}</span>` : "")}</td>
+        <td><span class="${v[0]}">${esc(v[1])}</span></td>
+        <td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+
+  // ⭐ 넣을 것이 있을 때만 Add 를 연다 — 판정이 전부 못 넣는 것이면 누를 이유가 없다
+  document.getElementById("pasteGo").disabled = s.too_many || (s.ok + s.no_link) === 0;
+  if(commit){
+    document.getElementById("pasteGo").disabled = true;
+    await loadList(); await loadDetail(curId);
+  }
+}
+
+/* ── 라인 한 줄 고치기 ─────────────────────────────────
+   ⭐ 표 안에서 바로 고친다(Caleb) — 50줄짜리를 하나씩 눌러 들어가면 느리다.
+   ⚠️ 고치면 합계가 바뀌므로 상세를 다시 읽는다. 스크롤 자리는 지킨다. */
+async function saveLine(inp, lineId, field){
+  const prev = inp.dataset.prev;
+  const val = Number(inp.value);
+  if(!isFinite(val) || inp.value.trim() === ""){ inp.value = prev; return; }
+  if(String(val) === String(Number(prev))) return;           // 안 바뀌었다
+  inp.disabled = true;
+  const patch = {}; patch[field] = val;
+  const { error } = await sb.rpc("po_line_update", { p_line_id: lineId, p_patch: patch });
+  inp.disabled = false;
+  if(error){ inp.value = prev; alert(error.message); return; }
+  inp.dataset.prev = String(val);
+  const y = window.scrollY;
+  await loadDetail(curId); await loadList();
+  window.scrollTo(0, y);
+}
+
+async function deleteLine(lineId, sku){
+  if(!confirm(`Remove ${sku} from this purchase order?`)) return;
+  const { error } = await sb.rpc("po_line_delete", { p_line_id: lineId });
+  if(error){ alert(error.message); return; }
+  const y = window.scrollY;
+  await loadDetail(curId); await loadList();
+  window.scrollTo(0, y);
+}
+
+/* ── 확정 · 취소 ───────────────────────────────────────
+   ⚠️ 한 칸씩이라 PostgREST 로 한다. imsSaved() 로 되읽어 0행을 잡는다(§10-j 3-i). */
+async function setStatus(id, to){
+  const label = { confirmed:"Confirm (sent to supplier)", cancelled:"Cancel this purchase order" }[to];
+  if(!confirm(label + "?")) return;
+  const patch = { status: to };
+  if(to === "confirmed"){ patch.confirmed_at = new Date().toISOString(); patch.confirmed_by = me.id; }
+  if(to === "cancelled") patch.cancelled_at = new Date().toISOString();
+  const res = await imsSaved(sb.from("po").update(patch).eq("id", id).select("id,status"));
+  if(!res.ok){ alert(res.reason); return; }
+  await loadList(); await loadDetail(id);
+}
+
 /* ── 상세 ─────────────────────────────────────────── */
 async function loadDetail(id){
   const seq = ++detailSeq;
@@ -220,6 +470,15 @@ async function loadDetail(id){
   const cur = h.currency_code ? ` <span class="dim">${esc(h.currency_code)}</span>` : "";
 
   /* 머리 */
+  /* ⭐ 할 수 있는 일 — 상태에 따라 갈린다.
+     ⚠️ 확정은 잠금이 아니다(§11-b 정정). 확정 뒤에도 붙여넣기·수정이 열려 있다. */
+  const acts = [];
+  if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm &mdash; sent to supplier</button>');
+  if(ed){
+    acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
+    acts.push('<button class="pobtn" data-act="cancel">Cancel PO</button>');
+  }
+
   const chips = [stChip(h.status)];
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
   if((h.split_to || []).length) chips.push(`<span class="chip">split into ${h.split_to.length}</span>`);
@@ -253,7 +512,11 @@ async function loadDetail(id){
       <div class="stat ${shortQty ? "warn" : ""}">Received<b>${qty(t.received_qty)} / ${qty(t.ordered_qty)}</b></div>
     </div>`;
 
-  /* 라인 */
+  /* ⭐ 고칠 수 있는 상태인가 — draft · confirmed 는 고친다. closed · cancelled 는 못 고친다.
+     ⚠️ 이것은 **편의**다. 진짜로 막는 것은 DB(po_line_update / po_line_delete)다. */
+  const ed = canEdit(h.status);
+
+  /* 라인 — ⭐ 표 안에서 바로 고친다(수량 · 단가) */
   const lines = (data.lines || []).map(l => {
     const over = Number(l.remaining_qty) < 0;
     const unit = l.entered_unit_sku
@@ -263,12 +526,13 @@ async function loadDetail(id){
       <td class="num">${esc(l.line_no)}</td>
       <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>${unit}</td>
       <td class="mono">${dim(l.supplier_sku)}</td>
-      <td class="num">${qty(l.qty_ea)}</td>
-      <td class="num">${money(l.unit_price)}</td>
+      <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ea)}" data-prev="${esc(l.qty_ea)}" data-line="${l.id}" data-f="qty_ea">` : qty(l.qty_ea)}</td>
+      <td class="num">${ed ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(l.unit_price)}" data-prev="${esc(l.unit_price)}" data-line="${l.id}" data-f="unit_price">` : money(l.unit_price)}</td>
       <td class="num">${money(l.amount)}</td>
       <td class="num">${qty(l.received_qty)}</td>
       <td class="num">${over ? `<span class="off">+${qty(-l.remaining_qty)}</span>`
                              : (Number(l.remaining_qty) > 0 ? `<span class="neutral">${qty(l.remaining_qty)}</span>` : '<span class="dim">0</span>')}</td>
+      ${ed ? `<td><button class="xbtn" data-del="${l.id}" data-sku="${esc(l.sku)}" title="Remove line">&#10005;</button></td>` : ""}
     </tr>`;
   });
 
@@ -370,6 +634,7 @@ async function loadDetail(id){
           ${h.split_from_number ? `<a class="lnk" data-goto="${esc(h.split_from_number)}">← ${esc(h.split_from_number)}</a>` : ""}
           ${(h.split_to||[]).map(s=>`<a class="lnk" data-goto="${esc(s.po_number)}" data-id="${s.id}" style="margin-left:10px">${esc(s.po_number)} →</a>`).join("")}
         </div>` : ""}
+        ${acts.length ? `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>` : ""}
       </div>
       ${stats}
       <div class="pogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
@@ -378,8 +643,9 @@ async function loadDetail(id){
 
     ${tbl("Lines", (data.lines||[]).length,
       [["#","num"],["Product",""],["Supplier SKU",""],["Qty","num"],["Unit price","num"],
-       ["Amount","num"],["Received","num"],["Remaining","num"]], lines,
-      "⚠️ Remaining 이 음수(빨강)면 주문보다 많이 받은 것이다 — 넘은 만큼은 재고에 안 들어간다.")}
+       ["Amount","num"],["Received","num"],["Remaining","num"]].concat(ed ? [["",""]] : []), lines,
+      "⚠️ Remaining 이 음수(빨강)면 주문보다 많이 받은 것이다 — 넘은 만큼은 재고에 안 들어간다." +
+      (ed ? " 수량·단가는 칸에서 바로 고친다. 받은 것보다 적게 줄이는 것은 DB 가 막는다." : ""))}
 
     ${tbl("Discounts", (data.discounts||[]).length,
       [["Seq","num"],["Name",""],["Percent","num"],["Source",""]], disc,
@@ -414,6 +680,24 @@ async function loadDetail(id){
   document.querySelectorAll("[data-goto]").forEach(a => {
     a.onclick = () => gotoPo(a.dataset.goto, a.dataset.id || null);
   });
+
+  // 쓰기 배선
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      if(b.dataset.act === "paste")   openPaste();
+      if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
+      if(b.dataset.act === "cancel")  setStatus(h.id, "cancelled");
+    };
+  });
+  if(ed){
+    // ⚠️ change 로 건다 — 타자마다 저장하면 50줄에서 조회가 쏟아진다
+    box.querySelectorAll("input[data-line]").forEach(inp => {
+      inp.onchange = () => saveLine(inp, inp.dataset.line, inp.dataset.f);
+    });
+    box.querySelectorAll("[data-del]").forEach(b => {
+      b.onclick = () => deleteLine(b.dataset.del, b.dataset.sku);
+    });
+  }
 }
 
 /* ── 시작 ─────────────────────────────────────────── */
@@ -421,6 +705,7 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
 
+  document.getElementById("newPo").onclick = openNewPo;
   document.getElementById("st").onchange = e => {
     stFilter = e.target.value; pg.reset(); clearDetail(); loadList();
   };
