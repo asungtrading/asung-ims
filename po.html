@@ -54,6 +54,11 @@
   .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
         font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
   .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+  /* ⚠️⚠️ [실사고 2026-09-16] `hidden` 속성이 안 먹었다 —
+     .wrap 에 display:flex 가 걸려 있어 브라우저 기본 [hidden]{display:none} 을 이긴다.
+     그래서 숨기라고 해도 그대로 보이고, 넓은 목록은 숨은 채였다.
+     ⇒ 작성자 규칙으로 못 박는다. display 를 가진 요소에 hidden 을 쓸 때마다 걸리는 함정이다. */
+  [hidden]{display:none !important}
   /* 넓은 목록 · 국면 · 캐럿 */
   #wide{padding:14px}
   #wide .card{padding:0}
@@ -121,7 +126,10 @@
 <div class="wrap" id="wrapBox" hidden>
   <section class="list" id="listPanel">
     <div class="top">
-      <button class="pobtn" id="backWide" style="width:100%">‹ All purchase orders</button>
+      <div style="display:flex;gap:6px">
+        <button class="pobtn" id="backWide" style="flex:1">‹ All POs</button>
+        <button class="pobtn go" id="newPo" style="flex:1">+ New</button>
+      </div>
       <input type="search" id="q" placeholder="Search PO number or supplier">
       <div class="opts">
         <label>Status
