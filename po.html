@@ -199,7 +199,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · cancel/delete · doc links";
+const PO_BUILD = "2026-09-17 · charges linked";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -855,6 +855,11 @@ async function loadDetail(id){
   // A supplier document is raised from the PO it belongs to; the rest is done on the invoice screen.
   if(h.status !== "cancelled" && (data.lines || []).length)
     acts.push('<button class="pobtn" data-act="invoice">Create an invoice</button>');
+  /* ⭐ A charge is billed by someone else entirely — the customs agency, the broker — and
+     usually lands on several orders at once, so it is built on the charge screen. This is
+     only a shortcut that opens it with this order already picked. */
+  if(h.status !== "cancelled")
+    acts.push('<button class="pobtn" data-act="charge">Add a charge</button>');
   /* ⭐ 되돌리기는 **상세에만** 둔다(Caleb 2026-09-17) — 목록에 두면 취소된 행마다 버튼이 서고,
      실수로 눌리면 취소한 발주가 「올 물건」으로 되살아난다. 되돌리려면 그 문서를 열게 한다. */
   if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
@@ -994,7 +999,7 @@ async function loadDetail(id){
 
   /* 비용 — ⭐ 한 청구서가 발주 여럿에 걸친다. Allocated here 가 이 발주 몫이다 */
   const chgs = (data.charges || []).map(c => `<tr>
-      <td>${caretBtn()}<span class="mono">${esc(c.charge_number)}</span>${c.description?`<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>`:""}</td>
+      <td>${caretBtn()}<a class="lnk mono" href="charges.html?id=${esc(c.id)}" title="Open this charge">${esc(c.charge_number)}</a>${c.description?`<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>`:""}</td>
       <td><span class="tag">${esc(c.kind)}</span></td>
       <td>${esc(c.supplier_name)}</td>
       <td>${dim(c.charge_date)}</td>
@@ -1094,6 +1099,7 @@ async function loadDetail(id){
       if(b.dataset.act === "wide")    showWide();
       if(b.dataset.act === "adddisc") openAddDiscount(h.id);
       if(b.dataset.act === "invoice") openCreateInvoice(h);
+      if(b.dataset.act === "charge")  window.location.href = "charges.html?po_id=" + encodeURIComponent(h.id);
       if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
     };
   });

@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Charges · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css */
+  [hidden]{display:none !important}
+  #wide{padding:14px}
+  #wide .card{padding:0}
+  .wfilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .wfilt .sp{flex:1}
+  .wfilt input[type=search]{min-width:260px;flex:0 1 320px}
+  .wfilt input,.wfilt select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .wfilt .dash{color:var(--muted);font-size:12px}
+  #wide table{font-size:12.5px}
+  #wide tbody tr{cursor:pointer}
+  #wide tbody tr:hover{background:#fafbfd}
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .invbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .invbar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+  .invgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media (max-width:900px){ .invgrid{grid-template-columns:1fr} }
+  .invsub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .pobtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+         font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .pobtn:hover{background:#f2f4f8}
+  .pobtn:disabled{opacity:.45;cursor:default}
+  .pobtn.go{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+  .pobtn.go:hover{background:#3550c4}
+  .qin{width:104px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
+       font-family:var(--mono);font-size:12.5px;text-align:right}
+  .tin{width:180px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;font-size:12.5px}
+  .xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
+        font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
+  .xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+  /* ⭐ The one number that decides whether this document can be confirmed.
+     It sits on its own so nobody has to add the column up by eye. */
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.ok b{color:var(--good, #2b8a3e)}
+  .pomodal{position:fixed;inset:0;z-index:5000;background:rgba(16,22,30,.45);
+           display:flex;align-items:center;justify-content:center;padding:20px}
+  .pobox{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:86vh;
+         display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,20,30,.28)}
+  .pobox h4{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
+  .pobox .pbody{padding:14px 16px;overflow:auto;flex:1}
+  .pobox .pfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+  .pobox .pfoot .sp{flex:1}
+  .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .frow{display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px;color:var(--muted)}
+  .frow label{min-width:120px}
+  .frow input,.frow select{flex:1}
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .prow.on{background:#eef2ff}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wsup"><option value="">All suppliers</option></select>
+      <select id="wkind">
+        <option value="all">All kinds</option>
+        <option value="freight">Freight</option>
+        <option value="duty">Duty</option>
+        <option value="brokerage">Brokerage</option>
+        <option value="other">Other</option>
+      </select>
+      <select id="wst">
+        <option value="open">Draft &amp; confirmed</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <select id="wunp">
+        <option value="all">Any balance</option>
+        <option value="unpaid">Unpaid only</option>
+        <option value="gap">Not fully allocated</option>
+      </select>
+      <input type="date" id="wfrom"><span class="dash">–</span><input type="date" id="wto">
+      <input type="search" id="wq" placeholder="Number · supplier · PO number · description">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">New charge</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Charges — freight, duty and brokerage invoices that land on purchase orders
+   Canon: docs/design/po-module.md §11-f (charges) · §11-h (payments) · §13
+   Back end: 20260917150000_po_charge.sql — that file's header block is the only
+   place the call shapes are written down. This screen just draws what it gets.
+
+   Three things worth knowing before changing anything here:
+   · A charge invoice is its own document. One container can hold goods from several
+     suppliers, so one customs bill lands on several purchase orders. Splitting it into
+     the orders would break the one-to-one with the paper the accountant holds.
+   · An allocation amount is pinned when it is written. If a purchase order's value
+     changes afterwards the allocation does NOT follow. That is the design, not a bug —
+     cost that has already been laid down must not move on its own.
+   · Editing one allocation row moves that row only. The others stay where they are,
+     so the total can disagree with the document while you work. The gap is shown
+     at the top and confirming is refused until it is zero.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running. The browser's line numbers have not matched the file
+   more than once, so the screen says its own version out loud. */
+const CHG_BUILD = "2026-09-17 · charges";
+console.log("charges.html build:", CHG_BUILD);
+
+let sb=null, me=null, isAdmin=false;
+let q="", kindF="all", stFilter="open", supFilter="", dateFrom="", dateTo="", balF="all", curId=null;
+let detailSeq = 0;
+const pgW = imsPage(50);
+
+/* ⭐ Everything the fragments below read is declared up here.
+   ⚠️ Twice in one day a value declared below the fragment that used it froze the whole
+      detail on "Loading…". "Just above" is not enough — they all live above. */
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+
+function stChip(s){
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(s === "confirmed") return '<span class="chip good">confirmed</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+const kindChip = (k) => `<span class="tag">${esc(k || "")}</span>`;
+
+/* ⭐ The gap between the document total and what has been handed out to orders.
+   Zero is the only state that can be confirmed. */
+function gapCell(v){
+  const n = Number(v);
+  if(!isFinite(n) || n === 0) return '<span class="dim">0.00</span>';
+  return `<span class="off">${money(n)}</span>`;
+}
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ⚠️ RPC errors arrive as error.message and already end with "nothing was saved".
+   Show that sentence as it is. If the slot is gone, fall back to alert — never swallow it. */
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+function docErr(error){
+  alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+/* ── Two modes ─────────────────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  loadWide();
+}
+function openChg(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  loadDetail(id);
+}
+async function reload(){
+  if(!curId) return;
+  await loadDetail(curId);
+}
+
+/* ── List ──────────────────────────────────────────── */
+function baseQuery(){
+  let qy = sb.from("po_charge_list").select("*", { count:"exact" });
+  if(kindF !== "all") qy = qy.eq("kind", kindF);
+  if(stFilter === "open")     qy = qy.in("status", ["draft","confirmed"]);
+  else if(stFilter !== "all") qy = qy.eq("status", stFilter);
+  if(supFilter) qy = qy.eq("supplier_id", supFilter);
+  if(dateFrom)  qy = qy.gte("charge_date", dateFrom);
+  if(dateTo)    qy = qy.lte("charge_date", dateTo);
+  if(balF === "unpaid") qy = qy.gt("unpaid", 0);
+  if(balF === "gap")    qy = qy.neq("unallocated", 0);
+  // ⚠️ po_numbers is built by the view so one search box also finds a charge by the order it landed on
+  if(q) qy = qy.or(`charge_number.ilike.%${q}%,supplier_name.ilike.%${q}%,po_numbers.ilike.%${q}%,description.ilike.%${q}%`);
+  return qy.order("charge_date", { ascending:false }).order("charge_number", { ascending:false });
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){
+    box.innerHTML = '<div class="msg">No charges match.</div>';
+    pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th>Number</th><th>Kind</th><th>Date</th><th>Due</th><th>Supplier</th><th>Orders</th>
+      <th class="num">Total</th><th class="num">Allocated</th><th class="num">Not allocated</th>
+      <th class="num">Paid</th><th class="num">Balance</th><th>Status</th>
+    </tr></thead><tbody>${data.map(r => `<tr data-id="${r.id}">
+        <td><span class="mono">${esc(r.charge_number)}</span>${
+          r.description ? `<div class="dim" style="font-size:11.5px">${esc(r.description)}</div>` : ""}</td>
+        <td>${kindChip(r.kind)}</td>
+        <td>${dim(r.charge_date)}</td>
+        <td>${dim(r.due_date)}</td>
+        <td>${esc(r.supplier_name)}</td>
+        <td class="mono" style="font-size:11.5px">${dim(r.po_numbers)}</td>
+        <td class="num">${money(r.total_amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${money(r.alloc_sum)}</td>
+        <td class="num">${gapCell(r.unallocated)}</td>
+        <td class="num">${money(r.paid)}</td>
+        <td class="num">${Number(r.unpaid) > 0 ? `<span class="neutral">${money(r.unpaid)}</span>` : '<span class="dim">0.00</span>'}</td>
+        <td>${stChip(r.status)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="invsub">Not allocated is the document total minus what has been handed out to purchase orders.
+      It has to reach zero before the charge can be confirmed. A charge owes money from the moment it is entered —
+      unlike an invoice, the balance does not wait for confirmation.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openChg(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── Detail ────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+
+  const { data, error } = await sb.rpc("po_charge_detail", { p_charge_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That charge is gone.</div></div>'; return; }
+
+  const h = data.header, m = data.money || {};
+  /* ⚠️ Only a draft can be edited. Confirming says "lay this split down on cost", and the
+     allocation RPCs refuse anything else. The screen hides the inputs so nobody tries. */
+  const ed = h.status === "draft";
+  const gap = Number(m.unallocated);
+  const balanced = gap === 0;
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All charges</button>'];
+  if(ed){
+    acts.push('<button class="pobtn" data-act="addpo">Add a purchase order</button>');
+    if((data.allocs || []).length)
+      acts.push('<button class="pobtn" data-act="spread">Spread by amount</button>');
+    acts.push(`<button class="pobtn go" data-act="confirm"${balanced ? "" : " disabled title=\"The split has to add up to the total first\""}>Confirm</button>`);
+  } else if(h.status === "confirmed"){
+    acts.push('<button class="pobtn" data-act="reopen">Reopen</button>');
+  }
+  if(h.status !== "cancelled") acts.push('<button class="pobtn" data-act="cancel">Cancel</button>');
+  /* ⭐ Restore lives in the detail only — on the list it would sit against every cancelled
+     row and a stray click would put a dead document back into the books. */
+  if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
+  /* ⭐⭐ Delete only while the document was never confirmed. What actually refuses is
+     po_doc_delete; this only keeps a pointless button off the screen. */
+  if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
+
+  const kvL = [
+    ["Supplier",     esc(h.supplier_name)],
+    ["Charge date",  ed ? `<input class="tin" type="date" value="${esc(h.charge_date || "")}" data-prev="${esc(h.charge_date || "")}" data-head="charge_date">` : dim(h.charge_date)],
+    ["Due date",     ed ? `<input class="tin" type="date" value="${esc(h.due_date || "")}" data-head="due_date">` : dim(h.due_date)],
+    ["Kind",         kindChip(h.kind)],
+    ["Description",  ed ? `<input class="tin" style="width:280px" value="${esc(h.description || "")}" data-head="description">` : dim(h.description)],
+  ];
+  const kvR = [
+    ["Currency",     `<span class="mono">${dim(h.currency_code)}</span>` +
+                     (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
+    ["Created by",   dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
+    ["Confirmed by", dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
+    ["Cancelled",    h.cancelled_at ? `<span class="off">${imsTs(h.cancelled_at)}</span>` +
+                     (h.cancelled_by_name ? ` <span class="dim">· ${esc(h.cancelled_by_name)}</span>` : "") : '<span class="dim">—</span>'],
+    ["Note",         ed ? `<input class="tin" style="width:280px" value="${esc(h.note || "")}" data-head="note">` : dim(h.note)],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  /* ⭐ Allocations. base is the order's line total before discount — the yardstick the
+     proportional split uses. Other charges is what other charge documents have already
+     put on that same order, which is the thing you want to know before typing a number. */
+  const allocs = (data.allocs || []).map(a => `<tr>
+      <td><a class="lnk mono" href="po.html?po=${encodeURIComponent(a.po_number)}" title="Open this purchase order">${esc(a.po_number)}</a></td>
+      <td><span class="tag">${esc(a.po_status)}</span></td>
+      <td class="num">${money(a.base_amount)}</td>
+      <td class="num">${Number(a.other_charges) > 0 ? money(a.other_charges) : '<span class="dim">—</span>'}</td>
+      <td class="num">${ed
+          ? `<input class="qin" type="number" step="any" value="${esc(a.amount)}" data-prev="${esc(a.amount)}" data-alloc="${a.alloc_id}">`
+          : money(a.amount)}</td>
+      <td>${ed
+          ? `<input class="tin" value="${esc(a.note || "")}" data-anote="${a.alloc_id}" placeholder="why this number">`
+          : dim(a.note)}</td>
+      ${ed ? `<td><button class="xbtn" data-adel="${a.alloc_id}" title="Remove this order">&#10005;</button></td>` : ""}
+    </tr>`);
+
+  const pays = (data.payments || []).map(p => `<tr>
+      <td class="mono">${esc(p.reference)}</td>
+      <td>${dim(p.paid_on)}</td>
+      <td class="num">${money(p.payment_amount)}</td>
+      <td class="num">${Number(p.discount_taken) > 0 ? money(p.discount_taken) : '<span class="dim">—</span>'}</td>
+      <td class="num">${money(p.alloc_amount)}</td>
+      <td>${dim(p.account_code)} <span class="dim">${esc(p.account_name || "")}</span></td>
+      <td>${dim(p.paid_by_name)}</td>
+    </tr>`);
+
+  const tbl = (title, n, cols, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${
+        cols.map(c=>`<th${c[1]?` class="${c[1]}"`:""}>${c[0]}</th>`).join("")
+      }</tr></thead><tbody>${rows.join("")}</tbody></table>${sub ? `<div class="invsub">${sub}</div>` : ""}`
+      : '<div class="msg">None.</div>'}
+    </div>`;
+
+  const warn = (data.warnings || []).length
+    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(esc).join(" · ")}</div></div>` : "";
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="invbar">
+          <span class="pn">${esc(h.charge_number)}</span>
+          ${kindChip(h.kind)} ${stChip(h.status)}
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
+          <span>Document total</span>
+          ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.total_amount)}" data-prev="${esc(h.total_amount)}" data-head="total_amount">`
+               : `<span class="mono">${money(h.total_amount)}</span>`}
+          <span class="mono">${esc(h.currency_code || "")}</span>
+        </div>
+      </div>
+      <div class="gap">
+        <div class="g"><b>${money(m.total_amount)}</b><span>Document total</span></div>
+        <div class="g"><b>${money(m.alloc_sum)}</b><span>Allocated</span></div>
+        <div class="g ${balanced ? "ok" : "bad"}"><b>${money(m.unallocated)}</b><span>Not allocated</span></div>
+        <div class="g"><b>${money(m.paid)}</b><span>Paid</span></div>
+        <div class="g"><b>${money(m.unpaid)}</b><span>Balance</span></div>
+      </div>
+      ${!balanced && ed ? `<div class="invsub">&#9888; The split has to add up to the document total before this charge can be confirmed.
+        Adjust a row, or press <strong>Spread by amount</strong> to divide the whole total again in proportion to the orders.</div>` : ""}
+      <div class="invsub"><div class="invgrid">${kvTbl(kvL)}${kvTbl(kvR)}</div></div>
+      <div id="headMsg" style="padding:0 14px 10px;font-size:12.5px"></div>
+    </div>
+    ${warn}
+    ${tbl("Purchase orders", (data.allocs||[]).length,
+      [["Order",""],["Status",""],["Order value","num"],["Other charges","num"],["Amount","num"],["Note",""]].concat(ed?[["",""]]:[]),
+      allocs,
+      "Order value is the order's lines before discount — the yardstick the proportional split uses. " +
+      "Editing one amount moves that row only; the others stay where they are. " +
+      "Once written, an amount is never recalculated on its own, even if the order's value changes later.")}
+    ${tbl("Payments", (data.payments||[]).length,
+      [["Reference",""],["Date",""],["Paid","num"],["Discount","num"],["Applied","num"],["Account",""],["By",""]], pays,
+      "Paid + Discount = Applied. A charge invoice is paid the same way a supplier invoice is.")}
+  `;
+
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if(a === "wide")    showWide();
+      if(a === "addpo")   openAddPo(h.id);
+      if(a === "spread")  spread(h.id);
+      if(a === "confirm") confirmChg(h.id, true);
+      if(a === "reopen")  confirmChg(h.id, false);
+      if(a === "cancel")  cancelChg(h);
+      if(a === "restore") restoreChg(h);
+      if(a === "delete")  deleteChg(h);
+    };
+  });
+  if(ed){
+    box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+    box.querySelectorAll("input[data-alloc]").forEach(i => { i.onchange = () => saveAlloc(i); });
+    box.querySelectorAll("input[data-anote]").forEach(i => { i.onchange = () => saveAllocNote(i); });
+    box.querySelectorAll("[data-adel]").forEach(b => { b.onclick = () => removeAlloc(b.dataset.adel); });
+  }
+}
+
+/* ── Head fields ───────────────────────────────────────
+   ⚠️ One column at a time, so PostgREST. imsSaved() reads it back — a row count of zero
+      means RLS or a filter swallowed it, and that must not look like success.
+   ⚠️ Draft only. The back end does not lock the head yet; the screen is the only guard
+      until that lands, so do not open these inputs on a confirmed document. */
+async function saveHead(id, inp){
+  const field = inp.dataset.head;
+  /* ⚠️ total_amount and charge_date are NOT NULL. Blanking them would come back as a
+     constraint error the person cannot act on, so put the old value back instead. */
+  if(inp.value.trim() === "" && (field === "total_amount" || field === "charge_date")){
+    inp.value = inp.dataset.prev || inp.value;
+    say("headMsg", "err", "That field cannot be left empty.");
+    return;
+  }
+  const patch = {}; patch[field] = inp.value === "" ? null : inp.value;
+  const res = await imsSaved(sb.from("po_charge").update(patch).eq("id", id).select("id"));
+  if(!res.ok){ say("headMsg", "err", res.reason); return; }
+  if(inp.dataset.prev !== undefined) inp.dataset.prev = inp.value;
+  say("headMsg", "on", "Saved");
+  reload();
+}
+
+/* ── Allocations ───────────────────────────────────────
+   ⭐⭐ Editing one row moves that row only. Nothing else is recalculated — see the file
+       header of 20260917150000. If the whole split should be redone, that is Spread,
+       and a person has to press it. */
+async function saveAlloc(inp){
+  const prev = inp.dataset.prev;
+  if(inp.value.trim() === ""){ inp.value = prev; return; }
+  const val = Number(inp.value);
+  if(!isFinite(val)){ inp.value = prev; return; }
+  if(String(val) === String(Number(prev))) return;
+  inp.disabled = true;
+  const { data, error } = await sb.rpc("po_charge_alloc_update",
+    { p_alloc_id: inp.dataset.alloc, p_amount: val });
+  inp.disabled = false;
+  if(error){ inp.value = prev; docErr(error); return; }
+  inp.dataset.prev = String(val);
+  const y = window.scrollY; await reload(); window.scrollTo(0, y);
+  if(data) say("headMsg", "", `${data.po_number}: ${data.amount_before} → ${data.amount} · not allocated ${data.unallocated}`);
+}
+
+async function saveAllocNote(inp){
+  // A note is one plain column on a row we own — PostgREST, with the read-back guard.
+  const res = await imsSaved(sb.from("po_charge_alloc")
+    .update({ note: inp.value === "" ? null : inp.value })
+    .eq("id", inp.dataset.anote).select("id"));
+  if(!res.ok){ say("headMsg", "err", res.reason); return; }
+  say("headMsg", "on", "Saved");
+}
+
+async function removeAlloc(allocId){
+  if(!confirm("Remove this purchase order from the charge?\n\nThe amount goes back into what is not allocated.")) return;
+  const { data, error } = await sb.rpc("po_charge_alloc_delete", { p_alloc_id: allocId });
+  if(error){ docErr(error); return; }
+  const y = window.scrollY; await reload(); window.scrollTo(0, y);
+  if(data) say("headMsg", "", `${data.po_number} removed (${data.amount_removed}) · not allocated ${data.unallocated}`);
+}
+
+/* ⭐ Spread runs only when a person presses it. No save calls it for them — that is the
+   whole point of pinning the amounts in the first place. */
+async function spread(id){
+  if(!confirm("Divide the whole total again in proportion to the orders?\n\nEvery amount on this charge is overwritten, including ones you typed.")) return;
+  const { data, error } = await sb.rpc("po_charge_alloc_spread", { p_charge_id: id });
+  if(error){ docErr(error); return; }
+  await reload();
+  if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+}
+
+/* ── Confirming ────────────────────────────────────────
+   ⚠️ Confirming is refused while the split disagrees with the total. That is stricter than
+      an invoice's Diff, and on purpose: on an invoice the supplier's printed total wins,
+      but both numbers here are ours, so a gap just means the entry is unfinished. */
+async function confirmChg(id, on){
+  const msg = on
+    ? "Confirm this charge?\n\nThe split is then settled and will be laid down on cost. Amounts and allocations can no longer be edited."
+    : "Reopen this charge for editing?";
+  if(!confirm(msg)) return;
+  const { data, error } = await sb.rpc("po_charge_confirm", { p_charge_id: id, p_confirm: on });
+  if(error){ docErr(error); return; }
+  if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+  reload();
+}
+
+/* ── Cancelling, restoring, deleting ───────────────────
+   Same three doors as a purchase order and an invoice, and the same rule decides them:
+   a document that was confirmed even once is never deleted, only cancelled. */
+async function cancelChg(h){
+  if(!confirm(`Cancel charge ${h.charge_number}?\n\nIt stays on the list with a cancelled tag and drops out of cost and of the money. You can restore it later.`)) return;
+  const { data, error } = await sb.rpc("po_doc_cancel", { p_target:"charge", p_id:h.id });
+  if(error){ docErr(error); return; }
+  const a = (data && data.attached) || {};
+  if(a.pos) alert(`${h.charge_number} is cancelled.\n\nIt was allocated to: ${a.pos}`);
+  else if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+  reload();
+}
+
+async function restoreChg(h){
+  if(!confirm(`Restore ${h.charge_number}?\n\nIt goes back to the state it was in before it was cancelled.`)) return;
+  const { error } = await sb.rpc("po_doc_cancel", { p_target:"charge", p_id:h.id, p_cancel:false });
+  if(error){ docErr(error); return; }
+  reload();
+}
+
+async function deleteChg(h){
+  if(!confirm(`Delete charge ${h.charge_number}?\n\nThe document and its allocations disappear for good. The number becomes free for this supplier again.`)) return;
+  const { data, error } = await sb.rpc("po_doc_delete", { p_target:"charge", p_id:h.id });
+  if(error){ docErr(error); return; }
+  const n = (data && data.allocs_deleted) || 0;
+  alert(`${h.charge_number} is deleted.` + (n ? `\n${n} allocation(s) went with it.` : ""));
+  showWide();
+}
+
+/* ── Adding an order to an existing charge ─────────────
+   ⚠️ The list is NOT narrowed to one supplier. A customs bill comes from the CBSA but lands
+      on orders placed with whoever shipped the container — often several of them at once. */
+function openAddPo(chgId){
+  modalOpen(`
+    <h4>Add a purchase order to this charge</h4>
+    <div class="pbody">
+      <input type="search" id="poQ" placeholder="Search PO number" autocomplete="off">
+      <div class="pick" id="poList" style="max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div class="dim" style="font-size:12.5px;margin-top:10px">
+        The order comes in at zero. Type its share, or press Spread afterwards to divide the whole total again.
+      </div>
+      <div id="poMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Close</button>
+    </div>`);
+  const draw = async () => {
+    const t = document.getElementById("poQ").value.trim();
+    let qy = sb.from("po_list").select("id,po_number,status,order_date,subtotal,line_count")
+               .in("status", ["draft","confirmed","closed"]);
+    if(t) qy = qy.ilike("po_number", `%${t}%`);
+    const { data, error } = await qy.order("po_number", { ascending:false }).limit(40);
+    const box = document.getElementById("poList");
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-po="${r.id}">
+        <span class="mono">${esc(r.po_number)}</span>
+        <span class="tag" style="margin-left:6px">${esc(r.status)}</span>
+        <span class="dim" style="margin-left:8px">${dim(r.order_date)} · ${esc(r.line_count)} lines · ${money(r.subtotal)}</span>
+      </div>`).join("") : '<div class="msg">No purchase orders match.</div>';
+    box.querySelectorAll("[data-po]").forEach(el => {
+      el.onclick = async () => {
+        say("poMsg", "", "Adding…");
+        const { data, error } = await sb.rpc("po_charge_alloc_add",
+          { p_charge_id: chgId, p_po_id: el.dataset.po, p_amount: 0 });
+        if(error){ say("poMsg", "err", error.message); return; }
+        say("poMsg", "on", `${data.po_number} added at 0.00 · not allocated ${data.unallocated}`);
+        reload();
+      };
+    });
+  };
+  imsQ("#poQ", draw);
+  draw();
+}
+
+/* ── Creating a charge ─────────────────────────────────
+   ⭐ Two steps, like creating an invoice. Check first shows the split the back end proposes
+      and any warning about the number already existing; nothing is written until Create.
+   ⚠️ Currency has no fallback — a freight company bills in its own currency and the master
+      value is no guide, so the field is required here and refused by the back end. */
+async function openCreate(preselectPoId){
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  const cur = await sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code");
+  const today = new Date().toISOString().slice(0, 10);
+  modalOpen(`
+    <h4>New charge</h4>
+    <div class="pbody">
+      <div class="frow"><label>Billed by</label>
+        <select id="cSup"><option value="">Choose…</option>${
+          (sup.data || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Number</label><input id="cNum" placeholder="their invoice number"></div>
+      <div class="frow"><label>Charge date</label><input type="date" id="cDate" value="${today}"></div>
+      <div class="frow"><label>Due date</label><input type="date" id="cDue"></div>
+      <div class="frow"><label>Kind</label>
+        <select id="cKind">
+          <option value="freight">Freight</option>
+          <option value="duty">Duty</option>
+          <option value="brokerage">Brokerage</option>
+          <option value="other">Other</option>
+        </select></div>
+      <div class="frow"><label>Total</label><input id="cTotal" placeholder="what the document says"></div>
+      <div class="frow"><label>Currency</label>
+        <select id="cCur"><option value="">Choose…</option>${
+          (cur.data || []).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Description</label><input id="cDesc" placeholder="e.g. import duty, one container"></div>
+
+      <div class="dim" style="font-size:12.5px;margin:14px 0 6px">
+        Which purchase orders did this land on? Pick as many as apply — the total is divided
+        between them in proportion to their order value, and you can adjust it afterwards.
+      </div>
+      <input type="search" id="poQ" placeholder="Search PO number" autocomplete="off">
+      <div id="poList" style="max-height:220px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div id="cOut" style="margin-top:12px"></div>
+      <div id="cMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="cChk">Check</button>
+      <button class="pobtn go" id="cGo" disabled>Create</button>
+    </div>`);
+
+  const picked = new Set();
+  if(preselectPoId) picked.add(preselectPoId);
+
+  const draw = async () => {
+    const t = document.getElementById("poQ").value.trim();
+    let qy = sb.from("po_list").select("id,po_number,status,order_date,subtotal,line_count")
+               .in("status", ["draft","confirmed","closed"]);
+    if(t) qy = qy.ilike("po_number", `%${t}%`);
+    const { data, error } = await qy.order("po_number", { ascending:false }).limit(40);
+    const box = document.getElementById("poList");
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow ${picked.has(r.id) ? "on" : ""}" data-po="${r.id}">
+        <span class="mono">${esc(r.po_number)}</span>
+        <span class="tag" style="margin-left:6px">${esc(r.status)}</span>
+        <span class="dim" style="margin-left:8px">${dim(r.order_date)} · ${esc(r.line_count)} lines · ${money(r.subtotal)}</span>
+        ${picked.has(r.id) ? '<span class="chip good" style="margin-left:8px">picked</span>' : ""}
+      </div>`).join("") : '<div class="msg">No purchase orders match.</div>';
+    box.querySelectorAll("[data-po]").forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.po;
+        if(picked.has(id)) picked.delete(id); else picked.add(id);
+        // ⚠️ The proposal is stale the moment the picks change — make that visible.
+        document.getElementById("cGo").disabled = true;
+        document.getElementById("cOut").innerHTML = "";
+        draw();
+      };
+    });
+  };
+  imsQ("#poQ", draw);
+  draw();
+
+  const args = () => ({
+    p_supplier_id:  document.getElementById("cSup").value || null,
+    p_charge_number: document.getElementById("cNum").value.trim(),
+    p_charge_date:  document.getElementById("cDate").value || null,
+    p_kind:         document.getElementById("cKind").value,
+    p_total_amount: document.getElementById("cTotal").value.trim() === "" ? null : Number(document.getElementById("cTotal").value),
+    p_currency_id:  document.getElementById("cCur").value || null,
+    p_due_date:     document.getElementById("cDue").value || null,
+    p_description:  document.getElementById("cDesc").value.trim() || null,
+    p_note:         null,
+    p_po_ids:       Array.from(picked)
+  });
+
+  const drawProposal = (d) => {
+    const rows = d.allocs || [];
+    document.getElementById("cOut").innerHTML = rows.length ? `
+      <table><thead><tr><th>Order</th><th>Status</th><th class="num">Order value</th><th class="num">Share</th></tr></thead>
+      <tbody>${rows.map(a => `<tr>
+        <td class="mono">${esc(a.po_number)}</td>
+        <td><span class="tag">${esc(a.po_status)}</span></td>
+        <td class="num">${money(a.base_amount)}</td>
+        <td class="num">${money(a.amount)}</td>
+      </tr>`).join("")}</tbody></table>
+      <div class="invsub">Allocated ${money(d.alloc_sum)} of ${money(d.total_amount)} — not allocated ${money(d.unallocated)}.</div>`
+      : '<div class="msg">No orders picked. The charge is created with nothing allocated yet.</div>';
+  };
+
+  document.getElementById("cChk").onclick = async () => {
+    say("cMsg", "", "Checking…");
+    const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:false }));
+    if(error){ say("cMsg", "err", error.message); document.getElementById("cGo").disabled = true; return; }
+    drawProposal(data);
+    const w = data.warnings || [];
+    say("cMsg", w.length ? "err" : "on", w.length ? "⚠ " + w.join(" · ") : "Looks fine — press Create.");
+    // ⚠️ A number that already exists is only a warning here; the commit refuses it.
+    document.getElementById("cGo").disabled = w.includes("charge_number_exists");
+  };
+
+  document.getElementById("cGo").onclick = async () => {
+    say("cMsg", "", "Creating…");
+    const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:true }));
+    if(error){ say("cMsg", "err", error.message); return; }
+    modalClose();
+    if((data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+    openChg(data.charge_id);
+  };
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth(async (client, meData) => {
+  sb = client; me = meData; isAdmin = (me.role === "admin");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = CHG_BUILD;
+
+  // ⚠️ Charge suppliers are not purchase suppliers — CBSA and the brokers are marked
+  //    is_purchasable = false, so do NOT filter this list by that column.
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  if(sup.data) document.getElementById("wsup").innerHTML =
+    '<option value="">All suppliers</option>' +
+    sup.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+
+  const refilter = () => { pgW.reset(); loadWide(); };
+  document.getElementById("wsup").onchange  = e => { supFilter = e.target.value; refilter(); };
+  document.getElementById("wkind").onchange = e => { kindF     = e.target.value; refilter(); };
+  document.getElementById("wst").onchange   = e => { stFilter  = e.target.value; refilter(); };
+  document.getElementById("wunp").onchange  = e => { balF      = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom  = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo    = e.target.value; refilter(); };
+  imsQ("#wq", v => { q = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; supFilter = ""; dateFrom = ""; dateTo = ""; kindF = "all"; stFilter = "open"; balF = "all";
+    ["wq","wsup","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wkind").value = "all";
+    document.getElementById("wst").value = "open";
+    document.getElementById("wunp").value = "all";
+    refilter();
+  };
+  document.getElementById("wnew").onclick = () => openCreate(null);
+
+  // ⭐ ?id=… opens one charge · ?po_id=… starts a new one with that order already picked,
+  //    which is how the purchase order screen hands over.
+  const wantId = imsParam("id");
+  if(wantId){ openChg(wantId); return; }
+  const wantPo = imsParam("po_id");   // ⚠️ an id, not a number — po.html's own ?po= takes the number
+  showWide();
+  if(wantPo) openCreate(wantPo);
+});
+</script>
+</body>
+</html>
