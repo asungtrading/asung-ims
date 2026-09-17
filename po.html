@@ -199,7 +199,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · cancel / restore / delete";
+const PO_BUILD = "2026-09-17 · cancel/delete · doc links";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -960,7 +960,7 @@ async function loadDetail(id){
   const invs = (data.invoices || []).map(i => {
     const bad = Number(i.diff) !== 0;
     return `<tr>
-      <td>${caretBtn()}<span class="mono">${esc(i.invoice_number)}</span></td>
+      <td>${caretBtn()}<a class="lnk mono" href="invoices.html?id=${esc(i.id)}" title="Open this invoice">${esc(i.invoice_number)}</a></td>
       <td>${dim(i.invoice_date)}</td>
       <td>${dim(i.due_date)}</td>
       <td class="num">${money(i.total_amount)}</td>
@@ -980,7 +980,7 @@ async function loadDetail(id){
     const bad = Number(c.diff) !== 0;
     const w = c.warnings || [];
     return `<tr>
-      <td>${caretBtn()}<span class="mono">${esc(c.credit_number)}</span>${w.length?`<div class="off" style="font-size:11.5px">⚠ ${esc(w.join(" · "))}</div>`:""}</td>
+      <td>${caretBtn()}<a class="lnk mono" href="invoices.html?id=${esc(c.id)}" title="Open this credit note">${esc(c.credit_number)}</a>${w.length?`<div class="off" style="font-size:11.5px">⚠ ${esc(w.join(" · "))}</div>`:""}</td>
       <td>${dim(c.credit_date)}</td>
       <td class="mono">${c.credit_for_number ? esc(c.credit_for_number) : '<span class="dim">unattached</span>'}</td>
       <td class="num">${money(c.total_amount)}</td>

@@ -131,7 +131,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-09-17 · cancel / restore / delete";
+const INV_BUILD = "2026-09-17 · cancel/delete · doc links";
 console.log("invoices.html build:", INV_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -378,8 +378,10 @@ async function loadDetail(id){
       ${ed ? `<td><button class="xbtn" data-ddel="${d.id}" title="Remove discount">&#10005;</button></td>` : ""}
     </tr>`);
 
+  /* ⭐ Both ways. A document is edited here but it belongs to a purchase order, and getting
+     back through the menu and the search box was the long way round. */
   const shares = (data.po_shares || []).map(s => `<tr>
-      <td class="mono">${esc(s.po_number)}</td>
+      <td><a class="lnk mono" href="po.html?po=${encodeURIComponent(s.po_number)}" title="Open this purchase order">${esc(s.po_number)}</a></td>
       <td><span class="tag">${esc(s.po_status)}</span></td>
       <td class="num">${esc(s.line_count)}</td>
       <td class="num">${qty(s.qty_ea)}</td>
@@ -387,7 +389,7 @@ async function loadDetail(id){
     </tr>`);
 
   const creds = (data.credits || []).map(c => `<tr>
-      <td class="mono">${esc(c.credit_number)}</td>
+      <td><a class="lnk mono" href="invoices.html?id=${esc(c.id)}" title="Open this credit note">${esc(c.credit_number)}</a></td>
       <td>${dim(c.credit_date)}</td>
       <td>${stChip(c.status)}</td>
       <td class="num">${money(c.total_amount)}</td>
