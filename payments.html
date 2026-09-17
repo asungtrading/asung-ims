@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payments · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css "⑤ 문서 화면 공통"
+     ⭐ Do not copy the shared block back in here. Buttons, inline inputs, the modal,
+        the wide list and the document header all come from the shared file now. */
+  /* ⚠️ main is not shared — ims-ui.css has its own main rule. padding is this screen's. */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  /* ⚠️ Not shared — .pobox input beats .qin and would change the inline boxes inside a modal. */
+  .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  /* ⭐ The one number that says whether this payment adds up. Paid + discount has to equal
+     what was handed out to the documents, so it sits on its own rather than in a column. */
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.ok b{color:var(--good, #2b8a3e)}
+  /* Pickable rows inside a modal — suppliers and the documents they are owed for. */
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .prow.on{background:#eef2ff}
+  .prow.off{opacity:.45;cursor:not-allowed}
+  .prow.off:hover{background:none}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wcur"><option value="">All currencies</option></select>
+      <select id="wacc"><option value="">All accounts</option></select>
+      <select id="wbal">
+        <option value="all">Any</option>
+        <option value="off">Does not add up</option>
+      </select>
+      <input type="date" id="wfrom"><span class="dash">–</span><input type="date" id="wto">
+      <input type="search" id="wq" placeholder="Reference · document number · supplier · account">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">New payment</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Payments — money going out against supplier invoices and charge documents
+   Canon: docs/design/po-module.md §11-h · back end 20260917190000_po_payment.sql
+   (that file's header block is the only place the call shapes are written down)
+
+   Four things worth knowing before changing anything here:
+   · What IMS holds is the fact — what was paid, when, how much, against which document.
+     Which ledger account it lands in is QuickBooks' job.
+   · ⭐⭐ One payment, one currency. The supplier decides the currency, so a payment starts
+     by choosing a supplier and the documents follow. Goods may be billed in CAD while the
+     freight on the same shipment comes in USD — those are two payments, not one.
+   · Paying part of a document is normal. What is not normal is the payment not adding up:
+     what was handed out has to equal what was paid plus any discount taken.
+   · A payment has no status. It is a fact — if it was entered wrongly it is deleted, not
+     cancelled. That is why there is no Cancel button on this screen.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running. The browser's line numbers have not matched the file
+   more than once, so the screen says its own version out loud. */
+const PAY_BUILD = "2026-09-17 · payments";
+console.log("payments.html build:", PAY_BUILD);
+
+let sb=null, me=null, isAdmin=false;
+let q="", curF="", accF="", balF="all", dateFrom="", dateTo="", curId=null;
+let detailSeq = 0;
+const pgW = imsPage(50);
+
+/* ⭐ Everything the fragments below read is declared up here.
+   ⚠️ Twice in one day a value declared below the fragment that used it froze a whole
+      detail on "Loading…". "Just above" is not enough — they all live above. */
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+
+const kindChip = (k) => `<span class="tag">${esc(k === "charge" ? "charge" : "invoice")}</span>`;
+
+/* ⭐ The difference between what was paid and what was handed out. Anything but zero
+   means the entry is unfinished — either an amount is wrong or a discount was not declared. */
+function gapCell(v){
+  const n = Number(v);
+  if(!isFinite(n) || n === 0) return '<span class="dim">0.00</span>';
+  return `<span class="off">${money(n)}</span>`;
+}
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ⚠️ RPC errors arrive as error.message and already end with "nothing was saved".
+   Show that sentence as it is — it names the document and says what to fix. */
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+function docErr(error){
+  alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+/* ── Two modes ─────────────────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  loadWide();
+}
+function openPay(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  loadDetail(id);
+}
+async function reload(){
+  if(!curId) return;
+  await loadDetail(curId);
+}
+
+/* ── List ──────────────────────────────────────────── */
+function baseQuery(){
+  let qy = sb.from("po_payment_list").select("*", { count:"exact" });
+  if(curF) qy = qy.eq("currency_id", curF);
+  if(accF) qy = qy.eq("account_id", accF);
+  if(balF === "off") qy = qy.eq("balanced", false);
+  if(dateFrom) qy = qy.gte("paid_on", dateFrom);
+  if(dateTo)   qy = qy.lte("paid_on", dateTo);
+  // ⚠️ doc_numbers is built by the view so one search box also finds a payment by the
+  //    invoice or charge it settled — that is how the question usually arrives.
+  if(q) qy = qy.or(`reference.ilike.%${q}%,doc_numbers.ilike.%${q}%,supplier_names.ilike.%${q}%,account_name.ilike.%${q}%`);
+  return qy.order("paid_on", { ascending:false }).order("reference", { ascending:false });
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){
+    box.innerHTML = '<div class="msg">No payments match.</div>';
+    pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th>Reference</th><th>Date</th><th>Supplier</th><th>Documents</th>
+      <th class="num">Paid</th><th class="num">Discount</th><th class="num">Applied</th>
+      <th class="num">Off by</th><th>Account</th><th>By</th>
+    </tr></thead><tbody>${data.map(r => `<tr data-id="${r.id}">
+        <td class="mono">${dim(r.reference)}</td>
+        <td>${dim(r.paid_on)}</td>
+        <td>${dim(r.supplier_names)}</td>
+        <td class="mono" style="font-size:11.5px">${dim(r.doc_numbers)}
+          ${Number(r.alloc_count) > 1 ? `<span class="dim"> · ${esc(r.alloc_count)}</span>` : ""}</td>
+        <td class="num">${money(r.amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${Number(r.discount_taken) > 0 ? money(r.discount_taken) : '<span class="dim">—</span>'}</td>
+        <td class="num">${money(r.alloc_sum)}</td>
+        <td class="num">${r.balanced ? '<span class="dim">0.00</span>'
+            : gapCell(Number(r.amount) + Number(r.discount_taken) - Number(r.alloc_sum))}</td>
+        <td>${dim(r.account_name)}</td>
+        <td>${dim(r.paid_by_name)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="invsub">Paid + Discount = Applied. Discount is money knocked off for paying early —
+      it has to be declared, because otherwise paying less just looks like paying part.
+      Off by is what still has to be accounted for; it should be zero.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openPay(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── Detail ────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+
+  const { data, error } = await sb.rpc("po_payment_detail", { p_payment_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That payment is gone.</div></div>'; return; }
+
+  const h = data.header, m = data.money || {};
+  const gap = Number(m.gap);
+  const balanced = gap === 0;
+  const allocList = data.allocs || [];
+  /* ⚠️ Currency is locked once anything is allocated. The back end checks every document
+     against it, and changing it here would break "one payment, one currency" quietly —
+     the only place it would show is a warning on this page. */
+  const curLocked = allocList.length > 0;
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All payments</button>'];
+  acts.push('<button class="pobtn" data-act="addoc">Add a document</button>');
+  // ⭐ No Cancel. A payment is a fact with no status — a wrong one is deleted.
+  acts.push('<button class="pobtn" data-act="delete">Delete</button>');
+
+  const kvL = [
+    ["Paid on",     `<input class="tin" type="date" value="${esc(h.paid_on || "")}" data-prev="${esc(h.paid_on || "")}" data-head="paid_on">`],
+    ["Paid",        `<input class="qin" type="number" step="any" min="0" value="${esc(h.amount)}" data-prev="${esc(h.amount)}" data-head="amount"> <span class="mono dim">${esc(h.currency_code || "")}</span>`],
+    ["Discount taken", `<input class="qin" type="number" step="any" min="0" value="${esc(h.discount_taken)}" data-prev="${esc(h.discount_taken)}" data-head="discount_taken">`],
+    ["Reference",   `<input class="tin" style="width:260px" value="${esc(h.reference || "")}" data-head="reference" placeholder="wire ref · cheque no · card">`],
+  ];
+  const kvR = [
+    ["Account",     h.account_code
+        ? `<span class="mono">${esc(h.account_code)}</span> <span class="dim">${esc(h.account_name || "")}</span>
+           <button class="xbtn" data-act="acct" style="margin-left:8px">change</button>`
+        : `<span class="dim">not set</span> <button class="xbtn" data-act="acct" style="margin-left:8px">choose</button>`],
+    ["Currency",    `<span class="mono">${dim(h.currency_code)}</span>` +
+                    (curLocked ? ' <span class="dim">· fixed while documents are attached</span>' : "")],
+    ["Entered by",  dim(h.paid_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
+    ["Note",        `<input class="tin" style="width:260px" value="${esc(h.note || "")}" data-head="note">`],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  /* ⭐ Each row shows what the document is worth, what every payment has put against it so
+     far, and what is still owed — the three numbers you need to decide this one's amount. */
+  const allocs = allocList.map(a => {
+    const href = a.target_kind === "charge"
+      ? `charges.html?id=${esc(a.target_id)}`
+      : `invoices.html?id=${esc(a.target_id)}`;
+    return `<tr>
+      <td>${kindChip(a.target_kind)} <a class="lnk mono" href="${href}" title="Open this document">${esc(a.target_number)}</a></td>
+      <td>${dim(a.supplier_name)}</td>
+      <td class="mono">${dim(a.currency_code)}</td>
+      <td class="num">${money(a.doc_total)}</td>
+      <td class="num">${money(a.doc_paid_total)}</td>
+      <td class="num">${Number(a.doc_unpaid) > 0 ? `<span class="neutral">${money(a.doc_unpaid)}</span>` : '<span class="dim">0.00</span>'}</td>
+      <td class="num"><input class="qin" type="number" step="any" min="0" value="${esc(a.amount)}" data-prev="${esc(a.amount)}" data-alloc="${a.alloc_id}" data-kind="${esc(a.target_kind)}" data-target="${esc(a.target_id)}"></td>
+      <td><input class="tin" value="${esc(a.note || "")}" data-anote="${a.alloc_id}" placeholder="why this amount"></td>
+      <td><button class="xbtn" data-adel="${a.alloc_id}" title="Take this document off the payment">&#10005;</button></td>
+    </tr>`;
+  });
+
+  const tbl = (title, n, cols, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${
+        cols.map(c=>`<th${c[1]?` class="${c[1]}"`:""}>${c[0]}</th>`).join("")
+      }</tr></thead><tbody>${rows.join("")}</tbody></table>${sub ? `<div class="invsub">${sub}</div>` : ""}`
+      : '<div class="msg">Nothing on this payment yet.</div>'}
+    </div>`;
+
+  const warn = (data.warnings || []).length
+    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(esc).join(" · ")}</div></div>` : "";
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="invbar">
+          <span class="pn">${esc(h.reference || "(no reference)")}</span>
+          <span class="chips">${dim(h.paid_on)}</span>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+      </div>
+      <div class="gap">
+        <div class="g"><b>${money(m.amount)}</b><span>Paid</span></div>
+        <div class="g"><b>${money(m.discount_taken)}</b><span>Discount taken</span></div>
+        <div class="g"><b>${money(m.alloc_sum)}</b><span>Applied</span></div>
+        <div class="g ${balanced ? "ok" : "bad"}"><b>${money(m.gap)}</b><span>Off by</span></div>
+      </div>
+      ${!balanced ? `<div class="invsub">&#9888; Paid ${money(m.amount)} plus discount ${money(m.discount_taken)}
+        does not equal the ${money(m.alloc_sum)} handed out. Either an amount below is wrong, or money was
+        knocked off and has to be declared as a discount.</div>` : ""}
+      <div class="invsub"><div class="invgrid">${kvTbl(kvL)}${kvTbl(kvR)}</div></div>
+      <div id="headMsg" style="padding:0 14px 10px;font-size:12.5px"></div>
+    </div>
+    ${warn}
+    ${tbl("Documents settled", allocList.length,
+      [["Document",""],["Supplier",""],["Cur",""],["Document total","num"],["Paid so far","num"],
+       ["Still owed","num"],["On this payment","num"],["Note",""],["",""]],
+      allocs,
+      "Paid so far counts every payment against that document, not just this one — so Still owed is what " +
+      "is left after all of them. Paying only part is normal; a document can be settled by several payments.")}
+  `;
+
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if(a === "wide")   showWide();
+      if(a === "addoc")  openAddDoc(h);
+      if(a === "acct")   openPickAccount(h.id);
+      if(a === "delete") deletePayment(h);
+    };
+  });
+  box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+  box.querySelectorAll("input[data-alloc]").forEach(i => { i.onchange = () => saveAlloc(i); });
+  box.querySelectorAll("input[data-anote]").forEach(i => { i.onchange = () => saveAllocNote(i); });
+  box.querySelectorAll("[data-adel]").forEach(b => { b.onclick = () => removeAlloc(b.dataset.adel); });
+}
+
+/* ── Head fields ───────────────────────────────────────
+   ⚠️ One column at a time, so PostgREST. imsSaved() reads it back — a row count of zero
+      means RLS or a filter swallowed it, and that must not look like success.
+   ⚠️ currency_id is NOT editable here once documents are attached (see loadDetail). */
+async function saveHead(id, inp){
+  const field = inp.dataset.head;
+  // ⚠️ paid_on and amount are NOT NULL, and amount must stay above zero.
+  if(inp.value.trim() === "" && (field === "paid_on" || field === "amount" || field === "discount_taken")){
+    inp.value = inp.dataset.prev || inp.value;
+    say("headMsg", "err", "That field cannot be left empty.");
+    return;
+  }
+  const patch = {}; patch[field] = inp.value === "" ? null : inp.value;
+  const res = await imsSaved(sb.from("po_payment").update(patch).eq("id", id).select("id"));
+  if(!res.ok){ inp.value = inp.dataset.prev ?? inp.value; say("headMsg", "err", res.reason); return; }
+  if(inp.dataset.prev !== undefined) inp.dataset.prev = inp.value;
+  say("headMsg", "on", "Saved");
+  reload();
+}
+
+/* ── Allocations ───────────────────────────────────────
+   ⭐ alloc_set both adds and edits — the back end decides which by looking for an existing
+      row against that document. The same checks run either way. */
+async function saveAlloc(inp){
+  const prev = inp.dataset.prev;
+  if(inp.value.trim() === ""){ inp.value = prev; return; }
+  const val = Number(inp.value);
+  if(!isFinite(val)){ inp.value = prev; return; }
+  if(String(val) === String(Number(prev))) return;
+  inp.disabled = true;
+  const { data, error } = await sb.rpc("po_payment_alloc_set", {
+    p_payment_id: curId, p_kind: inp.dataset.kind, p_target_id: inp.dataset.target,
+    p_amount: val, p_note: null });
+  inp.disabled = false;
+  if(error){ inp.value = prev; docErr(error); return; }
+  inp.dataset.prev = String(val);
+  const y = window.scrollY; await reload(); window.scrollTo(0, y);
+  if(data) say("headMsg", "", `${data.target_number}: ${data.amount_before ?? "—"} → ${data.amount} · off by ${data.gap}`);
+}
+
+async function saveAllocNote(inp){
+  const res = await imsSaved(sb.from("po_payment_alloc")
+    .update({ note: inp.value === "" ? null : inp.value })
+    .eq("id", inp.dataset.anote).select("id"));
+  if(!res.ok){ say("headMsg", "err", res.reason); return; }
+  say("headMsg", "on", "Saved");
+}
+
+async function removeAlloc(allocId){
+  if(!confirm("Take this document off the payment?\n\nWhat it was owed goes back to being owed.")) return;
+  const { data, error } = await sb.rpc("po_payment_alloc_delete", { p_alloc_id: allocId });
+  if(error){ docErr(error); return; }
+  const y = window.scrollY; await reload(); window.scrollTo(0, y);
+  if(data) say("headMsg", "", `${data.target_number} removed (${data.amount_removed}) · off by ${data.gap}`);
+}
+
+async function deletePayment(h){
+  if(!confirm(`Delete this payment?\n\nIt disappears for good and everything it settled goes back to being owed. A payment has no cancelled state — this is the only way to undo one.`)) return;
+  const { data, error } = await sb.rpc("po_doc_delete", { p_target:"payment", p_id:h.id });
+  if(error){ docErr(error); return; }
+  alert(`Payment deleted.` + (data && data.docs ? `\nBack to owing: ${data.docs}` : ""));
+  showWide();
+}
+
+/* ── Choosing an account ───────────────────────────────
+   ⚠️ Every account is listed and searched — there is no flag that marks the ones we pay from.
+      ref_account.for_payments does NOT mark our bank accounts (it holds cards and unused
+      Cin7 defaults instead), and hard-coding the codes here would rot the day they change.
+      In practice "CHEQUING" finds all three. */
+function openPickAccount(payId){
+  modalOpen(`
+    <h4>Which account did the money leave from?</h4>
+    <div class="pbody">
+      <input type="search" id="acQ" placeholder="Search account code or name — try CHEQUING" autocomplete="off" value="CHEQUING">
+      <div id="acList" style="max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div class="dim" style="font-size:12.5px;margin-top:10px">
+        IMS only records which account it came from. Matching it against the bank is QuickBooks' job.
+      </div>
+      <div id="acMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Close</button>
+    </div>`);
+  const draw = async () => {
+    const t = document.getElementById("acQ").value.trim();
+    let qy = sb.from("ref_account").select("id,code,name").eq("is_active", true);
+    if(t) qy = qy.or(`code.ilike.%${t}%,name.ilike.%${t}%`);
+    const { data, error } = await qy.order("code").limit(40);
+    const box = document.getElementById("acList");
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-acc="${r.id}">
+        <span class="mono">${esc(r.code)}</span>
+        <span style="margin-left:8px">${esc(r.name)}</span>
+      </div>`).join("") : '<div class="msg">No account matches.</div>';
+    box.querySelectorAll("[data-acc]").forEach(el => {
+      el.onclick = async () => {
+        const res = await imsSaved(sb.from("po_payment")
+          .update({ account_id: el.dataset.acc }).eq("id", payId).select("id"));
+        if(!res.ok){ say("acMsg", "err", res.reason); return; }
+        modalClose(); reload();
+      };
+    });
+  };
+  imsQ("#acQ", draw);
+  draw();
+}
+
+/* ── Adding a document to an existing payment ──────────
+   ⚠️ Only confirmed documents of the same currency can go on. The back end refuses the rest,
+      but the list greys them out so nobody hunts for a document that will be turned away. */
+function openAddDoc(h){
+  modalOpen(`
+    <h4>Add a document to this payment</h4>
+    <div class="pbody">
+      <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+        This payment is <strong>${esc(h.currency_code || "")}</strong>. A document in another currency needs its own payment.
+      </div>
+      <input type="search" id="dQ" placeholder="Search document number or supplier" autocomplete="off">
+      <div id="dList" style="max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div class="dim" style="font-size:12.5px;margin-top:10px">
+        It comes on at whatever is still owed. Change the amount afterwards to pay only part.
+      </div>
+      <div id="dMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Close</button>
+    </div>`);
+  const draw = () => drawOwing("dQ", "dList", h.currency_id, null, async (kind, id, unpaid) => {
+    say("dMsg", "", "Adding…");
+    const { data, error } = await sb.rpc("po_payment_alloc_set", {
+      p_payment_id: h.id, p_kind: kind, p_target_id: id, p_amount: unpaid, p_note: null });
+    if(error){ say("dMsg", "err", error.message); return; }
+    say("dMsg", "on", `${data.target_number} added at ${data.amount} · off by ${data.gap}`);
+    reload();
+  });
+  imsQ("#dQ", draw);
+  draw();
+}
+
+/* ⭐ The list of things still owed — invoices and charge documents in one table, because a
+   payment settles both the same way. Rows in another currency are shown but not pickable:
+   hiding them would leave the person wondering where the freight bill went. */
+async function drawOwing(qId, listId, currencyId, supplierId, onPick){
+  const t = (document.getElementById(qId).value || "").trim();
+  const box = document.getElementById(listId);
+
+  let iq = sb.from("po_invoice_list").select("id,invoice_number,doc_kind,status,supplier_id,supplier_name,currency_id,currency_code,unpaid")
+             .eq("status", "confirmed").eq("doc_kind", "invoice").gt("unpaid", 0);
+  let cq = sb.from("po_charge_list").select("id,charge_number,status,supplier_id,supplier_name,currency_id,currency_code,unpaid,kind")
+             .eq("status", "confirmed").gt("unpaid", 0);
+  if(supplierId){ iq = iq.eq("supplier_id", supplierId); cq = cq.eq("supplier_id", supplierId); }
+  if(t){
+    iq = iq.or(`invoice_number.ilike.%${t}%,supplier_name.ilike.%${t}%`);
+    cq = cq.or(`charge_number.ilike.%${t}%,supplier_name.ilike.%${t}%`);
+  }
+  const [iv, ch] = await Promise.all([iq.order("invoice_number").limit(40), cq.order("charge_number").limit(40)]);
+  if(iv.error || ch.error){
+    box.innerHTML = `<div class="msg err">${esc((iv.error || ch.error).message)}</div>`; return;
+  }
+  const rows = [
+    ...(iv.data || []).map(r => ({ kind:"invoice", id:r.id, number:r.invoice_number, supplier:r.supplier_name,
+                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, extra:"" })),
+    ...(ch.data || []).map(r => ({ kind:"charge", id:r.id, number:r.charge_number, supplier:r.supplier_name,
+                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, extra:r.kind })),
+  ].sort((a,b) => a.number.localeCompare(b.number));
+
+  if(!rows.length){ box.innerHTML = '<div class="msg">Nothing is owed that matches.</div>'; return; }
+  box.innerHTML = rows.map(r => {
+    const off = currencyId && r.currency_id !== currencyId;
+    return `<div class="prow ${off ? "off" : ""}" ${off ? "" : `data-pick="${r.kind}:${r.id}:${r.unpaid}"`}>
+      <span class="tag">${esc(r.kind)}</span>
+      <span class="mono" style="margin-left:6px">${esc(r.number)}</span>
+      <span class="dim" style="margin-left:8px">${esc(r.supplier)}</span>
+      <span class="mono" style="margin-left:8px">${money(r.unpaid)} ${esc(r.currency)}</span>
+      ${off ? `<span class="off" style="margin-left:8px;font-size:11.5px">${esc(r.currency)} — needs its own payment</span>` : ""}
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-pick]").forEach(el => {
+    el.onclick = () => {
+      const [kind, id, unpaid] = el.dataset.pick.split(":");
+      onPick(kind, id, Number(unpaid));
+    };
+  });
+}
+
+/* ── Creating a payment ────────────────────────────────
+   ⭐ Two steps, like every other create on these screens. Check shows what will be written
+      and whether it adds up; nothing is saved until Create.
+   ⭐ The supplier comes first because the supplier is what decides the currency — the
+      documents and the currency both follow from that one choice. */
+async function openCreate(preselect){
+  const cur = await sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code");
+  const today = new Date().toISOString().slice(0, 10);
+  modalOpen(`
+    <h4>New payment</h4>
+    <div class="pbody">
+      <div class="frow"><label>Currency</label>
+        <select id="pCur">${(cur.data || []).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Paid on</label><input type="date" id="pDate" value="${today}"></div>
+      <div class="frow"><label>Paid</label><input id="pAmt" placeholder="what actually left the account"></div>
+      <div class="frow"><label>Discount taken</label><input id="pDisc" value="0" placeholder="0"></div>
+      <div class="frow"><label>Reference</label><input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
+
+      <div class="dim" style="font-size:12.5px;margin:14px 0 6px">
+        What is this settling? Pick the invoices and charge documents it covers. Each comes on at
+        whatever is still owed — change an amount below to pay only part of one.
+      </div>
+      <input type="search" id="pQ" placeholder="Search document number or supplier" autocomplete="off">
+      <div id="pList" style="max-height:220px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
+        <div class="msg">Loading…</div>
+      </div>
+      <div id="pOut" style="margin-top:12px"></div>
+      <div id="pMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="pChk">Check</button>
+      <button class="pobtn go" id="pGo" disabled>Create</button>
+    </div>`);
+
+  // kind:id → { number, amount }   ⚠️ amount null means "whatever is still owed"
+  const picked = new Map();
+  /* ⭐ Not sent. The back end works the supplier out from the documents themselves and warns
+     if they disagree, so there is nothing for the screen to decide — and the currency, which
+     is the thing that actually matters, is chosen above. */
+  const supplierId = null;
+
+  const stale = () => {
+    // ⚠️ The proposal is out of date the moment the picks or the money change — say so by
+    //    locking Create again rather than letting a stale table be committed.
+    document.getElementById("pGo").disabled = true;
+    document.getElementById("pOut").innerHTML = "";
+  };
+
+  const draw = () => drawOwing("pQ", "pList", document.getElementById("pCur").value, null, (kind, id, unpaid) => {
+    const key = kind + ":" + id;
+    if(picked.has(key)) picked.delete(key); else picked.set(key, { amount:null, unpaid });
+    stale(); draw(); drawPicked();
+  });
+
+  const drawPicked = () => {
+    const el = document.getElementById("pOut");
+    if(!picked.size){ el.innerHTML = ""; return; }
+    el.innerHTML = `<table><thead><tr><th>Document</th><th class="num">Still owed</th><th class="num">On this payment</th></tr></thead>
+      <tbody>${Array.from(picked.entries()).map(([key, v]) => {
+        const [kind, id] = key.split(":");
+        return `<tr>
+          <td>${kindChip(kind)} <span class="mono">${esc(v.number || id.slice(0,8))}</span></td>
+          <td class="num">${money(v.unpaid)}</td>
+          <td class="num"><input class="qin" type="number" step="any" min="0"
+               value="${v.amount === null ? esc(v.unpaid) : esc(v.amount)}" data-pk="${esc(key)}"></td>
+        </tr>`;
+      }).join("")}</tbody></table>`;
+    el.querySelectorAll("input[data-pk]").forEach(i => {
+      i.onchange = () => {
+        const rec = picked.get(i.dataset.pk);
+        if(rec){ rec.amount = i.value.trim() === "" ? null : Number(i.value); }
+        stale();
+      };
+    });
+  };
+
+  imsQ("#pQ", draw);
+  document.getElementById("pCur").onchange = () => { picked.clear(); stale(); draw(); drawPicked(); };
+  ["pAmt","pDisc","pDate","pRef"].forEach(id => { document.getElementById(id).onchange = stale; });
+  draw();
+
+  const args = () => ({
+    p_supplier_id:    supplierId,
+    p_paid_on:        document.getElementById("pDate").value || null,
+    p_amount:         document.getElementById("pAmt").value.trim() === "" ? null : Number(document.getElementById("pAmt").value),
+    p_currency_id:    document.getElementById("pCur").value || null,
+    p_discount_taken: document.getElementById("pDisc").value.trim() === "" ? 0 : Number(document.getElementById("pDisc").value),
+    p_account_id:     null,
+    p_reference:      document.getElementById("pRef").value.trim() || null,
+    p_note:           null,
+    p_targets:        Array.from(picked.entries()).map(([key, v]) => {
+                        const [kind, id] = key.split(":");
+                        return { kind, id, amount: v.amount, note: null };
+                      })
+  });
+
+  document.getElementById("pChk").onclick = async () => {
+    say("pMsg", "", "Checking…");
+    const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:false }));
+    if(error){ say("pMsg", "err", error.message); document.getElementById("pGo").disabled = true; return; }
+    // ⭐ The proposal comes back with any blank amount filled in — show those numbers back.
+    (data.allocs || []).forEach(a => {
+      const rec = picked.get(a.kind + ":" + a.id);
+      if(rec){ rec.number = a.number; rec.unpaid = a.doc_unpaid_before; if(rec.amount === null) rec.amount = a.amount; }
+    });
+    drawPicked();
+    const w = data.warnings || [];
+    say("pMsg", w.length ? "err" : "on",
+        (w.length ? "⚠ " + w.join(" · ") + " · " : "") + `Applied ${data.alloc_sum} · off by ${data.gap}`);
+    document.getElementById("pGo").disabled = false;
+  };
+
+  document.getElementById("pGo").onclick = async () => {
+    say("pMsg", "", "Creating…");
+    const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:true }));
+    if(error){ say("pMsg", "err", error.message); return; }
+    modalClose();
+    if((data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+    openPay(data.payment_id);
+  };
+
+  // ⭐ Arriving from an invoice or a charge — start with that document already picked.
+  if(preselect){
+    document.getElementById("pQ").value = preselect;
+    draw();
+  }
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true }, async (client, meData) => {
+  sb = client; me = meData; isAdmin = (me.role === "admin");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = PAY_BUILD;
+
+  const cur = await sb.from("ref_currency").select("id,code").eq("is_active", true).order("code");
+  if(cur.data) document.getElementById("wcur").innerHTML =
+    '<option value="">All currencies</option>' +
+    cur.data.map(x => `<option value="${x.id}">${esc(x.code)}</option>`).join("");
+
+  // ⚠️ Only accounts that have actually been paid from are worth filtering by, and the
+  //    payments themselves are the only record of which those are.
+  const used = await sb.from("po_payment_list").select("account_id,account_code,account_name").not("account_id", "is", null);
+  if(used.data){
+    const seen = new Map();
+    used.data.forEach(r => { if(!seen.has(r.account_id)) seen.set(r.account_id, r); });
+    document.getElementById("wacc").innerHTML =
+      '<option value="">All accounts</option>' +
+      Array.from(seen.values()).map(r => `<option value="${r.account_id}">${esc(r.account_name || r.account_code)}</option>`).join("");
+  }
+
+  const refilter = () => { pgW.reset(); loadWide(); };
+  document.getElementById("wcur").onchange  = e => { curF     = e.target.value; refilter(); };
+  document.getElementById("wacc").onchange  = e => { accF     = e.target.value; refilter(); };
+  document.getElementById("wbal").onchange  = e => { balF     = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo   = e.target.value; refilter(); };
+  imsQ("#wq", v => { q = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; curF = ""; accF = ""; balF = "all"; dateFrom = ""; dateTo = "";
+    ["wq","wcur","wacc","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wbal").value = "all";
+    refilter();
+  };
+  document.getElementById("wnew").onclick = () => openCreate(null);
+
+  // ⭐ ?id=… opens one payment · ?doc=… starts a new one with that document number searched for,
+  //    which is how the invoice and charge screens hand over.
+  const wantId = imsParam("id");
+  if(wantId){ openPay(wantId); return; }
+  const wantDoc = imsParam("doc");
+  showWide();
+  if(wantDoc) openCreate(wantDoc);
+});
+</script>
+</body>
+</html>

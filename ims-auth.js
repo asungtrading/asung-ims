@@ -214,6 +214,7 @@
       ["Purchase Orders","po.html",null],
       ["Invoices","invoices.html",null],
       ["Charges","charges.html",null],
+      ["Payments","payments.html",null],
       ["Staff","staff.html",null],
       ["Home","index.html",null],
     ];

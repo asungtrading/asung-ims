@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-09-17 · credit from PO";
+const INV_BUILD = "2026-09-17 · pay link";
 console.log("invoices.html build:", INV_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -263,6 +263,10 @@ async function loadDetail(id){
   /* ⭐⭐ Delete: an invoice that was never confirmed. Never a credit note — see docErr block.
      ⚠️ This is convenience. What actually refuses is po_doc_delete. */
   if(!isCredit && !h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
+  /* ⭐ Paying happens on the payments screen — one payment often settles several documents at
+     once, and it has to hold what actually left the bank. This only carries the number across. */
+  if(!isCredit && h.status === "confirmed" && Number(m.unpaid) > 0)
+    acts.push('<button class="pobtn" data-act="pay">Pay</button>');
 
   const chips = [kindChip(h.doc_kind), stChip(h.status)];
   if(h.credit_for_number) chips.push(`<span class="chip">for ${esc(h.credit_for_number)}</span>`);
@@ -448,6 +452,7 @@ async function loadDetail(id){
       if(a === "cancel")  cancelDoc(h);
       if(a === "restore") restoreDoc(h);
       if(a === "delete")  deleteDoc(h);
+      if(a === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.invoice_number);
     };
   });
   // ⚠️ Wired even when the document is confirmed — only this one field is editable then.

@@ -103,7 +103,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-09-17 · charges (b2)";
+const CHG_BUILD = "2026-09-17 · pay link";
 console.log("charges.html build:", CHG_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -256,6 +256,9 @@ async function loadDetail(id){
   /* ⭐⭐ Delete only while the document was never confirmed. What actually refuses is
      po_doc_delete; this only keeps a pointless button off the screen. */
   if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
+  /* ⭐ A charge document is paid the same way a supplier invoice is — on the payments screen. */
+  if(h.status === "confirmed" && Number(m.unpaid) > 0)
+    acts.push('<button class="pobtn" data-act="pay">Pay</button>');
 
   const kvL = [
     ["Supplier",     esc(h.supplier_name)],
@@ -365,6 +368,7 @@ async function loadDetail(id){
       if(a === "cancel")  cancelChg(h);
       if(a === "restore") restoreChg(h);
       if(a === "delete")  deleteChg(h);
+      if(a === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.charge_number);
     };
   });
   if(ed){
