@@ -199,7 +199,8 @@ function baseQuery(){
   if(balF === "unpaid") qy = qy.gt("unpaid", 0);
   if(balF === "due")    qy = qy.lt("unpaid", 0);
   // ⚠️ po_numbers is built by the view so one search box also finds a document by its PO
-  if(q) qy = qy.or(`invoice_number.ilike.%${q}%,supplier_name.ilike.%${q}%,po_numbers.ilike.%${q}%`);
+  // ⭐ supplier_ref_number is in here because the supplier will quote their own number, not ours
+  if(q) qy = qy.or(`invoice_number.ilike.%${q}%,supplier_name.ilike.%${q}%,po_numbers.ilike.%${q}%,supplier_ref_number.ilike.%${q}%`);
   return qy.order("invoice_date", { ascending:false }).order("invoice_number", { ascending:false });
 }
 
@@ -219,7 +220,8 @@ async function loadWide(){
       const bad = Number(r.diff) !== 0;
       return `<tr data-id="${r.id}">
         <td><span class="mono">${esc(r.invoice_number)}</span>${
-          r.credit_for_number ? `<div class="dim" style="font-size:11.5px">for ${esc(r.credit_for_number)}</div>` : ""}</td>
+          r.credit_for_number ? `<div class="dim" style="font-size:11.5px">for ${esc(r.credit_for_number)}</div>` : ""}${
+          r.supplier_ref_number ? `<div class="dim" style="font-size:11.5px">their ref ${esc(r.supplier_ref_number)}</div>` : ""}</td>
         <td>${kindChip(r.doc_kind)}</td>
         <td>${dim(r.invoice_date)}</td>
         <td>${dim(r.due_date)}</td>
@@ -412,6 +414,8 @@ async function loadDetail(id){
           <span>Due date</span>
           ${ed ? `<input class="tin" type="date" value="${esc(h.due_date || "")}" data-prev="${esc(h.due_date || "")}" data-head="due_date">`
                : `<span class="mono">${dim(h.due_date)}</span>`}
+          ${isCredit ? `<span title="The supplier's own credit note number, once they send one">Supplier ref</span>
+          <input class="tin" value="${esc(h.supplier_ref_number || "")}" data-prev="${esc(h.supplier_ref_number || "")}" data-head="supplier_ref_number" placeholder="their number">` : ""}
           <span id="headMsg"></span>
         </div>
       </div>
@@ -459,6 +463,10 @@ async function loadDetail(id){
       if(a === "addpo")   openAddPo(h.id, h.supplier_id);
       if(a === "credit")  openCreateCredit(h);
     };
+  });
+  // ⚠️ Wired even when the document is confirmed — only this one field is editable then.
+  box.querySelectorAll('input[data-head="supplier_ref_number"]').forEach(i => {
+    i.onchange = () => saveHead(h.id, i);
   });
   if(ed){
     box.querySelectorAll("input[data-line]").forEach(i => { i.onchange = () => saveLine(i); });
@@ -533,7 +541,9 @@ async function removeDiscount(id){
 async function saveHead(id, inp){
   const prev = inp.dataset.prev;
   const field = inp.dataset.head;
-  const val = field === "total_amount" ? Number(inp.value) : (inp.value || null);
+  // ⚠️ Supplier ref is a reference, not a ledger figure — it arrives late and is editable
+  //    even after confirming. It never touches lines, discounts or the amount owed.
+  const val = field === "total_amount" ? Number(inp.value) : (inp.value.trim() || null);
   if(field === "total_amount" && (!isFinite(val) || inp.value.trim() === "")){ inp.value = prev; return; }
   say("headMsg", "", "Saving…");
   const patch = {}; patch[field] = val;
@@ -720,7 +730,11 @@ function openCreateCredit(h){
         Lines start at the difference between what this invoice billed and what actually arrived.
         Adjust them afterwards if the supplier credited something else.
       </div>
-      <div class="frow"><label>Credit number</label><input id="cNum" placeholder="as printed on the credit note"></div>
+      <!-- ⚠️ No number field. A credit note is usually raised by us first — we tell the supplier
+           what was short, and only later do they send their own credit note (or simply knock the
+           amount off). So the number is ours to give; theirs becomes a reference afterwards. -->
+      <div class="frow"><label>Number</label>
+        <span id="cNumShown" class="mono dim" style="flex:1">assigned when created</span></div>
       <div class="frow"><label>Credit date</label><input type="date" id="cDate"></div>
       <div class="frow"><label>Printed total</label><input id="cTotal" placeholder="leave blank if not known yet"></div>
       <div id="cOut" style="margin-top:12px"></div>
@@ -737,12 +751,9 @@ function openCreateCredit(h){
 }
 
 async function runCreateCredit(h, commit){
-  const num = document.getElementById("cNum").value.trim();
-  if(!num){ say("cMsg", "err", "The credit note number is needed."); return; }
   const totalRaw = document.getElementById("cTotal").value.trim();
   const args = {
     p_doc_kind: "credit",
-    p_invoice_number: num,
     p_credit_for_invoice_id: h.id,
     p_invoice_date: document.getElementById("cDate").value || null,
     p_commit: commit,
@@ -755,6 +766,11 @@ async function runCreateCredit(h, commit){
 
   const rows = data.lines || [];
   const ok = rows.filter(r => r.verdict === "ok").length;
+  // ⚠️ The number shown before creating is provisional — another credit raised in between
+  //    would take it, and the one that comes back from Create is the real one.
+  const shown = document.getElementById("cNumShown");
+  if(shown) shown.textContent = esc(data.invoice_number || "")
+    + (commit ? "" : "  (provisional)");
   say("cMsg", "", `${rows.length} lines · ${ok} with a difference`
       + ((data.warnings || []).length ? " · " + data.warnings.join(" · ") : ""));
 
