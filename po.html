@@ -199,7 +199,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-16 · discounts + invoice";
+const PO_BUILD = "2026-09-17 · cancel / restore / delete";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -743,17 +743,57 @@ async function runCreateInvoice(h, commit){
   }
 }
 
-/* ── 확정 · 취소 ───────────────────────────────────────
-   ⚠️ 한 칸씩이라 PostgREST 로 한다. imsSaved() 로 되읽어 0행을 잡는다(§10-j 3-i). */
+/* ── 확정 ─────────────────────────────────────────────
+   ⚠️ 한 칸씩이라 PostgREST 로 한다. imsSaved() 로 되읽어 0행을 잡는다(§10-j 3-i).
+   ⭐ Confirm 의 뜻은 「공급사에 보낼 수량과 라인이 정해졌다」다 — 메일은 가지 않는다(§11-b). */
 async function setStatus(id, to){
-  const label = { confirmed:"Confirm (sent to supplier)", cancelled:"Cancel this purchase order" }[to];
-  if(!confirm(label + "?")) return;
-  const patch = { status: to };
-  if(to === "confirmed"){ patch.confirmed_at = new Date().toISOString(); patch.confirmed_by = me.id; }
-  if(to === "cancelled") patch.cancelled_at = new Date().toISOString();
+  if(!confirm("Confirm this purchase order?")) return;
+  const patch = { status: to, confirmed_at: new Date().toISOString(), confirmed_by: me.id };
   const res = await imsSaved(sb.from("po").update(patch).eq("id", id).select("id,status"));
   if(!res.ok){ alert(res.reason); return; }
   await loadList(); await loadDetail(id);
+}
+
+/* ── 취소 · 되돌리기 · 삭제 ───────────────────────────
+   ⭐⭐ 저장 전에 다른 행을 봐야 막을 수 있다 ⇒ 전부 RPC 다(po_doc_cancel · po_doc_delete · 20260917100000).
+       ⚠️ 예전에는 취소가 PostgREST 한 칸이라 **입고가 붙은 발주도 취소되는 길이 열려 있었다.**
+   ⭐⭐ 삭제의 판정 축은 status 가 아니라 confirmed_at 이다 — 한 번이라도 확정된 문서는 지워지지 않는다.
+       취소된 문서라도 확정을 거쳤으면 지워지지 않고, 확정 전 초안은 취소돼 있어도 지워진다.
+   ⚠️ 막히면 함수가 예외를 던진다(P0001). error.message 는 이미 사람이 읽는 문장이다 — 그대로 보여 준다. */
+function docErr(error){
+  // 함수가 스스로 막은 것과 진짜 고장은 모양이 같다. 문장을 가공하지 않는다 — 무엇을 먼저 치우라는지가 거기 적혀 있다.
+  alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+async function cancelPo(id, number){
+  if(!confirm(`Cancel purchase order ${number}?\n\nIt stays on the list with a cancelled tag and its lines are kept. You can restore it later.`)) return;
+  const { data, error } = await sb.rpc("po_doc_cancel", { p_target:"po", p_id:id });
+  if(error){ docErr(error); return; }
+  // ⭐ 막지는 않되 붙어 있는 것을 이름으로 말한다 — 「안 온다고 판명되면 취소한다」가 실무라 순서를 강요하지 않는다(§11-c)
+  const a = (data && data.attached) || {};
+  const notes = [];
+  if(a.invoices)         notes.push(`Invoices attached: ${a.invoices}`);
+  if(a.charges)          notes.push(`Charge documents attached: ${a.charges}`);
+  if(a.numbered_credits) notes.push(`Credit notes numbered from this PO: ${a.numbered_credits}`);
+  if(a.split_children)   notes.push(`Split into: ${a.split_children}`);
+  if(notes.length) alert(`${number} is cancelled.\n\nThese still point at it:\n` + notes.join("\n"));
+  await loadList(); await loadDetail(id);
+}
+
+async function restorePo(id, number){
+  if(!confirm(`Restore ${number}?\n\nIt goes back to the state it was in before it was cancelled.`)) return;
+  const { error } = await sb.rpc("po_doc_cancel", { p_target:"po", p_id:id, p_cancel:false });
+  if(error){ docErr(error); return; }
+  await loadList(); await loadDetail(id);
+}
+
+async function deletePo(id, number){
+  if(!confirm(`Delete purchase order ${number}?\n\nThe order and its lines disappear for good. The number ${number} is not given to another order — it stays empty.`)) return;
+  const { data, error } = await sb.rpc("po_doc_delete", { p_target:"po", p_id:id });
+  if(error){ docErr(error); return; }
+  const n = (data && data.lines_deleted) || 0;
+  alert(`${number} is deleted.` + (n ? `\n${n} line(s) went with it.` : ""));
+  showWide();                                        // 상세가 가리키던 문서가 없다 — 넓은 목록으로 돌아간다
 }
 
 /* ── 상세 ─────────────────────────────────────────── */
@@ -815,6 +855,12 @@ async function loadDetail(id){
   // A supplier document is raised from the PO it belongs to; the rest is done on the invoice screen.
   if(h.status !== "cancelled" && (data.lines || []).length)
     acts.push('<button class="pobtn" data-act="invoice">Create an invoice</button>');
+  /* ⭐ 되돌리기는 **상세에만** 둔다(Caleb 2026-09-17) — 목록에 두면 취소된 행마다 버튼이 서고,
+     실수로 눌리면 취소한 발주가 「올 물건」으로 되살아난다. 되돌리려면 그 문서를 열게 한다. */
+  if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
+  /* ⭐⭐ 삭제는 confirmed_at 이 비어 있을 때만 보인다 — 한 번도 확정되지 않은 문서다.
+     ⚠️ 이것은 **편의**다. 진짜로 막는 것은 DB(po_doc_delete)다. 없는 버튼을 누르게 두지 않을 뿐이다. */
+  if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
 
   const chips = [stChip(h.status)];
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
@@ -1042,7 +1088,9 @@ async function loadDetail(id){
     b.onclick = () => {
       if(b.dataset.act === "paste")   openPaste();
       if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
-      if(b.dataset.act === "cancel")  setStatus(h.id, "cancelled");
+      if(b.dataset.act === "cancel")  cancelPo(h.id, h.po_number);
+      if(b.dataset.act === "restore") restorePo(h.id, h.po_number);
+      if(b.dataset.act === "delete")  deletePo(h.id, h.po_number);
       if(b.dataset.act === "wide")    showWide();
       if(b.dataset.act === "adddisc") openAddDiscount(h.id);
       if(b.dataset.act === "invoice") openCreateInvoice(h);
