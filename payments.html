@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments (b4)";
+const PAY_BUILD = "2026-09-17 · payments (b5)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -550,6 +550,12 @@ async function openCreate(preselect){
       <div class="frow"><label>Paid</label><input id="pAmt" placeholder="what actually left the account — blank means the full amount below"></div>
       <div class="frow"><label>Discount taken</label><input id="pDisc" value="0" placeholder="0"></div>
       <div class="frow"><label>Reference</label><input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
+      <!-- ⚠️ Nothing marks our bank accounts in ref_account, so this is a search rather than a
+           short list. "CHEQUING" finds all three. Leaving it blank is allowed — the back end
+           only warns — but then nobody can tell later which account the money left from. -->
+      <div class="frow"><label>From account</label>
+        <input id="pAcc" placeholder="search code or name — try CHEQUING" autocomplete="off"></div>
+      <div id="pAccList" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:-4px 0 10px;display:none"></div>
 
       <div class="dim" style="font-size:12.5px;margin:14px 0 6px">
         What is this settling? Pick the invoices and charge documents it covers. Each comes on at
@@ -574,6 +580,30 @@ async function openCreate(preselect){
      if they disagree, so there is nothing for the screen to decide — and the currency, which
      is the thing that actually matters, is chosen above. */
   const supplierId = null;
+
+  let accId = null;
+  const drawAccounts = async () => {
+    const t = document.getElementById("pAcc").value.trim();
+    const box = document.getElementById("pAccList");
+    if(!t){ box.style.display = "none"; return; }
+    let qy = sb.from("ref_account").select("id,code,name").eq("is_active", true)
+               .or(`code.ilike.%${t}%,name.ilike.%${t}%`);
+    const { data, error } = await qy.order("code").limit(20);
+    if(error){ box.style.display = "none"; return; }
+    box.style.display = "block";
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-acc="${r.id}" data-label="${esc(r.code)} ${esc(r.name)}">
+        <span class="mono">${esc(r.code)}</span><span style="margin-left:8px">${esc(r.name)}</span>
+      </div>`).join("") : '<div class="msg">No account matches.</div>';
+    box.querySelectorAll("[data-acc]").forEach(el => {
+      el.onclick = () => {
+        accId = el.dataset.acc;
+        document.getElementById("pAcc").value = el.dataset.label;
+        box.style.display = "none";
+        stale();
+      };
+    });
+  };
 
   const stale = () => {
     // ⚠️ The proposal is out of date the moment the picks or the money change — say so by
@@ -613,6 +643,8 @@ async function openCreate(preselect){
   imsQ("#pQ", draw);
   document.getElementById("pCur").onchange = () => { picked.clear(); stale(); draw(); drawPicked(); };
   ["pAmt","pDisc","pDate","pRef"].forEach(id => { document.getElementById(id).onchange = stale; });
+  // ⚠️ Typing again clears the pick — otherwise a stale id would ride along with new text.
+  imsQ("#pAcc", () => { accId = null; stale(); drawAccounts(); });
   draw();
 
   /* ⭐ Paid left blank means "I sent exactly what these documents come to" — which is the
@@ -635,7 +667,7 @@ async function openCreate(preselect){
     p_amount:         document.getElementById("pAmt").value.trim() === "" ? null : Number(document.getElementById("pAmt").value),
     p_currency_id:    document.getElementById("pCur").value || null,
     p_discount_taken: document.getElementById("pDisc").value.trim() === "" ? 0 : Number(document.getElementById("pDisc").value),
-    p_account_id:     null,
+    p_account_id:     accId,
     p_reference:      document.getElementById("pRef").value.trim() || null,
     p_note:           null,
     p_targets:        Array.from(picked.entries()).map(([key, v]) => {
