@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments (b6)";
+const PAY_BUILD = "2026-09-17 · payments (b7)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -513,7 +513,7 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick, pickedKeys
        colouring it is what separates "you can pay this" from "this one needs its own payment"
        — before, only the unusable rows were marked and the usable ones said nothing. */
     const on = !off && pickedKeys && pickedKeys.has(r.kind + ":" + r.id);
-    return `<div class="prow ${off ? "off" : ""} ${on ? "on" : ""}" ${off ? "" : `data-pick="${r.kind}:${r.id}:${r.unpaid}"`}>
+    return `<div class="prow ${off ? "off" : ""} ${on ? "on" : ""}" ${off ? "" : `data-pick="${r.kind}:${r.id}"`}>
       <span class="tag">${esc(r.kind)}</span>
       <span class="mono" style="margin-left:6px">${esc(r.number)}</span>
       <span class="dim" style="margin-left:8px">${esc(r.supplier)}</span>
@@ -525,10 +525,14 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick, pickedKeys
       ${off ? `<span class="off" style="margin-left:8px;font-size:11.5px">${esc(r.currency)} — needs its own payment</span>` : ""}
     </div>`;
   }).join("");
+  /* ⭐ Hand the whole row to the caller, not just the id — the payment being built needs the
+     document's number and currency, and re-fetching them would be a second round trip for
+     something already on screen. */
+  const byKey = new Map(rows.map(r => [r.kind + ":" + r.id, r]));
   box.querySelectorAll("[data-pick]").forEach(el => {
     el.onclick = () => {
-      const [kind, id, unpaid] = el.dataset.pick.split(":");
-      onPick(kind, id, Number(unpaid));
+      const r = byKey.get(el.dataset.pick);
+      if(r) onPick(r.kind, r.id, Number(r.unpaid), r);
     };
   });
 }
@@ -538,57 +542,133 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick, pickedKeys
       and whether it adds up; nothing is saved until Create.
    ⭐ The supplier comes first because the supplier is what decides the currency — the
       documents and the currency both follow from that one choice. */
+/* ── Creating a payment ────────────────────────────────
+   ⭐⭐ What is being settled comes first, and the money second.
+       The first version asked for currency, date, amount, discount, reference and account
+       before it ever asked what the payment was for — so a person filled in six boxes and
+       was then told they had not started. [Caleb 2026-09-17: "페이먼트가 뭐 이리 어려워?"]
+   ⭐ There is no currency field. The supplier decides the currency, so the first document
+      picked settles it and the rest of the list greys out. Remove every document and it
+      opens up again. Nobody has to know the rule to obey it.
+   ⭐ One button. The money boxes only appear once something is picked, and by then the
+      totals are already on screen, so a separate Check step had nothing left to reveal.
+      ⚠️ The preview call stays — Create runs p_commit:false first so a refusal is shown
+         before anything is written. What went away is the button, not the check. */
 async function openCreate(preselect){
-  const cur = await sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code");
   const today = new Date().toISOString().slice(0, 10);
   modalOpen(`
     <h4>New payment</h4>
     <div class="pbody">
-      <div class="frow"><label>Currency</label>
-        <select id="pCur">${(cur.data || []).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join("")}</select></div>
-      <div class="frow"><label>Paid on</label><input type="date" id="pDate" value="${today}"></div>
-      <div class="frow"><label>Paid</label><input id="pAmt" placeholder="what actually left the account — blank means the full amount below"></div>
-      <div class="frow"><label>Discount taken</label><input id="pDisc" value="0" placeholder="0"></div>
-      <div class="frow"><label>Reference</label><input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
-      <!-- ⚠️ Nothing marks our bank accounts in ref_account, so this is a search rather than a
-           short list. "CHEQUING" finds all three. Leaving it blank is allowed — the back end
-           only warns — but then nobody can tell later which account the money left from. -->
-      <div class="frow"><label>From account</label>
-        <input id="pAcc" placeholder="search code or name — try CHEQUING" autocomplete="off"></div>
-      <div id="pAccList" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:-4px 0 10px;display:none"></div>
-
-      <div class="dim" style="font-size:12.5px;margin:14px 0 6px">
-        What is this settling? Pick the invoices and charge documents it covers. Each comes on at
-        whatever is still owed — change an amount below to pay only part of one.
+      <div class="dim" style="font-size:12.5px;margin-bottom:8px">
+        What is this payment settling? Click the invoices and charges it covers.
       </div>
-      <input type="search" id="pQ" placeholder="Search document number or supplier" autocomplete="off">
-      <div id="pList" style="max-height:220px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
+      <input type="search" id="pQ" placeholder="Search document number, supplier or PO number" autocomplete="off">
+      <div id="pList" style="max-height:240px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
         <div class="msg">Loading…</div>
       </div>
-      <div id="pOut" style="margin-top:12px"></div>
+
+      <!-- ⚠️ Hidden until something is picked. An empty amount box above an empty list is
+           what made the old version feel like a form with no beginning. -->
+      <div id="pRest" hidden>
+        <div id="pOut" style="margin-top:14px"></div>
+
+        <div class="gap" style="padding:12px 0">
+          <div class="g"><b id="pSum">0.00</b><span>Applied</span></div>
+          <div class="g" id="pGapBox"><b id="pGap">0.00</b><span>Off by</span></div>
+        </div>
+
+        <div class="frow"><label>Paid</label>
+          <input id="pAmt" placeholder="leave blank if you sent exactly the amount above"></div>
+        <div class="frow"><label>Discount taken</label>
+          <input id="pDisc" value="0" placeholder="0"></div>
+        <div class="frow"><label>Paid on</label><input type="date" id="pDate" value="${today}"></div>
+        <div class="frow"><label>Reference</label>
+          <input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
+        <!-- ⚠️ Nothing marks our bank accounts in ref_account, so this is a search rather than
+             a short list. "CHEQUING" finds all three. -->
+        <div class="frow"><label>From account</label>
+          <input id="pAcc" placeholder="search code or name — try CHEQUING" autocomplete="off"></div>
+        <div id="pAccList" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:-4px 0 10px;display:none"></div>
+      </div>
+
       <div id="pMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span>
       <button class="pobtn" onclick="modalClose()">Cancel</button>
-      <button class="pobtn" id="pChk">Check</button>
-      <button class="pobtn go" id="pGo" disabled>Create</button>
+      <button class="pobtn go" id="pGo" disabled>Create payment</button>
     </div>`);
 
-  // kind:id → { number, amount }   ⚠️ amount null means "whatever is still owed"
+  // kind:id → { number, unpaid, currency_id, currency, amount }   amount null = whatever is owed
   const picked = new Map();
-  /* ⭐ Not sent. The back end works the supplier out from the documents themselves and warns
-     if they disagree, so there is nothing for the screen to decide — and the currency, which
-     is the thing that actually matters, is chosen above. */
+  let accId = null;
+  /* ⭐ Not sent. The back end works the supplier out from the documents and only warns if they
+     disagree, so there is nothing here for the screen to decide. */
   const supplierId = null;
 
-  let accId = null;
+  // ⭐ The currency of the payment is whatever the first picked document is in.
+  const lockedCur = () => picked.size ? picked.values().next().value.currency_id : null;
+
+  const amountOf = (v) => Number(v.amount === null ? v.unpaid : v.amount) || 0;
+  const appliedSum = () => { let s = 0; picked.forEach(v => { s += amountOf(v); }); return s; };
+
+  /* ⭐ Off by is what the payment still has to account for. It updates as the person types,
+     rather than waiting for a round trip, so the number never lags behind the boxes. */
+  const refreshTotals = () => {
+    const rest = document.getElementById("pRest");
+    rest.hidden = picked.size === 0;
+    const sum = appliedSum();
+    const paidRaw = (document.getElementById("pAmt") || {}).value;
+    const discRaw = (document.getElementById("pDisc") || {}).value;
+    const paid = paidRaw === undefined || String(paidRaw).trim() === "" ? sum : Number(paidRaw) || 0;
+    const disc = discRaw === undefined || String(discRaw).trim() === "" ? 0 : Number(discRaw) || 0;
+    const gap = Math.round((paid + disc - sum) * 100) / 100;
+    document.getElementById("pSum").textContent = sum.toFixed(2);
+    document.getElementById("pGap").textContent = gap.toFixed(2);
+    document.getElementById("pGapBox").className = "g " + (gap === 0 ? "ok" : "bad");
+    document.getElementById("pGo").disabled = picked.size === 0;
+    return gap;
+  };
+
+  const drawPicked = () => {
+    const el = document.getElementById("pOut");
+    if(!picked.size){ el.innerHTML = ""; return; }
+    el.innerHTML = `<table><thead><tr><th>Settling</th><th class="num">Still owed</th><th class="num">On this payment</th><th></th></tr></thead>
+      <tbody>${Array.from(picked.entries()).map(([key, v]) => {
+        const [kind] = key.split(":");
+        return `<tr>
+          <td>${kindChip(kind)} <span class="mono">${esc(v.number)}</span></td>
+          <td class="num">${money(v.unpaid)} <span class="dim">${esc(v.currency)}</span></td>
+          <td class="num"><input class="qin" type="number" step="any" min="0"
+               value="${v.amount === null ? esc(Number(v.unpaid).toFixed(2)) : esc(v.amount)}" data-pk="${esc(key)}"></td>
+          <td><button class="xbtn" data-prem="${esc(key)}" title="Take it off">&#10005;</button></td>
+        </tr>`;
+      }).join("")}</tbody></table>`;
+    el.querySelectorAll("input[data-pk]").forEach(i => {
+      i.oninput = () => {
+        const rec = picked.get(i.dataset.pk);
+        if(rec) rec.amount = i.value.trim() === "" ? null : Number(i.value);
+        refreshTotals();
+      };
+    });
+    el.querySelectorAll("[data-prem]").forEach(b => {
+      b.onclick = () => { picked.delete(b.dataset.prem); drawPicked(); refreshTotals(); draw(); };
+    });
+  };
+
+  const draw = () => drawOwing("pQ", "pList", lockedCur(), null, (kind, id, unpaid, meta) => {
+    const key = kind + ":" + id;
+    if(picked.has(key)) picked.delete(key);
+    else picked.set(key, { amount:null, unpaid, number:meta.number, currency_id:meta.currency_id, currency:meta.currency });
+    drawPicked(); refreshTotals(); draw();   // ⚠️ redraw: the first pick locks the currency
+  }, picked);
+
+  /* ⚠️ Typing in the account box clears the pick — otherwise a stale id rides along with new text. */
   const drawAccounts = async () => {
     const t = document.getElementById("pAcc").value.trim();
     const box = document.getElementById("pAccList");
     if(!t){ box.style.display = "none"; return; }
-    let qy = sb.from("ref_account").select("id,code,name").eq("is_active", true)
-               .or(`code.ilike.%${t}%,name.ilike.%${t}%`);
-    const { data, error } = await qy.order("code").limit(20);
+    const { data, error } = await sb.from("ref_account").select("id,code,name").eq("is_active", true)
+      .or(`code.ilike.%${t}%,name.ilike.%${t}%`).order("code").limit(20);
     if(error){ box.style.display = "none"; return; }
     box.style.display = "block";
     box.innerHTML = data.length ? data.map(r => `
@@ -600,124 +680,55 @@ async function openCreate(preselect){
         accId = el.dataset.acc;
         document.getElementById("pAcc").value = el.dataset.label;
         box.style.display = "none";
-        stale();
-      };
-    });
-  };
-
-  const stale = () => {
-    // ⚠️ The proposal is out of date the moment the picks or the money change — say so by
-    //    locking Create again rather than letting a stale table be committed.
-    document.getElementById("pGo").disabled = true;
-    document.getElementById("pOut").innerHTML = "";
-  };
-
-  const draw = () => drawOwing("pQ", "pList", document.getElementById("pCur").value, null, (kind, id, unpaid) => {
-    const key = kind + ":" + id;
-    if(picked.has(key)) picked.delete(key); else picked.set(key, { amount:null, unpaid });
-    stale(); draw(); drawPicked();
-  }, picked);
-
-  const drawPicked = () => {
-    const el = document.getElementById("pOut");
-    if(!picked.size){ el.innerHTML = ""; return; }
-    el.innerHTML = `<table><thead><tr><th>Document</th><th class="num">Still owed</th><th class="num">On this payment</th></tr></thead>
-      <tbody>${Array.from(picked.entries()).map(([key, v]) => {
-        const [kind, id] = key.split(":");
-        return `<tr>
-          <td>${kindChip(kind)} <span class="mono">${esc(v.number || id.slice(0,8))}</span></td>
-          <td class="num">${money(v.unpaid)}</td>
-          <td class="num"><input class="qin" type="number" step="any" min="0"
-               value="${v.amount === null ? esc(v.unpaid) : esc(v.amount)}" data-pk="${esc(key)}"></td>
-        </tr>`;
-      }).join("")}</tbody></table>`;
-    el.querySelectorAll("input[data-pk]").forEach(i => {
-      i.onchange = () => {
-        const rec = picked.get(i.dataset.pk);
-        if(rec){ rec.amount = i.value.trim() === "" ? null : Number(i.value); }
-        stale();
       };
     });
   };
 
   imsQ("#pQ", draw);
-  document.getElementById("pCur").onchange = () => { picked.clear(); stale(); draw(); drawPicked(); };
-  ["pAmt","pDisc","pDate","pRef"].forEach(id => { document.getElementById(id).onchange = stale; });
-  // ⚠️ Typing again clears the pick — otherwise a stale id would ride along with new text.
-  imsQ("#pAcc", () => { accId = null; stale(); drawAccounts(); });
+  ["pAmt","pDisc"].forEach(id => { document.getElementById(id).oninput = refreshTotals; });
+  imsQ("#pAcc", () => { accId = null; drawAccounts(); });
   draw();
 
-  /* ⭐ Paid left blank means "I sent exactly what these documents come to" — which is the
-     usual case, so fill it in rather than refusing. What it must not do is hide a discount:
-     if less actually left the bank, that difference has to be declared, so the screen says
-     out loud that it filled the box and what to do if the number is wrong. */
-  const fillPaidIfBlank = () => {
-    const inp = document.getElementById("pAmt");
-    if(inp.value.trim() !== "") return false;
-    let sum = 0;
-    picked.forEach(v => { sum += Number(v.amount === null ? v.unpaid : v.amount) || 0; });
-    if(!(sum > 0)) return false;
-    inp.value = sum.toFixed(2);
-    return true;
-  };
-
-  const args = () => ({
+  const args = (commit) => ({
     p_supplier_id:    supplierId,
     p_paid_on:        document.getElementById("pDate").value || null,
-    p_amount:         document.getElementById("pAmt").value.trim() === "" ? null : Number(document.getElementById("pAmt").value),
-    p_currency_id:    document.getElementById("pCur").value || null,
+    // ⭐ Blank means "I sent exactly what these documents come to" — the usual case.
+    p_amount:         document.getElementById("pAmt").value.trim() === ""
+                        ? appliedSum()
+                        : Number(document.getElementById("pAmt").value),
+    p_currency_id:    lockedCur(),
     p_discount_taken: document.getElementById("pDisc").value.trim() === "" ? 0 : Number(document.getElementById("pDisc").value),
     p_account_id:     accId,
     p_reference:      document.getElementById("pRef").value.trim() || null,
     p_note:           null,
     p_targets:        Array.from(picked.entries()).map(([key, v]) => {
                         const [kind, id] = key.split(":");
-                        return { kind, id, amount: v.amount, note: null };
-                      })
+                        return { kind, id, amount: amountOf(v), note: null };
+                      }),
+    p_commit:         commit
   });
 
-  /* ⚠️ Nothing picked is the one case worth catching here rather than letting the back end
-     answer it. Its refusal talks about allocations not matching the amount, which reads as a
-     problem with the money when the real problem is that no document has been chosen yet. */
-  const nothingPicked = () => {
-    if(picked.size) return false;
-    say("pMsg", "err", "Choose the invoices or charges this payment settles — click a row above.");
-    document.getElementById("pGo").disabled = true;
-    return true;
-  };
-
-  document.getElementById("pChk").onclick = async () => {
-    if(nothingPicked()) return;
-    const filled = fillPaidIfBlank();
-    say("pMsg", "", "Checking…");
-    const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:false }));
-    if(error){ say("pMsg", "err", error.message); document.getElementById("pGo").disabled = true; return; }
-    // ⭐ The proposal comes back with any blank amount filled in — show those numbers back.
-    (data.allocs || []).forEach(a => {
-      const rec = picked.get(a.kind + ":" + a.id);
-      if(rec){ rec.number = a.number; rec.unpaid = a.doc_unpaid_before; if(rec.amount === null) rec.amount = a.amount; }
-    });
-    drawPicked();
-    const w = data.warnings || [];
-    say("pMsg", w.length ? "err" : "on",
-        (w.length ? "⚠ " + w.join(" · ") + " · " : "")
-        + (filled ? "Paid filled in from the documents — if less actually left the bank, lower it and declare the rest as a discount. " : "")
-        + `Applied ${data.alloc_sum} · off by ${data.gap}`);
-    document.getElementById("pGo").disabled = false;
-  };
-
   document.getElementById("pGo").onclick = async () => {
-    if(nothingPicked()) return;
-    fillPaidIfBlank();
+    if(!picked.size){ say("pMsg", "err", "Click the invoices or charges this payment settles."); return; }
+    const btn = document.getElementById("pGo");
+    btn.disabled = true;
+    say("pMsg", "", "Checking…");
+    /* ⚠️ Dry run first. Create is one button now, but the refusal still has to arrive before
+       anything is written — the back end's sentences name the document and say what to fix. */
+    const dry = await sb.rpc("po_payment_create", args(false));
+    if(dry.error){ say("pMsg", "err", dry.error.message); btn.disabled = false; return; }
+    const w = dry.data.warnings || [];
+    // ⚠️ A missing account is worth saying out loud but is not worth stopping for.
+    if(w.length) say("pMsg", "err", "⚠ " + w.join(" · "));
+
     say("pMsg", "", "Creating…");
-    const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:true }));
-    if(error){ say("pMsg", "err", error.message); return; }
+    const { data, error } = await sb.rpc("po_payment_create", args(true));
+    if(error){ say("pMsg", "err", error.message); btn.disabled = false; return; }
     modalClose();
-    if((data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
     openPay(data.payment_id);
   };
 
-  // ⭐ Arriving from an invoice or a charge — start with that document already picked.
+  // ⭐ Arriving from an invoice, a charge or a purchase order — search for it straight away.
   if(preselect){
     document.getElementById("pQ").value = preselect;
     draw();
