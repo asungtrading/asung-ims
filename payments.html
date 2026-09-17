@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments (b5)";
+const PAY_BUILD = "2026-09-17 · payments (b6)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -676,7 +676,18 @@ async function openCreate(preselect){
                       })
   });
 
+  /* ⚠️ Nothing picked is the one case worth catching here rather than letting the back end
+     answer it. Its refusal talks about allocations not matching the amount, which reads as a
+     problem with the money when the real problem is that no document has been chosen yet. */
+  const nothingPicked = () => {
+    if(picked.size) return false;
+    say("pMsg", "err", "Choose the invoices or charges this payment settles — click a row above.");
+    document.getElementById("pGo").disabled = true;
+    return true;
+  };
+
   document.getElementById("pChk").onclick = async () => {
+    if(nothingPicked()) return;
     const filled = fillPaidIfBlank();
     say("pMsg", "", "Checking…");
     const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:false }));
@@ -696,6 +707,7 @@ async function openCreate(preselect){
   };
 
   document.getElementById("pGo").onclick = async () => {
+    if(nothingPicked()) return;
     fillPaidIfBlank();
     say("pMsg", "", "Creating…");
     const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:true }));
