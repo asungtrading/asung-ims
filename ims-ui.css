@@ -140,3 +140,69 @@ tbody tr:hover{background:#fafbfd}
 .lnk:hover{text-decoration:underline}
 .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
 .err{color:#dc2626;font-weight:600}
+
+/* ═══════════════════════════════════════════════════════════════
+   ⑤ 문서 화면 공통 — po.html · invoices.html · charges.html 에 같은 내용이 복사돼 있던 것을 올렸다 (2026-09-17 · 규칙 34)
+   ─────────────────────────────────────────────────────────────
+   왜: [Caleb 2026-09-17] 「레이아웃과 디자인을 PO 에서 잡는다 — 상품등록·SO 에도 그대로 쓴다」 ⇒ 기준이 한 곳에 있어야 한다.
+       버튼 하나를 바꾸면 세 곳을 고쳐야 했고, 넷째 화면(payments.html)이 오기 전이 가장 싸다.
+   ⚠️ 통일한 값 셋(이름은 같은데 화면마다 달랐다 — 설계가 아니라 그때그때 늘린 값):
+       .qin 84→104px(charges 값 · 금액이 잘리는 것이 좁은 것보다 나쁘다 ⇒ .qin.pin(104px)은 뜻이 없어져 지웠다 · class="qin pin" 의 pin 은 이제 아무 규칙도 안 건다)
+       .tin 150→180px(charges 값) · .wfilt input[type=search] 280/340→260/320(invoices·charges 값 · po 만 혼자 넓었다)
+   ⚠️ 올리지 않은 것: main(ims-ui.css 의 main 과 이름이 겹친다 — 바른 길은 <main class="stack"> · HTML 은 이번 범위 밖) ·
+       .pobox input,.pobox select(invoices·charges 2곳 · po 모달 안의 .qin 을 덮어 모양이 바뀐다 — 각 화면에 남겼다)
+   📌 #wide 묶음은 「넓은 목록」 구조를 세 화면이 같은 id 로 쓴다 — 다음 화면이 #wide 를 안 쓰면 이 묶음만 안 듣는다(다른 묶음과 무관) */
+
+/* 버튼 — 문서 화면의 기본 버튼 · .go 는 주 동작(Create · Confirm) */
+.pobtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+       font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
+.pobtn:hover{background:#f2f4f8}
+.pobtn:disabled{opacity:.45;cursor:default}
+.pobtn.go{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+.pobtn.go:hover{background:#3550c4}
+
+/* 인라인 입력 — 표 안에서 바로 고치는 칸(수량·금액 .qin · 글·날짜 .tin) · 줄 지우기 .xbtn */
+.qin{width:104px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
+     font-family:var(--mono);font-size:12.5px;text-align:right}
+.tin{width:180px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;font-size:12.5px}
+.xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
+      font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
+.xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+
+/* 모달 — .pomodal(덮개) 안에 .pobox(상자) · h4 머리 · .pbody 본문 · .pfoot 발 · .frow 는 폼 한 줄(라벨 + 입력) */
+.pomodal{position:fixed;inset:0;z-index:5000;background:rgba(16,22,30,.45);
+         display:flex;align-items:center;justify-content:center;padding:20px}
+.pobox{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:86vh;
+       display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,20,30,.28)}
+.pobox h4{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
+.pobox .pbody{padding:14px 16px;overflow:auto;flex:1}
+.pobox .pfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.pobox .pfoot .sp{flex:1}
+.frow{display:flex;gap:10px;align-items:center;margin-bottom:10px;font-size:12.5px;color:var(--muted)}
+.frow label{min-width:120px}
+.frow input,.frow select{flex:1}
+
+/* 넓은 목록(#wide) · 그 위의 필터 줄(.wfilt) — 아무것도 안 골랐을 때 화면 전체를 차지하는 표 */
+#wide{padding:14px}
+#wide .card{padding:0}
+#wide table{font-size:12.5px}
+#wide tbody tr{cursor:pointer}
+#wide tbody tr:hover{background:#fafbfd}
+.wfilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+.wfilt .sp{flex:1}
+.wfilt input[type=search]{min-width:260px;flex:0 1 320px}
+.wfilt input,.wfilt select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+.wfilt .dash{color:var(--muted);font-size:12px}
+
+/* 문서 머리 — 번호 줄(.invbar) · 두 칸 격자(.invgrid) · 카드 아래 잔글(.invsub) (invoices · charges · 다음 문서 화면도 이것을 쓴다) */
+.invbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.invbar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+.invgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media (max-width:900px){ .invgrid{grid-template-columns:1fr} }
+.invsub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+
+/* ⚠️⚠️ [실사고 2026-09-16 · po.html] `hidden` 속성이 안 먹었다 —
+   .wrap 에 display:flex 가 걸려 있어 브라우저 기본 [hidden]{display:none} 을 이긴다.
+   그래서 숨기라고 해도 그대로 보이고, 넓은 목록은 숨은 채였다.
+   ⇒ 작성자 규칙으로 못 박는다. display 를 가진 요소에 hidden 을 쓸 때마다 걸리는 함정이다. */
+[hidden]{display:none !important}
