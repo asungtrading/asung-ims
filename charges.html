@@ -138,7 +138,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-09-17 · charges";
+const CHG_BUILD = "2026-09-17 · charges (b2)";
 console.log("charges.html build:", CHG_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -700,7 +700,7 @@ async function openCreate(preselectPoId){
 }
 
 /* ── Start ─────────────────────────────────────────── */
-imsAuth(async (client, meData) => {
+imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
   document.getElementById("buildTag").textContent = CHG_BUILD;
