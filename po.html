@@ -659,14 +659,11 @@ function openAddDiscount(poId){
       calculation would make the cross-check agree with itself and say nothing. */
 function openCreateInvoice(h){
   modalOpen(`
-    <h4>Create a supplier document from ${esc(h.po_number)}</h4>
+    <h4>Create an invoice from ${esc(h.po_number)}</h4>
     <div class="pbody">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-        <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Kind</label>
-        <select id="iKind" style="flex:1">
-          <option value="invoice">Invoice</option>
-          <option value="credit">Credit note</option>
-        </select>
+      <div class="dim" style="font-size:12.5px;margin-bottom:12px">
+        A credit note is raised from the invoice it belongs to, on the invoice screen —
+        that is where the quantities it should carry are known.
       </div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
         <label style="min-width:110px;font-size:12.5px;color:var(--muted)">Number</label>
@@ -698,7 +695,7 @@ async function runCreateInvoice(h, commit){
   if(!num){ say("iMsg", "err", "The document number is needed."); return; }
   const totalRaw = document.getElementById("iTotal").value.trim();
   const args = {
-    p_doc_kind: document.getElementById("iKind").value,
+    p_doc_kind: "invoice",
     p_invoice_number: num,
     p_po_id: h.id,
     p_invoice_date: document.getElementById("iDate").value || null,
@@ -728,6 +725,8 @@ async function runCreateInvoice(h, commit){
       <td class="dim" style="font-size:11.5px">${esc(l.message || l.verdict || "")}</td>
     </tr>`).join("")}</tbody></table>`
     : '<div class="msg">Nothing left to bill on this purchase order.</div>';
+  // ⚠️ Every line already billed is a normal end state, not a fault — it just means
+  //    an earlier invoice covered this PO in full.
 
   document.getElementById("iGo").disabled = ok === 0;
   if(commit && data.id){

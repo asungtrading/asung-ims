@@ -214,7 +214,7 @@ async function loadWide(){
   box.innerHTML = `<table><thead><tr>
       <th>Number</th><th>Kind</th><th>Date</th><th>Due</th><th>Supplier</th><th>POs</th>
       <th class="num">Printed</th><th class="num">Computed</th><th class="num">Diff</th>
-      <th class="num">Payable</th><th class="num">Paid</th><th class="num">Balance</th><th>Status</th>
+      <th class="num">Payable</th><th class="num">Paid / used</th><th class="num">Balance</th><th>Status</th>
     </tr></thead><tbody>${data.map(r => {
       const bad = Number(r.diff) !== 0;
       return `<tr data-id="${r.id}">
@@ -229,13 +229,21 @@ async function loadWide(){
         <td class="num">${bad ? `<span class="off">${money(r.computed_total)}</span>` : money(r.computed_total)}</td>
         <td class="num">${bad ? `<span class="off">${money(r.diff)}</span>` : '<span class="dim">0.00</span>'}</td>
         <td class="num">${money(r.payable_net)}</td>
+        <!-- ⚠️ On a credit row these two mean something else: what has been used, and what is
+             left to use. An unattached credit is the only one with a balance to spend. -->
         <td class="num">${money(r.alloc_total)}</td>
-        <td class="num">${balCell(r.unpaid)}</td>
+        <td class="num">${r.doc_kind === "credit"
+            ? (r.credit_for_number
+                ? '<span class="dim">applied</span>'
+                : (Number(r.remaining) > 0 ? `<span class="on">${money(r.remaining)} to use</span>` : '<span class="dim">0.00</span>'))
+            : balCell(r.unpaid)}</td>
         <td>${stChip(r.status)}</td>
       </tr>`;
     }).join("")}</tbody></table>
     <div class="invsub">⚠️ Printed is what the supplier put on the document and stays the source of truth.
-      Computed is ours, from the lines and the discount chain. A non-zero Diff means they disagree — check the lines.</div>`;
+      Computed is ours, from the lines and the discount chain. A non-zero Diff means they disagree — check the lines.
+      On a credit row, Paid / used is how much of it has been spent and Balance is what is left; a credit tied to an invoice
+      shows <em>applied</em> because it has already come off that invoice.</div>`;
   box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openInv(el.dataset.id); });
   pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
 }
@@ -267,6 +275,11 @@ async function loadDetail(id){
   } else if(h.status === "confirmed"){
     acts.push('<button class="pobtn" data-act="reopen">Reopen</button>');
   }
+  /* ⭐ A credit note is raised from the invoice it answers. The draft arrives already
+     filled with the gap between what was billed and what actually arrived, so nobody
+     has to carry those numbers across by hand. */
+  if(!isCredit && h.status !== "cancelled")
+    acts.push('<button class="pobtn" data-act="credit">Create a credit note</button>');
 
   const chips = [kindChip(h.doc_kind), stChip(h.status)];
   if(h.credit_for_number) chips.push(`<span class="chip">for ${esc(h.credit_for_number)}</span>`);
@@ -444,6 +457,7 @@ async function loadDetail(id){
       if(a === "addline") openAddLine(h.id);
       if(a === "adddisc") openAddDiscount(h.id);
       if(a === "addpo")   openAddPo(h.id, h.supplier_id);
+      if(a === "credit")  openCreateCredit(h);
     };
   });
   if(ed){
@@ -637,20 +651,131 @@ async function openAddPo(invId, supplierId){
         <span class="tag" style="margin-left:6px">${esc(r.status)}</span>
         <span class="dim" style="margin-left:8px">${dim(r.order_date)} · ${esc(r.line_count)} lines · ${money(r.net_total)}</span>
       </div>`).join("") : '<div class="msg">No purchase orders for this supplier.</div>';
+    // ⚠️ Look before adding. Fifty lines pulled in by mistake are fifty deletions to undo.
     box.querySelectorAll("[data-po]").forEach(el => {
-      el.onclick = async () => {
-        say("poMsg", "", "Adding…");
-        const { data, error } = await sb.rpc("po_invoice_add_po_lines",
-          { p_invoice_id: invId, p_po_id: el.dataset.po });
-        if(error){ say("poMsg", "err", error.message); return; }
-        modalClose();
-        if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
-        reload();
-      };
+      el.onclick = () => previewPoLines(invId, el.dataset.po, el.textContent.trim().split(" ")[0]);
     });
   };
   imsQ("#poQ", draw);
   draw();
+}
+
+/* ⭐ Pulling lines in from another purchase order — two steps, like creating a document.
+   Only what has not been billed yet comes across, so a second invoice on the same PO
+   picks up the remainder instead of billing it twice. */
+async function previewPoLines(invId, poId, poNumber){
+  say("poMsg", "", "Checking…");
+  const { data, error } = await sb.rpc("po_invoice_add_po_lines",
+    { p_invoice_id: invId, p_po_id: poId, p_commit: false });
+  if(error){ say("poMsg", "err", error.message); return; }
+
+  const rows = data.lines || [];
+  const ok = rows.filter(r => r.verdict === "ok").length;
+  say("poMsg", "", `${esc(poNumber)} — ${rows.length} lines · ${ok} would come across`
+      + ((data.warnings || []).length ? " · " + data.warnings.join(" · ") : ""));
+
+  document.getElementById("poList").innerHTML = rows.length ? `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th>
+      <th class="num">Already billed</th><th class="num">To bill</th><th class="num">Price</th><th>Note</th></tr></thead>
+    <tbody>${rows.map(l => `<tr>
+      <td class="num">${esc(l.n)}</td>
+      <td class="mono">${dim(l.sku)}</td>
+      <td class="num">${qty(l.qty_ordered)}</td>
+      <td class="num">${qty(l.invoiced_qty)}</td>
+      <td class="num">${qty(l.qty_ea)}</td>
+      <td class="num">${money(l.unit_price)}</td>
+      <td class="dim" style="font-size:11.5px">${esc(l.message || l.verdict || "")}</td>
+    </tr>`).join("")}</tbody></table>`
+    : '<div class="msg">Nothing left to bill on that purchase order.</div>';
+
+  const foot = document.querySelector("#modalBox .pfoot");
+  if(foot && !document.getElementById("poGo")){
+    const b = document.createElement("button");
+    b.className = "pobtn go"; b.id = "poGo"; b.textContent = "Add these lines";
+    foot.appendChild(b);
+  }
+  const go = document.getElementById("poGo");
+  if(go){
+    go.disabled = ok === 0;
+    go.onclick = async () => {
+      say("poMsg", "", "Adding…");
+      const { data, error } = await sb.rpc("po_invoice_add_po_lines",
+        { p_invoice_id: invId, p_po_id: poId, p_commit: true });
+      if(error){ say("poMsg", "err", error.message); return; }
+      modalClose();
+      if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+      reload();
+    };
+  }
+}
+
+/* ⭐ Creating a credit note against this invoice.
+   The draft is filled with the gap between what was billed and what arrived, line by line.
+   ⚠️ Discount rows are NOT carried over — a credit carries whatever the supplier printed on it. */
+function openCreateCredit(h){
+  modalOpen(`
+    <h4>Create a credit note against ${esc(h.invoice_number)}</h4>
+    <div class="pbody">
+      <div class="dim" style="font-size:12.5px;margin-bottom:12px">
+        Lines start at the difference between what this invoice billed and what actually arrived.
+        Adjust them afterwards if the supplier credited something else.
+      </div>
+      <div class="frow"><label>Credit number</label><input id="cNum" placeholder="as printed on the credit note"></div>
+      <div class="frow"><label>Credit date</label><input type="date" id="cDate"></div>
+      <div class="frow"><label>Printed total</label><input id="cTotal" placeholder="leave blank if not known yet"></div>
+      <div id="cOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="cMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="cChk">Check</button>
+      <button class="pobtn go" id="cGo" disabled>Create</button>
+    </div>`);
+  document.getElementById("cDate").value = new Date().toISOString().slice(0,10);
+  document.getElementById("cChk").onclick = () => runCreateCredit(h, false);
+  document.getElementById("cGo").onclick  = () => runCreateCredit(h, true);
+}
+
+async function runCreateCredit(h, commit){
+  const num = document.getElementById("cNum").value.trim();
+  if(!num){ say("cMsg", "err", "The credit note number is needed."); return; }
+  const totalRaw = document.getElementById("cTotal").value.trim();
+  const args = {
+    p_doc_kind: "credit",
+    p_invoice_number: num,
+    p_credit_for_invoice_id: h.id,
+    p_invoice_date: document.getElementById("cDate").value || null,
+    p_commit: commit,
+  };
+  if(totalRaw !== "" && isFinite(Number(totalRaw))) args.p_total_amount = Number(totalRaw);
+
+  say("cMsg", "", commit ? "Creating…" : "Checking…");
+  const { data, error } = await sb.rpc("po_invoice_create", args);
+  if(error){ say("cMsg", "err", error.message); return; }
+
+  const rows = data.lines || [];
+  const ok = rows.filter(r => r.verdict === "ok").length;
+  say("cMsg", "", `${rows.length} lines · ${ok} with a difference`
+      + ((data.warnings || []).length ? " · " + data.warnings.join(" · ") : ""));
+
+  document.getElementById("cOut").innerHTML = rows.length ? `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Billed</th>
+      <th class="num">Received</th><th class="num">To credit</th><th class="num">Price</th><th>Note</th></tr></thead>
+    <tbody>${rows.map(l => `<tr>
+      <td class="num">${esc(l.n)}</td>
+      <td class="mono">${dim(l.sku)}</td>
+      <td class="num">${qty(l.invoiced_qty !== undefined ? l.invoiced_qty : l.qty_ordered)}</td>
+      <td class="num">${qty(l.received_qty)}</td>
+      <td class="num">${qty(l.qty_ea)}</td>
+      <td class="num">${money(l.unit_price)}</td>
+      <td class="dim" style="font-size:11.5px">${esc(l.message || l.verdict || "")}</td>
+    </tr>`).join("")}</tbody></table>`
+    : `<div class="msg">Everything billed on this invoice arrived. A credit note can still be created —
+         it will start empty and you can put on it whatever the supplier credited.</div>`;
+
+  // ⚠️ An empty credit is allowed on purpose: a supplier sometimes credits a price, not a quantity.
+  document.getElementById("cGo").disabled = false;
+  if(commit && data.id){ modalClose(); openInv(data.id); }
 }
 
 /* ── Start ─────────────────────────────────────────── */
