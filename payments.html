@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments (b3)";
+const PAY_BUILD = "2026-09-17 · payments (b4)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -547,7 +547,7 @@ async function openCreate(preselect){
       <div class="frow"><label>Currency</label>
         <select id="pCur">${(cur.data || []).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join("")}</select></div>
       <div class="frow"><label>Paid on</label><input type="date" id="pDate" value="${today}"></div>
-      <div class="frow"><label>Paid</label><input id="pAmt" placeholder="what actually left the account"></div>
+      <div class="frow"><label>Paid</label><input id="pAmt" placeholder="what actually left the account — blank means the full amount below"></div>
       <div class="frow"><label>Discount taken</label><input id="pDisc" value="0" placeholder="0"></div>
       <div class="frow"><label>Reference</label><input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
 
@@ -615,6 +615,20 @@ async function openCreate(preselect){
   ["pAmt","pDisc","pDate","pRef"].forEach(id => { document.getElementById(id).onchange = stale; });
   draw();
 
+  /* ⭐ Paid left blank means "I sent exactly what these documents come to" — which is the
+     usual case, so fill it in rather than refusing. What it must not do is hide a discount:
+     if less actually left the bank, that difference has to be declared, so the screen says
+     out loud that it filled the box and what to do if the number is wrong. */
+  const fillPaidIfBlank = () => {
+    const inp = document.getElementById("pAmt");
+    if(inp.value.trim() !== "") return false;
+    let sum = 0;
+    picked.forEach(v => { sum += Number(v.amount === null ? v.unpaid : v.amount) || 0; });
+    if(!(sum > 0)) return false;
+    inp.value = sum.toFixed(2);
+    return true;
+  };
+
   const args = () => ({
     p_supplier_id:    supplierId,
     p_paid_on:        document.getElementById("pDate").value || null,
@@ -631,6 +645,7 @@ async function openCreate(preselect){
   });
 
   document.getElementById("pChk").onclick = async () => {
+    const filled = fillPaidIfBlank();
     say("pMsg", "", "Checking…");
     const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:false }));
     if(error){ say("pMsg", "err", error.message); document.getElementById("pGo").disabled = true; return; }
@@ -642,11 +657,14 @@ async function openCreate(preselect){
     drawPicked();
     const w = data.warnings || [];
     say("pMsg", w.length ? "err" : "on",
-        (w.length ? "⚠ " + w.join(" · ") + " · " : "") + `Applied ${data.alloc_sum} · off by ${data.gap}`);
+        (w.length ? "⚠ " + w.join(" · ") + " · " : "")
+        + (filled ? "Paid filled in from the documents — if less actually left the bank, lower it and declare the rest as a discount. " : "")
+        + `Applied ${data.alloc_sum} · off by ${data.gap}`);
     document.getElementById("pGo").disabled = false;
   };
 
   document.getElementById("pGo").onclick = async () => {
+    fillPaidIfBlank();
     say("pMsg", "", "Creating…");
     const { data, error } = await sb.rpc("po_payment_create", Object.assign(args(), { p_commit:true }));
     if(error){ say("pMsg", "err", error.message); return; }
