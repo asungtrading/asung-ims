@@ -167,7 +167,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · per-line invoice qty";
+const PO_BUILD = "2026-09-17 · payment links";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -864,6 +864,17 @@ async function loadDetail(id){
      only a shortcut that opens it with this order already picked. */
   if(h.status !== "cancelled")
     acts.push('<button class="pobtn" data-act="charge">Add a charge</button>');
+  /* ⭐ Paying is not paying the order — it is paying the documents raised against it, and one
+     payment often covers documents from several orders. So this only opens the payment screen
+     with this order's number searched for.
+     ⚠️ Shown only while something is actually owed. An order whose documents are all settled
+        would open a picker with nothing in it, which reads like a fault.
+     ⚠️ Cancelled documents are already out of these arrays' money, but check the status too —
+        a draft document has an unpaid figure even though it cannot be paid yet. */
+  const owing = []
+    .concat(data.invoices || [], data.charges || [])
+    .some(d => d.status === "confirmed" && Number(d.unpaid) > 0);
+  if(owing) acts.push('<button class="pobtn" data-act="pay">Pay</button>');
   /* ⭐ 되돌리기는 **상세에만** 둔다(Caleb 2026-09-17) — 목록에 두면 취소된 행마다 버튼이 서고,
      실수로 눌리면 취소한 발주가 「올 물건」으로 되살아난다. 되돌리려면 그 문서를 열게 한다. */
   if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
@@ -1021,7 +1032,7 @@ async function loadDetail(id){
 
   /* 결제 — ⭐ 인보이스와 비용 문서 둘 다 가리킨다 */
   const pays = (data.payments || []).map(p => `<tr>
-      <td class="mono">${dim(p.reference)}</td>
+      <td><a class="lnk mono" href="payments.html?id=${esc(p.id)}" title="Open this payment">${esc(p.reference || "(no reference)")}</a></td>
       <td>${dim(p.paid_on)}</td>
       <td><span class="tag">${esc(p.target_kind)}</span> <span class="mono">${esc(p.target_number)}</span></td>
       <td class="num">${money(p.amount)} <span class="dim">${esc(p.currency_code)}</span></td>
@@ -1111,6 +1122,7 @@ async function loadDetail(id){
       if(b.dataset.act === "adddisc") openAddDiscount(h.id);
       if(b.dataset.act === "invoice") openCreateInvoice(h);
       if(b.dataset.act === "charge")  window.location.href = "charges.html?po_id=" + encodeURIComponent(h.id);
+      if(b.dataset.act === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.po_number);
       if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
     };
   });

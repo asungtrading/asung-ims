@@ -91,7 +91,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments";
+const PAY_BUILD = "2026-09-17 · payments (b2)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -473,14 +473,17 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick){
   const t = (document.getElementById(qId).value || "").trim();
   const box = document.getElementById(listId);
 
-  let iq = sb.from("po_invoice_list").select("id,invoice_number,doc_kind,status,supplier_id,supplier_name,currency_id,currency_code,unpaid")
+  let iq = sb.from("po_invoice_list").select("id,invoice_number,doc_kind,status,supplier_id,supplier_name,currency_id,currency_code,unpaid,po_numbers")
              .eq("status", "confirmed").eq("doc_kind", "invoice").gt("unpaid", 0);
-  let cq = sb.from("po_charge_list").select("id,charge_number,status,supplier_id,supplier_name,currency_id,currency_code,unpaid,kind")
+  let cq = sb.from("po_charge_list").select("id,charge_number,status,supplier_id,supplier_name,currency_id,currency_code,unpaid,kind,po_numbers")
              .eq("status", "confirmed").gt("unpaid", 0);
   if(supplierId){ iq = iq.eq("supplier_id", supplierId); cq = cq.eq("supplier_id", supplierId); }
   if(t){
-    iq = iq.or(`invoice_number.ilike.%${t}%,supplier_name.ilike.%${t}%`);
-    cq = cq.or(`charge_number.ilike.%${t}%,supplier_name.ilike.%${t}%`);
+    // ⚠️ po_numbers is in here so a purchase order's own number finds the documents raised
+    //    against it — that is how the PO screen hands over, and it is how the question is
+    //    usually asked ("what is still owed on PO-02001a?").
+    iq = iq.or(`invoice_number.ilike.%${t}%,supplier_name.ilike.%${t}%,po_numbers.ilike.%${t}%`);
+    cq = cq.or(`charge_number.ilike.%${t}%,supplier_name.ilike.%${t}%,po_numbers.ilike.%${t}%`);
   }
   const [iv, ch] = await Promise.all([iq.order("invoice_number").limit(40), cq.order("charge_number").limit(40)]);
   if(iv.error || ch.error){
@@ -488,9 +491,9 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick){
   }
   const rows = [
     ...(iv.data || []).map(r => ({ kind:"invoice", id:r.id, number:r.invoice_number, supplier:r.supplier_name,
-                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, extra:"" })),
+                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, pos:r.po_numbers })),
     ...(ch.data || []).map(r => ({ kind:"charge", id:r.id, number:r.charge_number, supplier:r.supplier_name,
-                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, extra:r.kind })),
+                                   currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, pos:r.po_numbers })),
   ].sort((a,b) => a.number.localeCompare(b.number));
 
   if(!rows.length){ box.innerHTML = '<div class="msg">Nothing is owed that matches.</div>'; return; }
@@ -501,6 +504,7 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick){
       <span class="mono" style="margin-left:6px">${esc(r.number)}</span>
       <span class="dim" style="margin-left:8px">${esc(r.supplier)}</span>
       <span class="mono" style="margin-left:8px">${money(r.unpaid)} ${esc(r.currency)}</span>
+      ${r.pos ? `<span class="dim mono" style="margin-left:8px;font-size:11.5px">${esc(r.pos)}</span>` : ""}
       ${off ? `<span class="off" style="margin-left:8px;font-size:11.5px">${esc(r.currency)} — needs its own payment</span>` : ""}
     </div>`;
   }).join("");
