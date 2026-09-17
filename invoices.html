@@ -55,6 +55,7 @@
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
@@ -127,6 +128,11 @@
       · Diff is the printed total minus our calculation. Non-zero means they disagree;
         the printed total stays the source of truth.
    ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running. The browser's line numbers have not matched the file more
+   than once, so the screen says its own version out loud. */
+const INV_BUILD = "2026-09-17 · cancel / restore / delete";
+console.log("invoices.html build:", INV_BUILD);
 
 let sb=null, me=null, isAdmin=false;
 let q="", kindF="all", stFilter="open", supFilter="", dateFrom="", dateTo="", balF="all", curId=null;
@@ -282,6 +288,15 @@ async function loadDetail(id){
      has to carry those numbers across by hand. */
   if(!isCredit && h.status !== "cancelled")
     acts.push('<button class="pobtn" data-act="credit">Create a credit note</button>');
+  /* ⭐ Cancelling is open on a draft too — a supplier document that arrived and was refused
+     is worth keeping as a record, and refusing that would leave no way to enter it. */
+  if(h.status !== "cancelled") acts.push('<button class="pobtn" data-act="cancel">Cancel</button>');
+  /* ⭐ Restore lives in the detail only — on the list it would sit against every cancelled
+     row and a stray click would put a dead document back into the books. */
+  if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
+  /* ⭐⭐ Delete: an invoice that was never confirmed. Never a credit note — see docErr block.
+     ⚠️ This is convenience. What actually refuses is po_doc_delete. */
+  if(!isCredit && !h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
 
   const chips = [kindChip(h.doc_kind), stChip(h.status)];
   if(h.credit_for_number) chips.push(`<span class="chip">for ${esc(h.credit_for_number)}</span>`);
@@ -462,6 +477,9 @@ async function loadDetail(id){
       if(a === "adddisc") openAddDiscount(h.id);
       if(a === "addpo")   openAddPo(h.id, h.supplier_id);
       if(a === "credit")  openCreateCredit(h);
+      if(a === "cancel")  cancelDoc(h);
+      if(a === "restore") restoreDoc(h);
+      if(a === "delete")  deleteDoc(h);
     };
   });
   // ⚠️ Wired even when the document is confirmed — only this one field is editable then.
@@ -563,6 +581,47 @@ async function confirmInv(id, on){
   if(error){ alert(error.message); return; }
   if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
   reload();
+}
+
+/* ── Cancelling, restoring, deleting ───────────────────
+   ⭐⭐ Whether a document may go depends on rows other than its own — payments applied,
+       credit notes hanging off it — so both of these are RPCs (po_doc_cancel · po_doc_delete).
+   ⭐⭐ What decides delete is confirmed_at, not the status. A document that was confirmed
+       even once is never deleted; it stays as cancelled.
+   ⭐ A credit note is never deleted, whatever its state. Its number is read back off the row
+       to number the next one, so deleting one would hand the same number to another document.
+   ⚠️ A refusal arrives as an exception whose message is already written for a person to read. */
+function docErr(error){
+  alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+async function cancelDoc(h){
+  const noun = h.doc_kind === "credit" ? "credit note" : "invoice";
+  if(!confirm(`Cancel ${noun} ${h.invoice_number}?\n\nIt stays on the list with a cancelled tag and drops out of the money. You can restore it later.`)) return;
+  const { data, error } = await sb.rpc("po_doc_cancel", { p_target:"invoice", p_id:h.id });
+  if(error){ docErr(error); return; }
+  /* ⭐ Cancelling a credit note gives the money back to the invoice it was answering.
+     Show that movement — otherwise a balance changes somewhere else with nothing said. */
+  const cf = data && data.credit_for;
+  if(cf) alert(`${h.invoice_number} is cancelled.\n\n${cf.invoice_number}: balance ${cf.unpaid_before} → ${cf.unpaid_after}`);
+  else if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+  reload();
+}
+
+async function restoreDoc(h){
+  if(!confirm(`Restore ${h.invoice_number}?\n\nIt goes back to the state it was in before it was cancelled.`)) return;
+  const { error } = await sb.rpc("po_doc_cancel", { p_target:"invoice", p_id:h.id, p_cancel:false });
+  if(error){ docErr(error); return; }
+  reload();
+}
+
+async function deleteDoc(h){
+  if(!confirm(`Delete invoice ${h.invoice_number}?\n\nThe document and its lines disappear for good. The number becomes free for this supplier again.`)) return;
+  const { data, error } = await sb.rpc("po_doc_delete", { p_target:"invoice", p_id:h.id });
+  if(error){ docErr(error); return; }
+  const n = (data && data.lines_deleted) || 0;
+  alert(`${h.invoice_number} is deleted.` + (n ? `\n${n} line(s) went with it.` : ""));
+  showWide();                                   // the document the detail was pointing at is gone
 }
 
 /* ── Adding things ─────────────────────────────────── */
@@ -798,6 +857,7 @@ async function runCreateCredit(h, commit){
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
+  document.getElementById("buildTag").textContent = INV_BUILD;
 
   const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
   if(sup.data) document.getElementById("wsup").innerHTML =
