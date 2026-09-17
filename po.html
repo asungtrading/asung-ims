@@ -199,7 +199,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · credit from PO";
+const PO_BUILD = "2026-09-17 · per-line invoice qty";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -710,6 +710,14 @@ async function runCreateInvoice(h, commit){
   };
   if(totalRaw !== "" && isFinite(Number(totalRaw))) args.p_total_amount = Number(totalRaw);
 
+  /* ⭐⭐ Quantities typed into the table are sent back so this invoice carries only what the
+     supplier actually billed. Goods arrive in one delivery but the invoices sometimes come
+     split into several, and without this every line had to be deleted again afterwards.
+     ⚠️ Only sent once the table exists. On the first Check there is nothing to read, and an
+        empty object would mean "no lines at all" to the back end, not "give me the default". */
+  const typed = readLineQty();
+  if(typed) args.p_line_qty = typed;
+
   say("iMsg", "", commit ? "Creating…" : "Checking…");
   const { data, error } = await sb.rpc("po_invoice_create", args);
   if(error){ say("iMsg", "err", error.message); return; }
@@ -717,20 +725,34 @@ async function runCreateInvoice(h, commit){
   const rows = data.lines || [];
   const ok = rows.filter(r => r.verdict === "ok").length;
   say("iMsg", "", `${rows.length} lines · ${ok} will be copied`
+      + (data.skipped_count ? ` · ${data.skipped_count} left off` : "")
       + ((data.warnings || []).length ? " · " + data.warnings.join(" · ") : ""));
 
   document.getElementById("iOut").innerHTML = rows.length ? `
     <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th>
-      <th class="num">Already billed</th><th class="num">To bill</th><th class="num">Price</th><th>Note</th></tr></thead>
-    <tbody>${rows.map(l => `<tr>
+      <th class="num">Already billed</th><th class="num">Left to bill</th>
+      <th class="num">On this invoice</th><th class="num">Price</th><th>Note</th></tr></thead>
+    <tbody>${rows.map(l => {
+      // ⚠️ A line with nothing left is not editable — there is nothing to put on any invoice.
+      const spent = l.verdict === "fully_invoiced";
+      const val = l.requested_qty !== null && l.requested_qty !== undefined
+        ? l.requested_qty
+        : (l.verdict === "skipped" ? 0 : (l.qty_ea !== null && l.qty_ea !== undefined ? l.qty_ea : 0));
+      return `<tr${l.verdict === "skipped" ? ' style="opacity:.55"' : ""}>
       <td class="num">${esc(l.n)}</td>
       <td class="mono">${dim(l.sku)}</td>
       <td class="num">${qty(l.qty_ordered)}</td>
       <td class="num">${qty(l.invoiced_qty)}</td>
-      <td class="num">${qty(l.qty_ea)}</td>
+      <td class="num">${qty(l.remaining_qty)}</td>
+      <td class="num">${spent
+          ? '<span class="dim">—</span>'
+          : `<input class="qin" type="number" step="any" min="0" max="${esc(l.remaining_qty)}" value="${esc(val)}" data-lq="${esc(l.po_line_id)}">`}</td>
       <td class="num">${money(l.unit_price)}</td>
       <td class="dim" style="font-size:11.5px">${esc(l.message || l.verdict || "")}</td>
-    </tr>`).join("")}</tbody></table>`
+    </tr>`;
+    }).join("")}</tbody></table>
+    <div class="posub">Set a line to 0 to leave it off this invoice — it stays on the purchase order and
+      comes back on the next one. Press Check again after changing the numbers.</div>`
     : '<div class="msg">Nothing left to bill on this purchase order.</div>';
   // ⚠️ Every line already billed is a normal end state, not a fault — it just means
   //    an earlier invoice covered this PO in full.
@@ -741,6 +763,20 @@ async function runCreateInvoice(h, commit){
     // The rest of the work happens on the invoice screen — open it on the new document.
     window.location.href = "invoices.html?id=" + encodeURIComponent(data.id);
   }
+}
+
+/* ⭐ Reads the quantity column back out of the table.
+   ⚠️ Returns null when the table is not on screen yet — see the note at the call site.
+   ⚠️ Blank counts as zero: the person cleared the box to drop that line. */
+function readLineQty(){
+  const boxes = document.querySelectorAll("#iOut input[data-lq]");
+  if(!boxes.length) return null;
+  const out = {};
+  boxes.forEach(b => {
+    const n = b.value.trim() === "" ? 0 : Number(b.value);
+    out[b.dataset.lq] = isFinite(n) && n > 0 ? n : 0;
+  });
+  return out;
 }
 
 /* ── 확정 ─────────────────────────────────────────────
