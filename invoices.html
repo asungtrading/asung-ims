@@ -131,12 +131,14 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-09-17 · cancel/delete · doc links";
+const INV_BUILD = "2026-09-17 · credit from PO";
 console.log("invoices.html build:", INV_BUILD);
 
 let sb=null, me=null, isAdmin=false;
 let q="", kindF="all", stFilter="open", supFilter="", dateFrom="", dateTo="", balF="all", curId=null;
 let detailSeq = 0;
+/* ⭐ Set by ?credit=1 so the credit-note modal opens as soon as the detail has loaded. */
+let pendingCredit = false;
 const pgW = imsPage(50);
 
 const money = (v) => (v === null || v === undefined || v === "")
@@ -495,6 +497,14 @@ async function loadDetail(id){
     box.querySelectorAll("[data-pay]").forEach(c => { c.onchange = () => togglePayable(c); });
     box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del); });
     box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
+  }
+
+  /* ⭐ Arriving from a purchase order's "+ credit" link. The modal can only be opened once
+     the header is loaded, because the draft is filled from what this invoice billed.
+     ⚠️ Fires once — a later reload of the same document must not pop it open again. */
+  if(pendingCredit){
+    pendingCredit = false;
+    if(!isCredit && h.status === "confirmed") openCreateCredit(h);
   }
 }
 
@@ -885,7 +895,12 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
 
   // ⭐ ?id=… opens one document straight away — po.html links here that way after creating one
   const want = imsParam("id");
-  if(want){ openInv(want); return; }
+  if(want){
+    // ⭐ ?credit=1 comes from a purchase order's "+ credit" link — open the document and
+    //    raise the credit-note draft against it in one move.
+    pendingCredit = imsParam("credit") === "1";
+    openInv(want); return;
+  }
   showWide();
 });
 </script>
