@@ -27,6 +27,10 @@
   .prow.on{background:#eef2ff}
   .prow.off{opacity:.45;cursor:not-allowed}
   .prow.off:hover{background:none}
+  /* ⭐ What is owed, on a row that can go on this payment. Colour is the only thing that
+     told the person which rows were theirs to pick — without it the list read as inert. */
+  .owe{color:var(--accent)}
+  .prow.on .owe{color:var(--good, #16794a)}
 </style>
 </head>
 <body>
@@ -91,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-17 · payments (b2)";
+const PAY_BUILD = "2026-09-17 · payments (b3)";
 console.log("payments.html build:", PAY_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -469,7 +473,7 @@ function openAddDoc(h){
 /* ⭐ The list of things still owed — invoices and charge documents in one table, because a
    payment settles both the same way. Rows in another currency are shown but not pickable:
    hiding them would leave the person wondering where the freight bill went. */
-async function drawOwing(qId, listId, currencyId, supplierId, onPick){
+async function drawOwing(qId, listId, currencyId, supplierId, onPick, pickedKeys){
   const t = (document.getElementById(qId).value || "").trim();
   const box = document.getElementById(listId);
 
@@ -494,17 +498,30 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick){
                                    currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, pos:r.po_numbers })),
     ...(ch.data || []).map(r => ({ kind:"charge", id:r.id, number:r.charge_number, supplier:r.supplier_name,
                                    currency_id:r.currency_id, currency:r.currency_code, unpaid:r.unpaid, pos:r.po_numbers })),
-  ].sort((a,b) => a.number.localeCompare(b.number));
+  /* ⭐ Payable rows first. Sorting by number alone buries the ones that can actually go on
+     this payment under the ones that cannot, which reads as "nothing is here". */
+  ].sort((a,b) => {
+    const ao = currencyId && a.currency_id !== currencyId ? 1 : 0;
+    const bo = currencyId && b.currency_id !== currencyId ? 1 : 0;
+    return ao !== bo ? ao - bo : a.number.localeCompare(b.number);
+  });
 
   if(!rows.length){ box.innerHTML = '<div class="msg">Nothing is owed that matches.</div>'; return; }
   box.innerHTML = rows.map(r => {
     const off = currencyId && r.currency_id !== currencyId;
-    return `<div class="prow ${off ? "off" : ""}" ${off ? "" : `data-pick="${r.kind}:${r.id}:${r.unpaid}"`}>
+    /* ⭐ The amount owed carries the colour. It is the number the person is here for, and
+       colouring it is what separates "you can pay this" from "this one needs its own payment"
+       — before, only the unusable rows were marked and the usable ones said nothing. */
+    const on = !off && pickedKeys && pickedKeys.has(r.kind + ":" + r.id);
+    return `<div class="prow ${off ? "off" : ""} ${on ? "on" : ""}" ${off ? "" : `data-pick="${r.kind}:${r.id}:${r.unpaid}"`}>
       <span class="tag">${esc(r.kind)}</span>
       <span class="mono" style="margin-left:6px">${esc(r.number)}</span>
       <span class="dim" style="margin-left:8px">${esc(r.supplier)}</span>
-      <span class="mono" style="margin-left:8px">${money(r.unpaid)} ${esc(r.currency)}</span>
+      <span class="mono" style="margin-left:8px">${off
+        ? `${money(r.unpaid)} ${esc(r.currency)}`
+        : `<strong class="owe">${money(r.unpaid)} ${esc(r.currency)}</strong>`}</span>
       ${r.pos ? `<span class="dim mono" style="margin-left:8px;font-size:11.5px">${esc(r.pos)}</span>` : ""}
+      ${on ? '<span class="chip good" style="margin-left:8px">on this payment</span>' : ""}
       ${off ? `<span class="off" style="margin-left:8px;font-size:11.5px">${esc(r.currency)} — needs its own payment</span>` : ""}
     </div>`;
   }).join("");
@@ -569,7 +586,7 @@ async function openCreate(preselect){
     const key = kind + ":" + id;
     if(picked.has(key)) picked.delete(key); else picked.set(key, { amount:null, unpaid });
     stale(); draw(); drawPicked();
-  });
+  }, picked);
 
   const drawPicked = () => {
     const el = document.getElementById("pOut");
