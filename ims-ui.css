@@ -206,3 +206,17 @@ tbody tr:hover{background:#fafbfd}
    그래서 숨기라고 해도 그대로 보이고, 넓은 목록은 숨은 채였다.
    ⇒ 작성자 규칙으로 못 박는다. display 를 가진 요소에 hidden 을 쓸 때마다 걸리는 함정이다. */
 [hidden]{display:none !important}
+
+/* ═══════════════════════════════════════════════════════════════
+   구매 문서 탭 — 헤더 바로 아래 한 줄 (2026-09-17 · ims-auth.js setupPurchaseTabs 가 그린다 · 마크업은 화면에 없다)
+   [Caleb] 「payments·charges·invoices 로 넘어가면 PO 로 돌아갈 길이 메뉴 클릭뿐이라 불편하다 — 탭으로」
+   ⚠️ sticky 가 아니다 — 헤더(sticky · top:0)만 남고 이 줄은 함께 스크롤된다. 그래서 .list 의 top:70px 은 그대로 맞는다.
+      다만 스크롤 0 에서 내용이 이 줄 높이(--ims-tabs-h · JS 가 잰다)만큼 내려온다 — po.html .list .rows 의 max-height 가 그 값을 빼 쓰면 맞는다(화면 파일 · 대화 Claude).
+   ⚠️ 이름은 ims- 접두어(ims-nav 선례) · 충돌 없음(2026-09-17 grep). */
+.ims-tabs{display:flex;gap:2px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line)}
+.ims-tabs a{
+  padding:9px 13px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;
+}
+.ims-tabs a:hover{color:var(--ink);background:#fafbfd}
+.ims-tabs a.cur{color:#3b5bdb;border-bottom-color:#3b5bdb;pointer-events:none}

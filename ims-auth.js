@@ -199,22 +199,44 @@
      in-flight requests (spinners hang forever). Force a clean reload on restore. ---- */
   window.addEventListener("pageshow", function(e){ if(e.persisted) location.reload(); });
 
+  /* ---- 구매 문서 탭 줄 (헤더 바로 아래 · 2026-09-17 Caleb 「PO 와 관련된 메뉴를 한 곳에 · 탭으로」) ----
+     탭은 메뉴를 대신하지 않는다 — 자주 오가는 넷(po · invoices · charges · payments)을 한 번에 건너뛰는 길이다.
+     목록은 setupNavMenu 의 items(넷째 칸 'purchase')에서 나오고, 권한도 그 vis(메뉴와 같은 규칙)를 그대로 쓴다.
+     그냥 링크다(화면이 통째로 다시 뜬다). 지금 화면의 탭은 .cur 로 눌리지 않는다(.ims-nav a.cur 선례).
+     ⚠️ 넷에 속하지 않는 화면(Settings 등)에서는 줄을 그리지 않는다 · <header> 가 없으면 조용히 아무것도 안 한다.
+     모양은 ims-ui.css 「구매 문서 탭」 구역(.ims-tabs). 줄 높이는 --ims-tabs-h 로 :root 에 적어 둔다 — po.html 의 .list .rows max-height 가 빼 쓸 수 있게(대화 Claude 몫 · 화면 파일). */
+  function setupPurchaseTabs(vis, here){
+    const tabs=vis.filter(it=>it[3]==="purchase");
+    if(!tabs.some(it=>it[1].toLowerCase()===here)) return;            // 이 화면이 묶음에 없다 — 줄 없음
+    const header=document.querySelector("header");
+    if(!header || document.getElementById("imsTabs")) return;
+    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Purchase documents");
+    nav.innerHTML=tabs.map(it=>{
+      const cur=it[1].toLowerCase()===here;
+      return `<a href="${it[1]}" class="${cur?"cur":""}"${cur?' aria-current="page"':""}>${it[0]}</a>`;
+    }).join("");
+    header.insertAdjacentElement("afterend", nav);
+    document.documentElement.style.setProperty("--ims-tabs-h", nav.offsetHeight+"px");
+  }
+
   /* ---- shared nav dropdown (☰ Menu on every screen) ---- */
   function setupNavMenu(meData){
     const btn=document.querySelector('button[title="Main menu"]');
     if(!btn || btn._imsNav) return;
     btn._imsNav=true;
-    // ⬜ IMS 화면이 늘면 여기에 더한다. 셋째 값은 requirePerm — null 이면 로그인만으로 보인다
+    // ⬜ IMS 화면이 늘면 여기에 더한다 — 메뉴와 탭이 **이 배열 하나**에서 나온다(2026-09-17).
+    //    [이름, 주소, requirePerm(null 이면 로그인만으로 보인다), 탭 그룹(선택 · 'purchase' 면 헤더 아래 구매 탭 줄에 선다)]
+    //    ⭐ 구매 문서 넷만 'purchase' — 하루에도 여러 번 오가는 화면만 묶는다(Caleb). 마스터·Staff·Home 은 묶지 않는다. 입고가 서면 그 줄에 'purchase' 를 더한다
     const items=[
       ["Settings","settings.html",null],
       ["Suppliers","suppliers.html",null],
       ["Products","products.html",null],
       ["Families","families.html",null],
       ["Supplier Products","supplier-products.html",null],
-      ["Purchase Orders","po.html",null],
-      ["Invoices","invoices.html",null],
-      ["Charges","charges.html",null],
-      ["Payments","payments.html",null],
+      ["Purchase Orders","po.html",null,"purchase"],
+      ["Invoices","invoices.html",null,"purchase"],
+      ["Charges","charges.html",null,"purchase"],
+      ["Payments","payments.html",null,"purchase"],
       ["Staff","staff.html",null],
       ["Home","index.html",null],
     ];
@@ -229,8 +251,10 @@
         +'.ims-nav a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}';
       document.head.appendChild(st);
     }
-    const dd=document.createElement("div"); dd.className="ims-nav";
+    // 현재 화면 = 경로의 마지막 조각(소문자) · 「/」로 끝나면 index.html · 쿼리(?id=)·해시는 pathname 에 없다
     const here=(location.pathname.split("/").pop()||"index.html").toLowerCase();
+    setupPurchaseTabs(vis, here);
+    const dd=document.createElement("div"); dd.className="ims-nav";
     dd.innerHTML=vis.map(it=>`<a href="${it[1]}" class="${it[1]===here?"cur":""}">${it[0]}</a>`).join("");
     document.body.appendChild(dd);
     btn.onclick=(e)=>{
