@@ -92,6 +92,7 @@
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
@@ -194,6 +195,12 @@
       3-e 의 「색 절제」는 false 가 정상인 불리언 이야기라 여기는 해당하지 않는다.
       진짜 신호는 **입고 진행(received/ordered)** 숫자다.
    ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Build marker. A console error once pointed at a line this file does not have,
+   three times over, unchanged. Printing the build makes it obvious whether the page
+   running is the page that was deployed — or something else attached to it. */
+const PO_BUILD = "2026-09-16 · discounts + invoice";
+console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
 let q="", stFilter="open", curId=null;
@@ -1067,6 +1074,7 @@ async function loadDetail(id){
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
+  document.getElementById("buildTag").textContent = PO_BUILD;
 
   document.getElementById("newPo").onclick   = openNewPo;
   document.getElementById("wnew").onclick    = openNewPo;
