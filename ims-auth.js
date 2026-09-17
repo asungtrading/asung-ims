@@ -212,6 +212,7 @@
       ["Families","families.html",null],
       ["Supplier Products","supplier-products.html",null],
       ["Purchase Orders","po.html",null],
+      ["Invoices","invoices.html",null],
       ["Staff","staff.html",null],
       ["Home","index.html",null],
     ];
