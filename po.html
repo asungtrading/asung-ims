@@ -10,7 +10,10 @@
      ⭐ [2026-09-17] 세 화면(po · invoices · charges)에 복사돼 있던 규칙 34 를 ims-ui.css 「⑤ 문서 화면 공통」으로 올렸다 —
         .pobtn · .qin/.tin/.xbtn · .pomodal/.pobox · #wide/.wfilt · [hidden]. .qin 은 104px · .tin 은 180px 로 통일됐다(.qin.pin 은 뜻이 없어져 지웠다) */
   .list{width:330px;flex:0 0 330px}
-  .list .rows{max-height:calc(100vh - 230px)}
+  /* ⚠️ The purchase tabs sit between the header and this panel, so their height has to come
+     off here or the list runs past the bottom of the window. ims-auth.js measures the strip
+     and writes --ims-tabs-h; on a screen with no tabs it is simply absent and 0px applies. */
+  .list .rows{max-height:calc(100vh - 230px - var(--ims-tabs-h, 0px))}
   .list .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
   .list .row .l{min-width:0}
   .list .row .pn{font-family:var(--mono);font-size:13px}
@@ -167,7 +170,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · payment links";
+const PO_BUILD = "2026-09-17 · tabs";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
