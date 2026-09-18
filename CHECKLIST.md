@@ -2,7 +2,7 @@
 
 `ims.asung.ca` 의 화면이 제대로 도는지 눈으로 확인하는 목록.
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
-`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 여덟이(2026-09-16 저녁 기준 · §0-a) 움직인다.
+`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열하나가(2026-09-18 기준 · §0-a) 움직인다.
 
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
@@ -17,8 +17,12 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 아홉이 보인다 (2026-09-16 오전 Purchase Orders · 2026-09-16 저녁 Invoices 추가)
-    Settings · Suppliers · Products · Families · Supplier Products · Purchase Orders · Invoices · Staff · Home
+[ ] ☰ Menu 를 누르면 열둘이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving 추가)
+    Settings · Suppliers · Products · Families · Supplier Products ·
+    Purchase Orders · Invoices · Charges · Payments · Receiving · Staff · Home
+[ ] 머리 아래 탭 줄에 다섯이 있다 — Purchase Orders · Invoices · Charges · Payments · Receiving
+    ⭐ 탭은 자주 오가는 화면만이다(Caleb). 마스터·Staff·Home 은 ☰ Menu 에만 있다
+    ⚠️ 탭·메뉴는 **권한으로 갈린다** — receiving 권한이 없으면 Receiving 이 아예 안 보인다(빈 탭이 아니다)
 [ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
 [ ] Sign Out 이 되고, 다시 열면 로그인 화면이다
 [ ] 화면 글자가 전부 영문이다
@@ -29,16 +33,21 @@
 
 ### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
 
-한 곳을 고치면 **여덟**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+한 곳을 고치면 **열하나**가 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
 📌 [정정 2026-09-16 저녁] 「여섯」은 2026-09-15 의 수다 — po.html(09-16 오전)로 일곱 · invoices.html(09-16 저녁)로 여덟이 됐는데 이 줄을 안 고쳤다.
-   화면을 더하면 **이 수도 고친다.**
+📌 [정정 2026-09-18] 여덟도 낡았다 — charges·payments(09-17 오후)로 열 · receiving(09-18)으로 **열하나**다.
+   ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
 ```
-[ ] 여덟 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · staff
-[ ] 그 다음 2~7-b 절을 처음부터 훑는다 — 숫자까지
+[ ] 열한 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · staff
+[ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 여덟 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 여덟 화면 전부에서 ☰ Menu 의 수와 순서를 본다 (2026-09-16 저녁 Invoices)
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열한 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열한 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+    ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
+[ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
+    둘째 인자 seenAt 을 주면 낡은 값 저장을 막고, **안 주면 예전과 똑같이 돈다**(2026-09-18).
+    ⚠️ 지금 이 인자를 넘기는 화면은 **하나도 없다**(한 번 붙였다가 되돌렸다 · 정본 §13-f)
 ```
 📌 정본 규칙: `asung-wms/docs/design/po-module.md` §10-j 3-g.
 
@@ -336,6 +345,146 @@
 
 ---
 
+## 7-c. `charges.html` — 비용 (2026-09-17 낮 신설 · 대화 Claude)
+
+뒷단: 뷰 `po_charge_list`(목록) · RPC `po_charge_detail`(상세) · 쓰기 RPC `po_charge_create` ·
+`po_charge_alloc_add/update/delete/spread` · `po_charge_confirm` — asung-wms `20260917150000`.
+⭐ 비용은 **공급사가 아닌 제3자**(관세청 · 관세사 · 운송사)가 청구한다. 그래서 인보이스와 다른 문서다.
+⭐⭐ 배분은 **고친 줄만 바뀐다.** 한 줄을 고쳐도 다른 줄은 안 건드린다 — 둘이 각자 다른 줄을 고치면 둘 다 산다.
+⚠️ `unallocated ≠ 0` 이면 확정이 거부된다. 「미배분 0」이 확정의 문지기다.
+⚠️ 모집단: `po_charge` **2행**(2026-09-18 실측) —
+   `10039192310530`(CBSA 관세 · CAD 2,547.37 · confirmed · 미배분 0.00 · 미지급 0.00) ·
+   `FX-TEST-1`(CAD 100.00 · draft · 미배분 0.00 · 미지급 100.00 · 통화 섞기 시험용).
+
+```
+공통 · 목록
+[ ] 탭 줄에서 Charges 가 Invoices 뒤에 있고, 이 화면에서는 눌리지 않는다
+[ ] 열면 넓은 목록 하나다 — 왼쪽 좁은 목록이 없다
+[ ] 기본 상태에서 2행이 보인다 (2026-09-18 실측)
+[ ] 10039192310530 행: CAD 2,547.37 · confirmed(초록) · 미지급 0.00
+[ ] FX-TEST-1 행: CAD 100.00 · draft · 미지급 100.00
+[ ] 검색칸에 CBSA → 1행 · FX → 1행
+
+상세 · 머리
+[ ] 문서를 열면 머리 칸(문서 날짜 · 총액 · 메모)이 인라인으로 고쳐진다 — draft 일 때만
+[ ] 고치고 나면 Due date 옆에 「Saved」가 잠깐 뜬다
+    ⚠️ reload() 가 머리를 다시 그려 곧 지워진다 — 원래 그렇다(2026-09-18 확인 · 고칠 거리)
+[ ] confirmed 문서는 입력칸이 안 그려진다
+    ⬜ 뒷단은 아직 안 막는다 — 「확정 뒤 머리 칸 잠금」은 미뤄 둔 것(정본 §13-f)
+
+배분
+[ ] 발주를 더하면 배분 줄이 선다 · 금액을 인라인으로 고친다
+[ ] ⭐ 한 줄을 고쳐도 다른 줄의 금액이 안 바뀐다 (설계다 · 정본 §11-f)
+[ ] Spread 를 누르면 배분이 통째로 덮인다 — 지금 배분을 보고 누르는 것이라 되돌릴 수 없다
+[ ] 미배분이 0 이 아니면 Confirm 이 거부되고, 문장이 얼마가 남았는지 말한다
+[ ] 배분 합 ≠ 총액인 채로 저장하려 하면 막힌다
+
+⚠️ [2026-09-18] 같은 줄을 둘이 동시에 고치면 **뒤가 조용히 이긴다.** 아직 막지 않는다 —
+   처방은 리시빙에서 만든 뒤 가져온다(정본 §13-f · WMS 의 「Keep theirs / Use mine」 모양)
+```
+
+---
+
+## 7-d. `payments.html` — 결제 (2026-09-17 밤 신설 · 대화 Claude)
+
+뒷단: 뷰 `po_payment_list`(목록) · RPC `po_payment_detail`(상세) · 쓰기 RPC `po_payment_create` ·
+`po_payment_alloc_set/delete` — asung-wms `20260917190000`.
+⭐⭐ **한 결제 = 한 통화.** 통화가 다른 문서를 한 결제에 섞을 수 없다.
+⭐ 확정된 문서에만 충당한다 · **취소가 없고 삭제만** 있다(정본 §2 규약).
+⚠️ 결제에는 문서 번호가 없다 — `reference`(EFT·WIRE 번호)로 부른다.
+⚠️ 모집단: `po_payment` **3행**(2026-09-18 실측) —
+   `EFT-20260916-02`(CAD 2,496.42 + 할인 50.95 · TD CAD · CBSA 문서에 충당 · 균형 t) ·
+   `WIRE-20260916-01`(USD 2,010.54 · BMO USD · 환율 1.39325 · AMP-778812 · 균형 t) ·
+   `wire`(USD 586.92 · BMO USD · 문서 5566 · Strength of Nature · 균형 t · 시험으로 만든 것).
+
+```
+공통 · 목록
+[ ] 탭 줄에서 Payments 가 Charges 뒤에 있고, 이 화면에서는 눌리지 않는다
+[ ] 기본 상태에서 3행이 보인다 (2026-09-18 실측)
+[ ] 열에 통화·계좌가 보인다 — CAD 하나 · USD 둘
+[ ] EFT-20260916-02 행: CAD 2,496.42 · 할인 50.95 · 충당 합 2,547.37 (⭐ 할인만큼 더 갚아진다)
+[ ] WIRE-20260916-01 행: USD 2,010.54 · 환율 1.39325 · AMP-778812
+[ ] 검색칸에 WIRE → 1행 · Ampro → 1행
+
+상세 · 충당
+[ ] 문서를 고르면 그 통화의 미지급 문서만 후보에 뜬다
+[ ] ⭐ 통화가 다른 문서는 후보에 아예 없다 — 섞으려 해도 고를 수가 없다
+[ ] 금액을 인라인으로 고치면 충당 합과 미충당이 함께 바뀐다
+[ ] 확정 안 된(draft) 문서는 후보에 없다
+[ ] 삭제는 되고, 취소 버튼은 없다
+
+⚠️ [2026-09-18] 크레딧을 결제에 쓰는 길이 아직 없다 — 검산 부호가 뒤집힌다(정본 §13-f)
+⚠️ 조기결제 할인의 HST 매입세액은 회계사에게 물을 것으로 남아 있다
+```
+
+---
+
+## 7-e. `receiving.html` — 입고 (2026-09-18 신설 · 대화 Claude)
+
+뒷단: 뷰 `po_receipt_list`·`po_receipt_diff_list`(목록) · RPC `po_receipt_detail`(상세) ·
+쓰기 RPC `po_receipt_create` · `po_receipt_work_save/delete/split/putaway/putaway_all/unassign` ·
+`po_receipt_confirm` · `po_receipt_delete` · 도우미 `ims_last_bin` —
+asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
+
+⭐⭐ **일이 두 단계다** — ① 검수(인보이스대로 왔는지 센다 · 빈을 모른다) → ② 풋어웨이(자리에 갖다 놓는다).
+   사람도 시점도 다르다. 그래서 표도 둘로 갈려 있다(작업 줄 → 확정하면 입고 줄).
+⭐ **기준은 PO 확정 수량 하나.** 인보이스 합은 옆에 보이기만 하고 아무것도 결정하지 않는다.
+⭐ 이 화면에서는 **빈을 고르는 순간 놓인 것**이다(「자리를 정했다」와 「갖다 놨다」를 안 가른다).
+⚠️ 모집단: `po_receipt` **2행**(2026-09-18 실측) —
+   `RCV-00005`(confirmed · PO-02011a · 센 것 10 · 놓은 것 10 · 차이 큐에 short 1건) ·
+   `RCV-00006`(draft · PO-02011b · 0 · 0).
+📌 `RCV-00001`~`00004` 는 검증에서 소비됐다 — **번호가 비는 것은 설계대로다**(롤백해도 시퀀스는 안 돌아온다).
+
+```
+공통 · 목록
+[ ] 탭 줄에서 Receiving 이 Payments 뒤 다섯째에 있고, 이 화면에서는 눌리지 않는다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-18 · count + putaway」다 (판이 맞는지 여기서 가른다)
+[ ] 필터: Supplier · Warehouse · Status(Draft & confirmed 기본) · Date from–to · 검색 · Clear · New receipt
+[ ] 기본 상태에서 2행 (2026-09-18 실측)
+[ ] 열 순서: Number · Received · PO · Supplier · Warehouse · Lines · Ordered · Counted · To place · Status
+[ ] RCV-00005 행: PO-02011a · 센 것 10 · To place 0(회색) · confirmed(초록)
+[ ] 읽기 전용 사용자에게는 New receipt 버튼이 **아예 안 보인다**
+
+새 입고
+[ ] New receipt → 확정된 PO 만 후보에 뜬다 (draft 는 없다)
+[ ] PO-02011b 를 고르고 Start receiving → RCV-… 가 서고 상세가 열린다
+[ ] ⭐ 같은 PO 로 또 만들려 하면 거부되고, 문장이 **이미 열린 입고의 번호**를 말한다
+[ ] `po.html` 의 confirmed 발주에 **Receive** 버튼이 있고, 누르면 그 PO 가 미리 골라진 채로 열린다
+
+① Count
+[ ] PO 라인이 **전부** 보인다 — 아직 안 센 라인도(그게 찾아야 할 물건이다)
+[ ] 열: # · Item · Ordered · Invoiced · Received before · Counted · Diff · Rows
+[ ] 수량을 적으면 저장되고 Diff 가 바뀐다 (적게 세면 −, 많이 세면 빨간 +)
+[ ] ⭐ 이미 빈에 넣은 것보다 적게 세려 하면 **거부**되고 「reduce or remove the bin rows first」가 뜬다
+
+② Put away
+[ ] 센 라인만 보인다
+[ ] 지난번에 넣은 자리가 있으면 「Last time: A010101」과 「Use A010101」 버튼이 뜬다
+    ⚠️ IMS 가 입고한 것만 안다 — 처음에는 거의 안 뜬다(컷오버 때 채워진다 · 정본 §11-i)
+[ ] 「choose a bin」을 누르면 그 창고의 빈이 300개씩 뜨고, 타이핑하면 좁혀진다
+[ ] ⭐ 빈 이름을 치고 Enter → 정확히 하나면 바로 들어간다 (스캐너 길)
+[ ] ⭐ Split → 수량과 빈을 함께 고른다 · 나눠도 **라인 합은 그대로**다
+[ ] ⭐ 같은 빈으로 또 보내면 **두 줄이 하나로 합쳐진다** (에러가 아니다)
+[ ] ↩ 를 누르면 **빈이 지워지고** 「choose a bin」으로 돌아간다
+[ ] 미배정 줄이 이미 있으면 ↩ 가 거기 합쳐진다 — 줄이 하나가 된다
+[ ] To place 가 0 이 되면 회색으로 바뀐다
+
+확정
+[ ] 자리를 못 정한 것이 남아 있으면 Confirm 이 **풋어웨이 탭으로 보내고** 얼마가 남았는지 말한다
+[ ] Confirm 을 누르면 대화상자가 결과를 먼저 말한다 — 몇 개가 재고로 들어가고, 부족분이 있으면 갈라진다는 것과 「되돌릴 수 없다」
+[ ] ⭐⭐ 덜 받고 확정 → 발주가 갈라지고 **알림이 뜬다**: 「PO-02011 is now PO-02011a」 · 「PO-02011b 로 이어진다」
+[ ] 확정 뒤 머리에 「The rest of this order carries on as PO-02011b」가 보인다
+[ ] 확정 뒤 단계 탭이 사라지고 **Received** 표가 뜬다 (라인 · 빈 · 수량 · 받은 날 · 사람)
+[ ] Confirm 과 Delete 버튼이 사라진다
+[ ] 차이가 났으면 **Differences** 표에 「1 open」과 함께 뜬다 (short · 기대 12 · 받음 10 · −2)
+[ ] 확정된 입고를 지우려 하면 거부된다
+
+⚠️ [2026-09-18] 아직 없는 것 — 차이를 닫는 길 · PO 밖 물건 받기 · 팩→낱개 환산 · 확정 취소
+   · 트랜스퍼 입고(IMS 에 트랜스퍼 문서가 없다) · 창고 접근으로 목록 거르기 (정본 §13-f)
+```
+
+---
+
 ## 8. 로그인 · 계정
 
 ```
@@ -371,6 +520,13 @@
    · 검색 .or 쉼표·괄호 문제가 invoices.html 로 다섯째 화면 — 위 헬퍼 차수에 포함
    · Supplier 드롭다운을 발주처(is_purchasable)로 좁히지 않는다 — 비용처 문서가 이 화면에 올 수 있다
    · 크레딧 상세의 Qty diff(인보이스 수량 − 입고)는 크레딧 줄에서 뜻이 없다 — 비우는 것이 맞다 · 사소
+⬜ [2026-09-18] 세 화면(charges · payments · receiving)의 절을 **오늘에야** 적었다 —
+   charges·payments 는 09-17 에 섰는데 하루 늦었고, §0-a 의 화면 수는 두 번 연속 낡아 있었다.
+   ⇒ 화면을 더하는 **그 커밋에** 이 문서도 함께 고친다
+⬜ [2026-09-18] `charges.html` 이 저장에 실패해도 입력칸을 되돌리지 않는다 — 칸 다섯 중
+   `data-prev` 를 가진 것이 둘뿐이라 되돌리려다 칸을 비울 수 있다. 사소
+⬜ [2026-09-18] `receiving.html` 의 Received 표와 작업 줄이 **같은 숫자여야 한다** —
+   다르면 뒷단이 경고(`receipt_lines_differ_from_work`)를 낸다. 실제로 본 적은 없다
 ⬜ po.html 의 갈라진 문서 이동(gotoPo · ?po=)이 목록을 두 번 읽는다 — 뷰 po_list 에 split_from_id 가 없어 번호로 찾는다.
    ⇒ 뷰에 split_from_id 를 더하면 한 번으로 끝난다(뒷단 asung-wms 변경 · 별도 차수). 행이 셋이라 지금은 체감 없다
 ```
