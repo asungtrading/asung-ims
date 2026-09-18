@@ -522,7 +522,7 @@ function openSplit(h, workId, max){
     <div class="frow"><label>Quantity to move</label>
       <input id="spq" type="number" step="any" min="1" max="${esc(max - 1)}" value="1"></div>
     <div class="frow"><label>Bin</label><input id="spb" placeholder="Scan or type a bin"></div>
-    <div id="spHits" class="binlist" hidden></div>
+    <div id="spHits" class="binlist"><div class="msg">Loading…</div></div>
     <div id="spMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
       <button class="pobtn" onclick="modalClose()">Cancel</button>
@@ -530,26 +530,35 @@ function openSplit(h, workId, max){
 
   let picked = null;
   const hits = document.getElementById("spHits");
-  imsQ("#spb", async v => {
-    const term = v.trim(); picked = null;
-    if(!term){ hits.hidden = true; return; }
-    const { data } = await sb.from("ref_bin").select("id,name,zone")
-      .eq("warehouse_id", h.warehouse_id).eq("is_active", true)
-      .ilike("name", `%${term}%`).order("name").limit(50);
-    if(!data || !data.length){ hits.hidden = true; return; }
-    hits.hidden = false;
+
+  /* ⚠️ The list is there from the moment the box opens — the same as the bin picker.
+     Making a person type before anything appears is a different screen for the same
+     job, and with no scanner in hand it just looks empty. */
+  const drawHits = async (term) => {
+    picked = null;
+    let qy = sb.from("ref_bin").select("id,name,zone")
+      .eq("warehouse_id", h.warehouse_id).eq("is_active", true);
+    if(term) qy = qy.ilike("name", `%${term}%`);
+    const { data, error } = await qy.order("name").limit(300);
+    if(!hits) return;
+    if(error){ hits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    if(!data.length){ hits.innerHTML = '<div class="msg">No bin matches.</div>'; return; }
     hits.innerHTML = data.map(b => `<div class="prow" data-pick="${b.id}" data-name="${esc(b.name)}">
         <span class="mono">${esc(b.name)}</span>
         ${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}
-      </div>`).join("");
+      </div>`).join("") +
+      (data.length === 300 ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "");
     hits.querySelectorAll("[data-pick]").forEach(el => {
       el.onclick = () => {
         picked = el.dataset.pick;
+        hits.querySelectorAll(".prow").forEach(x => x.classList.remove("on"));
+        el.classList.add("on");
         document.getElementById("spb").value = el.dataset.name;
-        hits.hidden = true;
       };
     });
-  });
+  };
+  imsQ("#spb", v => drawHits(v.trim()));
+  drawHits("");
 
   document.getElementById("spGo").onclick = async () => {
     const n = Number(document.getElementById("spq").value);
