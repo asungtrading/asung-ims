@@ -455,12 +455,6 @@ async function loadDetail(id){
       if(a === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.invoice_number);
     };
   });
-  /* ⭐ Overwrite guard (2026-09-18) — each head input carries the updated_at we just read.
-     saveHead() hands it to imsSaved(), which refuses a save made from a stale screen and
-     tells us who changed it and when. Empty = the detail RPC did not return updated_at,
-     and then the save behaves exactly as before (no guard, last one wins). */
-  box.querySelectorAll("input[data-head]").forEach(i => { i.dataset.seen = h.updated_at || ""; });
-
   // ⚠️ Wired even when the document is confirmed — only this one field is editable then.
   box.querySelectorAll('input[data-head="supplier_ref_number"]').forEach(i => {
     i.onchange = () => saveHead(h.id, i);
@@ -552,17 +546,8 @@ async function saveHead(id, inp){
   if(field === "total_amount" && (!isFinite(val) || inp.value.trim() === "")){ inp.value = prev; return; }
   say("headMsg", "", "Saving…");
   const patch = {}; patch[field] = val;
-  const res = await imsSaved(sb.from("po_invoice").update(patch).eq("id", id).select("id"),
-                             inp.dataset.seen || undefined);
-  if(!res.ok){
-    inp.value = prev;
-    /* ⭐ Someone else saved after we opened this. Pull the current values in first — the
-       message would otherwise sit above figures that are already out of date — then say
-       who changed it. The next save carries the fresh updated_at, so it goes through. */
-    if(res.conflict) await reload();
-    say("headMsg", "err", res.reason);
-    return;
-  }
+  const res = await imsSaved(sb.from("po_invoice").update(patch).eq("id", id).select("id"));
+  if(!res.ok){ inp.value = prev; say("headMsg", "err", res.reason); return; }
   inp.dataset.prev = String(inp.value);
   say("headMsg", "on", "Saved");
   reload();
