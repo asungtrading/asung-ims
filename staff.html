@@ -156,9 +156,7 @@ function renderDetail(){
         ${keyRows}
         <tr><td>Role</td><td>
           <select id="fRole" ${lock}></select>
-          <div class="hint">worker = warehouse floor · manager = office work, tied to a warehouse ·
-            supervisor = the same across every warehouse · admin = everything.
-            ⭐ You can only create and edit people below your own rank.</div>
+          <div class="hint" data-rolehint></div>
           ${isSelf?'<div class="hint">You can\'t change your own role or status — you would lock yourself out (and if you are the last admin, nobody could undo it).</div>':''}
         </td></tr>
         <tr><td>Active</td><td><label class="ck"><input type="checkbox" id="fActive" ${lock}> is_active</label>
@@ -199,6 +197,7 @@ function renderDetail(){
   if(isAdmin){
     // 값은 DOM 으로 — 이름에 " 가 있어도 속성이 깨지지 않는다
     fillRoles("fRole", s.role);
+    fillRoleHints(s.role);
     setVal("fName", s.name); setVal("fNote", s.note);
     document.getElementById("fActive").checked = !!s.is_active;
     document.getElementById("saveBtn").onclick = () => save(s);
@@ -220,6 +219,24 @@ function pickableRoles(){
   if(me.role === "admin") return RANKS.slice();
   const mine = RANKS.indexOf(me.role);
   return mine <= 0 ? [] : RANKS.slice(0, mine);
+}
+
+/* ⚠️ The wording is built from the same list as the dropdown, so a rank you cannot grant is
+   not named to you either. Someone who never sees "admin" has no reason to go looking for it. */
+const RANK_TEXT = {
+  worker:     "warehouse floor",
+  manager:    "office work, tied to a warehouse",
+  supervisor: "the same across every warehouse",
+  admin:      "everything, including other admins",
+};
+
+function fillRoleHints(extra){
+  let list = pickableRoles();
+  if(extra && !list.includes(extra)) list = list.concat([extra]);
+  const txt = list.map(r => `${r} = ${RANK_TEXT[r] || ""}`).join(" · ");
+  document.querySelectorAll("[data-rolehint]").forEach(el => {
+    el.textContent = txt + (txt ? " · " : "") + "You can only create and edit people below your own rank.";
+  });
 }
 
 function fillRoles(selId, chosen){
@@ -341,9 +358,7 @@ function renderAdd(box){
         <tr><td>Name</td><td><input type="text" id="aName" placeholder="Full name"></td></tr>
         <tr><td>Email</td><td><input type="email" id="aEmail" placeholder="name@asung.ca"><div class="hint">Stored in lower case. This becomes the login email.</div></td></tr>
         <tr><td>Role</td><td><select id="aRole"></select>
-          <div class="hint">worker = warehouse floor · manager = office work, tied to a warehouse ·
-            supervisor = the same across every warehouse · admin = everything.
-            ⭐ You can only create and edit people below your own rank.</div></td></tr>
+          <div class="hint" data-rolehint></div></td></tr>
       </tbody></table>
       <div class="actions">
         <button class="pri" id="createBtn">Create account</button>
@@ -361,6 +376,7 @@ function renderAdd(box){
   // ⚠️ The default is the highest rank this person may grant — below their own.
   const can = pickableRoles();
   fillRoles("aRole", can.length ? can[can.length - 1] : null);
+  fillRoleHints(null);
   document.getElementById("cancelAdd").onclick = () => { mode="view"; renderList(); renderDetail(); };
   document.getElementById("createBtn").onclick = createStaff;
   document.getElementById("aEmail").addEventListener("keydown", e => { if(e.key==="Enter") createStaff(); });
