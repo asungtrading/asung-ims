@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receiving · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css
+     (.pobtn · .qin/.tin/.xbtn · .pomodal/.pobox/.frow · #wide/.wfilt · .invbar/.invgrid/.invsub · [hidden]) */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+
+  /* ⭐ The numbers that decide whether this receipt is done. They sit on their own
+     so nobody has to add the column up by eye. */
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.ok b{color:var(--good, #2b8a3e)}
+
+  /* Two stages, because the work is two jobs done by different people at different times:
+     counting against the paper, then carrying the boxes to their bins. */
+  .stage{display:flex;gap:6px;padding:0 14px 10px}
+  .stage button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .stage button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
+
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .prow.on{background:#eef2ff}
+
+  /* A work row: one line, one bin. Splitting makes a second row, never a second number. */
+  .wrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0}
+  .binbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
+  .binbtn.none{color:var(--muted);font-family:inherit;font-style:italic}
+  .lastbin{font-size:11.5px;color:var(--muted)}
+  .lastbin b{font-family:var(--mono);font-weight:600;color:var(--fg, #222)}
+  .binlist{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wsup"><option value="">All suppliers</option></select>
+      <select id="wwh"><option value="">All warehouses</option></select>
+      <select id="wst">
+        <option value="open">Draft &amp; confirmed</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <input type="date" id="wfrom"><span class="dash">–</span><input type="date" id="wto">
+      <input type="search" id="wq" placeholder="Receipt number · PO number · supplier">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">New receipt</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Receiving — what actually arrived, and where it went.
+
+   The work is two jobs, and this screen keeps them apart because the warehouse does:
+
+     ① Count    The boxes are opened and counted against the paper. Nobody knows yet
+                which bin they will end up in, so a counted row carries no bin.
+     ② Put away The same boxes are carried to their shelves. Only here does a bin
+                appear, and one line can end up in more than one bin — which is why
+                a row can be split. Splitting never changes the total; it moves part
+                of it to a second row.
+
+   ⭐ The number that decides anything is the PO's confirmed quantity. The invoiced
+      figure sits beside it so the person can see WHY a count is short — the supplier
+      billed less — but it decides nothing. No automatic adjustment (§11-i).
+
+   ⭐ Every calculation lives in the database. This screen never adds quantities up
+      on its own: po_receipt_detail is the one place that knows what "counted",
+      "allocated" and "remaining" mean. If a number looks wrong, the RPC is wrong.
+
+   ⚠️ Nothing here reaches the ledger yet. Confirming a receipt — which splits the
+      order and writes the receipt lines — is the next round.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running. The browser's line numbers have not matched the file
+   more than once, so the screen says its own version out loud. */
+const RCV_BUILD = "2026-09-18 · count + putaway";
+console.log("receiving.html build:", RCV_BUILD);
+
+let sb=null, me=null, canWrite=false;
+let q="", stFilter="open", supFilter="", whFilter="", dateFrom="", dateTo="", curId=null;
+let detailSeq = 0;
+let stage = "count";          // "count" | "putaway"
+let lastBins = {};            // product_id -> { bin_id, bin, zone, received_on }
+const pgW = imsPage(50);
+
+/* ⭐ Everything the fragments below read is declared up here.
+   ⚠️ A value declared below the fragment that uses it freezes the whole detail on
+      "Loading…" without an error. They all live above. */
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:3 }));
+
+function stChip(s){
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(s === "confirmed") return '<span class="chip good">confirmed</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+
+/* A short count is normal — the rest of the order lives on in the split document.
+   An over-count is not: the extra is in the building but not in the books. */
+function diffCell(counted, ordered){
+  const c = Number(counted || 0), o = Number(ordered || 0);
+  if(c === 0) return '<span class="dim">—</span>';
+  if(c > o)  return `<span class="bad">+${qty(c - o)}</span>`;
+  if(c < o)  return `<span class="neutral">−${qty(o - c)}</span>`;
+  return '<span class="on">✓</span>';
+}
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ⚠️ RPC errors arrive as error.message and already end with "nothing was saved".
+   Show that sentence as it is. If the slot is gone, fall back to alert — never swallow it. */
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+function docErr(error){
+  alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+/* ── Two modes ─────────────────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  loadWide();
+}
+function openRcv(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  loadDetail(id);
+}
+async function reload(){
+  if(!curId) return;
+  const y = window.scrollY;
+  await loadDetail(curId);
+  window.scrollTo(0, y);
+}
+
+/* ── List ──────────────────────────────────────────── */
+function baseQuery(){
+  let qy = sb.from("po_receipt_list").select("*", { count:"exact" });
+  if(stFilter === "open")     qy = qy.in("status", ["draft","confirmed"]);
+  else if(stFilter !== "all") qy = qy.eq("status", stFilter);
+  if(supFilter) qy = qy.eq("supplier_id", supFilter);
+  if(whFilter)  qy = qy.eq("warehouse_id", whFilter);
+  if(dateFrom)  qy = qy.gte("received_on", dateFrom);
+  if(dateTo)    qy = qy.lte("received_on", dateTo);
+  if(q) qy = qy.or(`receipt_number.ilike.%${q}%,po_number.ilike.%${q}%,supplier_name.ilike.%${q}%`);
+  return qy.order("received_on", { ascending:false }).order("receipt_number", { ascending:false });
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){
+    box.innerHTML = '<div class="msg">No receipts match.</div>';
+    pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th>Number</th><th>Received</th><th>PO</th><th>Supplier</th><th>Warehouse</th>
+      <th class="num">Lines</th><th class="num">Ordered</th><th class="num">Counted</th>
+      <th class="num">Placed</th><th class="num">To place</th><th>Status</th>
+    </tr></thead><tbody>${data.map(r => `<tr data-id="${r.id}">
+        <td><span class="mono">${esc(r.receipt_number)}</span></td>
+        <td>${dim(r.received_on)}</td>
+        <td><span class="mono">${esc(r.po_number || "")}</span></td>
+        <td>${esc(r.supplier_name || "")}</td>
+        <td>${esc(r.warehouse_name || "")}</td>
+        <td class="num">${esc(r.counted_lines)} <span class="dim">/ ${esc(r.po_lines)}</span></td>
+        <td class="num">${qty(r.ordered_qty)}</td>
+        <td class="num">${qty(r.counted_qty)}</td>
+        <td class="num">${qty(r.placed_qty)}</td>
+        <td class="num">${Number(r.unassigned_rows) > 0
+            ? `<span class="neutral">${qty(Number(r.counted_qty) - Number(r.placed_qty))}</span>`
+            : '<span class="dim">0</span>'}</td>
+        <td>${stChip(r.status)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="invsub">Counted is what was found in the boxes; placed is what has reached a bin.
+      A receipt is finished when the two agree and nothing is left to place. Short counts are normal —
+      the rest of the order carries on in its own document.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openRcv(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── Detail ────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+
+  const { data, error } = await sb.rpc("po_receipt_detail", { p_receipt_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That receipt is gone.</div></div>'; return; }
+
+  const h = data.header, t = data.totals || {}, lines = data.lines || [];
+  /* ⭐ Only a draft can be worked on. Once confirmed the quantities have been taken
+     into the books and the order has been split against them. */
+  const ed = h.status === "draft" && canWrite;
+  const toPlace = Number(t.counted || 0) - Number(t.placed || 0);
+
+  /* Last bin is asked for once per render, for every product on the receipt — one
+     round trip instead of one per line. ⚠️ Only ims_last_bin knows where it comes
+     from; when the ledger arrives its inside changes and this call does not. */
+  const pids = [...new Set(lines.map(l => l.product_id).filter(Boolean))];
+  if(pids.length){
+    const lb = await sb.rpc("ims_last_bin", { p_product_ids: pids, p_warehouse_id: h.warehouse_id });
+    if(seq !== detailSeq) return;
+    lastBins = (lb && lb.data) || {};
+  } else lastBins = {};
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All receipts</button>'];
+  if(ed) acts.push('<button class="pobtn bad" data-act="del">Delete</button>');
+  acts.push(`<button class="pobtn" data-act="po">Open ${esc(h.po_number || "PO")}</button>`);
+
+  /* ⚠️ Same two-column key/value table the other document screens use — .kv inside
+     .invgrid. Do not invent a shape here; the header must read the same everywhere. */
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="invbar">
+        <h2 class="mono" style="margin:0">${esc(h.receipt_number)}</h2>
+        <span class="chips">${stChip(h.status)}${h.po_status ? `<span class="tag">PO ${esc(h.po_status)}</span>` : ""}</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+      <div style="margin-top:10px;font-size:12.5px;color:var(--muted)">
+        <span id="headMsg"></span>
+      </div>
+      <div class="gap">
+        <div class="g"><b>${qty(t.ordered)}</b><span>Ordered</span></div>
+        <div class="g"><b>${qty(t.counted)}</b><span>Counted</span></div>
+        <div class="g"><b>${qty(t.placed)}</b><span>Placed</span></div>
+        <div class="g ${toPlace > 0 ? "bad" : "ok"}"><b>${qty(toPlace)}</b><span>To place</span></div>
+        <div class="g"><b>${esc(t.counted_lines)} / ${esc(t.lines)}</b><span>Lines counted</span></div>
+      </div>
+      <div class="invsub"><div class="invgrid">${kvTbl([
+        ["SUPPLIER", esc(h.supplier_name || "")],
+        ["WAREHOUSE", esc(h.warehouse_name || "")],
+        ["RECEIVED ON", dim(h.received_on)]
+      ])}${kvTbl([
+        ["PURCHASE ORDER", `<span class="mono">${esc(h.po_number || "")}</span>`],
+        ["STARTED BY", `${esc(h.created_by_name || "—")} <span class="dim">${imsTs(h.created_at)}</span>`],
+        ["CONFIRMED", h.confirmed_at
+          ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"]
+      ])}</div></div>
+      ${(data.warnings || []).length
+        ? `<div class="invsub">⚠ ${(data.warnings || []).map(w => esc(w)).join(" · ")}</div>` : ""}
+    </div>
+
+    <div class="card">
+      <div class="stage">
+        <button data-stage="count" class="${stage === "count" ? "on" : ""}">① Count</button>
+        <button data-stage="putaway" class="${stage === "putaway" ? "on" : ""}">② Put away</button>
+      </div>
+      ${stage === "count" ? countTable(lines, ed) : putawayTable(lines, ed)}
+    </div>`;
+
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if(a === "wide") showWide();
+      if(a === "po")   window.location.href = "po.html?po=" + encodeURIComponent(h.po_number || "");
+      if(a === "del")  deleteRcv(h);
+    };
+  });
+  box.querySelectorAll("[data-stage]").forEach(b => {
+    b.onclick = () => { stage = b.dataset.stage; reload(); };
+  });
+
+  if(stage === "count") wireCount(h, ed); else wirePutaway(h, ed);
+}
+
+/* ── ① Count ───────────────────────────────────────────
+   Every PO line is shown, counted or not — a line with no row yet is exactly the
+   line somebody still has to look for in the pallet. The box holds the LINE total
+   in eaches, not a scan count: the database keeps one number per line and splits
+   it into bins later. */
+function countTable(lines, ed){
+  return `<table><thead><tr>
+      <th class="num">#</th><th>Item</th><th class="num">Ordered</th><th class="num">Invoiced</th>
+      <th class="num">Received before</th><th class="num">Counted</th><th class="num">Diff</th><th>Rows</th>
+    </tr></thead><tbody>${lines.map(l => `<tr>
+      <td class="num dim">${esc(l.line_no)}</td>
+      <td><span class="mono">${esc(l.sku || "")}</span>
+        ${l.supplier_sku ? `<span class="dim" style="font-size:11.5px"> · ${esc(l.supplier_sku)}</span>` : ""}
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+      <td class="num">${qty(l.ordered)}</td>
+      <td class="num">${Number(l.invoiced) ? qty(l.invoiced) : '<span class="dim">—</span>'}</td>
+      <td class="num">${Number(l.received_before) ? qty(l.received_before) : '<span class="dim">—</span>'}</td>
+      <td class="num">${ed
+          ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.counted)}"
+               data-prev="${esc(l.counted)}" data-line="${l.po_line_id}">`
+          : qty(l.counted)}</td>
+      <td class="num">${diffCell(l.counted, l.ordered)}</td>
+      <td class="dim" style="font-size:11.5px">${(l.work || []).length
+          ? `${(l.work || []).length} row(s) · ${qty(l.allocated)} in bins` : "—"}</td>
+    </tr>`).join("")}</tbody></table>
+    <div class="invsub">Invoiced is what the supplier billed. It explains a short count — it does not
+      decide anything. The order quantity is what a receipt is measured against. Setting a count below
+      what is already sitting in bins is refused: take it out of the bins first.</div>`;
+}
+
+function wireCount(h, ed){
+  if(!ed) return;
+  document.querySelectorAll("input[data-line]").forEach(inp => {
+    inp.onchange = () => saveCount(h.id, inp);
+  });
+}
+
+async function saveCount(receiptId, inp){
+  const prev = inp.dataset.prev, val = Number(inp.value);
+  if(!isFinite(val) || inp.value.trim() === ""){ inp.value = prev; return; }
+  if(val < 0){ inp.value = prev; say("headMsg", "err", "A count cannot be negative."); return; }
+  say("headMsg", "", "Saving…");
+  const { error } = await sb.rpc("po_receipt_work_save", {
+    p_receipt_id: receiptId, p_po_line_id: inp.dataset.line,
+    p_qty_ea: val, p_count_method: "manual"
+  });
+  /* ⚠️ The refusal sentence is already written for a person — show it whole and put
+     the old number back, because nothing was saved. */
+  if(error){ inp.value = prev; say("headMsg", "err", error.message); return; }
+  inp.dataset.prev = String(val);
+  say("headMsg", "on", "Saved");
+  reload();
+}
+
+/* ── ② Put away ────────────────────────────────────────
+   Only lines that were actually counted appear here — there is nothing to carry for
+   a line nobody found. Each work row is one bin. The row without a bin is the part
+   of the line still standing on the floor. */
+function putawayTable(lines, ed){
+  const counted = lines.filter(l => Number(l.counted) > 0);
+  if(!counted.length) return '<div class="msg">Nothing counted yet — count first.</div>';
+
+  return `<table><thead><tr>
+      <th class="num">#</th><th>Item</th><th class="num">Counted</th><th>Rows</th><th class="num">Placed</th>
+    </tr></thead><tbody>${counted.map(l => {
+      const lb = lastBins[l.product_id];
+      return `<tr>
+      <td class="num dim">${esc(l.line_no)}</td>
+      <td><span class="mono">${esc(l.sku || "")}</span>
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
+        ${lb ? `<div class="lastbin">Last time: <b>${esc(lb.bin)}</b>
+                 <span class="dim">· ${esc(lb.received_on)}</span></div>` : ""}</td>
+      <td class="num">${qty(l.counted)}</td>
+      <td>${(l.work || []).map(w => `<div class="wrow">
+            <span class="mono">${qty(w.qty_ea)}</span>
+            <button class="binbtn ${w.bin_id ? "" : "none"}" data-bin="${w.work_id}"
+              data-binid="${w.bin_id || ""}">${w.bin_id ? esc(w.bin) : "choose a bin"}</button>
+            ${w.bin_id
+              ? `<span class="dim" style="font-size:11.5px">${w.putaway_done ? "placed" : "not placed"}${
+                   w.putaway_by_name ? ` · ${esc(w.putaway_by_name)}` : ""}</span>`
+              : (lb && ed
+                  ? `<button class="pobtn" data-last="${w.work_id}" data-lastbin="${lb.bin_id}"
+                       >Use ${esc(lb.bin)}</button>` : "")}
+            ${ed && Number(w.qty_ea) > 1
+              ? `<button class="pobtn" data-split="${w.work_id}" data-max="${w.qty_ea}">Split</button>` : ""}
+            ${ed && w.bin_id
+              ? `<button class="xbtn" data-undo="${w.work_id}" title="Take it back out of the bin">↩</button>` : ""}
+          </div>`).join("") || '<span class="dim">—</span>'}</td>
+      <td class="num">${qty(l.placed)}</td>
+    </tr>`; }).join("")}</tbody></table>
+    <div class="invsub">One row is one bin. To spread a line over two bins, split it — the total never
+      changes, part of it moves to a second row. Sending a part to a bin that already holds this line
+      merges the two rows back into one.</div>`;
+}
+
+function wirePutaway(h, ed){
+  document.querySelectorAll("[data-bin]").forEach(b => {
+    b.onclick = () => { if(ed) openBinPicker(h, b.dataset.bin); };
+  });
+  if(!ed) return;
+  document.querySelectorAll("[data-last]").forEach(b => {
+    b.onclick = () => putaway(b.dataset.last, b.dataset.lastbin);
+  });
+  document.querySelectorAll("[data-split]").forEach(b => {
+    b.onclick = () => openSplit(h, b.dataset.split, Number(b.dataset.max));
+  });
+  document.querySelectorAll("[data-undo]").forEach(b => {
+    b.onclick = () => putaway(b.dataset.undo, null, false);
+  });
+}
+
+async function putaway(workId, binId, done){
+  say("headMsg", "", "Saving…");
+  const args = { p_work_id: workId, p_done: (done === false ? false : true) };
+  /* ⚠️ Taking a row back out keeps its bin — only the "placed" flag drops. The RPC
+     needs a bin either way, so send the one the row already has. */
+  args.p_bin_id = binId || currentBinOf(workId);
+  if(!args.p_bin_id){ say("headMsg", "err", "Pick a bin first."); return; }
+  const { error } = await sb.rpc("po_receipt_work_putaway", args);
+  if(error){ say("headMsg", "err", error.message); return; }
+  modalClose();
+  say("headMsg", "on", "Saved");
+  reload();
+}
+
+/* The row's own bin, read off the button that drew it — the detail is the only
+   source, and it was just rendered from the database. */
+function currentBinOf(workId){
+  const b = document.querySelector(`[data-bin="${workId}"]`);
+  return (b && b.dataset.binid) || null;
+}
+
+/* ── Bin picker ────────────────────────────────────────
+   ⚠️ A warehouse holds well over a thousand bins, which is past the row cap, so the
+   list is always a search: the first 300 by name, then whatever the typing matches.
+   A scanner types the whole bin name and presses Enter, and that is the fast path. */
+function openBinPicker(h, workId){
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Choose a bin</h3>
+    <div class="frow"><input id="binq" placeholder="Scan or type a bin — ${esc(h.warehouse_name || "")}" autofocus></div>
+    <div class="binlist" id="binlist"><div class="msg">Loading…</div></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button></div>`);
+
+  const draw = async (term) => {
+    let qy = sb.from("ref_bin").select("id,name,zone")
+      .eq("warehouse_id", h.warehouse_id).eq("is_active", true);
+    if(term) qy = qy.ilike("name", `%${term}%`);
+    const { data, error } = await qy.order("name").limit(300);
+    const box = document.getElementById("binlist");
+    if(!box) return;
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    if(!data.length){ box.innerHTML = '<div class="msg">No bin matches.</div>'; return; }
+    box.innerHTML = data.map(b => `<div class="prow" data-pick="${b.id}">
+        <span class="mono">${esc(b.name)}</span>
+        ${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}
+      </div>`).join("") +
+      (data.length === 300 ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "");
+    box.querySelectorAll("[data-pick]").forEach(el => {
+      el.onclick = () => putaway(workId, el.dataset.pick);
+    });
+  };
+
+  const inp = document.getElementById("binq");
+  imsQ("#binq", v => draw(v.trim()));
+  /* A scan ends with Enter. If exactly one bin matches what was typed, take it. */
+  inp.onkeydown = async (e) => {
+    if(e.key !== "Enter") return;
+    const term = inp.value.trim();
+    if(!term) return;
+    const { data } = await sb.from("ref_bin").select("id,name")
+      .eq("warehouse_id", h.warehouse_id).eq("is_active", true)
+      .ilike("name", term).limit(2);
+    if(data && data.length === 1) putaway(workId, data[0].id);
+  };
+  draw("");
+}
+
+/* ── Split ─────────────────────────────────────────────
+   ⚠️ The bin is asked for here, not afterwards. A row with no bin is the line's
+   leftover and there is only ever one of those — splitting without a bin would
+   make a second one. */
+function openSplit(h, workId, max){
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Split this row</h3>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+      Move part of the ${esc(max)} to another bin. The rest stays where it is — the line total does not change.</div>
+    <div class="frow"><label>Quantity to move</label>
+      <input id="spq" type="number" step="any" min="1" max="${esc(max - 1)}" value="1"></div>
+    <div class="frow"><label>Bin</label><input id="spb" placeholder="Scan or type a bin"></div>
+    <div id="spHits" class="binlist" hidden></div>
+    <div id="spMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="spGo">Split</button></div>`);
+
+  let picked = null;
+  const hits = document.getElementById("spHits");
+  imsQ("#spb", async v => {
+    const term = v.trim(); picked = null;
+    if(!term){ hits.hidden = true; return; }
+    const { data } = await sb.from("ref_bin").select("id,name,zone")
+      .eq("warehouse_id", h.warehouse_id).eq("is_active", true)
+      .ilike("name", `%${term}%`).order("name").limit(50);
+    if(!data || !data.length){ hits.hidden = true; return; }
+    hits.hidden = false;
+    hits.innerHTML = data.map(b => `<div class="prow" data-pick="${b.id}" data-name="${esc(b.name)}">
+        <span class="mono">${esc(b.name)}</span>
+        ${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}
+      </div>`).join("");
+    hits.querySelectorAll("[data-pick]").forEach(el => {
+      el.onclick = () => {
+        picked = el.dataset.pick;
+        document.getElementById("spb").value = el.dataset.name;
+        hits.hidden = true;
+      };
+    });
+  });
+
+  document.getElementById("spGo").onclick = async () => {
+    const n = Number(document.getElementById("spq").value);
+    if(!isFinite(n) || n <= 0){ say("spMsg", "err", "Enter how many to move."); return; }
+    if(!picked){ say("spMsg", "err", "Pick a bin from the list."); return; }
+    say("spMsg", "", "Saving…");
+    const { error } = await sb.rpc("po_receipt_work_split",
+      { p_work_id: workId, p_qty_ea: n, p_bin_id: picked });
+    if(error){ say("spMsg", "err", error.message); return; }
+    modalClose(); reload();
+  };
+}
+
+/* ── Delete ────────────────────────────────────────────
+   Only a receipt that was never confirmed can go. The RPC is the one that decides —
+   this only asks. */
+async function deleteRcv(h){
+  if(!confirm(`Delete receipt ${h.receipt_number}?\n\nEverything counted on it goes with it. The purchase order is untouched.`)) return;
+  const { error } = await sb.rpc("po_receipt_delete", { p_receipt_id: h.id });
+  if(error){ docErr(error); return; }
+  showWide();
+}
+
+/* ── New receipt ───────────────────────────────────────
+   A receipt opens against one confirmed order. If that order already has one open,
+   the RPC refuses and names it — that sentence is the whole answer, so it is shown
+   as it comes. */
+async function openCreate(preselectPoId){
+  modalOpen(`
+    <h3 style="margin:0 0 10px">New receipt</h3>
+    <div class="frow"><label>Purchase order</label>
+      <input id="npq" placeholder="PO number or supplier" autofocus></div>
+    <div id="npHits" class="binlist"><div class="msg">Type to find a confirmed order.</div></div>
+    <div class="frow" style="margin-top:10px"><label>Received on</label>
+      <input id="npd" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    <div id="npMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="npGo">Start receiving</button></div>`);
+
+  let picked = preselectPoId || null;
+  const hits = document.getElementById("npHits");
+
+  const draw = async (term) => {
+    let qy = sb.from("po_list").select("id,po_number,supplier_name,status").eq("status", "confirmed");
+    if(term) qy = qy.or(`po_number.ilike.%${term}%,supplier_name.ilike.%${term}%`);
+    const { data, error } = await qy.order("po_number", { ascending:false }).limit(50);
+    if(error){ hits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    if(!data.length){ hits.innerHTML = '<div class="msg">No confirmed order matches.</div>'; return; }
+    hits.innerHTML = data.map(p => `<div class="prow ${p.id === picked ? "on" : ""}"
+        data-pick="${p.id}" data-name="${esc(p.po_number)}">
+        <span class="mono">${esc(p.po_number)}</span>
+        <span style="margin-left:8px">${esc(p.supplier_name || "")}</span></div>`).join("");
+    hits.querySelectorAll("[data-pick]").forEach(el => {
+      el.onclick = () => {
+        picked = el.dataset.pick;
+        hits.querySelectorAll(".prow").forEach(x => x.classList.remove("on"));
+        el.classList.add("on");
+      };
+    });
+  };
+
+  imsQ("#npq", v => draw(v.trim()));
+  draw("");
+
+  document.getElementById("npGo").onclick = async () => {
+    if(!picked){ say("npMsg", "err", "Pick a purchase order."); return; }
+    say("npMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("po_receipt_create", {
+      p_po_id: picked, p_received_on: document.getElementById("npd").value || null
+    });
+    if(error){ say("npMsg", "err", error.message); return; }
+    modalClose();
+    stage = "count";
+    if((data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+    openRcv(data.id);
+  };
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true, requireScreen:"receiving" }, async (client, meData) => {
+  sb = client; me = meData;
+  canWrite = imsAuth.canWrite("receiving");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = RCV_BUILD;
+
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  if(sup.data) document.getElementById("wsup").innerHTML =
+    '<option value="">All suppliers</option>' +
+    sup.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+
+  const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  if(wh.data) document.getElementById("wwh").innerHTML =
+    '<option value="">All warehouses</option>' +
+    wh.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");
+
+  const refilter = () => { pgW.reset(); loadWide(); };
+  document.getElementById("wsup").onchange  = e => { supFilter = e.target.value; refilter(); };
+  document.getElementById("wwh").onchange   = e => { whFilter  = e.target.value; refilter(); };
+  document.getElementById("wst").onchange   = e => { stFilter  = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom  = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo    = e.target.value; refilter(); };
+  imsQ("#wq", v => { q = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; supFilter = ""; whFilter = ""; dateFrom = ""; dateTo = ""; stFilter = "open";
+    ["wq","wsup","wwh","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wst").value = "open";
+    refilter();
+  };
+
+  /* ⚠️ A read-only person can look at everything and change nothing. The buttons are
+     simply not drawn — the database refuses as well, but being refused after pressing
+     is a worse way to find out. */
+  const nw = document.getElementById("wnew");
+  if(canWrite) nw.onclick = () => openCreate(null); else nw.hidden = true;
+
+  /* ?id=… opens one receipt · ?po_id=… starts a new one with that order already picked,
+     which is how the purchase order screen hands over. */
+  const wantId = imsParam("id");
+  if(wantId){ openRcv(wantId); return; }
+  const wantPo = imsParam("po_id");
+  showWide();
+  if(wantPo && canWrite) openCreate(wantPo);
+});
+</script>
+</body>
+</html>

@@ -274,7 +274,8 @@
     //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 모드의 탭 줄에)]
     //    ⭐ 화면 값은 ims_perm_catalog() 의 넷 — purchasing · master · receiving · staff. 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
     //    ⭐ 탭은 자주 오가는 화면만(구매 넷 · Caleb). 마스터·Staff·Home 은 메뉴에만.
-    //    ⬜ 리시빙이 서면 ["Receiving","receiving.html","receiving","wms",true] 를 더한다 — 그 순간 WMS 모드가 탭 줄에 나타난다.
+    //    ✅ [2026-09-18] Receiving 이 섰다 — PO 문서의 한 갈래(인보이스·비용·결제와 같은 층)라 모드는 'ims' · 구매 넷 뒤(Caleb). 카탈로그 receiving.room 도 'ims'(마이그레이션 같은 날).
+    //    ⬜ WMS 모드의 창고 작업 화면은 나중에 ["…","…","receiving","wms",true] 로 따로 선다 — 그 순간 WMS 모드가 탭 줄에 나타난다(같은 표 · 화면은 둘).
     const items=[
       ["Settings","settings.html","master","ims",false],
       ["Suppliers","suppliers.html","master","ims",false],
@@ -285,6 +286,7 @@
       ["Invoices","invoices.html","purchasing","ims",true],
       ["Charges","charges.html","purchasing","ims",true],
       ["Payments","payments.html","purchasing","ims",true],
+      ["Receiving","receiving.html","receiving","ims",true],
       ["Staff","staff.html","staff","ims",false],
       ["Home","index.html",null,null,false],
     ];
