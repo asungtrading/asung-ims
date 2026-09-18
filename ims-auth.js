@@ -12,15 +12,26 @@
      ③ 활성 판정       data.active → data.is_active  ⚠️ 안 고치면 undefined 라 비활성 계정이 통과한다
      ④ perms 기본값    WMS 는 없으면 ["split","admin","staff"] → IMS 는 [] (권한을 기본으로 주지 않는다)
 
+   ⭐ 판정은 DB 한 곳 — ims_access() (2026-09-17 · 리시빙 ③ 차수 · 마이그레이션 20260917230000)
+     로그인 뒤 RPC 한 번: { role, name, modes:['wms','ims'…], screens:{purchasing|master|receiving|staff: 'write'|'read'|null}, warehouses: null(전부)|[uuid…] }
+     · 화면은 role·perms 를 직접 가르지 않는다(role 이 넷이 됐다 — 예전 코드는 'manager' 만 알았다).
+     · 메뉴·탭 노출 = screens[값] 이 null 이 아니면 보인다('read' 도 보인다 — 읽기 전용으로 들어간다).
+     · RPC 가 실패하거나 null 이면 로그인을 막는다 — 조용히 전부 열지 않는다.
+     · 화면이 쓰는 법: me.access (콜백의 me 에 실려 온다) 또는 imsAuth.access · imsAuth.canWrite('purchasing') · imsAuth.canView('master')
+       ⚠️ me 의 기존 칸(role·perms·name …)은 그대로다 — 화면들의 me.role === 'admin' 은 깨지지 않는다.
+     · 모드(IMS · WMS)는 탭 줄 왼쪽에 선다 — 아래 setupTabs 주석.
+
    쓰는 법 (각 화면 스크립트 맨 위에서):
-     imsAuth.start({ requireManager:false }, (sb, me) => { ... });
+     imsAuth.start({ changePw:true }, (sb, me) => { ... });
+     선택: { requireScreen:'purchasing' } — 그 화면 값이 null 인 사람은 들어오지 못한다(문장 후 signOut).
+           { requireManager:true } — worker 는 들어오지 못한다(manager·supervisor·admin 통과). ⚠️ 2026-09-17 현재 어느 화면도 두 옵션을 쓰지 않는다(grep 0).
    - 세션은 Supabase 가 브라우저에 유지한다 → 한 번 로그인하면 계속 유지.
    - 로그아웃: imsAuth.signOut()
    - "Change Password" 버튼은 {changePw:true} 를 준 화면에만 붙는다.
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  let sb=null, me=null, onReady=null, opts={};
+  let sb=null, me=null, access=null, onReady=null, opts={};
 
   function injectStyles(){
     if(document.getElementById("imsAuthStyle")) return;
@@ -180,18 +191,29 @@
     if(error){ loginErr("Staff lookup failed: "+error.message); return false; }
     if(!data){ loginErr("This account is not registered. Please contact your administrator."); await sb.auth.signOut(); return false; }
     if(data.is_active===false){ loginErr("This account is inactive."); await sb.auth.signOut(); return false; }
-    if(opts.requireManager && !(data.role==="manager"||data.role==="admin")){
+
+    // ⭐ 판정은 DB 한 곳 — ims_access() (security definer · 호출자 = auth.uid()). 화면은 role/perms 를 직접 가르지 않는다.
+    //    실패(네트워크·RPC 오류) = 로그인 막음 · signOut 은 안 한다(새로고침으로 다시 시도) — 조용히 전부 열지 않는다.
+    //    null = 행 없음·비활성(위에서 이미 걸렀으니 여기 오면 DB 와 화면이 어긋난 것) — 막고 signOut.
+    const acc=await sb.rpc("ims_access");
+    if(acc.error){ loginErr("Access check failed: "+acc.error.message+" — reload to try again."); return false; }
+    if(!acc.data || typeof acc.data!=="object"){ loginErr("Your access could not be determined. Please contact your administrator."); await sb.auth.signOut(); return false; }
+    access=acc.data;
+    access.modes=Array.isArray(access.modes)?access.modes:[];
+    access.screens=(access.screens&&typeof access.screens==="object")?access.screens:{};
+
+    if(opts.requireManager && !["manager","supervisor","admin"].includes(data.role)){
       loginErr("This screen is for managers and admins only."); await sb.auth.signOut(); return false;
     }
-    // per-screen permission for managers (admin always passes): "split" | "admin" | "staff"
-    if(opts.requirePerm && data.role==="manager"){
-      const perms=Array.isArray(data.perms)?data.perms:[];   // ⚠️ IMS 는 기본 권한을 주지 않는다
-      if(!perms.includes(opts.requirePerm)){
-        loginErr("You don't have access to this screen. Please contact your administrator.");
-        await sb.auth.signOut(); return false;
-      }
+    // 화면 값 게이트 — requireScreen:'purchasing' 등(옛 이름 requirePerm 도 같은 뜻으로 받는다 · 값 어휘는 새 것: purchasing · master · receiving · staff)
+    const need=opts.requireScreen||opts.requirePerm;
+    if(need && !access.screens[need]){
+      loginErr("You don't have access to this screen. Please contact your administrator.");
+      await sb.auth.signOut(); return false;
     }
-    me=data; return true;
+    me=data;
+    me.access=access;      // 화면이 me.access.screens.purchasing === 'read' · me.access.warehouses 로 묻는다 (기존 칸은 그대로)
+    return true;
   }
 
 
@@ -199,22 +221,46 @@
      in-flight requests (spinners hang forever). Force a clean reload on restore. ---- */
   window.addEventListener("pageshow", function(e){ if(e.persisted) location.reload(); });
 
-  /* ---- 구매 문서 탭 줄 (헤더 바로 아래 · 2026-09-17 Caleb 「PO 와 관련된 메뉴를 한 곳에 · 탭으로」) ----
-     탭은 메뉴를 대신하지 않는다 — 자주 오가는 넷(po · invoices · charges · payments)을 한 번에 건너뛰는 길이다.
-     목록은 setupNavMenu 의 items(넷째 칸 'purchase')에서 나오고, 권한도 그 vis(메뉴와 같은 규칙)를 그대로 쓴다.
-     그냥 링크다(화면이 통째로 다시 뜬다). 지금 화면의 탭은 .cur 로 눌리지 않는다(.ims-nav a.cur 선례).
-     ⚠️ 넷에 속하지 않는 화면(Settings 등)에서는 줄을 그리지 않는다 · <header> 가 없으면 조용히 아무것도 안 한다.
-     모양은 ims-ui.css 「구매 문서 탭」 구역(.ims-tabs). 줄 높이는 --ims-tabs-h 로 :root 에 적어 둔다 — po.html 의 .list .rows max-height 가 빼 쓸 수 있게(대화 Claude 몫 · 화면 파일). */
-  function setupPurchaseTabs(vis, here){
-    const tabs=vis.filter(it=>it[3]==="purchase");
-    if(!tabs.some(it=>it[1].toLowerCase()===here)) return;            // 이 화면이 묶음에 없다 — 줄 없음
+  /* ---- 탭 줄 = 모드 + 그 모드의 탭 (헤더 바로 아래 한 줄 · 2026-09-17) ----
+     ⭐ [Caleb] 탭 줄 왼쪽 끝에 모드(IMS · WMS) · 구분선 · 그 뒤에 그 모드의 화면 탭 — 줄이 늘지 않고 「지금 어디 있나」가 한 줄에 보인다.
+        (기각: 헤더 안에 작게 · 헤더와 탭 사이 한 줄 더)
+     · 모드 부분은 **고를 것이 있을 때만** 그린다 — 들어갈 수 있고(access.modes) 보이는 화면이 하나라도 있는 모드가 둘 이상일 때.
+       화면이 없는 모드는 안 그린다(WMS 는 리시빙 화면이 서기 전까지 안 보인다) · 모드가 하나뿐인 사람(창고 직원)에게도 안 그린다.
+     · 모드를 누르면 그 모드의 **첫 보이는 화면**으로 간다(마지막 화면 기억 없음 — 저장할 곳이 필요해진다).
+     · 탭은 메뉴를 대신하지 않는다 — 자주 오가는 화면(items 다섯째 칸 true · 지금은 구매 넷)만 선다. 마스터는 어쩌다 열어 메뉴에만.
+     · 탭은 지금 화면의 모드에 속한 것만 · 지금 화면은 .cur 로 눌리지 않는다(.ims-nav a.cur 선례). 그냥 링크다(화면이 통째로 다시 뜬다).
+     ⚠️ 줄을 그리는 조건: 모드 부분이 있거나, 지금 화면이 탭 묶음에 있을 때. 둘 다 아니면(Settings 등 · 모드 하나) 종전처럼 줄 없음.
+     ⚠️ <header> 가 없으면 조용히 아무것도 안 한다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs · .mode · .sep).
+     ⚠️ --ims-tabs-h 는 그대로 :root 에 적는다 — po.html 의 .list .rows max-height 가 빼 쓴다. */
+  function setupTabs(items, vis, here){
     const header=document.querySelector("header");
     if(!header || document.getElementById("imsTabs")) return;
-    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Purchase documents");
-    nav.innerHTML=tabs.map(it=>{
-      const cur=it[1].toLowerCase()===here;
-      return `<a href="${it[1]}" class="${cur?"cur":""}"${cur?' aria-current="page"':""}>${it[0]}</a>`;
-    }).join("");
+    const cur=vis.find(it=>it[1].toLowerCase()===here)||items.find(it=>it[1].toLowerCase()===here);
+    const curMode=cur?cur[3]:null;
+    // 모드 후보 = 들어갈 수 있고 + 보이는 화면이 하나 이상
+    const modeDefs=[["ims","IMS"],["wms","WMS"]];
+    const modes=modeDefs.filter(([m])=>access.modes.includes(m) && vis.some(it=>it[3]===m));
+    const tabs=vis.filter(it=>it[4]===true && it[3]===curMode);
+    const showModes=modes.length>1;
+    const showTabs=!!curMode && tabs.some(it=>it[1].toLowerCase()===here);
+    if(!showModes && !showTabs) return;
+    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Mode and screens");
+    let html="";
+    if(showModes){
+      html+=modes.map(([m,label])=>{
+        const first=vis.find(it=>it[3]===m);                 // 그 모드의 첫 보이는 화면
+        const on=(m===curMode);
+        return `<a href="${first[1]}" class="mode ${on?"cur":""}"${on?' aria-current="true"':""} title="Switch to ${label}">${label}</a>`;
+      }).join("");
+      if(showTabs) html+='<span class="sep" aria-hidden="true"></span>';
+    }
+    if(showTabs){
+      html+=tabs.map(it=>{
+        const on=it[1].toLowerCase()===here;
+        return `<a href="${it[1]}" class="${on?"cur":""}"${on?' aria-current="page"':""}>${it[0]}</a>`;
+      }).join("");
+    }
+    nav.innerHTML=html;
     header.insertAdjacentElement("afterend", nav);
     document.documentElement.style.setProperty("--ims-tabs-h", nav.offsetHeight+"px");
   }
@@ -225,24 +271,26 @@
     if(!btn || btn._imsNav) return;
     btn._imsNav=true;
     // ⬜ IMS 화면이 늘면 여기에 더한다 — 메뉴와 탭이 **이 배열 하나**에서 나온다(2026-09-17).
-    //    [이름, 주소, requirePerm(null 이면 로그인만으로 보인다), 탭 그룹(선택 · 'purchase' 면 헤더 아래 구매 탭 줄에 선다)]
-    //    ⭐ 구매 문서 넷만 'purchase' — 하루에도 여러 번 오가는 화면만 묶는다(Caleb). 마스터·Staff·Home 은 묶지 않는다. 입고가 서면 그 줄에 'purchase' 를 더한다
+    //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 모드의 탭 줄에)]
+    //    ⭐ 화면 값은 ims_perm_catalog() 의 넷 — purchasing · master · receiving · staff. 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
+    //    ⭐ 탭은 자주 오가는 화면만(구매 넷 · Caleb). 마스터·Staff·Home 은 메뉴에만.
+    //    ⬜ 리시빙이 서면 ["Receiving","receiving.html","receiving","wms",true] 를 더한다 — 그 순간 WMS 모드가 탭 줄에 나타난다.
     const items=[
-      ["Settings","settings.html",null],
-      ["Suppliers","suppliers.html",null],
-      ["Products","products.html",null],
-      ["Families","families.html",null],
-      ["Supplier Products","supplier-products.html",null],
-      ["Purchase Orders","po.html",null,"purchase"],
-      ["Invoices","invoices.html",null,"purchase"],
-      ["Charges","charges.html",null,"purchase"],
-      ["Payments","payments.html",null,"purchase"],
-      ["Staff","staff.html",null],
-      ["Home","index.html",null],
+      ["Settings","settings.html","master","ims",false],
+      ["Suppliers","suppliers.html","master","ims",false],
+      ["Products","products.html","master","ims",false],
+      ["Families","families.html","master","ims",false],
+      ["Supplier Products","supplier-products.html","master","ims",false],
+      ["Purchase Orders","po.html","purchasing","ims",true],
+      ["Invoices","invoices.html","purchasing","ims",true],
+      ["Charges","charges.html","purchasing","ims",true],
+      ["Payments","payments.html","purchasing","ims",true],
+      ["Staff","staff.html","staff","ims",false],
+      ["Home","index.html",null,null,false],
     ];
-    const isAdmin=meData.role==="admin", isMgr=meData.role==="manager";
-    const perms=Array.isArray(meData.perms)?meData.perms:[];
-    const vis=items.filter(it=>!it[2] || isAdmin || (isMgr&&perms.includes(it[2])));
+    // ⭐ 판정은 ims_access() 가 했다 — 여기서는 그 결과만 읽는다(role·perms 를 다시 가르지 않는다)
+    const scr=(access&&access.screens)||{};
+    const vis=items.filter(it=>!it[2] || !!scr[it[2]]);
     if(!document.getElementById("imsNavCss")){
       const st=document.createElement("style"); st.id="imsNavCss";
       st.textContent='.ims-nav{position:absolute;z-index:2000;background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px;min-width:180px;display:none}'
@@ -253,7 +301,7 @@
     }
     // 현재 화면 = 경로의 마지막 조각(소문자) · 「/」로 끝나면 index.html · 쿼리(?id=)·해시는 pathname 에 없다
     const here=(location.pathname.split("/").pop()||"index.html").toLowerCase();
-    setupPurchaseTabs(vis, here);
+    try{ setupTabs(items, vis, here); }catch(e){ console.warn("tabs failed", e); }   // 탭 줄이 죽어도 메뉴는 산다
     const dd=document.createElement("div"); dd.className="ims-nav";
     dd.innerHTML=vis.map(it=>`<a href="${it[1]}" class="${it[1]===here?"cur":""}">${it[0]}</a>`).join("");
     document.body.appendChild(dd);
@@ -309,6 +357,11 @@
     sessionId,          // 이 화면(탭)의 세션 UUID — 위 주석(상태 vs 정체)
     get me(){ return me; },
     get sb(){ return sb; },
+    // ⭐ 권한 — ims_access() 의 결과(로그인 뒤 한 번). 화면이 「쓸 수 있나 · 읽기 전용인가 · 창고 경계」를 여기서 묻는다.
+    //    access.screens.purchasing === 'read' → 읽기 전용(입력칸 잠금은 화면 몫 · 다음 차수) · access.warehouses === null → 창고 전부
+    get access(){ return access; },
+    canView(screen){ return !!(access&&access.screens&&access.screens[screen]); },
+    canWrite(screen){ return !!(access&&access.screens&&access.screens[screen]==="write"); },
   };
   window.imsAuth=imsAuth;
 })();

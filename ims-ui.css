@@ -208,7 +208,7 @@ tbody tr:hover{background:#fafbfd}
 [hidden]{display:none !important}
 
 /* ═══════════════════════════════════════════════════════════════
-   구매 문서 탭 — 헤더 바로 아래 한 줄 (2026-09-17 · ims-auth.js setupPurchaseTabs 가 그린다 · 마크업은 화면에 없다)
+   탭 줄 — 모드(IMS·WMS) + 그 모드의 탭 · 헤더 바로 아래 한 줄 (2026-09-17 · ims-auth.js setupTabs 가 그린다(전 setupPurchaseTabs) · 마크업은 화면에 없다)
    [Caleb] 「payments·charges·invoices 로 넘어가면 PO 로 돌아갈 길이 메뉴 클릭뿐이라 불편하다 — 탭으로」
    ⚠️ sticky 가 아니다 — 헤더(sticky · top:0)만 남고 이 줄은 함께 스크롤된다. 그래서 .list 의 top:70px 은 그대로 맞는다.
       다만 스크롤 0 에서 내용이 이 줄 높이(--ims-tabs-h · JS 가 잰다)만큼 내려온다 — po.html .list .rows 의 max-height 가 그 값을 빼 쓰면 맞는다(화면 파일 · 대화 Claude).
@@ -220,3 +220,10 @@ tbody tr:hover{background:#fafbfd}
 }
 .ims-tabs a:hover{color:var(--ink);background:#fafbfd}
 .ims-tabs a.cur{color:#3b5bdb;border-bottom-color:#3b5bdb;pointer-events:none}
+/* 모드(IMS · WMS) — 줄 왼쪽 끝 · 구분선 뒤에 그 모드의 탭 (2026-09-17 · ims-auth.js setupTabs). 고를 것이 있을 때만 그려진다 — 지금은 WMS 화면이 없어 아무에게도 안 보인다 */
+.ims-tabs a.mode{
+  font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  padding:9px 10px;color:var(--muted);border-bottom-color:transparent;
+}
+.ims-tabs a.mode.cur{color:var(--ink);background:#f2f4f8;border-bottom-color:var(--ink);pointer-events:auto}
+.ims-tabs .sep{width:1px;background:var(--line);margin:8px 8px}
