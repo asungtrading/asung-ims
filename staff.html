@@ -91,7 +91,7 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-let sb=null, me=null, isAdmin=false;
+let sb=null, me=null, isAdmin=false, canEditStaff=false;
 let all=[], q="", curId=null, mode="view";   // mode: view | add
 
 const setVal = (id, v) => { const el=document.getElementById(id); if(el) el.value = (v==null ? "" : v); };
@@ -146,8 +146,13 @@ function renderDetail(){
     <tr><td>Email</td><td><span class="mono">${esc(s.email)}</span><div class="hint">Login email — shown only. It is not the key (auth_user_id is).</div></td></tr>
     <tr><td>Auth user id</td><td><span class="mono">${esc(s.auth_user_id)}</span></td></tr>`;
 
+  /* ⚠️ Below your own rank only — and your own row is not below you, so nobody edits
+     themselves except an admin. Drawing a form that cannot save would be worse than not
+     drawing it: the save silently affects no rows. */
+  const canEditThis = isAdmin || (canEditStaff && !isSelf && RANKS.indexOf(s.role) < RANKS.indexOf(me.role));
+
   let body;
-  if(isAdmin){
+  if(canEditThis){
     // ⚠️ 자기 행: role·is_active 잠금 — 스스로 잠기는 것을 막는다
     const lock = isSelf ? 'disabled' : '';
     body = `
@@ -182,7 +187,11 @@ function renderDetail(){
         <tr><td>Access</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span></td></tr>
         <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
       </tbody></table>
-      <div class="actions"><span class="st">Read only — only an admin can edit staff.</span></div>`;
+      <div class="actions"><span class="st">${
+        !canEditStaff ? "Read only — you need the 'staff' permission to change people."
+        : isSelf       ? "Read only — you cannot edit your own record. Ask someone above you."
+                       : "Read only — this person is at or above your own rank."
+      }</span></div>`;
   }
 
   box.innerHTML = `
@@ -194,7 +203,7 @@ function renderDetail(){
       ${body}
     </div>`;
 
-  if(isAdmin){
+  if(canEditThis){
     // 값은 DOM 으로 — 이름에 " 가 있어도 속성이 깨지지 않는다
     fillRoles("fRole", s.role);
     fillRoleHints(s.role);
@@ -233,9 +242,11 @@ const RANK_TEXT = {
 function fillRoleHints(extra){
   let list = pickableRoles();
   if(extra && !list.includes(extra)) list = list.concat([extra]);
-  const txt = list.map(r => `${r} = ${RANK_TEXT[r] || ""}`).join(" · ");
+  // ⚠️ One line per rank — four of them side by side ran off the edge of the card.
+  const rows = list.map(r =>
+    `<div><span class="mono">${esc(r)}</span> — ${esc(RANK_TEXT[r] || "")}</div>`).join("");
   document.querySelectorAll("[data-rolehint]").forEach(el => {
-    el.textContent = txt + (txt ? " · " : "") + "You can only create and edit people below your own rank.";
+    el.innerHTML = rows + "<div>You can only create and edit people below your own rank.</div>";
   });
 }
 
@@ -435,9 +446,13 @@ async function createStaff(){
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
+  /* ⭐ Managing people is no longer admin's alone — it is the 'staff' permission (2026-09-17).
+     ⚠️ What actually decides is the database: you can only touch someone below your own rank,
+        and that includes yourself. This only decides whether the form is drawn at all. */
+  canEditStaff = imsAuth.canWrite("staff");
   imsHeader(me);   // 이름·역할 + Sign Out
 
-  if(isAdmin){
+  if(canEditStaff && pickableRoles().length){
     const b = document.getElementById("addBtn"); b.hidden = false;
     b.onclick = () => { mode="add"; renderList(); renderDetail(); };
   }
