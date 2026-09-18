@@ -862,6 +862,14 @@ async function loadDetail(id){
   // A supplier document is raised from the PO it belongs to; the rest is done on the invoice screen.
   if(h.status !== "cancelled" && (data.lines || []).length)
     acts.push('<button class="pobtn" data-act="invoice">Create an invoice</button>');
+  /* ⭐ Goods arrive against a confirmed order, so this is only offered once the quantities
+     are settled — po_receipt_create refuses a draft anyway, and a button that always
+     refuses is worse than no button. It opens the receiving screen with this order
+     already picked; the counting itself belongs over there.
+     ⚠️ A closed order has nothing left to receive, and its remainder, if any, carries on
+        as its own document — which is the one to receive against. */
+  if(h.status === "confirmed")
+    acts.push('<button class="pobtn" data-act="receive">Receive</button>');
   /* ⭐ A charge is billed by someone else entirely — the customs agency, the broker — and
      usually lands on several orders at once, so it is built on the charge screen. This is
      only a shortcut that opens it with this order already picked. */
@@ -1124,6 +1132,7 @@ async function loadDetail(id){
       if(b.dataset.act === "wide")    showWide();
       if(b.dataset.act === "adddisc") openAddDiscount(h.id);
       if(b.dataset.act === "invoice") openCreateInvoice(h);
+      if(b.dataset.act === "receive") window.location.href = "receiving.html?po_id=" + encodeURIComponent(h.id);
       if(b.dataset.act === "charge")  window.location.href = "charges.html?po_id=" + encodeURIComponent(h.id);
       if(b.dataset.act === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.po_number);
       if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
