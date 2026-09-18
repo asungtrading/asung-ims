@@ -144,6 +144,16 @@ function diffCell(counted, ordered){
   return '<span class="on">✓</span>';
 }
 
+/* ⚠️ The RPC hands back warning codes, not sentences — a code on the screen tells the
+   person nothing. Anything not listed is shown as it came rather than swallowed. */
+const WARN = {
+  nothing_counted: "Nothing has been counted yet.",
+  unassigned_rows: "Some of what was counted has no bin yet — put it away before confirming.",
+  over_counted:    "More was counted than the order asks for. The extra will not enter stock on its own.",
+  short_counted:   "Less was counted than the order asks for. The rest stays on the order."
+};
+const warnText = (w) => WARN[w] || w;
+
 function modalOpen(html){
   document.getElementById("modalBox").innerHTML = html;
   document.getElementById("modal").hidden = false;
@@ -296,7 +306,7 @@ async function loadDetail(id){
           ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"]
       ])}</div></div>
       ${(data.warnings || []).length
-        ? `<div class="invsub">⚠ ${(data.warnings || []).map(w => esc(w)).join(" · ")}</div>` : ""}
+        ? `<div class="invsub">${(data.warnings || []).map(w => "⚠ " + esc(warnText(w))).join(" · ")}</div>` : ""}
     </div>
 
     <div class="card">
@@ -397,18 +407,18 @@ function putawayTable(lines, ed){
       <td class="num">${qty(l.counted)}</td>
       <td>${(l.work || []).map(w => `<div class="wrow">
             <span class="mono">${qty(w.qty_ea)}</span>
-            <button class="binbtn ${w.bin_id ? "" : "none"}" data-bin="${w.work_id}"
+            <button class="binbtn ${w.bin_id ? "" : "none"}" data-bin="${w.id}"
               data-binid="${w.bin_id || ""}">${w.bin_id ? esc(w.bin) : "choose a bin"}</button>
             ${w.bin_id
               ? `<span class="dim" style="font-size:11.5px">${w.putaway_done ? "placed" : "not placed"}${
                    w.putaway_by_name ? ` · ${esc(w.putaway_by_name)}` : ""}</span>`
               : (lb && ed
-                  ? `<button class="pobtn" data-last="${w.work_id}" data-lastbin="${lb.bin_id}"
+                  ? `<button class="pobtn" data-last="${w.id}" data-lastbin="${lb.bin_id}"
                        >Use ${esc(lb.bin)}</button>` : "")}
             ${ed && Number(w.qty_ea) > 1
-              ? `<button class="pobtn" data-split="${w.work_id}" data-max="${w.qty_ea}">Split</button>` : ""}
+              ? `<button class="pobtn" data-split="${w.id}" data-max="${w.qty_ea}">Split</button>` : ""}
             ${ed && w.bin_id
-              ? `<button class="xbtn" data-undo="${w.work_id}" title="Take it back out of the bin">↩</button>` : ""}
+              ? `<button class="xbtn" data-undo="${w.id}" title="Take it back out of the bin">↩</button>` : ""}
           </div>`).join("") || '<span class="dim">—</span>'}</td>
       <td class="num">${qty(l.placed)}</td>
     </tr>`; }).join("")}</tbody></table>
