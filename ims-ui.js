@@ -8,7 +8,7 @@
      esc / dim / yn / num       값 표시
      imsTs                      timestamptz → 토론토 시각(분까지) · ⚠️ date 칸에는 쓰지 않는다
      imsPage                    1,000행 캡을 넘지 않게 나눠 읽기(정본 §10-j 3-a)
-     imsSaved                   ⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다
+     imsSaved                   ⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다 · ⭐ [2026-09-18] seenAt 을 주면 덮어쓰기를 막고 누가·언제 바꿨는지 돌려준다
      imsQ                       검색창 지연 입력
      imsParam                   화면 사이 이동(?id= · ?sku=)
 */
@@ -85,20 +85,70 @@
     return st;
   }
 
-  /* ── 저장 확인 ─────────────────────────────────
+  /* ── 저장 확인 · 덮어쓰기 알림 ─────────────────────
      ⚠️⚠️ PostgREST update 가 RLS 에 막히면 에러가 아니라 **0행**이다.
         .select() 로 되읽어 0행이면 저장되지 않은 것이다(§10-j 3-f · staff.html 이 선례).
+     ⭐ [2026-09-18 · 동시 편집 1차] 둘째 인자 seenAt(읽었을 때의 updated_at)을 주면
+        · 빌더 뒤에 .eq("updated_at", seenAt) 을 붙여 「내가 읽었을 때와 같은가」를 함께 검사하고
+        · 0행이면 같은 행을 되읽어 원인을 가른다 — 남이 지웠다 / 남이 바꿨다(⭐ conflict) / 권한이 없다
+        · 바꿨다면 현재 값(current)과 마지막으로 고친 사람(by · updated_by → ims_staff.name)과 시각(at)을 돌려준다.
+        ⚠️ seenAt 이 없으면 지금과 똑같이 돈다 — 기존 호출 전부 안 깨진다.
      쓰는 법:
-        const r = await imsSaved(sb.from("supplier").update(patch).eq("id", id).select());
-        if (!r.ok) toast(r.reason, true);
+        const r = await imsSaved(sb.from("supplier").update(patch).eq("id", id).select());                 // 지금 그대로
+        const r = await imsSaved(sb.from("po_invoice").update(patch).eq("id", id).select(), h.updated_at); // ⭐ 읽었을 때의 updated_at 을 그대로 넘긴다
+        if (!r.ok) { toast(r.reason, true); if (r.conflict) { … } }   // conflict 면 r.current 로 화면을 갈아 끼우고 r.by · r.at 을 보여 준다 · 사람이 다시 저장한다
+     ⚠️ seenAt 은 PostgREST 가 돌려준 문자열 **그대로** 넘긴다 — 자르거나 Date 로 바꾸면 늘 거부된다(timestamptz 표현이 흔들린다).
+     ⚠️ 빌더는 .select() 뒤에도 같은 객체다(postgrest-js PostgrestFilterBuilder · select() 가 this 를 돌려준다 · 2.116.0 소스 확인) — 그래서 .eq() 를 뒤에 붙일 수 있다.
+     되읽기는 빌더의 url(표 · id=eq.…)에서 표와 id 를 읽어 window.sb 로 한다 — 셋째 인자 { table, id } 를 주면 그것을 쓴다(빌더 모양이 다른 화면용).
+     반환: { ok, conflict, removed, reason, data, current, by, at }
+        ok:true                       → data(되읽은 행들)
+        ok:false · conflict:false     → reason(권한 없음 또는 에러) · 지금과 같다
+        ok:false · conflict:true      → removed:true 이면 남이 지웠다 · 아니면 current(현재 행 · updated_by_staff 포함) · by(이름 · null 이면 "system") · at(updated_at 원문)
+     ⚠️ 화면 문자열은 전부 영어 · 시각은 imsTs 로 토론토 · 문장은 「… — nothing was saved」로 끝난다(§5 권한 규약 ②의 말투).
   */
-  async function imsSaved(builder) {
+  async function imsSaved(builder, seenAt, ref) {
+    if (seenAt) builder = builder.eq("updated_at", seenAt);
     const { data, error } = await builder;
-    if (error) return { ok: false, reason: error.message, data: null };
-    if (!data || data.length === 0) {
-      return { ok: false, reason: "Not saved — you may not have permission.", data: null };
+    if (error) return { ok: false, conflict: false, reason: error.message, data: null };
+    if (data && data.length) return { ok: true, conflict: false, reason: "", data: data };
+    if (!seenAt) {
+      return { ok: false, conflict: false, reason: "Not saved — you may not have permission.", data: null };
     }
-    return { ok: true, reason: "", data: data };
+    // ── 0행 + seenAt: 되읽어 원인을 가른다 ──
+    let table = ref && ref.table, id = ref && ref.id;
+    try {
+      if ((!table || !id) && builder && builder.url) {
+        const u = builder.url instanceof URL ? builder.url : new URL(String(builder.url));
+        table = table || u.pathname.split("/").filter(Boolean).pop();
+        const idq = u.searchParams.get("id");                    // "eq.<uuid>"
+        id = id || (idq && idq.startsWith("eq.") ? idq.slice(3) : null);
+      }
+    } catch (_) { /* 빌더 모양을 못 읽으면 아래 일반 문장으로 */ }
+    const client = window.sb;
+    if (!table || !id || !client) {
+      return { ok: false, conflict: false,
+               reason: "Not saved — it may have been removed or changed by someone else just now — nothing was saved", data: null };
+    }
+    const cur = await client.from(table)
+      .select("*, updated_by_staff:ims_staff!updated_by(name)")
+      .eq("id", id).maybeSingle();
+    if (cur.error) {
+      return { ok: false, conflict: false,
+               reason: "Not saved — it may have been removed or changed by someone else just now — nothing was saved", data: null };
+    }
+    const row = cur.data;
+    if (!row) {
+      return { ok: false, conflict: true, removed: true, current: null, by: null, at: null,
+               reason: "Not saved — this record was removed by someone else just now — nothing was saved", data: null };
+    }
+    if (String(row.updated_at) !== String(seenAt)) {
+      const by = row.updated_by_staff && row.updated_by_staff.name ? row.updated_by_staff.name : "system";
+      const at = imsTs(row.updated_at);
+      return { ok: false, conflict: true, removed: false, current: row, by: by, at: row.updated_at,
+               reason: "Not saved — " + by + " changed this record at " + at + " after you opened it. Review the current values, then save again — nothing was saved",
+               data: null };
+    }
+    return { ok: false, conflict: false, reason: "Not saved — you may not have permission.", data: null };
   }
 
   /* ── 검색창 ───────────────────────────────────
