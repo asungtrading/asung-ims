@@ -372,7 +372,9 @@ async function loadDetail(id){
     };
   });
   if(ed){
-    box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+    /* ⭐ Overwrite guard (2026-09-18) — carry the updated_at we just read, so a save made
+       from a stale screen is refused instead of quietly winning (§10-j 3-i). */
+    box.querySelectorAll("input[data-head]").forEach(i => { i.dataset.seen = h.updated_at || ""; i.onchange = () => saveHead(h.id, i); });
     box.querySelectorAll("input[data-alloc]").forEach(i => { i.onchange = () => saveAlloc(i); });
     box.querySelectorAll("input[data-anote]").forEach(i => { i.onchange = () => saveAllocNote(i); });
     box.querySelectorAll("[data-adel]").forEach(b => { b.onclick = () => removeAlloc(b.dataset.adel); });
@@ -394,8 +396,15 @@ async function saveHead(id, inp){
     return;
   }
   const patch = {}; patch[field] = inp.value === "" ? null : inp.value;
-  const res = await imsSaved(sb.from("po_charge").update(patch).eq("id", id).select("id"));
-  if(!res.ok){ say("headMsg", "err", res.reason); return; }
+  const res = await imsSaved(sb.from("po_charge").update(patch).eq("id", id).select("id"),
+                             inp.dataset.seen || undefined);
+  if(!res.ok){
+    /* ⭐ Someone else saved after this screen was opened. Pull the current values in first —
+       the message would otherwise sit above figures that are already out of date. */
+    if(res.conflict) await reload();
+    say("headMsg", "err", res.reason);
+    return;
+  }
   if(inp.dataset.prev !== undefined) inp.dataset.prev = inp.value;
   say("headMsg", "on", "Saved");
   reload();
