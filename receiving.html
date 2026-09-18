@@ -219,7 +219,7 @@ async function loadWide(){
   box.innerHTML = `<table><thead><tr>
       <th>Number</th><th>Received</th><th>PO</th><th>Supplier</th><th>Warehouse</th>
       <th class="num">Lines</th><th class="num">Ordered</th><th class="num">Counted</th>
-      <th class="num">Placed</th><th class="num">To place</th><th>Status</th>
+      <th class="num">To place</th><th>Status</th>
     </tr></thead><tbody>${data.map(r => `<tr data-id="${r.id}">
         <td><span class="mono">${esc(r.receipt_number)}</span></td>
         <td>${dim(r.received_on)}</td>
@@ -229,7 +229,6 @@ async function loadWide(){
         <td class="num">${esc(r.counted_lines)} <span class="dim">/ ${esc(r.po_lines)}</span></td>
         <td class="num">${qty(r.ordered_qty)}</td>
         <td class="num">${qty(r.counted_qty)}</td>
-        <td class="num">${qty(r.placed_qty)}</td>
         <td class="num">${Number(r.unassigned_rows) > 0
             ? `<span class="neutral">${qty(Number(r.counted_qty) - Number(r.placed_qty))}</span>`
             : '<span class="dim">0</span>'}</td>
@@ -291,7 +290,6 @@ async function loadDetail(id){
       <div class="gap">
         <div class="g"><b>${qty(t.ordered)}</b><span>Ordered</span></div>
         <div class="g"><b>${qty(t.counted)}</b><span>Counted</span></div>
-        <div class="g"><b>${qty(t.placed)}</b><span>Placed</span></div>
         <div class="g ${toPlace > 0 ? "bad" : "ok"}"><b>${qty(toPlace)}</b><span>To place</span></div>
         <div class="g"><b>${esc(t.counted_lines)} / ${esc(t.lines)}</b><span>Lines counted</span></div>
       </div>
@@ -395,9 +393,10 @@ function putawayTable(lines, ed){
   if(!counted.length) return '<div class="msg">Nothing counted yet — count first.</div>';
 
   return `<table><thead><tr>
-      <th class="num">#</th><th>Item</th><th class="num">Counted</th><th>Rows</th><th class="num">Placed</th>
+      <th class="num">#</th><th>Item</th><th class="num">Counted</th><th>Rows</th><th class="num">To place</th>
     </tr></thead><tbody>${counted.map(l => {
       const lb = lastBins[l.product_id];
+      const left = Number(l.counted || 0) - Number(l.allocated || 0);
       return `<tr>
       <td class="num dim">${esc(l.line_no)}</td>
       <td><span class="mono">${esc(l.sku || "")}</span>
@@ -410,21 +409,22 @@ function putawayTable(lines, ed){
             <button class="binbtn ${w.bin_id ? "" : "none"}" data-bin="${w.id}"
               data-binid="${w.bin_id || ""}">${w.bin_id ? esc(w.bin) : "choose a bin"}</button>
             ${w.bin_id
-              ? `<span class="dim" style="font-size:11.5px">${w.putaway_done ? "placed" : "not placed"}${
-                   w.putaway_by_name ? ` · ${esc(w.putaway_by_name)}` : ""}</span>`
+              ? `<span class="dim" style="font-size:11.5px">${esc(w.putaway_by_name || "")}</span>`
               : (lb && ed
                   ? `<button class="pobtn" data-last="${w.id}" data-lastbin="${lb.bin_id}"
                        >Use ${esc(lb.bin)}</button>` : "")}
             ${ed && Number(w.qty_ea) > 1
               ? `<button class="pobtn" data-split="${w.id}" data-max="${w.qty_ea}">Split</button>` : ""}
             ${ed && w.bin_id
-              ? `<button class="xbtn" data-undo="${w.id}" title="Take it back out of the bin">↩</button>` : ""}
+              ? `<button class="xbtn" data-undo="${w.id}"
+                   title="Clear this bin — the quantity goes back to waiting for a place">↩</button>` : ""}
           </div>`).join("") || '<span class="dim">—</span>'}</td>
-      <td class="num">${qty(l.placed)}</td>
+      <td class="num">${left > 0 ? `<span class="neutral">${qty(left)}</span>` : '<span class="dim">0</span>'}</td>
     </tr>`; }).join("")}</tbody></table>
-    <div class="invsub">One row is one bin. To spread a line over two bins, split it — the total never
-      changes, part of it moves to a second row. Sending a part to a bin that already holds this line
-      merges the two rows back into one.</div>`;
+    <div class="invsub">One row is one bin, and a row that has a bin has been put away — on this screen
+      choosing the bin is the act. To spread a line over two bins, split it: the total never changes,
+      part of it moves to a second row. Sending a part to a bin that already holds this line merges the
+      two rows back into one, and ↩ clears a bin so that quantity is waiting for a place again.</div>`;
 }
 
 function wirePutaway(h, ed){
@@ -439,8 +439,19 @@ function wirePutaway(h, ed){
     b.onclick = () => openSplit(h, b.dataset.split, Number(b.dataset.max));
   });
   document.querySelectorAll("[data-undo]").forEach(b => {
-    b.onclick = () => putaway(b.dataset.undo, null, false);
+    b.onclick = () => unassign(b.dataset.undo);
   });
+}
+
+/* ⭐ Clearing a bin is its own RPC, not a putaway with a flag turned off — the bin has
+   to go too, or the row still claims a place it no longer has. If the line already has
+   a row waiting for a place, the database merges this quantity into it. */
+async function unassign(workId){
+  say("headMsg", "", "Saving…");
+  const { error } = await sb.rpc("po_receipt_work_unassign", { p_work_id: workId });
+  if(error){ say("headMsg", "err", error.message); return; }
+  say("headMsg", "on", "Saved");
+  reload();
 }
 
 async function putaway(workId, binId, done){
