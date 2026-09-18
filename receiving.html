@@ -148,6 +148,12 @@ function diffCell(counted, ordered){
    person nothing. Anything not listed is shown as it came rather than swallowed. */
 const WARN = {
   nothing_counted: "Nothing has been counted yet.",
+  open_diffs:      "A difference from this receipt is still waiting for someone to settle it.",
+  po_split:        "The order was split — the rest carries on in its own document.",
+  po_closed:       "The purchase order is closed.",
+  short_receipt:   "Less arrived than the order asks for.",
+  over_receipt:    "More arrived than the order asks for.",
+  receipt_lines_differ_from_work: "The confirmed lines and the counted rows disagree — tell someone.",
   unassigned_rows: "Some of what was counted has no bin yet — put it away before confirming.",
   over_counted:    "More was counted than the order asks for. The extra will not enter stock on its own.",
   short_counted:   "Less was counted than the order asks for. The rest stays on the order."
@@ -269,6 +275,7 @@ async function loadDetail(id){
   } else lastBins = {};
 
   const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All receipts</button>'];
+  if(ed) acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
   if(ed) acts.push('<button class="pobtn bad" data-act="del">Delete</button>');
   acts.push(`<button class="pobtn" data-act="po">Open ${esc(h.po_number || "PO")}</button>`);
 
@@ -298,22 +305,31 @@ async function loadDetail(id){
         ["WAREHOUSE", esc(h.warehouse_name || "")],
         ["RECEIVED ON", dim(h.received_on)]
       ])}${kvTbl([
-        ["PURCHASE ORDER", `<span class="mono">${esc(h.po_number || "")}</span>`],
+        ["PURCHASE ORDER", `<span class="mono">${esc(h.po_number || "")}</span>${
+          h.po_split_from_number
+            ? ` <span class="dim">· split from ${esc(h.po_split_from_number)}</span>` : ""}`],
         ["STARTED BY", `${esc(h.created_by_name || "—")} <span class="dim">${imsTs(h.created_at)}</span>`],
         ["CONFIRMED", h.confirmed_at
           ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"]
       ])}</div></div>
+      ${(h.po_split_to || []).length
+        ? `<div class="invsub">The rest of this order carries on as ${
+            (h.po_split_to || []).map(p =>
+              `<a href="po.html?po=${encodeURIComponent(p.po_number)}"><span class="mono">${esc(p.po_number)}</span></a>`
+            ).join(" · ")}.</div>` : ""}
       ${(data.warnings || []).length
         ? `<div class="invsub">${(data.warnings || []).map(w => "⚠ " + esc(warnText(w))).join(" · ")}</div>` : ""}
     </div>
 
+    ${h.status === "draft" ? `
     <div class="card">
       <div class="stage">
         <button data-stage="count" class="${stage === "count" ? "on" : ""}">① Count</button>
         <button data-stage="putaway" class="${stage === "putaway" ? "on" : ""}">② Put away</button>
       </div>
       ${stage === "count" ? countTable(lines, ed) : putawayTable(lines, ed)}
-    </div>`;
+    </div>` : receivedTable(data.receipt_lines || [])}
+    ${diffsCard(data.diffs || [])}`;
 
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
@@ -321,13 +337,113 @@ async function loadDetail(id){
       if(a === "wide") showWide();
       if(a === "po")   window.location.href = "po.html?po=" + encodeURIComponent(h.po_number || "");
       if(a === "del")  deleteRcv(h);
+      if(a === "confirm") confirmRcv(h, t, toPlace);
     };
   });
   box.querySelectorAll("[data-stage]").forEach(b => {
     b.onclick = () => { stage = b.dataset.stage; reload(); };
   });
 
+  if(h.status !== "draft") return;
   if(stage === "count") wireCount(h, ed); else wirePutaway(h, ed);
+}
+
+/* ── Confirm ───────────────────────────────────────────
+   The one moment on this screen that reaches the books. The work rows become receipt
+   lines, the order loses what arrived, and whatever is still owed carries on as its
+   own document with the next letter. None of it can be undone from here.
+
+   ⚠️ The dialog spells out the consequence rather than asking "are you sure" — the
+   purchase order number changes, and somebody reading it later needs to know why. */
+async function confirmRcv(h, t, toPlace){
+  if(toPlace > 0){
+    /* The database refuses this too — asking first just saves a round trip and says
+       it in the same words. */
+    say("headMsg", "err",
+      `${qtyPlain(toPlace)} still has no bin. Put it away, or lower the count to what you actually placed.`);
+    stage = "putaway"; reload(); return;
+  }
+  const short = Number(t.ordered || 0) - Number(t.counted || 0);
+  const lines = [`Confirm ${h.receipt_number}?`, ""];
+  lines.push(`${qtyPlain(t.counted)} of ${qtyPlain(t.ordered)} ordered will be received into stock.`);
+  if(short > 0) lines.push(`${qtyPlain(short)} is short — the order will split and the rest carries on in a new document.`);
+  if(short < 0) lines.push(`${qtyPlain(-short)} more than ordered arrived — it will be recorded and left as a difference to settle.`);
+  lines.push("", "This cannot be undone.");
+  if(!confirm(lines.join("\n"))) return;
+
+  say("headMsg", "", "Confirming…");
+  const { data, error } = await sb.rpc("po_receipt_confirm", { p_receipt_id: h.id });
+  if(error){ say("headMsg", "err", error.message); return; }
+
+  /* ⭐ The order number may have changed under the person's feet. Say so plainly —
+     finding out later from a list is worse. */
+  const po = data.po || {}, sp = data.split;
+  const done = [];
+  if(po.number_before && po.number_after && po.number_before !== po.number_after)
+    done.push(`${po.number_before} is now ${po.number_after}.`);
+  if(sp) done.push(`${qtyPlain(sp.remainder_qty)} still owed — carried on as ${sp.remainder_number}.`);
+  else if(po.status === "closed") done.push(`${po.number_after || ""} is closed.`);
+  if(data.diffs && (data.diffs.short || data.diffs.over))
+    done.push("A difference was queued for someone to settle.");
+  if(done.length) alert(done.join("\n"));
+  reload();
+}
+
+/* alert() and confirm() take plain text — the html-escaping formatter would show tags. */
+const qtyPlain = (v) => Number(v || 0).toLocaleString("en-CA", { maximumFractionDigits:3 });
+
+/* ── What was actually received ────────────────────────
+   After confirming, the work rows stop being the point: these are the lines the
+   ledger will read one day. They are shown, not edited. */
+function receivedTable(rows){
+  if(!rows.length) return '<div class="card"><div class="msg">No receipt lines.</div></div>';
+  return `<div class="card">
+    <div class="invbar"><h3 style="margin:0">Received</h3></div>
+    <table><thead><tr>
+      <th class="num">#</th><th>Item</th><th>Bin</th><th class="num">Quantity</th><th>Received</th><th>By</th>
+    </tr></thead><tbody>${rows.map(r => `<tr>
+      <td class="num dim">${esc(r.line_no)}</td>
+      <td><span class="mono">${esc(r.sku || "")}</span></td>
+      <td><span class="mono">${esc(r.bin || "")}</span>${
+        r.zone ? `<span class="dim" style="margin-left:6px">${esc(r.zone)}</span>` : ""}</td>
+      <td class="num">${qty(r.qty_ea)}</td>
+      <td>${dim(r.received_on)}</td>
+      <td>${esc(r.received_by_name || "—")}</td>
+    </tr>`).join("")}</tbody></table>
+    <div class="invsub">These lines are the record of what arrived and where it went. They do not change.</div>
+  </div>`;
+}
+
+/* ── Differences ───────────────────────────────────────
+   Short is not the same as wrong — the supplier may simply be shipping in parts. But
+   nobody sees WHY unless it is written down, so every gap waits here for a person:
+   split shipment, out of stock, lost in transit, or a miscount. */
+function diffsCard(rows){
+  if(!rows.length) return "";
+  const open = rows.filter(r => !r.resolved_at).length;
+  return `<div class="card">
+    <div class="invbar"><h3 style="margin:0">Differences</h3>
+      <span class="chips">${open ? `<span class="chip bad">${open} open</span>` : '<span class="chip good">all settled</span>'}</span></div>
+    <table><thead><tr>
+      <th class="num">#</th><th>Item</th><th>Kind</th><th class="num">Expected</th>
+      <th class="num">Received</th><th class="num">Difference</th><th>Settled</th>
+    </tr></thead><tbody>${rows.map(r => `<tr>
+      <td class="num dim">${esc(r.line_no ?? "")}</td>
+      <td><span class="mono">${esc(r.sku || "")}</span></td>
+      <td><span class="tag">${esc(r.kind)}</span></td>
+      <td class="num">${qty(r.expected_qty)}</td>
+      <td class="num">${qty(r.received_qty)}</td>
+      <td class="num">${Number(r.diff_qty) > 0
+          ? `<span class="bad">+${qty(r.diff_qty)}</span>`
+          : `<span class="neutral">${qty(r.diff_qty)}</span>`}</td>
+      <td>${r.resolved_at
+          ? `${esc(r.resolved_by_name || "—")} <span class="dim">${imsTs(r.resolved_at)}</span>`
+          : '<span class="dim">open</span>'}</td>
+    </tr>`).join("")}</tbody></table>
+    <div class="invsub">A short line may just be a split shipment, or it may be a shortage, a loss in
+      transit, or a miscount — the order splitting does not tell them apart. Settling these is not built
+      yet; for now they stay here so nothing goes unnoticed.</div>
+  </div>`;
 }
 
 /* ── ① Count ───────────────────────────────────────────
