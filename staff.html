@@ -24,6 +24,10 @@
   .kv input:disabled,.kv select:disabled{background:#f7f8fa;color:#9aa4b2}
   .kv label.ck{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}   /* ⚠️ 공통 .note 와 이름이 겹쳐 .hint 로 */
+  /* ⚠️ .kv label.ck is display:flex, so each one takes a whole line. Inside the access box the
+     choices belong side by side — none / read / write reads as one question that way. */
+  #permBox label.ck{display:inline-flex}
+  #permBox table td{padding:4px 0;border:0;vertical-align:top}
   .actions{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
   .actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
   .actions button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -152,15 +156,19 @@ function renderDetail(){
         ${keyRows}
         <tr><td>Role</td><td>
           <select id="fRole" ${lock}>
+            <option value="worker">worker</option>
+            <option value="supervisor">supervisor</option>
             <option value="manager">manager</option>
             <option value="admin">admin</option>
           </select>
+          <div class="hint">worker = warehouse floor · supervisor = almost everything ·
+            manager = the same but tied to a warehouse · admin = + adding and deactivating people.</div>
           ${isSelf?'<div class="hint">You can\'t change your own role or status — you would lock yourself out (and if you are the last admin, nobody could undo it).</div>':''}
         </td></tr>
         <tr><td>Active</td><td><label class="ck"><input type="checkbox" id="fActive" ${lock}> is_active</label>
           ${!isSelf?'<div class="hint">There is no delete — inactive people keep their row (history points at it).</div>':''}</td></tr>
         <tr><td>Note</td><td><textarea id="fNote"></textarea></td></tr>
-        <tr><td>Perms</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span><div class="hint">Not used yet — edited by SQL if ever needed.</div></td></tr>
+        <tr><td>Access</td><td><div id="permBox"><span class="dim">Loading…</span></div></td></tr>
         <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
         <tr><td>Updated</td><td class="mono">${imsTs(s.updated_at)}</td></tr>
       </tbody></table>
@@ -177,6 +185,7 @@ function renderDetail(){
         <tr><td>Role</td><td>${esc(s.role)}</td></tr>
         <tr><td>Active</td><td>${s.is_active?"yes":"no"}</td></tr>
         <tr><td>Note</td><td>${dim(s.note)}</td></tr>
+        <tr><td>Access</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span></td></tr>
         <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
       </tbody></table>
       <div class="actions"><span class="st">Read only — only an admin can edit staff.</span></div>`;
@@ -197,7 +206,77 @@ function renderDetail(){
     document.getElementById("fActive").checked = !!s.is_active;
     document.getElementById("saveBtn").onclick = () => save(s);
     document.getElementById("revertBtn").onclick = () => renderDetail();
+    drawPerms(s);
   }
+}
+
+/* ── Access — what this person can reach ──────────────────
+   ⭐ The list of rooms and screens is NOT written here. ims_perm_catalog() is the one place
+      that knows it, so a new screen appears on this form without touching this file.
+   ⭐ perms is a flat array of strings. A screen is absent (no access), 'purchasing:read'
+      (can look, cannot change) or 'purchasing' (can change). Rooms are plain entries.
+   ⚠️ What a role grants on its own is decided in the DB (ims_can_* ). This form only adds —
+      a supervisor reaches everything with an empty list, and nothing here takes that away. */
+let permCatalog = null;
+
+async function loadPermCatalog(){
+  if(permCatalog) return permCatalog;
+  const { data, error } = await sb.rpc("ims_perm_catalog");
+  if(error || !data) return null;
+  permCatalog = data;
+  return permCatalog;
+}
+
+async function drawPerms(s){
+  const box = document.getElementById("permBox");
+  if(!box) return;
+  const cat = await loadPermCatalog();
+  if(!cat){ box.innerHTML = '<span class="dim">Could not load the access list.</span>'; return; }
+  const have = Array.isArray(s.perms) ? s.perms : [];
+  const isSelf = (s.id === me.id);
+  const dis = isSelf ? " disabled" : "";
+
+  const modes = (cat.modes || []).map(m =>
+    `<label class="ck" style="margin-right:14px">
+       <input type="checkbox" data-mode="${esc(m)}"${have.includes(m) ? " checked" : ""}${dis}>
+       ${esc(m.toUpperCase())}</label>`).join("");
+
+  const screens = Object.entries(cat.screens || {}).map(([key, info]) => {
+    // ⚠️ 'purchasing' and 'purchasing:read' are the same screen — one wins, so these are radios.
+    const level = have.includes(key) ? "write" : (have.includes(key + ":read") ? "read" : "none");
+    const opt = (v, label) =>
+      `<label class="ck" style="margin-right:12px">
+         <input type="radio" name="perm_${esc(key)}" value="${v}" data-screen="${esc(key)}"${level === v ? " checked" : ""}${dis}>
+         ${label}</label>`;
+    return `<tr>
+      <td style="white-space:nowrap;padding-right:12px">
+        <span class="mono">${esc(key)}</span>
+        <div class="hint" style="margin:0">${esc(info.label || "")}</div>
+      </td>
+      <td>${opt("none", "none")}${opt("read", "read")}${opt("write", "write")}</td>
+    </tr>`;
+  }).join("");
+
+  box.innerHTML = `
+    <div style="margin-bottom:8px">${modes}</div>
+    <table style="font-size:12.5px"><tbody>${screens}</tbody></table>
+    <div class="hint">A room decides whether the switch at the top of the screen shows it.
+      Choosing a screen opens its room too, so most people need nothing ticked above.
+      ${isSelf ? "You cannot change your own access." : ""}</div>`;
+}
+
+/* ⚠️ Returns the array to store. Absent = no access, so 'none' writes nothing. */
+function readPerms(){
+  const out = [];
+  document.querySelectorAll("#permBox input[data-mode]").forEach(c => {
+    if(c.checked) out.push(c.dataset.mode);
+  });
+  document.querySelectorAll("#permBox input[data-screen]").forEach(r => {
+    if(!r.checked) return;
+    if(r.value === "write") out.push(r.dataset.screen);
+    if(r.value === "read")  out.push(r.dataset.screen + ":read");
+  });
+  return out;
 }
 
 async function save(s){
@@ -211,6 +290,9 @@ async function save(s){
   if(!isSelf){
     patch.role = document.getElementById("fRole").value;
     patch.is_active = document.getElementById("fActive").checked;
+    /* ⚠️ Your own access is not editable either — the same reason as role: you could shut
+       yourself out of the screen that undoes it. */
+    patch.perms = readPerms();
   }
   if(!patch.name){ st.className="st bad"; st.textContent="Name is required."; return; }
 
@@ -235,7 +317,7 @@ function renderAdd(box){
       <table class="kv"><tbody>
         <tr><td>Name</td><td><input type="text" id="aName" placeholder="Full name"></td></tr>
         <tr><td>Email</td><td><input type="email" id="aEmail" placeholder="name@asung.ca"><div class="hint">Stored in lower case. This becomes the login email.</div></td></tr>
-        <tr><td>Role</td><td><select id="aRole"><option value="manager" selected>manager</option><option value="admin">admin</option></select>
+        <tr><td>Role</td><td><select id="aRole"><option value="worker">worker</option><option value="supervisor">supervisor</option><option value="manager" selected>manager</option><option value="admin">admin</option></select>
           <div class="hint">manager = does the work · admin = can also add and deactivate people.</div></td></tr>
       </tbody></table>
       <div class="actions">
