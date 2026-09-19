@@ -238,11 +238,14 @@ async function loadWide(){
         <td class="num">${Number(r.unassigned_rows) > 0
             ? `<span class="neutral">${qty(Number(r.counted_qty) - Number(r.placed_qty))}</span>`
             : '<span class="dim">0</span>'}</td>
-        <td>${stChip(r.status)}</td>
+        <td>${stChip(r.status)}${Number(r.open_diffs) > 0
+            ? ` <span class="chip bad">${esc(r.open_diffs)} to settle</span>` : ""}</td>
       </tr>`).join("")}</tbody></table>
     <div class="invsub">Counted is what was found in the boxes; placed is what has reached a bin.
       A receipt is finished when the two agree and nothing is left to place. Short counts are normal —
-      the rest of the order carries on in its own document.</div>`;
+      the rest of the order carries on in its own document. A receipt marked to settle arrived with more
+      than the order asked for, or less: that gap is waiting for someone, and until it is closed the
+      extra sits in a bin without being in the books.</div>`;
   box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openRcv(el.dataset.id); });
   pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
 }
@@ -377,8 +380,15 @@ async function confirmRcv(h, t, toPlace){
 
   /* ⭐ The order number may have changed under the person's feet. Say so plainly —
      finding out later from a list is worse. */
-  const po = data.po || {}, sp = data.split;
+  const po = data.po || {}, sp = data.split, lg = data.ledger || {};
   const done = [];
+  /* ⭐ What actually reached stock comes first — that is the point of confirming.
+     The ledger only takes what was ordered, so a heavy delivery leaves part of itself
+     off the books, sitting in a bin nobody has accounted for. Say that out loud here;
+     the difference queue is the only other place it appears. */
+  if(Number(lg.qty_posted) > 0) done.push(`${qtyPlain(lg.qty_posted)} went into stock.`);
+  if(Number(lg.qty_excess) > 0)
+    done.push(`${qtyPlain(lg.qty_excess)} more than ordered arrived — it is in the bin but not in the books until the difference is settled.`);
   if(po.number_before && po.number_after && po.number_before !== po.number_after)
     done.push(`${po.number_before} is now ${po.number_after}.`);
   if(sp) done.push(`${qtyPlain(sp.remainder_qty)} still owed — carried on as ${sp.remainder_number}.`);
