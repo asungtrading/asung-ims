@@ -173,7 +173,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-17 · tabs";
+const PO_BUILD = "2026-09-19 · add a line + head fields";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -1019,13 +1019,17 @@ async function loadDetail(id){
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
   if((h.split_to || []).length) chips.push(`<span class="chip">split into ${h.split_to.length}</span>`);
 
+  /* 초안까지만 고치는 것과 언제나 고치는 것(§ 머리 고치기 주석). 취소된 발주는 아무것도 안 고친다. */
+  const edDraft  = h.status === "draft";
+  const edAlways = h.status !== "cancelled";
+
   const kvL = [
     ["Supplier",      esc(h.supplier_name)],
-    ["Order date",    dim(h.order_date)],
+    ["Order date",    headIn("order_date", h.order_date, edDraft, "date")],
     // ⭐ 납기 희망일 — Cin7 의 Required by(Caleb: 필요하다)
-    ["Required by",   dim(h.required_by)],
+    ["Required by",   headIn("required_by", h.required_by, edDraft, "date")],
     ["Payment term",  dim(h.payment_term_name)],
-    ["Ship to",       dim(h.ship_to_warehouse)],
+    ["Ship to",       headWh(h.ship_to_warehouse_id, edDraft)],
     // ⭐ 그날의 연락처·주소 — 결제조건과 같은 이유로 박아 둔다.
     //    공급처 연락처가 나중에 바뀌어도 **이 발주는 이 사람에게 보낸 것**이다(§11-b)
     ["Contact",       h.supplier_contact_name
@@ -1039,8 +1043,15 @@ async function loadDetail(id){
                         : '<span class="dim">—</span>'],
   ];
   const kvR = [
-    ["Currency",      `<span class="mono">${dim(h.currency_code)}</span>` +
-                      (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
+    ["Currency",      `<span class="mono">${dim(h.currency_code)}</span>`],
+    /* ⭐ CAD 는 기준통화라 환율이 없는 것이 맞다. 그 밖의 통화는 **있어야** 한다 —
+       원가가 이 값으로 CAD 로 환산된다(ledger-design §4 「COGS 에 환율을 곱하지 않는다 — 이미 CAD」).
+       ⚠️ 지금은 사람이 넣는다. ⬜ MTFX 에서 받아오는 길은 정해지지 않았다(2026-09-19). */
+    ["CAD per " + (h.currency_code || "unit"),
+                      h.currency_code === "CAD"
+                        ? '<span class="dim">base currency</span>'
+                        : headIn("exchange_rate", h.exchange_rate, edAlways, "number") +
+                          (h.exchange_rate ? "" : ' <span class="bad">needed for costing</span>')],
     ["Created by",    dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
     ["Confirmed by",  dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     // ⚠️ closed 는 「입고 종료」다 — 비용은 그 뒤에도 붙는다(§13)
@@ -1050,6 +1061,8 @@ async function loadDetail(id){
     ["Inventory acct", h.inventory_account_code
                         ? `<span class="mono">${esc(h.inventory_account_code)}</span> <span class="dim">${esc(h.inventory_account_name || "")}</span>`
                         : '<span class="dim">—</span>'],
+    ["Note",          headIn("note", h.note, edAlways)],
+    ["",              '<span id="headMsg" style="font-size:12.5px"></span>'],
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${
     rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
@@ -1199,7 +1212,7 @@ async function loadDetail(id){
       </div>
       ${stats}
       <div class="pogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
-      ${h.note ? `<div class="note">${esc(h.note)}</div>` : ""}
+
     </div>
 
     ${tbl("Lines", (data.lines||[]).length,
@@ -1244,6 +1257,11 @@ async function loadDetail(id){
   });
 
   // 쓰기 배선
+  /* 머리 칸 — 값이 바뀔 때만 저장한다. 날짜칸은 달력을 열었다 닫기만 해도 change 가 온다. */
+  box.querySelectorAll("[data-head]").forEach(el => {
+    el.onchange = () => { if(el.value !== el.dataset.prev) saveHead(h.id, el); };
+  });
+
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
       if(b.dataset.act === "addline") openAddLine(h);
@@ -1283,6 +1301,66 @@ async function loadDetail(id){
 }
 
 /* ── 시작 ─────────────────────────────────────────── */
+let WHS = [];                 // 활성 창고 — Ship to 가 고른다
+
+/* ── 발주 머리 고치기 ─────────────────────────────────
+   ⭐ 다른 문서 셋(인보이스·비용·결제)은 머리 칸을 표 안에서 바로 고치는데 발주만 그 길이 없었다.
+      같은 모양으로 연다 — data-head 를 단 입력칸 + imsSaved 되읽기(§10-j 3-i).
+
+   ⚠️⚠️ **여는 칸을 고르는 것이 이 일의 전부다.** 머리 칸은 라인의 뜻을 바꿀 수 있다:
+     Supplier  바꾸면 라인의 단가 근거가 통째로 달라진다 — 잘못 골랐으면 새 발주가 맞다
+     Currency  이미 적힌 USD 5.19 가 CAD 5.19 가 되어 버린다
+     Payment term · Tax rule · Inventory account — 세금·회계가 걸린 자리다
+     ⬜ Tax rule 은 ref_tax_rule 이 서면 그때 드롭다운으로 연다. 지금은 세율을 모르고 「기록만」이라
+        자유 텍스트로 열면 국내 공급처가 생길 때 아무 글자나 쌓인다(Caleb: 해외는 전부 Zero-rated)
+   ⇒ 여는 것은 다섯이다.
+
+   ⭐ 그중 둘은 **확정·마감 뒤에도** 열린다:
+     Exchange rate  실제 환율은 인보이스가 온 뒤에야 아는 경우가 있다.
+                    ⚠️ 원가 레이어가 이 값에 매달린다 — 레이어가 선 뒤에 고치면 원가가 틀어진다(⬜)
+     Note           그때그때 적는 자리다
+   나머지 셋(Order date · Required by · Ship to)은 초안까지다 —
+   확정은 「공급사에 보낼 수량과 라인이 정해졌다」는 뜻이라(§11-b), 그 뒤에 납기나 창고가 바뀌면
+   이미 나간 발주서와 어긋난다. */
+const HEAD_ALWAYS = ["exchange_rate", "note"];     // 확정·마감 뒤에도 연다
+
+function headIn(field, value, ed, type){
+  if(!ed) return value === null || value === undefined || value === ""
+    ? '<span class="dim">—</span>' : esc(value);
+  const t = type || "text";
+  return `<input class="${t === "number" ? "qin" : "tin"}" type="${t}"
+    ${t === "number" ? 'step="any" min="0"' : ""}
+    value="${esc(value ?? "")}" data-prev="${esc(value ?? "")}" data-head="${field}">`;
+}
+
+function headWh(value, ed){
+  if(!ed) return dim(value === null || value === undefined ? null : value);
+  return `<select class="tin" data-head="ship_to_warehouse_id" data-prev="${esc(value ?? "")}">
+    <option value="">—</option>
+    ${WHS.map(w => `<option value="${w.id}" ${w.id === value ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+  </select>`;
+}
+
+/* ⚠️ 한 칸이라 PostgREST 로 바로 쓴다(§13-d 「일이 여럿이면 RPC · 한 가지면 PostgREST」).
+   실패하면 **적혀 있던 값으로 되돌린다** — 화면이 안 들어간 값을 보이면 안 된다. */
+async function saveHead(id, el){
+  const prev = el.dataset.prev, field = el.dataset.head;
+  let val = el.value.trim();
+  if(field === "exchange_rate"){
+    if(val === "") val = null;
+    else if(!isFinite(Number(val)) || Number(val) <= 0){
+      el.value = prev; say("headMsg", "err", "An exchange rate has to be a positive number."); return;
+    } else val = Number(val);
+  } else if(val === "") val = null;
+
+  say("headMsg", "", "Saving…");
+  const res = await imsSaved(sb.from("po").update({ [field]: val }).eq("id", id).select("id"));
+  if(!res.ok){ el.value = prev; say("headMsg", "err", res.reason); return; }
+  el.dataset.prev = el.value;
+  say("headMsg", "on", "Saved");
+  await loadList(); await loadDetail(id);
+}
+
 imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
@@ -1294,6 +1372,11 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
 
   // ⭐ 공급처 고르기 — 발주 목록을 여는 첫 이유다(Caleb: 「주로 공급처별이 가장 많다」)
   //    ⚠️ 활성 공급처 전부를 한 번 읽는다(226행 · 1,000행 캡 아래)
+  /* 발주 머리의 Ship to 가 고를 목록. 활성 창고뿐이라 몇 줄이고, 한 번 읽어 둔다.
+     ⚠️ IN_TRANSIT 은 비활성이라 여기 안 나온다 — 물건을 그리로 보낼 수는 없다. */
+  const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  WHS = wh.data || [];
+
   const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
   if(sup.data) document.getElementById("wsup").innerHTML =
     '<option value="">All suppliers</option>' +
