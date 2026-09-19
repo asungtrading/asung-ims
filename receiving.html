@@ -111,7 +111,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-18 · count + putaway";
+const RCV_BUILD = "2026-09-19 · ledger + settle";
 console.log("receiving.html build:", RCV_BUILD);
 
 let sb=null, me=null, canWrite=false;
@@ -332,7 +332,20 @@ async function loadDetail(id){
       </div>
       ${stage === "count" ? countTable(lines, ed) : putawayTable(lines, ed)}
     </div>` : receivedTable(data.receipt_lines || [])}
-    ${diffsCard(data.diffs || [])}`;
+    ${diffsCard(data.diffs || [], canWrite && h.status !== "cancelled")}`;
+
+  /* The difference rows carry ids, not row objects — look the row back up so the dialog
+     shows the same numbers the table does, from one source. */
+  const diffById = (id) => (data.diffs || []).find(x => x.id === id);
+  box.querySelectorAll("[data-frag]").forEach(b => {
+    b.onclick = () => openFragments(diffById(b.dataset.frag));
+  });
+  box.querySelectorAll("[data-settle]").forEach(b => {
+    b.onclick = () => openSettle(diffById(b.dataset.settle));
+  });
+  box.querySelectorAll("[data-reopen]").forEach(b => {
+    b.onclick = () => reopenDiff(diffById(b.dataset.reopen));
+  });
 
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
@@ -428,7 +441,29 @@ function receivedTable(rows){
    Short is not the same as wrong — the supplier may simply be shipping in parts. But
    nobody sees WHY unless it is written down, so every gap waits here for a person:
    split shipment, out of stock, lost in transit, or a miscount. */
-function diffsCard(rows){
+/* ⭐ Why a reason and not a free note: the whole point of keeping short lines is to tell
+   a split shipment apart from a real shortage. Free text cannot be counted, so nobody
+   could ever ask «how often did this supplier run out». The list is the database's — if a
+   sixth case turns up, it is a migration, not a screen change. */
+const DIFF_REASONS = [
+  ["split_shipment", "Split shipment — the rest came on another document"],
+  ["out_of_stock",   "Supplier was out of stock — the rest is not coming"],
+  ["lost_damaged",   "Lost or damaged in transit — claim a credit"],
+  ["miscount",       "We counted it wrong"],
+  ["other",          "Something else — say what below"]
+];
+const reasonLabel = (v) => (DIFF_REASONS.find(r => r[0] === v) || [v, v])[1];
+
+/* ── Differences ───────────────────────────────────────
+   Short is not the same as wrong — the supplier may simply be shipping in parts. But
+   nobody sees WHY unless it is written down, so every gap waits here for a person.
+
+   ⭐ The hard part of that judgement is not on this receipt at all: the order may have
+   split, and the rest may already have arrived on the next document. So each row carries
+   what the WHOLE order family received — «12 of 12» — and unfolds into the pieces.
+   ⚠️ The screen does not add that up. po_family_lines does, because the same sum has to
+   come out the same everywhere. */
+function diffsCard(rows, ed){
   if(!rows.length) return "";
   const open = rows.filter(r => !r.resolved_at).length;
   return `<div class="card">
@@ -436,8 +471,18 @@ function diffsCard(rows){
       <span class="chips">${open ? `<span class="chip bad">${open} open</span>` : '<span class="chip good">all settled</span>'}</span></div>
     <table><thead><tr>
       <th class="num">#</th><th>Item</th><th>Kind</th><th class="num">Expected</th>
-      <th class="num">Received</th><th class="num">Difference</th><th>Settled</th>
-    </tr></thead><tbody>${rows.map(r => `<tr>
+      <th class="num">Received</th><th class="num">Difference</th><th>The whole order</th><th>Settled</th>
+    </tr></thead><tbody>${rows.map(r => {
+      const f = r.family || {};
+      const whole = f.ordered_total === undefined || f.ordered_total === null
+        ? '<span class="dim">—</span>'
+        : `${qty(f.received_total)} of ${qty(f.ordered_total)}` +
+          (Number(f.still_owed) > 0
+            ? ` <span class="bad">· ${qty(f.still_owed)} still owed</span>`
+            : ' <span class="on">· all received</span>') +
+          ((f.fragments || []).length > 1
+            ? ` <button class="pobtn" data-frag="${r.id}">pieces</button>` : "");
+      return `<tr>
       <td class="num dim">${esc(r.line_no ?? "")}</td>
       <td><span class="mono">${esc(r.sku || "")}</span></td>
       <td><span class="tag">${esc(r.kind)}</span></td>
@@ -446,14 +491,79 @@ function diffsCard(rows){
       <td class="num">${Number(r.diff_qty) > 0
           ? `<span class="bad">+${qty(r.diff_qty)}</span>`
           : `<span class="neutral">${qty(r.diff_qty)}</span>`}</td>
+      <td style="font-size:12.5px">${whole}</td>
       <td>${r.resolved_at
-          ? `${esc(r.resolved_by_name || "—")} <span class="dim">${imsTs(r.resolved_at)}</span>`
-          : '<span class="dim">open</span>'}</td>
-    </tr>`).join("")}</tbody></table>
+          ? `${esc(reasonLabel(r.resolution))}
+             <div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>
+             ${r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : ""}
+             ${ed ? `<button class="pobtn" data-reopen="${r.id}">Reopen</button>` : ""}`
+          : (ed && r.kind === "short"
+              ? `<button class="pobtn go" data-settle="${r.id}">Settle</button>`
+              : '<span class="dim">open</span>')}</td>
+    </tr>`; }).join("")}</tbody></table>
     <div class="invsub">A short line may just be a split shipment, or it may be a shortage, a loss in
-      transit, or a miscount — the order splitting does not tell them apart. Settling these is not built
-      yet; for now they stay here so nothing goes unnoticed.</div>
+      transit, or a miscount — the order splitting does not tell them apart, which is why settling one
+      asks for the reason. ⚠️ An over line cannot be settled here yet: it also has to decide whether the
+      extra goes into stock or back to the supplier, and that is not built.</div>
   </div>`;
+}
+
+/* The pieces behind «12 of 12» — which document brought what. Read-only. */
+function openFragments(r){
+  const f = r.family || {}, frags = f.fragments || [];
+  modalOpen(`
+    <h3 style="margin:0 0 4px">${esc(r.sku || "")} across the whole order</h3>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+      ${qty(f.received_total)} received of ${qty(f.ordered_total)} ordered${
+        Number(f.still_owed) > 0 ? ` · ${qty(f.still_owed)} still owed` : " · all received"}</div>
+    <table><thead><tr><th>Document</th><th>Status</th><th class="num">Ordered</th><th class="num">Received</th></tr></thead>
+      <tbody>${frags.map(x => `<tr>
+        <td><span class="mono">${esc(x.po_number)}</span></td>
+        <td>${esc(x.po_status)}</td>
+        <td class="num">${qty(x.ordered)}</td>
+        <td class="num">${qty(x.received)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Close</button></div>`);
+}
+
+/* ⚠️ Settling does not change a quantity anywhere — it records a judgement about one that
+   already happened. That is why the dialog shows the numbers and asks only for the reason. */
+function openSettle(r){
+  const f = r.family || {};
+  modalOpen(`
+    <h3 style="margin:0 0 4px">Settle a short line</h3>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+      ${esc(r.sku || "")} · expected ${qty(r.expected_qty)} · received ${qty(r.received_qty)}<br>
+      Across the whole order: ${qty(f.received_total)} of ${qty(f.ordered_total)}${
+        Number(f.still_owed) > 0 ? ` · ${qty(f.still_owed)} still owed` : " · all received"}</div>
+    <div class="frow"><label>What happened</label>
+      <select id="stReason">${DIFF_REASONS.map(x =>
+        `<option value="${x[0]}">${esc(x[1])}</option>`).join("")}</select></div>
+    <div class="frow"><label>Note</label><input id="stNote" placeholder="optional — required for «something else»"></div>
+    <div id="stMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="stGo">Settle</button></div>`);
+
+  document.getElementById("stGo").onclick = async () => {
+    say("stMsg", "", "Saving…");
+    const { error } = await sb.rpc("po_receipt_diff_resolve", {
+      p_diff_id: r.id,
+      p_resolution: document.getElementById("stReason").value,
+      p_note: document.getElementById("stNote").value || null
+    });
+    if(error){ say("stMsg", "err", error.message); return; }
+    modalClose(); reload();
+  };
+}
+
+async function reopenDiff(r){
+  const why = prompt(`Reopen this line?\n\nIt was settled as «${reasonLabel(r.resolution)}».\nSay why you are reopening it — the old reason is kept in the note.`);
+  if(why === null) return;
+  const { error } = await sb.rpc("po_receipt_diff_reopen", { p_diff_id: r.id, p_note: why || null });
+  if(error){ docErr(error); return; }
+  reload();
 }
 
 /* ── ① Count ───────────────────────────────────────────
