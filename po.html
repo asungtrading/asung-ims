@@ -9,6 +9,9 @@
   /* 이 화면에만 있는 것 — 공통은 ims-ui.css
      ⭐ [2026-09-17] 세 화면(po · invoices · charges)에 복사돼 있던 규칙 34 를 ims-ui.css 「⑤ 문서 화면 공통」으로 올렸다 —
         .pobtn · .qin/.tin/.xbtn · .pomodal/.pobox · #wide/.wfilt · [hidden]. .qin 은 104px · .tin 은 180px 로 통일됐다(.qin.pin 은 뜻이 없어져 지웠다) */
+  /* ⚠️ receiving.html 이 같은 규칙을 지역으로 들고 있다 — 두 번째다.
+     ⬜ 세 번째가 나오면 ims-ui.css 「⑤ 문서 화면 공통」으로 올린다(규칙 34 를 올렸을 때와 같은 판단). */
+  .binlist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
   .list{width:330px;flex:0 0 330px}
   /* ⚠️ The purchase tabs sit between the header and this panel, so their height has to come
      off here or the list runs past the bottom of the window. ims-auth.js measures the strip
@@ -495,9 +498,11 @@ const VERDICT = {
   bad_qty:   ["off",     "bad quantity"],
 };
 
-async function runPaste(commit){
-  const rows = parsePaste(document.getElementById("pasteBox").value);
-  const msg = document.getElementById("pasteMsg");
+/* ⭐ 붙여넣기와 한 줄 고르기가 **같은 RPC · 같은 판정 · 같은 표**를 쓴다.
+   판정 표를 두 곳에 쓰면 한쪽만 고쳐진다 — 그래서 여기 하나로 둔다.
+   ids: { out, msg, go } — 두 화면이 자기 칸 이름을 준다. */
+async function runLines(rows, commit, ids){
+  const msg = document.getElementById(ids.msg);
   if(!rows.length){ msg.className = "err"; msg.textContent = "Nothing to read."; return; }
   msg.className = ""; msg.textContent = commit ? "Adding…" : "Checking…";
 
@@ -514,7 +519,7 @@ async function runPaste(commit){
       + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "")
       + (commit ? ` · added ${s.inserted}` : "");
 
-  document.getElementById("pasteOut").innerHTML = `
+  document.getElementById(ids.out).innerHTML = `
     <table><thead><tr>
       <th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th>
       <th class="num">Price</th><th>Verdict</th><th>Note</th></tr></thead>
@@ -534,11 +539,127 @@ async function runPaste(commit){
     }).join("")}</tbody></table>`;
 
   // ⭐ 넣을 것이 있을 때만 Add 를 연다 — 판정이 전부 못 넣는 것이면 누를 이유가 없다
-  document.getElementById("pasteGo").disabled = s.too_many || (s.ok + s.no_link) === 0;
+  document.getElementById(ids.go).disabled = s.too_many || (s.ok + s.no_link) === 0;
   if(commit){
-    document.getElementById("pasteGo").disabled = true;
+    document.getElementById(ids.go).disabled = true;
     await loadList(); await loadDetail(curId);
   }
+}
+
+const PASTE_IDS = { out:"pasteOut", msg:"pasteMsg", go:"pasteGo" };
+const runPaste = (commit) =>
+  runLines(parsePaste(document.getElementById("pasteBox").value), commit, PASTE_IDS);
+
+/* ── 한 줄씩 고르기 ───────────────────────────────────
+   ⭐ 붙여넣기는 50줄짜리를 위한 것이고, 이건 **한둘을 더할 때**를 위한 것이다(Caleb).
+      둘 다 남는다 — 목록에서 찾는 것이 빠를 때가 있고 엑셀에서 붙이는 것이 빠를 때가 있다.
+   ⭐ 후보는 **그 공급처가 파는 것만**이다. product_supplier 가 그 관계를 들고 있고,
+      덕분에 수천 제품이 백 개 안팎으로 줄어 찾기가 쉬워진다.
+
+   ⭐⭐ 단가는 화면이 정하지 않는다. po_lines_paste 가 Fixed>0 → Latest>0 → 0(경고) 순으로
+      고른다(2026-09-16 확정). 화면은 그 결과를 미리 보기에서 보여줄 뿐이다 —
+      나중에 규칙이 바뀌어도, 발주앱이 생겨도 같은 값이 나온다.
+   ⚠️ 그래서 여기 목록의 fixed·latest 는 **넣을 값이 아니라 판단 재료**다.
+
+   ⚠️⚠️ 둘이 다를 때 화면은 **판정하지 않는다.** 「낡았다」고 쓰면 아닌 경우에 거짓말이 된다 —
+      협상가일 수도, 지난번만 예외였을 수도 있다. 숫자 둘을 나란히 놓고 다르다는 것만 보인다.
+   ⬜ 셋째 재료가 아직 없다 — **우리가 지난번에 적은 값**(po_line.unit_price).
+      그것이 쌓이면 「우리는 계속 5.19 로 발주했는데 latest 가 5.49 다」가 읽히고,
+      그때가 진짜 신호다(청구가 다르게 오고 있다는 뜻). */
+let addPick = [];            // 고른 것 — { sku, name, qty }
+
+function openAddLine(h){
+  addPick = [];
+  modalOpen(`
+    <h4>Add a line — ${esc(h.supplier_name || "")}</h4>
+    <div class="pbody">
+      <div class="frow"><input id="alq" placeholder="SKU · supplier SKU · product name" autofocus></div>
+      <div id="alHits" class="binlist"><div class="msg">Loading…</div></div>
+      <div id="alChosen" style="margin-top:12px"></div>
+      <div id="alOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="alMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="alChk">Check</button>
+      <button class="pobtn go" id="alGo" disabled>Add lines</button>
+    </div>`);
+
+  document.getElementById("alChk").onclick = () => runLines(addRows(), false, ADD_IDS);
+  document.getElementById("alGo").onclick  = () => runLines(addRows(), true,  ADD_IDS);
+  imsQ("#alq", v => drawAlHits(h, v.trim()));
+  drawAlHits(h, "");
+  drawChosen();
+}
+
+const ADD_IDS = { out:"alOut", msg:"alMsg", go:"alGo" };
+const addRows = () => addPick.map(r => ({ sku: r.sku, qty: Number(r.qty) }));
+
+async function drawAlHits(h, term){
+  const box = document.getElementById("alHits");
+  if(!box) return;
+  /* ⚠️ 한 공급처에 백 개 안팎이라 목록으로도 되지만, 큰 공급처가 있을 수 있어 300 에서 끊는다. */
+  let qy = sb.from("product_supplier")
+    .select("supplier_sku,cost,fixed_cost,last_supplied,product:product_id(id,sku,name)")
+    .eq("supplier_id", h.supplier_id).eq("is_active", true);
+  if(term) qy = qy.or(`supplier_sku.ilike.%${term}%,product.sku.ilike.%${term}%,product.name.ilike.%${term}%`);
+  const { data, error } = await qy.limit(300);
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = (data || []).filter(r => r.product).sort((a, b) =>
+    String(a.product.sku).localeCompare(String(b.product.sku)));
+  if(!rows.length){ box.innerHTML = '<div class="msg">No product of this supplier matches.</div>'; return; }
+
+  box.innerHTML = rows.map(r => {
+    const f = r.fixed_cost, l = r.cost;
+    const differ = f !== null && l !== null && Number(f) !== Number(l);
+    return `<div class="prow" data-sku="${esc(r.product.sku)}" data-name="${esc(r.product.name || "")}">
+      <span class="mono">${esc(r.product.sku)}</span>
+      ${r.supplier_sku ? `<span class="dim" style="margin-left:6px;font-size:11.5px">${esc(r.supplier_sku)}</span>` : ""}
+      <div class="dim" style="font-size:11.5px">${esc(r.product.name || "")}</div>
+      <div style="font-size:11.5px;margin-top:2px">
+        fixed ${f === null ? '<span class="dim">—</span>' : money(f)}
+        <span class="dim">·</span>
+        <span class="${differ ? "neutral" : "dim"}">latest ${l === null ? "—" : money(l)}</span>
+        ${r.last_supplied ? `<span class="dim"> (${esc(r.last_supplied)})</span>` : ""}
+      </div></div>`;
+  }).join("") + (rows.length === 300
+    ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "");
+
+  box.querySelectorAll("[data-sku]").forEach(el => {
+    el.onclick = () => {
+      if(addPick.some(x => x.sku === el.dataset.sku)) return;   // 같은 것을 두 번 담지 않는다
+      addPick.push({ sku: el.dataset.sku, name: el.dataset.name, qty: 1 });
+      drawChosen();
+    };
+  });
+}
+
+/* 고른 것과 수량. ⚠️ 여기서 지우는 것은 담기 전이라 아무 일도 아니다 —
+   발주에 들어간 줄을 지우는 것과 헷갈리지 않게 표 밖에 둔다. */
+function drawChosen(){
+  const box = document.getElementById("alChosen");
+  if(!box) return;
+  if(!addPick.length){ box.innerHTML = '<div class="msg dim">Pick products from the list above.</div>'; return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>SKU</th><th>Product</th><th class="num">Qty</th><th></th></tr></thead>
+    <tbody>${addPick.map((r, i) => `<tr>
+      <td class="mono">${esc(r.sku)}</td>
+      <td>${dim(r.name)}</td>
+      <td class="num"><input class="qin" type="number" step="any" min="1"
+            value="${esc(r.qty)}" data-qty="${i}"></td>
+      <td><button class="xbtn" data-drop="${i}" title="Take it off the list">×</button></td>
+    </tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-qty]").forEach(inp => {
+    inp.onchange = () => { addPick[Number(inp.dataset.qty)].qty = Number(inp.value) || 0; };
+  });
+  box.querySelectorAll("[data-drop]").forEach(b => {
+    b.onclick = () => { addPick.splice(Number(b.dataset.drop), 1); drawChosen(); };
+  });
+  /* 고른 것이 바뀌면 앞서 본 미리 보기는 낡은 것이다 — 다시 Check 를 누르게 한다. */
+  const go = document.getElementById("alGo");
+  if(go) go.disabled = true;
+  const out = document.getElementById("alOut");
+  if(out) out.innerHTML = "";
 }
 
 /* ── 라인 한 줄 고치기 ─────────────────────────────────
@@ -855,6 +976,7 @@ async function loadDetail(id){
   // ⭐ Confirm 의 뜻: 「공급사에 보낼 **수량과 라인이 정해졌다**」 — 잠금도 아니고 메일을 보내는 것도 아니다(§11-b)
   if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
   if(ed){
+    acts.push('<button class="pobtn" data-act="addline">Add a line</button>');
     acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
     acts.push('<button class="pobtn" data-act="adddisc">Add a discount</button>');
     acts.push('<button class="pobtn" data-act="cancel">Cancel PO</button>');
@@ -1124,6 +1246,7 @@ async function loadDetail(id){
   // 쓰기 배선
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
+      if(b.dataset.act === "addline") openAddLine(h);
       if(b.dataset.act === "paste")   openPaste();
       if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
       if(b.dataset.act === "cancel")  cancelPo(h.id, h.po_number);
