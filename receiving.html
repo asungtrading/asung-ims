@@ -586,7 +586,7 @@ function openSettle(r){
        ledger. Each refuses the other's kind and says which one to use instead. */
     const { data, error } = over
       ? await sb.rpc("po_receipt_diff_settle_over", {
-          p_diff_id: r.id, p_reason: document.getElementById("stReason").value, p_note: note })
+          p_diff_id: r.id, p_resolution: document.getElementById("stReason").value, p_note: note })
       : await sb.rpc("po_receipt_diff_resolve", {
           p_diff_id: r.id, p_resolution: document.getElementById("stReason").value, p_note: note });
     if(error){ say("stMsg", "err", error.message); return; }
