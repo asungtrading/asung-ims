@@ -111,7 +111,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-19 · ledger + settle";
+const RCV_BUILD = "2026-09-20 · settle over";
 console.log("receiving.html build:", RCV_BUILD);
 
 let sb=null, me=null, canWrite=false;
@@ -445,14 +445,30 @@ function receivedTable(rows){
    a split shipment apart from a real shortage. Free text cannot be counted, so nobody
    could ever ask «how often did this supplier run out». The list is the database's — if a
    sixth case turns up, it is a migration, not a screen change. */
-const DIFF_REASONS = [
-  ["split_shipment", "Split shipment — the rest came on another document"],
-  ["out_of_stock",   "Supplier was out of stock — the rest is not coming"],
-  ["lost_damaged",   "Lost or damaged in transit — claim a credit"],
+const SHORT_REASONS = [
+  ["split_shipment", "Split shipment \u2014 the rest came on another document"],
+  ["out_of_stock",   "Supplier was out of stock \u2014 the rest is not coming"],
+  ["lost_damaged",   "Lost or damaged in transit \u2014 claim a credit"],
   ["miscount",       "We counted it wrong"],
-  ["other",          "Something else — say what below"]
+  ["other",          "Something else \u2014 say what below"]
 ];
-const reasonLabel = (v) => (DIFF_REASONS.find(r => r[0] === v) || [v, v])[1];
+
+/* ⭐⭐ An over line asks a different question. Short asks why the goods are missing and
+   changes nothing; over asks what the extra is WORTH, and the answer goes into the books.
+   Free means nobody paid for it, so costing it like the rest would invent an asset out of
+   nothing — the other two end in us paying, one way or the other, so they carry the order's
+   own unit cost. That is the gain over the old way: a stock adjustment would have valued
+   them at the warehouse average, and goods off the same shipment would end up worth
+   different amounts. ⚠️ Returning the extra is not here — it almost never happens (Caleb),
+   and a reason nobody picks is still a reason somebody has to keep working. */
+const OVER_REASONS = [
+  ["free",     "Supplier sent the extra for free \u2014 into stock at no cost"],
+  ["billed",   "Supplier will invoice the extra \u2014 cost it like the rest of the order"],
+  ["credited", "Supplier will take it off the next order \u2014 cost it like the rest"]
+];
+const reasonsFor  = (kind) => kind === "over" ? OVER_REASONS : SHORT_REASONS;
+const reasonLabel = (v) =>
+  ([...SHORT_REASONS, ...OVER_REASONS].find(r => r[0] === v) || [v, v])[1];
 
 /* ── Differences ───────────────────────────────────────
    Short is not the same as wrong — the supplier may simply be shipping in parts. But
@@ -496,15 +512,19 @@ function diffsCard(rows, ed){
           ? `${esc(reasonLabel(r.resolution))}
              <div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>
              ${r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : ""}
-             ${ed ? `<button class="pobtn" data-reopen="${r.id}">Reopen</button>` : ""}`
-          : (ed && r.kind === "short"
+             ${ed && r.kind !== "over"
+                 ? `<button class="pobtn" data-reopen="${r.id}">Reopen</button>`
+                 : (r.kind === "over" ? '<div class="dim" style="font-size:11.5px">in stock \u2014 cannot be reopened</div>' : "")}`
+          : (ed && (r.kind === "short" || r.kind === "over")
               ? `<button class="pobtn go" data-settle="${r.id}">Settle</button>`
               : '<span class="dim">open</span>')}</td>
     </tr>`; }).join("")}</tbody></table>
     <div class="invsub">A short line may just be a split shipment, or it may be a shortage, a loss in
-      transit, or a miscount — the order splitting does not tell them apart, which is why settling one
-      asks for the reason. ⚠️ An over line cannot be settled here yet: it also has to decide whether the
-      extra goes into stock or back to the supplier, and that is not built.</div>
+      transit, or a miscount \u2014 the order splitting does not tell them apart, which is why settling one
+      asks for the reason. An over line is a different matter: the extra is sitting in the bin but not in
+      the books, and settling it puts it there. What it is worth depends on why it came, so that is what
+      the dialog asks. ⚠️ Once the extra is in the books an over line cannot be reopened — the ledger
+      only ever adds, so undoing it needs an offsetting entry, which does not exist yet.</div>
   </div>`;
 }
 
@@ -527,34 +547,54 @@ function openFragments(r){
       <button class="pobtn" onclick="modalClose()">Close</button></div>`);
 }
 
-/* ⚠️ Settling does not change a quantity anywhere — it records a judgement about one that
-   already happened. That is why the dialog shows the numbers and asks only for the reason. */
+/* ⚠️ Settling a SHORT line changes no quantity anywhere — it records a judgement about one
+   that already happened, which is why the dialog shows the numbers and asks only for the reason.
+   ⭐⭐ Settling an OVER line does the opposite: it moves stock. The extra was left out of the
+   books on purpose at confirm time, because nothing should gain a value that nobody chose. So
+   this dialog says plainly what is about to happen, and it says it before the button, not after.
+   ⚠️ The bin is not touched either way — the goods were put away when they arrived. Only the
+   books move. */
 function openSettle(r){
   const f = r.family || {};
+  const over    = r.kind === "over";
+  const extra   = Math.abs(Number(r.diff_qty) || (Number(r.received_qty) - Number(r.expected_qty)));
+  const reasons = reasonsFor(r.kind);
+
   modalOpen(`
-    <h3 style="margin:0 0 4px">Settle a short line</h3>
+    <h3 style="margin:0 0 4px">Settle ${over ? "an over" : "a short"} line</h3>
     <div class="dim" style="font-size:12.5px;margin-bottom:10px">
       ${esc(r.sku || "")} · expected ${qty(r.expected_qty)} · received ${qty(r.received_qty)}<br>
       Across the whole order: ${qty(f.received_total)} of ${qty(f.ordered_total)}${
         Number(f.still_owed) > 0 ? ` · ${qty(f.still_owed)} still owed` : " · all received"}</div>
-    <div class="frow"><label>What happened</label>
-      <select id="stReason">${DIFF_REASONS.map(x =>
+    ${over ? `<div class="msg" style="margin-bottom:10px">${qtyPlain(extra)} more than ordered arrived.
+      Settling puts ${qtyPlain(extra)} into stock, in the bin they are already sitting in.
+      The reason decides what they are worth. <b>This cannot be undone here.</b></div>` : ""}
+    <div class="frow"><label>${over ? "Why the extra came" : "What happened"}</label>
+      <select id="stReason">${reasons.map(x =>
         `<option value="${x[0]}">${esc(x[1])}</option>`).join("")}</select></div>
-    <div class="frow"><label>Note</label><input id="stNote" placeholder="optional — required for «something else»"></div>
+    <div class="frow"><label>Note</label><input id="stNote" placeholder="${
+      over ? "optional" : "optional — required for «something else»"}"></div>
     <div id="stMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
       <button class="pobtn" onclick="modalClose()">Cancel</button>
-      <button class="pobtn go" id="stGo">Settle</button></div>`);
+      <button class="pobtn go" id="stGo">${over ? "Put it into stock" : "Settle"}</button></div>`);
 
   document.getElementById("stGo").onclick = async () => {
     say("stMsg", "", "Saving…");
-    const { error } = await sb.rpc("po_receipt_diff_resolve", {
-      p_diff_id: r.id,
-      p_resolution: document.getElementById("stReason").value,
-      p_note: document.getElementById("stNote").value || null
-    });
+    const note = document.getElementById("stNote").value || null;
+    /* ⚠️ Two functions, not one with a flag: one records a judgement, the other writes to the
+       ledger. Each refuses the other's kind and says which one to use instead. */
+    const { data, error } = over
+      ? await sb.rpc("po_receipt_diff_settle_over", {
+          p_diff_id: r.id, p_reason: document.getElementById("stReason").value, p_note: note })
+      : await sb.rpc("po_receipt_diff_resolve", {
+          p_diff_id: r.id, p_resolution: document.getElementById("stReason").value, p_note: note });
     if(error){ say("stMsg", "err", error.message); return; }
-    modalClose(); reload();
+    modalClose();
+    /* ⭐ Stock moved, so say so — the row going quiet is not the same as being told. */
+    if(over && data) alert(`${qtyPlain(data.qty_added ?? extra)} went into stock`
+      + (data.cost_source === "free" ? " at no cost." : ", costed like the rest of the order."));
+    reload();
   };
 }
 
