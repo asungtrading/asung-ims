@@ -173,7 +173,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-20 · search fix (or/join)";
+const PO_BUILD = "2026-09-20 · last paid in preview";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -182,6 +182,10 @@ let q="", stFilter="open", curId=null;
 let supFilter="", dateFrom="", dateTo="";
 /* ⚠️ 상세 조회를 기다리는 사이 필터가 바뀌면 늦게 도착한 응답이 화면을 덮는다 — 번호로 막는다(§10-j 3-d) */
 let detailSeq = 0;
+
+/* ⚠️ The open order's header, kept here because the paste preview needs the supplier and
+   currency and it runs from a modal that never receives them. Set by loadDetail, nowhere else. */
+let curHead = null;
 const pg  = imsPage(100);   // 좁은 목록
 const pgW = imsPage(50);    // 넓은 목록 — 열이 많아 한 화면에 덜 담긴다
 
@@ -507,6 +511,53 @@ const VERDICT = {
   bad_qty:   ["off",     "bad quantity"],
 };
 
+/* ⭐⭐ What this supplier actually charged us last time, per SKU.
+   Reads po_price_history, which is confirmed supplier invoices with the document's discount
+   chain already applied — so 8.29 with a 17% trade discount reads as 6.88, the figure that
+   was really paid. The order line's own price comes from product_supplier (fixed, then latest),
+   and those two are not the same thing: one is what we recorded, the other what was billed.
+   ⚠️ Same supplier only. A price from another supplier is a different deal — different terms,
+   often a different currency — and putting it in this column would invite the wrong comparison.
+   ⚠️ A failure here must not stop the preview: the verdicts are what the buyer needs, and this
+   column is background. It returns {} and the column shows nothing. */
+async function lastPaidBySku(skus, supplierId){
+  const want = [...new Set(skus.filter(Boolean))];
+  if(!want.length || !supplierId) return {};
+  try {
+    let qy = sb.from("po_price_history")
+      .select("sku,net_unit,currency_code,invoice_date,invoice_number,discount_label")
+      .eq("supplier_id", supplierId).in("sku", want)
+      .order("invoice_date", { ascending:false })
+      .order("confirmed_at", { ascending:false });
+    const { data, error } = await qy.limit(1000);
+    if(error) return {};
+    const out = {};
+    for(const r of data || []) if(!out[r.sku]) out[r.sku] = r;   // ⭐ newest first, so the first wins
+    return out;
+  } catch(e){ return {}; }
+}
+
+/* The Last paid cell. ⚠️ It states the difference, it does not judge it — a rise can be a real
+   increase, a fall can be a one-off deal, and a screen that says "too expensive" is wrong as
+   often as it is right. Numbers side by side, the direction marked, the reader decides. */
+function lastPaidCell(line, hist){
+  const p = hist[line.input_sku];
+  if(!p) return '<span class="dim">—</span>';
+  const now  = (line.unit_price === null || line.unit_price === undefined) ? null : Number(line.unit_price);
+  const then = Number(p.net_unit);
+  let delta = "";
+  if(now !== null && then > 0){
+    const pct = (now - then) / then * 100;
+    if(Math.abs(pct) < 0.05)      delta = ' <span class="dim">same</span>';
+    else if(pct > 0)              delta = ` <span class="off">▲ ${esc(pct.toFixed(1))}%</span>`;
+    else                          delta = ` <span class="on">▼ ${esc(Math.abs(pct).toFixed(1))}%</span>`;
+  }
+  const when = String(p.invoice_date || "").slice(5);            // MM-DD — the year is rarely the question
+  return `${money(then)}${delta}
+    <div class="dim" style="font-size:11.5px">${esc(when)} · ${esc(p.invoice_number || "")}${
+      p.discount_label ? ` · ${esc(p.discount_label)}` : ""}</div>`;
+}
+
 /* ⭐ 붙여넣기와 한 줄 고르기가 **같은 RPC · 같은 판정 · 같은 표**를 쓴다.
    판정 표를 두 곳에 쓰면 한쪽만 고쳐진다 — 그래서 여기 하나로 둔다.
    ids: { out, msg, go } — 두 화면이 자기 칸 이름을 준다. */
@@ -528,10 +579,14 @@ async function runLines(rows, commit, ids){
       + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "")
       + (commit ? ` · added ${s.inserted}` : "");
 
+  /* ⭐ What the supplier billed last time, fetched after the verdicts so a slow or failed
+     lookup cannot hold up the answer the buyer is waiting for. One round trip for the batch. */
+  const hist = await lastPaidBySku(data.lines.map(l => l.input_sku), curHead && curHead.supplier_id);
+
   document.getElementById(ids.out).innerHTML = `
     <table><thead><tr>
       <th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th>
-      <th class="num">Price</th><th>Verdict</th><th>Note</th></tr></thead>
+      <th class="num">Price</th><th class="num">Last paid</th><th>Verdict</th><th>Note</th></tr></thead>
     <tbody>${data.lines.map(l => {
       const v = VERDICT[l.verdict] || ["dim", l.verdict];
       return `<tr>
@@ -542,6 +597,7 @@ async function runLines(rows, commit, ids){
         <td class="num">${l.unit_price === null || l.unit_price === undefined ? '<span class="dim">—</span>'
             : money(l.unit_price) + (l.price_source && l.price_source !== "none"
                ? ` <span class="dim">${esc(l.price_source)}</span>` : "")}</td>
+        <td class="num">${lastPaidCell(l, hist)}</td>
         <td><span class="${v[0]}">${esc(v[1])}</span></td>
         <td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td>
       </tr>`;
@@ -572,9 +628,10 @@ const runPaste = (commit) =>
 
    ⚠️⚠️ 둘이 다를 때 화면은 **판정하지 않는다.** 「낡았다」고 쓰면 아닌 경우에 거짓말이 된다 —
       협상가일 수도, 지난번만 예외였을 수도 있다. 숫자 둘을 나란히 놓고 다르다는 것만 보인다.
-   ⬜ 셋째 재료가 아직 없다 — **우리가 지난번에 적은 값**(po_line.unit_price).
-      그것이 쌓이면 「우리는 계속 5.19 로 발주했는데 latest 가 5.49 다」가 읽히고,
-      그때가 진짜 신호다(청구가 다르게 오고 있다는 뜻). */
+   ⭐ [2026-09-20] 셋째 재료가 생겼다 — **공급처가 실제로 청구한 값**(po_price_history).
+      발주는 우리가 적은 값이고 인보이스는 그쪽이 준 값이다. 할인까지 반영된 그 값이
+      진짜 매입가이고, 「우리는 계속 5.19 로 발주했는데 실제로는 5.49 를 냈다」가 거기서 읽힌다.
+      ⚠️ 미리 보기의 Last paid 열이 그것이다 — 아래 lastPaidBySku. */
 let addPick = [];            // 고른 것 — { sku, name, qty }
 
 function openAddLine(h){
@@ -973,6 +1030,7 @@ async function loadDetail(id){
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That purchase order is gone.</div></div>'; return; }
 
   const h = data.header, t = data.totals || {};
+  curHead = h;                                         // ⭐ paste preview reads the supplier from here
   const cur = h.currency_code ? ` <span class="dim">${esc(h.currency_code)}</span>` : "";
 
   /* ⭐ 고칠 수 있는 상태인가 — draft · confirmed 는 고친다. closed · cancelled 는 못 고친다.
