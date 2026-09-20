@@ -173,7 +173,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-19 · add a line + head fields";
+const PO_BUILD = "2026-09-20 · search fix (or/join)";
 console.log("po.html build:", PO_BUILD);
 
 let sb=null, me=null, isAdmin=false;
@@ -213,6 +213,14 @@ function stChip(s){
 /* ⭐ 모체 번호 — PO-02001a → PO-02001. 갈라진 문서를 한 번에 찾는 열쇠다(§11-c 「찾기는 접두어로」) */
 const stem = (n) => String(n || "").replace(/[a-z]+$/, "");
 
+/* ⚠️⚠️ Search terms that go inside PostgREST `or=(...)`.
+   A comma separates the conditions there and parentheses group them, so a term
+   carrying either one breaks the whole query — PostgREST dies while parsing and
+   the list shows an error instead of results. Supplier names really do carry
+   commas ("Co., Ltd"), so this is not hypothetical.
+   We replace rather than strip: `%` is the wildcard, so "Co., Ltd" still matches. */
+const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
+
 function clearDetail(){
   curId = null;
   detailSeq++;   // 날아오던 요청이 있으면 그것도 무효로
@@ -233,7 +241,8 @@ function baseQuery(){
   if(dateTo)    qry = qry.lte("order_date", dateTo);
   // ⚠️ 검색은 서버에서 돈다(§10-j 3-a).
   //    ⭐ doc_numbers 는 뷰가 모아 둔 인보이스·크레딧·비용 번호다 — 공급처가 번호로 물어올 때 쓴다
-  if(q) qry = qry.or(`po_number.ilike.%${q}%,supplier_name.ilike.%${q}%,doc_numbers.ilike.%${q}%`);
+  //    ⚠️ orTerm: a comma typed here would split the or() and kill the query.
+  if(q){ const t = orTerm(q); qry = qry.or(`po_number.ilike.%${t}%,supplier_name.ilike.%${t}%,doc_numbers.ilike.%${t}%`); }
   return qry.order("po_number", { ascending:false });
 }
 
@@ -598,14 +607,40 @@ const addRows = () => addPick.map(r => ({ sku: r.sku, qty: Number(r.qty) }));
 async function drawAlHits(h, term){
   const box = document.getElementById("alHits");
   if(!box) return;
-  /* ⚠️ 한 공급처에 백 개 안팎이라 목록으로도 되지만, 큰 공급처가 있을 수 있어 300 에서 끊는다. */
-  let qy = sb.from("product_supplier")
-    .select("supplier_sku,cost,fixed_cost,last_supplied,product:product_id(id,sku,name)")
+  /* ⚠️ Most suppliers carry around 70 products, but seven of them carry more than 300
+     and the largest carries 796 (measured 2026-09-20). So the 300 cap is real: whatever
+     narrows the list has to run on the server, never here. */
+  const SEL  = "supplier_sku,cost,fixed_cost,last_supplied,product:product_id(id,sku,name)";
+  const SELI = "supplier_sku,cost,fixed_cost,last_supplied,product:product_id!inner(id,sku,name)";
+  const ofSupplier = (sel) => sb.from("product_supplier").select(sel)
     .eq("supplier_id", h.supplier_id).eq("is_active", true);
-  if(term) qy = qy.or(`supplier_sku.ilike.%${term}%,product.sku.ilike.%${term}%,product.name.ilike.%${term}%`);
-  const { data, error } = await qy.limit(300);
+
+  let raw = [], error = null;
+  if(!term){
+    const r = await ofSupplier(SEL).limit(300);
+    raw = r.data || []; error = r.error;
+  } else {
+    /* ⚠️⚠️ A joined table's column cannot go inside or(). Writing
+       `product.sku.ilike.%x%` there makes PostgREST read that dot as its own syntax and the
+       whole query dies with "failed to parse logic tree" — every search failed, whatever was
+       typed (2026-09-20). Embedded columns are fine in a plain filter, just not inside or().
+       ⭐ So we ask three narrow questions in parallel and merge: the supplier's own part
+       number on this table, and our sku / name through an inner join. Each one uses a single
+       column filter, which is the boring documented path. */
+    const t = orTerm(term);
+    const [a, b, c] = await Promise.all([
+      ofSupplier(SEL ).ilike("supplier_sku",  `%${t}%`).limit(300),
+      ofSupplier(SELI).ilike("product.sku",   `%${t}%`).limit(300),
+      ofSupplier(SELI).ilike("product.name",  `%${t}%`).limit(300)
+    ]);
+    error = a.error || b.error || c.error;
+    /* A product matching on two of the three comes back twice — keep the first. */
+    const seen = new Set();
+    raw = [...(a.data || []), ...(b.data || []), ...(c.data || [])]
+      .filter(r => r.product && !seen.has(r.product.id) && seen.add(r.product.id));
+  }
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  const rows = (data || []).filter(r => r.product).sort((a, b) =>
+  const rows = raw.filter(r => r.product).sort((a, b) =>
     String(a.product.sku).localeCompare(String(b.product.sku)));
   if(!rows.length){ box.innerHTML = '<div class="msg">No product of this supplier matches.</div>'; return; }
 
@@ -622,8 +657,8 @@ async function drawAlHits(h, term){
         <span class="${differ ? "neutral" : "dim"}">latest ${l === null ? "—" : money(l)}</span>
         ${r.last_supplied ? `<span class="dim"> (${esc(r.last_supplied)})</span>` : ""}
       </div></div>`;
-  }).join("") + (rows.length === 300
-    ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "");
+  }).join("") + (rows.length >= 300
+    ? '<div class="msg dim">Showing the first matches — type more to narrow.</div>' : "");
 
   box.querySelectorAll("[data-sku]").forEach(el => {
     el.onclick = () => {
