@@ -103,8 +103,18 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-09-17 · pay link";
+const CHG_BUILD = "2026-09-23 · Toronto date";
 console.log("charges.html build:", CHG_BUILD);
+
+/* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
+   회사의 「오늘」은 토론토다(so-module §13-h · 서버 ims_today()) — 에드먼튼 PC 에서도 토론토 날짜를 쓴다.
+   📌 공통 파일(ims-ui.js)이 아니라 화면마다 둔다 — 캐시된 옛 공통 파일과 새 화면이 어긋나면 화면이 죽는다. 다섯 화면이 같은 몸이다(receiving · po · charges · payments · invoices). */
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
 
 let sb=null, me=null, isAdmin=false;
 let q="", kindF="all", stFilter="open", supFilter="", dateFrom="", dateTo="", balF="all", curId=null;
@@ -548,7 +558,7 @@ function openAddPo(chgId){
 async function openCreate(preselectPoId){
   const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
   const cur = await sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = torontoToday();
   modalOpen(`
     <h4>New charge</h4>
     <div class="pbody">

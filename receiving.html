@@ -111,8 +111,18 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-20 · settle over";
+const RCV_BUILD = "2026-09-23 · Toronto date";
 console.log("receiving.html build:", RCV_BUILD);
+
+/* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
+   회사의 「오늘」은 토론토다(so-module §13-h · 서버 ims_today()) — 에드먼튼 PC 에서도 토론토 날짜를 쓴다.
+   📌 공통 파일(ims-ui.js)이 아니라 화면마다 둔다 — 캐시된 옛 공통 파일과 새 화면이 어긋나면 화면이 죽는다. 다섯 화면이 같은 몸이다(receiving · po · charges · payments · invoices). */
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
 
 let sb=null, me=null, canWrite=false;
 let q="", stFilter="open", supFilter="", whFilter="", dateFrom="", dateTo="", curId=null;
@@ -880,7 +890,7 @@ async function openCreate(preselectPoId){
       <input id="npq" placeholder="PO number or supplier" autofocus></div>
     <div id="npHits" class="binlist"><div class="msg">Type to find a confirmed order.</div></div>
     <div class="frow" style="margin-top:10px"><label>Received on</label>
-      <input id="npd" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      <input id="npd" type="date" value="${torontoToday()}"></div>
     <div id="npMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
       <button class="pobtn" onclick="modalClose()">Cancel</button>
