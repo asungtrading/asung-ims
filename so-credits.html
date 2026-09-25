@@ -117,7 +117,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-09-25 · cr v1";
+const CR_BUILD = "2026-09-25 · cr v1.1";
 console.log("so-credits.html build:", CR_BUILD);
 
 function torontoToday() {
@@ -552,7 +552,10 @@ async function loadDetail(id){
   const kvR = [
     ["Currency",     `<span class="mono">${dim(v.currency_code)}</span>`],
     ["Note",         dim(v.note)],
-    ["Tax rule",     dim(c.tax_rule) + (c.rate_pct !== null && c.rate_pct !== undefined ? ` <span class="dim">${esc(Number(c.rate_pct))}%</span>` : "")],
+    /* v1.1 — IMS 인보이스에서 낸 크레딧은 세율을 줄마다(인보이스 줄) 굳히고 머리에는 비워 둔다 → 머리가 비면 줄의 세율을 보인다(Caleb 화면 시험 2026-09-25) */
+    ["Tax",          c.tax_rule ? esc(c.tax_rule) + (c.rate_pct !== null && c.rate_pct !== undefined ? ` <span class="dim">${esc(Number(c.rate_pct))}%</span>` : "")
+                       : (() => { const rs = [...new Set((data.lines || []).filter(l => l.rate_pct !== null && l.rate_pct !== undefined).map(l => Number(l.rate_pct) + "%"))];
+                                  return rs.length ? esc(rs.join(" · ")) + ' <span class="dim">from the invoice lines</span>' : '<span class="dim">—</span>'; })()],
     ["Cancelled",    v.cancelled_at ? imsTs(v.cancelled_at) + (v.cancel_note ? ` <span class="dim">${esc(v.cancel_note)}</span>` : "") : '<span class="dim">—</span>'],
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;

@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backorders · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 백오더는 「줄」이 단위라 목록 한 장(상세 칸 없음) · 모달은 so 화면들과 같은 모양 */
+  .bowrap{padding:14px;display:flex;flex-direction:column;gap:14px}
+  .bofilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .bofilt select,.bofilt input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .bofilt .sp{flex:1}
+  .bofilt .dash{color:var(--muted);font-size:12px}
+  .bofilt .cust{min-width:220px}
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .bosum{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+  tr.grp td{background:#fafbfd;font-weight:600;font-size:12.5px}
+  tr.ended td{color:#8a93a3}
+  .pomodal[hidden]{display:none}
+  .pobox input[type=search]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pick{max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:#fafbfd}
+  .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .bofoot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
+  .bofoot .sp{flex:1}
+  .bofoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
+  .bofoot button:disabled{opacity:.4;cursor:default}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="bowrap">
+  <div class="card">
+    <div class="bofilt">
+      <select id="fState" title="State">
+        <option value="open">Open backorders</option>
+        <option value="ended">Ended</option>
+        <option value="all">All</option>
+      </select>
+      <select id="fLoc" title="Branch"><option value="">All branches</option></select>
+      <button class="pobtn cust" id="fCust" title="Pick a customer">All customers</button>
+      <select id="fSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
+      <select id="fBrand" title="Brand"><option value="">All brands</option></select>
+      <input type="search" id="fSku" placeholder="SKU starts with" style="width:150px">
+      <select id="fArr" title="Stock arrived since the backorder">
+        <option value="">Arrived — any</option><option value="true">Arrived since</option><option value="false">Not arrived yet</option>
+      </select>
+      <select id="fOwed" title="Free lines we still owe">
+        <option value="">Free lines — any</option><option value="true">Free lines we owe</option><option value="false">Paid lines only</option>
+      </select>
+      <input type="date" id="fFrom" title="Ordered from"><span class="dash">—</span><input type="date" id="fTo" title="Ordered to">
+      <select id="fEnd" title="How it ended" hidden>
+        <option value="">Ended — any way</option>
+        <option value="superseded">Taken over by a new order</option>
+        <option value="proceeded">Proceeded (stock reserved)</option>
+        <option value="expired">Expired</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="merged">Merged</option>
+      </select>
+      <button class="pobtn" id="fClear">Clear</button>
+    </div>
+    <div class="bosum" id="sum"><span class="dim">Loading…</span></div>
+    <div id="rows"><div class="msg">Loading…</div></div>
+    <div class="bofoot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Backorders — 백오더 화면 1판 (2026-09-25 · 대화 Claude)
+   읽기: so_backorder_list(p_filters jsonb) — 분류 여덟 · 무상 줄(owed) · 창고별 가용 · 손님·제품·주문일 순 (asung-wms 20260924153856 · 정본 §15 ③c)
+   쓰기: so_backorder_proceed(p_so_id, p_commit) — manager · 미리 보기(false) → 진행(true) · 재고가 들어온 백오더를 지금 잡는다
+   ⭐ 백오더는 「줄」이 단위다 — 오더를 나눈 형제(SO-25001a)의 열린 backorder 예약 + 끝난 장부 줄
+   ⭐ 입고됨(arrived) = 백오더가 생긴 뒤 그 창고에 po_in 이나 다른 창고에서 온 트랜스퍼가 있었다(조정 · 반품 · 조립 · 출발 없는 도착은 안 셈 · 판정 6·7)
+   ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
+   ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
+   ───────────────────────────────────────────────────────────── */
+const BO_BUILD = "2026-09-25 · bo v1";
+console.log("so-backorders.html build:", BO_BUILD);
+
+let sb = null, me = null, rank = 0;
+const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
+const isMgr = () => rank >= 2;
+const PAGE = 100;
+let offset = 0, custId = null, custName = "", last = null;
+
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const END_LBL = { superseded: "taken over", proceeded: "proceeded", expired: "expired", cancelled: "cancelled", merged: "merged" };
+
+function filters(){
+  const f = { state: document.getElementById("fState").value, limit: PAGE, offset: offset };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("location_id", document.getElementById("fLoc").value);
+  put("customer_id", custId);
+  put("supplier_id", document.getElementById("fSup").value);
+  put("brand_id", document.getElementById("fBrand").value);
+  put("sku", document.getElementById("fSku").value.trim());
+  put("arrived", document.getElementById("fArr").value);
+  put("owed", document.getElementById("fOwed").value);
+  put("order_from", document.getElementById("fFrom").value);
+  put("order_to", document.getElementById("fTo").value);
+  if(f.state !== "open") put("end_kind", document.getElementById("fEnd").value);
+  ["arrived", "owed"].forEach(k => { if(k in f) f[k] = f[k] === "true"; });
+  return f;
+}
+
+async function load(){
+  const box = document.getElementById("rows");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("so_backorder_list", { p_filters: filters() });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("sum").innerHTML = ""; return; }
+  last = data;
+  const rows = data.rows || [];
+  document.getElementById("sum").innerHTML = `
+    <div class="stat">Lines<b>${esc(data.total)}</b></div>
+    <div class="stat">Open<b>${esc(data.open)}</b></div>
+    <div class="stat">Ended<b>${esc(data.ended)}</b></div>
+    <div class="stat">Free lines we owe<b>${esc(data.open_owed)}</b></div>`;
+  if(!rows.length){ box.innerHTML = '<div class="msg">No backorders match.</div>'; pager(data); return; }
+
+  /* 손님마다 묶어 보인다 — 창구가 손님 · 제품 · 주문일 순으로 준다 */
+  let html = `<table><thead><tr>
+      <th>Order</th><th>Ordered</th><th>Product</th><th>Supplier · brand</th><th>Branch</th>
+      <th class="num">Open</th><th class="num">Waiting</th><th>Stock</th><th>State</th><th></th>
+    </tr></thead><tbody>`;
+  let lastCust = null;
+  rows.forEach(r => {
+    if(r.customer_id !== lastCust){
+      lastCust = r.customer_id;
+      html += `<tr class="grp"><td colspan="10">${esc(r.customer_name || "")}</td></tr>`;
+    }
+    const open = r.state === "open";
+    const stock = open
+      ? (r.arrived ? `<span class="on">arrived</span>` : '<span class="dim">not yet</span>')
+        + `<div class="dim" style="font-size:11px">here ${qty(r.available_here)} · other ${qty(r.available_other)}</div>`
+      : "";
+    const st = open
+      ? (r.owed ? '<span class="tag disc">free — we owe it</span>' : '<span class="tag">open</span>')
+      : `<span class="tag">${esc(END_LBL[r.end_kind] || r.end_kind || "ended")}</span>`
+        + (r.taken_by_so_number ? ` <a class="lnk mono" href="so.html?so=${encodeURIComponent(r.taken_by_so_number)}">${esc(r.taken_by_so_number)}</a>` : "")
+        + (Number(r.qty_unwanted) ? `<div class="dim" style="font-size:11px">taken ${qty(r.qty_taken)} · no longer wanted ${qty(r.qty_unwanted)}</div>` : "");
+    html += `<tr class="${open ? "" : "ended"}">
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a></td>
+      <td>${dim(r.order_date)}</td>
+      <td><span class="mono">${esc(r.sku || "")}</span>${Number(r.pack_factor) > 1 ? ` <span class="dim">×${esc(r.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div></td>
+      <td>${esc(r.supplier_name || "")}${r.supplier_name ? "" : '<span class="dim">no default supplier</span>'}<div class="dim" style="font-size:11.5px">${esc(r.brand_name || "")}</div></td>
+      <td>${dim(r.location_name)}</td>
+      <td class="num">${open ? qty(r.qty_open) : '<span class="dim">' + qty(r.qty_open) + "</span>"}<div class="dim" style="font-size:11px">of ${qty(r.qty_ordered)}</div></td>
+      <td class="num">${r.days_waiting !== null && r.days_waiting !== undefined ? esc(r.days_waiting) + "d" : '<span class="dim">—</span>'}</td>
+      <td>${stock}</td>
+      <td>${st}</td>
+      <td>${open && isMgr() ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" title="Reserve what is in stock now for this backorder order (manager)">proceed</button>` : ""}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+    <div class="sosub">Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder was made (adjustments and returns do not count).
+      Here / other = available now in this branch / in the other branches. Mail notices are still sent from Cin7, so this screen does not show them yet.</div>`;
+  box.innerHTML = html;
+  box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no); });
+  pager(data);
+}
+function pager(data){
+  const a = data.total ? offset + 1 : 0, b = Math.min(offset + (data.rows || []).length, data.total || 0);
+  document.getElementById("range").textContent = `${a.toLocaleString()}–${b.toLocaleString()} / ${(data.total || 0).toLocaleString()}`;
+  const p = document.getElementById("prev"), n = document.getElementById("next");
+  p.disabled = offset === 0; n.disabled = offset + PAGE >= (data.total || 0);
+  p.onclick = () => { if(offset > 0){ offset = Math.max(0, offset - PAGE); load(); } };
+  n.onclick = () => { offset += PAGE; load(); };
+}
+const refilter = () => { offset = 0; load(); };
+
+/* ══ 모달 ══════════════════════════════════════════════ */
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; }); }
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+
+/* 손님 고르기 — 9,469 명 · 서버에서 이름으로 */
+function openCustPick(){
+  modalOpen(`
+    <h4>Backorders of one customer</h4>
+    <div class="pbody">
+      <input type="search" id="cpQ" placeholder="Search customer by name" autocomplete="off">
+      <div class="pick" id="cpList"><div class="msg">Type to search.</div></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="cpAll">All customers</button>
+      <button class="pobtn" data-m="close">Cancel</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("cpAll").onclick = () => { custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers"; modalClose(); refilter(); };
+  imsQ("#cpQ", async (t) => {
+    const box = document.getElementById("cpList");
+    if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const { data, error } = await sb.from("customer").select("id,name").ilike("name", `%${t}%`).order("name").limit(60);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `<div class="prow" data-cid="${r.id}" data-cn="${esc(r.name)}">${esc(r.name)}</div>`).join("") : '<div class="msg">No customer matches.</div>';
+    box.querySelectorAll("[data-cid]").forEach(el => {
+      el.onclick = () => { custId = el.dataset.cid; custName = el.dataset.cn; document.getElementById("fCust").textContent = custName; modalClose(); refilter(); };
+    });
+  });
+}
+
+/* 진행 — manager · 그 백오더 오더(형제)가 지금 잡을 수 있는 만큼 잡는다 · 못 잡은 몫은 다시 백오더로 이어진다
+   ⭐ 미리 보기는 창구가 트랜잭션 안에서 돌리고 되돌린다(P0777) — 아무것도 안 쓴다 */
+async function openProceed(soId, soNo){
+  modalOpen(`
+    <h4>Proceed ${esc(soNo)} — reserve stock that is here now</h4>
+    <div class="pbody"><div id="prOut"><div class="msg">Checking…</div></div><div id="prMsg" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="prGo" disabled>Proceed</button>
+    </div>`);
+  wireModalClose();
+  const draw = (data, done) => {
+    const lines = data.lines || [];
+    document.getElementById("prOut").innerHTML = `
+      <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th><th class="num">Reserved</th><th class="num">Still backordered</th></tr></thead>
+      <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.qty_ordered)}</td>
+        <td>${esc(l.kind || "")}</td><td class="num">${qty(l.allocated)}</td>
+        <td class="num">${Number(l.backordered) ? `<span class="neutral">${qty(l.backordered)}</span>` : '<span class="dim">0</span>'}</td></tr>`).join("")}</tbody></table>
+      ${(data.siblings || []).length ? `<div class="sosub">${done ? "Split off" : "Will split off"}: ${data.siblings.map(x => `${esc(x.so_number || "")} ${esc(x.split_reason || "")}`).join(" · ")}</div>` : ""}
+      <div class="sohint" style="margin-top:8px">${done ? "Done." : "Nothing is saved until you press Proceed."} Backorder lines ended here: ${esc(data.backorder_lines_ended ?? 0)}.</div>`;
+  };
+  const { data, error } = await sb.rpc("so_backorder_proceed", { p_so_id: soId, p_commit: false });
+  if(error){ document.getElementById("prOut").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  draw(data, false);
+  document.getElementById("prGo").disabled = false;
+  document.getElementById("prGo").onclick = async () => {
+    say("prMsg", "", "Proceeding…"); document.getElementById("prGo").disabled = true;
+    const r = await sb.rpc("so_backorder_proceed", { p_so_id: soId, p_commit: true });
+    if(r.error){ say("prMsg", "err", r.error.message); document.getElementById("prGo").disabled = false; return; }
+    draw(r.data, true);
+    say("prMsg", "on", "Proceeded.");
+    const cl = document.querySelector('#modalBox [data-m="close"]');
+    cl.textContent = "Close"; cl.onclick = () => { modalClose(); load(); };
+  };
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; rank = RANK[me.role] || 0;
+  window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = BO_BUILD;
+
+  const [wh, sup, br] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("supplier").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
+  ]);
+  const fill = (id, rows) => { const s = document.getElementById(id); s.insertAdjacentHTML("beforeend", (rows || []).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("")); };
+  fill("fLoc", wh.data); fill("fSup", sup.data); fill("fBrand", br.data);
+  [wh, sup, br].forEach(r => { if(r.error) console.warn("list load failed:", r.error.message); });
+
+  const endSel = document.getElementById("fEnd");
+  document.getElementById("fState").onchange = () => { endSel.hidden = document.getElementById("fState").value === "open"; refilter(); };
+  ["fLoc","fSup","fBrand","fArr","fOwed","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
+  imsQ("#fSku", refilter);
+  document.getElementById("fCust").onclick = openCustPick;
+  document.getElementById("fClear").onclick = () => {
+    ["fLoc","fSup","fBrand","fSku","fArr","fOwed","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("fState").value = "open"; endSel.hidden = true;
+    custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
+    refilter();
+  };
+  /* ?customer=<uuid> · ?sku=ABC 로 들어오면 그 조건으로 */
+  const pc = imsParam("customer"), ps = imsParam("sku");
+  if(ps) document.getElementById("fSku").value = ps;
+  if(pc){
+    const { data } = await sb.from("customer").select("id,name").eq("id", pc).maybeSingle();
+    if(data){ custId = data.id; custName = data.name; document.getElementById("fCust").textContent = custName; }
+  }
+  load();
+});
+</script>
+</body>
+</html>
