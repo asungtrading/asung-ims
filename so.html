@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Orders · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css · 뼈대는 po.html(목록/상세 두 모드 · 모달)
+     ⚠️ 이름은 공통과 겹치지 않게 so 접두 · .list .row 계열은 po.html 과 같은 모양(지역 규칙 — 세 번째가 나오면 공통으로) */
+  .binlist{max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 230px - var(--ims-tabs-h, 0px))}
+  .list .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .list .row .l{min-width:0}
+  .list .row .pn{font-family:var(--mono);font-size:13px}
+  .list .row .sn{font-size:11.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .row .r{text-align:right;white-space:nowrap}
+  .list .row.cur .pn{color:#3b5bdb;font-weight:700}
+  main{display:flex;flex-direction:column;gap:14px}
+  .sobar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .sobar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+  .sogrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media (max-width:900px){ .sogrid{grid-template-columns:1fr} }
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .sowarn{padding:8px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px}
+  .pomodal[hidden]{display:none}
+  .pobox textarea{width:100%;min-height:160px;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:var(--mono);font-size:12.5px}
+  .pobox input[type=search],.pobox input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pick{max-height:300px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:#fafbfd}
+  .pick .prow.on2{background:#eef4ff}
+  .sofield{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px}
+  .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .sobig{font-family:var(--mono);font-size:16px;font-weight:700}
+  .socols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+  .socols .stat b{font-size:15px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wch" title="Channel">
+        <option value="">All channels</option>
+        <option value="warehouse">Warehouse</option>
+        <option value="counter">Counter</option>
+        <option value="pos">POS</option>
+      </select>
+      <input type="date" id="wfrom" title="Order date from">
+      <span class="dash">—</span>
+      <input type="date" id="wto" title="Order date to">
+      <select id="wst">
+        <option value="open">Open</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="warehouse">With warehouse</option>
+        <option value="shipped">Shipped</option>
+        <option value="fulfilled">Fulfilled</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <input type="search" id="wq" placeholder="SO number · customer · reference">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">+ New sales order</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="top">
+      <div style="display:flex;gap:6px">
+        <button class="pobtn" id="backWide" style="flex:1">‹ All orders</button>
+        <button class="pobtn go" id="newSo" style="flex:1">+ New</button>
+      </div>
+      <input type="search" id="q" placeholder="Search SO number · customer · reference">
+      <div class="opts">
+        <label>Status
+          <select id="st">
+            <option value="open">Open</option>
+            <option value="draft">Draft</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="warehouse">With warehouse</option>
+            <option value="shipped">Shipped</option>
+            <option value="fulfilled">Fulfilled</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+
+  <main id="detail"><div class="card"><div class="msg">Select a sales order.</div></div></main>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Sales Orders — SO 오피스 화면 1판 (2026-09-25 · 대화 Claude)
+   정본: asung-wms docs/design/so-module.md §12~§21 · 뼈대 po.html
+   ⭐ 담은 것: 목록 · 새 오더 · 머리 · 줄 · 운임 · 합계 · 확정(창고 길 미리 보기) · counter 확정·출고 · 결제 넣기 · 뭉치
+   ⭐ 미룬 것(단추 자리만): 보류 · 나누기 · 창고 바꾸기 · 백오더 진행 · Release to WMS · 오피스 마무리 · 병합 · 인쇄 · POS
+   ⚠️⚠️ 계산 규칙의 정본은 DB 다 — 가격 · 할인 · 세금 · 합계 · 잔액을 화면에서 다시 짜지 마라.
+      so_detail · so_tax_preview · so_counter_ship(미리 보기) 가 돌려준 값을 그리기만 한다.
+   ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
+   ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
+   ───────────────────────────────────────────────────────────── */
+const SO_BUILD = "2026-09-25 · so v1";
+console.log("so.html build:", SO_BUILD);
+
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+
+let sb = null, me = null, rank = 0;
+let q = "", stFilter = "open", chFilter = "", dateFrom = "", dateTo = "", curId = null;
+let detailSeq = 0;
+let cur = null;                 // 지금 연 오더의 so_detail 반환 — 모달들이 읽는다(loadDetail 만 쓴다)
+const pg  = imsPage(100);
+const pgW = imsPage(50);
+let WHS = [], TERMS = [], TIERS = [], TAXES = [], ACCTS = [];
+
+/* ⭐ 역할 — ims_role_rank 와 같은 순서. ⚠️ 이것은 **편의**다(단추를 숨길 뿐) · 진짜 문은 DB 창구 */
+const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
+const isMgr = () => rank >= 2;
+const isSup = () => rank >= 3;
+
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+/* ⚠️ 단가는 자르지 않고 저장된다(29자리 · 12-h) — 보일 때만 넷째 자리까지 */
+const price = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 4 }));
+
+/* ⚠️ PostgREST or=(...) 안에서는 쉼표·괄호가 문법이다 — 손님 이름에 쉼표가 있다(po.html 선례) */
+const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
+const stem = (n) => String(n || "").replace(/[a-z]+$/, "");
+
+/* ⚠️ 색은 절제한다 — cancelled 빨강 · fulfilled 초록 · 나머지 회색 */
+function stChip(s){
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(s === "fulfilled") return '<span class="chip good">fulfilled</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+const CH_LBL = { warehouse: "Warehouse", counter: "Counter", pos: "POS" };
+function rowTags(r){
+  const t = [];
+  if(r.status === "cancelled") t.push(`<span class="tag off">${esc(r.closed_reason === "merged" ? "merged" : "cancelled")}</span>`);
+  else t.push(`<span class="tag">${esc(r.status)}</span>`);
+  if(r.channel !== "warehouse") t.push(`<span class="tag">${esc(CH_LBL[r.channel] || r.channel)}</span>`);
+  if(r.split_from_id) t.push('<span class="tag">split</span>');
+  return t.join(" ");
+}
+
+/* 경고 코드 → 사람이 읽는 말. ⚠️ 모르는 코드는 코드 그대로 보인다(삼키지 않는다) */
+const WARN = {
+  tax_region_unknown: "No tax rule — the ship-to province is unknown. Pick a tax rule.",
+  tax_rule_missing: "No tax rule — pick one before confirming.",
+  tax_rule_reset_by_ship_to: "The tax rule was reset because the ship-to province changed.",
+  tax_rule_inactive: "The tax rule on this order is inactive.",
+  lines_without_price: "Some lines have no price — confirming is blocked until they get one.",
+  no_lines: "No lines yet.",
+  reprice_suggested: "Order date, tier or discount changed — lines kept their prices. Use Reprice to requote.",
+  deal_ended_before_line_added: "A deal on one of the lines had already ended when the line was added.",
+  direct_order_tier_unexpected: "Price tier is not the usual one for direct orders.",
+  tier_differs_from_customer: "Price tier differs from the customer's own tier.",
+  customer_tier_missing: "The customer's tier could not be found.",
+  currency_mismatch: "The order currency differs from the price tier currency.",
+  lines_keep_prices: "Lines already on the order keep their prices.",
+  lines_removed: "Some lines were removed by the customer at finalize.",
+};
+const warnText = (w) => {
+  const key = String(w).split(":")[0];
+  return WARN[key] ? WARN[key] + (String(w).includes(":") ? ` (${esc(String(w).slice(key.length + 1))})` : "") : esc(w);
+};
+const warnChips = (arr) => (arr || []).map(w => `<span class="chip warn" title="${esc(w)}">⚠ ${warnText(w)}</span>`).join("");
+
+function clearDetail(){
+  curId = null; cur = null; detailSeq++;
+  document.getElementById("detail").innerHTML = '<div class="card"><div class="msg">Select a sales order.</div></div>';
+}
+
+/* ⭐⭐ 질의는 한 곳에서 — 넓은 목록과 좁은 목록이 같은 조건을 본다(po.html 선례) */
+function baseQuery(){
+  let qry = sb.from("so").select(
+    "id,so_number,status,closed_reason,channel,intake,order_date,ref,location_name,currency_code,split_from_id,merged_into_id,bill_to_name,customer:customer_id(name)",
+    { count: "exact" });
+  if(stFilter === "open")           qry = qry.in("status", ["draft","confirmed","at_wms","picking","packed","shipped"]);
+  else if(stFilter === "warehouse") qry = qry.in("status", ["at_wms","picking","packed"]);
+  else if(stFilter !== "all")       qry = qry.eq("status", stFilter);
+  if(chFilter) qry = qry.eq("channel", chFilter);
+  if(dateFrom) qry = qry.gte("order_date", dateFrom);
+  if(dateTo)   qry = qry.lte("order_date", dateTo);
+  /* ⚠️ 검색은 서버에서 · 손님 이름은 bill_to_name(오더에 굳은 청구처 이름)과 ship_to_company 로 찾는다
+     — 조인 칸은 or() 안에 못 넣는다(po.html 2026-09-20 실사고) */
+  if(q){ const t = orTerm(q); qry = qry.or(`so_number.ilike.%${t}%,ref.ilike.%${t}%,bill_to_name.ilike.%${t}%,ship_to_company.ilike.%${t}%`); }
+  return qry.order("so_number", { ascending: false });
+}
+const custName = (r) => (r.customer && r.customer.name) || r.bill_to_name || "";
+
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadWide();
+}
+function openSo(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  loadList(); loadDetail(id);
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){ box.innerHTML = '<div class="msg">No sales orders match.</div>'; pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>SO</th><th>Status</th><th>Channel</th><th>Ordered</th><th>Customer</th><th>Reference</th><th>Warehouse</th><th>Currency</th>
+    </tr></thead><tbody>${data.map(r => `
+      <tr data-id="${r.id}">
+        <td><span class="mono">${esc(r.so_number)}</span> ${r.split_from_id ? '<span class="tag">split</span>' : ""}</td>
+        <td>${stChip(r.status)}${r.closed_reason ? ` <span class="dim" style="font-size:11.5px">${esc(r.closed_reason)}</span>` : ""}</td>
+        <td>${esc(CH_LBL[r.channel] || r.channel)}</td>
+        <td>${dim(r.order_date)}</td>
+        <td>${esc(custName(r))}</td>
+        <td class="mono">${dim(r.ref)}</td>
+        <td>${dim(r.location_name)}</td>
+        <td class="mono">${dim(r.currency_code)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="sosub">Amounts are not stored on the order — the invoice fixes them. Open an order to see its totals.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openSo(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+async function loadList(){
+  const { data, error } = await pg.run(baseQuery());
+  if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  document.getElementById("rows").innerHTML = data.length ? data.map(r => `
+    <div class="row ${r.id === curId ? "cur" : ""}" data-id="${r.id}">
+      <span class="l">
+        <div class="pn">${esc(r.so_number)}</div>
+        <div class="sn">${esc(custName(r))}</div>
+        ${r.ref ? `<div class="sn">${esc(r.ref)}</div>` : ""}
+      </span>
+      <span class="r">
+        <div class="dim" style="font-size:11.5px">${esc(r.order_date || "")}</div>
+        <div style="margin-top:3px">${rowTags(r)}</div>
+      </span>
+    </div>`).join("") : '<div class="msg">No sales orders match.</div>';
+  document.querySelectorAll(".list .row").forEach(el => {
+    el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
+  });
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+}
+
+/* 형제·병합 사이 이동 — 모체 번호를 검색칸에 넣어 한 뭉치가 목록에 보이게(po.html gotoPo 선례) */
+async function gotoSo(number, id){
+  q = stem(number);
+  document.getElementById("q").value = q; document.getElementById("wq").value = q;
+  stFilter = "all";
+  document.getElementById("st").value = "all"; document.getElementById("wst").value = "all";
+  pg.reset();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  if(id){ curId = id; await loadList(); loadDetail(id); return; }
+  await loadList();
+  const el = Array.from(document.querySelectorAll(".list .row")).find(r => r.querySelector(".pn").textContent === number);
+  if(!el) return;
+  curId = el.dataset.id; await loadList(); loadDetail(curId);
+}
+
+/* ══ 모달 ══════════════════════════════════════════════ */
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+/* ⚠️ 자리가 없으면 alert 로라도 — 진짜 오류를 삼키지 않는다(po.html 2026-09-16 실사고) */
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+async function reloadHere(){
+  const y = window.scrollY;
+  await loadDetail(curId); await loadList();
+  window.scrollTo(0, y);
+}
+
+/* ── 새 오더 ─────────────────────────────────────────
+   ⭐ 손님 9,469 명 — 서버에서 이름으로 찾는다 · 활성만(비활성은 so_create 가 거부) */
+let newCust = null;
+function openNewSo(){
+  newCust = null;
+  modalOpen(`
+    <h4>New sales order</h4>
+    <div class="pbody">
+      <input type="search" id="custQ" placeholder="Search customer by name" autocomplete="off">
+      <div class="pick" id="custList"><div class="msg">Type to search.</div></div>
+      <div id="newPick" style="margin-top:12px"></div>
+      <div id="newMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="newGo" disabled>Create</button>
+    </div>`);
+  wireModalClose();
+  const draw = async (t) => {
+    const box = document.getElementById("custList");
+    if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const { data, error } = await sb.from("customer")
+      .select("id,name,price_tier,payment_term_name,default_location_id,default_location_name,currency_code")
+      .eq("is_active", true).ilike("name", `%${t}%`).order("name").limit(60);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `
+      <div class="prow" data-cid="${r.id}">${esc(r.name)}
+        <div class="dim" style="font-size:11.5px">${esc([r.price_tier, r.payment_term_name, r.default_location_name, r.currency_code].filter(Boolean).join(" · "))}</div>
+      </div>`).join("") + (data.length >= 60 ? '<div class="msg dim">Showing the first 60 — type more to narrow.</div>' : "")
+      : '<div class="msg">No active customer matches.</div>';
+    box.querySelectorAll("[data-cid]").forEach(el => {
+      el.onclick = () => {
+        newCust = data.find(x => x.id === el.dataset.cid);
+        box.querySelectorAll(".prow").forEach(p => p.classList.toggle("on2", p === el));
+        drawNewPick();
+      };
+    });
+  };
+  imsQ("#custQ", draw);
+  document.getElementById("newGo").onclick = createSo;
+}
+function drawNewPick(){
+  const box = document.getElementById("newPick");
+  if(!box || !newCust) return;
+  box.innerHTML = `
+    <div class="frow"><label>Customer</label><b>${esc(newCust.name)}</b></div>
+    <div class="frow"><label>Channel</label>
+      <select id="newCh" class="sofield">
+        <option value="warehouse">Warehouse — picked and packed in the warehouse</option>
+        <option value="counter">Counter — handed over at the counter (manager)</option>
+      </select></div>
+    <div class="frow"><label>Warehouse</label>
+      <select id="newWh" class="sofield">
+        ${WHS.map(w => `<option value="${w.id}" ${w.id === newCust.default_location_id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}
+      </select></div>
+    <div class="sohint">Tax, price tier, discount and addresses are copied from the customer. You can change them on the draft.</div>`;
+  document.getElementById("newGo").disabled = false;
+}
+async function createSo(){
+  if(!newCust) return;
+  const ch = document.getElementById("newCh").value;
+  const wh = document.getElementById("newWh").value || null;
+  say("newMsg", "", "Creating…");
+  document.getElementById("newGo").disabled = true;
+  /* ⚠️ counter 는 창고가 필수(선반이 있는 창고) — so_create 가 막는다 · intake 는 manual(전화·이메일·카운터) */
+  const { data, error } = await sb.rpc("so_create", { p_customer_id: newCust.id, p_channel: ch, p_intake: "manual", p_location_id: wh });
+  if(error){ say("newMsg", "err", error.message); document.getElementById("newGo").disabled = false; return; }
+  modalClose();
+  q = data.so_number; document.getElementById("q").value = q; document.getElementById("wq").value = q;
+  stFilter = "all"; document.getElementById("st").value = "all"; document.getElementById("wst").value = "all";
+  pg.reset();
+  openSo(data.id);
+  if((data.warnings || []).length) setTimeout(() => alert("Created " + data.so_number + "\n\n⚠ " + data.warnings.join("\n⚠ ")), 50);
+}
+function wireModalClose(){
+  document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; });
+}
+
+/* ── 줄 넣기 — 찾아 고르기 · 붙여넣기 ──────────────────
+   ⭐ 둘 다 so_lines_paste 한 창구로 미리 보기 → 넣기(판정·가격·할인은 DB · 화면은 그리기만)
+   ⭐ 무상 줄만 so_line_add(p_unit_price 0 · p_free_reason) — 사유 넷 sample · promotion · replacement · other(other 는 메모 필수) */
+const VERDICT = {
+  ok:        ["on",      "ok"],
+  no_price:  ["neutral", "no price — confirming is blocked until it gets one"],
+  merged:    ["neutral", "merged into the existing line"],
+  ask:       ["off",     "same SKU at another price — change that line instead"],
+  duplicate: ["off",     "duplicate in the paste"],
+  not_found: ["off",     "not found"],
+  inactive:  ["off",     "inactive product"],
+  bad_qty:   ["off",     "bad quantity"],
+};
+let addPick = [];
+function openAddLine(){
+  addPick = [];
+  modalOpen(`
+    <h4>Add lines — ${esc(cur.so.so_number)}</h4>
+    <div class="pbody">
+      <input type="search" id="alq" placeholder="SKU · product name · barcode" autocomplete="off">
+      <div id="alHits" class="binlist"><div class="msg">Type to search.</div></div>
+      <div id="alChosen" style="margin-top:12px"></div>
+      <div id="alOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="alMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="alChk">Check</button>
+      <button class="pobtn go" id="alGo" disabled>Add lines</button>
+    </div>`);
+  wireModalClose();
+  imsQ("#alq", v => drawAlHits(v.trim()));
+  document.getElementById("alChk").onclick = () => runAdd(false);
+  document.getElementById("alGo").onclick  = () => runAdd(true);
+  drawChosen();
+}
+async function drawAlHits(term){
+  const box = document.getElementById("alHits");
+  if(!box) return;
+  if(!term){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+  /* ⚠️ 제품 18,714 — 캡 위라 서버에서만 좁힌다 · 세 질문을 나란히(sku · 이름 · 바코드) 뒤 합친다 */
+  const t = orTerm(term);
+  const [a, b, c] = await Promise.all([
+    sb.from("product").select("id,sku,name").eq("is_active", true).ilike("sku", `%${t}%`).order("sku").limit(50),
+    sb.from("product").select("id,sku,name").eq("is_active", true).ilike("name", `%${t}%`).order("sku").limit(50),
+    sb.from("product_barcode").select("barcode,product:product_id!inner(id,sku,name,is_active)").eq("is_active", true).ilike("barcode", `%${t}%`).limit(20),
+  ]);
+  const err = a.error || b.error || c.error;
+  if(err){ box.innerHTML = `<div class="msg err">${esc(err.message)}</div>`; return; }
+  const seen = new Set(), rows = [];
+  (a.data || []).concat(b.data || []).forEach(p => { if(!seen.has(p.id)){ seen.add(p.id); rows.push(p); } });
+  (c.data || []).forEach(x => { const p = x.product; if(p && p.is_active && !seen.has(p.id)){ seen.add(p.id); rows.push({ id: p.id, sku: p.sku, name: p.name, barcode: x.barcode }); } });
+  if(!rows.length){ box.innerHTML = '<div class="msg">No active product matches.</div>'; return; }
+  box.innerHTML = rows.map(p => `<div class="prow" data-pid="${p.id}" data-sku="${esc(p.sku)}" data-name="${esc(p.name || "")}">
+      <span class="mono">${esc(p.sku)}</span>${p.barcode ? ` <span class="dim" style="font-size:11.5px">barcode ${esc(p.barcode)}</span>` : ""}
+      <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+    + (rows.length >= 50 ? '<div class="msg dim">Showing the first matches — type more to narrow.</div>' : "");
+  box.querySelectorAll("[data-pid]").forEach(el => {
+    el.onclick = () => {
+      if(addPick.some(x => x.pid === el.dataset.pid)) return;
+      addPick.push({ pid: el.dataset.pid, sku: el.dataset.sku, name: el.dataset.name, qty: 1, free: "", note: "" });
+      drawChosen();
+    };
+  });
+}
+function drawChosen(){
+  const box = document.getElementById("alChosen");
+  if(!box) return;
+  if(!addPick.length){ box.innerHTML = '<div class="msg dim">Pick products from the list above.</div>'; return; }
+  box.innerHTML = `<table><thead><tr><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Free?</th><th>Note</th><th></th></tr></thead>
+    <tbody>${addPick.map((r, i) => `<tr>
+      <td class="mono">${esc(r.sku)}</td><td>${dim(r.name)}</td>
+      <td class="num"><input class="qin" type="number" step="any" min="1" value="${esc(r.qty)}" data-aq="${i}"></td>
+      <td><select class="sofield" data-af="${i}">
+        <option value="">— priced</option>
+        ${["sample","promotion","replacement","other"].map(x => `<option value="${x}" ${r.free === x ? "selected" : ""}>free · ${x}</option>`).join("")}
+      </select></td>
+      <td><input class="tin" value="${esc(r.note)}" data-an="${i}" placeholder="needed for free · other"></td>
+      <td><button class="xbtn" data-adrop="${i}" title="Take it off the list">×</button></td>
+    </tr>`).join("")}</tbody></table>
+    <div class="sohint">Priced lines get their price and discount from the database (tier · customer discount · deals). Free lines go in at 0 with a reason.</div>`;
+  box.querySelectorAll("[data-aq]").forEach(inp => { inp.onchange = () => { addPick[Number(inp.dataset.aq)].qty = Number(inp.value) || 0; staleAdd(); }; });
+  box.querySelectorAll("[data-af]").forEach(s => { s.onchange = () => { addPick[Number(s.dataset.af)].free = s.value; staleAdd(); }; });
+  box.querySelectorAll("[data-an]").forEach(inp => { inp.onchange = () => { addPick[Number(inp.dataset.an)].note = inp.value; }; });
+  box.querySelectorAll("[data-adrop]").forEach(b => { b.onclick = () => { addPick.splice(Number(b.dataset.adrop), 1); drawChosen(); staleAdd(); }; });
+}
+function staleAdd(){
+  const go = document.getElementById("alGo"); if(go) go.disabled = true;
+  const out = document.getElementById("alOut"); if(out) out.innerHTML = "";
+}
+async function runAdd(commit){
+  const priced = addPick.filter(r => !r.free).map(r => ({ sku: r.sku, qty: Number(r.qty) }));
+  const free   = addPick.filter(r => r.free);
+  if(!priced.length && !free.length){ say("alMsg", "err", "Pick at least one product."); return; }
+  if(free.some(r => r.free === "other" && !String(r.note || "").trim())){ say("alMsg", "err", "A free line with reason other needs a note."); return; }
+  let res = null;
+  if(priced.length){
+    res = await runLines(priced, commit, { out: "alOut", msg: "alMsg", go: "alGo" }, true);
+    if(res === false) return;
+  } else {
+    document.getElementById("alOut").innerHTML = `<div class="msg dim">${free.length} free line(s) will be added at 0.</div>`;
+    document.getElementById("alGo").disabled = false;
+  }
+  if(!commit) return;
+  for(const r of free){
+    const { error } = await sb.rpc("so_line_add", { p_so_id: curId, p_product_id: r.pid, p_qty: Number(r.qty), p_unit_price: 0, p_free_reason: r.free, p_comments: r.note || null });
+    if(error){ say("alMsg", "err", r.sku + ": " + error.message); await reloadHere(); return; }
+  }
+  modalClose();
+  await reloadHere();
+}
+
+function openPaste(){
+  modalOpen(`
+    <h4>Paste lines — one per row: SKU then quantity</h4>
+    <div class="pbody">
+      <textarea id="pasteBox" placeholder="ABE50205	10&#10;HBE00245	24&#10;…&#10;&#10;Tab, comma or two spaces — any of them works."></textarea>
+      <div id="pasteOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="pasteMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="pasteChk">Check</button>
+      <button class="pobtn go" id="pasteGo" disabled>Add lines</button>
+    </div>`);
+  wireModalClose();
+  const ids = { out: "pasteOut", msg: "pasteMsg", go: "pasteGo" };
+  document.getElementById("pasteChk").onclick = () => runLines(parsePaste(document.getElementById("pasteBox").value), false, ids);
+  document.getElementById("pasteGo").onclick  = () => runLines(parsePaste(document.getElementById("pasteBox").value), true, ids);
+}
+function parsePaste(text){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split(/\t|,|\s{2,}|\s+/);
+    const qv = p.length > 1 ? p[p.length - 1] : "";
+    const sku = p.slice(0, Math.max(1, p.length - 1)).join(" ");
+    return { sku: sku, qty: Number(String(qv).replace(/[, ]/g, "")) };
+  });
+}
+/* ⭐ 붙여넣기와 찾아 고르기가 같은 창구 · 같은 판정 표 — keepOpen 이면 넣은 뒤 모달을 닫지 않는다(무상 줄이 뒤따른다) */
+async function runLines(rows, commit, ids, keepOpen){
+  const msg = document.getElementById(ids.msg);
+  if(!rows.length){ msg.className = "err"; msg.textContent = "Nothing to read."; return false; }
+  msg.className = ""; msg.textContent = commit ? "Adding…" : "Checking…";
+  const { data, error } = await sb.rpc("so_lines_paste", { p_so_id: curId, p_lines: rows, p_commit: commit });
+  if(error){ msg.className = "err"; msg.textContent = error.message; return false; }
+  const s = data.summary;
+  msg.className = "";
+  msg.textContent = s.too_many ? s.message
+    : `${s.total} rows · ok ${s.ok}` + (s.no_price ? ` · no price ${s.no_price}` : "") + (s.merged ? ` · merged ${s.merged}` : "")
+      + (s.ask ? ` · price differs ${s.ask}` : "") + (s.not_found ? ` · not found ${s.not_found}` : "")
+      + (s.inactive ? ` · inactive ${s.inactive}` : "") + (s.duplicate ? ` · duplicate ${s.duplicate}` : "")
+      + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "") + (commit ? ` · added ${s.inserted} · updated ${s.updated}` : "");
+  document.getElementById(ids.out).innerHTML = `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Verdict</th><th>Note</th></tr></thead>
+    <tbody>${(data.lines || []).map(l => {
+      const v = VERDICT[l.verdict] || ["dim", l.verdict || ""];
+      return `<tr><td class="num">${esc(l.n)}</td><td class="mono">${esc(l.input_sku)}</td><td>${dim(l.product_name)}</td>
+        <td class="num">${qty(l.qty !== undefined && l.qty !== null ? l.qty : l.input_qty)}</td>
+        <td><span class="${v[0]}">${esc(v[1])}</span></td><td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  document.getElementById(ids.go).disabled = s.too_many || (Number(s.ok) + Number(s.no_price || 0) + Number(s.merged || 0)) === 0;
+  if(commit){
+    document.getElementById(ids.go).disabled = true;
+    if(!keepOpen){ await reloadHere(); }
+  }
+  return data;
+}
+
+/* ── 줄 고치기 — 표 안에서 바로(po.html 과 같은 결) ────────
+   qty_ordered · unit_price(= 덮어쓰기 override) · discount_pct(= 사람 할인 manual · 비우면 시스템으로)
+   ⚠️ 가격과 할인을 한 번에 못 준다(DB) · 세금 규칙은 줄에서 못 바꾼다(오더의 것) */
+async function saveLine(inp){
+  const prev = inp.dataset.prev, f = inp.dataset.f, lineId = inp.dataset.line;
+  const raw = inp.value.trim();
+  if(raw === prev) return;
+  const patch = {};
+  if(f === "discount_pct" && raw === "") patch[f] = null;
+  else {
+    const v = Number(raw);
+    if(raw === "" || !isFinite(v)){ inp.value = prev; return; }
+    patch[f] = v;
+  }
+  inp.disabled = true;
+  const { data, error } = await sb.rpc("so_line_update", { p_line_id: lineId, p_patch: patch });
+  inp.disabled = false;
+  if(error){ inp.value = prev; alert(error.message); return; }
+  if(data && (data.warnings || []).length) setTimeout(() => alert("⚠ " + data.warnings.map(warnText).join("\n⚠ ")), 30);
+  await reloadHere();
+}
+async function resetLine(lineId, sku){
+  if(!confirm(`Put ${sku} back on the system price (tier · customer discount · deals)?`)) return;
+  const { error } = await sb.rpc("so_line_update", { p_line_id: lineId, p_patch: { discount_pct: null } });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+async function removeLine(lineId, sku){
+  if(!confirm(`Remove ${sku} from this order?`)) return;
+  const { error } = await sb.rpc("so_line_remove", { p_line_id: lineId });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+
+/* ── 운임 ─────────────────────────────────────────────
+   ⚠️ 금액은 0 이상(음수는 크레딧 노트) · 세금은 오더 규칙을 따른다(줄마다 못 바꾼다 · §16 판정 9) */
+function openCharge(c){
+  modalOpen(`
+    <h4>${c ? "Edit charge" : "Add a charge"}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Name</label><input id="chN" class="sofield" value="${esc(c ? c.name : "Freight")}"></div>
+      <div class="frow"><label>Amount</label><input id="chA" class="sofield" type="number" step="0.01" min="0" value="${esc(c ? c.amount : "")}"></div>
+      <div class="frow"><label>Description</label><input id="chD" class="sofield" value="${esc(c ? (c.description || "") : "")}"></div>
+      <div class="sohint">Tax follows the order's tax rule. A charge cannot be negative — money back is a credit note.</div>
+      <div id="chMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="chGo">Save</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("chGo").onclick = async () => {
+    const name = document.getElementById("chN").value.trim();
+    const amt  = Number(document.getElementById("chA").value);
+    if(!name){ say("chMsg", "err", "Give the charge a name."); return; }
+    if(!isFinite(amt) || document.getElementById("chA").value.trim() === ""){ say("chMsg", "err", "Give an amount (0 or more)."); return; }
+    say("chMsg", "", "Saving…");
+    const { error } = await sb.rpc("so_charge_set", { p_so_id: curId, p_name: name, p_amount: amt,
+      p_charge_id: c ? c.id : null, p_description: document.getElementById("chD").value.trim() || null });
+    if(error){ say("chMsg", "err", error.message); return; }
+    modalClose(); await reloadHere();
+  };
+}
+async function removeCharge(id, name){
+  if(!confirm(`Remove the charge ${name}?`)) return;
+  const { error } = await sb.rpc("so_charge_remove", { p_charge_id: id });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+
+/* ── 머리 고치기 — so_header_update 한 창구 · 초안만(DB 가 막는다) ──────
+   ⭐ tax_rule 을 비우면(Auto) 배송지 주로 다시 고른다 · 고르면 사람이 정한 규칙(manual) · 배송지 나라·주가 바뀌면 다시 배송지로(§16 판정 7) */
+async function saveHead(el){
+  const f = el.dataset.head, prev = el.dataset.prev;
+  let val = el.value.trim();
+  if(val === prev) return;
+  if(el.type === "number") val = val === "" ? null : Number(val);
+  else if(val === "") val = null;
+  say("headMsg", "", "Saving…");
+  const { data, error } = await sb.rpc("so_header_update", { p_so_id: curId, p_patch: { [f]: val } });
+  if(error){ el.value = prev; say("headMsg", "err", error.message); return; }
+  say("headMsg", "on", "Saved");
+  if(data && (data.warnings || []).length) setTimeout(() => alert("⚠ " + data.warnings.map(warnText).join("\n⚠ ")), 30);
+  await reloadHere();
+}
+const SHIP_F = [["ship_to_company","Company"],["ship_to_contact","Contact"],["ship_to_phone","Phone"],["ship_to_line1","Address line 1"],
+  ["ship_to_line2","Address line 2"],["ship_to_city","City"],["ship_to_state_province","Province / state"],["ship_to_postal_code","Postal code"],["ship_to_country","Country"]];
+function openShipTo(){
+  const s = cur.so;
+  modalOpen(`
+    <h4>Ship to — ${esc(s.so_number)}</h4>
+    <div class="pbody">
+      ${SHIP_F.map(([k, l]) => `<div class="frow"><label>${l}</label><input class="sofield" data-sf="${k}" value="${esc(s[k] || "")}"></div>`).join("")}
+      <div class="sohint">Changing the province or country picks the tax rule again from the ship-to (a manual rule is reset).</div>
+      <div id="shipMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="shipGo">Save</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("shipGo").onclick = async () => {
+    const patch = {};
+    document.querySelectorAll("[data-sf]").forEach(inp => {
+      const k = inp.dataset.sf, v = inp.value.trim();
+      if(v !== String(s[k] || "")) patch[k] = v === "" ? null : v;
+    });
+    if(!Object.keys(patch).length){ modalClose(); return; }
+    say("shipMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("so_header_update", { p_so_id: curId, p_patch: patch });
+    if(error){ say("shipMsg", "err", error.message); return; }
+    modalClose();
+    if(data && (data.warnings || []).length) setTimeout(() => alert("⚠ " + data.warnings.map(warnText).join("\n⚠ ")), 30);
+    await reloadHere();
+  };
+}
+
+/* ── 확정(창고 길) — 미리 보기 → 확정 · manager ────────
+   ⭐ 모자란 몫은 늘 나눈다(백오더 형제 · R1) · 프리오더는 사람이 고른다 · 보류는 오더 전체(R3)
+   ⭐ 확정할 때 같은 손님·같은 제품의 열린 백오더를 이어받는다(§15) — 결과에 보인다 */
+let cfPre = new Set(), cfHold = false;
+function openConfirm(){
+  cfPre = new Set(); cfHold = false;
+  modalOpen(`
+    <h4>Confirm ${esc(cur.so.so_number)} — preview</h4>
+    <div class="pbody">
+      <label style="display:flex;gap:6px;align-items:center;font-size:12.5px"><input type="checkbox" id="cfHold"> Confirm on hold — do not reserve stock for the whole order</label>
+      <div id="cfOut" style="margin-top:10px"><div class="msg">Loading…</div></div>
+    </div>
+    <div class="pfoot">
+      <span id="cfMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Close</button>
+      <button class="pobtn go" id="cfGo" disabled>Confirm</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("cfHold").onchange = (e) => { cfHold = e.target.checked; runConfirm(false); };
+  document.getElementById("cfGo").onclick = () => runConfirm(true);
+  runConfirm(false);
+}
+async function runConfirm(commit){
+  say("cfMsg", "", commit ? "Confirming…" : "Checking…");
+  document.getElementById("cfGo").disabled = true;
+  const { data, error } = await sb.rpc("so_confirm", { p_so_id: curId, p_preorder_line_ids: Array.from(cfPre), p_hold: cfHold, p_commit: commit });
+  if(error){ say("cfMsg", "err", error.message); return; }
+  const out = document.getElementById("cfOut");
+  const lines = data.lines || [];
+  out.innerHTML = `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th>
+      <th class="num">Reserved</th><th class="num">Backorder</th><th class="num">Preorder</th>${commit ? "" : "<th>Preorder?</th>"}</tr></thead>
+    <tbody>${lines.map(l => `<tr>
+      <td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.qty_ordered)}</td>
+      <td>${esc(l.kind || "")}</td><td class="num">${qty(l.allocated)}</td>
+      <td class="num">${Number(l.backordered) ? `<span class="neutral">${qty(l.backordered)}</span>` : '<span class="dim">0</span>'}</td>
+      <td class="num">${Number(l.preorder) ? `<span class="neutral">${qty(l.preorder)}</span>` : '<span class="dim">0</span>'}</td>
+      ${commit ? "" : `<td><input type="checkbox" data-pre="${esc(l.line_id)}" ${cfPre.has(l.line_id) ? "checked" : ""} ${cfHold ? "disabled" : ""}></td>`}
+    </tr>`).join("")}</tbody></table>
+    ${(data.siblings || []).length ? `<div class="sosub">${commit ? "Split off" : "Will split off"}: ${data.siblings.map(x =>
+      `${esc(x.so_number || "")} ${esc(x.split_reason)} (${esc(x.lines)} line${Number(x.lines) === 1 ? "" : "s"})`).join(" · ")}</div>` : ""}
+    ${commit && data.superseded ? `<div class="sosub">Backorders taken over from earlier orders: ${esc(JSON.stringify(data.superseded))}</div>` : ""}
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+  if(commit){
+    say("cfMsg", "on", "Confirmed.");
+    document.querySelector('#modalBox [data-m="close"]').onclick = async () => { modalClose(); await reloadHere(); };
+    return;
+  }
+  say("cfMsg", "", "Nothing is saved until you press Confirm.");
+  out.querySelectorAll("[data-pre]").forEach(cb => {
+    cb.onchange = () => { if(cb.checked) cfPre.add(cb.dataset.pre); else cfPre.delete(cb.dataset.pre); runConfirm(false); };
+  });
+  document.getElementById("cfGo").disabled = false;
+}
+
+/* counter 확정 — 재고를 보지 않고 전 줄을 잡는다(실물을 손에 쥔 길 · 6-d) · manager · 백오더 이어받기 없음(④ 판정 13) */
+async function confirmCounter(){
+  if(!confirm(`Confirm counter order ${cur.so.so_number}? Every line is reserved as it is — counter orders never split or backorder.`)) return;
+  const { data, error } = await sb.rpc("so_pos_confirm", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  if((data.warnings || []).length) setTimeout(() => alert("⚠ " + data.warnings.map(warnText).join("\n⚠ ")), 30);
+  await reloadHere();
+}
+async function reopenCounter(){
+  if(!confirm(`Reopen ${cur.so.so_number} as a draft? Reserved stock is released.`)) return;
+  const { error } = await sb.rpc("so_pos_reopen", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+async function unconfirmSo(){
+  if(!confirm(`Unconfirm ${cur.so.so_number}? Reserved stock is released and split-off backorder/preorder orders come back into this one (supervisor).`)) return;
+  const { data, error } = await sb.rpc("so_unconfirm", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+  if(data && Number(data.backorders_reopened)) setTimeout(() => alert(`${data.backorders_reopened} backorder line(s) taken over by this order were reopened.`), 30);
+}
+async function deleteSo(){
+  if(!confirm(`Delete draft ${cur.so.so_number}? It has never been confirmed, so it disappears — the number is not reused.`)) return;
+  const { error } = await sb.rpc("so_delete", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  clearDetail(); await loadList();
+}
+async function repriceSo(){
+  if(!confirm("Requote every system line with today's rules (order date · tier · customer discount · deals)? Lines with a manual price or discount are left as they are.")) return;
+  const { data, error } = await sb.rpc("so_reprice", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+  if(data && (data.warnings || []).length) setTimeout(() => alert("⚠ " + data.warnings.map(warnText).join("\n⚠ ")), 30);
+}
+
+/* ── 취소 — 미리 보기 → 취소 · manager · 사유 필수 ─────
+   ⭐ 이어받은 백오더 줄이 있으면 다시 열지 사람이 고른다(§15 판정 10 · null 이면 DB 가 거부) */
+function openCancel(){
+  modalOpen(`
+    <h4>Cancel ${esc(cur.so.so_number)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Reason</label><input id="cxNote" class="sofield" placeholder="Why is it cancelled?"></div>
+      <div id="cxOut"></div>
+      <div id="cxMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Close</button>
+      <button class="pobtn" id="cxChk">Check</button>
+      <button class="pobtn go" id="cxGo" disabled>Cancel the order</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("cxChk").onclick = () => runCancel(false);
+  document.getElementById("cxGo").onclick  = () => runCancel(true);
+}
+async function runCancel(commit){
+  const note = document.getElementById("cxNote").value.trim();
+  if(!note){ say("cxMsg", "err", "A reason is required."); return; }
+  const r = document.querySelector('input[name="cxReopen"]:checked');
+  const reopen = r ? r.value === "yes" : null;
+  say("cxMsg", "", commit ? "Cancelling…" : "Checking…");
+  const { data, error } = await sb.rpc("so_cancel", { p_so_id: curId, p_note: note, p_keep: [], p_commit: commit, p_reopen_superseded: reopen });
+  if(error){ say("cxMsg", "err", error.message); return; }
+  const sup = data.superseded_lines || [];
+  document.getElementById("cxOut").innerHTML = `
+    <div class="sosub">Orders ${commit ? "cancelled" : "that will be cancelled"} (split-off orders go with it): ${esc((data.orders || []).filter(o => o.action === "cancel").map(o => o.so_number).join(" · ") || cur.so.so_number)}
+      ${(data.orders || []).some(o => o.action !== "cancel") ? `<br>Left as they are: ${esc(data.orders.filter(o => o.action !== "cancel").map(o => o.so_number + " (" + String(o.action).replace(/_/g, " ") + ")").join(" · "))}` : ""}</div>
+    ${sup.length ? `<div style="margin-top:10px;font-size:12.5px">This order took over ${sup.length} backorder line(s) from earlier orders. Reopen them?
+      <label style="margin-left:10px"><input type="radio" name="cxReopen" value="yes" ${reopen === true ? "checked" : ""}> Reopen</label>
+      <label style="margin-left:10px"><input type="radio" name="cxReopen" value="no" ${reopen === false ? "checked" : ""}> Keep closed</label></div>` : ""}
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+  if(commit){ modalClose(); await reloadHere(); return; }
+  say("cxMsg", "", "Nothing is saved until you press Cancel the order.");
+  document.getElementById("cxGo").disabled = false;
+}
+
+/* ── 결제 넣기 — so_payment_add · sales ────────────────
+   ⭐ 인보이스가 살아 있으면 그 인보이스에 붙인다(allocations) · 아직이면 이 오더를 대상으로 적는다(target_so_ids — 발행 순간 저절로 붙는다 §18 판정 4)
+   ⭐ 손님은 청구처(bill_to_customer_id → 없으면 오더 손님) · 브랜치는 오더 창고 · 통화는 오더 통화
+   ⭐ 계좌는 비우면 방법·브랜치·통화의 기본값(so_payment_account_default) — 기본값이 없는 조합(wire·direct deposit CAD 등)은 골라야 한다 */
+const METHODS = [["credit_card","Credit card"],["debit_card","Debit card"],["cash","Cash"],["e_transfer","e-Transfer"],["cheque","Cheque"],["wire","Wire"],["direct_deposit","Direct deposit"],["shopify","Shopify"]];
+async function openPayment(){
+  const s = cur.so, inv = cur.invoice;
+  /* ⭐ so_detail 의 invoice 가 남은 금액(remaining = so_invoice_remaining 한 곳)을 이미 싣고 온다 — 다시 부르지 않는다 */
+  const invLive = inv && inv.invoice_id && inv.status === "issued";
+  const remaining = invLive ? inv.remaining : null;
+  const total = cur.totals && cur.totals.order_total_with_tax;
+  modalOpen(`
+    <h4>Take a payment — ${esc(s.so_number)}</h4>
+    <div class="pbody">
+      <div class="sosub" style="margin:-4px 0 12px">${invLive
+        ? `Applied to invoice <b class="mono">${esc(inv.invoice_number)}</b> · still owed ${money(remaining)}`
+        : `No invoice yet — the payment is recorded against this order and attaches itself when the invoice is issued. Order total with tax ${money(total)}.`}</div>
+      <div class="frow"><label>Method</label><select id="pyM" class="sofield">${METHODS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></div>
+      <div class="frow"><label>Amount (${esc(s.currency_code || "")})</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01" value="${remaining !== null && Number(remaining) > 0 ? esc(Number(remaining).toFixed(2)) : ""}"></div>
+      <div class="frow"><label>Paid on</label><input id="pyD" class="sofield" type="date" value="${torontoToday()}" max="${torontoToday()}"></div>
+      <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="card slip · cheque no. · transfer ref"></div>
+      <div class="frow"><label>Account</label><select id="pyAcc" class="sofield"><option value="">Default for this method and branch</option>
+        ${ACCTS.map(a => `<option value="${a.id}">${esc(a.code)} · ${esc(a.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Note</label><input id="pyN" class="sofield"></div>
+      <div class="sohint" id="pyHint"></div>
+      <div id="pyMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="pyGo">Record payment</button>
+    </div>`);
+  wireModalClose();
+  const hint = async () => {
+    const m = document.getElementById("pyM").value;
+    const r = await sb.rpc("so_payment_default_account", { p_method: m, p_warehouse_id: s.location_id, p_currency_id: s.currency_id });
+    const a = r.data ? ACCTS.find(x => x.id === r.data) : null;
+    document.getElementById("pyHint").textContent = a ? `Default account: ${a.code} · ${a.name}` : "No default account for this method, branch and currency — pick one.";
+  };
+  document.getElementById("pyM").onchange = hint; hint();
+  document.getElementById("pyGo").onclick = async () => {
+    const amt = Number(document.getElementById("pyA").value);
+    if(!(amt > 0)){ say("pyMsg", "err", "Give an amount above zero."); return; }
+    const p = {
+      customer_id: s.bill_to_customer_id || s.customer_id,
+      amount: amt,
+      paid_on: document.getElementById("pyD").value || null,
+      method: document.getElementById("pyM").value,
+      reference: document.getElementById("pyR").value.trim() || null,
+      currency_id: s.currency_id,
+      account_id: document.getElementById("pyAcc").value || null,
+      warehouse_id: s.location_id,
+      note: document.getElementById("pyN").value.trim() || null,
+    };
+    if(invLive) p.allocations = [{ invoice_id: inv.invoice_id, amount: Math.min(amt, Number(remaining) || amt) }];
+    else p.target_so_ids = [s.id];
+    say("pyMsg", "", "Recording…");
+    document.getElementById("pyGo").disabled = true;
+    const { data, error } = await sb.rpc("so_payment_add", { p: p });
+    if(error){ say("pyMsg", "err", error.message); document.getElementById("pyGo").disabled = false; return; }
+    modalClose(); await reloadHere();
+    if(data && Number(data.remaining) > 0) setTimeout(() => alert(`Recorded. ${Number(data.remaining).toFixed(2)} of this payment is not attached to an invoice — it stays on the customer's balance.`), 30);
+  };
+}
+
+/* ── counter 「나갔다」 — so_counter_ship · manager ────────
+   ⭐ 미리 보기가 칸을 채운다(재고 있는 평소 칸 → 보관용 → 첫 후보 · ④ 판정 1·2) · 사람이 칸·수량을 바꾼다(판정 4)
+   ⭐ 막지 않는다 — 받은 금액 · 남은 미수를 보이고 남은 몫은 인보이스 미수(판정 5)
+   ⚠️ counter 는 목표만큼 정확히 나가야 한다(백오더 없음) — 줄이려면 다시 열어 줄을 고친다 */
+let shipPlan = null;
+async function openShip(){
+  modalOpen(`
+    <h4>Hand over ${esc(cur.so.so_number)} — ship and invoice</h4>
+    <div class="pbody"><div id="shOut"><div class="msg">Loading…</div></div><div id="shMsg" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="shGo" disabled>Ship and invoice</button>
+    </div>`);
+  wireModalClose();
+  const { data, error } = await sb.rpc("so_counter_ship", { p_so_id: curId, p_picks: null, p_commit: false });
+  if(error){ document.getElementById("shOut").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  shipPlan = data;
+  const est = data.estimate || {};
+  const lineMap = {};
+  (cur.lines || []).forEach(l => { lineMap[l.id] = l; });
+  document.getElementById("shOut").innerHTML = `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">To ship</th><th>Bin</th><th class="num">Qty</th><th>From</th><th></th></tr></thead>
+    <tbody id="shRows">${(data.plan || []).map(pl => (pl.picks || []).map((pk, i) => shipRow(pl, pk, i === 0)).join("")).join("")}</tbody></table>
+    ${Number(data.short_ea_total) > 0 ? `<div class="sosub">⚠ ${qty(data.short_ea_total)} EA more than the book shows in this warehouse — it still ships, and the manager list shows it as sold without stock.</div>` : ""}
+    <div class="socols">
+      <div class="stat">Invoice total<b>${money(est.total)}</b></div>
+      <div class="stat">Paid for this order<b>${money(est.deposit)}</b></div>
+      <div class="stat">Credit / balance used<b>${money(Number(est.credit || 0) + Number(est.balance || 0))}</b></div>
+      <div class="stat">Amount due<b>${money(est.amount_due)}</b></div>
+    </div>
+    <div class="sohint">Credits and money on account attach themselves when the invoice is issued. Nothing blocks the hand-over — whatever is not paid stays as an unpaid invoice.</div>
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+  wireShipRows();
+  document.getElementById("shGo").disabled = false;
+  document.getElementById("shGo").onclick = runShip;
+}
+function shipRow(pl, pk, first){
+  return `<tr data-line="${esc(pl.line_id)}">
+    <td class="num">${first ? esc(pl.line_no) : ""}</td>
+    <td class="mono">${first ? esc(pl.sku) + (pl.is_set ? ` <span class="dim">×${esc(pl.pack_factor)}</span>` : "") : ""}</td>
+    <td class="num">${first ? qty(pl.to_ship) : ""}</td>
+    <td><input class="tin" data-sb value="${esc(pk ? pk.bin : "")}" placeholder="bin"></td>
+    <td class="num"><input class="qin" type="number" step="any" min="0" data-sq value="${esc(pk ? pk.qty : "")}"></td>
+    <td class="dim" style="font-size:11.5px">${esc(pk ? pk.from : "added")}</td>
+    <td>${first ? `<button class="xbtn" data-addbin="${esc(pl.line_id)}" title="Take part of it from another bin">+ bin</button>` : ""}</td>
+  </tr>`;
+}
+function wireShipRows(){
+  document.querySelectorAll("[data-addbin]").forEach(b => {
+    b.onclick = () => {
+      const pl = (shipPlan.plan || []).find(x => x.line_id === b.dataset.addbin);
+      const rows = Array.from(document.querySelectorAll(`#shRows tr[data-line="${b.dataset.addbin}"]`));
+      rows[rows.length - 1].insertAdjacentHTML("afterend", shipRow(pl, null, false));
+    };
+  });
+}
+function readPicks(){
+  const out = [];
+  document.querySelectorAll("#shRows tr[data-line]").forEach(tr => {
+    const qv = Number(tr.querySelector("[data-sq]").value);
+    if(qv > 0) out.push({ line_id: tr.dataset.line, bin: tr.querySelector("[data-sb]").value.trim(), qty: qv });
+  });
+  return out;
+}
+const pickKey = (arr) => (arr || []).map(p => `${p.line_id}|${p.bin}|${Number(p.qty)}`).sort().join(";");
+async function runShip(){
+  const picks = readPicks();
+  const same = pickKey(picks) === pickKey(shipPlan.picks);
+  say("shMsg", "", "Shipping and invoicing…");
+  document.getElementById("shGo").disabled = true;
+  const { data, error } = await sb.rpc("so_counter_ship", { p_so_id: curId, p_picks: same ? null : picks, p_commit: true });
+  if(error){ say("shMsg", "err", error.message); document.getElementById("shGo").disabled = false; return; }
+  document.getElementById("shOut").innerHTML = `
+    <div class="socols">
+      <div class="stat">Invoice<b>${esc(data.invoice_number || "")}</b></div>
+      <div class="stat">Amount due<b>${money(data.amount_due)}</b></div>
+      <div class="stat">Still owed<b>${money(data.remaining)}</b></div>
+    </div>
+    <div class="sohint">Issued ${esc(data.issued_on || "")}${data.due_on ? " · due " + esc(data.due_on) : ""}. The order is now ${esc(data.status || "")}.</div>
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+  say("shMsg", "on", "Done.");
+  const cl = document.querySelector('#modalBox [data-m="close"]');
+  cl.textContent = "Close"; cl.onclick = async () => { modalClose(); await reloadHere(); };
+}
+
+/* ══ 상세 ═══════════════════════════════════════════════ */
+function headIn(field, value, ed, type){
+  if(!ed) return (value === null || value === undefined || value === "") ? '<span class="dim">—</span>' : esc(value);
+  const t = type || "text";
+  return `<input class="${t === "number" ? "qin" : "tin"}" type="${t}" ${t === "number" ? 'step="any" min="0"' : ""}
+    value="${esc(value ?? "")}" data-prev="${esc(value ?? "")}" data-head="${field}">`;
+}
+function headSel(field, value, ed, opts, blank){
+  const lbl = (opts.find(o => o[0] === value) || [null, value])[1];
+  if(!ed) return dim(lbl);
+  return `<select class="tin" data-head="${field}" data-prev="${esc(value ?? "")}">
+    ${blank !== undefined ? `<option value="">${esc(blank)}</option>` : ""}
+    ${opts.map(o => `<option value="${esc(o[0])}" ${o[0] === value ? "selected" : ""}>${esc(o[1])}</option>`).join("")}
+  </select>`;
+}
+const addr = (a) => [a.l1, a.l2, a.city, a.prov, a.post, a.ctry].filter(Boolean).join(", ");
+
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [d, fam] = await Promise.all([
+    sb.rpc("so_detail", { p_so_id: id }),
+    sb.rpc("so_family_members", { p_so_id: id }),
+  ]);
+  if(seq !== detailSeq) return;
+  if(d.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(d.error.message)}</div></div>`; return; }
+  if(!d.data || !d.data.so){ box.innerHTML = '<div class="card"><div class="msg">That sales order is gone.</div></div>'; return; }
+  const data = d.data;
+  cur = data;
+  const s = data.so, t = data.totals || {}, inv = data.invoice;
+  const famRows = (fam.data || []);
+  /* 합쳐진 곳의 번호 — so_family_members 는 id 만 준다 */
+  const mergedIds = [...new Set(famRows.map(r => r.merged_into_id).concat(s.merged_into_id ? [s.merged_into_id] : []).filter(Boolean))];
+  let mergedNo = {};
+  if(mergedIds.length){
+    const m = await sb.from("so").select("id,so_number").in("id", mergedIds);
+    (m.data || []).forEach(x => { mergedNo[x.id] = x.so_number; });
+  }
+  if(seq !== detailSeq) return;
+
+  /* ⚠️ 화면 조각이 쓰는 값은 조각보다 위에서 선언한다(po.html 실사고 두 번) */
+  const ed = s.status === "draft";
+  const ch = s.channel;
+  const invLive = inv && inv.status === "issued";
+  const acts = [];
+  acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list">&#9776; List</button>');
+  acts.push('<button class="pobtn" data-act="wide">&lsaquo; All orders</button>');
+  if(ed){
+    acts.push('<button class="pobtn" data-act="addline">Add lines</button>');
+    acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
+    acts.push('<button class="pobtn" data-act="addcharge">Add a charge</button>');
+    acts.push('<button class="pobtn" data-act="shipto">Ship to…</button>');
+    acts.push('<button class="pobtn" data-act="reprice" title="Requote system lines with today\'s rules">Reprice</button>');
+    if(isMgr() && ch === "warehouse") acts.push('<button class="pobtn go" data-act="confirm">Confirm…</button>');
+    if(isMgr() && ch === "counter")   acts.push('<button class="pobtn go" data-act="confirmc">Confirm</button>');
+    acts.push('<button class="pobtn" data-act="delete">Delete draft</button>');
+  }
+  if(s.status === "confirmed"){
+    if(ch === "counter" && isMgr()){
+      acts.push('<button class="pobtn go" data-act="ship">Hand over — ship and invoice…</button>');
+      acts.push('<button class="pobtn" data-act="reopenc">Reopen as draft</button>');
+    }
+    if(ch === "warehouse"){
+      /* ⬜ 다음 판 — 단추 자리만(Caleb 2026-09-25 「미루는 것도 다 그럴만한 이유가 있을테니」) */
+      ["Release to WMS", "Hold", "Divide", "Change warehouse", "Proceed backorder"].forEach(x =>
+        acts.push(`<button class="pobtn" disabled title="Coming in the next version of this screen">${x}</button>`));
+      if(isSup()) acts.push('<button class="pobtn" data-act="unconfirm">Unconfirm</button>');
+    }
+    if(ch === "pos") acts.push('<button class="pobtn" disabled title="POS orders are finished on the POS screen (coming later)">Finish on POS</button>');
+    if(isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel order…</button>');
+  }
+  if(s.status !== "cancelled" && s.status !== "draft" && (invLive || s.status === "confirmed" || s.status === "packed"))
+    acts.push('<button class="pobtn" data-act="pay">Take a payment…</button>');
+  else if(s.status === "draft")
+    acts.push('<button class="pobtn" data-act="pay" title="A deposit recorded against this order attaches itself when the invoice is issued">Take a deposit…</button>');
+
+  const chips = [stChip(s.status), `<span class="chip">${esc(CH_LBL[ch] || ch)}</span>`];
+  if(s.intake && s.intake !== "manual") chips.push(`<span class="chip">from ${esc(s.intake)}</span>`);
+  if(s.closed_reason) chips.push(`<span class="chip">${esc(s.closed_reason)}</span>`);
+  if(s.split_reason) chips.push(`<span class="chip">${esc(s.split_reason.replace("_", " "))}</span>`);
+
+  const WHO = WHS.map(w => [w.id, w.name]);
+  const TERMO = TERMS.map(x => [x.id, x.name]);
+  const TIERO = TIERS.map(x => [x.name, x.name]);
+  const TAXO = TAXES.map(x => [x.name, x.name + " · " + Number(x.rate_pct) + "%"]);
+  const taxSrc = t.tax_rule_source === "manual" ? '<span class="tag">set by hand</span>' : (t.tax_rule_source === "ship_to" ? '<span class="tag">from ship-to</span>' : "");
+  const shipA = { l1: s.ship_to_line1, l2: s.ship_to_line2, city: s.ship_to_city, prov: s.ship_to_state_province, post: s.ship_to_postal_code, ctry: s.ship_to_country };
+  const billA = { l1: s.bill_to_line1, l2: s.bill_to_line2, city: s.bill_to_city, prov: s.bill_to_state_province, post: s.bill_to_postal_code, ctry: s.bill_to_country };
+
+  const kvL = [
+    ["Customer",       esc(data.customer_name || "")],
+    ["Warehouse",      headSel("location_id", s.location_id, ed, WHO)],
+    ["Order date",     headIn("order_date", s.order_date, ed, "date")],
+    ["Required by",    headIn("required_by", s.required_by, ed, "date")],
+    ["Reference",      headIn("ref", s.ref, ed)],
+    ["Payment term",   headSel("payment_term_id", s.payment_term_id, ed, TERMO, "—")],
+    ["Price tier",     headSel("price_tier", s.price_tier, ed, TIERO)],
+    ["Customer discount %", headIn("discount_pct", s.discount_pct, ed, "number")],
+    ["Order discount %",    headIn("order_discount_pct", s.order_discount_pct, ed, "number")
+                            + (s.order_discount_source ? ` <span class="dim">${esc(s.order_discount_source)}</span>` : "")],
+    ["Tax rule",       headSel("tax_rule", s.tax_rule, ed, TAXO, "Auto — from ship-to province") + " " + taxSrc],
+  ];
+  const kvR = [
+    ["Bill to",        esc(s.bill_to_name || "") + (addr(billA) ? `<div class="dim" style="font-size:11.5px">${esc(addr(billA))}</div>` : "")],
+    ["Ship to",        esc([s.ship_to_company, s.ship_to_contact].filter(Boolean).join(" · "))
+                       + (addr(shipA) ? `<div class="dim" style="font-size:11.5px">${esc(addr(shipA))}</div>` : "")
+                       + (s.ship_to_phone ? `<div class="dim" style="font-size:11.5px">${esc(s.ship_to_phone)}</div>` : "")],
+    ["Currency",       `<span class="mono">${dim(s.currency_code)}</span>`],
+    ["Comments",       headIn("comments", s.comments, ed)],
+    ["Shipping notes", headIn("shipping_notes", s.shipping_notes, ed)],
+    ["Created",        imsTs(s.created_at)],
+    ["Confirmed",      s.confirmed_at ? imsTs(s.confirmed_at) : '<span class="dim">—</span>'],
+    ["Shipped",        s.shipped_at ? imsTs(s.shipped_at) : '<span class="dim">—</span>'],
+    ["Closed",         s.closed_at ? imsTs(s.closed_at) + (s.closed_note ? ` <span class="dim">${esc(s.closed_note)}</span>` : "") : '<span class="dim">—</span>'],
+    ["",               '<span id="headMsg" style="font-size:12.5px"></span>'],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  const basisNote = t.basis === "shipped" ? "shipped quantities (the invoice is the record)" : "ordered quantities";
+  const stats = `
+    <div class="stats">
+      <div class="stat">Lines<b>${money(t.lines_total)}</b></div>
+      <div class="stat">Order discount<b>${Number(t.order_discount_amount) ? "−" + money(t.order_discount_amount) : money(0)}</b></div>
+      <div class="stat">Charges<b>${money(t.charges_total)}</b></div>
+      <div class="stat ${t.tax === null || t.tax === undefined ? "warn" : ""}">Tax${t.tax_rule ? ` <span class="dim">${esc(t.tax_rule)}</span>` : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : money(t.tax)}</b></div>
+      <div class="stat">Total<b>${money(t.order_total_with_tax)}</b></div>
+    </div>`;
+
+  const shownQty = s.status !== "draft";
+  const lines = (data.lines || []).map(l => {
+    const src = l.free_reason ? `<span class="tag">free · ${esc(l.free_reason)}</span>`
+      : l.price_override ? '<span class="tag disc">price set by hand</span>'
+      : l.discount_source === "manual" ? '<span class="tag disc">discount by hand</span>'
+      : l.discount_source === "deal" ? '<span class="tag">deal</span>'
+      : l.discount_source === "customer" ? '<span class="dim" style="font-size:11.5px">customer</span>' : "";
+    const flags = [l.no_price ? '<span class="off" style="font-size:11.5px">no price</span>' : "",
+                   l.deal_ended ? '<span class="neutral" style="font-size:11.5px">deal had ended</span>' : "",
+                   Number(l.qty_removed) > 0 ? `<span class="neutral" style="font-size:11.5px">removed ${qty(l.qty_removed)}</span>` : "",
+                   Number(l.qty_credited) > 0 ? `<span class="neutral" style="font-size:11.5px">credited ${qty(l.qty_credited)}</span>` : ""].filter(Boolean).join(" ");
+    const manual = l.price_override || l.discount_source === "manual";
+    return `<tr>
+      <td class="num">${esc(l.line_no)}</td>
+      <td><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</td>
+      <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` : qty(l.qty_ordered)}</td>
+      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td>` : ""}
+      <td class="num">${price(l.list_price)}</td>
+      <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(l.discount_pct ?? "")}" data-prev="${esc(l.discount_pct ?? "")}" data-line="${l.id}" data-f="discount_pct" title="Type a discount to set it by hand · empty it to go back to the system discount">` : (l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%")}</td>
+      <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.unit_price ?? "")}" data-prev="${esc(l.unit_price ?? "")}" data-line="${l.id}" data-f="unit_price" title="Type a price to override">` : price(l.unit_price)}</td>
+      <td class="num">${money(t.basis === "shipped" ? l.shipped_total : l.total)}</td>
+      <td>${src} ${flags}</td>
+      ${ed ? `<td style="white-space:nowrap">${manual ? `<button class="xbtn" data-reset="${l.id}" data-sku="${esc(l.sku)}" title="Back to the system price">↺</button> ` : ""}<button class="xbtn" data-del="${l.id}" data-sku="${esc(l.sku)}" title="Remove line">&#10005;</button></td>` : ""}
+    </tr>`;
+  });
+  const charges = (data.charges || []).map(c => `<tr>
+      <td>${esc(c.name)}${c.description ? `<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>` : ""}</td>
+      <td class="num">${money(c.amount)}</td>
+      <td class="dim" style="font-size:11.5px">${esc(c.tax_rule || "")}</td>
+      ${ed ? `<td style="white-space:nowrap"><button class="xbtn" data-cedit="${c.id}" title="Edit">✎</button> <button class="xbtn" data-cdel="${c.id}" data-cname="${esc(c.name)}" title="Remove">&#10005;</button></td>` : ""}
+    </tr>`);
+
+  const tbl = (title, n, head, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${head.map(x => `<th${x[1] ? ' class="' + x[1] + '"' : ""}>${x[0]}</th>`).join("")}</tr></thead>
+        <tbody>${rows.join("")}</tbody></table>${sub ? `<div class="sosub">${sub}</div>` : ""}` : '<div class="msg">None.</div>'}
+    </div>`;
+
+  /* 인보이스 — 살아 있는 것 하나 + 취소된 이력 */
+  /* ⚠️ invoice = 살아 있는 한 장(칸이 많다) · invoice_history = 번호·상태·발행일·취소 시각만 */
+  const invRows = [];
+  if(inv && inv.invoice_number) invRows.push(`<tr><td class="mono">${esc(inv.invoice_number)}</td><td>${stChip(inv.status)}</td><td>${dim(inv.issued_on)}</td><td>${dim(inv.due_on)}</td>
+      <td class="num">${money(inv.total)}</td><td class="num">${money(inv.amount_due)}</td><td class="num">${money(inv.paid)}</td>
+      <td class="num">${Number(inv.remaining) > 0 ? `<span class="neutral">${money(inv.remaining)}</span>` : money(inv.remaining)}</td></tr>`);
+  (data.invoice_history || []).filter(h => !inv || h.invoice_number !== inv.invoice_number).forEach(h =>
+    invRows.push(`<tr><td class="mono">${esc(h.invoice_number)}</td><td>${stChip(h.status)}</td><td>${dim(h.issued_on)}</td>
+      <td class="dim" colspan="5">${h.cancelled_at ? "cancelled " + imsTs(h.cancelled_at) : ""}</td></tr>`));
+
+  /* 뭉치 — 형제(갈라진 것) · 합쳐진 곳 */
+  const famHtml = famRows.length > 1 || s.merged_into_id ? famRows.map(r => `
+      <tr><td>${"&nbsp;&nbsp;".repeat(Number(r.depth) || 0)}${r.is_self ? `<b class="mono">${esc(r.so_number)}</b>` : `<a class="lnk mono" data-goto="${esc(r.so_number)}" data-gid="${r.so_id}">${esc(r.so_number)}</a>`}</td>
+        <td>${stChip(r.status)}</td><td class="dim">${esc(r.split_reason || "")}</td>
+        <td class="num">${qty(r.open_qty)}</td>
+        <td>${r.merged_into_id ? `merged into <a class="lnk mono" data-goto="${esc(mergedNo[r.merged_into_id] || "")}" data-gid="${r.merged_into_id}">${esc(mergedNo[r.merged_into_id] || "?")}</a>` : ""}</td></tr>`) : [];
+
+  /* 손님 잔액 — so_customer_balance 한 곳의 값(통화별) */
+  const balRows = Array.isArray(data.customer_balance) ? data.customer_balance : (data.customer_balance ? [data.customer_balance] : []);
+  const balHtml = balRows.map(b => `<tr><td class="mono">${esc(b.currency_code || "")}</td><td class="num">${money(b.received)}</td><td class="num">${money(b.owed_credit)}</td><td class="num">${money(b.reserved_deposit)}</td><td class="num">${money(b.available)}</td><td class="num">${money(b.open_invoices_due)}</td></tr>`);
+
+  if(seq !== detailSeq) return;
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="sobar"><span class="pn">${esc(s.so_number)}</span><span class="chips">${chips.join("")}</span></div>
+        ${s.split_from_id ? `<div style="margin-top:8px;font-size:12.5px">${famRows.filter(r => r.so_id === s.split_from_id).map(r => `<a class="lnk" data-goto="${esc(r.so_number)}" data-gid="${r.so_id}">← split from ${esc(r.so_number)}</a>`).join("")}</div>` : ""}
+        ${s.merged_into_id ? `<div style="margin-top:8px;font-size:12.5px"><a class="lnk" data-goto="${esc(mergedNo[s.merged_into_id] || "")}" data-gid="${s.merged_into_id}">merged into ${esc(mergedNo[s.merged_into_id] || "")} →</a></div>` : ""}
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+      </div>
+      ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}
+      ${stats}
+      <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
+    </div>
+
+    ${tbl("Lines", (data.lines || []).length,
+      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Shipped","num"]] : [])
+        .concat([["List","num"],["Disc %","num"],["Unit","num"],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
+      lines,
+      `Totals use ${basisNote}. Each line's tax is rounded on its own and added up (as Cin7 does).` +
+      (ed ? " Edit quantity, discount or unit price in the cell — a price you type overrides the system price; ↺ puts it back." : ""))}
+
+    ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"],["Tax rule",""]].concat(ed ? [["",""]] : []), charges,
+      "Freight and similar. Tax follows the order's rule.")}
+
+    ${invRows.length ? tbl("Invoice", invRows.length, [["Number",""],["Status",""],["Issued",""],["Due",""],["Total","num"],["Amount due","num"],["Paid","num"],["Still owed","num"]], invRows,
+      "The invoice fixes the amounts. Payments and credits are on their own screens (coming next).") : ""}
+
+    ${famHtml.length ? tbl("Order family", famRows.length, [["Order",""],["Status",""],["Split reason",""],["Open qty","num"],["",""]], famHtml,
+      "Split-off orders (backorder · preorder · pick short) and where a merged order went.") : ""}
+
+    ${balHtml.length ? tbl("Customer balance", balHtml.length, [["Currency",""],["Money on account","num"],["Credit owed","num"],["Held for orders","num"],["Available","num"],["Open invoices due","num"]], balHtml,
+      "Available = money on account + credit owed − deposits held for open orders. It is used automatically when an invoice is issued.") : ""}
+  `;
+
+  box.querySelectorAll("[data-goto]").forEach(a => { a.onclick = () => gotoSo(a.dataset.goto, a.dataset.gid || null); });
+  box.querySelectorAll("[data-head]").forEach(el => { el.onchange = () => { if(el.value !== el.dataset.prev) saveHead(el); }; });
+  box.querySelectorAll("[data-act]").forEach(b => {
+    b.onclick = () => {
+      const a = b.dataset.act;
+      if(a === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
+      if(a === "wide")      showWide();
+      if(a === "addline")   openAddLine();
+      if(a === "paste")     openPaste();
+      if(a === "addcharge") openCharge(null);
+      if(a === "shipto")    openShipTo();
+      if(a === "reprice")   repriceSo();
+      if(a === "confirm")   openConfirm();
+      if(a === "confirmc")  confirmCounter();
+      if(a === "delete")    deleteSo();
+      if(a === "ship")      openShip();
+      if(a === "reopenc")   reopenCounter();
+      if(a === "unconfirm") unconfirmSo();
+      if(a === "cancel")    openCancel();
+      if(a === "pay")       openPayment();
+    };
+  });
+  if(ed){
+    box.querySelectorAll("input[data-line]").forEach(inp => { inp.onchange = () => saveLine(inp); });
+    box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del, b.dataset.sku); });
+    box.querySelectorAll("[data-reset]").forEach(b => { b.onclick = () => resetLine(b.dataset.reset, b.dataset.sku); });
+    box.querySelectorAll("[data-cedit]").forEach(b => { b.onclick = () => openCharge((data.charges || []).find(c => c.id === b.dataset.cedit)); });
+    box.querySelectorAll("[data-cdel]").forEach(b => { b.onclick = () => removeCharge(b.dataset.cdel, b.dataset.cname); });
+  }
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; rank = RANK[me.role] || 0;
+  window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = SO_BUILD;
+
+  document.getElementById("newSo").onclick = openNewSo;
+  document.getElementById("wnew").onclick  = openNewSo;
+  document.getElementById("backWide").onclick = showWide;
+
+  /* 고를 목록 — 전부 작은 표(캡 아래) · 한 번 읽어 둔다
+     ⚠️ 결제 계좌 후보 = 활성 BANK 또는 _5_(for_payments 를 믿지 마라 · §18-b ①) */
+  const [wh, tm, tr, tx, ac] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_price_tier").select("name,code").eq("purpose", "sale").eq("is_active", true).order("code"),
+    sb.from("ref_tax_rule").select("name,rate_pct").eq("is_active", true).eq("direction", "sale").order("name"),
+    sb.from("ref_account").select("id,code,name,account_type").eq("is_active", true).order("code"),
+  ]);
+  WHS = wh.data || []; TERMS = tm.data || []; TIERS = tr.data || []; TAXES = tx.data || [];
+  ACCTS = (ac.data || []).filter(a => a.account_type === "BANK" || a.code === "_5_");
+  [wh, tm, tr, tx, ac].forEach(r => { if(r.error) console.warn("list load failed:", r.error.message); });
+
+  const refilter = () => { pg.reset(); pgW.reset(); loadWide(); };
+  document.getElementById("wch").onchange  = e => { chFilter = e.target.value; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo = e.target.value; refilter(); };
+  document.getElementById("wst").onchange   = e => { stFilter = e.target.value; document.getElementById("st").value = stFilter; refilter(); };
+  imsQ("#wq", v => { q = v; document.getElementById("q").value = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; chFilter = ""; dateFrom = ""; dateTo = ""; stFilter = "open";
+    ["wq","wch","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wst").value = "open"; document.getElementById("q").value = ""; document.getElementById("st").value = "open";
+    refilter();
+  };
+  document.getElementById("st").onchange = e => { stFilter = e.target.value; document.getElementById("wst").value = stFilter; pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; document.getElementById("wq").value = v; pg.reset(); clearDetail(); loadList(); });
+
+  /* ?so=SO-25001a 로 들어오면 그 오더를 연다 */
+  const want = imsParam("so");
+  if(want){ await gotoSo(want, null); return; }
+  showWide();
+});
+</script>
+</body>
+</html>

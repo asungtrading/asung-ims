@@ -221,7 +221,7 @@
      in-flight requests (spinners hang forever). Force a clean reload on restore. ---- */
   window.addEventListener("pageshow", function(e){ if(e.persisted) location.reload(); });
 
-  /* ---- 탭 줄 = 모드 + 그 모드의 탭 (헤더 바로 아래 한 줄 · 2026-09-17) ----
+  /* ---- 탭 줄 = 모드 + 묶음 + 그 묶음의 탭 (헤더 바로 아래 한 줄 · 2026-09-17 · 묶음은 2026-09-25) ----
      ⭐ [Caleb] 탭 줄 왼쪽 끝에 모드(IMS · WMS) · 구분선 · 그 뒤에 그 모드의 화면 탭 — 줄이 늘지 않고 「지금 어디 있나」가 한 줄에 보인다.
         (기각: 헤더 안에 작게 · 헤더와 탭 사이 한 줄 더)
      · 모드 부분은 **고를 것이 있을 때만** 그린다 — 들어갈 수 있고(access.modes) 보이는 화면이 하나라도 있는 모드가 둘 이상일 때.
@@ -229,7 +229,13 @@
      · 모드를 누르면 그 모드의 **첫 보이는 화면**으로 간다(마지막 화면 기억 없음 — 저장할 곳이 필요해진다).
      · 탭은 메뉴를 대신하지 않는다 — 자주 오가는 화면(items 다섯째 칸 true · 지금은 구매 넷)만 선다. 마스터는 어쩌다 열어 메뉴에만.
      · 탭은 지금 화면의 모드에 속한 것만 · 지금 화면은 .cur 로 눌리지 않는다(.ims-nav a.cur 선례). 그냥 링크다(화면이 통째로 다시 뜬다).
-     ⚠️ 줄을 그리는 조건: 모드 부분이 있거나, 지금 화면이 탭 묶음에 있을 때. 둘 다 아니면(Settings 등 · 모드 하나) 종전처럼 줄 없음.
+     ⭐ [Caleb 2026-09-25] 모드 뒤에 **묶음**(items 여섯째 칸 · 'purchasing' | 'sales' | null) — [모드 IMS·WMS] | [묶음 Purchasing · Sales] | [지금 화면 묶음의 탭들].
+        · 묶음 부분은 모드 부분과 같은 규칙 — 지금 화면이 묶음에 속하고, 이 사람이 「탭 화면이 보이는 묶음」을 둘 이상 볼 때만 그린다.
+          지금 화면이 묶음 밖(Settings 등)이면 안 그린다 · 묶음이 하나뿐인 사람(구매만 · 판매만)에게도 안 그린다.
+        · ⚠️ 묶음을 누르면 그 묶음의 **첫 보이는 탭 화면**으로 간다 — 모드는 「첫 보이는 화면」(탭 여부 무관)이라 규칙이 다르다.
+          지금은 묶음 화면이 전부 탭이라 결과가 같지만, 탭 아닌 묶음 화면이 생기면 갈린다(묶음 = 탭 줄의 자리라 탭으로 간다).
+        · 탭은 지금 화면의 **묶음**에 속한 것만(모드가 같아도 다른 묶음의 탭은 안 선다) · 모양은 .mode · .sep 을 그대로 쓴다(ims-ui.css 무접촉).
+     ⚠️ 줄을 그리는 조건: 모드 부분이 있거나, 묶음 부분이 있거나, 지금 화면이 탭 묶음에 있을 때. 전부 아니면(Settings 등 · 모드 하나) 종전처럼 줄 없음.
      ⚠️ <header> 가 없으면 조용히 아무것도 안 한다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs · .mode · .sep).
      ⚠️ --ims-tabs-h 는 그대로 :root 에 적는다 — po.html 의 .list .rows max-height 가 빼 쓴다. */
   function setupTabs(items, vis, here){
@@ -237,13 +243,18 @@
     if(!header || document.getElementById("imsTabs")) return;
     const cur=vis.find(it=>it[1].toLowerCase()===here)||items.find(it=>it[1].toLowerCase()===here);
     const curMode=cur?cur[3]:null;
+    const curGroup=cur?(cur[5]||null):null;
     // 모드 후보 = 들어갈 수 있고 + 보이는 화면이 하나 이상
     const modeDefs=[["ims","IMS"],["wms","WMS"]];
     const modes=modeDefs.filter(([m])=>access.modes.includes(m) && vis.some(it=>it[3]===m));
-    const tabs=vis.filter(it=>it[4]===true && it[3]===curMode);
+    // 묶음 후보 = 지금 화면의 모드 안에서, 보이는 **탭** 화면이 하나 이상인 묶음(2026-09-25)
+    const groupDefs=[["purchasing","Purchasing"],["sales","Sales"]];
+    const groups=groupDefs.filter(([g])=>vis.some(it=>it[4]===true && it[3]===curMode && it[5]===g));
+    const tabs=vis.filter(it=>it[4]===true && it[3]===curMode && (it[5]||null)===curGroup);
     const showModes=modes.length>1;
+    const showGroups=!!curGroup && groups.length>1;
     const showTabs=!!curMode && tabs.some(it=>it[1].toLowerCase()===here);
-    if(!showModes && !showTabs) return;
+    if(!showModes && !showGroups && !showTabs) return;
     const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Mode and screens");
     let html="";
     if(showModes){
@@ -251,6 +262,14 @@
         const first=vis.find(it=>it[3]===m);                 // 그 모드의 첫 보이는 화면
         const on=(m===curMode);
         return `<a href="${first[1]}" class="mode ${on?"cur":""}"${on?' aria-current="true"':""} title="Switch to ${label}">${label}</a>`;
+      }).join("");
+      if(showGroups || showTabs) html+='<span class="sep" aria-hidden="true"></span>';
+    }
+    if(showGroups){
+      html+=groups.map(([g,label])=>{
+        const first=vis.find(it=>it[4]===true && it[3]===curMode && it[5]===g);   // 그 묶음의 첫 보이는 탭 화면(모드와 다르다 — 위 주석)
+        const on=(g===curGroup);
+        return `<a href="${first[1]}" class="mode ${on?"cur":""}"${on?' aria-current="true"':""} title="Go to ${label}">${label}</a>`;
       }).join("");
       if(showTabs) html+='<span class="sep" aria-hidden="true"></span>';
     }
@@ -271,24 +290,27 @@
     if(!btn || btn._imsNav) return;
     btn._imsNav=true;
     // ⬜ IMS 화면이 늘면 여기에 더한다 — 메뉴와 탭이 **이 배열 하나**에서 나온다(2026-09-17).
-    //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 모드의 탭 줄에)]
-    //    ⭐ 화면 값은 ims_perm_catalog() 의 넷 — purchasing · master · receiving · staff. 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
-    //    ⭐ 탭은 자주 오가는 화면만(구매 넷 · Caleb). 마스터·Staff·Home 은 메뉴에만.
+    //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 묶음의 탭 줄에), 묶음('purchasing'|'sales'|null · 2026-09-25)]
+    //    ⭐ 화면 값은 ims_perm_catalog() 의 다섯 — purchasing · master · receiving · staff · sales(20260923224900). 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
+    //    ⭐ 탭은 자주 오가는 화면만(구매 다섯 · 판매 · Caleb). 마스터·Staff·Home 은 메뉴에만 · 묶음 null.
+    //    ⭐ [2026-09-25 Caleb] 이름은 보이는 글자만 바꿨다(파일 이름 그대로) — Purchase Invoices(invoices.html) · Supplier Payments(payments.html). 판매 묶음의 나머지 넷(Sales Invoices · Customer Payments · Credit Notes · Backorders)은 화면이 설 때 더한다.
+    //       ☰ Menu 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home.
     //    ✅ [2026-09-18] Receiving 이 섰다 — PO 문서의 한 갈래(인보이스·비용·결제와 같은 층)라 모드는 'ims' · 구매 넷 뒤(Caleb). 카탈로그 receiving.room 도 'ims'(마이그레이션 같은 날).
     //    ⬜ WMS 모드의 창고 작업 화면은 나중에 ["…","…","receiving","wms",true] 로 따로 선다 — 그 순간 WMS 모드가 탭 줄에 나타난다(같은 표 · 화면은 둘).
     const items=[
-      ["Settings","settings.html","master","ims",false],
-      ["Suppliers","suppliers.html","master","ims",false],
-      ["Products","products.html","master","ims",false],
-      ["Families","families.html","master","ims",false],
-      ["Supplier Products","supplier-products.html","master","ims",false],
-      ["Purchase Orders","po.html","purchasing","ims",true],
-      ["Invoices","invoices.html","purchasing","ims",true],
-      ["Charges","charges.html","purchasing","ims",true],
-      ["Payments","payments.html","purchasing","ims",true],
-      ["Receiving","receiving.html","receiving","ims",true],
-      ["Staff","staff.html","staff","ims",false],
-      ["Home","index.html",null,null,false],
+      ["Settings","settings.html","master","ims",false,null],
+      ["Suppliers","suppliers.html","master","ims",false,null],
+      ["Products","products.html","master","ims",false,null],
+      ["Families","families.html","master","ims",false,null],
+      ["Supplier Products","supplier-products.html","master","ims",false,null],
+      ["Purchase Orders","po.html","purchasing","ims",true,"purchasing"],
+      ["Purchase Invoices","invoices.html","purchasing","ims",true,"purchasing"],
+      ["Charges","charges.html","purchasing","ims",true,"purchasing"],
+      ["Supplier Payments","payments.html","purchasing","ims",true,"purchasing"],
+      ["Receiving","receiving.html","receiving","ims",true,"purchasing"],
+      ["Sales Orders","so.html","sales","ims",true,"sales"],
+      ["Staff","staff.html","staff","ims",false,null],
+      ["Home","index.html",null,null,false,null],
     ];
     // ⭐ 판정은 ims_access() 가 했다 — 여기서는 그 결과만 읽는다(role·perms 를 다시 가르지 않는다)
     const scr=(access&&access.screens)||{};
