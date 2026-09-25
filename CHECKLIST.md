@@ -2,7 +2,7 @@
 
 `ims.asung.ca` 의 화면이 제대로 도는지 눈으로 확인하는 목록.
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
-`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열둘이(2026-09-25 기준 · §0-a) 움직인다.
+`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열셋이(2026-09-25 기준 · §0-a) 움직인다.
 
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
@@ -17,16 +17,16 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열셋이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders 추가 · 이름 둘 바뀜)
+[ ] ☰ Menu 를 누르면 열넷이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices 추가 · 이름 둘 바뀜)
     Settings · Suppliers · Products · Families · Supplier Products ·
-    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Staff · Home
+    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Staff · Home
     ⭐ [2026-09-25] 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home · 이름은 보이는 글자만 바꿨다(파일은 invoices.html · payments.html 그대로)
 [ ] 머리 아래 탭 줄 = [모드] | [묶음] | [지금 화면 묶음의 탭들] (2026-09-25 묶음 칸 신설 · ims-auth.js items 여섯째 칸)
-    구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 하나 — Sales Orders
+    구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 둘 — Sales Orders · Sales Invoices
     ⭐ 탭은 자주 오가는 화면만이다(Caleb). 마스터·Staff·Home 은 ☰ Menu 에만 있다
     ⚠️ 탭·메뉴는 **권한으로 갈린다** — receiving 권한이 없으면 Receiving 이 아예 안 보이고, sales 권한이 없으면 Sales Orders 가 안 보인다(빈 탭이 아니다)
 [ ] 묶음 칸(PURCHASING · SALES · 모드 칸과 같은 모양)은 **구매·판매 둘 다 보는 사람에게만**, 그리고 지금 화면이 묶음 안일 때만 뜬다
-    · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders」
+    · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders(눌림) · Sales Invoices」
     · 구매만 · 판매만: 묶음 칸 없이 탭만(지금까지와 같다) · Settings 등 묶음 밖 화면: 묶음 칸 없음
     · SALES 를 누르면 판매 묶음의 첫 보이는 **탭** 화면(so.html)으로 간다 · 모드 칸(IMS·WMS)은 WMS 화면이 서기 전까지 여전히 안 보인다
 [ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
@@ -39,18 +39,18 @@
 
 ### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
 
-한 곳을 고치면 **열둘**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+한 곳을 고치면 **열셋**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
 📌 [정정 2026-09-16 저녁] 「여섯」은 2026-09-15 의 수다 — po.html(09-16 오전)로 일곱 · invoices.html(09-16 저녁)로 여덟이 됐는데 이 줄을 안 고쳤다.
 📌 [정정 2026-09-18] 여덟도 낡았다 — charges·payments(09-17 오후)로 열 · receiving(09-18)으로 열하나다.
    ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
-📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 **열둘**이다 — 이번엔 같은 커밋에 고쳤다(0-6).
+📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 **열셋**이다 — 둘 다 같은 커밋에 고쳤다.
 ```
-[ ] 열두 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · staff
+[ ] 열세 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열두 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열두 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열세 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열세 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
@@ -575,6 +575,59 @@ counter 확정 · 나갔다 (manager)
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 보류·나누기·창고 바꾸기·백오더 진행·Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 병합(so_merge) · POS 계산대 · 인쇄 · 백오더 목록 · 「재고 없이 나갔다」 관리 · 손님 잔액 화면 (정본 §14~§21).
+
+---
+
+## 7-g. `so-invoices.html` — 판매 인보이스 (2026-09-25 신설 · 대화 Claude · 1판 「2026-09-25 · inv v1」)
+
+뒷단: 읽기 뷰 `so_invoice_list`(PostgREST · range · search_text) · RPC `so_invoice_detail` · `so_invoice_ar_summary` — asung-wms `20260925191843`(so-inv-read-1) ·
+쓰기 RPC `so_payment_add`(새 결제 · 이 인보이스에 붙는다 · sales) · `so_payment_detach`(manager) · `so_invoice_cancel`(manager · 사유 필수) · `so_invoice_reissue`(manager) — 정본 §17~§19.
+
+⭐⭐ **남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다**(`so_invoice_remaining` 한 곳) — 화면이 다시 계산하지 않는다. Still owed = total − 결제 붙임 − 크레딧 붙임.
+⭐ 인쇄는 다음 판(Print 단추 회색 · Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서(아직 없음).
+⚠️ 권한: 결제 넣기 = sales 열쇠 · 떼기 · 취소 · 재발행 = manager 이상(단추가 manager 에게만 뜬다).
+⚠️ 모집단(테스트 DB · 2026-09-25 실측): 인보이스 **1장** — 60000(issued · Clore Inc. (BLW) · total 176.30 · 선결제 100 auto_deposit · Still owed 76.30 · 기한 2026-10-25). 검증 자료(79001~)는 전부 rollback 이라 **안 보인다**.
+
+```
+공통 · 목록
+[ ] 탭 줄에 Sales Invoices 가 Sales Orders 뒤에 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 PURCHASING · SALES(눌림) 묶음 칸
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · inv v1」다
+[ ] 넓은 목록(처음 화면): Show(Open — still owed 기본 · Overdue · Open with no due date · Paid in full · Cancelled · All) · 검색(Invoice · customer · SO number · reference) · Clear
+[ ] 열 순서: Invoice · Status · Issued · Due · Customer · Orders · Total · Paid · Credited · Still owed
+[ ] 60000 한 행: issued · Clore Inc. (BLW) · Orders SO-25000 · 176.30 · Paid 100.00 · Credited 0 · Still owed 76.30 · 연체 칩 없음(기한 전)
+[ ] 검색에 SO-25000 을 치면 60000 이 찾힌다(뷰의 search_text — 오더 번호·ref 까지) · Paid in full 로 바꾸면 0행 · Cancelled 0행
+[ ] Overdue 로 바꾸면 연체 일수 큰 순으로 정렬된다(지금은 0행)
+[ ] 행을 누르면 좁은 목록 + 상세 · ‹ All invoices 로 돌아온다 · ☰ List 로 접고 편다 · 탭 줄이 있어도 목록이 밀리지 않는다(--ims-tabs-h)
+
+미수 요약(넓은 목록 머리)
+[ ] 통화별 한 줄: Still owed(open 수) · Overdue(inv 수) · Not yet due · 1–30 days · 31–60 · 61–90 · Over 90 · (있으면) No due date · 「As of <오늘> (Toronto) · overdue counts days past the due date.」
+[ ] 지금 값: CAD Still owed 76.30 · 1 open · Overdue 0 · Not yet due 76.30 · 나머지 0 · No due date 칸은 안 뜬다(0이면 숨긴다)
+[ ] 버킷 합 + No due date = Still owed(DB 가 그렇게 준다 · so_invoice_ar_summary)
+
+한 장(상세)
+[ ] 머리: 번호 · 상태 칩 · 발행일 · 기한(연체면 「N days overdue」 칩) · 청구처 · 결제조건 · 통화 · Cancelled(취소면 시각 + 사유)
+[ ] 합계 칸: Lines · Order discount · Charges · Tax · Total · Deposit applied · Credit applied · Balance forward · Amount due(종이에 찍힌 값) · Still owed(오늘 값 · 연체면 노란 경고)
+[ ] 기한이 없는 인보이스(결제조건 없음)는 「⚠ No due date …」 경고가 뜨고 연체로 세지 않는다(지금 실물엔 없다 — 만들어 보기 전엔 못 본다)
+[ ] Orders on this invoice: SO 번호 링크(so.html?so=…) · 상태 · 배송지 · 세금 규칙·세율 · 취소된 걸림은 「detached」 태그
+[ ] Lines: line_no 순 · kind(product · charge · order_discount) · SKU · 수량 · 단가 · 금액 · 세금
+[ ] Payments: 붙임마다 날짜 · 방법 · 참조 · 계좌 · 붙인 몫 · 결제 금액 · 결제의 남은 금액 · 출처(manual · auto_deposit · auto_balance) · 떼어진 것은 「detached <시각> · 사유」로 남는다
+    지금 값: 60000 에 100.00 wire auto_deposit 한 줄
+[ ] Credits applied · Returns against this invoice · Other invoices for these orders(재발행 사슬) · Customer balance(통화 · 받아 둔 돈 · 진 빚 · 예약 · 가용)는 **있을 때만** 표가 뜬다
+[ ] 없는 id 로 열면(?id= 를 틀리게) 「없다」로 가른다(DB 가 null 을 준다)
+
+결제 넣기 (sales)
+[ ] Take a payment… → Method · Amount(Still owed 가 미리 들어 있다) · Paid on(오늘 · 미래 불가) · Reference · Branch(비우면 손님 기본) · Account(기본 계좌 힌트) · Note
+[ ] Record payment → 저장되고 Payments 표에 한 줄 · Still owed 가 준다 · 요약 머리도 준다
+[ ] ⭐ Still owed 보다 많이 넣으면 넘친 몫은 손님 잔액(받아 둔 돈)으로 남는다 — DB 가 정한다 · 화면은 그대로 보인다
+
+떼기 · 취소 · 재발행 (manager)
+[ ] Payments 표의 × → 사유(필수) → 결제는 남고 손님 계정으로 돌아간다 · 그 줄은 「detached」로 남는다 · Still owed 가 는다
+[ ] Cancel invoice… → 사유(필수) → cancelled · 오더는 shipped 로 돌아간다 · 자동으로 붙었던 결제는 함께 풀린다 · 손으로 붙인 것이 있으면 DB 가 「먼저 떼라」로 거부
+[ ] 취소된 장에서 Reissue… → 확인(「dated today (Toronto) · Tax rates are taken as of today」) → 새 번호(60001~)로 다시 서고 옛 장은 cancelled 로 남는다 · 새 장의 「Other invoices for these orders」에 옛 장이 보인다
+[ ] worker 에게는 Cancel · Reissue · × 가 아예 안 보인다
+```
+
+⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · 받아 둔 돈 손으로 붙이기(so_payment_attach) · 크레딧 붙이기 · 손님 결제 화면(Customer Payments) · 크레딧 노트 화면 · pg_trgm 검색 인덱스(정본 ⬜).
 
 ---
 

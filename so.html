@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v1";
+const SO_BUILD = "2026-09-25 · so v1.1";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -204,6 +204,14 @@ const WARN = {
   currency_mismatch: "The order currency differs from the price tier currency.",
   lines_keep_prices: "Lines already on the order keep their prices.",
   lines_removed: "Some lines were removed by the customer at finalize.",
+  /* v1.1 — so_copy_customer 가 내는 경고(Caleb 화면 시험 2026-09-25 · bill_to_empty 가 코드 그대로 보였다) */
+  bill_to_empty: "The customer has no default billing address — the invoice will go out without one.",
+  ship_to_empty: "The customer has no shipping address — fill in Ship to before confirming.",
+  ship_to_from_billing: "No shipping address on file — the billing address was used as ship-to.",
+  price_tier_missing: "The customer has no price tier — lines may come in without a price.",
+  price_tier_not_for_sale: "The customer's price tier is not a sales tier.",
+  price_tier_inactive: "The customer's price tier is inactive.",
+  customer_inactive: "This customer is inactive.",
 };
 const warnText = (w) => {
   const key = String(w).split(":")[0];
@@ -1144,11 +1152,11 @@ async function loadDetail(id){
   /* 인보이스 — 살아 있는 것 하나 + 취소된 이력 */
   /* ⚠️ invoice = 살아 있는 한 장(칸이 많다) · invoice_history = 번호·상태·발행일·취소 시각만 */
   const invRows = [];
-  if(inv && inv.invoice_number) invRows.push(`<tr><td class="mono">${esc(inv.invoice_number)}</td><td>${stChip(inv.status)}</td><td>${dim(inv.issued_on)}</td><td>${dim(inv.due_on)}</td>
+  if(inv && inv.invoice_number) invRows.push(`<tr><td><a class="lnk mono" href="so-invoices.html?inv=${encodeURIComponent(inv.invoice_number)}" title="Open on Sales Invoices">${esc(inv.invoice_number)}</a></td><td>${stChip(inv.status)}</td><td>${dim(inv.issued_on)}</td><td>${dim(inv.due_on)}</td>
       <td class="num">${money(inv.total)}</td><td class="num">${money(inv.amount_due)}</td><td class="num">${money(inv.paid)}</td>
       <td class="num">${Number(inv.remaining) > 0 ? `<span class="neutral">${money(inv.remaining)}</span>` : money(inv.remaining)}</td></tr>`);
   (data.invoice_history || []).filter(h => !inv || h.invoice_number !== inv.invoice_number).forEach(h =>
-    invRows.push(`<tr><td class="mono">${esc(h.invoice_number)}</td><td>${stChip(h.status)}</td><td>${dim(h.issued_on)}</td>
+    invRows.push(`<tr><td><a class="lnk mono" href="so-invoices.html?inv=${encodeURIComponent(h.invoice_number)}">${esc(h.invoice_number)}</a></td><td>${stChip(h.status)}</td><td>${dim(h.issued_on)}</td>
       <td class="dim" colspan="5">${h.cancelled_at ? "cancelled " + imsTs(h.cancelled_at) : ""}</td></tr>`));
 
   /* 뭉치 — 형제(갈라진 것) · 합쳐진 곳 */
@@ -1187,7 +1195,7 @@ async function loadDetail(id){
       "Freight and similar. Tax follows the order's rule.")}
 
     ${invRows.length ? tbl("Invoice", invRows.length, [["Number",""],["Status",""],["Issued",""],["Due",""],["Total","num"],["Amount due","num"],["Paid","num"],["Still owed","num"]], invRows,
-      "The invoice fixes the amounts. Payments and credits are on their own screens (coming next).") : ""}
+      "The invoice fixes the amounts. Open the number for payments, credits and history on Sales Invoices.") : ""}
 
     ${famHtml.length ? tbl("Order family", famRows.length, [["Order",""],["Status",""],["Split reason",""],["Open qty","num"],["",""]], famHtml,
       "Split-off orders (backorder · preorder · pick short) and where a merged order went.") : ""}

@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Invoices · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 뼈대는 so.html · po.html(목록/상세 두 모드 · 모달) */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 230px - var(--ims-tabs-h, 0px))}
+  .list .row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .list .row .l{min-width:0}
+  .list .row .pn{font-family:var(--mono);font-size:13px}
+  .list .row .sn{font-size:11.5px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .row .r{text-align:right;white-space:nowrap}
+  .list .row .amt{font-family:var(--mono);font-size:12.5px}
+  .list .row.cur .pn{color:#3b5bdb;font-weight:700}
+  main{display:flex;flex-direction:column;gap:14px}
+  .sobar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .sobar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
+  .sogrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  @media (max-width:900px){ .sogrid{grid-template-columns:1fr} }
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .sowarn{padding:8px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px}
+  .pomodal[hidden]{display:none}
+  .pobox input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .sofield{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px}
+  .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .arbox{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .arbox .cur{font-family:var(--mono);font-weight:700;margin-right:4px}
+  .arbox .stat b{font-size:15px}
+  tr.voided td{color:#9aa4b2;text-decoration:line-through}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div id="arBox" class="arbox"><span class="dim">Loading receivables…</span></div>
+    <div class="wfilt">
+      <select id="wst">
+        <option value="open">Open — still owed</option>
+        <option value="overdue">Overdue</option>
+        <option value="nodue">Open with no due date</option>
+        <option value="paid">Paid in full</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="all">All</option>
+      </select>
+      <input type="date" id="wfrom" title="Issued from">
+      <span class="dash">—</span>
+      <input type="date" id="wto" title="Issued to">
+      <input type="search" id="wq" placeholder="Invoice · customer · SO number · reference">
+      <button class="pobtn" id="wclear">Clear</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="top">
+      <button class="pobtn" id="backWide">‹ All invoices</button>
+      <input type="search" id="q" placeholder="Invoice · customer · SO number">
+      <div class="opts">
+        <label>Show
+          <select id="st">
+            <option value="open">Open</option>
+            <option value="overdue">Overdue</option>
+            <option value="nodue">No due date</option>
+            <option value="paid">Paid in full</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+  <main id="detail"><div class="card"><div class="msg">Select an invoice.</div></div></main>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Sales Invoices — 판매 인보이스 화면 1판 (2026-09-25 · 대화 Claude)
+   읽기: 뷰 so_invoice_list · so_invoice_detail(p_invoice_id) · so_invoice_ar_summary(p_customer_id)
+         (asung-wms 20260925191843 · 칸 이름은 그 파일 그대로)
+   쓰기: so_payment_add(새 결제 · 이 인보이스에 붙는다 · sales) · so_payment_detach(manager)
+         so_invoice_cancel(manager · 사유 필수) · so_invoice_reissue(manager · 취소 뒤 같은 오더로 다시)
+   ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
+   ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
+   ───────────────────────────────────────────────────────────── */
+const INV_BUILD = "2026-09-25 · inv v1";
+console.log("so-invoices.html build:", INV_BUILD);
+
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+
+let sb = null, me = null, rank = 0;
+let q = "", stFilter = "open", dateFrom = "", dateTo = "", curId = null;
+let detailSeq = 0, cur = null;
+const pg = imsPage(100), pgW = imsPage(50);
+let WHS = [], ACCTS = [];
+const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
+const isMgr = () => rank >= 2;
+
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const price = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 4 }));
+const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
+
+/* ⚠️ 색 절제 — 취소 빨강 · 다 받음 초록 · 연체는 날수로 말한다 */
+function invChip(r){
+  if(r.status === "cancelled") return '<span class="chip bad">cancelled</span>';
+  if(Number(r.remaining) <= 0) return '<span class="chip good">paid</span>';
+  if(Number(r.days_overdue) > 0) return `<span class="chip warn">${esc(r.days_overdue)} days overdue</span>`;
+  if(r.due_unknown) return '<span class="chip warn">no due date</span>';
+  return '<span class="chip">open</span>';
+}
+const owedCell = (r) => r.status === "cancelled" ? '<span class="dim">—</span>'
+  : Number(r.remaining) > 0 ? `<span class="neutral">${money(r.remaining)}</span>` : '<span class="dim">0.00</span>';
+
+/* ── 목록 · 질의는 한 곳 ─────────────────────────── */
+function baseQuery(){
+  let qry = sb.from("so_invoice_list").select(
+    "id,invoice_number,status,issued_on,due_on,currency_code,bill_to_name,customer_name,so_numbers,order_count,channel,total,paid,credited,remaining,days_overdue,due_unknown,is_open",
+    { count: "exact" });
+  if(stFilter === "open")           qry = qry.eq("is_open", true);
+  else if(stFilter === "overdue")   qry = qry.gt("days_overdue", 0);
+  else if(stFilter === "nodue")     qry = qry.eq("is_open", true).eq("due_unknown", true);
+  else if(stFilter === "paid")      qry = qry.eq("status", "issued").eq("is_open", false);
+  else if(stFilter === "cancelled") qry = qry.eq("status", "cancelled");
+  if(dateFrom) qry = qry.gte("issued_on", dateFrom);
+  if(dateTo)   qry = qry.lte("issued_on", dateTo);
+  /* ⭐ search_text 한 칸 — 번호 · 청구처 · 손님 · 오더 번호 · 오더 ref 를 뷰가 이어 두었다(조인 칸을 or() 에 못 넣는다) */
+  if(q) qry = qry.ilike("search_text", `%${orTerm(q)}%`);
+  /* 연체 목록은 오래된 것부터 · 나머지는 최신 번호부터 */
+  return stFilter === "overdue"
+    ? qry.order("days_overdue", { ascending: false }).order("invoice_number", { ascending: true })
+    : qry.order("invoice_number", { ascending: false });
+}
+
+async function loadAr(){
+  const box = document.getElementById("arBox");
+  const { data, error } = await sb.rpc("so_invoice_ar_summary", { p_customer_id: null });
+  if(error){ box.innerHTML = `<span class="err">${esc(error.message)}</span>`; return; }
+  const cs = (data && data.currencies) || [];
+  if(!cs.length){ box.innerHTML = '<span class="dim">Nothing is owed right now.</span>'; return; }
+  box.innerHTML = cs.map(c => {
+    const b = c.buckets || {};
+    const bk = (k, l) => `<div class="stat">${l}<b>${money((b[k] || {}).total)}</b><span class="dim" style="font-size:11px">${esc((b[k] || {}).count || 0)} inv</span></div>`;
+    return `<div class="stat"><span class="cur">${esc(c.currency_code)}</span>Still owed<b>${money(c.remaining_total)}</b><span class="dim" style="font-size:11px">${esc(c.open_count)} open</span></div>
+      <div class="stat">Overdue<b>${money(c.overdue_total)}</b><span class="dim" style="font-size:11px">${esc(c.overdue_count)} inv</span></div>
+      ${bk("current", "Not yet due")}${bk("d1_30", "1–30 days")}${bk("d31_60", "31–60")}${bk("d61_90", "61–90")}${bk("d90_plus", "Over 90")}
+      ${Number(c.no_due_count) ? `<div class="stat">No due date<b>${money(c.no_due_total)}</b><span class="dim" style="font-size:11px">${esc(c.no_due_count)} inv</span></div>` : ""}`;
+  }).join('<span style="flex-basis:100%"></span>')
+  + `<span class="dim" style="font-size:11.5px;flex-basis:100%">As of ${esc(data.as_of || "")} (Toronto) · overdue counts days past the due date.</span>`;
+}
+
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadAr(); loadWide();
+}
+function openInv(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  loadList(); loadDetail(id);
+}
+function clearDetail(){
+  curId = null; cur = null; detailSeq++;
+  document.getElementById("detail").innerHTML = '<div class="card"><div class="msg">Select an invoice.</div></div>';
+}
+
+async function loadWide(){
+  const { data, error } = await pgW.run(baseQuery());
+  const box = document.getElementById("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(!data.length){ box.innerHTML = '<div class="msg">No invoices match.</div>'; pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>Invoice</th><th>Status</th><th>Issued</th><th>Due</th><th>Customer</th><th>Orders</th>
+      <th class="num">Total</th><th class="num">Paid</th><th class="num">Credited</th><th class="num">Still owed</th>
+    </tr></thead><tbody>${data.map(r => `
+      <tr data-id="${r.id}">
+        <td class="mono">${esc(r.invoice_number)}</td>
+        <td>${invChip(r)}</td>
+        <td>${dim(r.issued_on)}</td>
+        <td>${dim(r.due_on)}</td>
+        <td>${esc(r.bill_to_name || r.customer_name || "")}</td>
+        <td class="mono" style="font-size:12px">${dim(r.so_numbers)}${r.channel && r.channel !== "warehouse" ? ` <span class="tag">${esc(r.channel)}</span>` : ""}</td>
+        <td class="num">${money(r.total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${Number(r.paid) ? money(r.paid) : '<span class="dim">—</span>'}</td>
+        <td class="num">${Number(r.credited) ? money(r.credited) : '<span class="dim">—</span>'}</td>
+        <td class="num">${owedCell(r)}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="sosub">Still owed = total − payments − credits attached (the database works it out). Money on account attaches itself when an invoice is issued.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openInv(el.dataset.id); });
+  pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+async function loadList(){
+  const { data, error } = await pg.run(baseQuery());
+  if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  document.getElementById("rows").innerHTML = data.length ? data.map(r => `
+    <div class="row ${r.id === curId ? "cur" : ""}" data-id="${r.id}">
+      <span class="l">
+        <div class="pn">${esc(r.invoice_number)}</div>
+        <div class="sn">${esc(r.bill_to_name || r.customer_name || "")}</div>
+        <div class="sn">${esc(r.issued_on || "")}${r.due_on ? " · due " + esc(r.due_on) : ""}</div>
+      </span>
+      <span class="r">
+        <div class="amt">${owedCell(r)}</div>
+        <div style="margin-top:3px">${invChip(r)}</div>
+      </span>
+    </div>`).join("") : '<div class="msg">No invoices match.</div>';
+  document.querySelectorAll(".list .row").forEach(el => {
+    el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
+  });
+  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+}
+
+/* 번호로 열기 — ?inv=60000 · 재발행 사슬 이동 */
+async function gotoInv(number){
+  q = number; document.getElementById("q").value = q; document.getElementById("wq").value = q;
+  stFilter = "all"; document.getElementById("st").value = "all"; document.getElementById("wst").value = "all";
+  pg.reset();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  await loadList();
+  const el = Array.from(document.querySelectorAll(".list .row")).find(r => r.querySelector(".pn").textContent === number);
+  if(!el){ document.getElementById("detail").innerHTML = `<div class="card"><div class="msg">${esc(number)} not found.</div></div>`; return; }
+  curId = el.dataset.id; await loadList(); loadDetail(curId);
+}
+
+/* ══ 모달 ══════════════════════════════════════════════ */
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; }); }
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+async function reloadHere(){
+  const y = window.scrollY;
+  await loadDetail(curId); await loadList();
+  window.scrollTo(0, y);
+}
+
+/* ── 결제 넣기 — 이 인보이스에 바로 붙는다(so_payment_add · allocations) ──
+   ⭐ 손님 = 청구처 · 통화 = 인보이스 통화 · 브랜치 = 비우면 손님 기본(so_payment_add 가 채운다 · 없으면 거부)
+   ⭐ 남은 금액보다 많이 받으면 넘친 몫은 손님 잔액(받아 둔 돈)으로 남는다 — DB 가 정한다 */
+const METHODS = [["credit_card","Credit card"],["debit_card","Debit card"],["cash","Cash"],["e_transfer","e-Transfer"],["cheque","Cheque"],["wire","Wire"],["direct_deposit","Direct deposit"],["shopify","Shopify"]];
+function openPayment(){
+  const v = cur.invoice;
+  modalOpen(`
+    <h4>Take a payment — invoice ${esc(v.invoice_number)}</h4>
+    <div class="pbody">
+      <div class="sosub" style="margin:-4px 0 12px">${esc(v.bill_to_name || "")} · still owed <b>${money(v.remaining)}</b> ${esc(v.currency_code || "")}</div>
+      <div class="frow"><label>Method</label><select id="pyM" class="sofield">${METHODS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
+      <div class="frow"><label>Amount</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01" value="${Number(v.remaining) > 0 ? esc(Number(v.remaining).toFixed(2)) : ""}"></div>
+      <div class="frow"><label>Paid on</label><input id="pyD" class="sofield" type="date" value="${torontoToday()}" max="${torontoToday()}"></div>
+      <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="card slip · cheque no. · transfer ref"></div>
+      <div class="frow"><label>Branch</label><select id="pyW" class="sofield"><option value="">Customer's default branch</option>${WHS.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Account</label><select id="pyAcc" class="sofield"><option value="">Default for this method and branch</option>
+        ${ACCTS.map(a => `<option value="${a.id}">${esc(a.code)} · ${esc(a.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Note</label><input id="pyN" class="sofield"></div>
+      <div class="sohint">If the amount is more than what is owed, the rest stays on the customer's account and attaches to the next invoice.</div>
+      <div id="pyMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="pyGo">Record payment</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("pyGo").onclick = async () => {
+    const amt = Number(document.getElementById("pyA").value);
+    if(!(amt > 0)){ say("pyMsg", "err", "Give an amount above zero."); return; }
+    const owed = Number(v.remaining) || 0;
+    const p = {
+      customer_id: v.bill_to_customer_id,
+      amount: amt,
+      paid_on: document.getElementById("pyD").value || null,
+      method: document.getElementById("pyM").value,
+      reference: document.getElementById("pyR").value.trim() || null,
+      currency_id: v.currency_id,
+      account_id: document.getElementById("pyAcc").value || null,
+      warehouse_id: document.getElementById("pyW").value || null,
+      note: document.getElementById("pyN").value.trim() || null,
+      allocations: owed > 0 ? [{ invoice_id: v.id, amount: Math.min(amt, owed) }] : [],
+    };
+    say("pyMsg", "", "Recording…");
+    document.getElementById("pyGo").disabled = true;
+    const { data, error } = await sb.rpc("so_payment_add", { p: p });
+    if(error){ say("pyMsg", "err", error.message); document.getElementById("pyGo").disabled = false; return; }
+    modalClose(); await reloadHere(); loadAr();
+    if(data && Number(data.remaining) > 0) setTimeout(() => alert(`Recorded. ${Number(data.remaining).toFixed(2)} of this payment is not attached — it stays on the customer's account.`), 30);
+  };
+}
+
+/* 붙은 결제 떼기 — manager · 사유 필수 · 결제는 남고 붙임만 풀린다(손님 잔액으로 돌아간다) */
+async function detachPayment(allocId, label){
+  const note = prompt(`Detach ${label} from this invoice? The payment stays and goes back to the customer's account.\n\nReason (required):`);
+  if(note === null) return;
+  if(!note.trim()){ alert("A reason is required."); return; }
+  const { error } = await sb.rpc("so_payment_detach", { p_alloc_id: allocId, p_note: note.trim() });
+  if(error){ alert(error.message); return; }
+  await reloadHere(); loadAr();
+}
+
+/* 취소 — manager · 사유 필수 · 오더는 shipped 로 돌아간다(재발행을 기다린다) · 붙은 결제가 있으면 DB 가 먼저 떼라고 한다 */
+async function cancelInvoice(){
+  const v = cur.invoice;
+  const note = prompt(`Cancel invoice ${v.invoice_number}? Its orders go back to shipped and wait for a new invoice.\n\nReason (required):`);
+  if(note === null) return;
+  if(!note.trim()){ alert("A reason is required."); return; }
+  const { data, error } = await sb.rpc("so_invoice_cancel", { p_invoice_id: v.id, p_note: note.trim() });
+  if(error){ alert(error.message); return; }
+  await reloadHere(); loadAr();
+  if(data && data.orders_back_to_shipped) setTimeout(() => alert(`Cancelled. Orders back to shipped: ${[].concat(data.orders_back_to_shipped).join(", ")}`), 30);
+}
+
+/* 재발행 — manager · 취소된 인보이스의 오더들로 새 인보이스 한 장(발행일 오늘 · 세율은 그날) */
+async function reissueInvoice(){
+  const ids = (cur.orders || []).map(o => o.so_id).filter(Boolean);
+  const nums = (cur.orders || []).map(o => o.so_number).join(", ");
+  if(!ids.length){ alert("No orders to reissue."); return; }
+  if(!confirm(`Issue a new invoice for ${nums}, dated today (Toronto)? Tax rates are taken as of today.`)) return;
+  const { data, error } = await sb.rpc("so_invoice_reissue", { p_so_ids: ids, p_issued_on: null });
+  if(error){ alert(error.message); return; }
+  const n = data && (data.invoice_number || (data.invoice && data.invoice.invoice_number));
+  loadAr();
+  if(n) await gotoInv(String(n)); else await reloadHere();
+}
+
+/* ══ 상세 ═══════════════════════════════════════════════ */
+const addrOf = (o, p) => [o[p + "line1"], o[p + "line2"], o[p + "city"], o[p + "state_province"], o[p + "postal_code"], o[p + "country"]].filter(Boolean).join(", ");
+const SRC = { manual: "by hand", auto_deposit: "deposit · auto", auto_balance: "on account · auto", auto: "auto" };
+
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const { data, error } = await sb.rpc("so_invoice_detail", { p_invoice_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data || !data.invoice){ box.innerHTML = '<div class="card"><div class="msg">That invoice is gone.</div></div>'; return; }
+  cur = data;
+  const v = data.invoice;
+  const live = v.status === "issued";
+
+  /* ⚠️ 조각이 쓰는 값은 조각보다 위에서(po.html 실사고) */
+  const acts = [];
+  acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list">&#9776; List</button>');
+  acts.push('<button class="pobtn" data-act="wide">&lsaquo; All invoices</button>');
+  if(live && Number(v.remaining) > 0) acts.push('<button class="pobtn go" data-act="pay">Take a payment…</button>');
+  acts.push('<button class="pobtn" disabled title="Printing comes in the next version">Print</button>');
+  if(live && isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel invoice…</button>');
+  if(v.status === "cancelled" && isMgr()) acts.push('<button class="pobtn" data-act="reissue" title="A new invoice for the same orders, dated today">Reissue…</button>');
+
+  const warns = [];
+  if(v.due_unknown && live) warns.push('<span class="chip warn">⚠ No due date — the order had no payment term. It is not counted as overdue.</span>');
+  if(!v.bill_to_name) warns.push('<span class="chip warn">⚠ No bill-to name on this invoice.</span>');
+
+  const kvL = [
+    ["Bill to",      esc(v.bill_to_name || "") + (v.customer_name && v.customer_name !== v.bill_to_name ? ` <span class="dim">(${esc(v.customer_name)})</span>` : "")],
+    ["Issued",       dim(v.issued_on)],
+    ["Due",          dim(v.due_on) + (v.payment_term_name ? ` <span class="dim">${esc(v.payment_term_name)}</span>` : "")],
+    ["Currency",     `<span class="mono">${dim(v.currency_code)}</span>`],
+    ["Orders",       (data.orders || []).map(o => `<a class="lnk mono" href="so.html?so=${encodeURIComponent(o.so_number)}">${esc(o.so_number)}</a>`).join(" · ") || '<span class="dim">—</span>'],
+  ];
+  const kvR = [
+    ["Note",         dim(v.note)],
+    ["Created",      imsTs(v.created_at)],
+    ["Cancelled",    v.cancelled_at ? imsTs(v.cancelled_at) + (v.cancel_note ? ` <span class="dim">${esc(v.cancel_note)}</span>` : "") : '<span class="dim">—</span>'],
+  ];
+  const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  const stats = `
+    <div class="stats">
+      <div class="stat">Lines<b>${money(v.lines_amount)}</b></div>
+      <div class="stat">Order discount<b>${Number(v.order_discount_amount) ? "−" + money(v.order_discount_amount) : money(0)}</b></div>
+      <div class="stat">Charges<b>${money(v.charges_amount)}</b></div>
+      <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
+      <div class="stat">Total<b>${money(v.total)}</b></div>
+      <div class="stat">Paid<b>${money(v.paid)}</b></div>
+      <div class="stat">Credited<b>${money(v.credited)}</b></div>
+      <div class="stat ${Number(v.days_overdue) > 0 ? "warn" : ""}">Still owed<b>${live ? money(v.remaining) : '<span class="dim">—</span>'}</b></div>
+    </div>
+    <div class="sosub">At issue: deposit applied ${money(v.deposit_applied)} · credit applied ${money(v.credit_applied)} · money on account ${money(v.balance_forward)} · amount due ${money(v.amount_due)}
+      — these are what attached itself the moment it was issued. Still owed is today's figure.</div>`;
+
+  const orders = (data.orders || []).map(o => `<tr>
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(o.so_number)}">${esc(o.so_number)}</a>${o.cancelled_at ? ' <span class="tag off">detached</span>' : ""}</td>
+      <td>${esc(o.so_status || "")}${o.channel && o.channel !== "warehouse" ? ` <span class="tag">${esc(o.channel)}</span>` : ""}</td>
+      <td class="mono">${dim(o.ref)}</td>
+      <td>${esc(o.ship_to_company || o.store_name || "")}<div class="dim" style="font-size:11.5px">${esc(addrOf(o, "ship_to_"))}</div></td>
+      <td>${esc(o.tax_rule || "")}${o.rate_pct !== null && o.rate_pct !== undefined ? ` <span class="dim">${esc(Number(o.rate_pct))}%</span>` : ""}</td>
+      <td class="num">${money(o.lines_amount)}</td><td class="num">${money(o.charges_amount)}</td><td class="num">${money(o.tax_amount)}</td><td class="num">${money(o.total)}</td>
+    </tr>`);
+
+  const lines = (data.lines || []).map(l => `<tr>
+      <td class="num">${esc(l.line_no)}</td>
+      <td>${esc(l.kind || "")}</td>
+      <td><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></td>
+      <td class="num">${qty(l.qty)}</td>
+      <td class="num">${price(l.list_price)}</td>
+      <td class="num">${l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%"}</td>
+      <td class="num">${price(l.unit_price)}</td>
+      <td class="num">${money(l.amount)}</td>
+      <td class="num">${money(l.tax_amount)}</td>
+    </tr>`);
+
+  const pays = (data.payments || []).map(p => {
+    const dead = p.voided_at || p.payment_status !== "active";
+    return `<tr class="${dead ? "voided" : ""}">
+      <td>${dim(p.paid_on)}</td>
+      <td>${esc((METHODS.find(m => m[0] === p.method) || [0, p.method])[1] || "")}</td>
+      <td class="mono">${dim(p.reference)}</td>
+      <td class="mono">${dim(p.account_code)}</td>
+      <td class="num">${money(p.amount)}</td>
+      <td class="num">${money(p.payment_amount)}${Number(p.payment_remaining) > 0 && !dead ? `<div class="dim" style="font-size:11px">${money(p.payment_remaining)} not attached</div>` : ""}</td>
+      <td>${esc(SRC[p.source] || p.source || "")}${p.voided_at ? `<div style="font-size:11px">detached ${imsTs(p.voided_at)}${p.void_note ? " · " + esc(p.void_note) : ""}</div>` : ""}</td>
+      <td>${!dead && isMgr() ? `<button class="xbtn" data-detach="${p.alloc_id}" data-lbl="${esc((p.reference || p.method || "") + " " + Number(p.amount).toFixed(2))}" title="Detach from this invoice (manager)">detach</button>` : ""}</td>
+    </tr>`;
+  });
+
+  const credA = (data.credits_applied || []).map(c => `<tr class="${c.voided_at || c.credit_status !== "issued" ? "voided" : ""}">
+      <td class="mono">${esc(c.credit_number)}</td><td>${dim(c.issued_on)}</td><td>${esc(c.credit_status || "")}</td>
+      <td class="num">${money(c.amount)}</td><td class="num">${money(c.credit_total)}</td><td>${esc(SRC[c.source] || c.source || "")}</td></tr>`);
+  const credX = (data.credits_against || []).map(c => `<tr class="${c.status === "cancelled" ? "voided" : ""}">
+      <td class="mono">${esc(c.credit_number)}</td><td>${dim(c.issued_on)}</td><td>${esc(c.status || "")}</td><td>${esc(c.reason || "")}</td>
+      <td class="num">${money(c.total)}</td><td class="num">${Number(c.applied_here) ? money(c.applied_here) : '<span class="dim">—</span>'}</td></tr>`);
+  const hist = (data.history || []).map(h => `<tr>
+      <td><a class="lnk mono" data-goinv="${esc(h.invoice_number)}">${esc(h.invoice_number)}</a></td>
+      <td>${esc(h.status || "")}</td><td>${dim(h.issued_on)}</td><td class="num">${money(h.total)}</td>
+      <td class="mono" style="font-size:12px">${esc(h.so_numbers || "")}</td>
+      <td class="dim" style="font-size:11.5px">${h.cancelled_at ? "cancelled " + imsTs(h.cancelled_at) + (h.cancel_note ? " · " + esc(h.cancel_note) : "") : ""}</td></tr>`);
+  const b = data.customer_balance;
+  const bal = b ? [`<tr><td class="mono">${esc(b.currency_code || "")}</td><td class="num">${money(b.received)}</td><td class="num">${money(b.owed_credit)}</td>
+      <td class="num">${money(b.reserved_deposit)}</td><td class="num">${money(b.available)}</td><td class="num">${money(b.open_invoices_due)}</td></tr>`] : [];
+
+  const tbl = (title, n, head, rows, sub) => `
+    <div class="card">
+      <h3>${title} <span class="n">${n}</span></h3>
+      ${rows.length ? `<table><thead><tr>${head.map(x => `<th${x[1] ? ' class="' + x[1] + '"' : ""}>${x[0]}</th>`).join("")}</tr></thead>
+        <tbody>${rows.join("")}</tbody></table>${sub ? `<div class="sosub">${sub}</div>` : ""}` : '<div class="msg">None.</div>'}
+    </div>`;
+
+  if(seq !== detailSeq) return;
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="sobar"><span class="pn">${esc(v.invoice_number)}</span><span class="chips">${invChip(v)}</span></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+      </div>
+      ${warns.length ? `<div class="sowarn">${warns.join("")}</div>` : ""}
+      ${stats}
+      <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
+    </div>
+
+    ${tbl("Orders on this invoice", orders.length,
+      [["Order",""],["Status",""],["Reference",""],["Ship to",""],["Tax",""],["Lines","num"],["Charges","num"],["Tax","num"],["Total","num"]], orders,
+      "Each order keeps its own ship-to and tax rule — one invoice can carry several orders of the same bill-to customer.")}
+
+    ${tbl("Lines", lines.length,
+      [["#","num"],["Kind",""],["Item",""],["Qty","num"],["List","num"],["Disc %","num"],["Unit","num"],["Amount","num"],["Tax","num"]], lines,
+      "Each line's tax is rounded on its own and added up.")}
+
+    ${tbl("Payments", pays.length,
+      [["Paid on",""],["Method",""],["Reference",""],["Account",""],["On this invoice","num"],["Payment","num"],["How it attached",""],["",""]], pays,
+      "A payment can be split across invoices — On this invoice is this invoice's share. Detaching sends that share back to the customer's account.")}
+
+    ${credA.length ? tbl("Credits applied", credA.length, [["Credit",""],["Issued",""],["Status",""],["On this invoice","num"],["Credit total","num"],["How",""]], credA,
+      "Credit notes that reduce what is owed on this invoice.") : ""}
+
+    ${credX.length ? tbl("Returns against this invoice", credX.length, [["Credit",""],["Issued",""],["Status",""],["Reason",""],["Total","num"],["Applied here","num"]], credX,
+      "Credit notes raised for goods sold on this invoice. They reduce this invoice only if they are also applied here.") : ""}
+
+    ${hist.length ? tbl("Other invoices for these orders", hist.length, [["Invoice",""],["Status",""],["Issued",""],["Total","num"],["Orders",""],["",""]], hist,
+      "Earlier or later invoices for the same orders — a cancelled invoice and its reissue.") : ""}
+
+    ${bal.length ? tbl("Customer balance", 1, [["Currency",""],["Money on account","num"],["Credit owed","num"],["Held for orders","num"],["Available","num"],["Open invoices due","num"]], bal,
+      "The bill-to customer's balance in this currency.") : ""}
+  `;
+
+  box.querySelectorAll("[data-goinv]").forEach(a => { a.onclick = () => gotoInv(a.dataset.goinv); });
+  box.querySelectorAll("[data-detach]").forEach(bt => { bt.onclick = () => detachPayment(bt.dataset.detach, bt.dataset.lbl); });
+  box.querySelectorAll("[data-act]").forEach(bt => {
+    bt.onclick = () => {
+      const a = bt.dataset.act;
+      if(a === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
+      if(a === "wide")    showWide();
+      if(a === "pay")     openPayment();
+      if(a === "cancel")  cancelInvoice();
+      if(a === "reissue") reissueInvoice();
+    };
+  });
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; rank = RANK[me.role] || 0;
+  window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = INV_BUILD;
+  document.getElementById("backWide").onclick = showWide;
+
+  /* ⚠️ 결제 계좌 후보 = 활성 BANK 또는 _5_(so.html 과 같은 규칙 · §18-b ①) */
+  const [wh, ac] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_account").select("id,code,name,account_type").eq("is_active", true).order("code"),
+  ]);
+  WHS = wh.data || [];
+  ACCTS = (ac.data || []).filter(a => a.account_type === "BANK" || a.code === "_5_");
+
+  const refilter = () => { pg.reset(); pgW.reset(); loadWide(); };
+  document.getElementById("wst").onchange  = e => { stFilter = e.target.value; document.getElementById("st").value = stFilter; refilter(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom = e.target.value; refilter(); };
+  document.getElementById("wto").onchange   = e => { dateTo = e.target.value; refilter(); };
+  imsQ("#wq", v => { q = v; document.getElementById("q").value = v; refilter(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; dateFrom = ""; dateTo = ""; stFilter = "open";
+    ["wq","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("wst").value = "open"; document.getElementById("q").value = ""; document.getElementById("st").value = "open";
+    refilter();
+  };
+  document.getElementById("st").onchange = e => { stFilter = e.target.value; document.getElementById("wst").value = stFilter; pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; document.getElementById("wq").value = v; pg.reset(); clearDetail(); loadList(); });
+
+  const want = imsParam("inv");
+  if(want){ await gotoInv(want); return; }
+  showWide();
+});
+</script>
+</body>
+</html>
