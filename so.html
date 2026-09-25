@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v1.3";
+const SO_BUILD = "2026-09-25 · so v1.4";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -436,7 +436,7 @@ function openAddLine(){
     <h4>Add lines — ${esc(cur.so.so_number)}</h4>
     <div class="pbody">
       <input type="search" id="alq" placeholder="SKU · product name · barcode" autocomplete="off">
-      <label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--muted)"><input type="checkbox" id="alSets"> Include sets (cases · packs) — hidden by default · a set has its own set price</label>
+      ${isMgr() ? `<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--muted)"><input type="checkbox" id="alSets"> Include sets (cases · packs) — hidden by default · a set has its own set price</label>` : ""}
       <div id="alHits" class="binlist"><div class="msg">Type to search.</div></div>
       <div id="alChosen" style="margin-top:12px"></div>
       <div id="alOut" style="margin-top:12px"></div>
@@ -449,7 +449,9 @@ function openAddLine(){
     </div>`);
   wireModalClose();
   imsQ("#alq", v => drawAlHits(v.trim()));
-  document.getElementById("alSets").onchange = () => drawAlHits(document.getElementById("alq").value.trim());
+  /* v1.4 — 케이스도 낱개 SKU × 수량으로 판다(Caleb 2026-09-25 「낱개 sku에 36을 넣어」) → 세트 보기는 매니저 이상만 */
+  const setsBox = document.getElementById("alSets");
+  if(setsBox) setsBox.onchange = () => drawAlHits(document.getElementById("alq").value.trim());
   document.getElementById("alChk").onclick = () => runAdd(false);
   document.getElementById("alGo").onclick  = () => runAdd(true);
   drawChosen();
