@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v1.1";
+const SO_BUILD = "2026-09-25 · so v1.2";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -1052,7 +1052,8 @@ async function loadDetail(id){
     if(ch === "pos") acts.push('<button class="pobtn" disabled title="POS orders are finished on the POS screen (coming later)">Finish on POS</button>');
     if(isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel order…</button>');
   }
-  if(s.status !== "cancelled" && s.status !== "draft" && (invLive || s.status === "confirmed" || s.status === "packed"))
+  /* v1.2 — 다 받은 인보이스면 숨긴다(Caleb 화면 시험 2026-09-25 · 누르면 넣을 곳 없는 돈이 손님 잔액으로 간다) */
+  if(s.status !== "cancelled" && s.status !== "draft" && ((invLive && Number(inv.remaining) > 0) || (!invLive && (s.status === "confirmed" || s.status === "packed"))))
     acts.push('<button class="pobtn" data-act="pay">Take a payment…</button>');
   else if(s.status === "draft")
     acts.push('<button class="pobtn" data-act="pay" title="A deposit recorded against this order attaches itself when the invoice is issued">Take a deposit…</button>');
@@ -1194,7 +1195,7 @@ async function loadDetail(id){
     ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"],["Tax rule",""]].concat(ed ? [["",""]] : []), charges,
       "Freight and similar. Tax follows the order's rule.")}
 
-    ${invRows.length ? tbl("Invoice", invRows.length, [["Number",""],["Status",""],["Issued",""],["Due",""],["Total","num"],["Amount due","num"],["Paid","num"],["Still owed","num"]], invRows,
+    ${invRows.length ? tbl("Invoice", invRows.length, [["Number",""],["Status",""],["Issued",""],["Due",""],["Total","num"],["Due at issue","num"],["Paid","num"],["Still owed","num"]], invRows,
       "The invoice fixes the amounts. Open the number for payments, credits and history on Sales Invoices.") : ""}
 
     ${famHtml.length ? tbl("Order family", famRows.length, [["Order",""],["Status",""],["Split reason",""],["Open qty","num"],["",""]], famHtml,

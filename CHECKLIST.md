@@ -2,7 +2,7 @@
 
 `ims.asung.ca` 의 화면이 제대로 도는지 눈으로 확인하는 목록.
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
-`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열셋이(2026-09-25 기준 · §0-a) 움직인다.
+`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열넷이(2026-09-25 기준 · §0-a) 움직인다.
 
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
@@ -17,16 +17,16 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열넷이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices 추가 · 이름 둘 바뀜)
+[ ] ☰ Menu 를 누르면 열다섯이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments 추가 · 이름 둘 바뀜)
     Settings · Suppliers · Products · Families · Supplier Products ·
-    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Staff · Home
+    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Staff · Home
     ⭐ [2026-09-25] 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home · 이름은 보이는 글자만 바꿨다(파일은 invoices.html · payments.html 그대로)
 [ ] 머리 아래 탭 줄 = [모드] | [묶음] | [지금 화면 묶음의 탭들] (2026-09-25 묶음 칸 신설 · ims-auth.js items 여섯째 칸)
-    구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 둘 — Sales Orders · Sales Invoices
+    구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 셋 — Sales Orders · Sales Invoices · Customer Payments
     ⭐ 탭은 자주 오가는 화면만이다(Caleb). 마스터·Staff·Home 은 ☰ Menu 에만 있다
     ⚠️ 탭·메뉴는 **권한으로 갈린다** — receiving 권한이 없으면 Receiving 이 아예 안 보이고, sales 권한이 없으면 Sales Orders 가 안 보인다(빈 탭이 아니다)
 [ ] 묶음 칸(PURCHASING · SALES · 모드 칸과 같은 모양)은 **구매·판매 둘 다 보는 사람에게만**, 그리고 지금 화면이 묶음 안일 때만 뜬다
-    · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders(눌림) · Sales Invoices」
+    · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders(눌림) · Sales Invoices · Customer Payments」
     · 구매만 · 판매만: 묶음 칸 없이 탭만(지금까지와 같다) · Settings 등 묶음 밖 화면: 묶음 칸 없음
     · SALES 를 누르면 판매 묶음의 첫 보이는 **탭** 화면(so.html)으로 간다 · 모드 칸(IMS·WMS)은 WMS 화면이 서기 전까지 여전히 안 보인다
 [ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
@@ -39,18 +39,18 @@
 
 ### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
 
-한 곳을 고치면 **열셋**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+한 곳을 고치면 **열넷**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
 📌 [정정 2026-09-16 저녁] 「여섯」은 2026-09-15 의 수다 — po.html(09-16 오전)로 일곱 · invoices.html(09-16 저녁)로 여덟이 됐는데 이 줄을 안 고쳤다.
 📌 [정정 2026-09-18] 여덟도 낡았다 — charges·payments(09-17 오후)로 열 · receiving(09-18)으로 열하나다.
    ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
-📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 **열셋**이다 — 둘 다 같은 커밋에 고쳤다.
+📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 열셋 · so-payments.html(09-25 밤)로 **열넷**이다 — 셋 다 같은 커밋에 고쳤다.
 ```
-[ ] 열세 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · staff
+[ ] 열네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열세 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열세 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열네 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열네 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
@@ -506,7 +506,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 
 ---
 
-## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 1판 「2026-09-25 · so v1」)
+## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → **v1.2**(다 받은 인보이스면 결제 단추 숨김 · Due at issue))
 
 뒷단: 읽기 RPC `so_detail` · `so_family_members` · `so_payment_default_account` · 표 `so`(select) ·
 쓰기 RPC `so_create` · `so_line_add` · `so_lines_paste` · `so_line_update` · `so_line_remove` · `so_charge_set/remove` ·
@@ -523,7 +523,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 ```
 공통 · 목록
 [ ] 탭 줄에 Sales Orders 가 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 왼쪽에 PURCHASING · SALES(눌림) 묶음 칸이 있다
-[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · so v1」다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · so v1.2」다
 [ ] 넓은 목록(처음 화면): 필터 Channel(All · Warehouse · Counter · POS) · 주문일 from–to · Status(Open 기본 · Draft · Confirmed · With warehouse · Shipped · Fulfilled · Cancelled · All) · 검색(SO number · customer · reference) · Clear · + New sales order
 [ ] 열 순서: SO · Status · Channel · Ordered · Customer · Reference · Warehouse · Currency
 [ ] 행을 누르면 좁은 목록 + 상세로 바뀌고, ‹ All orders 로 돌아온다 · ☰ List 로 좁은 목록을 접고 편다
@@ -566,6 +566,9 @@ counter 확정 · 나갔다 (manager)
 
 결제 넣기 (sales)
 [ ] Take a deposit…(draft·confirmed) / Take a payment…(발행 뒤) → Method · Amount(남은 금액이 미리 들어 있다) · Paid on(오늘 · 미래 불가) · Reference · Account · Note
+[ ] ⭐ [v1.2] 인보이스를 **다 받았으면** Take a payment… 단추가 숨는다(누르면 넣을 곳 없는 돈이 손님 잔액으로 가던 자리 · Caleb 화면 시험 2026-09-25)
+[ ] ⭐ [v1.1·v1.2] 상세의 Invoice 표: Number(링크 → so-invoices.html?inv=…) · Status · Issued · Due · Total · **Due at issue**(종이에 찍힌 값) · Paid · Still owed(오늘 값) — 재발행 사슬의 옛 장도 같은 표에 링크로
+[ ] [v1.1] so_copy_customer 의 경고(bill_to_empty 등 일곱)가 코드가 아니라 사람 말로 보인다
 [ ] Method 를 바꾸면 「Default account: …」 힌트가 바뀐다 · 기본 계좌가 없는 조합이면 「pick one」이라 말하고 고르게 한다
 [ ] Record payment → 저장되고 상세의 받은 금액·잔액이 바뀐다 · 초안에 넣은 선결제는 발행 때 auto_deposit 로 붙는다
 
@@ -578,7 +581,7 @@ counter 확정 · 나갔다 (manager)
 
 ---
 
-## 7-g. `so-invoices.html` — 판매 인보이스 (2026-09-25 신설 · 대화 Claude · 1판 「2026-09-25 · inv v1」)
+## 7-g. `so-invoices.html` — 판매 인보이스 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · inv v1」 → **v1.1**(계좌 이름 · 결제 날짜 링크 · 다 받으면 결제 단추 숨김 · Due at issue 줄))
 
 뒷단: 읽기 뷰 `so_invoice_list`(PostgREST · range · search_text) · RPC `so_invoice_detail` · `so_invoice_ar_summary` — asung-wms `20260925191843`(so-inv-read-1) ·
 쓰기 RPC `so_payment_add`(새 결제 · 이 인보이스에 붙는다 · sales) · `so_payment_detach`(manager) · `so_invoice_cancel`(manager · 사유 필수) · `so_invoice_reissue`(manager) — 정본 §17~§19.
@@ -591,7 +594,7 @@ counter 확정 · 나갔다 (manager)
 ```
 공통 · 목록
 [ ] 탭 줄에 Sales Invoices 가 Sales Orders 뒤에 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 PURCHASING · SALES(눌림) 묶음 칸
-[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · inv v1」다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · inv v1.1」다
 [ ] 넓은 목록(처음 화면): Show(Open — still owed 기본 · Overdue · Open with no due date · Paid in full · Cancelled · All) · 검색(Invoice · customer · SO number · reference) · Clear
 [ ] 열 순서: Invoice · Status · Issued · Due · Customer · Orders · Total · Paid · Credited · Still owed
 [ ] 60000 한 행: issued · Clore Inc. (BLW) · Orders SO-25000 · 176.30 · Paid 100.00 · Credited 0 · Still owed 76.30 · 연체 칩 없음(기한 전)
@@ -611,12 +614,15 @@ counter 확정 · 나갔다 (manager)
 [ ] Orders on this invoice: SO 번호 링크(so.html?so=…) · 상태 · 배송지 · 세금 규칙·세율 · 취소된 걸림은 「detached」 태그
 [ ] Lines: line_no 순 · kind(product · charge · order_discount) · SKU · 수량 · 단가 · 금액 · 세금
 [ ] Payments: 붙임마다 날짜 · 방법 · 참조 · 계좌 · 붙인 몫 · 결제 금액 · 결제의 남은 금액 · 출처(manual · auto_deposit · auto_balance) · 떼어진 것은 「detached <시각> · 사유」로 남는다
-    지금 값: 60000 에 100.00 wire auto_deposit 한 줄
+    지금 값: 60000 에 100.00 wire auto_deposit + 76.30 cash manual 두 줄(Still owed 0)
+[ ] ⭐ [v1.1] 결제 줄의 계좌가 **코드가 아니라 이름**으로(_105_ → BMO CAD CHEQUING 류 · 이름 찾기는 전 계좌 · 고르기는 활성 BANK 또는 _5_) · 결제 **날짜가 링크**(→ so-payments.html?pay=…)
+[ ] ⭐ [v1.1] 합계 아래 「Due at issue <amount_due> — deposit applied · credit applied · money on account」 한 줄이 종이 값과 오늘 값을 가른다
 [ ] Credits applied · Returns against this invoice · Other invoices for these orders(재발행 사슬) · Customer balance(통화 · 받아 둔 돈 · 진 빚 · 예약 · 가용)는 **있을 때만** 표가 뜬다
 [ ] 없는 id 로 열면(?id= 를 틀리게) 「없다」로 가른다(DB 가 null 을 준다)
 
 결제 넣기 (sales)
 [ ] Take a payment… → Method · Amount(Still owed 가 미리 들어 있다) · Paid on(오늘 · 미래 불가) · Reference · Branch(비우면 손님 기본) · Account(기본 계좌 힌트) · Note
+[ ] ⭐ [v1.1] Still owed 가 0 이면(다 받음) Take a payment… 단추가 **숨는다** — 지금 실물 60000 이 그렇다(단추 없음)
 [ ] Record payment → 저장되고 Payments 표에 한 줄 · Still owed 가 준다 · 요약 머리도 준다
 [ ] ⭐ Still owed 보다 많이 넣으면 넘친 몫은 손님 잔액(받아 둔 돈)으로 남는다 — DB 가 정한다 · 화면은 그대로 보인다
 
@@ -628,6 +634,59 @@ counter 확정 · 나갔다 (manager)
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · 받아 둔 돈 손으로 붙이기(so_payment_attach) · 크레딧 붙이기 · 손님 결제 화면(Customer Payments) · 크레딧 노트 화면 · pg_trgm 검색 인덱스(정본 ⬜).
+
+---
+
+## 7-h. `so-payments.html` — 손님 결제 (2026-09-25 신설 · 대화 Claude · 1판 「2026-09-25 · pay v1」)
+
+뒷단: 읽기 뷰 `so_payment_list`(PostgREST · range · search_text) · RPC `so_payment_detail` — asung-wms `20260925195701`(so-pay-read-1) ·
+쓰기 RPC `so_payment_add`(받아 둔 돈 · sales) · `so_payment_refund`(manager) · `so_payment_attach`(sales) · `so_payment_propose`(제안 · 읽기) · `so_payment_detach`(manager) · `so_payment_void`(manager) — 정본 §18 · §19.
+
+⭐⭐ **결제 남은 금액 = `so_payment_remaining` 한 곳**(뷰가 부른다) · 인보이스 남은 금액 = `so_invoice_remaining` — 화면이 다시 계산하지 않는다.
+⭐ 환불은 붙일 돈이 아니다 — Not attached 가 비고 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9). Held for orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다 · 발행 순간 저절로 붙는다).
+⭐ 특정 인보이스에 받는 것은 Sales Invoices 에서 · 특정 오더의 선결제는 Sales Orders 에서 — 이 화면의 「Record a payment」는 **받아 둔 돈**(인보이스 없이)이다.
+⚠️ 권한: 받기 · 붙이기 = sales 열쇠 · 환불 · 떼기 · 취소(void) = manager 이상(Refund… 단추 · Void · detach 가 manager 에게만).
+⚠️ 모집단(테스트 DB · 2026-09-25 실측): 결제 **2건**(Clore Inc. (BLW) · CAD · 2026-09-25 · 참조 없음) — wire 100.00(60000 에 auto_deposit · 대상 SO-25000) · cash 76.30(60000 에 manual). 둘 다 Attached = Amount · Not attached 0.
+
+```
+공통 · 목록
+[ ] 탭 줄에 Customer Payments 가 Sales Invoices 뒤에 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 PURCHASING · SALES(눌림) 묶음 칸
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · pay v1」다
+[ ] 넓은 목록(처음 화면): Show(Active 기본 · Not attached — money on account · Held for orders · Refunds · Voided · All) · Method(All methods + 여덟) · 검색(Reference · customer · invoice · SO number · note) · Clear · Refund…(manager 만) · + Record a payment
+[ ] 열 순서: Paid on · Status · Customer · Method · Reference · Account · Amount · Attached · Not attached · Invoices · orders
+[ ] 실물 두 줄: wire 100.00 Attached 100.00 Not attached 0 · Invoices 60000 · orders SO-25000 / cash 76.30 Attached 76.30 · 60000 · Account 는 코드가 아니라 이름
+[ ] Not attached 로 바꾸면 0행(둘 다 다 붙었다) · Held for orders 0행 · Refunds 0행 · Voided 0행 · All 2행
+[ ] 검색에 60000 을 치면 둘 다 · SO-25000 을 치면 wire 하나(대상 오더는 wire 만) — 뷰의 search_text(참조 · 손님 · 인보이스 · 오더 · 방법 · 계좌 코드 · 메모)
+[ ] 행을 누르면 좁은 목록 + 상세 · ‹ All payments · ☰ List · 탭 줄이 있어도 목록이 밀리지 않는다(--ims-tabs-h)
+
+받아 둔 돈 넣기 (sales)
+[ ] + Record a payment → 손님을 이름으로 고른다 → Method · Amount · Paid on(오늘 · 미래 불가) · Reference · Branch(비우면 손님 기본) · Account(기본 계좌 힌트 · 없는 조합이면 고르게) · Note → Record payment(손님을 고르기 전엔 눌리지 않는다)
+[ ] 넣으면 목록에 Not attached = Amount 로 서고, 그 손님의 다음 인보이스 발행 때 저절로 붙는다(auto_balance · DB)
+[ ] USD 손님(Xeonium 류)은 방법에 따라 기본 계좌가 없어 「pick the account」가 뜬다(§18-a 판정 2)
+
+환불 (manager)
+[ ] Refund… → 손님 → Method · Amount · Paid on · Reference · Branch · Account(**필수** — 「pick the account the money leaves from」) · Note → Record refund
+[ ] 받아 둔 돈 + 진 빚(크레딧)보다 많으면 DB 가 거부하고 문장이 얼마까지인지 말한다 · 크레딧이 있으면 크레딧부터 갚는다(상세 「Credit notes this refund paid off」)
+[ ] 환불 줄: Status refund · Attached — · Not attached 비어 있음 · 상세에 크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫
+
+한 건(상세)
+[ ] 머리: 날짜 · 상태 칩 · 손님 · 방법 · 참조 · 계좌(이름) · 브랜치 · 금액 · Attached · Not attached · Held for orders · 넣은 사람 · 메모 · void 면 시각 + 사유
+[ ] Attached to invoices: 인보이스(링크 → so-invoices) · On this invoice · Invoice total · How it attached(manual · auto_deposit · auto_balance) · When · 떼어진 줄은 남되 「detached」
+    지금 값: wire → 60000 100.00 auto_deposit · cash → 60000 76.30 manual
+[ ] Held for orders: 대상 오더(링크 → so.html) · 상태 · 발행됐나 — wire 에 SO-25000(fulfilled · 발행됨)
+[ ] Open invoices of this customer(붙일 돈이 있을 때만 · 같은 통화): Invoice · Issued · Due · Orders · Still owed — 지금 실물엔 없다(Clore 미수 0)
+[ ] Customer balance: 통화 · Money on account · Credit owed · Held for orders · Available — Clore CAD 전부 0
+[ ] 없는 id(?pay= 틀리게)는 「없다」로 가른다
+
+붙이기 · 떼기 · 취소 (sales / manager)
+[ ] Not attached > 0 인 결제에 Attach to invoices… → 같은 손님·같은 통화의 미수 인보이스 표(Still owed · Attach 칸) · Suggest (oldest first)(so_payment_propose · 오래된 것부터 금액을 채운다 · 사람이 고친다) → Attach → so_payment_attach
+[ ] 인보이스 Still owed 보다 · 결제 Not attached 보다 많이 넣으면 DB 가 거부한다(한도 셋)
+[ ] Attached to invoices 표의 detach(manager) → 사유(필수) → 돈이 받아 둔 돈으로 돌아간다 · 줄은 「detached」로 남는다
+[ ] Void payment…/Void refund…(manager) → 사유(필수) → status voided · 붙은 것이 있으면 DB 가 「먼저 떼라」로 거부 · 환불 취소는 그 환불이 갚은 크레딧 몫이 함께 풀린다 · 지우지 않는다
+[ ] worker 에게는 Refund… · Void · detach 가 아예 안 보인다
+```
+
+⚠️ [2026-09-25] 아직 없는 것 — 크레딧 노트 화면(Credit Notes) · 손님별 잔액 화면 · 영수증 인쇄 · 백오더 화면 (정본 §18-g · §19-g).
 
 ---
 

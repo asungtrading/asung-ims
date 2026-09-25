@@ -113,7 +113,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-09-25 · inv v1";
+const INV_BUILD = "2026-09-25 · inv v1.1";
 console.log("so-invoices.html build:", INV_BUILD);
 
 function torontoToday() {
@@ -127,7 +127,7 @@ let sb = null, me = null, rank = 0;
 let q = "", stFilter = "open", dateFrom = "", dateTo = "", curId = null;
 let detailSeq = 0, cur = null;
 const pg = imsPage(100), pgW = imsPage(50);
-let WHS = [], ACCTS = [];
+let WHS = [], ACCTS = [], ACCT_NAME = {};
 const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
 const isMgr = () => rank >= 2;
 
@@ -423,7 +423,7 @@ async function loadDetail(id){
       <div class="stat">Credited<b>${money(v.credited)}</b></div>
       <div class="stat ${Number(v.days_overdue) > 0 ? "warn" : ""}">Still owed<b>${live ? money(v.remaining) : '<span class="dim">—</span>'}</b></div>
     </div>
-    <div class="sosub">At issue: deposit applied ${money(v.deposit_applied)} · credit applied ${money(v.credit_applied)} · money on account ${money(v.balance_forward)} · amount due ${money(v.amount_due)}
+    <div class="sosub">Due at issue ${money(v.amount_due)} — deposit applied ${money(v.deposit_applied)} · credit applied ${money(v.credit_applied)} · money on account ${money(v.balance_forward)}
       — these are what attached itself the moment it was issued. Still owed is today's figure.</div>`;
 
   const orders = (data.orders || []).map(o => `<tr>
@@ -450,10 +450,10 @@ async function loadDetail(id){
   const pays = (data.payments || []).map(p => {
     const dead = p.voided_at || p.payment_status !== "active";
     return `<tr class="${dead ? "voided" : ""}">
-      <td>${dim(p.paid_on)}</td>
+      <td><a class="lnk" href="so-payments.html?pay=${encodeURIComponent(p.payment_id)}" title="Open on Customer Payments">${dim(p.paid_on)}</a></td>
       <td>${esc((METHODS.find(m => m[0] === p.method) || [0, p.method])[1] || "")}</td>
       <td class="mono">${dim(p.reference)}</td>
-      <td class="mono">${dim(p.account_code)}</td>
+      <td><span class="mono">${dim(p.account_code)}</span>${p.account_code && ACCT_NAME[p.account_code] ? ` <span class="dim" style="font-size:11.5px">${esc(ACCT_NAME[p.account_code])}</span>` : ""}</td>
       <td class="num">${money(p.amount)}</td>
       <td class="num">${money(p.payment_amount)}${Number(p.payment_remaining) > 0 && !dead ? `<div class="dim" style="font-size:11px">${money(p.payment_remaining)} not attached</div>` : ""}</td>
       <td>${esc(SRC[p.source] || p.source || "")}${p.voided_at ? `<div style="font-size:11px">detached ${imsTs(p.voided_at)}${p.void_note ? " · " + esc(p.void_note) : ""}</div>` : ""}</td>
@@ -545,10 +545,12 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   /* ⚠️ 결제 계좌 후보 = 활성 BANK 또는 _5_(so.html 과 같은 규칙 · §18-b ①) */
   const [wh, ac] = await Promise.all([
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
-    sb.from("ref_account").select("id,code,name,account_type").eq("is_active", true).order("code"),
+    sb.from("ref_account").select("id,code,name,account_type,is_active").order("code"),
   ]);
   WHS = wh.data || [];
-  ACCTS = (ac.data || []).filter(a => a.account_type === "BANK" || a.code === "_5_");
+  /* v1.1 — 결제 줄에 계좌 이름(Caleb 화면 시험 2026-09-25 · 코드만 보였다) · 이름 찾기는 전부 · 고르기는 활성 BANK 또는 _5_ */
+  (ac.data || []).forEach(a => { ACCT_NAME[a.code] = a.name; });
+  ACCTS = (ac.data || []).filter(a => a.is_active && (a.account_type === "BANK" || a.code === "_5_"));
 
   const refilter = () => { pg.reset(); pgW.reset(); loadWide(); };
   document.getElementById("wst").onchange  = e => { stFilter = e.target.value; document.getElementById("st").value = stFilter; refilter(); };
