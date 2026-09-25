@@ -113,7 +113,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-09-25 · inv v1.1";
+const INV_BUILD = "2026-09-25 · inv v1.2";
 console.log("so-invoices.html build:", INV_BUILD);
 
 function torontoToday() {
@@ -391,6 +391,8 @@ async function loadDetail(id){
   acts.push('<button class="pobtn" data-act="wide">&lsaquo; All invoices</button>');
   if(live && Number(v.remaining) > 0) acts.push('<button class="pobtn go" data-act="pay">Take a payment…</button>');
   acts.push('<button class="pobtn" disabled title="Printing comes in the next version">Print</button>');
+  /* v1.2 — 이 인보이스에서 크레딧 노트를 낸다(Credit Notes 화면이 준비물을 읽고 연다 · manager) */
+  if(live && isMgr()) acts.push(`<a class="pobtn" href="so-credits.html?inv=${encodeURIComponent(v.id)}" style="text-decoration:none">Raise a credit note…</a>`);
   if(live && isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel invoice…</button>');
   if(v.status === "cancelled" && isMgr()) acts.push('<button class="pobtn" data-act="reissue" title="A new invoice for the same orders, dated today">Reissue…</button>');
 
@@ -462,10 +464,10 @@ async function loadDetail(id){
   });
 
   const credA = (data.credits_applied || []).map(c => `<tr class="${c.voided_at || c.credit_status !== "issued" ? "voided" : ""}">
-      <td class="mono">${esc(c.credit_number)}</td><td>${dim(c.issued_on)}</td><td>${esc(c.credit_status || "")}</td>
+      <td><a class="lnk mono" href="so-credits.html?cr=${encodeURIComponent(c.credit_number)}">${esc(c.credit_number)}</a></td><td>${dim(c.issued_on)}</td><td>${esc(c.credit_status || "")}</td>
       <td class="num">${money(c.amount)}</td><td class="num">${money(c.credit_total)}</td><td>${esc(SRC[c.source] || c.source || "")}</td></tr>`);
   const credX = (data.credits_against || []).map(c => `<tr class="${c.status === "cancelled" ? "voided" : ""}">
-      <td class="mono">${esc(c.credit_number)}</td><td>${dim(c.issued_on)}</td><td>${esc(c.status || "")}</td><td>${esc(c.reason || "")}</td>
+      <td><a class="lnk mono" href="so-credits.html?cr=${encodeURIComponent(c.credit_number)}">${esc(c.credit_number)}</a></td><td>${dim(c.issued_on)}</td><td>${esc(c.status || "")}</td><td>${esc(c.reason || "")}</td>
       <td class="num">${money(c.total)}</td><td class="num">${Number(c.applied_here) ? money(c.applied_here) : '<span class="dim">—</span>'}</td></tr>`);
   const hist = (data.history || []).map(h => `<tr>
       <td><a class="lnk mono" data-goinv="${esc(h.invoice_number)}">${esc(h.invoice_number)}</a></td>
