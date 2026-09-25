@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v1.2";
+const SO_BUILD = "2026-09-25 · so v1.3";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -436,6 +436,7 @@ function openAddLine(){
     <h4>Add lines — ${esc(cur.so.so_number)}</h4>
     <div class="pbody">
       <input type="search" id="alq" placeholder="SKU · product name · barcode" autocomplete="off">
+      <label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--muted)"><input type="checkbox" id="alSets"> Include sets (cases · packs) — hidden by default · a set has its own set price</label>
       <div id="alHits" class="binlist"><div class="msg">Type to search.</div></div>
       <div id="alChosen" style="margin-top:12px"></div>
       <div id="alOut" style="margin-top:12px"></div>
@@ -448,6 +449,7 @@ function openAddLine(){
     </div>`);
   wireModalClose();
   imsQ("#alq", v => drawAlHits(v.trim()));
+  document.getElementById("alSets").onchange = () => drawAlHits(document.getElementById("alq").value.trim());
   document.getElementById("alChk").onclick = () => runAdd(false);
   document.getElementById("alGo").onclick  = () => runAdd(true);
   drawChosen();
@@ -458,25 +460,44 @@ async function drawAlHits(term){
   if(!term){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
   /* ⚠️ 제품 18,714 — 캡 위라 서버에서만 좁힌다 · 세 질문을 나란히(sku · 이름 · 바코드) 뒤 합친다 */
   const t = orTerm(term);
+  /* v1.3 — 세트(parent_product_id 있는 제품)는 기본으로 숨긴다(Caleb 2026-09-25 「세트는 보일 필요가 없는데」) · 체크하면 보인다 · 붙여넣기는 세트 SKU 를 그대로 받는다 */
+  const withSets = !!(document.getElementById("alSets") || {}).checked;
+  const noSets = (qb) => withSets ? qb : qb.is("parent_product_id", null);
   const [a, b, c] = await Promise.all([
-    sb.from("product").select("id,sku,name").eq("is_active", true).ilike("sku", `%${t}%`).order("sku").limit(50),
-    sb.from("product").select("id,sku,name").eq("is_active", true).ilike("name", `%${t}%`).order("sku").limit(50),
-    sb.from("product_barcode").select("barcode,product:product_id!inner(id,sku,name,is_active)").eq("is_active", true).ilike("barcode", `%${t}%`).limit(20),
+    noSets(sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("is_active", true).ilike("sku", `%${t}%`)).order("sku").limit(50),
+    noSets(sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("is_active", true).ilike("name", `%${t}%`)).order("sku").limit(50),
+    sb.from("product_barcode").select("barcode,product:product_id!inner(id,sku,name,is_active,parent_product_id,pack_factor)").eq("is_active", true).ilike("barcode", `%${t}%`).limit(20),
   ]);
   const err = a.error || b.error || c.error;
   if(err){ box.innerHTML = `<div class="msg err">${esc(err.message)}</div>`; return; }
   const seen = new Set(), rows = [];
   (a.data || []).concat(b.data || []).forEach(p => { if(!seen.has(p.id)){ seen.add(p.id); rows.push(p); } });
-  (c.data || []).forEach(x => { const p = x.product; if(p && p.is_active && !seen.has(p.id)){ seen.add(p.id); rows.push({ id: p.id, sku: p.sku, name: p.name, barcode: x.barcode }); } });
+  (c.data || []).forEach(x => { const p = x.product; if(p && p.is_active && (withSets || !p.parent_product_id) && !seen.has(p.id)){ seen.add(p.id); rows.push({ id: p.id, sku: p.sku, name: p.name, parent_product_id: p.parent_product_id, pack_factor: p.pack_factor, barcode: x.barcode }); } });
   if(!rows.length){ box.innerHTML = '<div class="msg">No active product matches.</div>'; return; }
-  box.innerHTML = rows.map(p => `<div class="prow" data-pid="${p.id}" data-sku="${esc(p.sku)}" data-name="${esc(p.name || "")}">
-      <span class="mono">${esc(p.sku)}</span>${p.barcode ? ` <span class="dim" style="font-size:11.5px">barcode ${esc(p.barcode)}</span>` : ""}
+  /* v1.3 — 가용 재고(Caleb 화면 시험 2026-09-25) · so_available_many 한 곳(창고 잔고 − 열린 할당 · 낱개 EA) · 오더 창고 기준 · 한 번에 부른다
+     ⭐ 세트는 낱개(부모) 재고를 본다 — 세트로는 EA ÷ pack_factor 의 몫만 보인다(계산이 아니라 나눠 보이기) */
+  const stockPid = (p) => p.parent_product_id || p.id;
+  let AV = {};
+  if(cur && cur.so && cur.so.location_id){
+    const av = await sb.rpc("so_available_many", { p_stock_pids: [...new Set(rows.map(stockPid))], p_location_id: cur.so.location_id });
+    if(!av.error) (av.data || []).forEach(a => { AV[a.stock_pid] = a; });
+  }
+  const avTxt = (p) => {
+    const a = AV[stockPid(p)];
+    if(!a) return "";
+    const ea = Number(a.available_ea), pf = Number(p.pack_factor) || 1;
+    const cls = ea > 0 ? "on" : "off";
+    return ` <span class="${cls}" style="font-size:11.5px">available ${esc(ea.toLocaleString("en-CA"))} EA${pf > 1 ? ` = ${esc(Math.floor(ea / pf))} × ${esc(pf)}` : ""}</span>`
+      + (Number(a.allocated_ea) ? ` <span class="dim" style="font-size:11px">(on hand ${esc(Number(a.qty_ea).toLocaleString("en-CA"))} · reserved ${esc(Number(a.allocated_ea).toLocaleString("en-CA"))})</span>` : "");
+  };
+  box.innerHTML = rows.map(p => `<div class="prow" data-pid="${p.id}" data-sku="${esc(p.sku)}" data-name="${esc(p.name || "")}" data-av="${esc(avTxt(p))}">
+      <span class="mono">${esc(p.sku)}</span>${p.barcode ? ` <span class="dim" style="font-size:11.5px">barcode ${esc(p.barcode)}</span>` : ""}${avTxt(p)}
       <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
     + (rows.length >= 50 ? '<div class="msg dim">Showing the first matches — type more to narrow.</div>' : "");
   box.querySelectorAll("[data-pid]").forEach(el => {
     el.onclick = () => {
       if(addPick.some(x => x.pid === el.dataset.pid)) return;
-      addPick.push({ pid: el.dataset.pid, sku: el.dataset.sku, name: el.dataset.name, qty: 1, free: "", note: "" });
+      addPick.push({ pid: el.dataset.pid, sku: el.dataset.sku, name: el.dataset.name, av: el.dataset.av || "", qty: 1, free: "", note: "" });
       drawChosen();
     };
   });
@@ -487,7 +508,7 @@ function drawChosen(){
   if(!addPick.length){ box.innerHTML = '<div class="msg dim">Pick products from the list above.</div>'; return; }
   box.innerHTML = `<table><thead><tr><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Free?</th><th>Note</th><th></th></tr></thead>
     <tbody>${addPick.map((r, i) => `<tr>
-      <td class="mono">${esc(r.sku)}</td><td>${dim(r.name)}</td>
+      <td class="mono">${esc(r.sku)}</td><td>${dim(r.name)}${r.av ? `<div>${r.av}</div>` : ""}</td>
       <td class="num"><input class="qin" type="number" step="any" min="1" value="${esc(r.qty)}" data-aq="${i}"></td>
       <td><select class="sofield" data-af="${i}">
         <option value="">— priced</option>
@@ -496,7 +517,8 @@ function drawChosen(){
       <td><input class="tin" value="${esc(r.note)}" data-an="${i}" placeholder="needed for free · other"></td>
       <td><button class="xbtn" data-adrop="${i}" title="Take it off the list">×</button></td>
     </tr>`).join("")}</tbody></table>
-    <div class="sohint">Priced lines get their price and discount from the database (tier · customer discount · deals). Free lines go in at 0 with a reason.</div>`;
+    <div class="sohint">Priced lines get their price and discount from the database (tier · customer discount · deals). Free lines go in at 0 with a reason.
+      Available = on hand in this order's warehouse minus what other orders have reserved. For a warehouse order, anything above it becomes a backorder when you confirm; a counter order ships it anyway.</div>`;
   box.querySelectorAll("[data-aq]").forEach(inp => { inp.onchange = () => { addPick[Number(inp.dataset.aq)].qty = Number(inp.value) || 0; staleAdd(); }; });
   box.querySelectorAll("[data-af]").forEach(s => { s.onchange = () => { addPick[Number(s.dataset.af)].free = s.value; staleAdd(); }; });
   box.querySelectorAll("[data-an]").forEach(inp => { inp.onchange = () => { addPick[Number(inp.dataset.an)].note = inp.value; }; });
