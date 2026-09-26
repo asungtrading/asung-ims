@@ -95,7 +95,7 @@
    ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
    ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-09-25 · bo v1";
+const BO_BUILD = "2026-09-25 · bo v1.1";
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -107,6 +107,13 @@ let offset = 0, custId = null, custName = "", last = null;
 const qty = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
   : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+/* v1.1 — available_other 는 숫자가 아니라 {창고 이름: 가용 EA} 모양이다(Caleb 화면 시험 2026-09-25 · 「other NaN」) */
+function otherTxt(o){
+  if(o === null || o === undefined) return '<span class="dim">—</span>';
+  if(typeof o !== "object") return qty(o);
+  const parts = Object.entries(o).map(([w, v]) => `${esc(w)} ${qty(v)}`);
+  return parts.length ? parts.join(" · ") : '<span class="dim">—</span>';
+}
 const END_LBL = { superseded: "taken over", proceeded: "proceeded", expired: "expired", cancelled: "cancelled", merged: "merged" };
 
 function filters(){
@@ -154,7 +161,7 @@ async function load(){
     const open = r.state === "open";
     const stock = open
       ? (r.arrived ? `<span class="on">arrived</span>` : '<span class="dim">not yet</span>')
-        + `<div class="dim" style="font-size:11px">here ${qty(r.available_here)} · other ${qty(r.available_other)}</div>`
+        + `<div class="dim" style="font-size:11px">here ${qty(r.available_here)} · ${otherTxt(r.available_other)}</div>`
       : "";
     const st = open
       ? (r.owed ? '<span class="tag disc">free — we owe it</span>' : '<span class="tag">open</span>')
@@ -176,7 +183,7 @@ async function load(){
   });
   html += `</tbody></table>
     <div class="sosub">Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder was made (adjustments and returns do not count).
-      Here / other = available now in this branch / in the other branches. Mail notices are still sent from Cin7, so this screen does not show them yet.</div>`;
+      Here = available now in this branch · then each other branch by name (EA). Mail notices are still sent from Cin7, so this screen does not show them yet.</div>`;
   box.innerHTML = html;
   box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no); });
   pager(data);
