@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v1.4";
+const SO_BUILD = "2026-09-25 · so v2";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -212,6 +212,12 @@ const WARN = {
   price_tier_not_for_sale: "The customer's price tier is not a sales tier.",
   price_tier_inactive: "The customer's price tier is inactive.",
   customer_inactive: "This customer is inactive.",
+  /* v2 — 병합 경고 */
+  charges_not_merged: "Freight was not carried over — add it again on the new draft.",
+  head_differs: "The merged orders differ in the header — the oldest order's values were kept.",
+  backorder_siblings_stay_open: "Backorder orders of the originals stay open.",
+  preorder_lines_need_reflag: "Some lines were preorders — pick them again as preorder when you confirm.",
+  superseded_not_reopenable: "Some backorder lines taken over by the originals could not be reopened.",
 };
 const warnText = (w) => {
   const key = String(w).split(":")[0];
@@ -1004,6 +1010,193 @@ async function runShip(){
   cl.textContent = "Close"; cl.onclick = async () => { modalClose(); await reloadHere(); };
 }
 
+
+/* ══ 2판(2026-09-25 · Caleb 「so.html 2판 가자」) — 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 ══
+   ⭐ 전부 DB 창구의 미리 보기(p_commit false)를 먼저 보이고 같은 입력으로 실행한다 · 권한은 manager(병합은 초안만이면 sales)
+   ⭐ 결과 모양은 확정 미리 보기와 같다(so_allocate_run 의 lines · siblings) — 같은 표로 그린다 */
+function planTable(data, done){
+  const lines = data.lines || [];
+  return `<table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th><th class="num">Reserved</th><th class="num">Backorder</th><th class="num">Preorder</th></tr></thead>
+    <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}</td><td class="num">${qty(l.qty_ordered)}</td>
+      <td>${esc(l.kind || "")}</td><td class="num">${qty(l.allocated)}</td>
+      <td class="num">${Number(l.backordered) ? `<span class="neutral">${qty(l.backordered)}</span>` : '<span class="dim">0</span>'}</td>
+      <td class="num">${Number(l.preorder) ? `<span class="neutral">${qty(l.preorder)}</span>` : '<span class="dim">0</span>'}</td></tr>`).join("") || '<tr><td colspan="7" class="dim">No line changes.</td></tr>'}</tbody></table>
+    ${(data.siblings || []).length ? `<div class="sosub">${done ? "Split off" : "Will split off"}: ${data.siblings.map(x => `${esc(x.so_number || "")} ${esc(x.split_reason || "")}`).join(" · ")}</div>` : ""}
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+}
+/* 미리 보기 → 실행 한 벌 — rpc 이름 · 인자 · 제목 · 그리기 */
+function previewThenRun(title, rpc, args, draw, goLabel, after){
+  modalOpen(`
+    <h4>${title}</h4>
+    <div class="pbody"><div id="pvOut2"><div class="msg">Checking…</div></div><div id="pvMsg2" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="pvGo2" disabled>${goLabel}</button>
+    </div>`);
+  wireModalClose();
+  (async () => {
+    const { data, error } = await sb.rpc(rpc, Object.assign({}, args, { p_commit: false }));
+    if(error){ document.getElementById("pvOut2").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    document.getElementById("pvOut2").innerHTML = draw(data, false);
+    say("pvMsg2", "", "Nothing is saved until you press " + goLabel + ".");
+    const go = document.getElementById("pvGo2"); go.disabled = false;
+    go.onclick = async () => {
+      say("pvMsg2", "", "Working…"); go.disabled = true;
+      const r = await sb.rpc(rpc, Object.assign({}, args, { p_commit: true }));
+      if(r.error){ say("pvMsg2", "err", r.error.message); go.disabled = false; return; }
+      document.getElementById("pvOut2").innerHTML = draw(r.data, true);
+      say("pvMsg2", "on", "Done.");
+      const cl = document.querySelector('#modalBox [data-m="close"]');
+      cl.textContent = "Close"; cl.onclick = async () => { modalClose(); if(after) await after(r.data); else await reloadHere(); };
+    };
+  })();
+}
+
+/* 보류 — 오더 전체의 할당을 풀고 hold 로 건다(R3 · 보류는 늘 오더 전체) · 풀기 = 다시 엔진을 돌려 잡을 수 있는 만큼 잡는다 */
+async function holdSo(){
+  if(!confirm(`Put ${cur.so.so_number} on hold? Reserved stock is released for other orders; the lines stay on the order. Release the hold later to reserve again.`)) return;
+  const { data, error } = await sb.rpc("so_hold", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+  if(data) setTimeout(() => alert(`On hold — ${data.lines_held} line(s).`), 30);
+}
+async function releaseHold(){
+  if(!confirm(`Release the hold on ${cur.so.so_number}? Stock is reserved again as far as it is available — the rest becomes a backorder order.`)) return;
+  const { data, error } = await sb.rpc("so_reallocate", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  modalOpen(`<h4>Hold released — ${esc(cur.so.so_number)}</h4><div class="pbody">${planTable(data, true)}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = async () => { modalClose(); await reloadHere(); };
+}
+
+/* 나누기 — 줄(또는 줄의 일부)을 새 형제 오더로 옮긴다(split_reason manual) · 예약은 따라간다 */
+function openDivide(){
+  const lines = (cur.lines || []);
+  modalOpen(`
+    <h4>Divide ${esc(cur.so.so_number)} — move lines to a new order</h4>
+    <div class="pbody">
+      <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Move</th></tr></thead>
+      <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td class="num">${qty(l.qty_ordered)}</td>
+        <td class="num"><input class="qin" type="number" step="any" min="0" max="${esc(l.qty_ordered)}" data-mv="${l.id}"></td></tr>`).join("")}</tbody></table>
+      <div class="sohint">Type how much of each line moves. The whole line or part of it — its reservation goes with it. The new order is a sibling (manual split) and keeps this order's header.</div>
+      <div id="dvOut" style="margin-top:10px"></div><div id="dvMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="dvChk">Check</button>
+      <button class="pobtn go" id="dvGo" disabled>Divide</button>
+    </div>`);
+  wireModalClose();
+  const moves = () => Array.from(document.querySelectorAll("[data-mv]")).map(i => ({ line_id: i.dataset.mv, qty: Number(i.value) })).filter(m => m.qty > 0);
+  document.querySelectorAll("[data-mv]").forEach(i => { i.onchange = () => { document.getElementById("dvGo").disabled = true; }; });
+  const run = async (commit) => {
+    const mv = moves();
+    if(!mv.length){ say("dvMsg", "err", "Type a quantity to move on at least one line."); return; }
+    say("dvMsg", "", commit ? "Dividing…" : "Checking…");
+    const { data, error } = await sb.rpc("so_divide", { p_so_id: curId, p_moves: mv, p_commit: commit });
+    if(error){ say("dvMsg", "err", error.message); return; }
+    document.getElementById("dvOut").innerHTML = `<table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Moves</th><th>Reservation</th></tr></thead>
+      <tbody>${(data.lines || []).map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.qty_ordered)}</td>
+        <td class="num">${qty(l.qty_moved)}${l.whole ? ' <span class="dim">whole line</span>' : ""}</td>
+        <td>${l.reserve_kind ? esc(l.reserve_kind) + " · " + qty(l.reserve_follows) + " follows" : '<span class="dim">none</span>'}</td></tr>`).join("")}</tbody></table>
+      ${data.sibling ? `<div class="sosub">New order: <b class="mono">${esc(data.sibling.so_number || "")}</b></div>` : ""}`;
+    if(commit){
+      say("dvMsg", "on", "Divided.");
+      const cl = document.querySelector('#modalBox [data-m="close"]');
+      cl.textContent = "Close"; cl.onclick = async () => { modalClose(); await reloadHere(); };
+      document.getElementById("dvGo").disabled = true; return;
+    }
+    say("dvMsg", "", "Nothing is saved until you press Divide.");
+    document.getElementById("dvGo").disabled = false;
+  };
+  document.getElementById("dvChk").onclick = () => run(false);
+  document.getElementById("dvGo").onclick  = () => run(true);
+}
+
+/* 창고 바꾸기(확정 뒤 · 릴리스 전 · R7) — 풀고 새 창고에서 다시 잡는다 · 모자란 몫은 백오더 형제 */
+function openChangeWh(){
+  const others = WHS.filter(w => w.id !== cur.so.location_id);
+  modalOpen(`
+    <h4>Change warehouse — ${esc(cur.so.so_number)} (now ${esc(cur.so.location_name || "")})</h4>
+    <div class="pbody">
+      <div class="frow"><label>Move to</label><select id="cwTo" class="sofield">${others.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
+      <div class="sohint">Reservations here are released and taken again in the new warehouse. Whatever it does not have becomes a backorder order.</div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="cwNext">Preview</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("cwNext").onclick = () => {
+    const to = document.getElementById("cwTo").value;
+    const nm = (WHS.find(w => w.id === to) || {}).name || "";
+    previewThenRun(`Change warehouse — ${esc(cur.so.so_number)} → ${esc(nm)}`, "so_change_location", { p_so_id: curId, p_location_id: to },
+      (d, done) => `<div class="sosub" style="margin:-4px 0 10px">${esc(d.from || "")} → ${esc(d.to || nm)}${d.mode === "location_only" ? " · no reservations to move" : ""}</div>` + planTable(d, done),
+      "Change warehouse");
+  };
+}
+
+/* 백오더 · 프리오더 진행 — 그 형제 오더가 지금 잡을 수 있는 만큼 잡는다(R8 · Backorders 화면과 같은 창구) */
+function proceedBo(){
+  previewThenRun(`Proceed ${esc(cur.so.so_number)} — reserve stock that is here now`, "so_backorder_proceed", { p_so_id: curId },
+    (d, done) => planTable(d, done) + `<div class="sohint" style="margin-top:8px">Backorder lines ended here: ${esc(d.backorder_lines_ended ?? 0)}.</div>`, "Proceed");
+}
+
+/* 병합(④b) — 같은 손님 · 같은 창고 · 같은 통화 · 창고 길 · 초안이나 확정 · 둘 이상
+   ⭐ 판정: 머리는 가장 오래된 원본 · 주문일은 합친 날 · 줄은 받은 가격 그대로(manual) · 운임은 안 옮긴다 · 선결제 대상은 옮긴다 · 되돌리기 없음 */
+async function openMerge(){
+  const s = cur.so;
+  modalOpen(`<h4>Merge orders — ${esc(data_cust_name())}</h4><div class="pbody"><div id="mgPick"><div class="msg">Loading candidates…</div></div><div id="mgMsg" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="mgChk" disabled>Preview</button></div>`);
+  wireModalClose();
+  const { data, error } = await sb.from("so").select("id,so_number,status,order_date,ref,split_reason")
+    .eq("customer_id", s.customer_id).eq("location_id", s.location_id).eq("currency_id", s.currency_id).eq("channel", "warehouse")
+    .in("status", ["draft", "confirmed"]).order("order_date").order("so_number").limit(100);
+  if(error){ document.getElementById("mgPick").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  document.getElementById("mgPick").innerHTML = `<table><thead><tr><th></th><th>Order</th><th>Status</th><th>Ordered</th><th>Reference</th></tr></thead>
+    <tbody>${(data || []).map(o => `<tr><td><input type="checkbox" data-mg="${o.id}" ${o.id === s.id ? "checked" : ""}></td>
+      <td class="mono">${esc(o.so_number)}</td><td>${esc(o.status)}${o.split_reason ? ` <span class="dim">${esc(o.split_reason.replace("_", " "))}</span>` : ""}</td><td>${dim(o.order_date)}</td><td class="mono">${dim(o.ref)}</td></tr>`).join("")}</tbody></table>
+    <div class="sohint">Same customer, warehouse and currency · warehouse orders that are still draft or confirmed. Pick two or more.</div>`;
+  const ids = () => Array.from(document.querySelectorAll("[data-mg]:checked")).map(c => c.dataset.mg);
+  const upd = () => { document.getElementById("mgChk").disabled = ids().length < 2; };
+  document.querySelectorAll("[data-mg]").forEach(c => { c.onchange = upd; }); upd();
+  document.getElementById("mgChk").onclick = () => {
+    const sel = ids();
+    previewThenRun("Merge " + sel.length + " orders into one new draft", "so_merge", { p_so_ids: sel }, drawMerge, "Merge",
+      async (d) => { if(d && d.so_id){ q = d.so_number; document.getElementById("q").value = q; document.getElementById("wq").value = q; stFilter = "all";
+        document.getElementById("st").value = "all"; document.getElementById("wst").value = "all"; pg.reset(); openSo(d.so_id); } else await reloadHere(); });
+  };
+}
+function data_cust_name(){ return (cur && cur.customer_name) || ""; }
+function drawMerge(d, done){
+  const diffs = (d.head_diffs || []).map(x => `<tr><td>${esc(String(x.field || "").replace(/_/g, " "))}</td><td>${(x.values || []).map(v => `<span class="mono">${esc(v.so_number || "")}</span> ${esc(v.value === null || v.value === undefined ? "—" : String(v.value))}`).join(" · ")}</td></tr>`);
+  const lines = (d.lines || []).map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}</td><td class="num">${qty(l.qty)}</td>
+    <td class="num">${price(l.unit_price)}</td><td class="num">${l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%"}</td>
+    <td>${l.free_reason ? `<span class="tag">free · ${esc(l.free_reason)}</span>` : ""}${Array.isArray(l.kept_apart_by) && l.kept_apart_by.length ? `<span class="dim" style="font-size:11px">kept apart: ${esc(l.kept_apart_by.join(", "))}</span>` : ""}</td></tr>`);
+  const rq = (d.requote && ((d.requote.lines || []).length + (d.requote.combined || []).length)) ? `
+    <div class="sosub">Today's quote would be better for: ${(d.requote.lines || []).map(r => `line ${esc(r.line_no)} ${esc(r.sku)} ${price(r.unit_price)} → ${price(r.quote_unit_price)}`).concat(
+      (d.requote.combined || []).map(r => `${esc(r.sku)} as one line of ${qty(r.qty)} → ${price(r.quote_unit_price)}`)).join(" · ")}. Nothing changes by itself — change a line on the new draft if you want it.</div>` : "";
+  return `
+    <div class="socols">
+      <div class="stat">Orders<b style="font-size:13px">${esc((d.orders || []).join(", "))}</b></div>
+      <div class="stat">Header from<b class="mono" style="font-size:13px">${esc(d.head_from || "")}</b></div>
+      <div class="stat">Order date<b style="font-size:13px">${esc(d.order_date || "")}</b></div>
+      ${done ? `<div class="stat">New draft<b class="mono">${esc(d.so_number || "")}</b></div>` : ""}
+    </div>
+    ${diffs.length ? `<h5 style="margin:12px 0 4px;font-size:12px;color:var(--muted)">HEADER DIFFERS — the oldest order's value is kept · change it on the new draft</h5>
+      <table><tbody>${diffs.join("")}</tbody></table>` : ""}
+    <h5 style="margin:12px 0 4px;font-size:12px;color:var(--muted)">LINES — prices as they were (set by hand)</h5>
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Disc %</th><th></th></tr></thead><tbody>${lines.join("")}</tbody></table>
+    ${rq}
+    ${(d.charges || []).length ? `<div class="sosub">Freight is not carried over — add it again on the new draft. Was: ${d.charges.map(c => `${esc(c.so_number)} ${esc(c.name)} ${money(c.amount)}`).join(" · ")}</div>` : ""}
+    ${(d.payments_to_move || []).length ? `<div class="sosub">Deposits that move to the new order: ${d.payments_to_move.map(p => `${esc(p.paid_on || "")} ${money(p.amount)}`).join(" · ")}</div>` : ""}
+    ${(d.backorder_siblings || []).length ? `<div class="sosub">Backorder orders of the originals stay open as they are: ${d.backorder_siblings.map(x => esc(x.so_number)).join(" · ")}</div>` : ""}
+    ${(d.warnings || []).length ? `<div class="sowarn">${warnChips(d.warnings)}</div>` : ""}
+    ${d.needs_manager ? '<div class="sohint">A confirmed order is included — a manager has to do this merge.</div>' : ""}
+    <div class="sohint">The originals are closed as merged. There is no undo — to split it again, take lines off the new draft or use Divide once it is confirmed.</div>`;
+}
+
 /* ══ 상세 ═══════════════════════════════════════════════ */
 function headIn(field, value, ed, type){
   if(!ed) return (value === null || value === undefined || value === "") ? '<span class="dim">—</span>' : esc(value);
@@ -1030,6 +1223,20 @@ async function loadDetail(id){
     sb.rpc("so_family_members", { p_so_id: id }),
   ]);
   if(seq !== detailSeq) return;
+  /* v2 — 줄마다 지금 예약(allocated · hold · backorder · preorder) · so_detail 에 없어 표를 읽는다(읽기 열림) · 보류 여부도 이것으로 */
+  let RES = {};
+  const lineIds = ((d.data && d.data.lines) || []).map(l => l.id);
+  if(lineIds.length){
+    const rr = await sb.from("so_reserve").select("so_line_id,kind,qty_allocated").is("released_at", null).in("so_line_id", lineIds);
+    (rr.data || []).forEach(x => { (RES[x.so_line_id] = RES[x.so_line_id] || []).push(x); });
+  }
+  /* v2 — 병합으로 만든 초안이면 「오늘 견적이 더 유리한 줄」(판정 4 보완 ①) */
+  let HINT = null;
+  if(d.data && d.data.so && d.data.so.status === "draft"){
+    const h = await sb.rpc("so_merge_requote_hint", { p_so_id: id });
+    if(!h.error && h.data && h.data.merged) HINT = h.data;
+  }
+  if(seq !== detailSeq) return;
   if(d.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(d.error.message)}</div></div>`; return; }
   if(!d.data || !d.data.so){ box.innerHTML = '<div class="card"><div class="msg">That sales order is gone.</div></div>'; return; }
   const data = d.data;
@@ -1048,6 +1255,9 @@ async function loadDetail(id){
   /* ⚠️ 화면 조각이 쓰는 값은 조각보다 위에서 선언한다(po.html 실사고 두 번) */
   const ed = s.status === "draft";
   const ch = s.channel;
+  const allRes = Object.values(RES).flat();
+  const onHold = s.status === "confirmed" && allRes.some(x => x.kind === "hold");
+  const hasBo  = s.status === "confirmed" && allRes.some(x => x.kind === "backorder" || x.kind === "preorder");
   const invLive = inv && inv.status === "issued";
   const acts = [];
   acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list">&#9776; List</button>');
@@ -1059,6 +1269,7 @@ async function loadDetail(id){
     acts.push('<button class="pobtn" data-act="shipto">Ship to…</button>');
     acts.push('<button class="pobtn" data-act="reprice" title="Requote system lines with today\'s rules">Reprice</button>');
     if(isMgr() && ch === "warehouse") acts.push('<button class="pobtn go" data-act="confirm">Confirm…</button>');
+    if(ch === "warehouse") acts.push('<button class="pobtn" data-act="merge" title="Merge with other open orders of this customer">Merge…</button>');
     if(isMgr() && ch === "counter")   acts.push('<button class="pobtn go" data-act="confirmc">Confirm</button>');
     acts.push('<button class="pobtn" data-act="delete">Delete draft</button>');
   }
@@ -1068,9 +1279,15 @@ async function loadDetail(id){
       acts.push('<button class="pobtn" data-act="reopenc">Reopen as draft</button>');
     }
     if(ch === "warehouse"){
-      /* ⬜ 다음 판 — 단추 자리만(Caleb 2026-09-25 「미루는 것도 다 그럴만한 이유가 있을테니」) */
-      ["Release to WMS", "Hold", "Divide", "Change warehouse", "Proceed backorder"].forEach(x =>
-        acts.push(`<button class="pobtn" disabled title="Coming in the next version of this screen">${x}</button>`));
+      acts.push('<button class="pobtn" disabled title="Comes with the warehouse screens (next week)">Release to WMS</button>');
+      if(isMgr()){
+        if(onHold) acts.push('<button class="pobtn go" data-act="unhold">Release hold</button>');
+        else       acts.push('<button class="pobtn" data-act="hold">Hold</button>');
+        if(hasBo)  acts.push('<button class="pobtn go" data-act="proceed" title="Reserve backorder or preorder lines that are in stock now">Proceed backorder…</button>');
+        acts.push('<button class="pobtn" data-act="divide">Divide…</button>');
+        acts.push('<button class="pobtn" data-act="changewh">Change warehouse…</button>');
+        acts.push('<button class="pobtn" data-act="merge">Merge…</button>');
+      }
       if(isSup()) acts.push('<button class="pobtn" data-act="unconfirm">Unconfirm</button>');
     }
     if(ch === "pos") acts.push('<button class="pobtn" disabled title="POS orders are finished on the POS screen (coming later)">Finish on POS</button>');
@@ -1151,7 +1368,7 @@ async function loadDetail(id){
       <td><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
         <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</td>
       <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` : qty(l.qty_ordered)}</td>
-      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td>` : ""}
+      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => `<span class="${x.kind === "allocated" ? "on" : "neutral"}" style="font-size:11.5px">${esc(x.kind === "allocated" ? "reserved" : x.kind)} ${qty(x.qty_allocated)}</span>`).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
       <td class="num">${price(l.list_price)}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(l.discount_pct ?? "")}" data-prev="${esc(l.discount_pct ?? "")}" data-line="${l.id}" data-f="discount_pct" title="Type a discount to set it by hand · empty it to go back to the system discount">` : (l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%")}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.unit_price ?? "")}" data-prev="${esc(l.unit_price ?? "")}" data-line="${l.id}" data-f="unit_price" title="Type a price to override">` : price(l.unit_price)}</td>
@@ -1205,12 +1422,14 @@ async function loadDetail(id){
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
       </div>
       ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}
+      ${HINT && ((HINT.lines || []).length + (HINT.combined || []).length) ? `<div class="sosub">Merged draft — today's quote would be better for: ${(HINT.lines || []).map(r => `line ${esc(r.line_no)} ${esc(r.sku)} ${price(r.unit_price)} → ${price(r.quote_unit_price)}`).concat(
+        (HINT.combined || []).map(r => `${esc(r.sku)} as one line of ${qty(r.qty)} → ${price(r.quote_unit_price)}`)).join(" · ")}. Lines kept their merged prices — change one by hand if you want the new price.</div>` : ""}
       ${stats}
       <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
     </div>
 
     ${tbl("Lines", (data.lines || []).length,
-      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Shipped","num"]] : [])
+      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Shipped","num"],["Stock",""]] : [])
         .concat([["List","num"],["Disc %","num"],["Unit","num"],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
       lines,
       `Totals use ${basisNote}. Each line's tax is rounded on its own and added up (as Cin7 does).` +
@@ -1249,6 +1468,12 @@ async function loadDetail(id){
       if(a === "unconfirm") unconfirmSo();
       if(a === "cancel")    openCancel();
       if(a === "pay")       openPayment();
+      if(a === "hold")      holdSo();
+      if(a === "unhold")    releaseHold();
+      if(a === "divide")    openDivide();
+      if(a === "changewh")  openChangeWh();
+      if(a === "proceed")   proceedBo();
+      if(a === "merge")     openMerge();
     };
   });
   if(ed){
