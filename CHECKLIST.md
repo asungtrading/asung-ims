@@ -2,7 +2,7 @@
 
 `ims.asung.ca` 의 화면이 제대로 도는지 눈으로 확인하는 목록.
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
-`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열일곱이(2026-09-25 밤 기준 · §0-a) 움직인다.
+`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열여덟이(2026-09-25 밤 기준 · §0-a) 움직인다.
 
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
@@ -17,10 +17,11 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열여덟이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS 추가 · 이름 둘 바뀜)
+[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)
     Settings · Suppliers · Products · Families · Supplier Products ·
-    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Staff · Home
-    ⭐ [2026-09-25 밤] POS 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
+    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
+    ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
+    ⭐ Manager List 는 manager 이상이 쓰는 화면이지만 **읽기는 sales 열쇠로 열린다**(메뉴에 sales 화면 값) — worker 도 열 수는 있고 확인 단추만 안 보인다(진짜 문은 DB)
     ⭐ [2026-09-25] 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home · 이름은 보이는 글자만 바꿨다(파일은 invoices.html · payments.html 그대로)
 [ ] 머리 아래 탭 줄 = [모드] | [묶음] | [지금 화면 묶음의 탭들] (2026-09-25 묶음 칸 신설 · ims-auth.js items 여섯째 칸)
     구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 다섯 — Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders(2026-09-25 밤)
@@ -40,19 +41,19 @@
 
 ### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
 
-한 곳을 고치면 **열일곱**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+한 곳을 고치면 **열여덟**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
 📌 [정정 2026-09-16 저녁] 「여섯」은 2026-09-15 의 수다 — po.html(09-16 오전)로 일곱 · invoices.html(09-16 저녁)로 여덟이 됐는데 이 줄을 안 고쳤다.
 📌 [정정 2026-09-18] 여덟도 낡았다 — charges·payments(09-17 오후)로 열 · receiving(09-18)으로 열하나다.
    ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
 📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 열셋 · so-payments.html(09-25 밤)로 열넷 · so-credits.html(09-25 밤)로 열다섯이다 — 넷 다 같은 커밋에 고쳤다.
-📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 열여섯 · pos.html(09-25 밤 · 대화 Claude)로 **열일곱**이다 — 각각 같은 커밋에 고쳤다.
+📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 열여섯 · pos.html(09-25 밤 · 대화 Claude)로 열일곱 · manager-list.html(09-25 밤 · 대화 Claude)로 **열여덟**이다 — 각각 같은 커밋에 고쳤다.
 ```
-[ ] 열일곱 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · staff
+[ ] 열여덟 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열일곱 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열일곱 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열여덟 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열여덟 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
@@ -869,7 +870,61 @@ Parked and open at this store
 [ ] ?so=SO-번호 로 들어오면(channel pos 만) 그 판매가 열린다
 ```
 
-⚠️ [2026-09-25] 아직 없는 것 — 영수증·인보이스 인쇄 · 매니저의 「안 끝난 판매」 목록 화면 · 현금 서랍·거스름돈 기록(거스름돈은 기록하지 않는 것이 판정) · so.html 의 Finish on POS 단추(자리만 · 이 화면이 대신한다) (정본 6-f · §18).
+⚠️ [2026-09-25] 아직 없는 것 — 영수증·인보이스 인쇄 · 현금 서랍·거스름돈 기록(거스름돈은 기록하지 않는 것이 판정) · so.html 의 Finish on POS 단추(자리만 · 이 화면이 대신한다) (정본 6-f · §18). 매니저의 「안 끝난 판매」 목록은 manager-list.html 의 POS not finished 탭으로 섰다(7-l · 같은 날 밤).
+   · 사진 — 오른쪽 판 맨 위에 방금 스캔한 제품의 사진을 크게 · 그 아래 합계 · 세금 · 결제 단추 · 사진 없는 제품은 그 자리에 SKU 와 이름을 크게(Caleb 2026-09-25).
+     전제: IMS 제품 마스터에 사진 칸 · Cin7 사진 파일을 우리 저장소로 복사(지금 사진은 Cin7 주소라 Cin7 을 끄면 죽을 수 있다) — 마스터 쓰기(상품 등록) 차례.
+
+---
+
+## 7-l. `manager-list.html` — 매니저 목록 (2026-09-25 밤 신설 · 대화 Claude · 1판 「2026-09-25 · ml v1」)
+
+뒷단(④a 판정 7·8 — 관리 화면은 「바로잡는 곳이 어디냐」로 나눈다 · 장부·돈은 IMS 쪽 = 이 화면 · 창고 작업은 WMS 쪽):
+읽기 RPC `so_stock_short_list(p_filters)`(unchecked_only · warehouse_id) · `so_pos_open_list(p_location_id)` · 뷰 `so_invoice_list`(is_open · payment_term_name · 남은 금액은 `so_invoice_remaining` 한 곳) · 표 `so`(channel counter · 최근 30일) · `ref_warehouse` · `ref_payment_term`(net_days) ·
+쓰기 RPC `so_stock_short_confirm(p_doc_number, p_sku, p_warehouse, p_note)` — manager + sales|receiving · 열쇠는 doc·sku·warehouse(판정 7).
+
+⭐ 모양은 운영 WMS admin 을 따랐다 — **탭 넷 · 배지 · 미해결은 전량 · 해결된 것은 기간**.
+⭐ 탭 넷: ① Sold without stock(원장 판매 부족분 sale_shortfall) · ② Unpaid at hand-over(즉시 결제 조건인데 인보이스에 남은 돈) · ③ POS not finished(Confirm 뒤 그날 안에 Finish 안 된 POS · 판정 15) · ④ Counter orders(WMS 를 거치지 않고 나간 두 번째 길 · 6-b ③ · 최근 30일).
+⭐ **즉시 결제의 정의 = `ref_payment_term.net_days` 가 0 인 결제조건 이름들**(C.B.S · C.O.D · Due on receipt 같은 것) — 시작할 때 한 번 읽어 IMMEDIATE 로 들고, 인보이스 뷰를 payment_term_name IN (…) 로 거른다. 그런 조건이 하나도 없으면 목록은 빈다(「no such term found」).
+⚠️ 손님 결제조건 자료가 엉켜 있다(Net30 6,305) — 진짜 즉시 결제 손님이 정리될 때까지 Unpaid 탭은 그 자료만큼만 정확하다(잘못 있거나 빠진다). 화면 안내문에도 적혀 있다.
+⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 않는다. 확인(Mark checked)은 재고를 바꾸지 않는다 — 선반을 세고 평소 방식으로 재고를 고친 뒤 찾은 것을 적는다.
+⚠️ 권한: 읽기는 sales 열쇠(메뉴 노출도 sales) · **Mark checked… 단추만 manager 이상**(진짜 문은 DB · so_stock_short_confirm) · 나머지 탭은 읽기만.
+⚠️ 메뉴에만 있고 탭 줄에는 안 선다(items 탭 false · 묶음 null) — 탭 줄이 없는 것이 정상.
+⚠️ 모집단: 아직 실측 없음 — 첫 훑기 때 배지 셋(Sold without stock · Unpaid · POS not finished)의 수를 여기 적는다.
+
+```
+공통 · 탭 · 배지
+[ ] ☰ Menu 에 Manager List 가 POS 뒤 · Staff 앞에 있고 이 화면에서는 눌리지 않는다 · 탭 줄은 없다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · ml v1」다
+[ ] 탭 넷 순서: Sold without stock · Unpaid at hand-over · POS not finished · Counter orders — 처음은 Sold without stock · ?tab=short|unpaid|pos|counter 로 들어오면 그 탭
+[ ] 배지 셋(Counter orders 엔 없다): 0 이면 회색 · 1 이상이면 빨강 — 탭을 바꾸지 않아도 셋이 한 번에 읽힌다(so_stock_short_list unchecked_only · 인보이스 뷰 count · so_pos_open_list stale_count) · 확인·브랜치 바꿈 뒤 다시 읽힌다
+[ ] 오른쪽 Branch select(All branches + 활성 창고) — Sold without stock · POS not finished · Counter orders 를 거른다
+[ ] ⬜ **Branch 거르기가 Unpaid at hand-over 탭에는 안 먹는다** — 인보이스의 오더 창고를 봐야 하는데 so_invoice_list 뷰에 창고 칸이 없어 이번 판은 전부 보인다(⬜ 뷰에 창고 칸 · 그때 배지도 같이)
+[ ] worker 로 열면 화면은 열리되 Mark checked… 가 없다
+
+① Sold without stock
+[ ] 두 묶음: 「Not checked yet — N(· M with unknown cost)」은 기간과 상관없이 **전량** · 「Checked — from to · N」은 최근 30일(from·to 는 창구가 준다)
+[ ] 열: Sold on · Order(링크 — pos 채널이면 pos.html?so= · 아니면 so.html?so= · 채널 태그) · Customer · SKU · Branch · Qty short · Cost(cost_source · 모르면 「cost unknown」 빨강) · 마지막 칸(확인 전 = Mark checked… · 확인 뒤 = checked · 누가 · 언제 · 메모)
+[ ] Mark checked…(manager) → prompt(「What did you find? (counted, fixed, reason)」 · 비워도 된다 · Cancel 이면 아무것도 안 한다) → so_stock_short_confirm → 배지·목록이 다시 읽힌다 · 재고는 안 바뀐다
+[ ] 없으면 「Nothing to check.」 · 「None in this period.」 · 안내문 「the goods were there, the count was not … Checking does not change stock.」
+
+② Unpaid at hand-over
+[ ] 열: Invoice(링크 → so-invoices.html?inv=) · Issued(+ N d 지남) · Customer · Term · Orders(SO 번호들 · warehouse 아니면 채널 태그) · Total(통화) · Paid · credited · Still owed(파랑)
+[ ] 대상 = is_open 인 인보이스 중 결제조건 이름이 IMMEDIATE 에 있는 것 · 오래된 순 · 300장까지 · 다 받으면 목록에서 빠진다
+[ ] 안내문에 즉시 결제 조건 이름들이 나열된다(예 「C.B.S · C.O.D · Due on receipt」) · 결제조건 정리 중이라는 ⚠️
+[ ] 없으면 「No unpaid invoices on a pay-now term.」
+
+③ POS not finished
+[ ] 열: Sale(링크 → pos.html?so=) · Customer · Branch · Confirmed(시각 · 누가) · Amount · Paid · 상태(「not finished — from an earlier day」 빨강 = stale 이 위로 · 「today · parked or at the counter」 회색)
+[ ] 배지는 stale 만 센다 · 표는 오늘 것도 보인다 · 안내문 「holds its stock until it is finished … cancel it on Sales Orders」
+[ ] 없으면 「No open POS sales.」
+
+④ Counter orders
+[ ] 최근 30일(order_date 기준) · 번호 내림차순 · 300장까지 · 배지 없음
+[ ] 열: Order(링크 → so.html?so=) · Status · Ordered · Customer · Branch · Handed over(shipped_at · 내보낸 사람 · 아직이면 —)
+[ ] 없으면 「No counter orders in the last 30 days.」
+```
+
+⚠️ [2026-09-25] 아직 없는 것 — Unpaid 탭의 Branch 거르기(뷰에 창고 칸) · 기간 고르기(Checked 30일 · Counter 30일 고정) · 창고 작업 쪽 관리 목록(WMS 쪽 · ⑤) · 결제조건 자료 정리 뒤 Unpaid 탭 재검(⚠️ 위) (정본 ④a 판정 7·8·15 · 6-b ③).
 
 ---
 

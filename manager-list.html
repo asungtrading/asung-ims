@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manager List · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 매니저 목록 — 운영 WMS admin 의 모양(탭 · 배지 · 미해결 전량 · 해결은 기간) · ④a 판정 7·8 */
+  .mlwrap{padding:14px;display:flex;flex-direction:column;gap:14px}
+  .mltabs{display:flex;gap:4px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);align-items:center}
+  .mltabs button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;cursor:pointer;font:inherit;font-size:13px}
+  .mltabs button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
+  .mltabs .badge{display:inline-block;min-width:18px;padding:0 6px;margin-left:6px;border-radius:9px;background:#e03131;color:#fff;font-size:11px;font-weight:700;text-align:center}
+  .mltabs .badge.zero{background:#dee2e6;color:#868e96}
+  .mltabs .sp{flex:1}
+  .mltabs select,.mltabs input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  h4.sec{margin:14px 14px 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="mlwrap">
+  <div class="card">
+    <div class="mltabs" id="tabs">
+      <button data-t="short" class="on">Sold without stock<span class="badge zero" id="bShort">0</span></button>
+      <button data-t="unpaid">Unpaid at hand-over<span class="badge zero" id="bUnpaid">0</span></button>
+      <button data-t="pos">POS not finished<span class="badge zero" id="bPos">0</span></button>
+      <button data-t="counter">Counter orders</button>
+      <span class="sp"></span>
+      <select id="wh" title="Branch"><option value="">All branches</option></select>
+    </div>
+    <div id="body"><div class="msg">Loading…</div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Manager List — 매니저 목록 1판 (2026-09-25 · 대화 Claude)
+   판정 8(④a): 관리 화면은 「바로잡는 곳이 어디냐」로 나눈다 — 장부 · 돈은 IMS 쪽(이 화면) · 창고 작업은 WMS 쪽(⑤)
+   탭 넷
+     Sold without stock     원장 판매 부족분(sale_shortfall)을 읽는다 · 확인은 so_stock_short_confirm(manager + sales|receiving) · 열쇠 doc·sku·warehouse(판정 7)
+     Unpaid at hand-over    즉시 결제 조건(결제조건 기한 일수 0 — C.B.S · C.O.D · Due on receipt)인데 인보이스에 남은 돈이 있다(Caleb 2026-09-25 「올리자」)
+                            ⚠️ 손님 결제조건 자료가 엉켜 있다(Net30 6,305) — 진짜 즉시 결제 손님이 정리될 때까지 이 목록은 그 자료만큼만 정확하다
+     POS not finished       Confirm 뒤 그날 안에 Finish 안 된 POS(판정 15) · so_pos_open_list 의 stale
+     Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
+   ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
+   ───────────────────────────────────────────────────────────── */
+const ML_BUILD = "2026-09-25 · ml v1";
+console.log("manager-list.html build:", ML_BUILD);
+
+let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
+const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
+const isMgr = () => rank >= 2;
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const qty = (v) => esc(Number(v || 0).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const badge = (id, n) => { const b = document.getElementById(id); b.textContent = n; b.className = "badge" + (Number(n) ? "" : " zero"); };
+function daysAgo(d){
+  if(!d) return "";
+  const t = new Date(d + "T00:00:00"), now = new Date();
+  return Math.max(0, Math.round((now - t) / 86400000));
+}
+
+/* ── 배지 넷을 한 번에(탭을 바꾸지 않아도 쌓인 것이 보이게) ── */
+async function loadBadges(){
+  const [sh, un, po] = await Promise.all([
+    sb.rpc("so_stock_short_list", { p_filters: Object.assign({ unchecked_only: true }, whId ? { warehouse_id: whId } : {}) }),
+    unpaidQuery(true),
+    sb.rpc("so_pos_open_list", { p_location_id: whId || null }),
+  ]);
+  if(!sh.error) badge("bShort", sh.data.unchecked_count || 0);
+  if(!un.error) badge("bUnpaid", un.count || 0);
+  if(!po.error) badge("bPos", po.data.stale_count || 0);
+}
+
+/* ── 즉시 결제 미수 — 인보이스 뷰(남은 금액은 so_invoice_remaining 한 곳) ──
+   ⚠️ 창고 거르기는 인보이스의 오더 창고를 봐야 하는데 뷰에 창고 칸이 없다 → 이번 판은 창고 거르기 없이 전부(⬜ 뷰에 창고 칸) */
+function unpaidQuery(countOnly){
+  let qy = sb.from("so_invoice_list").select(countOnly ? "id" : "id,invoice_number,issued_on,due_on,payment_term_name,bill_to_name,so_numbers,channel,total,paid,credited,remaining,currency_code",
+    { count: "exact", head: !!countOnly }).eq("is_open", true);
+  qy = IMMEDIATE.length ? qy.in("payment_term_name", IMMEDIATE) : qy.eq("payment_term_name", "__none__");
+  return countOnly ? qy : qy.order("issued_on", { ascending: true }).limit(300);
+}
+
+async function show(){
+  document.querySelectorAll("#tabs [data-t]").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+  const box = document.getElementById("body");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  if(tab === "short")   return showShort(box);
+  if(tab === "unpaid")  return showUnpaid(box);
+  if(tab === "pos")     return showPos(box);
+  if(tab === "counter") return showCounter(box);
+}
+
+/* ① 재고 없이 나갔다 — 미확인은 기간과 상관없이 전량 · 확인된 것은 최근 30일 */
+async function showShort(box){
+  const { data, error } = await sb.rpc("so_stock_short_list", { p_filters: whId ? { warehouse_id: whId } : {} });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const row = (r, done) => `<tr>
+      <td>${dim(r.received_on)}</td>
+      <td><a class="lnk mono" href="${r.channel === "pos" ? "pos.html" : "so.html"}?so=${encodeURIComponent(r.doc_number)}">${esc(r.doc_number)}</a>${r.channel ? ` <span class="tag">${esc(r.channel)}</span>` : ""}</td>
+      <td>${esc(r.customer_name || "")}</td>
+      <td class="mono">${esc(r.sku)}</td><td>${esc(r.warehouse || "")}</td>
+      <td class="num">${qty(r.qty)}</td>
+      <td>${r.unknown ? '<span class="off" style="font-size:11.5px">cost unknown</span>' : `<span class="dim" style="font-size:11.5px">${esc(r.cost_source || "")}</span>`}</td>
+      <td>${done ? `<span class="on" style="font-size:11.5px">checked</span> <span class="dim" style="font-size:11.5px">${esc(r.checked_by_name || "")} · ${imsTs(r.checked_at)}</span>${r.note ? `<div class="dim" style="font-size:11.5px">${esc(r.note)}</div>` : ""}`
+             : (isMgr() ? `<button class="xbtn" data-chk="${esc(r.doc_number)}" data-sku="${esc(r.sku)}" data-wh="${esc(r.warehouse)}">Mark checked…</button>` : "")}</td>
+    </tr>`;
+  const head = `<thead><tr><th>Sold on</th><th>Order</th><th>Customer</th><th>SKU</th><th>Branch</th><th class="num">Qty short</th><th>Cost</th><th></th></tr></thead>`;
+  box.innerHTML = `
+    <h4 class="sec">Not checked yet — ${esc(data.unchecked_count)}${Number(data.unchecked_unknown_cost) ? ` · ${esc(data.unchecked_unknown_cost)} with unknown cost` : ""}</h4>
+    ${(data.unchecked || []).length ? `<table>${head}<tbody>${data.unchecked.map(r => row(r, false)).join("")}</tbody></table>` : '<div class="msg">Nothing to check.</div>'}
+    <h4 class="sec">Checked — ${esc(data.from)} to ${esc(data.to)} · ${esc(data.checked_in_range)}</h4>
+    ${(data.checked || []).length ? `<table>${head}<tbody>${data.checked.map(r => row(r, true)).join("")}</tbody></table>` : '<div class="msg">None in this period.</div>'}
+    <div class="sosub">These sold more than the book showed in that branch — the goods were there, the count was not. Count the shelf, fix the stock the usual way, then mark it checked with what you found. Checking does not change stock.</div>`;
+  box.querySelectorAll("[data-chk]").forEach(b => {
+    b.onclick = async () => {
+      const note = prompt(`${b.dataset.chk} · ${b.dataset.sku} at ${b.dataset.wh}\n\nWhat did you find? (counted, fixed, reason)`);
+      if(note === null) return;
+      const { error } = await sb.rpc("so_stock_short_confirm", { p_doc_number: b.dataset.chk, p_sku: b.dataset.sku, p_warehouse: b.dataset.wh, p_note: note.trim() || null });
+      if(error){ alert(error.message); return; }
+      loadBadges(); show();
+    };
+  });
+}
+
+/* ② 즉시 결제인데 미수 */
+async function showUnpaid(box){
+  const { data, error } = await unpaidQuery(false);
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = (data || []).map(r => `<tr>
+      <td><a class="lnk mono" href="so-invoices.html?inv=${encodeURIComponent(r.invoice_number)}">${esc(r.invoice_number)}</a></td>
+      <td>${dim(r.issued_on)} <span class="dim" style="font-size:11.5px">${esc(daysAgo(r.issued_on))}d</span></td>
+      <td>${esc(r.bill_to_name || "")}</td>
+      <td>${esc(r.payment_term_name || "")}</td>
+      <td class="mono" style="font-size:12px">${esc(r.so_numbers || "")}${r.channel && r.channel !== "warehouse" ? ` <span class="tag">${esc(r.channel)}</span>` : ""}</td>
+      <td class="num">${money(r.total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+      <td class="num">${money(Number(r.paid || 0) + Number(r.credited || 0))}</td>
+      <td class="num"><span class="neutral">${money(r.remaining)}</span></td>
+    </tr>`);
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Invoice</th><th>Issued</th><th>Customer</th><th>Term</th><th>Orders</th><th class="num">Total</th><th class="num">Paid · credited</th><th class="num">Still owed</th></tr></thead>
+      <tbody>${rows.join("")}</tbody></table>
+      <div class="sosub">The customer's term says pay before or on delivery (${esc(IMMEDIATE.join(" · ") || "no such term found")}), but the goods went out with money still owed. Open the invoice to take the payment. It drops off this list once it is paid.
+        ⚠️ Customer payment terms are still being cleaned up — a customer with the wrong term shows here (or is missing) until then.</div>`
+    : `<div class="msg">No unpaid invoices on a pay-now term.</div>`;
+}
+
+/* ③ POS 끝나지 않은 것 — 그날 안에 Finish 되지 않은 것(stale)을 위로 */
+async function showPos(box){
+  const { data, error } = await sb.rpc("so_pos_open_list", { p_location_id: whId || null });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const os = (data.orders || []).slice().sort((a, b) => (b.stale === true) - (a.stale === true));
+  box.innerHTML = os.length ? `<table><thead><tr><th>Sale</th><th>Customer</th><th>Branch</th><th>Confirmed</th><th class="num">Amount</th><th class="num">Paid</th><th></th></tr></thead>
+      <tbody>${os.map(o => `<tr>
+        <td><a class="lnk mono" href="pos.html?so=${encodeURIComponent(o.so_number)}">${esc(o.so_number)}</a></td>
+        <td>${esc(o.customer_name || "")}</td><td>${esc(o.location_name || "")}</td>
+        <td>${imsTs(o.confirmed_at)} <span class="dim" style="font-size:11.5px">${esc(o.confirmed_by_name || "")}</span></td>
+        <td class="num">${money(o.amount)}</td><td class="num">${Number(o.received) ? money(o.received) : '<span class="dim">—</span>'}</td>
+        <td>${o.stale ? '<span class="off" style="font-size:11.5px">not finished — from an earlier day</span>' : '<span class="dim" style="font-size:11.5px">today · parked or at the counter</span>'}</td></tr>`).join("")}</tbody></table>
+      <div class="sosub">A confirmed POS sale holds its stock until it is finished. Open it on POS to finish it, reopen it, or cancel it on Sales Orders.</div>`
+    : '<div class="msg">No open POS sales.</div>';
+}
+
+/* ④ counter 오더 — WMS 없이 나간 길 · 최근 30일 */
+async function showCounter(box){
+  let qy = sb.from("so").select("id,so_number,status,order_date,shipped_at,bill_to_name,location_name,customer:customer_id(name),shipper:shipped_by(name)")
+    .eq("channel", "counter").gte("order_date", new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)).order("so_number", { ascending: false }).limit(300);
+  if(whId) qy = qy.eq("location_id", whId);
+  const { data, error } = await qy;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = (data || []).length ? `<table><thead><tr><th>Order</th><th>Status</th><th>Ordered</th><th>Customer</th><th>Branch</th><th>Handed over</th></tr></thead>
+      <tbody>${data.map(o => `<tr>
+        <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(o.so_number)}">${esc(o.so_number)}</a></td>
+        <td>${esc(o.status)}</td><td>${dim(o.order_date)}</td>
+        <td>${esc((o.customer && o.customer.name) || o.bill_to_name || "")}</td><td>${esc(o.location_name || "")}</td>
+        <td>${o.shipped_at ? imsTs(o.shipped_at) + ` <span class="dim" style="font-size:11.5px">${esc((o.shipper && o.shipper.name) || "")}</span>` : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>
+      <div class="sosub">Counter orders take stock out without going through the warehouse screens — this list is how a manager sees them. Last 30 days.</div>`
+    : '<div class="msg">No counter orders in the last 30 days.</div>';
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; rank = RANK[me.role] || 0; window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = ML_BUILD;
+  const [wh, pt] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_payment_term").select("name,net_days").eq("net_days", 0),
+  ]);
+  WHS = wh.data || [];
+  IMMEDIATE = (pt.data || []).map(x => x.name);
+  document.getElementById("wh").insertAdjacentHTML("beforeend", WHS.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join(""));
+  document.getElementById("wh").onchange = (e) => { whId = e.target.value; whName = (WHS.find(w => w.id === whId) || {}).name || ""; loadBadges(); show(); };
+  document.querySelectorAll("#tabs [data-t]").forEach(b => { b.onclick = () => { tab = b.dataset.t; show(); }; });
+  const want = imsParam("tab"); if(want) tab = want;
+  loadBadges(); show();
+});
+</script>
+</body>
+</html>
