@@ -597,7 +597,7 @@ counter 확정 · 나갔다 (manager)
 [ ] 형제(백오더 a · 프리오더 b · 나눈 것)는 뭉치 표에 번호·상태·남은 수량으로 보이고, 합쳐진 오더는 merged_into 로 어디로 갔는지 답한다
 ```
 
-⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 「재고 없이 나갔다」 관리 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k).
+⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다.
 
 ---
 
@@ -655,7 +655,7 @@ counter 확정 · 나갔다 (manager)
 [ ] worker 에게는 Cancel · Reissue · × 가 아예 안 보인다
 ```
 
-⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · 받아 둔 돈 손으로 붙이기(so_payment_attach) · 크레딧 붙이기 · 손님 결제 화면(Customer Payments) · 크레딧 노트 화면 · pg_trgm 검색 인덱스(정본 ⬜).
+⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · pg_trgm 검색 인덱스(정본 ⬜). 받아 둔 돈 손으로 붙이기(so_payment_attach) · Customer Payments 화면은 7-h · 크레딧 붙이기 · Credit Notes 화면은 7-i 로 섰다.
 
 ---
 
