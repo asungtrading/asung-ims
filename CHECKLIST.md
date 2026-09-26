@@ -2,7 +2,7 @@
 
 `ims.asung.ca` 의 화면이 제대로 도는지 눈으로 확인하는 목록.
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
-`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열여섯이(2026-09-25 밤 기준 · §0-a) 움직인다.
+`ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열일곱이(2026-09-25 밤 기준 · §0-a) 움직인다.
 
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
@@ -17,9 +17,10 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열일곱이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders 추가 · 이름 둘 바뀜)
+[ ] ☰ Menu 를 누르면 열여덟이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS 추가 · 이름 둘 바뀜)
     Settings · Suppliers · Products · Families · Supplier Products ·
-    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · Staff · Home
+    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Staff · Home
+    ⭐ [2026-09-25 밤] POS 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
     ⭐ [2026-09-25] 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home · 이름은 보이는 글자만 바꿨다(파일은 invoices.html · payments.html 그대로)
 [ ] 머리 아래 탭 줄 = [모드] | [묶음] | [지금 화면 묶음의 탭들] (2026-09-25 묶음 칸 신설 · ims-auth.js items 여섯째 칸)
     구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 다섯 — Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders(2026-09-25 밤)
@@ -39,19 +40,19 @@
 
 ### 0-a. 공통 파일(`ims-ui.css` · `ims-ui.js` · `ims-auth.js`)을 고쳤을 때
 
-한 곳을 고치면 **열여섯**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
+한 곳을 고치면 **열일곱**이 움직인다(⚠️ `index.html` 은 공통을 안 부른다 — 셋만 부른다).
 📌 [정정 2026-09-16 저녁] 「여섯」은 2026-09-15 의 수다 — po.html(09-16 오전)로 일곱 · invoices.html(09-16 저녁)로 여덟이 됐는데 이 줄을 안 고쳤다.
 📌 [정정 2026-09-18] 여덟도 낡았다 — charges·payments(09-17 오후)로 열 · receiving(09-18)으로 열하나다.
    ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
 📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 열셋 · so-payments.html(09-25 밤)로 열넷 · so-credits.html(09-25 밤)로 열다섯이다 — 넷 다 같은 커밋에 고쳤다.
-📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 **열여섯**이다 — 같은 커밋에 고쳤다.
+📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 열여섯 · pos.html(09-25 밤 · 대화 Claude)로 **열일곱**이다 — 각각 같은 커밋에 고쳤다.
 ```
-[ ] 열여섯 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · staff
+[ ] 열일곱 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열여섯 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열여섯 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열일곱 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열일곱 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
@@ -507,24 +508,27 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 
 ---
 
-## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → **v1.2**(다 받은 인보이스면 결제 단추 숨김 · Due at issue))
+## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → v1.2(다 받은 인보이스면 결제 단추 숨김 · Due at issue) → v1.3(줄 넣기 가용 재고 · 세트 숨김) → v1.4(Include sets 는 매니저만) → **2판** v2(보류·풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림) → v2.1(not reserved) → v2.2(Hold 는 잡힌 줄이 있을 때만) → **v2.3**(잡힐 것 없으면 Proceed 막힘))
 
 뒷단: 읽기 RPC `so_detail` · `so_family_members` · `so_payment_default_account` · 표 `so`(select) ·
 쓰기 RPC `so_create` · `so_line_add` · `so_lines_paste` · `so_line_update` · `so_line_remove` · `so_charge_set/remove` ·
 `so_header_update` · `so_reprice` · `so_confirm` · `so_unconfirm` · `so_cancel` · `so_delete` · `so_pos_confirm` · `so_pos_reopen` ·
 `so_counter_ship` · `so_payment_add` — asung-wms 정본 `docs/design/so-module.md` §12~§21.
+2판(v2~): 읽기 `so_available_many`(줄 넣기 가용 재고) · 표 `so_reserve`(select · 줄마다 지금 예약 kind) · `so_merge_requote_hint`(병합 초안의 오늘 견적) ·
+쓰기 `so_hold` · `so_reallocate`(풀기) · `so_divide` · `so_change_location` · `so_backorder_proceed` · `so_merge` — 전부 미리 보기(p_commit false) → 같은 입력으로 실행 · 결과 표는 확정 미리 보기와 같은 모양(lines · siblings).
 
 ⭐⭐ **계산 규칙의 정본은 DB 다** — 가격 · 할인 · 세금 · 합계 · 잔액을 화면이 다시 짜지 않는다. `so_detail` · `so_counter_ship`(미리 보기)이 준 값을 그린다.
 ⭐ 쓰기는 전부 창구(RPC) — SO 표는 select 만 열려 있다. 거부 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
 ⭐ 이 판이 담은 것: 목록 · 새 오더 · 머리 · 줄 · 운임 · 합계 · 확정(창고 길 미리 보기) · counter 확정·나갔다 · 결제 넣기 · 뭉치.
-   **미룬 것(단추 자리만 · 눌리지 않는다)**: 보류 · 나누기 · 창고 바꾸기 · 백오더 진행 · Release to WMS · 오피스 마무리 · 병합 · 인쇄 · POS(Finish on POS).
-⚠️ 권한: 줄·머리·결제 = sales 열쇠 · 확정·counter·취소 = manager 이상(Confirm… · Confirm · Hand over · Cancel order… 단추가 manager 에게만 뜬다) · Unconfirm = supervisor 이상.
+   **2판(v2 · 2026-09-25 밤 「so.html 2판 가자」)이 더한 것**: 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림.
+   **아직 자리만(눌리지 않는다)**: Release to WMS · Finish on POS(POS 오더는 pos.html 에서 끝낸다 · 7-k) · 오피스 마무리 · 인쇄.
+⚠️ 권한: 줄·머리·결제 = sales 열쇠 · 확정·counter·취소·보류·풀기·나누기·창고 바꾸기·백오더 진행 = manager 이상(단추가 manager 에게만 뜬다) · 병합 = 초안이면 sales · 확정 뒤는 manager · Unconfirm = supervisor 이상 · Include sets 체크는 manager 이상에게만 보인다(v1.4).
 ⚠️ 모집단: 테스트 DB 의 `so` 는 **0행**이 정상이다(검증은 전부 rollback · 번호 SO-25000 부터) — 첫 오더가 SO-25000 이면 시퀀스가 제자리다.
 
 ```
 공통 · 목록
 [ ] 탭 줄에 Sales Orders 가 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 왼쪽에 PURCHASING · SALES(눌림) 묶음 칸이 있다
-[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · so v1.2」다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · so v2.3」다
 [ ] 넓은 목록(처음 화면): 필터 Channel(All · Warehouse · Counter · POS) · 주문일 from–to · Status(Open 기본 · Draft · Confirmed · With warehouse · Shipped · Fulfilled · Cancelled · All) · 검색(SO number · customer · reference) · Clear · + New sales order
 [ ] 열 순서: SO · Status · Channel · Ordered · Customer · Reference · Warehouse · Currency
 [ ] 행을 누르면 좁은 목록 + 상세로 바뀌고, ‹ All orders 로 돌아온다 · ☰ List 로 좁은 목록을 접고 편다
@@ -538,6 +542,9 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 
 줄 넣기 · 붙여넣기 (draft 만)
 [ ] Add lines → SKU 로 찾아 수량 · Free? · Note 를 적고 Check → 판정이 뜬 뒤 Add lines · Check 없이는 Add lines 가 눌리지 않는다
+[ ] ⭐ [v1.3] 찾은 제품마다 **가용 재고**가 붙는다 — 「available N EA」(0 이면 빨강) · 잡힌 몫이 있으면 「(on hand N · reserved N)」 · 오더 창고 기준 · so_available_many 한 번(창고 잔고 − 열린 할당 · 낱개 EA) — 화면이 계산하지 않는다
+[ ] ⭐ [v1.3] 세트(parent_product_id 있는 제품 · 케이스·팩)는 찾기에서 **기본으로 숨는다** — 케이스도 낱개 SKU × 수량으로 판다(Caleb 「낱개 sku에 36을 넣어」) · 붙여넣기는 세트 SKU 를 그대로 받는다
+[ ] ⭐ [v1.4] 「Include sets (cases · packs)」 체크는 **매니저 이상에게만** 보인다 · 켜면 세트도 뜨고 가용은 낱개 재고를 pack_factor 로 나눠 「N EA = M × pf」로 보인다(나눠 보이기 · 계산 아님)
 [ ] Paste lines → 한 줄에 SKU 와 수량(탭 · 쉼표 · 공백 둘) · Check → 줄마다 Verdict(ok · merged · ask · duplicate · not_found · inactive · no_price) → Add lines
 [ ] ⭐ 같은 SKU 를 또 넣으면 시스템 줄은 **합쳐지고 합친 수량으로 다시 견적**된다(6+6=12 → 수량 할인) · 사람이 정한 줄(단가 덮어씀 · 수동 할인)은 단가가 같을 때만
 [ ] 가격 없는 제품은 줄이 서되 unit price 가 비어 있고(no_price) 확정이 막는다
@@ -556,7 +563,18 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 [ ] Preorder? 를 체크하거나 「Confirm on hold」를 켜면 미리 보기가 바로 다시 계산된다
 [ ] Confirm → confirmed · 모자란 줄은 형제(SO-25000a · stock_short)로 갈리고 뭉치 표에 보인다 · 프리오더는 b
 [ ] 세금 규칙이 없거나 가격 없는 줄이 있으면 DB 가 거부하고 문장이 무엇이 빠졌는지 말한다
-[ ] 확정 뒤 Release to WMS · Hold · Divide · Change warehouse · Proceed backorder 는 **회색(다음 판)** · Unconfirm 은 supervisor 에게만 · Cancel order… 는 manager
+[ ] 확정 뒤(warehouse) 단추: Release to WMS 는 여전히 **회색** · manager 에게 Hold 또는 Release hold · Proceed backorder…(백오더·프리오더 줄이 있을 때만) · Divide… · Change warehouse… · Merge… · Unconfirm 은 supervisor 에게만 · Cancel order… 는 manager
+[ ] ⭐ [v2·v2.1] 줄 표의 **Stock 칸**(확정 뒤 · so_reserve 를 읽는다): reserved N(초록) · not reserved N · on hold · backorder N · preorder N — 예약이 없으면 「—」 · hold 는 「잡지 않고 멈춰 둔」 것이라 not reserved 로 읽힌다(Caleb 「not reserved가 직관적」)
+
+2판 — 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 (manager · 전부 미리 보기 → 같은 입력으로 실행)
+[ ] Hold → 확인 창 → so_hold → 오더 전체의 예약이 풀리고 「On hold — N line(s)」 · 줄의 Stock 칸이 not reserved · on hold 로 · ⭐ [v2.2] Hold 는 **잡힌 줄(reserved)이 있을 때만** 뜬다(백오더 형제엔 안 뜬다 · so_hold 가 거부한다)
+[ ] Release hold(보류 중일 때) → 확인 창 → so_reallocate → 결과 표(잡을 수 있는 만큼 잡고 나머지는 백오더 형제) → Close 로 다시 읽는다
+[ ] Proceed backorder… → 미리 보기 표(# · SKU · Ordered · Result · Reserved · Backorder · Preorder · Will split off · Backorder lines ended here: N) → Proceed → Done. · Backorders 화면(7-j)과 같은 창구
+[ ] ⭐ [v2.3] 잡힐 것이 하나도 없으면 Proceed 가 **막히고** 「Nothing can be reserved yet — … Proceed does not wait for stock」이 뜬다(걸어 두면 들어올 때 잡힌다는 오해를 막는다)
+[ ] Divide… → 줄마다 Move 수량(전부 또는 일부) → Check → 표(Moves · whole line · Reservation 이 따라가는 수량) · 「New order: SO-…」 → Divide → 형제(manual split)가 뭉치 표에 선다 · 머리는 이 오더 것을 그대로
+[ ] Change warehouse… → Move to(다른 창고) → Preview → 「from → to」 + 결과 표(예약을 풀고 새 창고에서 다시 잡는다 · 모자란 몫은 백오더 형제 · 예약이 없으면 「no reservations to move」) → Change warehouse
+[ ] Merge…(초안·확정 · warehouse) → 같은 손님·창고·통화의 draft·confirmed warehouse 오더 표(이 오더는 미리 체크) · 둘 이상 골라야 Preview → Orders · Header from(가장 오래된 원본) · Order date(합친 날) · 머리 차이 표 · 줄(받은 가격 그대로 · kept apart 사유 · free) · 경고(charges_not_merged · head_differs · backorder_siblings_stay_open · preorder_lines_need_reflag · superseded_not_reopenable 이 사람 말로) → Merge → 새 초안으로 화면이 옮겨 간다 · 되돌리기 없음
+[ ] ⭐ 병합 미리 보기와 **병합으로 만든 초안**의 머리 밑에 「today's quote would be better for: line N SKU 가격 → 견적가 · SKU as one line of N → 견적가」 알림(so_merge_requote_hint) — 저절로 바뀌지 않는다 · 줄을 손으로 고쳐야
 
 counter 확정 · 나갔다 (manager)
 [ ] Counter 오더의 Confirm → 확인 창(「Every line is reserved as it is — counter orders never split or backorder.」) → 재고를 보지 않고 전 줄 reserved · 형제 없음
@@ -578,7 +596,7 @@ counter 확정 · 나갔다 (manager)
 [ ] 형제(백오더 a · 프리오더 b · 나눈 것)는 뭉치 표에 번호·상태·남은 수량으로 보이고, 합쳐진 오더는 merged_into 로 어디로 갔는지 답한다
 ```
 
-⚠️ [2026-09-25] 아직 없는 것 — 보류·나누기·창고 바꾸기·백오더 진행·Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 병합(so_merge) · POS 계산대 · 인쇄 · 「재고 없이 나갔다」 관리 · 손님 잔액 화면 (정본 §14~§21). 백오더 목록은 so-backorders.html 로 섰다(7-j · 2026-09-25 밤) — so.html 의 「백오더 진행」 단추 자리는 그대로.
+⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 「재고 없이 나갔다」 관리 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k).
 
 ---
 
@@ -747,7 +765,7 @@ counter 확정 · 나갔다 (manager)
 
 ---
 
-## 7-j. `so-backorders.html` — 백오더 (2026-09-25 밤 신설 · 대화 Claude · 1판 「2026-09-25 · bo v1」)
+## 7-j. `so-backorders.html` — 백오더 (2026-09-25 밤 신설 · 대화 Claude · 「2026-09-25 · bo v1」 → v1.1(다른 창고 가용을 이름별로) → v1.2(무상 줄 필터 칸 없앰 · 요약 숫자로 거른다) → **v1.3**(잡힐 것 없으면 진행 막힘))
 
 뒷단: 읽기 RPC `so_backorder_list(p_filters jsonb)` — 분류 여덟 · 무상 줄(owed) · 창고별 가용 · 손님 · 제품 · 주문일 순(asung-wms `20260924153856` · 정본 §15 ③c) ·
 쓰기 RPC `so_backorder_proceed(p_so_id, p_commit)` — manager · 미리 보기(false) → 진행(true) — 정본 §15.
@@ -758,24 +776,25 @@ counter 확정 · 나갔다 (manager)
 ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 않는다(정렬도 창구 순서 그대로).
 ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 화면에 알림 열이 없는 것은 「안 보냈다」가 아니다.
 ⚠️ 권한: proceed = manager 이상(단추도 manager 에게만 · 진짜 문은 DB) · 목록은 sales 화면 값.
-⚠️ 모집단: 아직 실측 없음 — 첫 훑기 때 요약 넷(Lines · Open · Ended · Free lines we owe)의 수를 여기 적는다.
+⚠️ 모집단: 아직 실측 없음 — 첫 훑기 때 요약(Lines · Open · Ended · 있으면 Free lines we owe)의 수를 여기 적는다.
 
 ```
 공통 · 목록
 [ ] 탭 줄에 Backorders 가 Credit Notes 뒤(판매 다섯의 마지막)에 있고 이 화면에서는 눌리지 않는다 · 구매도 보는 사람이면 PURCHASING · SALES(눌림) 묶음 칸
-[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · bo v1」다
-[ ] 필터 줄 순서: State(Open backorders 기본 · Ended · All) · Branch(All branches + 창고) · 손님 단추(All customers) · Default supplier(All suppliers · No default supplier · 공급처들) · Brand · SKU starts with · Arrived(any · Arrived since · Not arrived yet) · Free lines(any · we owe · Paid lines only) · Ordered from — to · How it ended · Clear
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · bo v1.3」다
+[ ] 필터 줄 순서: State(Open backorders 기본 · Ended · All) · Branch(All branches + 창고) · 손님 단추(All customers) · Default supplier(All suppliers · No default supplier · 공급처들) · Brand · SKU starts with · Arrived(any · Arrived since · Not arrived yet) · Ordered from — to · How it ended · Clear
+    ⭐ [v1.2] Free lines 필터 칸은 **없앴다**(Caleb 「실제로는 거의 없는 상황이라」) — 무상 줄은 요약 숫자로 거른다(아래)
 [ ] How it ended(Taken over by a new order · Proceeded · Expired · Cancelled · Merged)는 State 가 Open 이면 **숨는다** · Ended · All 에서만 보인다
-[ ] 요약 넷: Lines · Open · Ended · Free lines we owe — 필터에 따라 바뀐다
+[ ] 요약: Lines · Open · Ended — 필터에 따라 바뀐다 · ⭐ [v1.2] 「Free lines we owe」는 **1 이상일 때만** 넷째로 보이고, 이름을 누르면 그것만 거른다(「— showing only these」) · 다시 누르면 풀린다 · Clear 도 푼다(무상 백오더는 만료·이어받기로 닫히지 않아 드물어도 보이게 둔다 · §15 판정 15·16)
 [ ] 열 순서: Order · Ordered · Product · Supplier · brand · Branch · Open · Waiting · Stock · State · (proceed)
 [ ] 손님 이름이 묶음 행(회색 · 굵게 · 한 칸)으로 먼저 서고 그 아래에 그 손님의 줄들 — 창구가 손님 · 제품 · 주문일 순으로 준다
 [ ] Order = so.html?so=번호 링크 · Product = SKU(pack_factor 가 1보다 크면 ×N) + 이름 · Supplier 가 없으면 「no default supplier」 · Open = 열린 수량 + 「of 주문 수량」 · Waiting = 「N d」
-[ ] Stock(열린 줄만): 「arrived」(초록) 또는 「not yet」(회색) + 「here N · other N」(이 창고 · 다른 창고 가용)
+[ ] Stock(열린 줄만): 「arrived」(초록) 또는 「not yet」(회색) + 「here N · 창고이름 N · 창고이름 N」 — ⭐ [v1.1] available_other 는 숫자가 아니라 {창고 이름: 가용 EA} 라 **다른 창고를 이름별로** 보인다(v1 은 「other NaN」이었다) · 없으면 「—」
 [ ] State: 열린 줄은 「open」 · 무상 줄이면 「free — we owe it」 · 끝난 줄은 회색으로 taken over · proceeded · expired · cancelled · merged + 이어받은 SO 링크 + (no longer wanted 가 있을 때) 「taken N · no longer wanted N」
-[ ] 표 밑 안내문 — Arrived 의 뜻 · Here / other 의 뜻 · 「Mail notices are still sent from Cin7」
+[ ] 표 밑 안내문 — Arrived 의 뜻 · 「Here = … then each other branch by name (EA)」 · 「Mail notices are still sent from Cin7」
 [ ] 맞는 줄이 없으면 「No backorders match.」(오류 아님) · 창구 오류면 빨간 문장
 [ ] 페이지 100줄 · ← → · 「a–b / total」 · 필터를 바꾸면 첫 페이지로
-[ ] Clear → 모든 필터 비움 · State 는 Open · 손님은 All customers · How it ended 숨김
+[ ] Clear → 모든 필터 비움 · State 는 Open · 손님은 All customers · How it ended 숨김 · 무상 줄 거르기도 풀림
 [ ] ?customer=<uuid> · ?sku=ABC 로 들어오면 그 손님(단추 글자가 이름) · 그 SKU 가 걸린 채 열린다
 
 손님 고르기
@@ -787,10 +806,69 @@ counter 확정 · 나갔다 (manager)
 [ ] 누르면 모달 「Proceed SO-… — reserve stock that is here now」 · 먼저 미리 보기(p_commit false — 창구가 트랜잭션 안에서 돌리고 되돌린다 · 아무것도 안 쓴다)
 [ ] 미리 보기 표: # · SKU · Ordered · Result(kind) · Reserved · Still backordered(0 이면 회색) · 형제가 갈리면 「Will split off: SO-… 사유」 · 「Nothing is saved until you press Proceed. Backorder lines ended here: N」
 [ ] Proceed 는 미리 보기가 온 뒤에만 눌린다 → p_commit true → 표가 결과로 바뀌고 「Done.」 · 「Split off:」 · 아래에 「Proceeded.」 · Cancel 이 Close 로 바뀌고 닫으면 목록을 다시 읽는다
-[ ] 창구가 거부하면(권한 · 상태 · 재고 없음) 문장이 모달 안에 뜨고 Proceed 가 다시 눌린다
+[ ] ⭐ [v1.3] 미리 보기에서 **잡힐 줄이 하나도 없으면(Reserved 전부 0) Proceed 가 막힌 채**로 「Nothing can be reserved yet — … Proceed does not wait for stock: press it again after stock arrives」가 뜬다(「스탁이 들어오면 자동으로 reserve 한다」는 오해를 막는다 · so.html 의 Proceed backorder… 와 같은 문장)
+[ ] 창구가 거부하면(권한 · 상태) 문장이 모달 안에 뜨고 Proceed 가 다시 눌린다
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 알림(notified) 표시 · 보내기(입고 메일은 GAS·Cin7) · so.html 의 「백오더 진행」 단추(자리만 · 이 화면의 proceed 가 대신한다) · 인쇄 (정본 §15).
+
+---
+
+## 7-k. `pos.html` — POS 계산대 (2026-09-25 밤 신설 · 대화 Claude · 1판 「2026-09-25 · pos v1」)
+
+뒷단(정본 6-f · ④a 판정): 읽기 `so_detail` · `so_pos_open_list(p_location_id)` · `so_pos_finish(p_commit false)`(미리 보기 = 금액·받은 돈·미수) · 표 `so`(select · 이 매장의 draft) · `customer` · `product` · `product_barcode` · `ref_warehouse` · `ref_tax_rule`(direction sale) ·
+쓰기 `so_create`(channel pos · intake pos · 창고 필수) · `so_line_add` · `so_line_update` · `so_line_remove` · `so_header_update`(세금 규칙 · 판정 11) · `so_pos_confirm` · `so_pos_reopen` · `so_payment_add`(target_so_ids = 이 오더) · `so_pos_finish(p_commit true)`.
+
+⭐ 흐름: 손님(계정 손님만 · 판정 10) → 스캔 → Confirm(금액 · 재고는 보지 않고 전부 잡는다) → 결제(그 자리에서 · 나눠 내기) → Finish(출고 + 인보이스 · 막지 않는다 · 판정 5) · Park(잠시 두기 · 새 상태 없음 · 판정 16) · 다시 열기.
+⭐ 한 판 화면이다(목록/상세 두 모드가 아니다) — 왼쪽 판매 · 오른쪽 큰 금액과 단추 · 아래 「Parked and open at this store」.
+⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 않는다.
+⚠️ 권한: 전부 sales 열쇠(판정 6 · R5 의 예외) — 역할 문 없음(manager 단추 없음).
+⚠️ 계산대 매장은 **기기에 기억한다**(localStorage `ims_pos_store`) — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다. 다른 기기에서 열면 매장을 다시 고른다(상태 저장이 아니다).
+⚠️ ☰ Menu 에만 있고 탭 줄에는 안 선다(ims-auth.js items 탭 false · 묶음 null) — 이 화면에서 탭 줄·묶음 칸이 안 뜨는 것이 정상이다.
+⚠️ 모집단: 아직 실측 없음 — 첫 훑기 때 첫 POS 오더 번호(SO-25xxx · so 시퀀스 공용)와 인보이스 번호(60000~)를 여기 적는다.
+
+```
+공통 · 매장
+[ ] ☰ Menu 에 POS 가 Backorders 뒤 · Staff 앞에 있고 이 화면에서는 눌리지 않는다 · 탭 줄은 없다
+[ ] 헤더 왼쪽 빌드 표시가 「2026-09-25 · pos v1」다
+[ ] 왼쪽 위 매장 select(「— this counter's store —」 + 활성 창고) · 고르면 이 기기에 기억되고 다시 열면 골라져 있다 · 아래 「Parked and open at this store」가 그 매장 것으로 바뀐다
+[ ] 매장을 안 고르고 손님을 고르면 「Pick this counter's store first (top left).」로 막힌다
+
+새 판매 · 손님
+[ ] + New sale → 「Customer for this sale」 모달 → 이름으로 검색(활성 손님만 · 40행 · 티어 · 결제조건이 밑줄로) → 고르면 so_create(pos · 이 매장) → 화면이 그 오더로 바뀐다(SO-… · draft)
+[ ] 손님 줄에 이름 · 티어 · 결제조건 · 오른쪽에 매장 이름 · 스캔 칸이 살아나고 포커스가 간다
+
+스캔 · 줄 (draft 만)
+[ ] 스캔 칸에 바코드 → Enter → 정확히 하나 맞으면 줄 +1(so_line_add · qty 1) · 바코드가 없으면 SKU 정확히 → 그것도 없으면 「Find a product」 모달이 그 글자로 열린다(「Nothing matched that code exactly」)
+[ ] Find… → SKU · 이름으로 찾기(활성 · 세트 아닌 것만 · 40행) → 고르면 줄이 는다
+[ ] 같은 SKU 를 다시 스캔하면 수량이 합쳐진다 · 다른 가격으로 이미 있으면 「already on the sale at another price — change that line's quantity instead」
+[ ] 줄 표(최근 것이 위): Item(SKU · 이름 · list 가격 · −할인% · no price) · Qty(− N +) · Unit · Total · ✕ · 수량이 0 이 되면 줄이 빠진다
+[ ] 경고 칩이 사람 말로(세금 규칙 없음 · 가격 없는 줄 · 티어 다름 · 청구지 없음) · 세금 규칙이 없으면 그 밑에 Tax rule select 가 뜨고 고르면 so_header_update
+[ ] 오른쪽 TOTAL(큰 글자) · Items · Tax(규칙 이름 · 없으면 「no rule」) — 전부 so_detail 의 totals
+
+Confirm · 다시 열기 · Park
+[ ] Confirm — show the amount(줄이 있을 때만) → so_pos_confirm → confirmed · 재고를 보지 않고 전부 잡힌다 · 스캔 칸이 잠기고 「Confirmed — Reopen to add or change items」
+[ ] 확정 뒤 오른쪽에 Paid · (있으면) Credit / on account · **To pay**(so_pos_finish 미리 보기의 amount_due) · 결제 단추 넷(Cash · Debit · Credit · e-Transfer) · Finish · Park · Reopen
+[ ] Reopen to change items → 확인 창(「Payments already taken stay on it.」) → so_pos_reopen → draft 로 · 받은 돈은 남는다
+[ ] Park → 화면만 비운다(새 상태 없음 · 오더는 확정 그대로 · 재고 잡힌 채) → 아래 표에 confirmed 로 남고 어느 계산대에서나 눌러 이어받는다
+
+결제 (sales · 대상 = 이 오더)
+[ ] 결제 단추 → 모달: Amount(To pay 가 미리) · Cash 면 Cash given → 거스름돈이 「change N」으로 · Reference(카드는 slip / approval no.) → Record → so_payment_add(target_so_ids = 이 오더 · 오늘 · 매장 창고)
+[ ] 나눠 내기 = 결제를 두 번 넣는다 · Cash 는 받아 둔 금액을 적는다(거스름돈은 기록하지 않는다) · 넣으면 Paid · To pay 가 바뀐다
+[ ] 0 이하 금액은 「Give an amount above zero.」
+
+Finish
+[ ] Finish — hand over and invoice → 미리 보기 모달: Total · Paid for this sale · (있으면) Credit / money on account used · 「Still owed — goes on the invoice N」 또는 「Nothing left to pay」 · 장부보다 많이 나가면 「N EA more than the book shows here — it still goes; the manager list will show it」
+[ ] Finish → so_pos_finish(true) → 출고 + 인보이스 한 번 · 막지 않는다(미수는 인보이스에 남는다 · 결제조건 이름) → 화면 가운데에 인보이스 번호(큰 글자) · 손님 · SO 번호 · 「Paid in full」 또는 「Still owed N」 · Sales Invoices 링크(?inv=번호) · + New sale
+[ ] 인쇄는 다음 판(「Printing comes in the next version」)
+
+Parked and open at this store
+[ ] 확정된 것(so_pos_open_list · Sale · Customer · confirmed · Amount · Paid · 확정한 사람)과 초안(이 매장 pos draft · 「draft — scanning」 · 만든 시각)이 한 표에 · 누르면 그 오더가 열린다
+[ ] 그날 안 끝난 확정 판매는 「from YYYY-MM-DD — not finished」(stale) 로 붉게 · 안내문 「A confirmed sale not finished by the end of the day shows on the manager list.」
+[ ] ?so=SO-번호 로 들어오면(channel pos 만) 그 판매가 열린다
+```
+
+⚠️ [2026-09-25] 아직 없는 것 — 영수증·인보이스 인쇄 · 매니저의 「안 끝난 판매」 목록 화면 · 현금 서랍·거스름돈 기록(거스름돈은 기록하지 않는 것이 판정) · so.html 의 Finish on POS 단추(자리만 · 이 화면이 대신한다) (정본 6-f · §18).
 
 ---
 

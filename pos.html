@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 계산대 화면 — 목록/상세 두 모드가 아니라 한 판(왼쪽 판매 · 오른쪽 금액과 단추 · 아래 잠시 둔 오더) */
+  .pos{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;padding:14px}
+  @media (max-width:1000px){ .pos{grid-template-columns:1fr} }
+  .posbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .posbar .sp{flex:1}
+  .posbar select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:13px}
+  .scan{display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .scan input{flex:1;border:2px solid #3b5bdb;border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:16px}
+  .scan input:disabled{border-color:var(--line);background:#f6f7f9}
+  .big{font-family:var(--mono);font-size:40px;font-weight:700;letter-spacing:-.02em}
+  .mid{font-family:var(--mono);font-size:20px;font-weight:700}
+  .tot{padding:16px}
+  .tot .row2{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:13px;color:var(--muted)}
+  .tot .row2 b{font-family:var(--mono);color:var(--ink,#1a1d24)}
+  .acts{display:flex;flex-direction:column;gap:8px;padding:0 16px 16px}
+  .acts .pobtn{padding:12px;font-size:15px}
+  .paygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 16px 12px}
+  .paygrid .pobtn{padding:12px 6px;font-size:13.5px}
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .sowarn{padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px}
+  .pomodal[hidden]{display:none}
+  .pobox input[type=search]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pick{max-height:280px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:#fafbfd}
+  .sofield{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font:inherit;font-size:14px}
+  .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .done{padding:22px 16px;text-align:center}
+  tr.parked{cursor:pointer} tr.parked:hover td{background:#fafbfd}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="pos">
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="posbar">
+        <b>POS</b>
+        <select id="store" title="This counter's store — remembered on this device"></select>
+        <span class="sp"></span>
+        <span id="soNo" class="mono dim"></span>
+        <button class="pobtn go" id="newSale">+ New sale</button>
+      </div>
+      <div class="posbar" id="custBar"><span class="dim">Pick the customer first — every POS sale is on a customer account.</span>
+        <span class="sp"></span><button class="pobtn" id="pickCust">Customer…</button></div>
+      <div class="scan">
+        <input id="scanIn" placeholder="Scan a barcode or type a SKU, then Enter" autocomplete="off" disabled>
+        <button class="pobtn" id="findBtn" disabled title="Search by name">Find…</button>
+      </div>
+      <div id="warnBox"></div>
+      <div id="lines"><div class="msg">No sale open.</div></div>
+    </div>
+
+    <div class="card">
+      <h3>Parked and open at this store <span class="n" id="parkN"></span></h3>
+      <div id="parked"><div class="msg">Loading…</div></div>
+    </div>
+  </div>
+
+  <div class="card" id="side">
+    <div class="tot"><div class="dim" style="font-size:12px">TOTAL</div><div class="big" id="bigTot">0.00</div><div id="totRows"></div></div>
+    <div id="sideActs"></div>
+  </div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   POS — 계산대 화면 1판 (2026-09-25 · 대화 Claude)
+   흐름(정본 6-f · ④a 판정): 손님(계정 손님만 · 판정 10) → 스캔 → Confirm(금액 · 재고는 보지 않고 전부 잡는다) → 결제(그 자리에서 · 나눠 내기 · 대상 = 이 오더)
+        → Finish(출고 + 인보이스 · 막지 않는다 · 받은 금액과 미수를 보인다 · 판정 5) · 잠시 두기(Park · 새 상태 없음 · 판정 16) · 다시 열기(Confirm~Finish 구간)
+   창구: so_create(channel pos · intake pos · 창고 필수) · so_line_add · so_line_update · so_line_remove · so_header_update(세금 규칙 — 판정 11)
+         so_pos_confirm · so_pos_reopen · so_payment_add(target_so_ids) · so_pos_finish(p_commit false = 미리 보기) · so_pos_open_list
+   권한: 전부 sales 열쇠(판정 6 · R5 의 예외) · 역할 문 없음
+   ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
+   ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
+   ───────────────────────────────────────────────────────────── */
+const POS_BUILD = "2026-09-25 · pos v1";
+console.log("pos.html build:", POS_BUILD);
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+
+let sb = null, me = null;
+let storeId = null, WHS = [], TAXES = [];
+let curId = null, cur = null, est = null;   // cur = so_detail · est = so_pos_finish 미리 보기(확정 뒤)
+const STORE_KEY = "ims_pos_store";
+
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const plain = (v) => Number(v || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const qty = (v) => esc(Number(v || 0).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const WARN = {
+  tax_region_unknown: "No tax rule — the customer's ship-to province is unknown. Pick a tax rule below before Confirm.",
+  tax_rule_missing: "No tax rule — pick one before Confirm.",
+  lines_without_price: "A line has no price — Confirm is blocked until it gets one.",
+  direct_order_tier_unexpected: "This customer's price tier is not Wholesale — check the prices.",
+  tier_differs_from_customer: "Price tier differs from the customer's own tier.",
+  bill_to_empty: "The customer has no billing address — the invoice goes out without one.",
+};
+const warnText = (w) => { const k = String(w).split(":")[0]; return WARN[k] || String(w); };
+
+/* ── 모달 ── */
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; focusScan(); }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !document.getElementById("modal").hidden) modalClose(); });
+function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; }); }
+function say(where, cls, text){ const el = document.getElementById(where); if(el){ el.className = cls; el.textContent = text; return; } if(cls === "err") alert(text); }
+function focusScan(){ const i = document.getElementById("scanIn"); if(i && !i.disabled) setTimeout(() => i.focus(), 30); }
+
+/* ── 매장 ── */
+function setStore(id){
+  storeId = id;
+  try { localStorage.setItem(STORE_KEY, id); } catch(e) {}
+  loadParked();
+}
+
+/* ── 손님 고르기 — 계정 손님만(판정 10) · 활성 ── */
+function openCustPick(){
+  modalOpen(`
+    <h4>Customer for this sale</h4>
+    <div class="pbody">
+      <input type="search" id="cpQ" placeholder="Search customer by name" autocomplete="off">
+      <div class="pick" id="cpList"><div class="msg">Type to search.</div></div>
+      <div id="cpMsg" style="margin-top:8px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
+  wireModalClose();
+  imsQ("#cpQ", async (t) => {
+    const box = document.getElementById("cpList"); if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const { data, error } = await sb.from("customer").select("id,name,price_tier,payment_term_name").eq("is_active", true).ilike("name", `%${t}%`).order("name").limit(40);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `<div class="prow" data-cid="${r.id}">${esc(r.name)}<div class="dim" style="font-size:11.5px">${esc([r.price_tier, r.payment_term_name].filter(Boolean).join(" · "))}</div></div>`).join("") : '<div class="msg">No active customer matches.</div>';
+    box.querySelectorAll("[data-cid]").forEach(el => { el.onclick = () => startSale(el.dataset.cid); });
+  });
+  setTimeout(() => { const i = document.getElementById("cpQ"); if(i) i.focus(); }, 30);
+}
+async function startSale(customerId){
+  if(!storeId){ say("cpMsg", "err", "Pick this counter's store first (top left)."); return; }
+  say("cpMsg", "", "Opening the sale…");
+  const { data, error } = await sb.rpc("so_create", { p_customer_id: customerId, p_channel: "pos", p_intake: "pos", p_location_id: storeId });
+  if(error){ say("cpMsg", "err", error.message); return; }
+  modalClose();
+  await openSale(data.id);
+  loadParked();
+}
+
+/* ── 스캔 — 바코드 정확히 → SKU 정확히 → 없으면 이름으로 찾기 ── */
+async function onScan(){
+  const inp = document.getElementById("scanIn");
+  const code = inp.value.trim();
+  if(!code || !curId) return;
+  inp.value = "";
+  let pid = null;
+  const bc = await sb.from("product_barcode").select("product:product_id!inner(id,is_active)").eq("is_active", true).eq("barcode", code).limit(2);
+  const hits = (bc.data || []).map(x => x.product).filter(p => p && p.is_active);
+  if(hits.length === 1) pid = hits[0].id;
+  if(!pid){
+    const sk = await sb.from("product").select("id").eq("is_active", true).ilike("sku", code).limit(2);
+    if((sk.data || []).length === 1) pid = sk.data[0].id;
+  }
+  if(!pid){ openFind(code); return; }
+  await addOne(pid);
+}
+async function addOne(pid){
+  const { data, error } = await sb.rpc("so_line_add", { p_so_id: curId, p_product_id: pid, p_qty: 1 });
+  if(error){ alert(error.message); focusScan(); return; }
+  if(data && data.action === "ask"){ alert("This SKU is already on the sale at another price — change that line's quantity instead."); }
+  await openSale(curId);
+}
+function openFind(prefill){
+  modalOpen(`
+    <h4>Find a product</h4>
+    <div class="pbody">
+      <input type="search" id="fdQ" placeholder="SKU · product name" autocomplete="off" value="${esc(prefill || "")}">
+      <div class="pick" id="fdList"><div class="msg">${prefill ? "Nothing matched that code exactly — pick from the list." : "Type to search."}</div></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
+  wireModalClose();
+  const draw = async (t) => {
+    const box = document.getElementById("fdList"); if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const tt = String(t).replace(/[,()"\\]/g, "%");
+    const { data, error } = await sb.from("product").select("id,sku,name").eq("is_active", true).is("parent_product_id", null)
+      .or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${p.id}"><span class="mono">${esc(p.sku)}</span><div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("") : '<div class="msg">No active product matches.</div>';
+    box.querySelectorAll("[data-pid]").forEach(el => { el.onclick = async () => { modalClose(); await addOne(el.dataset.pid); }; });
+  };
+  imsQ("#fdQ", draw);
+  if(prefill) draw(prefill);
+  setTimeout(() => { const i = document.getElementById("fdQ"); if(i) i.focus(); }, 30);
+}
+
+/* ── 줄 고치기(초안에서만 · 확정 뒤는 다시 열어야) ── */
+async function setQty(lineId, v){
+  const n = Number(v);
+  if(!(n > 0)){ return removeLine(lineId); }
+  const { error } = await sb.rpc("so_line_update", { p_line_id: lineId, p_patch: { qty_ordered: n } });
+  if(error){ alert(error.message); }
+  await openSale(curId);
+}
+async function removeLine(lineId){
+  const { error } = await sb.rpc("so_line_remove", { p_line_id: lineId });
+  if(error){ alert(error.message); }
+  await openSale(curId);
+}
+async function setTax(name){
+  const { error } = await sb.rpc("so_header_update", { p_so_id: curId, p_patch: { tax_rule: name || null } });
+  if(error){ alert(error.message); }
+  await openSale(curId);
+}
+
+/* ── Confirm · 다시 열기 · 잠시 두기 ── */
+async function confirmSale(){
+  const { data, error } = await sb.rpc("so_pos_confirm", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await openSale(curId); loadParked();
+}
+async function reopenSale(){
+  if(!confirm("Reopen this sale to change it? Payments already taken stay on it.")) return;
+  const { error } = await sb.rpc("so_pos_reopen", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await openSale(curId); loadParked();
+}
+function parkSale(){
+  /* ⭐ 새 상태 없음(판정 16) — 화면만 비운다 · 오더는 확정 그대로 · 재고 잡힌 채 · 이 매장 어느 계산대에서나 이어받는다 */
+  clearSale(); loadParked();
+}
+
+/* ── 결제 — 대상 = 이 오더(발행 순간 저절로 붙는다 · §18 판정 4) · 나눠 내기 ── */
+const PMETH = [["cash","Cash"],["debit_card","Debit"],["credit_card","Credit"],["e_transfer","e-Transfer"]];
+function openPay(method){
+  const due = est ? Math.max(0, Number(est.amount_due) || 0) : 0;
+  modalOpen(`
+    <h4>${esc((PMETH.find(m => m[0] === method) || [0, method])[1])} payment</h4>
+    <div class="pbody">
+      <div class="frow"><label>Amount</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01" value="${due > 0 ? due.toFixed(2) : ""}"></div>
+      ${method === "cash" ? `<div class="frow"><label>Cash given</label><input id="pyGiven" class="sofield" type="number" step="0.01" min="0"> <span id="pyChange" class="mid"></span></div>` : ""}
+      <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="${method === "cash" ? "" : "slip / approval no."}"></div>
+      <div class="sohint">Record it after the terminal approves. A split payment is just two payments — record each one.${method === "cash" ? " Record the amount kept, not the cash handed over (change is not recorded)." : ""}</div>
+      <div id="pyMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="pyGo">Record</button></div>`);
+  wireModalClose();
+  if(method === "cash"){
+    const g = document.getElementById("pyGiven");
+    g.oninput = () => { const ch = Number(g.value) - Number(document.getElementById("pyA").value); document.getElementById("pyChange").textContent = ch >= 0 ? "change " + plain(ch) : ""; };
+  }
+  setTimeout(() => { const i = document.getElementById("pyA"); if(i){ i.focus(); i.select(); } }, 30);
+  document.getElementById("pyGo").onclick = async () => {
+    const amt = Number(document.getElementById("pyA").value);
+    if(!(amt > 0)){ say("pyMsg", "err", "Give an amount above zero."); return; }
+    const s = cur.so;
+    say("pyMsg", "", "Recording…"); document.getElementById("pyGo").disabled = true;
+    const { error } = await sb.rpc("so_payment_add", { p: {
+      customer_id: s.bill_to_customer_id || s.customer_id, amount: amt, paid_on: torontoToday(), method: method,
+      reference: document.getElementById("pyR").value.trim() || null, currency_id: s.currency_id, warehouse_id: s.location_id, target_so_ids: [s.id] } });
+    if(error){ say("pyMsg", "err", error.message); document.getElementById("pyGo").disabled = false; return; }
+    modalClose(); await openSale(curId); loadParked();
+  };
+}
+
+/* ── Finish — 미리 보기 → 출고 + 인보이스 한 번(막지 않는다) ── */
+async function finishSale(){
+  const { data, error } = await sb.rpc("so_pos_finish", { p_so_id: curId, p_commit: false });
+  if(error){ alert(error.message); return; }
+  const e = data.estimate || {};
+  const owed = Number(e.amount_due) || 0;
+  modalOpen(`
+    <h4>Finish ${esc(cur.so.so_number)}</h4>
+    <div class="pbody">
+      <div class="tot" style="padding:0">
+        <div class="row2">Total<b>${money(e.total)}</b></div>
+        <div class="row2">Paid for this sale<b>${money(e.deposit)}</b></div>
+        ${Number(e.credit) || Number(e.balance) ? `<div class="row2">Credit / money on account used<b>${money(Number(e.credit || 0) + Number(e.balance || 0))}</b></div>` : ""}
+        <div class="row2" style="font-size:16px">${owed > 0 ? "Still owed — goes on the invoice" : "Nothing left to pay"}<b class="mid">${money(owed)}</b></div>
+      </div>
+      ${Number(data.short_ea_total) > 0 ? `<div class="sohint">${qty(data.short_ea_total)} EA more than the book shows here — it still goes; the manager list will show it.</div>` : ""}
+      <div class="sohint">Finish hands the goods over and issues the invoice now. It does not stop you if something is still owed — that stays on the invoice${cur.so.payment_term_name ? " (" + esc(cur.so.payment_term_name) + ")" : ""}.</div>
+      <div id="fnMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Back</button><button class="pobtn go" id="fnGo">Finish</button></div>`);
+  wireModalClose();
+  document.getElementById("fnGo").onclick = async () => {
+    say("fnMsg", "", "Finishing…"); document.getElementById("fnGo").disabled = true;
+    const r = await sb.rpc("so_pos_finish", { p_so_id: curId, p_commit: true });
+    if(r.error){ say("fnMsg", "err", r.error.message); document.getElementById("fnGo").disabled = false; return; }
+    modalClose(); showDone(r.data); loadParked();
+  };
+}
+function showDone(d){
+  document.getElementById("lines").innerHTML = `<div class="done">
+      <div class="dim">Invoice</div><div class="big">${esc(d.invoice_number || "")}</div>
+      <div style="margin-top:8px">${esc(cur ? cur.customer_name || "" : "")} · ${esc(d.so_number || "")}</div>
+      <div style="margin-top:14px" class="mid">${Number(d.remaining) > 0 ? "Still owed " + plain(d.remaining) : "Paid in full"}</div>
+      <div class="sohint" style="margin-top:10px">Printing comes in the next version — open the invoice on <a class="lnk" href="so-invoices.html?inv=${encodeURIComponent(d.invoice_number || "")}">Sales Invoices</a> if the customer needs it now.</div>
+    </div>`;
+  document.getElementById("sideActs").innerHTML = `<div class="acts"><button class="pobtn go" id="doneNew">+ New sale</button></div>`;
+  document.getElementById("doneNew").onclick = () => { clearSale(); openCustPick(); };
+  document.getElementById("scanIn").disabled = true; document.getElementById("findBtn").disabled = true;
+  curId = null;
+}
+
+/* ══ 판매 그리기 ══════════════════════════════════════ */
+function clearSale(){
+  curId = null; cur = null; est = null;
+  document.getElementById("soNo").textContent = "";
+  document.getElementById("custBar").innerHTML = `<span class="dim">Pick the customer first — every POS sale is on a customer account.</span><span class="sp"></span><button class="pobtn" id="pickCust">Customer…</button>`;
+  document.getElementById("pickCust").onclick = openCustPick;
+  document.getElementById("lines").innerHTML = '<div class="msg">No sale open.</div>';
+  document.getElementById("warnBox").innerHTML = "";
+  document.getElementById("bigTot").textContent = "0.00";
+  document.getElementById("totRows").innerHTML = "";
+  document.getElementById("sideActs").innerHTML = "";
+  document.getElementById("scanIn").disabled = true; document.getElementById("findBtn").disabled = true;
+}
+async function openSale(id){
+  curId = id;
+  const { data, error } = await sb.rpc("so_detail", { p_so_id: id });
+  if(error){ alert(error.message); return; }
+  cur = data; est = null;
+  const s = data.so, t = data.totals || {};
+  if(s.status === "fulfilled"){ clearSale(); return; }
+  if(s.status === "confirmed"){
+    const pv = await sb.rpc("so_pos_finish", { p_so_id: id, p_commit: false });
+    if(!pv.error) est = pv.data.estimate || null;
+  }
+  const draft = s.status === "draft";
+  document.getElementById("soNo").textContent = s.so_number + " · " + s.status;
+  document.getElementById("custBar").innerHTML = `<b>${esc(data.customer_name || "")}</b>
+    <span class="dim" style="font-size:12px">${esc([s.price_tier, s.payment_term_name].filter(Boolean).join(" · "))}</span>
+    <span class="sp"></span><span class="dim" style="font-size:12px">${esc(s.location_name || "")}</span>`;
+  const sc = document.getElementById("scanIn"), fb = document.getElementById("findBtn");
+  sc.disabled = !draft; fb.disabled = !draft;
+  sc.placeholder = draft ? "Scan a barcode or type a SKU, then Enter" : "Confirmed — Reopen to add or change items";
+
+  const w = (data.warnings || []).filter(x => !String(x).startsWith("reprice"));
+  const needTax = w.some(x => /tax_region_unknown|tax_rule_missing/.test(x));
+  document.getElementById("warnBox").innerHTML = (w.length ? `<div class="sowarn">${w.map(x => `<span class="chip warn">⚠ ${esc(warnText(x))}</span>`).join("")}</div>` : "")
+    + (needTax && draft ? `<div class="posbar"><span>Tax rule</span><select id="taxSel"><option value="">— pick —</option>${TAXES.map(x => `<option value="${esc(x.name)}">${esc(x.name)} · ${esc(Number(x.rate_pct))}%</option>`).join("")}</select></div>` : "");
+  const ts = document.getElementById("taxSel"); if(ts) ts.onchange = () => setTax(ts.value);
+
+  const ls = data.lines || [];
+  document.getElementById("lines").innerHTML = ls.length ? `<table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th>${draft ? "<th></th>" : ""}</tr></thead>
+    <tbody>${ls.slice().reverse().map(l => `<tr>
+      <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
+        ${Number(l.discount_pct) ? `<div class="dim" style="font-size:11px">list ${plain(l.list_price)} · −${esc(Number(l.discount_pct))}%</div>` : ""}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}</td>
+      <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <b class="mono">${qty(l.qty_ordered)}</b> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
+      <td class="num">${money(l.unit_price)}</td><td class="num">${money(l.total)}</td>
+      ${draft ? `<td><button class="xbtn" data-rm="${l.id}" title="Remove">&#10005;</button></td>` : ""}
+    </tr>`).join("")}</tbody></table>` : `<div class="msg">${draft ? "Scan the first item." : "No items."}</div>`;
+  document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1); });
+  document.querySelectorAll("[data-dec]").forEach(b => { b.onclick = () => setQty(b.dataset.dec, Number(b.dataset.q) - 1); });
+  document.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => removeLine(b.dataset.rm); });
+
+  /* 오른쪽 — 금액(DB) · 단추 */
+  document.getElementById("bigTot").textContent = plain(t.order_total_with_tax);
+  document.getElementById("totRows").innerHTML = `
+    <div class="row2">Items<b>${plain(t.lines_total)}</b></div>
+    <div class="row2">Tax${t.tax_rule ? " · " + esc(t.tax_rule) : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : plain(t.tax)}</b></div>
+    ${est ? `<div class="row2">Paid<b>${plain(est.deposit)}</b></div>
+      ${Number(est.credit) || Number(est.balance) ? `<div class="row2">Credit / on account<b>${plain(Number(est.credit || 0) + Number(est.balance || 0))}</b></div>` : ""}
+      <div class="row2" style="font-size:15px">To pay<b class="mid">${plain(Math.max(0, Number(est.amount_due) || 0))}</b></div>` : ""}`;
+  let acts = "";
+  if(draft){
+    acts = `<div class="acts"><button class="pobtn go" id="aConfirm" ${ls.length ? "" : "disabled"}>Confirm — show the amount</button></div>`;
+  } else {
+    acts = `<div class="paygrid">${PMETH.map(([k, l]) => `<button class="pobtn" data-pay="${k}">${l}</button>`).join("")}</div>
+      <div class="acts">
+        <button class="pobtn go" id="aFinish">Finish — hand over and invoice</button>
+        <button class="pobtn" id="aPark" title="Set it aside and serve the next customer — it stays open at this store">Park</button>
+        <button class="pobtn" id="aReopen">Reopen to change items</button>
+      </div>`;
+  }
+  document.getElementById("sideActs").innerHTML = acts;
+  const bc = document.getElementById("aConfirm"); if(bc) bc.onclick = confirmSale;
+  document.querySelectorAll("[data-pay]").forEach(b => { b.onclick = () => openPay(b.dataset.pay); });
+  const bf = document.getElementById("aFinish"); if(bf) bf.onclick = finishSale;
+  const bp = document.getElementById("aPark"); if(bp) bp.onclick = parkSale;
+  const br = document.getElementById("aReopen"); if(br) br.onclick = reopenSale;
+  focusScan();
+}
+
+/* ── 이 매장의 잠시 둔 · 열린 판매 — 확정(so_pos_open_list) + 초안(진행 중) ── */
+async function loadParked(){
+  const box = document.getElementById("parked");
+  if(!storeId){ box.innerHTML = '<div class="msg">Pick this counter\'s store.</div>'; return; }
+  const [op, dr] = await Promise.all([
+    sb.rpc("so_pos_open_list", { p_location_id: storeId }),
+    sb.from("so").select("id,so_number,created_at,bill_to_name,customer:customer_id(name)").eq("channel", "pos").eq("status", "draft").eq("location_id", storeId).order("created_at", { ascending: false }).limit(50),
+  ]);
+  if(op.error){ box.innerHTML = `<div class="msg err">${esc(op.error.message)}</div>`; return; }
+  const rows = [];
+  (op.data.orders || []).forEach(o => rows.push(`<tr class="parked" data-open="${o.id}">
+      <td class="mono">${esc(o.so_number)}</td><td>${esc(o.customer_name || "")}</td><td>confirmed${o.stale ? ' <span class="off" style="font-size:11.5px">from ' + esc(o.confirmed_on) + " — not finished</span>" : ""}</td>
+      <td class="num">${money(o.amount)}</td><td class="num">${Number(o.received) ? money(o.received) : '<span class="dim">—</span>'}</td><td class="dim" style="font-size:11.5px">${esc(o.confirmed_by_name || "")}</td></tr>`));
+  (dr.data || []).forEach(o => rows.push(`<tr class="parked" data-open="${o.id}">
+      <td class="mono">${esc(o.so_number)}</td><td>${esc((o.customer && o.customer.name) || o.bill_to_name || "")}</td><td class="dim">draft — scanning</td>
+      <td class="num"><span class="dim">—</span></td><td class="num"><span class="dim">—</span></td><td class="dim" style="font-size:11.5px">${imsTs(o.created_at)}</td></tr>`));
+  document.getElementById("parkN").textContent = rows.length || "";
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Sale</th><th>Customer</th><th>State</th><th class="num">Amount</th><th class="num">Paid</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>
+      <div class="sosub">Click to pick it up at this counter. A confirmed sale not finished by the end of the day shows on the manager list.</div>`
+    : '<div class="msg">Nothing parked or open at this store.</div>';
+  box.querySelectorAll("[data-open]").forEach(tr => { tr.onclick = () => openSale(tr.dataset.open); });
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = POS_BUILD;
+  const [wh, tx] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_tax_rule").select("name,rate_pct").eq("is_active", true).eq("direction", "sale").order("name"),
+  ]);
+  WHS = wh.data || []; TAXES = tx.data || [];
+  let saved = null; try { saved = localStorage.getItem(STORE_KEY); } catch(e) {}
+  const st = document.getElementById("store");
+  st.innerHTML = '<option value="">— this counter\'s store —</option>' + WHS.map(w => `<option value="${w.id}" ${w.id === saved ? "selected" : ""}>${esc(w.name)}</option>`).join("");
+  st.onchange = () => setStore(st.value || null);
+  if(saved && WHS.some(w => w.id === saved)) storeId = saved;
+  document.getElementById("newSale").onclick = () => { clearSale(); openCustPick(); };
+  document.getElementById("scanIn").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); onScan(); } });
+  document.getElementById("findBtn").onclick = () => openFind("");
+  clearSale();
+  loadParked();
+  const want = imsParam("so");
+  if(want){
+    const { data } = await sb.from("so").select("id").eq("so_number", want).eq("channel", "pos").maybeSingle();
+    if(data) openSale(data.id);
+  }
+});
+</script>
+</body>
+</html>

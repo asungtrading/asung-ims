@@ -293,6 +293,7 @@
     //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 묶음의 탭 줄에), 묶음('purchasing'|'sales'|null · 2026-09-25)]
     //    ⭐ 화면 값은 ims_perm_catalog() 의 다섯 — purchasing · master · receiving · staff · sales(20260923224900). 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
     //    ⭐ 탭은 자주 오가는 화면만(구매 다섯 · 판매 · Caleb). 마스터·Staff·Home 은 메뉴에만 · 묶음 null.
+    //    ✅ [2026-09-25 밤] POS(pos.html) — sales 열쇠 · 계산대는 탭으로 오가는 화면이 아니라 **메뉴에만**(탭 false · 묶음 null · Caleb).
     //    ⭐ [2026-09-25 Caleb] 이름은 보이는 글자만 바꿨다(파일 이름 그대로) — Purchase Invoices(invoices.html) · Supplier Payments(payments.html). ✅ [2026-09-25] 판매 묶음 전부 섰다 — Sales Invoices(so-invoices.html) · Customer Payments(so-payments.html) · Credit Notes(so-credits.html) · Backorders(so-backorders.html).
     //       ☰ Menu 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home.
     //    ✅ [2026-09-18] Receiving 이 섰다 — PO 문서의 한 갈래(인보이스·비용·결제와 같은 층)라 모드는 'ims' · 구매 넷 뒤(Caleb). 카탈로그 receiving.room 도 'ims'(마이그레이션 같은 날).
@@ -313,6 +314,7 @@
       ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
       ["Credit Notes","so-credits.html","sales","ims",true,"sales"],
       ["Backorders","so-backorders.html","sales","ims",true,"sales"],
+      ["POS","pos.html","sales","ims",false,null],
       ["Staff","staff.html","staff","ims",false,null],
       ["Home","index.html",null,null,false,null],
     ];
