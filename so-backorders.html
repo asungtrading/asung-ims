@@ -56,9 +56,6 @@
       <select id="fArr" title="Stock arrived since the backorder">
         <option value="">Arrived — any</option><option value="true">Arrived since</option><option value="false">Not arrived yet</option>
       </select>
-      <select id="fOwed" title="Free lines we still owe">
-        <option value="">Free lines — any</option><option value="true">Free lines we owe</option><option value="false">Paid lines only</option>
-      </select>
       <input type="date" id="fFrom" title="Ordered from"><span class="dash">—</span><input type="date" id="fTo" title="Ordered to">
       <select id="fEnd" title="How it ended" hidden>
         <option value="">Ended — any way</option>
@@ -95,7 +92,7 @@
    ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
    ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-09-25 · bo v1.1";
+const BO_BUILD = "2026-09-25 · bo v1.2";
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -103,6 +100,9 @@ const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
 const isMgr = () => rank >= 2;
 const PAGE = 100;
 let offset = 0, custId = null, custName = "", last = null;
+/* v1.2 — 무상 줄 필터 칸을 없앴다(Caleb 2026-09-25 「실제로는 거의 없는 상황이라」) · 요약의 숫자가 1 이상일 때만 보이고 누르면 그것만 거른다
+   ⚠️ 무상 백오더는 만료 · 이어받기로 닫히지 않는다(§15 판정 15·16) — 드물어도 보이게 둔다 */
+let owedOnly = false;
 
 const qty = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
@@ -125,11 +125,11 @@ function filters(){
   put("brand_id", document.getElementById("fBrand").value);
   put("sku", document.getElementById("fSku").value.trim());
   put("arrived", document.getElementById("fArr").value);
-  put("owed", document.getElementById("fOwed").value);
+  if(owedOnly) f.owed = true;
   put("order_from", document.getElementById("fFrom").value);
   put("order_to", document.getElementById("fTo").value);
   if(f.state !== "open") put("end_kind", document.getElementById("fEnd").value);
-  ["arrived", "owed"].forEach(k => { if(k in f) f[k] = f[k] === "true"; });
+  if("arrived" in f) f.arrived = f.arrived === "true";
   return f;
 }
 
@@ -144,7 +144,9 @@ async function load(){
     <div class="stat">Lines<b>${esc(data.total)}</b></div>
     <div class="stat">Open<b>${esc(data.open)}</b></div>
     <div class="stat">Ended<b>${esc(data.ended)}</b></div>
-    <div class="stat">Free lines we owe<b>${esc(data.open_owed)}</b></div>`;
+    ${Number(data.open_owed) > 0 || owedOnly ? `<div class="stat"><a class="lnk" id="owedTog" title="${owedOnly ? "Show every backorder again" : "Show only the free lines we still owe"}">Free lines we owe${owedOnly ? " — showing only these" : ""}</a><b>${esc(data.open_owed)}</b></div>` : ""}`;
+  const tg = document.getElementById("owedTog");
+  if(tg) tg.onclick = () => { owedOnly = !owedOnly; refilter(); };
   if(!rows.length){ box.innerHTML = '<div class="msg">No backorders match.</div>'; pager(data); return; }
 
   /* 손님마다 묶어 보인다 — 창구가 손님 · 제품 · 주문일 순으로 준다 */
@@ -290,11 +292,12 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
 
   const endSel = document.getElementById("fEnd");
   document.getElementById("fState").onchange = () => { endSel.hidden = document.getElementById("fState").value === "open"; refilter(); };
-  ["fLoc","fSup","fBrand","fArr","fOwed","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
+  ["fLoc","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
   imsQ("#fSku", refilter);
   document.getElementById("fCust").onclick = openCustPick;
   document.getElementById("fClear").onclick = () => {
-    ["fLoc","fSup","fBrand","fSku","fArr","fOwed","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
+    ["fLoc","fSup","fBrand","fSku","fArr","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
+    owedOnly = false;
     document.getElementById("fState").value = "open"; endSel.hidden = true;
     custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
     refilter();
