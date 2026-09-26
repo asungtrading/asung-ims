@@ -824,6 +824,7 @@ counter 확정 · 나갔다 (manager)
 ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 않는다.
 ⚠️ 권한: 전부 sales 열쇠(판정 6 · R5 의 예외) — 역할 문 없음(manager 단추 없음).
 ⚠️ 계산대 매장은 **기기에 기억한다**(localStorage `ims_pos_store`) — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다. 다른 기기에서 열면 매장을 다시 고른다(상태 저장이 아니다).
+   예외 — asung-wms `CLAUDE.md` 5절 「localStorage 에 상태를 두지 마라」의 예외(기기의 자리 · 조건 셋 · Caleb 2026-09-25). ⚠️ asung-ims 에는 CLAUDE.md 가 없다 — 규칙은 asung-wms 것을 본다.
 ⚠️ ☰ Menu 에만 있고 탭 줄에는 안 선다(ims-auth.js items 탭 false · 묶음 null) — 이 화면에서 탭 줄·묶음 칸이 안 뜨는 것이 정상이다.
 ⚠️ 모집단: 아직 실측 없음 — 첫 훑기 때 첫 POS 오더 번호(SO-25xxx · so 시퀀스 공용)와 인보이스 번호(60000~)를 여기 적는다.
 
