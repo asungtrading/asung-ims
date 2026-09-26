@@ -92,7 +92,7 @@
    ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
    ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-09-25 · bo v1.2";
+const BO_BUILD = "2026-09-25 · bo v1.3";
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -262,6 +262,12 @@ async function openProceed(soId, soNo){
   const { data, error } = await sb.rpc("so_backorder_proceed", { p_so_id: soId, p_commit: false });
   if(error){ document.getElementById("prOut").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   draw(data, false);
+  /* v1.3 — 잡힐 것이 없으면 진행을 막는다(Caleb 2026-09-25 · 「스탁이 들어오면 자동으로 reserve 한다고 오해」) · Proceed 는 기다려 주지 않는다 */
+  const ls = data.lines || [];
+  if(ls.length && !ls.some(l => Number(l.allocated) > 0)){
+    say("prMsg", "err", "Nothing can be reserved yet — there is no stock for these lines in this warehouse. Proceed does not wait for stock: press it again after stock arrives (the Stock column shows \"arrived\" when a receipt or transfer lands).");
+    return;
+  }
   document.getElementById("prGo").disabled = false;
   document.getElementById("prGo").onclick = async () => {
     say("prMsg", "", "Proceeding…"); document.getElementById("prGo").disabled = true;

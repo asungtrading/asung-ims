@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v2";
+const SO_BUILD = "2026-09-25 · so v2.3";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -1014,6 +1014,15 @@ async function runShip(){
 /* ══ 2판(2026-09-25 · Caleb 「so.html 2판 가자」) — 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 ══
    ⭐ 전부 DB 창구의 미리 보기(p_commit false)를 먼저 보이고 같은 입력으로 실행한다 · 권한은 manager(병합은 초안만이면 sales)
    ⭐ 결과 모양은 확정 미리 보기와 같다(so_allocate_run 의 lines · siblings) — 같은 표로 그린다 */
+/* v2.1 — 줄의 예약 글자(Caleb 2026-09-25 「not reserved가 직관적이고 좋겠어」) — hold 는 「잡지 않고 멈춰 둔」 것이라 not reserved 로 읽힌다 */
+function resLabel(x){
+  const n = qty(x.qty_allocated);
+  if(x.kind === "allocated") return `<span class="on" style="font-size:11.5px">reserved ${n}</span>`;
+  if(x.kind === "hold")      return `<span class="neutral" style="font-size:11.5px" title="On hold — stock is not held for this order; other orders can use it">not reserved ${n} <span class="dim">· on hold</span></span>`;
+  if(x.kind === "backorder") return `<span class="neutral" style="font-size:11.5px" title="Waiting for stock — Proceed backorder when it arrives">backorder ${n}</span>`;
+  if(x.kind === "preorder")  return `<span class="neutral" style="font-size:11.5px" title="Preorder — not reserved until it is proceeded">preorder ${n}</span>`;
+  return `<span class="dim" style="font-size:11.5px">${esc(x.kind)} ${n}</span>`;
+}
 function planTable(data, done){
   const lines = data.lines || [];
   return `<table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th><th class="num">Reserved</th><th class="num">Backorder</th><th class="num">Preorder</th></tr></thead>
@@ -1025,7 +1034,10 @@ function planTable(data, done){
     ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
 }
 /* 미리 보기 → 실행 한 벌 — rpc 이름 · 인자 · 제목 · 그리기 */
-function previewThenRun(title, rpc, args, draw, goLabel, after){
+/* v2.3 — guard(data) 가 문장을 돌려주면 실행 단추를 막고 그 문장을 보인다(Caleb 2026-09-25 · 재고 없는 Proceed 가 「걸어 두면 들어올 때 잡힌다」로 오해될 수 있다) */
+const NOTHING_TO_RESERVE = "Nothing can be reserved yet — there is no stock for these lines in this warehouse. Proceed does not wait for stock: press it again after stock arrives (Backorders shows \"arrived\" when a receipt or transfer lands).";
+const noneReserved = (d) => { const ls = d.lines || []; return ls.length && !ls.some(l => Number(l.allocated) > 0) ? NOTHING_TO_RESERVE : null; };
+function previewThenRun(title, rpc, args, draw, goLabel, after, guard){
   modalOpen(`
     <h4>${title}</h4>
     <div class="pbody"><div id="pvOut2"><div class="msg">Checking…</div></div><div id="pvMsg2" style="margin-top:10px;font-size:12.5px"></div></div>
@@ -1038,6 +1050,8 @@ function previewThenRun(title, rpc, args, draw, goLabel, after){
     const { data, error } = await sb.rpc(rpc, Object.assign({}, args, { p_commit: false }));
     if(error){ document.getElementById("pvOut2").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
     document.getElementById("pvOut2").innerHTML = draw(data, false);
+    const block = guard ? guard(data) : null;
+    if(block){ say("pvMsg2", "err", block); return; }
     say("pvMsg2", "", "Nothing is saved until you press " + goLabel + ".");
     const go = document.getElementById("pvGo2"); go.disabled = false;
     go.onclick = async () => {
@@ -1140,7 +1154,7 @@ function openChangeWh(){
 /* 백오더 · 프리오더 진행 — 그 형제 오더가 지금 잡을 수 있는 만큼 잡는다(R8 · Backorders 화면과 같은 창구) */
 function proceedBo(){
   previewThenRun(`Proceed ${esc(cur.so.so_number)} — reserve stock that is here now`, "so_backorder_proceed", { p_so_id: curId },
-    (d, done) => planTable(d, done) + `<div class="sohint" style="margin-top:8px">Backorder lines ended here: ${esc(d.backorder_lines_ended ?? 0)}.</div>`, "Proceed");
+    (d, done) => planTable(d, done) + `<div class="sohint" style="margin-top:8px">Backorder lines ended here: ${esc(d.backorder_lines_ended ?? 0)}.</div>`, "Proceed", null, noneReserved);
 }
 
 /* 병합(④b) — 같은 손님 · 같은 창고 · 같은 통화 · 창고 길 · 초안이나 확정 · 둘 이상
@@ -1258,6 +1272,8 @@ async function loadDetail(id){
   const allRes = Object.values(RES).flat();
   const onHold = s.status === "confirmed" && allRes.some(x => x.kind === "hold");
   const hasBo  = s.status === "confirmed" && allRes.some(x => x.kind === "backorder" || x.kind === "preorder");
+  /* v2.2 — Hold 는 잡힌 줄(allocated)이 있을 때만(Caleb 화면 시험 2026-09-25 · 백오더 형제에 떠 있었다 · so_hold 가 거부한다) */
+  const hasAlloc = s.status === "confirmed" && allRes.some(x => x.kind === "allocated");
   const invLive = inv && inv.status === "issued";
   const acts = [];
   acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list">&#9776; List</button>');
@@ -1282,7 +1298,7 @@ async function loadDetail(id){
       acts.push('<button class="pobtn" disabled title="Comes with the warehouse screens (next week)">Release to WMS</button>');
       if(isMgr()){
         if(onHold) acts.push('<button class="pobtn go" data-act="unhold">Release hold</button>');
-        else       acts.push('<button class="pobtn" data-act="hold">Hold</button>');
+        else if(hasAlloc) acts.push('<button class="pobtn" data-act="hold" title="Release the reserved stock and keep the order waiting">Hold</button>');
         if(hasBo)  acts.push('<button class="pobtn go" data-act="proceed" title="Reserve backorder or preorder lines that are in stock now">Proceed backorder…</button>');
         acts.push('<button class="pobtn" data-act="divide">Divide…</button>');
         acts.push('<button class="pobtn" data-act="changewh">Change warehouse…</button>');
@@ -1368,7 +1384,7 @@ async function loadDetail(id){
       <td><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
         <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</td>
       <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` : qty(l.qty_ordered)}</td>
-      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => `<span class="${x.kind === "allocated" ? "on" : "neutral"}" style="font-size:11.5px">${esc(x.kind === "allocated" ? "reserved" : x.kind)} ${qty(x.qty_allocated)}</span>`).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
+      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => resLabel(x)).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
       <td class="num">${price(l.list_price)}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(l.discount_pct ?? "")}" data-prev="${esc(l.discount_pct ?? "")}" data-line="${l.id}" data-f="discount_pct" title="Type a discount to set it by hand · empty it to go back to the system discount">` : (l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%")}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.unit_price ?? "")}" data-prev="${esc(l.unit_price ?? "")}" data-line="${l.id}" data-f="unit_price" title="Type a price to override">` : price(l.unit_price)}</td>
