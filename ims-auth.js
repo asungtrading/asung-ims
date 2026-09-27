@@ -298,7 +298,9 @@
     //    ⭐ [2026-09-25 Caleb] 이름은 보이는 글자만 바꿨다(파일 이름 그대로) — Purchase Invoices(invoices.html) · Supplier Payments(payments.html). ✅ [2026-09-25] 판매 묶음 전부 섰다 — Sales Invoices(so-invoices.html) · Customer Payments(so-payments.html) · Credit Notes(so-credits.html) · Backorders(so-backorders.html).
     //       ☰ Menu 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home.
     //    ✅ [2026-09-18] Receiving 이 섰다 — PO 문서의 한 갈래(인보이스·비용·결제와 같은 층)라 모드는 'ims' · 구매 넷 뒤(Caleb). 카탈로그 receiving.room 도 'ims'(마이그레이션 같은 날).
-    //    ⬜ WMS 모드의 창고 작업 화면은 나중에 ["…","…","receiving","wms",true] 로 따로 선다 — 그 순간 WMS 모드가 탭 줄에 나타난다(같은 표 · 화면은 둘).
+    //    ⬜ WMS 모드의 창고 작업 화면은 나중에 ["…","…","receiving","wms",true] 로 따로 선다 — 그 순간 WMS 모드가 탭 줄에 나타난다(같은 표 · 화면은 둘).  → ✅ [2026-09-26] 첫 WMS 화면 Split & Waves 가 섰다(아래 · ⑤-4a)
+    //    ✅ [2026-09-26] Split & Waves(wms-manager.html · ⑤-4a · 운영 manager.html 의 자리) — 열쇠 wms_manage(카탈로그 min_role manager · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse'.
+    //       이 줄로 WMS 모드가 탭 줄에 선다(모드 둘 · WMS 안 탭 하나). picker · packer 줄은 그 파일이 설 때(⑤-4b · 4c — 빈 링크를 메뉴에 두지 않는다). 묶음 'warehouse' 는 groupDefs 에 없다 — WMS 안 묶음이 둘이 될 때 더한다.
     const items=[
       ["Settings","settings.html","master","ims",false,null],
       ["Suppliers","suppliers.html","master","ims",false,null],
@@ -317,6 +319,7 @@
       ["Backorders","so-backorders.html","sales","ims",true,"sales"],
       ["POS","pos.html","sales","ims",false,null],
       ["Manager List","manager-list.html","sales","ims",false,null],
+      ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
       ["Staff","staff.html","staff","ims",false,null],
       ["Home","index.html",null,null,false,null],
     ];

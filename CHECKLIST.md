@@ -17,7 +17,7 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)
+[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하
     Settings · Suppliers · Products · Families · Supplier Products ·
     Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
     ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
@@ -30,7 +30,7 @@
 [ ] 묶음 칸(PURCHASING · SALES · 모드 칸과 같은 모양)은 **구매·판매 둘 다 보는 사람에게만**, 그리고 지금 화면이 묶음 안일 때만 뜬다
     · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders(눌림) · Sales Invoices · Customer Payments · Credit Notes · Backorders」
     · 구매만 · 판매만: 묶음 칸 없이 탭만(지금까지와 같다) · Settings 등 묶음 밖 화면: 묶음 칸 없음
-    · SALES 를 누르면 판매 묶음의 첫 보이는 **탭** 화면(so.html)으로 간다 · 모드 칸(IMS·WMS)은 WMS 화면이 서기 전까지 여전히 안 보인다
+    · SALES 를 누르면 판매 묶음의 첫 보이는 **탭** 화면(so.html)으로 간다 · 모드 칸(IMS·WMS)은 WMS 화면이 서기 전까지 여전히 안 보인다  → ✅ [2026-09-26] Split & Waves(7-m)로 WMS 화면이 섰다 — wms 모드 + wms_manage 가 있는 사람에게 모드 칸 「IMS · WMS」가 뜬다 · WMS 를 누르면 wms-manager.html
 [ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
 [ ] Sign Out 이 되고, 다시 열면 로그인 화면이다
 [ ] 화면 글자가 전부 영문이다
@@ -47,18 +47,23 @@
    ⚠️ 이 수가 두 번 연속 낡았다. 화면을 더하면서 **같은 커밋에** 이 줄을 고친다.
 📌 [정정 2026-09-25] so.html(09-25 · 대화 Claude)로 열둘 · so-invoices.html(09-25 저녁)로 열셋 · so-payments.html(09-25 밤)로 열넷 · so-credits.html(09-25 밤)로 열다섯이다 — 넷 다 같은 커밋에 고쳤다.
 📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 열여섯 · pos.html(09-25 밤 · 대화 Claude)로 열일곱 · manager-list.html(09-25 밤 · 대화 Claude)로 **열여덟**이다 — 각각 같은 커밋에 고쳤다.
+📌 [정정 2026-09-26] wms-manager.html(09-26 · Claude Code ⑤-4a · 운영 manager.html 의 복사본)로 **열아홉**이다 — 같은 커밋에 고쳤다. ⚠️ WMS 화면은 공통 셋에 더해 wms-picklist.js(픽리스트 인쇄 · 운영에서 복사)도 부른다 — 그 파일을 고치면 wms-*.html 만 움직인다.
 ```
-[ ] 열여덟 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · staff
+[ ] 열아홉 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열여덟 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열여덟 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 열아홉 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html 은 제 <style> 에 .tag · .panel · .hint 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 열아홉 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
     둘째 인자 seenAt 을 주면 낡은 값 저장을 막고, **안 주면 예전과 똑같이 돈다**(2026-09-18).
     ⚠️ 지금 이 인자를 넘기는 화면은 **하나도 없다**(한 번 붙였다가 되돌렸다 · 정본 §13-f)
+[ ] ⭐⭐ 검사 다섯째(2026-09-26 · ⑤-4a · 절대 조건) — 운영 WMS 에서 복사해 온 화면(wms-*.html · wms-*.js)이나 ims-auth.js 를 고쳤으면
+    `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picklist.js wms-confirm-modal.js ims-auth.js` 가 **코드 줄에서 0** 이다
+    — 운영 프로젝트(asung-WMS)로 가는 길(설정 · 로그인 · 주소)이 이 레포에 없다 · asung-ims 에 wms-config.js 를 두지 않는다 · 화면의 Network 탭에 운영 주소 요청 0.
+    ⚠️ ims-auth.js 머리 주석의 출처 메모 두 줄(3행 「원본: asung-wms 의 wms-auth.js」 · 8행 「WMS_CONFIG → IMS_CONFIG」)은 낱말만 있고 길이 아니다 — 2026-09-26 실측 grep -c 2 는 그 둘이다(코드 줄 0).
 ```
 📌 정본 규칙: `asung-wms/docs/design/po-module.md` §10-j 3-g.
 
@@ -932,6 +937,39 @@ Parked and open at this store
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — Unpaid 탭의 Branch 거르기(뷰에 창고 칸) · 기간 고르기(Checked 30일 · Counter 30일 고정) · 창고 작업 쪽 관리 목록(WMS 쪽 · ⑤) · 결제조건 자료 정리 뒤 Unpaid 탭 재검(⚠️ 위) (정본 ④a 판정 7·8·15 · 6-b ③).
+
+---
+
+## 7-m. `wms-manager.html` — Split & Waves (2026-09-26 신설 · Claude Code ⑤-4a · 1판 「2026-09-26 · wm v1」 · 운영 `asung-wms/manager.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
+
+뒷단(⑤-2a1 · 정본 `asung-wms/docs/design/so-module.md` §24-i · 판정 17 · 18 · 25 · 33): 읽기 표 `so`(status at_wms · channel warehouse · 내 창고 location_id) + `customer!so_customer_id_fkey(name)`(청구처 FK 와 둘이라 이름을 박는다) + `so_line`(보낼 줄 qty_ordered − qty_removed > 0) ·
+`wms_zone_sequence`(23행 · 열쇠 warehouse_id|zone) · `ref_warehouse`(id,name) · `ims_staff`(id,name 만 · 이름은 id 로 잇는다) · 읽기 RPC `so_pick_plan(p_so_id)`(줄 · 계획 칸 picks · need_ea · short_ea · warnings) ·
+쓰기 RPC `wms_batch_create(p_so_id, p_batches [{line_ids}])` · `wms_wave_create(p_so_ids[])` — 각 한 번 · 첫 줄 ims_require_write(wms_manage) · 둘째 ims_can_warehouse · at_wms 만 · 과제 + 줄 + 계획 칸 + at_wms→picking 이 한 트랜잭션(실패 청소 · 라벨 셈은 창구 몫).
+
+⭐ 진입점은 `ims-config.js` · `ims-auth.js` 뿐(0-a 검사 다섯째) — 운영 WMS(wms.asung.ca · asung-WMS)는 컷오버까지 Cin7 과 그대로 돈다 · 이 화면은 테스트 프로젝트(Asung-IMS)의 오더만 본다.
+⭐ 권한 = wms_manage 열쇠(카탈로그 min_role manager · 판정 25 · manager 는 staff.html 에서 사람마다 켠다 · admin · supervisor 는 전부) · 모드 'wms' · 탭 true · 묶음 'warehouse' — 탭 줄 「IMS · WMS | Split & Waves」(WMS 안 화면이 하나라 묶음 칸 없음).
+⭐ 글자(판정 17): at_wms = Released to WMS · picking = Working — 오피스 so.html 과 같은 글자(화면 안 STATUS_LABEL 표 하나). 사진 없음(판정 33) · 소유권 비교 없음(me.name 은 픽리스트 「Printed · by」 표시용만).
+⭐ 옛 화면과 다른 것(⑪): voided 목록 · ⊘ 단추 · Cin7 보류 벨트(holdBelt) · Needs review 띠가 없다 — 같은 띠에 계획의 경고(Short: SKU −n · 칸 없음 warnings)가 뜬다 · 창고 단추(All · TOR · EDM)는 동선 순서가 있는 창고 ∩ 내 창고(me.access.warehouses · null = 전부)에서 만든다 ·
+   존은 칸 이름에서 낸다(에드먼턴 E+존 글자 · 토론토 첫 글자 — 옛 wms_sku_bins.zone 규칙 · 테스트 DB 15,934행 전부 일치 · ref_bin.zone 은 비어 있다) · 픽리스트 Ship To 는 so 의 ship_to_* 를 두 줄로 조립(wms-picklist.js 는 그대로) · 오더 id 는 uuid(카드 data-id).
+⚠️ 배치 · 웨이브를 만들면 그 오더는 picking(Working)이 된다 — 되돌리기 화면(admin · wms_rollback · wms_unwave)은 ⑤-5 에 선다. **그 전에는 화면에서 못 되돌린다**(⑤-4b picker 시험에 그 과제를 쓴다).
+⚠️ 오피스가 거둬들인 오더(so.html Recall)는 창구가 막는다(「Order … is confirmed — only orders released to the WMS can be batched — nothing was saved」) → 화면이 목록을 다시 읽어 카드를 치운다. 실시간 알림은 없다(새로고침 · 실패 뒤 재읽기).
+⚠️ 모집단(2026-09-26 테스트 DB · Claude Code 실측): at_wms 창고 오더 **1**(SO-25003 · Asung Trading Inc. · JOJOJO - Joel Chang · Wholesale · C.B.S · CON00156 12 · 계획 칸 C070303 · short 0) · 동선 순서 23 · 창고 4(단추는 둘) · 직원 21.
+
+```
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-26 · wm v1」 · ☰ Menu 에 Split & Waves(Manager List 뒤) · 탭 줄 「IMS · WMS | Split & Waves」
+    worker(wms_manage 없음)는 메뉴에 없고 주소로 열면 「You don't have access to this screen. Please contact your administrator.」 뒤 로그아웃
+[ ] 왼쪽 「RELEASED TO WMS」 에 SO-25003 한 장 — JOJOJO - Joel Chang · Toronto 태그(파랑) · 1lines · 12units · Wholesale · 수 1 · 창고 단추 All · TOR · EDM · 가격 등급 드롭다운에 Wholesale
+[ ] 카드를 누르면 오른쪽 「SO-25003 · Toronto · 1lines · 12units · Released to WMS by <풀어 준 사람 이름>」 · 경고 띠 없음 · 미리 보기 배치 SO-25003-1 — 줄 「C · CON00156 · CREME OF NATURE … · C070303 · 12」 · 「1lines · 12units → 1batches」
+[ ] max units 를 6 으로 줄여 Preview 해도 1batches(한 줄은 쪼개지 않는다) · max lines · max units 에서 Enter 가 Preview
+[ ] Create batches → 확인 → 토스트 「SO-25003 → 1batches created · Working」 · 픽리스트 창 한 장(바코드 SO-25003-1 · Order · Order Date 2026-09-25 · Terms C.B.S (Cash Before Shipment) · Ship To(so 의 ship_to_* · 비면 줄 없음) · Warehouse Toronto · Price Tier Wholesale · Printed · by 이름 · Customer · Total Lines 1 · Total Units 12 · Zones C · Batch 1 of 1) · 카드가 목록에서 사라져 「No orders released to the WMS.」
+[ ] so.html 에서 SO-25003 이 Working(picking) · Recall 단추는 없다(picking 은 못 거둔다 — ⑤-5 되돌리기까지 그대로)
+[ ] Group 모드: 제목 「SMALL ORDERS」 · max lines 5 · max units 100 · 「No small orders match the limits.」 또는 카드 · 하나만 고르면 「1 / 10 totes — select at least 2」 로 Create wave 잠김 · 둘 이상은 이번 모집단으로 못 본다(오더를 하나 더 Release 하면 W-MMDD-1 · 요약 장 + 오더마다 한 장 · 토스트 「… created — 2 totes · Working」)
+[ ] 거둬들인 오더 재현 — 카드를 고른 채 so.html 다른 탭에서 Recall from WMS → 돌아와 Create batches → 「Failed to create batches: Order … — only orders released to the WMS can be batched — nothing was saved」 · 목록이 다시 읽혀 카드가 사라진다 · so.html 에서 confirmed 그대로
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 — fazgmyvzzhqybtvtktyg(테스트)만
+```
+
+⚠️ [2026-09-26] 아직 없는 것 — picker(⑤-4b · wms-picker.html · 읽기 창구 wms_pick_lines) · packer(⑤-4c) · 되돌리기 · Health(⑤-5) · 픽리스트 재인쇄 · 웨이브 실측(오더 둘 이상) · 검토함(wms_order_review · 판정 22 · 끔) ·
+   존 마스터(ref_bin.zone) — 채워지면 so_pick_plan 이 주는 값을 먼저 쓴다(지금은 칸 이름 규칙) · 창고 단추의 짧은 이름(TOR · EDM)은 이름에 Edmonton 이 드는지로 가른다(CLAUDE.md §3 규칙 그대로 · 셋째 창고가 생기면 고친다).
 
 ---
 
