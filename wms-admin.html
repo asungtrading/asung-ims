@@ -193,7 +193,7 @@
    Finalized(15) = so(packed · 오피스 마무리 대기 풀) + wms_order_finalize + wms_order_review + customer + so_line · 검토함 켜기·끄기 = wms_review_set(판정 22 · 26 · 끈 기록이 남는다) ·
                  팩킹리스트 재출력(Print · PDF · CSV)은 팔렛 · 아이템 읽기 그대로 · sku · 이름은 so_line · 바코드는 product_barcode(is_active · is_primary 우선) · 치수는 wms_so_handoff 가 아니라 표의 *_in · weight_lb
    글자 표(판정 17) · 창고 id(me.access.warehouses · 시간대는 이름에 Edmonton) · 사진 없음(판정 33) · 오더 id 는 uuid(숫자 변환 0) · 과제 id 는 bigint 그대로. */
-const WK_BUILD="2026-09-27 · wa v1.1";
+const WK_BUILD="2026-09-27 · wa v1.2";
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -810,7 +810,7 @@ async function rollbackNotes(linkCol, ids, reasons, oids, opts){
   try{
     if(ids.length){
       const {count:cFixed}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
-        .in(linkCol,ids).in("reason",reasons).eq("cin7_corrected",true);
+        .in(linkCol,ids).in("reason",reasons).eq("manager_resolved",true);   // ⑤-5c1: 칸 이름 cin7_corrected → manager_resolved(마이그레이션 20260927214447 적용 뒤 이 판이 나가야 한다)
       if(cFixed) notes.push(`⚠ ${cFixed} mistake row(s) from this work were already marked resolved by a manager — a stock adjustment may need reversing (they stay resolved; Discrepancy tab ⑤-5c).`);
     }
     const {count:cOld}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
