@@ -258,7 +258,7 @@
    Stats(5)       = 계산 그대로(sbAll 페이지 누적) · wms_worker_mistakes · 사람 칸 nameOf · 입고 구간 없음(한 줄 안내)
    Health(3)      = rpc wms_health_check 한 번(13 행 · 옛 반환 칸) · 스냅샷 · 기록 표 · cron 없음 · 배지도 라이브
    Trace(5)       = so + 손님 + finalize 기록 + 줄 합 · 과제 체인 그대로(+ 픽 줄의 칸 행) · so_line · wms_worker_mistakes + wms_reports(stock_short) · 현지 시각은 창고 이름으로. */
-const WK_BUILD="2026-09-27 · wa v1.3";
+const WK_BUILD="2026-09-27 · wa v1.4";
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -2183,7 +2183,8 @@ async function loadStats(){
     return net<24*60?net:null;   // held 합산은 밖(eligible 블록)에서 — 공제는 자의 성질, held 는 사실
   };
   // 펼침 목록(2026-08-11)은 표시 전용 push — 집계식은 무변(태스크별 tl/tu 를 합산하는 형태로만 재배열, 합계 동일).
-  (picks.data||[]).forEach(p=>{ if(!p.assigned_to)return; const v=mkP(nameOf(p.assigned_to)||p.assigned_to);   // 사람 칸 uuid → 이름(표 열쇠) v.pick++; const m=dur(p); if(m!=null){v.pickMin+=m;v.pickN++;}
+  // ⑤-5c2 고침(wa v1.4 · 2026-09-27 대화 Claude): 사람 칸 uuid → 이름(표 열쇠) — 이 주석이 줄 가운데 들어가 v.pick++ · const m 을 삼켜 loadStats 가 ReferenceError(m)로 멈췄다
+  (picks.data||[]).forEach(p=>{ if(!p.assigned_to)return; const v=mkP(nameOf(p.assigned_to)||p.assigned_to); v.pick++; const m=dur(p); if(m!=null){v.pickMin+=m;v.pickN++;}
     if(new Date(p.completed_at)>=HOLD_TRACKING_SINCE){ v.pickElig++;
       const nd=netDur(p,"pick");
       if(nd!=null){ v.pickNetMin+=nd; v.pickNetN++; }
