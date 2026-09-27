@@ -17,7 +17,7 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)
+[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)
     Settings · Suppliers · Products · Families · Supplier Products ·
     Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
     ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
@@ -49,20 +49,21 @@
 📌 [정정 2026-09-25 밤] so-backorders.html(09-25 밤 · 대화 Claude)로 열여섯 · pos.html(09-25 밤 · 대화 Claude)로 열일곱 · manager-list.html(09-25 밤 · 대화 Claude)로 **열여덟**이다 — 각각 같은 커밋에 고쳤다.
 📌 [정정 2026-09-26] wms-manager.html(09-26 · Claude Code ⑤-4a · 운영 manager.html 의 복사본)로 **열아홉**이다 — 같은 커밋에 고쳤다. ⚠️ WMS 화면은 공통 셋에 더해 wms-picklist.js(픽리스트 인쇄 · 운영에서 복사)도 부른다 — 그 파일을 고치면 wms-*.html 만 움직인다.
 📌 [정정 2026-09-26 밤] wms-picker.html(09-26 밤 · Claude Code ⑤-4b · 운영 picker.html 의 복사본)로 **스물**이다 — 같은 커밋에 고쳤다. picker 는 wms-confirm-modal.js(부족 완료 마찰 모달)도 부른다.
+📌 [정정 2026-09-26 밤] wms-packer.html(09-26 밤 · Claude Code ⑤-4c · 운영 packer.html 의 복사본)로 **스물하나**다 — 같은 커밋에 고쳤다. packer 도 wms-picklist.js · wms-confirm-modal.js 를 부른다.
 ```
-[ ] 스물 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · staff
+[ ] 스물한 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 스물 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 스물 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 스물한 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html · wms-packer.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 스물한 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
     둘째 인자 seenAt 을 주면 낡은 값 저장을 막고, **안 주면 예전과 똑같이 돈다**(2026-09-18).
     ⚠️ 지금 이 인자를 넘기는 화면은 **하나도 없다**(한 번 붙였다가 되돌렸다 · 정본 §13-f)
 [ ] ⭐⭐ 검사 다섯째(2026-09-26 · ⑤-4a · 절대 조건) — 운영 WMS 에서 복사해 온 화면(wms-*.html · wms-*.js)이나 ims-auth.js 를 고쳤으면
-    `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picker.html wms-picklist.js wms-confirm-modal.js ims-auth.js` 가 **코드 줄에서 0** 이다
+    `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picker.html wms-packer.html wms-picklist.js wms-confirm-modal.js ims-auth.js` 가 **코드 줄에서 0** 이다
     — 운영 프로젝트(asung-WMS)로 가는 길(설정 · 로그인 · 주소)이 이 레포에 없다 · asung-ims 에 wms-config.js 를 두지 않는다 · 화면의 Network 탭에 운영 주소 요청 0.
     ⚠️ ims-auth.js 머리 주석의 출처 메모 두 줄(3행 「원본: asung-wms 의 wms-auth.js」 · 8행 「WMS_CONFIG → IMS_CONFIG」)은 낱말만 있고 길이 아니다 — 2026-09-26 실측 grep -c 2 는 그 둘이다(코드 줄 0).
 ```
@@ -1005,6 +1006,39 @@ Parked and open at this store
 
 ⚠️ [2026-09-26 밤] 아직 없는 것 — packer(⑤-4c · wms_pick_lines 의 팩 갈래 p_pack_task_id 는 이미 있다) · 되돌리기 · Health · Stats(⑤-5) · 웨이브 실측(오더 둘 이상 · Split & Waves 의 Group) · 사진(판정 33) · Take over 가지(stalePool · 운영도 비어 있던 호환 가지) ·
    되돌린 오더의 과제 정리(⑤-5 wms_rollback 이 archive + void) — 그 전에는 「no longer Working」 배너가 유일한 신호.
+
+---
+
+## 7-o. `wms-packer.html` — Packing (2026-09-26 밤 신설 · Claude Code ⑤-4c · 1판 「2026-09-26 · pa v1」 · 운영 `asung-wms/packer.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음)
+
+뒷단(⑤-2a2 · ⑤-4b · 정본 `asung-wms/docs/design/so-module.md` §24 · 판정 17 · 18 · 20 · 21 · 25 · 33): 읽기 창구 **`wms_pick_lines`** — 시작은 `(p_task_ids [픽 과제])` · 재개는 팩 갈래 `(null, p_pack_task_id)`(pack_line_id · expected_base · verified_base · pack_verification_method + 픽 assigned(required) · 제품 · 바코드 · 칸 · 가용) ·
+표 `wms_pick_tasks`(완료 픽 풀 · `so!inner(...)` + `so.status = picking`) · `wms_pack_tasks`(시작 insert · 클레임 · 세션 · held · 완료 확인) · `wms_pack_task_lines`(시작 insert · 스캔 저장 verified_by uuid) · `wms_pick_task_lines`(부족 배지) · `wms_reports`(barcode_mismatch · **stock_short** — 픽커 선언은 「declared by 이름」) · `wms_order_pack_progress`(all_packed 읽기만) · `so`(상태 배너 · 재인쇄) · `ref_warehouse` · `ims_staff`(id,name) ·
+쓰기 RPC `wms_complete_pack(p_task_id · p_lines · p_mistakes(short_after_pack · over_pick · pack_scan_mistake) · p_short_refresh · p_short_resolve · p_recovered · p_session_id)` · `wms_hold_pack` · `wms_resume_hold('pack')` — 첫 줄 ims_require_write(packing) · ims_can_warehouse · CAS.
+
+⭐ 진입점은 `ims-config.js` · `ims-auth.js` 뿐(0-a 검사 다섯째) — 운영 WMS 는 그대로 돈다 · 이 화면은 테스트 프로젝트의 과제만 본다.
+⭐ 권한 = packing 열쇠(WMS 방 · **worker 기본**) · 모드 'wms' · 탭 「IMS · WMS | Picking · Packing · Split & Waves」(worker 는 Picking · Packing 둘).
+⭐ 소유권 비교는 전부 **me.id** · 세션 = `imsAuth.sessionId()` · me.name 은 presence 열쇠 · 「Printed · by」 · 방금 선언한 칩 표시용만.
+⭐ 옛 화면과 다른 것: 완료 픽 풀은 `so.status = picking`(Working)인 오더만(운영의 not in closed · voided 자리) · Cin7 보류 · void 안내 대신 **「SO-x is <상태> — this batch is no longer Working」 배너**(판정 21) ·
+   **운영의 `ready_to_close` 쓰기(checkOrderReady)가 없다** — 완료 창구가 돌려주는 `ready`(뷰 all_packed)로 「All batches for this order are packed! — ready to be finalized」 안내만 · **SO 는 여전히 picking**(판정 18 · packed 는 Finalize · ⑤-5) ·
+   「Not enough stock」 = wms_reports stock_short(열린 것 = resolved_at null · 완료 창구가 refresh/resolve) · 사진 없음(판정 33 · HAS_IMAGES false) · 존 · 칸 · 바코드 · 가용은 창구가 준다 · 계획 칸이 둘이면 「C070303 ×6, C070304 ×6」.
+⚠️ 팩을 마치면 wms_pack_tasks 가 completed · 그 오더의 배치가 전부 팩 됐으면 `wms_order_pack_progress.all_packed` true — **Finalize 는 fulfillment 화면(⑤-5) · 되돌리기도 ⑤-5**. 그 전에는 화면에서 못 되돌린다.
+⚠️ 모집단(2026-09-26 밤 테스트 DB · Claude Code 실측): 완료 픽 **1**(SO-25003-1 · 과제 47 · CON00156 12/12 · 실제 칸 C070303) · 팩 과제 0 · SO-25003 picking.
+
+```
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-26 · pa v1」 · ☰ Menu 에 Packing(Picking 뒤 · Split & Waves 앞) · 탭 줄 「IMS · WMS | Picking · Packing · Split & Waves」
+[ ] 「Pick a completed pick batch and verify by full re-scan..」 · Pack Queue 에 SO-25003-1 — JOJOJO - Joel Chang · Toronto · Start verify(부족 배지 없음 — 12/12) · 오더 스캔 칸에 SO-25003 Enter → 그 카드만
+[ ] Start verify → wms_pack_tasks 한 줄(in_progress · assigned_to 내 id · pick_task_id 47) · wms_pack_task_lines 한 줄(expected_base 12 · verified 0) · List 뷰(기본): 「C070303 · Avail 45」 · 0 / 12 · − + · SKU 검색 칸 · 진행 막대 0%
+[ ] Single 뷰: 존 C · C070303 · CON00156 · Barcode 075724001565 · 0 / 12 · Enter quantity · ⚑ Barcode changed · ⚠ Not enough stock (사진 칸 · Image differs 없음 = 판정 33) · 상태 배너 없음(SO-25003 은 Working)
+[ ] 바코드 075724001565 를 타이핑 + Enter → 「✓ CON00156 +1 (1/12)」 · LAST SCAN 칩 · 12 번째에 「· COMPLETE」 + 0.9초 뒤 자동 이동(줄이 하나라 그대로) · 13 번째 → 「⚠ already 12 met — extra scans ignored」 + over-scan 노란 띠 + List 의 「Clear over」
+[ ] 리로드(?pack=<id> 복원) → 수량 그대로(wms_pack_task_lines.verified_base · verified_by 내 id) · 🖨 Print → 픽리스트 창(바코드 SO-25003-1 · Batch 1 of 1)
+[ ] (선택) 수량 12 아래에서 「⚠ Not enough stock」 → confirm → wms_reports stock_short(qty_expected 12 · reported_by 내 id · source packer) · 칩 「Stock short — declared by <이름>」 · 다시 누르면 취소
+[ ] (선택) Hold (later) → 「SO-25003-1 held」 · 목록 「⏸ Resume your held batch」 · wms_task_holds(pack · 내 id) · Resume verify → 수량 보존 · resumed_at 채워짐
+[ ] 12 / 12 → Complete pack → confirm(over-scan 이 있으면 줄마다 「Picker brought extra / I scanned twice」 모달 먼저) → 「SO-25003-1 Complete pack」 · **alert 「✅ SO-25003 — All batches for this order are packed! … ready to be finalized」**(ready = 뷰 all_packed) · 목록 비면 「No batches waiting to pack..」
+[ ] so.html 의 SO-25003 은 **여전히 Working(picking)** · wms_pack_tasks completed · completed_by 내 id · 「I scanned twice」를 골랐으면 wms_worker_mistakes 에 pack_scan_mistake(resolved) 한 줄 · 「Picker brought extra」면 over_pick(responsible = 픽커 id)
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_pick_lines · rpc/wms_complete_pack 200
+```
+
+⚠️ [2026-09-26 밤] 아직 없는 것 — fulfillment(Finalize · 팔렛 · 박스 · ⑤-5) · 되돌리기 · Health · Stats(⑤-5) · 사진(판정 33) · Take over 가지(stalePacks · 운영도 비어 있던 호환 가지) · 웨이브 멤버 팩 실측(웨이브 0).
 
 ---
 

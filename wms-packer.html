@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Packing · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* ⑤-4c — 운영 asung-wms/packer.html(2026-09-10)의 복사본. 헤더 · 로그인 · 메뉴 · 탭 줄은 IMS 공통(ims-ui.css · ims-auth.js) · 나머지 모양은 원본 그대로.
+     ⚠️ 원본은 건드리지 않는다 — 여기만 고친다. */
+  :root{
+    --ink:#12161c; --ink-2:#1b222c; --line:#e5e9ef; --line-2:#eef1f6;
+    --paper:#f7f8fa; --card:#ffffff; --mut:#6b7686; --mut-2:#9aa4b2;
+    --accent:#7a5af0; --accent-ink:#5a3fd0;
+    --tor:#2f6df6; --edm:#12996b;
+    --ok:#16a34a; --ok-bg:#e7f7ed; --warn:#d9820a; --warn-bg:#f9e6b8; --danger:#dc2626; --danger-bg:#fdecec;
+    --radius:12px; --shadow:0 1px 2px rgba(16,22,30,.04),0 4px 16px rgba(16,22,30,.05);
+    --mono:ui-monospace,"SF Mono","DM Mono",Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overscroll-behavior:none}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45;overscroll-behavior:none}
+
+  main{max-width:760px;margin:0 auto;padding:16px}
+  .lead{font-size:13px;color:var(--mut);margin:2px 2px 12px}
+  .sect{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:6px 2px 2px}
+  .sect:first-child{margin-top:0}
+  .blist{display:flex;flex-direction:column;gap:10px}
+  .filterbar{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:13px;margin-bottom:2px}
+  .filterbar b{font-family:var(--mono)}
+  .filterbar button{margin-left:auto;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer}
+  .bcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.1s}
+  .bcard:hover{border-color:#cdc2f2}
+  .bcard.resume{border-color:#cdc2f2;background:#f7f5ff}
+  .bcard.short{border-color:#f3c4c4;background:var(--danger-bg)}
+  .bcard .bl{font-family:var(--mono);font-weight:800;font-size:16px}
+  .bcard .sub{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .bcard .go{margin-left:auto;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:10px 16px;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+  .bcard .go.resumebtn{background:var(--accent)}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+  .tag.wh-toronto{color:var(--tor);background:#eef3ff} .tag.wh-edmonton{color:var(--edm);background:#e9f7f1}
+  .tag.short{color:#fff;background:var(--danger);margin-left:6px}
+  .empty,.loading{padding:52px 20px;text-align:center;color:var(--mut)}
+  .loading .spin{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .pwrap{display:none}
+  .ptop{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .btn{border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:.1s;white-space:nowrap}
+  .btn.dark{background:var(--ink);color:#fff} .btn.dark:hover{background:var(--ink-2)}
+  .btn.ghost{background:var(--card);color:var(--mut);border:1px solid var(--line)}
+  .btn.ok{background:var(--ok);color:#fff}
+  .btn.hold{background:#fff;color:var(--warn);border:1px solid #f0d9ae}
+  .btn:disabled{opacity:.5;cursor:default}
+  .ptitle{font-family:var(--mono);font-weight:800;font-size:17px}
+  .pmeta{font-size:12px;color:var(--mut)}
+
+  .prog{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:2px 0 12px}
+  .prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .2s}
+
+  /* strong incomplete warning banner */
+  .shortalert{background:var(--danger);color:#fff;border-radius:12px;padding:13px 15px;margin-bottom:12px;box-shadow:0 6px 20px rgba(220,38,38,.28)}
+  .shortalert .t{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
+  .shortalert ul{margin:8px 0 0;padding-left:2px;list-style:none;font-family:var(--mono);font-size:12.5px}
+  .shortalert li{padding:2px 0}
+  /* over-scan detection banner (soft warning — not recorded) */
+  .overalert{background:var(--warn-bg);color:#8a5a06;border-radius:12px;padding:12px 15px;margin-bottom:12px;border:1px solid #f5dcae}
+  .overalert .t{font-weight:800;font-size:13.5px}
+  .overalert ul{margin:7px 0 0;padding-left:2px;list-style:none;font-family:var(--mono);font-size:12px}
+  .overalert li{padding:2px 0}
+  .overchip{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--warn);background:var(--warn-bg);border:1px solid #f5dcae;border-radius:5px;padding:1px 5px;margin-left:6px}
+
+  .scanbar{position:sticky;top:56px;z-index:10;background:var(--paper);padding:6px 0 12px}
+  .scanin{width:100%;border:2px solid var(--accent);border-radius:12px;padding:14px 16px;font:inherit;font-size:16px;font-family:var(--mono);background:#fff}
+  .scanin:focus{outline:none;box-shadow:0 0 0 4px rgba(122,90,240,.15)}
+  .scanhint{font-size:11px;color:var(--mut-2);font-family:var(--mono);margin:5px 2px 0;display:flex;align-items:center;gap:6px}
+  .scanhint .live{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  #flash{position:fixed;left:0;right:0;top:0;z-index:60;padding:16px;text-align:center;font-weight:800;font-size:17px;color:#fff;transform:translateY(-100%);transition:transform .12s;font-family:var(--mono)}
+  #flash.show{transform:translateY(0)}
+  #flash.ok{background:var(--ok)} #flash.bad{background:var(--danger)}
+
+  /* view toggle */
+  .seg{margin-left:auto;display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .seg button{border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--mut);padding:6px 11px;border-radius:6px;cursor:pointer}
+  .seg button.active{background:var(--ink);color:#fff}
+
+  /* single-line card (mirror of picker) */
+  .single{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;display:none}
+  .single .body{padding:16px}
+  .single .head{display:flex;gap:14px;margin-bottom:6px}
+  .single .img{width:150px;height:150px;flex:none;border:1px solid var(--line);border-radius:12px;background:#f1f3f6 center/contain no-repeat;overflow:hidden}
+  .single .img img{width:100%;height:100%;object-fit:contain;border-radius:inherit;display:block}
+  .single .info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .single .zbin{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .single .barcodes{margin:2px 0 4px;padding:9px 11px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+  .single .barcodes .bc{display:flex;align-items:center;gap:10px;padding:2px 0;font-family:var(--mono);font-size:13px}
+  .single .barcodes .bl{color:var(--mut);min-width:58px;font-weight:700;font-size:11.5px}
+  .single .barcodes .bv{font-weight:700;letter-spacing:.02em}
+  .single .barcodes .bv.empty{color:var(--mut-2);font-weight:400;font-style:italic}
+  .zbadge{font-family:var(--mono);font-weight:800;font-size:15px;color:#fff;background:var(--mut);min-width:34px;height:34px;border-radius:9px;display:grid;place-items:center;padding:0 8px}
+  .binbig{font-family:var(--mono);font-weight:800;font-size:22px;letter-spacing:.01em}
+  .single .nm{font-size:15px;font-weight:600;margin:2px 0 2px}
+  .single .sku{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--ink);letter-spacing:.01em}
+  .single .chips{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px}
+  .qtybox{display:flex;align-items:flex-end;gap:8px;margin-top:14px}
+  .qtybig{font-family:var(--mono);font-weight:800;font-size:40px;line-height:1}
+  .qtybig .of{font-size:22px;color:var(--mut-2);font-weight:700}
+  .qtybox.done .qtybig{color:var(--ok)}
+  .qtybox.partial .qtybig{color:var(--warn)}
+  .lastscan{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 13px;border-radius:11px;background:var(--ok-bg);border:1.5px solid #bfe6cd;font-family:var(--mono);font-weight:800;font-size:15px;color:#15803d}
+  .lastscan .fbig{font-size:22px;white-space:nowrap}
+  .lastscan.boxscan{background:#fff4e0;border-color:#f0d9ae;color:#a86400}
+  .lastscan .sub{font-weight:600;font-size:11px;opacity:.7;margin-left:auto;font-family:var(--sans);white-space:nowrap}
+  @keyframes qtypop{0%{transform:scale(1)}35%{transform:scale(1.28)}100%{transform:scale(1)}}
+  .qtybig.pop{animation:qtypop .5s ease}
+  .stepper{margin-left:auto;display:flex;gap:8px}
+  .stepper button{width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:22px;font-weight:700;color:var(--ink);cursor:pointer}
+  .stepper button:active{background:var(--paper)}
+  .navrow{display:flex;gap:10px;margin-top:14px}
+  .navrow .btn{flex:1}
+  .manual{margin-top:10px;font-size:12.5px;color:var(--accent);background:none;border:0;cursor:pointer;font-weight:700;padding:4px}
+  .reportrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+  .reportrow .rep{flex:1 1 30%;min-width:104px;border:1px solid #f0d9ae;background:#fffdf6;color:#a86e12;border-radius:9px;padding:8px 6px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .reportrow .rep:active{background:#fdf3df}
+  .reportrow .rep.on{background:#a86e12;border-color:#a86e12;color:#fff}
+  .reportrow .rep:disabled{opacity:.55;cursor:default}
+
+  .list{display:none;flex-direction:column;gap:8px}
+  .searchbar{display:flex;gap:8px;margin:0 0 10px}
+  .searchbar input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;background:#fff}
+  .searchbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,90,240,.12)}
+  .searchbar button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--mut);cursor:pointer}
+  .lrow{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:12px}
+  .lrow.cur{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,90,240,.12)}
+  .lrow.flashback{animation:rowflash 1.2s ease}
+  @keyframes rowflash{0%,60%{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,90,240,.35)}100%{}}
+  .single .backlist{display:block;margin:0 0 10px;border:1px solid var(--line);background:var(--paper);color:var(--mut);border-radius:9px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .avail{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--edm);background:#e9f7f1;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+  .avail.low{color:var(--danger);background:var(--danger-bg)}
+  .avail.na{color:var(--mut-2);background:#f1f3f6}
+  .lrow.done{background:var(--ok-bg);border-color:#bfe6cd}
+  .lrow.partial{background:#fdf6ec;border-color:#f0d9ae}
+  .lrow .thumb{width:44px;height:44px;border-radius:8px;background:#f1f3f6 center/cover no-repeat;flex:none;border:1px solid var(--line);overflow:hidden}
+  .lrow .thumb img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+  .lrow .li{flex:1;min-width:0}
+  .lrow .li .s{font-family:var(--mono);font-weight:800;font-size:15.5px;color:var(--ink)}
+  .lrow .li .n{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .li .b{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .lrow .q{font-family:var(--mono);font-weight:800;font-size:15px;white-space:nowrap;text-align:right}
+  .lrow.done .q{color:var(--ok)}
+  .lrow.partial .q{color:var(--warn)}
+  .shortchip{font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:var(--danger);border-radius:5px;padding:1px 5px;margin-left:6px}
+  .recchip{font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;background:var(--ok);border-radius:5px;padding:1px 5px;margin-left:6px}
+  .stockchip{font-family:var(--mono);font-size:10px;font-weight:700;color:#2456d6;background:#eaf2ff;border:1px solid #c6dbff;border-radius:5px;padding:1px 5px;margin-left:6px}
+  .picknote{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--warn);background:#fdf6ec;border-radius:5px;padding:1px 5px;margin-left:4px}
+  .rmover{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--mut);background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px 7px;margin-left:6px;cursor:pointer}
+  .rmover:hover{color:var(--danger);border-color:#f3c4c4}
+  .stepmini{display:flex;gap:5px;margin-top:4px;justify-content:flex-end}
+  .stepmini button{width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:16px;font-weight:700;cursor:pointer;color:var(--ink)}
+
+  .foot{position:sticky;bottom:0;background:rgba(247,248,250,.95);backdrop-filter:blur(8px);border-top:1px solid var(--line);margin:16px -16px -16px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .foot .row{display:flex;gap:10px}
+  .foot .row .btn{flex:1;padding:13px}
+
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.bad{background:var(--danger)}
+
+
+  /* ownership-lost freeze (규칙 28) */
+  .fz{position:fixed;inset:0;z-index:70;background:rgba(16,22,30,.62);display:grid;place-items:center;padding:20px}
+  .fzbox{max-width:420px;width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:24px}
+  .fzbox .t{font-size:17px;font-weight:800;color:var(--danger);margin-bottom:10px}
+  .fzbox p{margin:0 0 12px;font-size:14px;line-height:1.55}
+  .fzbox .sub{font-size:12.5px;color:var(--mut)}
+  .fzbox button{width:100%;padding:13px}
+
+  /* ---- mobile ---- */
+  @media(max-width:480px){
+    main{padding:12px}
+    .single .img{width:112px;height:112px}
+    .qtybig{font-size:34px}
+  }
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button title="Warehouse map" onclick="window.open('https://tools.asung.ca/warehousemap.html','_blank')">🗺 Map</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main id="app" style="display:none">
+
+  <!-- Select batch -->
+  <div id="listView">
+    <div class="lead">Pick a completed pick batch and verify by full re-scan..</div>
+    <div class="scanbar" style="position:static;padding:0 0 12px">
+      <input class="scanin" id="orderScan" inputmode="none" autocomplete="off" placeholder="Scan a pick list to find its order…">
+      <div class="scanhint"><span class="live"></span><span>Scan the pick-list barcode to jump to that order</span></div>
+    </div>
+    <div class="blist" id="blist"></div>
+    <div class="loading" id="bloading"><div class="spin"></div>Loading…</div>
+    <div class="empty" id="bempty" style="display:none">No batches waiting to pack..</div>
+  </div>
+
+  <!-- Pack verify -->
+  <div class="pwrap" id="packView">
+    <div id="voidBanner" style="display:none;background:#c0392b;color:#fff;font-weight:800;font-size:14px;padding:10px 14px;border-radius:10px;margin-bottom:10px"></div>
+    <div class="ptop">
+      <button class="btn ghost" id="backBtn">← List</button>
+      <div>
+        <div class="ptitle" id="pTitle"></div>
+        <div class="pmeta" id="pMeta"></div>
+      </div>
+      <div class="seg" id="viewSeg">
+        <button data-v="single">Single</button>
+        <button data-v="list" class="active">List</button>
+      </div>
+      <button class="btn ghost" id="printBtn" title="Reprint this pick list">🖨 Print</button>
+    </div>
+
+    <div class="shortalert" id="shortAlert" style="display:none">
+      <div class="t">⚠ Pick incomplete — Find and fill the quantities below from other locations</div>
+      <ul id="shortList"></ul>
+    </div>
+
+    <div class="overalert" id="overAlert" style="display:none">
+      <div class="t">over-scan detected — confirmed as 'real extra' at completion (ignored if scan mistake)</div>
+      <ul id="overList"></ul>
+    </div>
+
+    <div class="prog"><i id="progBar"></i></div>
+
+    <div class="scanbar">
+      <input class="scanin" id="scan" inputmode="none" autocomplete="off" placeholder="Verify: scan a barcode…">
+      <div class="scanhint"><span class="live"></span><span>Full re-scan &middot; target = ordered qty &middot; fill shortfalls from other locations</span></div>
+    </div>
+
+    <div class="single" id="single"></div>
+    <div class="searchbar">
+      <input id="skuSearch" autocomplete="off" placeholder="Search SKU / product…">
+      <button id="skuClear" style="display:none">Clear</button>
+    </div>
+    <div class="list" id="list"></div>
+
+    <div class="foot">
+      <div class="row">
+        <button class="btn hold" id="holdBtn">Hold (later)</button>
+        <button class="btn ok" id="doneBtn">Complete pack</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Ownership lost: the claim moved to someone else (or was released) while this screen stayed open -->
+<div class="fz" id="freeze" style="display:none">
+  <div class="fzbox">
+    <div class="t">⚠ Ownership changed</div>
+    <p id="fzMsg"></p>
+    <p class="sub">Quantities you entered after that were not saved. To keep working on it, reload and scan the pack list again to take it over.</p>
+    <button class="btn dark" id="fzReload">Reload</button>
+  </div>
+</div>
+
+<!-- Over-scan verdict: one line at a time — the packer COUNTS the physical items and picks one of two explicit answers -->
+<div class="fz" id="overModal" style="display:none">
+  <div class="fzbox">
+    <div class="t" style="color:var(--warn)">⚠ Over-scan — count the items</div>
+    <p id="ovmMsg" style="white-space:pre-line"></p>
+    <button class="btn dark" id="ovmExtra" style="margin-bottom:8px"></button>
+    <button class="btn ghost" id="ovmTwice" style="margin-bottom:8px"></button>
+    <button class="btn ghost" id="ovmCancel" style="font-size:12.5px;color:var(--mut)">← Go back and recount</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script src="wms-picklist.js"></script>
+<script src="wms-confirm-modal.js"></script>
+<script>
+/* ⑤-4c (2026-09-26) — 운영 asung-wms/packer.html 의 복사본을 IMS 표 · 창구 위에 옮겨 세웠다(정본 so-module §24 · 지시서 wms-5-4c · ⑤-4b wms-picker.html 과 같은 모양).
+   ⚠️ 운영 원본은 건드리지 않는다 — 운영 WMS(wms.asung.ca)는 컷오버까지 Cin7 과 함께 그대로 돈다(절대 조건).
+   ⚠️ 진입점은 ims-config.js · ims-auth.js 뿐 — 운영 프로젝트의 설정 · 로그인 파일(wms- 접두 둘)로 가는 길은 이 파일에 없다(CHECKLIST 0-a 검사 다섯째 grep 0).
+   접점 46 → 줄 · 제품 · 바코드 · 칸 · 가용 = 읽기 창구 wms_pick_lines 한 번(시작 = 픽 과제 · 재개 = 팩 갈래 p_pack_task_id) · 오더 머리 = so + customer!so_customer_id_fkey(name) ·
+   완료 = wms_complete_pack(p_mistakes · reason 셋 · 반환 ready 는 뷰 all_packed — SO 상태는 안 바뀐다 · 판정 18) · 보류 = wms_hold_pack · 보류 닫기 = wms_resume_hold ·
+   팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
+   사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
+   「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 비움(판정 33 · HAS_IMAGES false) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
+const WK_BUILD="2026-09-26 · pa v1";
+const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
+const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
+let sb=null, me=null, whById={}, staffName={};
+let pool=[], mine=[], stalePacks=[], packTask=null, order=null, lines=[], bcMap={}, curIdx=0, view="list";
+let actx=null;
+
+/* ---------- IMS 공통 조각 (⑤-4b wms-picker.html 과 같다) ---------- */
+function whKey(name){ return /edmonton/i.test(name||"") ? "edmonton" : "toronto"; }   // CLAUDE.md §3 — Location 에 Edmonton 이 들면 edmonton · 그 외 toronto
+function whLabel(key){ return key==="edmonton" ? "Edmonton" : "Toronto"; }
+function whOf(id){ return whById[id]||{name:"",key:"toronto"}; }
+function nameOf(id){ return id ? (staffName[id]||"another worker") : ""; }
+function statusLabel(s){ return STATUS_LABEL[s]||s||"?"; }
+function normOrder(s){
+  s=s||{};
+  return { id:s.id||null, order_number:s.so_number||"", status:s.status||"", warehouse_id:s.location_id||null,
+           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"" };
+}
+function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
+function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
+const SO_EMB="so(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name))";
+const SO_EMB_IN="so!inner(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name))";   // 오더 상태로 거를 때(!inner — 없으면 임베드만 null 이 되고 부모 행은 남는다 · 운영 2026-08-14 실측)
+const PKSEL="id,batch_label,order_id,pick_task_id,status,assigned_to,started_at,heartbeat_at,work_started,held_by,session_id";
+
+/* ---------- lease / presence (heartbeat 제거 — 스캔 시 이어받기로 대체) ---------- */
+let presCh=null;
+function idleMin(){ return null; }
+function staleISO(){ return new Date(0).toISOString(); }
+function startHeartbeat(){}   // no-op
+function stopHeartbeat(){}
+function presenceJoin(){
+  presenceLeave();
+  try{
+    presCh=sb.channel("wms-presence",{config:{presence:{key:me.name+"|packer"}}});   // presence 열쇠는 표시용 이름(비교에 쓰지 않는다)
+    presCh.subscribe(st=>{
+      if(st==="SUBSCRIBED" && packTask) presCh.track({
+        name:me.name, screen:"packer",
+        batch:packTask.batch_label, order:(order&&order.order_number)||"",
+        at:new Date().toISOString()
+      });
+    });
+  }catch(e){}
+}
+function presenceLeave(){ if(presCh){ try{presCh.untrack(); sb.removeChannel(presCh);}catch(e){} presCh=null; } }
+function markWorkStarted(){
+  if(!packTask || packTask.work_started) return;
+  packTask.work_started=true;
+  sb.from("wms_pack_tasks").update({work_started:true}).eq("id",packTask.id).then(()=>{});
+}
+
+/* ---------- ownership guard (규칙 28) ----------
+   heartbeat 제거(규칙 22) 후 소유권은 "종이 픽/팩 리스트"가 보증한다는 전제였다. 종이가
+   보드로 돌아가고 클레임만 남으면 물리 상태와 디지털 상태가 갈라져 두 사람이 같은
+   pack_task_lines 에 쓴다 → 쓰기 직전 + 복귀 시점에 assigned_to 를 재확인한다.
+   ⚠️ 타이머·폴링 금지(규칙 22 배터리). 이벤트 기반만. */
+let frozen=false, lastOwnerCheck=0;
+/* 이 화면(탭)의 세션 ID (2026-09-10 · 규칙 28 「같은 사람 · 다른 기기(탭)」 차단 — picker 동형) — 클레임·재개 때 행에 쓰고
+   checkOwner 와 완료·Hold RPC 의 CAS 가 대조한다. 정체는 탭(sessionStorage) · 상태는 서버 컬럼 — ims-auth.js sessionId 주석. */
+const SID=imsAuth.sessionId();
+/* {s:"ok"} | {s:"lost",who} | {s:"unknown"}  — unknown = 조회 실패(네트워크). 쓰기는 진행한다. who = ims_staff.id */
+async function checkOwner(){
+  if(!packTask) return {s:"unknown"};
+  try{
+    const q=await sb.from("wms_pack_tasks").select("assigned_to,held_by,session_id").eq("id",packTask.id).maybeSingle();
+    if(q.error) throw q.error;
+    lastOwnerCheck=Date.now();
+    if(!q.data) return {s:"unknown"};                 // row gone — not this guard's call
+    const who=q.data.assigned_to||null;               // null = Hold 로 풀려 팩 큐에 있음
+    // heldMine (2026-08-24 자동 Hold — picker checkOwner 동형 주석 참조)
+    if(who===me.id){
+      // 같은 사람 · 다른 화면(탭/기기) (2026-09-10 — picker checkOwner 동형): session_id 가 있고 내 것과 다르면 다른 화면이 열었다.
+      // null 은 배포 전 클레임(레거시) → 통과. 최종 관문은 RPC 의 CAS(p_session_id).
+      if(q.data.session_id && q.data.session_id!==SID) return {s:"lost",who,otherDevice:true};
+      return {s:"ok"};
+    }
+    return {s:"lost",who,heldMine:!who&&q.data.held_by===me.id};
+  }catch(e){
+    // best-effort: 창고 와이파이 순단으로 작업이 멈추는 게 더 큰 손실 (규칙 28)
+    console.warn("Ownership check failed — proceeding with the write (best effort):", (e&&e.message)||e);
+    return {s:"unknown"};
+  }
+}
+/* true = 계속 진행(내 것이거나 확인 실패) / false = 프리즈됨, 호출자는 쓰지 말 것 */
+/* 자동 Hold 전용 문구 (2026-08-24 — picker autoHoldMsg 동형 주석 참조. 방어 로직 무변) */
+function autoHoldMsg(){ return "This batch was put on hold automatically (no activity for a while). Your progress is saved. Reload and resume it from your list."; }
+/* 같은 사람 · 다른 기기(탭) 전용 문구 (2026-09-10 · 규칙 28 소절 — picker otherDeviceMsg 동형).
+   Reload → restoreFromUrl → resumePack → claimSessionPack 이 이 탭으로 되찾는다 → 저쪽이 얼어붙는다. */
+function otherDeviceMsg(){ return "This batch is now open on another device that is signed in as you. This screen is out of date and won't save. Continue on the other device — or tap Reload here to take it back to this one."; }
+function lostMsg(r){ return r.otherDevice ? otherDeviceMsg() : (r.heldMine ? autoHoldMsg() : undefined); }
+// 서버가 판정한 직원(worker = ims_staff.id)이 이 화면의 me.id 와 다르다 — 직원 행이 바뀌었거나 다른 계정으로 잇는다(운영 「이름 드리프트」의 IMS 판 · picker 와 같다).
+function staffMismatchMsg(){ return "Your sign-in no longer matches the staff record on this batch (the server sees a different staff id). Nothing was saved. Sign in again, then re-scan the pick list to continue."; }
+async function ensureMine(){
+  if(frozen) return false;
+  const r=await checkOwner();
+  if(r.s==="lost"){ freezeScreen(r.who, lostMsg(r)); return false; }
+  return true;
+}
+/* ⚠️ 프리즈 시 로컬 수량을 flush 하지 않는다 — 내 메모리 값은 스테일이고 쓰면
+   이어받은 사람의 작업을 덮는다. 로컬 상태는 버리고 서버를 진실로 둔다. */
+function freezeScreen(who, msg){   // who = ims_staff.id(표시는 nameOf) · msg = 커스텀 사유 (없으면 기존 문구)
+  if(frozen) return;
+  frozen=true;
+  stopHeartbeat(); presenceLeave();
+  clearTimeout(advTimer);
+  const scan=document.getElementById("scan"); if(scan){ scan.disabled=true; scan.blur(); }
+  ["holdBtn","doneBtn"].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=true; });
+  renderPack();   // re-render so steppers / manual entry come back disabled (no render bypass)
+  document.getElementById("fzMsg").textContent = msg || (who
+    ? `This batch is now assigned to ${nameOf(who)}. Your screen is out of date.`
+    : "This batch was released and is waiting to be claimed.");
+  document.getElementById("freeze").style.display="grid";
+  try{ beep("bad"); vibe("bad"); }catch(e){}
+}
+document.getElementById("fzReload").onclick=()=>location.reload();
+/* 복귀 감지: 태블릿을 두고 나갔다 돌아오는 게 실제 시나리오라 첫 스캔 전에 잡는다 */
+async function guardOnReturn(){
+  if(frozen || !packTask) return;
+  if(document.getElementById("packView").style.display==="none") return;
+  if(Date.now()-lastOwnerCheck<3000) return;   // 이벤트 연속 발생 시 중복 조회만 억제 (타이머 아님)
+  const r=await checkOwner();
+  if(r.s==="lost") freezeScreen(r.who, lostMsg(r));
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") guardOnReturn(); });
+window.addEventListener("focus",guardOnReturn);
+
+/* boot / login */
+function boot(){
+  imsAuth.start({ requireScreen:"packing" }, (client, staffMe)=>{   // 카탈로그 packing = WMS 방 · worker 기본(판정 25) · 진짜 문은 창구 첫 줄(ims_require_write)
+    sb=client; me=staffMe;
+    imsHeader(me);
+    document.getElementById("buildTag").textContent=WK_BUILD;
+    document.getElementById("app").style.display="block";
+    init();
+  });
+}
+function toast(m,bad){const el=document.getElementById("toast");el.textContent=m;el.className="show"+(bad?" bad":"");clearTimeout(el._t);el._t=setTimeout(()=>el.className="",1900);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* sound / vibrate / flash */
+function initAudio(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}}
+function beep(kind){
+  if(!actx)return; const t=actx.currentTime;
+  if(kind==="ok"){const o=actx.createOscillator(),g=actx.createGain();o.type="sine";o.frequency.setValueAtTime(1050,t);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.13);}
+  else if(kind==="done"){ // line complete: cheerful rising major arpeggio (clearly different from ok/okbox)
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+    o.frequency.setValueAtTime(1046.5,t);o.frequency.setValueAtTime(1318.5,t+0.09);
+    o.frequency.setValueAtTime(1568,t+0.18);o.frequency.setValueAtTime(2093,t+0.27);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.55,t+0.01);
+    g.gain.setValueAtTime(0.55,t+0.34);g.gain.exponentialRampToValueAtTime(0.0001,t+0.52);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.53);}
+  else if(kind==="okbox"){ // box scan (factor>1): rising triple tone so ears confirm a multi-unit add
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+    o.frequency.setValueAtTime(880,t);o.frequency.setValueAtTime(1100,t+0.09);o.frequency.setValueAtTime(1320,t+0.18);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);
+    g.gain.setValueAtTime(0.5,t+0.26);g.gain.exponentialRampToValueAtTime(0.0001,t+0.32);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.33);}
+else{ // error: LOUD two-tone siren (high freqs carry on small speakers), full volume
+    try{ if(actx.state==="suspended") actx.resume(); }catch(e){}
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="square";
+    for(let i=0;i<6;i++) o.frequency.setValueAtTime(i%2?1600:2400, t+i*0.12);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(1.0,t+0.015);
+    g.gain.setValueAtTime(1.0,t+0.66);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.72);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.73);
+  }
+}
+function vibe(kind){try{navigator.vibrate&&navigator.vibrate(kind==="ok"?25:[160,80,160,80,220]);}catch(e){}}
+function flash(kind,msg){const el=document.getElementById("flash");const cls=(kind==="okbox"||kind==="done")?"ok":kind;el.className="show "+cls;el.textContent=msg;clearTimeout(el._t);el._t=setTimeout(()=>el.className=cls,(kind==="okbox"||kind==="done")?1200:700);beep(kind==="bad"?"bad":kind);vibe(kind==="bad"?"bad":"ok");}
+
+/* initial load */
+async function init(){
+  const [wh, st]=await Promise.all([
+    sb.from("ref_warehouse").select("id,name"),      // caps-ok: 창고 넷
+    sb.from("ims_staff").select("id,name"),          // caps-ok: 직원 수십 · 이름은 id 로만 잇는다(이메일 안 읽음)
+  ]);
+  const error=wh.error||st.error;
+  if(error){ toast("Initial load failed: "+error.message,true); return; }
+  (wh.data||[]).forEach(w=>{ whById[w.id]={name:w.name,key:whKey(w.name)}; });
+  (st.data||[]).forEach(s=>{ staffName[s.id]=s.name; });
+  // 리로드 복원 — URL 에 팩 태스크가 남아 있으면 소유권 재확인 후 재진입 (실패 시 내부에서 목록 폴백)
+  const rp=RESTORE.get("pack");
+  if(rp){ await restoreFromUrl(+rp); return; }
+  loadQueue();
+}
+
+/* ---------- 리로드 복원용 URL (2026-08-07 · 규칙 9 · ⚠️ 현장 미검증) ----------
+   탭 폐기·렌더러 OOM 복구·pageshow 리로드(규칙 16)는 전부 신규 로드라 메모리 상태가
+   사라진다 → 열려 있던 배치를 URL 에 남겨 리로드 후 복귀. 규칙 5: localStorage 금지. */
+const RESTORE=new URLSearchParams(location.search);   // 파싱 시점 1회 캡처 — 이후 URL 정리와 경합 없음
+function setUrlParam(k,v){ try{ history.replaceState(null,"",location.pathname+"?"+k+"="+v); }catch(e){} }
+function clearUrlParam(){ try{ if(location.search) history.replaceState(null,"",location.pathname); }catch(e){} }
+
+/* ⚠️ URL 은 소유권 증명이 아니다(규칙 28) — in_progress + 내 것일 때만 진입, 자동 클레임 없음.
+   toast 의 담당자 이름은 freezeScreen·이어받기 confirm 과 동일한 기존 노출 범위(ims_staff 읽기 · 규칙 8). */
+async function restoreFromUrl(id){
+  try{
+    const {data:pk,error}=await sb.from("wms_pack_tasks").select(PKSEL+", "+SO_EMB).eq("id",id).maybeSingle();
+    if(error) throw error;
+    if(pk && pk.status==="in_progress" && pk.assigned_to===me.id){
+      packLookup[pk.id]=pk;          // resumePack 이 이 캐시를 읽는다 — 기존 로드 경로 그대로 재사용
+      await resumePack(pk.id); return;
+    }
+    if(!pk) toast("That batch no longer exists — it may have been rolled back",true);
+    else if(pk.status==="completed") toast("That batch was already completed",true);
+    else if(pk.assigned_to && pk.assigned_to!==me.id) toast("That batch is now assigned to "+nameOf(pk.assigned_to)+" — re-scan to take it over",true);
+    else toast("That batch went back to the pack queue — resume it below",true);
+    loadQueue();
+  }catch(e){ toast("Could not restore your batch — pick it from the list",true); loadQueue(); }
+}
+
+/* pack queue:
+   - My In Progress = pack_tasks (in_progress, assigned_to=me)
+   - Pack Queue = held pack_tasks(pending) + completed pick tasks without a pack task (new)
+*/
+let packLookup={}, shortByPick={};
+async function loadQueue(){
+  clearUrlParam();   // 목록 = 열린 배치 없음 — 여기서 리로드되면 목록으로 (파라미터는 파싱 시점에 캡처됨)
+  document.getElementById("bempty").style.display="none";
+  if(!me){document.getElementById("blist").innerHTML="";document.getElementById("bloading").style.display="none";const be=document.getElementById("bempty");be.style.display="block";be.textContent="Select a worker first..";return;}
+  document.getElementById("bloading").style.display="block";
+  // ⚠️ PostgREST 는 요청하지 않아도 1000행에서 자른다(운영 2026-08-12 SO-14532 실사고 — 완료 픽 누적이 1000 돌파).
+  //    so!inner + so.status = picking(Working) 으로 **창고에 있는 오더 소속만** — 행수가 활성 오더 규모로 유계라 캡이 구조적으로 무관해진다.
+  //    desc + limit(1000) 은 이중 안전으로 유지(제거 금지). !inner 를 빼먹으면 조용히 틀린다(임베드만 null · 부모 행은 남는다).
+  //    되돌린 오더(picking → at_wms · 판정 21)의 과제는 wms_rollback 이 archive + void 로 치운다 — 남은 것이 있어도 여기서는 안 보인다.
+  const [donePick, allPack]=await Promise.all([
+    sb.from("wms_pick_tasks").select("id,batch_label,order_id,completed_at,wave_id,tote_no, "+SO_EMB_IN).eq("status","completed").eq("so.status","picking").order("completed_at",{ascending:false}).limit(1000),   // caps-ok: !inner Working 오더만 + desc/limit 이중 안전
+    sb.from("wms_pack_tasks").select(PKSEL+", "+SO_EMB_IN).eq("so.status","picking").order("id",{ascending:false}).limit(1000),   // caps-ok: !inner Working 오더만 + desc/limit 이중 안전
+  ]);
+  document.getElementById("bloading").style.display="none";
+  if(donePick.error||allPack.error){toast("Failed to load list: "+((donePick.error||allPack.error).message||""),true);return;}
+  const inWh=s=>inWhId(s&&s.location_id);
+  const packs=(allPack.data||[]);
+  const claimedPickIds=new Set(packs.filter(p=>p.status==="in_progress"||p.status==="completed").map(p=>p.pick_task_id));
+  // resume list = only claims with actual work (no-work claims get reaped/auto-released)
+  mine=packs.filter(p=>p.status==="in_progress"&&p.assigned_to===me.id&&p.work_started&&inWh(p.so));
+  held=packs.filter(p=>p.status==="pending"&&inWh(p.so));
+  stalePacks=[];   // 시간 기반 abandoned 제거 — 스캔 이어받기로 처리
+  poolNew=(donePick.data||[]).filter(pt=>!claimedPickIds.has(pt.id)&&!held.some(h=>h.pick_task_id===pt.id)&&inWh(pt.so))
+    .sort((a,b)=>new Date(a.completed_at)-new Date(b.completed_at));   // 표시는 종전 FIFO 유지(조회만 내림차순 — 위 캡 주석)
+  // lookup cache for resume verify
+  packLookup={}; [...mine,...held,...stalePacks].forEach(p=>packLookup[p.id]=p);
+  // short pre-check presence
+  const pickIds=[...poolNew.map(p=>p.id), ...mine.map(p=>p.pick_task_id), ...held.map(p=>p.pick_task_id), ...stalePacks.map(p=>p.pick_task_id)];
+  shortByPick={};
+  if(pickIds.length){
+    const {data}=await sb.from("wms_pick_task_lines").select("pick_task_id,assigned_base,picked_base").in("pick_task_id",pickIds);
+    (data||[]).forEach(l=>{ if(Number(l.picked_base)<Number(l.assigned_base)) shortByPick[l.pick_task_id]=(shortByPick[l.pick_task_id]||0)+1; });
+  }
+  renderQueue();
+}
+let held=[], poolNew=[];
+/* ---------- 오더 상태 빨간 배너 (판정 21 · 운영 「Cin7 void 감지」의 자리 · picker 와 동일) ----------
+   진행 중 팩을 숨기면 실물이 남는다 — 숨기지 않고 배너로 알린다. 오더가 Working(picking)이 아니면 작업자는 멈추고 매니저에게. 조회 실패는 조용히 넘어간다. */
+async function checkOrderBanner(orderIds){
+  const el=document.getElementById("voidBanner"); if(!el) return;
+  el.style.display="none";
+  try{
+    const ids=(orderIds||[]).filter(Boolean); if(!ids.length) return;
+    const {data}=await sb.from("so").select("so_number,status").in("id",ids).neq("status","picking");
+    if(data&&data.length){
+      el.textContent="⚠ "+data.map(r=>r.so_number+" is "+statusLabel(r.status)).join(", ")+" — this batch is no longer Working. Stop and tell your manager";
+      el.style.display="block";
+    }
+  }catch(e){ /* 부가 안내 */ }
+}
+function qcard(o,label,btnTxt,attr,resume,shortCnt){
+  return `<div class="bcard ${resume?"resume":""} ${shortCnt?"short":""}" ${attr}>
+    <div>
+      <div class="bl">${esc(label)}</div>
+      <div class="sub">${esc(o.customer_name||"—")}
+        <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        ${shortCnt?`<span class="tag short">Incomplete ${shortCnt}</span>`:""}</div>
+    </div>
+    <button class="go ${resume?"resumebtn":""}">${btnTxt}</button>
+  </div>`;
+}
+let queueFilter="", skuFilter="", lastScan=null, advTimer=null;
+/* 리스트 행 탭 → 임시 싱글뷰 (2026-08-05). view(선호)는 건드리지 않는다 — 렌더는 viewOverride||view */
+let viewOverride=null, backIdx=null;
+let lastListScroll=0;   // 스크롤 직후 고스트 탭 무시 (fulfillment __justDragged 패턴)
+const recentListScroll=()=>Date.now()-lastListScroll<350;
+let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "orderId|sku"
+let stockFlags=new Set(), stockBusy=false, stockDecl={};   // open stock_short declarations: "orderId|sku" (+ who/where declared)
+function renderQueue(){
+  const be=document.getElementById("bempty");
+  const f=queueFilter.trim().toUpperCase();
+  const match=p=>{ if(!f)return true; const on=((p.so&&p.so.so_number)||"").toUpperCase(); const bl=(p.batch_label||"").toUpperCase(); return on===f||bl.startsWith(f+"-")||bl===f; };
+  const mineF=mine.filter(match), heldAll=held.filter(match), poolF=poolNew.filter(match), staleF=stalePacks.filter(match);
+  const myHeldF=heldAll.filter(p=>p.held_by===me.id), heldF=heldAll.filter(p=>p.held_by!==me.id);
+  const has=(poolF.length+mineF.length+heldAll.length+staleF.length)>0;
+  be.style.display=has?"none":"block"; be.textContent=f?("No pack batch for "+queueFilter):"No batches waiting to pack..";
+  let html="";
+  if(f){ html+=`<div class="filterbar">Showing <b>${esc(queueFilter)}</b><button id="clrFilter">Clear</button></div>`; }
+  if(myHeldF.length){ html+=`<div class="sect" style="color:var(--accent)">⏸ Resume your held ${myHeldF.length>1?"batches":"batch"}</div>`+myHeldF.map(p=>qcard(normOrder(p.so),p.batch_label,"Resume verify",`data-packid="${p.id}"`,true,shortByPick[p.pick_task_id]||0)).join(""); }
+  if(mineF.length){ html+=`<div class="sect">My In Progress</div>`+mineF.map(p=>qcard(normOrder(p.so),p.batch_label,"Resume verify",`data-packid="${p.id}"`,true,shortByPick[p.pick_task_id]||0)).join(""); }
+  if(poolF.length||heldF.length){
+    html+=`<div class="sect">Pack Queue</div>`;
+    html+=heldF.map(p=>qcard(normOrder(p.so),p.batch_label,"Resume verify",`data-packid="${p.id}"`,true,shortByPick[p.pick_task_id]||0)).join("");
+    html+=poolF.map(p=>qcard(normOrder(p.so),p.batch_label,"Start verify",`data-pickid="${p.id}"`,false,shortByPick[p.id]||0)).join("");
+  }
+  if(staleF.length){
+    html+=`<div class="sect">Abandoned — holder away (take over, progress kept)</div>`;
+    html+=staleF.map(p=>{
+      const im=idleMin(p);
+      const o=normOrder(p.so);
+      o.customer_name=(o.customer_name||"—")+` · ${nameOf(p.assigned_to)||"?"} · idle ${im?im+"m":"?"}`;
+      return qcard(o,p.batch_label,"Take over",`data-takeid="${p.id}"`,true,shortByPick[p.pick_task_id]||0);
+    }).join("");
+  }
+  document.getElementById("blist").innerHTML=html;
+  const clr=document.getElementById("clrFilter");
+  if(clr) clr.onclick=()=>{ queueFilter=""; const os=document.getElementById("orderScan"); if(os)os.value=""; renderQueue(); };
+  document.querySelectorAll("#blist .bcard").forEach(el=>{
+    el.onclick=()=>{
+      if(el.dataset.takeid) takeoverPack(+el.dataset.takeid);
+      else if(el.dataset.packid) resumePack(+el.dataset.packid);
+      else startPack(+el.dataset.pickid);
+    };
+  });
+  if(me && document.getElementById("listView").style.display!=="none"){
+    const os=document.getElementById("orderScan"); if(os && document.activeElement!==os) os.focus();
+  }
+}
+document.getElementById("orderScan").addEventListener("keydown",async e=>{
+  if(e.key!=="Enter") return;
+  e.preventDefault();
+  const v=document.getElementById("orderScan").value.trim();
+  document.getElementById("orderScan").value="";
+  if(!v) return;
+  queueFilter=v; renderQueue();
+  const f=v.toUpperCase();
+  const match=p=>{const on=((p.so&&p.so.so_number)||"").toUpperCase(); const bl=(p.batch_label||"").toUpperCase(); return on===f||bl.startsWith(f+"-")||bl===f;};
+  if([...mine,...held,...poolNew].some(match)) return;
+  await scanTakeoverPack(f);
+});
+
+/* 스캔한 배치가 이미 in_progress(남이 열어둠)면 이어받기 */
+async function scanTakeoverPack(f){
+  const {data:ip}=await sb.from("wms_pack_tasks")   // caps-ok: 진행 중 팩만 — 완료로 소진되는 활성 풀(동시 작업자 수 규모)
+    .select(PKSEL+", "+SO_EMB)
+    .eq("status","in_progress");
+  const hit=(ip||[]).find(p=>{
+    if(!inWhId(p.so&&p.so.location_id)) return false;
+    const on=((p.so&&p.so.so_number)||"").toUpperCase(); const bl=(p.batch_label||"").toUpperCase();
+    return on===f||bl.startsWith(f+"-")||bl===f;
+  });
+  if(!hit){ toast("No pack batch found for "+f,true); return; }
+  packLookup[hit.id]=hit;   // resumePack 이 캐시를 읽는다
+  if(hit.assigned_to===me.id){ resumePack(hit.id); return; }
+  if(!confirm(`${hit.batch_label} is already open by ${nameOf(hit.assigned_to)||"another worker"}.\n\nYou have the pack list — take it over and continue? Their progress is kept.`)) return;
+  const {data,error}=await sb.from("wms_pack_tasks")
+    .update({assigned_to:me.id,session_id:SID})   // started_at 은 보내지 않는다 — 최초 시작 보존 (ensureStartedAtPack 주석)
+    .eq("id",hit.id).eq("status","in_progress").select();
+  if(error){ toast("Take over failed: "+error.message,true); return; }
+  if(!data||!data.length){ toast("Could not take over — try again.",true); loadQueue(); return; }
+  await ensureStartedAtPack(hit.id,data[0]);   // in_progress 라 항상 값이 있어 no-op — null 엣지만 자가 치유
+  hit.assigned_to=me.id; hit.work_started=data[0].work_started;
+  resumePack(hit.id);
+}
+
+/* ---------- started_at 은 "최초 시작"이다 (2026-08-11 · 규칙 37 — picker ensureStartedAt 와 동일 패턴) ----------
+   이어받기·held 재개가 덮어쓰지 않는다. 최초만 null→now (서버측 only-if-null — 경합에도 1회).
+   pending pack task 는 held 재개(started_at 보존됨)와 롤백 복귀(null 리셋)뿐이라 null 여부가 정확한 구분자다. */
+async function ensureStartedAtPack(id,row){
+  if(row&&row.started_at) return;
+  const now=new Date().toISOString();
+  await sb.from("wms_pack_tasks").update({started_at:now}).eq("id",id).is("started_at",null);
+  if(row) row.started_at=now;
+}
+
+/* 읽기 창구 wms_pick_lines 의 한 줄 → 화면 줄(운영의 픽 줄 + 오더 줄 + sku-bin + 스냅샷 네 표를 잇던 자리).
+   시작(픽 갈래): packline_id 없음 · required = 픽 assigned · expected = 픽 picked · verified 0
+   재개(팩 갈래): packline_id = 팩 줄 · expected = 팩 expected_base · verified = 팩 verified_base · vmethod = 팩 줄의 방법 */
+function lineFromRpc(r, isPack){
+  const pb=r.planned_bins||[]; const first=pb[0]||{};
+  return {
+    packline_id: isPack ? r.pack_line_id : null, order_line_id:r.order_line_id,
+    order_sku:r.sku, base_sku:r.base_sku, product_name:r.product_name, is_set:!!r.is_set, pack_factor:Number(r.pack_factor||1),
+    image_url:null,                                            // 판정 33 — 사진 없음
+    bin:first.bin||"", zone:first.zone||"",
+    bins:pb.map(b=>(b.bin||"?")+(pb.length>1?" ×"+b.qty_base:"")).join(", "),
+    barcodes:r.barcodes||[],                                   // [{barcode, factor, sku}] — 낱개(1) + 세트(pack_factor)
+    available:(r.available_ea==null)?null:Number(r.available_ea),
+    required:Number(r.assigned_base||0),
+    expected: isPack ? Number(r.expected_base||0) : Number(r.picked_base||0),
+    verified: isPack ? Number(r.verified_base||0) : 0,
+    // vmethod 복원 (운영 2026-08-25 · 실사고 null 3,702행): verified_base 는 복원하면서 방법만 버리면 완료·Hold 가 전 라인을 null 로 덮는다 — 스캔 증거의 비가역 소실.
+    overage:0, vmethod: isPack ? (r.pack_verification_method||null) : null,
+  };
+}
+
+/* start verify: pack_task + pack_task_lines create */
+async function startPack(pickId){
+  initAudio();
+  const pt=poolNew.find(x=>x.id===pickId); if(!pt){loadQueue();return;}
+  // load pick lines — 읽기 창구 한 번(줄 · 제품 · 바코드 · 칸 · 가용)
+  const {data:pl,error}=await sb.rpc("wms_pick_lines",{p_task_ids:[pickId]});
+  if(error){toast("Failed to load pick lines: "+error.message,true);return;}
+  // pack_task create (unique index uq_packtasks_pick prevents duplicates)
+  const now=new Date().toISOString();
+  const ins=await sb.from("wms_pack_tasks").insert({
+    order_id:pt.order_id, pick_task_id:pickId, batch_label:pt.batch_label,
+    assigned_to:me.id,session_id:SID, status:"in_progress", started_at:now, heartbeat_at:now, work_started:false
+  }).select();
+  if(ins.error){ toast(ins.error.message.includes("uq_packtasks_pick")?"Another worker is already verifying this":("Start failed: "+ins.error.message),true); loadQueue(); return; }
+  packTask=ins.data[0]; order=normOrder(pt.so);
+  startHeartbeat(); presenceJoin();
+  // pack_task_lines create (expected = qty the pick produced)
+  const rows=(pl||[]).map(l=>({
+    pack_task_id:packTask.id, order_line_id:l.order_line_id,
+    expected_base:Number(l.picked_base||0), verified_base:0, status:"pending"
+  }));
+  if(rows.length){ const {error:le}=await sb.from("wms_pack_task_lines").insert(rows); if(le){ await sb.from("wms_pack_tasks").delete().eq("id",packTask.id); toast("Failed to create lines: "+le.message,true); return; } }
+  lines=(pl||[]).map(r=>lineFromRpc(r,false)); finishBuild(); enterPack();
+}
+
+/* 재개 = 클레임 (2026-09-10 · 규칙 28 「같은 사람 · 다른 기기(탭)」 — picker claimSession 동형).
+   resumePack 의 in_progress 분기는 종전에 읽기만 했다(pending 분기는 클레임 UPDATE 에 session_id 동봉).
+   scanTakeoverPack 「내 것」·restoreFromUrl·takeoverPack 이 전부 resumePack 으로 수렴하므로 호출은 한 곳.
+   조건부 UPDATE + .select() 1행 판정 · 네트워크 실패는 통과(best-effort — 완료가 other_device 로 얼어붙어 유실 없는 쪽). */
+async function claimSessionPack(id){
+  try{
+    const q=await sb.from("wms_pack_tasks").update({session_id:SID}).eq("id",id).eq("assigned_to",me.id).eq("status","in_progress").select("id");
+    if(q.error) throw q.error;
+    return !!(q.data&&q.data.length);
+  }catch(e){
+    console.warn("Session claim failed — opening anyway (best effort):", (e&&e.message)||e);
+    return true;
+  }
+}
+
+/* resume verify: existing pack_task_lines (+ pick facts) — 읽기 창구 팩 갈래 한 번 */
+async function resumePack(packId){
+  initAudio();
+  const pk=packLookup[packId]; if(!pk){loadQueue();return;}
+  // if held(pending) batch, claim it as mine (concurrency: only when pending)
+  if(pk.status==="pending"){
+    const now=new Date().toISOString();
+    const cl=await sb.from("wms_pack_tasks").update({assigned_to:me.id,session_id:SID,status:"in_progress",heartbeat_at:now,held_by:null})
+      .eq("id",packId).eq("status","pending").select();   // started_at 은 ensureStartedAtPack — held 재개는 보존, 롤백 복귀(null)만 새로 찍힘
+    if(cl.error||!cl.data||!cl.data.length){ toast("Another worker already took this",true); loadQueue(); return; }
+    await ensureStartedAtPack(packId,cl.data[0]);
+    // Hold 구간 이력 닫기 (⑤-2a2 wms_resume_hold) — pending 클레임 = held 재개 또는 롤백 복귀(후자는 0행 no-op).
+    // ⚠️ RPC 인 이유: resumed_at 서버 시계 + resumed_by 서버 유도(picker startBatch 주석 참조). fire-and-forget — 기록 실패가 작업을 막지 않는다.
+    sb.rpc("wms_resume_hold",{p_task_kind:"pack",p_task_id:packId}).then(r=>{ if(r.error) console.warn("hold close failed", r.error); });
+    pk.work_started=cl.data[0].work_started;
+  }else{
+    // in_progress 재개 — 이 탭이 이긴다 (2026-09-10). 0행 = 그 사이 남이 가져갔거나 풀렸다.
+    if(!await claimSessionPack(packId)){ toast("This batch is no longer in My In Progress",true); loadQueue(); return; }
+  }
+  const {data:pl,error}=await sb.rpc("wms_pick_lines",{p_pack_task_id:packId});   // 팩 갈래 — 팩 줄 + 픽 assigned(required) + 제품 · 바코드 · 칸 · 가용
+  if(error){toast("Failed to load lines: "+error.message,true);return;}
+  packTask={id:packId, order_id:pk.order_id, pick_task_id:pk.pick_task_id, batch_label:pk.batch_label, work_started:!!pk.work_started}; order=normOrder(pk.so);
+  startHeartbeat(); presenceJoin();
+  lines=(pl||[]).map(r=>lineFromRpc(r,true));
+  finishBuild(); enterPack();
+}
+
+/* take over an abandoned pack claim (holder gone, verified progress kept) */
+async function takeoverPack(packId){
+  initAudio();
+  const pk=packLookup[packId]; if(!pk){loadQueue();return;}
+  if(!confirm(`Take over ${pk.batch_label}?\nCurrent holder: ${nameOf(pk.assigned_to)||"?"} (away).\nTheir verified quantities are kept — you continue from where they stopped.`)) return;
+  const now=new Date().toISOString();
+  const cl=await sb.from("wms_pack_tasks")
+    .update({assigned_to:me.id,session_id:SID,heartbeat_at:now})
+    .eq("id",packId).eq("status","in_progress")
+    .or(`heartbeat_at.is.null,heartbeat_at.lt.${staleISO()}`)  // only if still abandoned
+    .select();
+  if(cl.error||!cl.data||!cl.data.length){ toast("Could not take over — the holder is back or it was released.",true); loadQueue(); return; }
+  pk.status="in_progress"; pk.assigned_to=me.id; pk.work_started=cl.data[0].work_started;
+  await resumePack(packId);
+}
+
+function finishBuild(){
+  // barcode map: code -> [{idx,factor}] — 낱개 1 · 세트 pack_factor (전부 창구 barcodes[] 에서)
+  bcMap={};
+  lines.forEach((l,idx)=>{ (l.barcodes||[]).forEach(b=>{ const c=String(b.barcode||"").trim(); if(!c)return; const arr=(bcMap[c]=bcMap[c]||[]); if(!arr.some(x=>x.idx===idx)) arr.push({idx,factor:Number(b.factor)||1}); }); });
+}
+
+async function enterPack(){
+  // in start path, packline_id if missing, fill via re-query (needed for saving)
+  if(lines.some(l=>l.packline_id==null)){
+    const {data}=await sb.from("wms_pack_task_lines").select("id,order_line_id").eq("pack_task_id",packTask.id);
+    const m={}; (data||[]).forEach(r=>m[r.order_line_id]=r.id);
+    lines.forEach(l=>{ if(l.packline_id==null) l.packline_id=m[l.order_line_id]||null; });
+  }
+  curIdx=lines.findIndex(l=>l.verified<l.required); if(curIdx<0)curIdx=0;
+  renderShortAlert();   // re-rendered again once loadStockFlags() knows about declarations
+  skuFilter=""; lastScan=null; clearTimeout(advTimer); const _se=document.getElementById("skuSearch"); if(_se)_se.value="";
+  viewOverride=null; backIdx=null;   // 배치 진입 — 임시 싱글뷰 상태 초기화 (선호 view 는 그대로)
+  document.getElementById("listView").style.display="none";
+  document.getElementById("packView").style.display="block";
+  setUrlParam("pack", packTask.id);   // 리로드 복원 지점 — start/resume/takeover/scanTakeover 전부 여기로 수렴
+  document.getElementById("pTitle").textContent=packTask.batch_label;
+  document.getElementById("pMeta").textContent=whLabel(order.wh)+" · "+esc(order.customer_name||"");
+  renderPack(); focusScan();
+  // 오더 상태 배너(판정 21) — 진행 중 팩은 숨기지 않고 알린다(실물이 있다). 부가 정보 — 실패해도 진입 유지.
+  checkOrderBanner([packTask.order_id]);
+  if(HAS_IMAGES) loadImageFlags();   // independent — restores the pressed state of ⚑ Image differs
+  loadStockFlags();   // independent — shows picker's stock-short declarations + restores ⚠ Not enough stock
+  // picker attribution (over-pick confirm 문구) — ims_staff.id → 이름
+  try{ const {data:ptk}=await sb.from("wms_pick_tasks").select("assigned_to").eq("id",packTask.pick_task_id).single(); packTask.picker=(ptk&&ptk.assigned_to)||null; }catch(e){ packTask.picker=null; }
+}
+
+/* ---------- reprint the pick list (the batch-label barcode is how this screen is scanned into) ----------
+   Format comes from wms-picklist.js, the same module wms-manager.html prints from — do not fork it here.
+   ⚠️ window.open must happen inside the click handler; an open() after an await is popup-blocked. */
+document.getElementById("printBtn").onclick=async ()=>{
+  if(!packTask||!lines.length){ toast("Nothing to print",true); return; }
+  const win=window.open("","_blank");
+  if(!win){ toast("Popup blocked - allow popups for this site",true); return; }
+  const btn=document.getElementById("printBtn"); btn.disabled=true;
+  try{ await reprintPickList(win); }
+  catch(e){ try{win.close();}catch(_){} toast("Print failed: "+(e.message||e),true); }
+  finally{ btn.disabled=false; focusScan(); }
+};
+// 픽리스트의 Ship To — so 의 ship_to_* 를 두 줄로(⑤-4a shipAddr 와 같다 · wms-picklist.js 는 그대로)
+function shipAddr(o){
+  const l1=[o.ship_to_company,o.ship_to_contact,o.ship_to_line1,o.ship_to_line2].filter(Boolean).join(", ");
+  const l2=[o.ship_to_city,o.ship_to_state_province,o.ship_to_postal_code,o.ship_to_country].filter(Boolean).join(" ");
+  return { DisplayAddressLine1:l1, DisplayAddressLine2:l2 };
+}
+const SO_PRINT="id,so_number,ref,order_date,comments,price_tier,payment_term_name,location_name,ship_to_company,ship_to_contact,ship_to_line1,ship_to_line2,ship_to_city,ship_to_state_province,ship_to_postal_code,ship_to_country,customer:customer!so_customer_id_fkey(name)";
+async function reprintPickList(win){
+  const today=new Date().toLocaleDateString();
+  // the order row on screen carries only a few columns — re-read it for the print fields,
+  // and count the order's batches so the "Batch i of N" footer matches the original print
+  const [ordRes, sibRes]=await Promise.all([
+    sb.from("so").select(SO_PRINT).eq("id",packTask.order_id).single(),
+    sb.from("wms_pick_tasks").select("id,batch_label,wave_id,tote_no").eq("order_id",packTask.order_id),
+  ]);
+  const ord=ordRes.data||{};
+  const sibs=sibRes.data||[];
+  const self=sibs.find(t=>t.batch_label===packTask.batch_label);
+  const plain=sibs.filter(t=>!t.wave_id);
+  const m=/-(\d+)$/.exec(packTask.batch_label||"");
+  const idx=m?Number(m[1]):0;
+  // wave member batch → carry the wave label + tote number, same as the original wave pick list
+  let waveLabel=null;
+  if(self&&self.wave_id){
+    try{ const {data:w}=await sb.from("wms_waves").select("label").eq("id",self.wave_id).single(); waveLabel=w?w.label:null; }
+    catch(e){ waveLabel=null; }
+  }
+  const footer=(self&&self.wave_id)?`Tote ${self.tote_no||"—"}`
+            :(idx&&plain.length)?`Batch ${idx} of ${plain.length}`
+            :(idx?`Batch ${idx}`:"");
+  wmsPickList.render(win, `PICK LIST ${ord.so_number||packTask.batch_label}`, wmsPickList.batchPage({
+    batchLabel:packTask.batch_label,                 // = barcode, so this reprint scans back in
+    orderNumber:ord.so_number||order.order_number,
+    reference:ord.ref,
+    orderDate:ord.order_date,
+    terms:ord.payment_term_name, shipAddress:shipAddr(ord),   // so 의 ship_to_* 두 줄
+    warehouse:order.wh,
+    priceTier:ord.price_tier,
+    printed:today, printedBy:(me?me.name:null),      // 표시용
+    wave:waveLabel, tote:(self&&self.wave_id)?self.tote_no:null,
+    customerName:(ord.customer&&ord.customer.name)||order.customer_name,
+    totalLines:lines.length,
+    totalUnits:lines.reduce((s,l)=>s+Number(l.required||0),0),
+    zones:[...new Set(lines.map(l=>(l.zone||"·")))].sort().join(", "),
+    comments:ord.comments,
+    footer,
+  }));
+}
+
+/* render */
+function totTarget(){return lines.reduce((s,l)=>s+l.required,0);}
+function totVer(){return lines.reduce((s,l)=>s+Math.min(l.verified,l.required),0);}
+/* 이미지는 background-image 가 아니라 <img loading="lazy"> — (운영 주석) 고정 크기 컨테이너 div 는 유지해 레이아웃 불변.
+   ⑤-4c: 사진이 없다(판정 33) — HAS_IMAGES 가 서기 전까지 칸 자체를 안 그린다. */
+function imgTag(l){return (HAS_IMAGES&&l.image_url)?`<img src="${esc(l.image_url)}" loading="lazy" decoding="async" alt="">`:"";}
+// base barcodes (factor 1 · 첫째 = Barcode · 나머지 = ALT) + set barcodes (factor>1, e.g. ×6 · ×12) — 전부 창구 barcodes[] 에서
+function barcodeBlock(l){
+  const rows=l.barcodes||[];
+  const base=rows.filter(r=>Number(r.factor)===1);
+  const variants=rows.filter(r=>Number(r.factor)>1).sort((a,b)=>a.factor-b.factor);
+  const bcLine=(label,code)=>{ const c=(code||"").trim(); return `<div class="bc"><span class="bl">${label}</span><span class="bv${c?"":" empty"}">${c?esc(c):"(no barcode)"}</span></div>`; };
+  let html=bcLine("Barcode", base.length?base[0].barcode:"");
+  base.slice(1).forEach(r=>{ html+=bcLine("ALT", r.barcode); });
+  variants.forEach(v=>{ html+=bcLine("×"+v.factor, v.barcode); });
+  return `<div class="barcodes">${html}</div>`;
+}
+function renderPack(){
+  // common: progress bar + over-scan alert (both views)
+  const tot=totTarget(), v=totVer();
+  document.getElementById("progBar").style.width=(tot?Math.round(v/tot*100):0)+"%";
+  const overs=lines.filter(l=>(l.overScans||0)>0);
+  const ov=document.getElementById("overAlert");
+  if(overs.length){ ov.style.display="block"; document.getElementById("overList").innerHTML=overs.map(l=>`<li>· ${esc(l.order_sku)} — ordered ${l.required} met, then ${l.overScans} more scans</li>`).join(""); }
+  else{ ov.style.display="none"; }
+  const ev=viewOverride||view;   // 행 탭 임시 싱글뷰 — 선호(view)는 그대로
+  [...document.querySelectorAll("#viewSeg button")].forEach(x=>x.classList.toggle("active",x.dataset.v===ev));
+  if(ev==="single") renderSingle(); else renderList();
+}
+function availChip(l){
+  if(l.available==null) return `<span class="avail na">Avail ?</span>`;
+  const low=l.available<l.required;
+  return `<span class="avail ${low?"low":""}">Avail ${l.available}</span>`;
+}
+function lastScanHtml(){
+  if(!lastScan) return "";
+  const s=lastScan;
+  return `<div class="lastscan ${s.box?"boxscan":""}">
+    <span class="fbig">${s.box?"📦":"✓"} +${s.f}</span>
+    <span>${esc(s.sku)} → ${s.verified}/${s.required}${s.ignored?` · ignored ${s.ignored}`:""}</span>
+    <span class="sub">LAST SCAN</span>
+  </div>`;
+}
+function renderSingle(){
+  document.getElementById("list").style.display="none";
+  const host=document.getElementById("single"); host.style.display="block";
+  if(!lines.length){ host.innerHTML=""; return; }
+  if(curIdx>=lines.length)curIdx=lines.length-1;
+  const l=lines[curIdx]; const done=l.verified>=l.required; const partial=l.verified>0&&!done;
+  let chips="";
+  if(l.expected<l.required){
+    if(l.verified>=l.required) chips+=`<span class="recchip">Pack fill +${l.verified-l.expected}</span>`;
+    else chips+=`<span class="shortchip">Short ${l.required-l.verified}</span>`;
+  }
+  if((l.overScans||0)>0) chips+=`<span class="overchip">Over-scan ${l.overScans}</span>`;
+  const sd=stockDeclOf(l);
+  if(sd) chips+=`<span class="stockchip">Stock short — declared by ${esc(sd.by||"?")}</span>`;
+  const pickNote=l.expected<l.required?`<span class="picknote">Pick ${l.expected}</span>`:"";
+  host.innerHTML=`
+    <div class="body">
+      ${viewOverride?`<button class="backlist" data-backlist>← Back to list</button>`:""}
+      <div class="head">
+        ${HAS_IMAGES?`<div class="img">${imgTag(l)}</div>`:""}
+        <div class="info">
+          <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.bins||l.bin||"—")}</span></div>
+          <div class="nm">${esc(l.product_name)}</div>
+          <div class="sku">${esc(l.order_sku)}${l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${availChip(l)}</div>
+          ${(chips||pickNote)?`<div class="chips">${chips}${pickNote}</div>`:""}
+        </div>
+      </div>
+      ${barcodeBlock(l)}
+      <div class="qtybox ${done?"done":partial?"partial":""}">
+        <div class="qtybig">${l.verified}<span class="of"> / ${l.required}</span></div>
+        <div class="stepper">
+          <button data-step="-1" ${frozen?"disabled":""}>−</button>
+          <button data-step="1" ${frozen?"disabled":""}>+</button>
+        </div>
+      </div>
+      ${lastScanHtml()}
+      <button class="manual" data-manual ${frozen?"disabled":""}>Enter quantity</button>
+      <div class="navrow">
+        <button class="btn ghost" data-nav="-1">← Prev</button>
+        <button class="btn dark" data-nav="1">Next →</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--mut-2);margin-top:8px">${curIdx+1} / ${lines.length}</div>
+      <div class="reportrow">
+        <button class="rep" data-rep="bc">⚑ Barcode changed</button>
+        ${HAS_IMAGES?`<button class="rep ${imgFlagged(l)?"on":""}" data-rep="img" ${imgBusy?"disabled":""}>${imgFlagged(l)?"✓":"⚑"} Image differs</button>`:""}
+        ${(l.verified<l.required||stockFlagged(l))?`<button class="rep ${stockFlagged(l)?"on":""}" data-rep="stock" ${stockBusy?"disabled":""}>${stockFlagged(l)?"✓":"⚠"} Not enough stock</button>`:""}
+      </div>
+    </div>`;
+  const bl=host.querySelector("[data-backlist]");
+  if(bl) bl.onclick=backToList;
+  host.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{manualAdjust(curIdx,+b.dataset.step);});
+  host.querySelector("[data-manual]").onclick=()=>manualSetPack(curIdx);
+  host.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{movePack(+b.dataset.nav);});
+  host.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.rep==="img") toggleImageReport(curIdx);
+    else if(b.dataset.rep==="stock") toggleStockShortPack(curIdx);
+    else reportIssuePack(b.dataset.rep, curIdx);
+  });
+  if(lastScan && Date.now()-lastScan.at<1200){ const qb=host.querySelector(".qtybig"); if(qb) qb.classList.add("pop"); }
+}
+async function reportIssuePack(kind, idx){
+  const l=lines[idx]; if(!l) return;
+  const listed=[...new Set((l.barcodes||[]).map(b=>String(b.barcode||"").trim()).filter(Boolean))].join(", ")||"—";
+  const got=prompt(`Barcode changed for ${l.order_sku}\nListed: ${listed}\n\nScan or type the new barcode (optional)`, "");
+  if(got===null){ focusScan(); return; }
+  try{
+    const {error}=await sb.from("wms_reports").insert({
+      order_id:packTask.order_id, order_number:order.order_number, sku:l.order_sku,
+      kind:"barcode_mismatch", note:`Listed ${listed}${got.trim()?` · new ${got.trim()}`:""}`,
+      reported_by:me.id, source:"packer"
+    });
+    if(error) throw error;
+    toast("Barcode issue reported");
+  }catch(e){ toast("Report failed: "+(e.message||e),true); }
+  focusScan();
+}
+
+/* ---------- image mismatch report (toggle, no detail prompt) → wms_reports ----------
+   One open report per order+sku+kind: press to report, press again to cancel.
+   ⑤-4c: HAS_IMAGES 가 false 라 단추가 안 그려진다 — 사진이 서면 그대로 산다.        */
+const IMG_NOTE="Image does not match the physical product";
+function imgFlagged(l){
+  const oid=packTask?packTask.order_id:null;
+  return !!oid && imgFlags.has(oid+"|"+(l.order_sku||""));
+}
+async function loadImageFlags(){
+  imgFlags=new Set();
+  try{
+    const oid=packTask?packTask.order_id:null;
+    const skus=[...new Set(lines.map(l=>l.order_sku).filter(Boolean))];
+    if(!oid||!skus.length) return;
+    const {data,error}=await sb.from("wms_reports")
+      .select("order_id,sku").eq("kind","image_mismatch").is("resolved_at",null)
+      .eq("order_id",oid).in("sku",skus);
+    if(error) throw error;
+    (data||[]).forEach(r=>imgFlags.add(r.order_id+"|"+(r.sku||"")));
+    renderPack();
+  }catch(e){ /* pressed state is cosmetic — never block the pack view */ }
+}
+async function toggleImageReport(idx){
+  const l=lines[idx]; if(!l||imgBusy) return;
+  const oid=packTask?packTask.order_id:null;
+  if(!oid){ toast("Cannot report — order unknown",true); focusScan(); return; }
+  const key=oid+"|"+(l.order_sku||""), on=imgFlags.has(key);
+  imgBusy=true; renderPack();
+  try{
+    if(on){
+      // cancel: only the still-open report — resolved history is never deleted
+      const {error}=await sb.from("wms_reports").delete()
+        .eq("order_id",oid).eq("sku",l.order_sku).eq("kind","image_mismatch").is("resolved_at",null);
+      if(error) throw error;
+      imgFlags.delete(key); toast("Image report cancelled");
+    }else{
+      const {error}=await sb.from("wms_reports").insert({
+        order_id:oid, order_number:order.order_number, sku:l.order_sku,
+        kind:"image_mismatch", note:IMG_NOTE, reported_by:me.id, source:"packer"
+      });
+      if(error) throw error;
+      imgFlags.add(key); toast("Image issue reported");
+    }
+  }catch(e){ toast("Report failed: "+(e.message||e),true); }
+  imgBusy=false; renderPack(); focusScan();
+}
+
+/* ---------- "Not enough stock" — declarations & the pick-incomplete banner (판정 20 · wms_reports kind stock_short) ----------
+   Same policy as picker: declaring reclassifies a short line as a STOCK mismatch (kind 'stock_short' · never in the mistake tally · 규칙 41).
+   The order still ships short; a manager checks the shelf from the report list and adjusts. The packer only declares AFTER checking the shelf.
+   If the picker already declared, the line shows "Stock short — declared by {picker}" so the packer does not search the shelf again in vain.
+   ⚠️ 열린 선언 = resolved_at null(운영의 voided_at 구분은 없다 — wms_reports 에는 resolved 만) — 완료 창구가 p_short_refresh 로 수량을 고치고 p_short_resolve 로 채워진 것을 닫는다. */
+function stockKeyPack(l){ const oid=packTask?packTask.order_id:null; return oid?oid+"|"+(l.order_sku||""):""; }
+function stockFlagged(l){ const k=stockKeyPack(l); return !!k && stockFlags.has(k); }
+function stockDeclOf(l){ const k=stockKeyPack(l); return k?stockDecl[k]:null; }
+function renderShortAlert(){
+  // pick-incomplete warning (shortfall to fill during packing; declared lines = shelf is empty)
+  const shorts=lines.filter(l=>l.verified<l.required && l.expected<l.required);
+  const al=document.getElementById("shortAlert");
+  if(shorts.length){
+    al.style.display="block";
+    document.getElementById("shortList").innerHTML=shorts.map(l=>{
+      const sd=stockDeclOf(l);
+      const tail=sd?` — ⚠ stock short, declared by ${esc(sd.by||"?")} (shelf already checked)`
+                   :` (from other locations ${l.required-l.expected} more to find)`;
+      return `<li>· ${esc(l.order_sku)} — Pick ${l.expected} / ordered ${l.required}${tail}</li>`;
+    }).join("");
+  }else{ al.style.display="none"; }
+}
+async function loadStockFlags(){
+  stockFlags=new Set(); stockDecl={};
+  try{
+    const oid=packTask?packTask.order_id:null;
+    const skus=[...new Set(lines.map(l=>l.order_sku).filter(Boolean))];
+    if(!oid||!skus.length) return;
+    const {data,error}=await sb.from("wms_reports")
+      .select("order_id,sku,reported_by,source").eq("kind","stock_short").is("resolved_at",null)
+      .eq("order_id",oid).in("sku",skus);
+    if(error) throw error;
+    (data||[]).forEach(r=>{
+      const k=r.order_id+"|"+(r.sku||"");
+      stockFlags.add(k); stockDecl[k]={by:nameOf(r.reported_by)||null, src:r.source||null};
+    });
+    renderShortAlert(); renderPack();
+  }catch(e){ /* declaration display is informative — never block the pack view */ }
+}
+async function toggleStockShortPack(idx){
+  const l=lines[idx]; if(!l||stockBusy) return;
+  if(!await ensureMine()) return;   // 규칙 28 — 선언도 쓰기다
+  const oid=packTask?packTask.order_id:null;
+  if(!oid){ toast("Cannot declare — order unknown",true); focusScan(); return; }
+  const key=oid+"|"+(l.order_sku||""), on=stockFlags.has(key);
+  stockBusy=true; renderPack();
+  try{
+    if(on){
+      // cancel: only the still-open declaration — resolved history is never deleted
+      const {error}=await sb.from("wms_reports").delete()
+        .eq("order_id",oid).eq("sku",l.order_sku).eq("kind","stock_short").is("resolved_at",null);
+      if(error) throw error;
+      stockFlags.delete(key); delete stockDecl[key]; toast("Stock-short declaration cancelled");
+    }else{
+      if(!confirm(`${l.order_sku}\n\nDeclare NOT ENOUGH STOCK?\nOrdered ${l.required}, physically here ${l.verified}.\n\nGo CHECK THE SHELF first — only declare if the rest\nreally is not there.\n\nThis is NOT counted as a worker mistake — it goes to the\nmanager's report list as a stock mismatch to check and adjust.`)){ stockBusy=false; renderPack(); focusScan(); return; }
+      const {error}=await sb.from("wms_reports").insert({
+        order_id:oid, order_number:order.order_number, sku:l.order_sku,
+        kind:"stock_short", note:"Not enough stock on the shelf (declared while packing · "+packTask.batch_label+")",
+        qty_expected:l.required, qty_found:l.verified,
+        reported_by:me.id, source:"packer"
+      });
+      if(error) throw error;
+      stockFlags.add(key); stockDecl[key]={by:me.name, src:"packer"}; toast("Stock shortage declared");   // 표시용 이름
+    }
+    renderShortAlert();
+  }catch(e){ toast("Declaration failed: "+(e.message||e),true); }
+  stockBusy=false; renderPack(); focusScan();
+}
+
+/* ---------- over-scan verdict modal (one line at a time, two explicit answers) ---------- */
+function overChoice(l){
+  return new Promise(res=>{
+    const m=document.getElementById("overModal");
+    scanBusy=true;   // 모달 표시 중에도 #scan 은 살아 있다 — processScan 쪽에서 막는다 (2026-08-05)
+    const total=l.required+(l.overScans||0);
+    document.getElementById("ovmMsg").textContent=
+      `${l.order_sku}\nOrdered ${l.required} · scans say ${total}.\n\nCOUNT the physical items in front of you now.\nHow many are actually there?`;
+    const bE=document.getElementById("ovmExtra"), bT=document.getElementById("ovmTwice"), bC=document.getElementById("ovmCancel");
+    bE.textContent=`Picker brought extra — ${total} items are here`;
+    bT.textContent=`I scanned twice — only ${l.required} are here`;
+    const done=v=>{ m.style.display="none"; scanBusy=false; bE.onclick=bT.onclick=bC.onclick=null; res(v); };
+    bE.onclick=()=>done("extra"); bT.onclick=()=>done("mistake"); bC.onclick=()=>done(null);
+    m.style.display="grid";
+  });
+}
+function manualSetPack(idx){
+  if(frozen) return;
+  const l=lines[idx];
+  const v=prompt(`${l.order_sku} Enter verified quantity (0 ~ ${l.required})`, l.verified);
+  if(v===null){focusScan();return;}
+  let n=parseInt(v,10); if(isNaN(n))n=0; n=Math.max(0,Math.min(l.required,n));
+  if(n>l.verified && !confirmFillIfNeeded(l, n)){ focusScan(); return; }
+  l.verified=n; l.vmethod="manual"; saveLine(l); renderPack(); focusScan();
+}
+function movePack(dir){ curIdx=Math.max(0,Math.min(lines.length-1,curIdx+dir)); renderPack(); focusScan(); }
+document.getElementById("viewSeg").onclick=e=>{
+  const b=e.target.closest("button"); if(!b)return;
+  view=b.dataset.v;
+  viewOverride=null; backIdx=null;   // 토글은 명시 선택 — 임시 싱글뷰 상태 해제
+  [...document.querySelectorAll("#viewSeg button")].forEach(x=>x.classList.toggle("active",x===b));
+  renderPack(); focusScan();
+};
+/* SKU search within the batch being verified */
+const skuEl=document.getElementById("skuSearch");
+skuEl.addEventListener("input",()=>{ skuFilter=skuEl.value; if(view==="list") renderPack(); });
+skuEl.addEventListener("keydown",e=>{
+  if(e.key!=="Enter")return; e.preventDefault();
+  const sf=skuEl.value.trim().toLowerCase(); if(!sf)return;
+  const i=lines.findIndex(l=>(l.order_sku||"").toLowerCase().includes(sf)||(l.base_sku||"").toLowerCase().includes(sf)||(l.product_name||"").toLowerCase().includes(sf));
+  if(i>=0){ curIdx=i; renderPack(); }
+  else toast("No item matches "+skuEl.value,true);
+});
+document.getElementById("skuClear").onclick=()=>{ skuFilter=""; skuEl.value=""; renderPack(); focusScan(); };
+function renderList(){
+  document.getElementById("single").style.display="none";
+  document.getElementById("list").style.display="flex";
+  const tot=totTarget(), v=totVer();
+  document.getElementById("progBar").style.width=(tot?Math.round(v/tot*100):0)+"%";
+  // over-scan detection notice (not recorded — confirm at completion)
+  const overs=lines.filter(l=>(l.overScans||0)>0);
+  const ov=document.getElementById("overAlert");
+  if(overs.length){
+    ov.style.display="block";
+    document.getElementById("overList").innerHTML=overs.map(l=>`<li>· ${esc(l.order_sku)} — ordered ${l.required} met, then ${l.overScans} more scans</li>`).join("");
+  }else{ ov.style.display="none"; }
+  const el=document.getElementById("list");
+  const sf=skuFilter.trim().toLowerCase();
+  const match=l=>!sf || (l.order_sku||"").toLowerCase().includes(sf) || (l.base_sku||"").toLowerCase().includes(sf) || (l.product_name||"").toLowerCase().includes(sf);
+  const visible=lines.map((l,idx)=>({l,idx})).filter(x=>match(x.l));
+  const cb=document.getElementById("skuClear");
+  cb.style.display=sf?"inline-block":"none";
+  if(sf && !visible.length){ el.innerHTML=`<div style="padding:18px;color:var(--mut);font-size:13px;text-align:center">No item matches "${esc(skuFilter)}" in this batch.</div>`; return; }
+  el.innerHTML=visible.map(({l,idx})=>{
+    const done=l.verified>=l.required;
+    const partial=l.verified>0&&!done;   // 부분 = 0<verified<required (required 기준 — 픽 부족 라인은 픽량을 다 담아도 유지: 「부족한 채 나간다」 표시)
+    // 부분(주황 배경)은 cur(보라 테두리)와 병기 — 배경과 테두리는 직교 레이어. done 은 종전대로 단독
+    const cls=done?"done":[partial?"partial":"",idx===curIdx?"cur":""].filter(Boolean).join(" ");
+    let chip="";
+    if(l.expected<l.required){
+      if(l.verified>=l.required) chip=`<span class="recchip">Pack fill +${l.verified-l.expected}</span>`;
+      else chip=`<span class="shortchip">Short ${l.required-l.verified}</span>`;
+    }
+    if((l.overScans||0)>0) chip+=`<span class="overchip">Over-scan ${l.overScans}</span>`;
+    const sd=stockDeclOf(l);
+    if(sd) chip+=`<span class="stockchip">Stock short · ${esc(sd.by||"?")}</span>`;
+    const pickNote=l.expected<l.required?`<span class="picknote">Pick ${l.expected}</span>`:"";
+    const overBtn=(l.overScans||0)>0?`<button class="rmover" data-rmover="${idx}" ${frozen?"disabled":""}>Clear over</button>`:"";
+    return `<div class="lrow ${cls}" data-idx="${idx}">
+      ${HAS_IMAGES?`<div class="thumb">${imgTag(l)}</div>`:""}
+      <div class="li"><div class="s">${esc(l.order_sku)}${chip}</div><div class="n">${esc(l.product_name)}</div><div class="b">${esc(l.bins||l.bin||"—")}${availChip(l)} ${pickNote}${overBtn}</div></div>
+      <div>
+        <div class="q">${l.verified} / ${l.required}</div>
+        <div class="stepmini"><button data-step="-1" data-i="${idx}" ${frozen?"disabled":""}>−</button><button data-step="1" data-i="${idx}" ${frozen?"disabled":""}>+</button></div>
+      </div>
+    </div>`;
+  }).join("");
+  el.querySelectorAll(".lrow").forEach(r=>r.onclick=e=>{
+    if(e.target.dataset.step||e.target.dataset.rmover)return;     // 스테퍼·Clear over 는 행 탭에서 제외
+    if(recentListScroll())return;                                 // 스크롤 직후 고스트 탭 무시
+    clearTimeout(advTimer);                                       // 명시적 이동 — 900ms auto-advance 억제
+    curIdx=+r.dataset.idx; backIdx=curIdx; viewOverride="single"; // 행 탭 → 그 SKU 임시 싱글뷰
+    renderPack(); focusScan();
+  });
+  el.querySelectorAll("[data-step]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); manualAdjust(+b.dataset.i,+b.dataset.step); });
+  el.querySelectorAll("[data-rmover]").forEach(b=>b.onclick=e=>{ e.stopPropagation(); lines[+b.dataset.rmover].overScans=0; renderPack(); focusScan(); });
+  const cur=el.querySelector(".lrow.cur"); if(cur)cur.scrollIntoView({block:"nearest"});
+}
+document.getElementById("list").addEventListener("touchmove",()=>{ lastListScroll=Date.now(); },{passive:true});
+/* 임시 싱글뷰에서 복귀 — 탭했던 행으로 스크롤 + 짧은 하이라이트 (상태는 메모리만 — 규칙 5) */
+function backToList(){
+  const idx=backIdx; viewOverride=null; backIdx=null;
+  renderPack();
+  const row=document.querySelector(`#list .lrow[data-idx="${idx}"]`);
+  if(row){ row.scrollIntoView({block:"center"}); row.classList.add("flashback"); setTimeout(()=>row.classList.remove("flashback"),1300); }
+  focusScan();
+}
+
+/* scan */
+const scanEl=document.getElementById("scan");
+let scanBusy=false;   // 결정 모달 표시 중 스캔 차단 (fulfillment 의 scanBusy 패턴 — 2026-08-05)
+scanEl.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();const v=scanEl.value.trim();scanEl.value="";if(v)processScan(v);} });
+function processScan(code){
+  if(frozen) return;
+  if(scanBusy) return;               // a decision modal is open — ignore scans meanwhile
+  const cands=bcMap[code];
+  if(!cands||!cands.length){ flash("bad","✕ Barcode not in this batch"); return; }
+  clearTimeout(advTimer);
+  // prefer lines not yet at ordered qty, else already-full (=over detect) lines
+  let hit=cands.find(c=>lines[c.idx].verified<lines[c.idx].required) || cands[0];
+  const l=lines[hit.idx], f=hit.factor; curIdx=hit.idx;
+  const room=l.required-l.verified;
+  if(room<=0){
+    // ordered qty already met → over-scan. not recorded, soft warning only (avoid double-scan false positive).
+    // let packer decide at completion whether it's a 'real extra'.
+    l.overScans=(l.overScans||0)+f;   // over-scan detection mark (not recorded)
+    lastScan={sku:l.order_sku, f:0, ignored:f, verified:l.verified, required:l.required, box:f>1, at:Date.now()};
+    flash("bad",`⚠ already ${l.required} met — extra scans ignored (${l.order_sku})`);
+    renderPack(); focusScan(); return;
+  }
+  if(f>room){
+    // variant scan etc. exceeded ordered qty → fill only what's needed, mark rest as over-scan only (not recorded)
+    l.verified=l.required; l.overScans=(l.overScans||0)+(f-room); l.vmethod=f>1?"scanned_variant":"scanned_base";
+    lastScan={sku:l.order_sku, f:room, ignored:f-room, verified:l.verified, required:l.required, box:f>1, at:Date.now()};
+    flash("bad",`⚠ ${l.order_sku} ${l.required} met — excess ${f-room} ignored`);
+    saveLine(l); renderPack(); focusScan(); return;
+  }
+  // normal verify
+  if(!confirmFillIfNeeded(l, l.verified + f)){ focusScan(); return; }
+  l.verified+=f; l.vmethod=f>1?"scanned_variant":"scanned_base";
+  const rec=(l.verified>l.expected)?" · pack fill":"";
+  lastScan={sku:l.order_sku, f, verified:l.verified, required:l.required, box:f>1, at:Date.now()};
+  const lineDone=l.verified>=l.required;
+  flash(lineDone?"done":(f>1?"okbox":"ok"),`✓ ${l.order_sku}  +${f}  (${l.verified}/${l.required})${rec}${lineDone?" · COMPLETE":""}`);
+  saveLine(l);
+  if(l.verified>=l.required){
+    // let the worker SEE the line reach its target before the view moves on
+    renderPack(); focusScan();
+    advTimer=setTimeout(()=>{ if(lines[curIdx]&&lines[curIdx].verified>=lines[curIdx].required){ autoAdvance(); renderPack(); focusScan(); } },900);
+    return;
+  }
+  renderPack(); focusScan();
+}
+function autoAdvance(){ const n=lines.findIndex((l,i)=>i>curIdx&&l.verified<l.required); const a=lines.findIndex(l=>l.verified<l.required); curIdx=n>=0?n:(a>=0?a:curIdx); }
+
+// Pick was incomplete (expected < required): crossing the picker's picked qty needs confirmation.
+// Fires an audible beep + red flash + vibrate so it's noticeable, then asks to confirm. Used by scan AND manual +.
+function confirmFillIfNeeded(l, newVerified){
+  if(l.expected < l.required && !l.fillConfirmed && newVerified > l.expected){
+    flash("bad", `⚠ ${esc(l.order_sku)} — beyond picker's ${l.expected}`);   // sound + flash + vibrate
+    const need = l.required - l.expected;
+    const msg = `${l.order_sku}\n\nPicker pulled ${l.expected}, ordered ${l.required}.\nYou are going beyond what the picker pulled.\n\nDid you find the remaining ${need} from another location?\n\nOK = yes, add it.   Cancel = stop.`;
+    if(!confirm(msg)) return false;   // not confirmed → nothing added
+    l.fillConfirmed = true;           // confirmed once → no repeat for this line
+  }
+  return true;
+}
+function manualAdjust(idx,d){
+  if(frozen) return;
+  const l=lines[idx]; const nv=Math.max(0,Math.min(l.required,l.verified+d)); if(nv===l.verified)return;
+  if(d>0 && !confirmFillIfNeeded(l, nv)){ focusScan(); return; }   // clicking + beyond picker qty → same alert+confirm
+  l.verified=nv; l.vmethod="manual"; saveLine(l); renderPack(); focusScan();
+}
+
+async function saveLine(l){
+  if(!l.packline_id)return;
+  if(!await ensureMine()) return;      // 규칙 28 — 쓰기 직전 소유권 재확인 (scan · stepper · manual 공통 관문)
+  if(l.verified>0) markWorkStarted(); // first real verify = this claim is genuine work
+  const st=l.verified>=l.required?"verified":(l.verified>0?"in_progress":"pending");
+  // verified_at/verified_by (2026-08-21 · 라인 시각 편승 1단계): 스캔 시점 기록 — picker picked_at 과 동형.
+  // 완료 RPC 는 coalesce(l.verified_at, v_now) 로 이 값을 보존한다(⑤-2a2). 요청 수 증가 0. verified_by 는 ims_staff.id.
+  await sb.from("wms_pack_task_lines").update({verified_base:l.verified,verification_method:l.vmethod,status:st,
+    verified_at:new Date().toISOString(),verified_by:me.id}).eq("id",l.packline_id);
+}
+
+function leavePackView(){
+  packTask=null;order=null;lines=[];bcMap={};
+  document.getElementById("packView").style.display="none";
+  document.getElementById("listView").style.display="block";
+  loadQueue();
+}
+// 이 오더의 배치가 전부 팩 됐다 — 안내만(판정 18 · SO 상태는 안 바뀐다 · Finalize 는 fulfillment 화면 ⑤-5)
+function readyAlert(){ alert(`✅ ${order.order_number} — All batches for this order are packed!\n\nThe order is ready to be finalized (Finalize · fulfillment screen).`); }
+
+/* Done */
+document.getElementById("doneBtn").onclick=async ()=>{
+  if(frozen) return;
+  const miss=lines.filter(l=>l.verified<l.required);          // below ordered qty
+  const plainMiss=miss.filter(l=>!stockFlagged(l));           // 규칙 41 — 선언 라인은 부족 계산에서 제외
+  const recovered=lines.filter(l=>l.expected<l.required && l.verified>=l.required); // filled during packing
+  const overScanLines=lines.filter(l=>(l.overScans||0)>0);    // over-scan detected lines
+  let realOvers=[], scanMistakes=[];                          // per-line verdicts (packer counts the physical items)
+
+  // 1) over-scans — ONE LINE AT A TIME: count the items, then pick one of two explicit answers.
+  //    'extra' = picker really brought more (return + record over_pick, responsible=picker)
+  //    'mistake' = my double scan (recorded as pack_scan_mistake, pre-resolved, responsible=null)
+  for(const l of overScanLines){
+    const v=await overChoice(l);
+    if(v===null){ focusScan(); return; }   // go back and recount — completion aborted
+    if(v==="extra") realOvers.push(l); else scanMistakes.push(l);
+  }
+  if(realOvers.length){
+    const rd=realOvers.map(l=>`· ${l.order_sku}: extra ${l.overScans} → ${l.bin||"?"} return`).join("\n");
+    if(!confirm(`Did you return the extra to its original location?\n${rd}\n\nPicker(${nameOf(packTask.picker)||"unknown"})'s over-pick will be recorded..`)) { focusScan(); return; }
+  }
+  // 2) shortfall gate — 미선언 short 는 공용 마찰 모달(wms-confirm-modal.js).
+  //    native confirm 은 footer 완료 버튼 오탭 → OK 오탭, 물리 탭 2회로 통과됐다(SO-14129 확정 원인).
+  //    stock_short 선언 라인은 부족 계산에서 제외(규칙 41) — 선언만 남으면 모달 없이 가벼운 확인.
+  if(plainMiss.length){
+    const shortQty=plainMiss.reduce((s,l)=>s+(l.required-l.verified),0);
+    scanBusy=true;
+    const go=await wmsConfirmModal.ask({
+      keepLabel:"Keep packing",
+      endLabel:`End · ${shortQty} short`,
+      doneLabel:"verified", doneQty:totVer(),
+      shortQty, orderedQty:totTarget(),
+      lines:plainMiss.map(l=>({sku:l.order_sku, short:l.required-l.verified})),
+    });
+    scanBusy=false;
+    scanEl.value="";   // 모달 중 들어온 스캔 문자 잔여물 제거 (Enter 가 차단돼 값이 쌓인다)
+    if(!go){ focusScan(); return; }
+  } else if(miss.length){
+    if(!confirm(`${packTask.batch_label} Complete pack?\n${miss.length} short line(s) — all declared "Not enough stock" (stock mismatch, not a mistake).\n\nContinue?`)) { focusScan(); return; }
+  } else if(!overScanLines.length) {
+    const msg=recovered.length?`${packTask.batch_label} Complete pack?\n(in packing, ${recovered.length} lines' shortfall recovered)`:`${packTask.batch_label} Complete pack?`;
+    if(!confirm(msg)) { focusScan(); return; }
+  }
+  // 규칙 28 — Pack fill·Over-scan 확인까지 끝난 뒤 쓰기 직전에 재확인.
+  // 값싼 선확인(조기 프리즈)일 뿐, 최종 관문은 RPC 안의 CAS 다 (2026-08-06 8단계).
+  if(!await ensureMine()) return;
+  const btn=document.getElementById("doneBtn"); btn.disabled=true;
+  scanBusy=true;   // RPC 비행 중 스캔 차단 — saveLine 이 완료 뒤에 끼어들지 않게 (2026-08-06)
+  stopHeartbeat(); presenceLeave();
+  try{
+    /* ── 완료 쓰기 전부 = wms_complete_pack RPC 한 트랜잭션 (2026-08-06 8단계 · 규칙 9/28 · ⑤-2a2) ──
+       라인 최종 저장 → 실수 생성(p_mistakes · reason 셋) → stock_short 정리 → CAS 플립 → ready 판정(뷰 all_packed · SO 무변).
+       전부 성공하거나 전부 취소된다. 계산은 여기(JS)가, 쓰기는 함수가.
+       완료자·픽커(responsible)는 함수가 서버에서 유도(auth.uid() → ims_staff.id · wms_pick_tasks.assigned_to). */
+    const payload={
+      p_task_id: packTask.id,
+      p_session_id: SID,   // 이 화면(탭) 세션 — 행의 session_id 와 다르면 CAS 0행 + reason "other_device" (2026-09-10 · 규칙 28)
+      p_lines: lines.filter(l=>l.packline_id).map(l=>({
+        id:l.packline_id, verified_base:l.verified,
+        status:(l.verified>=l.required?"verified":"mismatch"),
+        verification_method:l.vmethod||null,
+      })),
+      p_mistakes: [
+        // 미선언 부족 → short_after_pack. 선언(stock_short) 라인은 제외 — 이미 리포트에 있다(규칙 41)
+        ...plainMiss.map(l=>({sku:l.order_sku, reason:"short_after_pack", ordered_base:l.required, actual_base:l.verified})),
+        // 확인된 진짜 초과 → over_pick
+        ...realOvers.map(l=>({sku:l.order_sku, reason:"over_pick", ordered_base:l.required, actual_base:l.required+l.overScans})),
+        // 중복 스캔 자백 → pack_scan_mistake (선해소 컬럼은 함수가 채운다)
+        ...scanMistakes.map(l=>({sku:l.order_sku, reason:"pack_scan_mistake", ordered_base:l.required, actual_base:l.required})),
+      ],
+      // 선언 정리 — 여전히 부족=수량 갱신 / 채워짐=해소 / 팩 회복=short_pick 해소
+      p_short_refresh: miss.filter(stockFlagged).map(l=>({sku:l.order_sku, ordered_base:l.required, actual_base:l.verified})),
+      p_short_resolve: lines.filter(l=>l.verified>=l.required && stockFlagged(l)).map(l=>l.order_sku),
+      p_recovered: recovered.map(l=>l.order_sku),
+    };
+    const {data:res,error:re}=await sb.rpc("wms_complete_pack", payload);
+    if(re) throw re;   // 예외 = 전체 롤백 — 아무것도 저장되지 않았다 (함수 메시지가 원인을 담는다)
+    if(!res || res.completed!==true){
+      // CAS 0행. 서버 유도 직원(worker = ims_staff.id)이 내 세션(me.id)과 다르면 직원 행 불일치 — 원인 없는 프리즈로 뭉개지 않는다.
+      if(res && res.worker && res.worker!==me.id){ freezeScreen(null, staffMismatchMsg()); return; }
+      // 같은 사람 · 다른 화면(탭/기기)이 이 작업을 열었다 (2026-09-10) — 서버가 판정한 reason. 재조회 없이 전용 프리즈.
+      if(res && res.reason==="other_device"){ freezeScreen(null, otherDeviceMsg()); return; }
+      await completeCasFailed(packTask.id);
+      return;
+    }
+    scanMistakes.forEach(l=>{ l.overScans=0; });   // 판정 기록 완료 — 초과 표시 해제
+    if(res.ready){ readyAlert(); }
+    const extra=[];
+    const declaredMiss=miss.filter(stockFlagged).length;
+    if(miss.length)extra.push(`Short ${miss.length}${declaredMiss?` (${declaredMiss} stock-short)`:""}`);
+    if(realOvers.length)extra.push(`Over ${realOvers.length}`);
+    if(scanMistakes.length)extra.push(`Double scan ${scanMistakes.length}`);
+    if(!miss.length&&recovered.length)extra.push(`Recovered ${recovered.length}`);
+    toast(packTask.batch_label+" Complete pack"+(extra.length?` (${extra.join(", ")})`:""));
+    leavePackView();
+  }catch(e){
+    // RPC 는 전체 롤백이므로 이 메시지가 정직하다 — 반쪽 상태가 없다
+    toast("Completion failed — nothing was saved: "+(e.message||e),true);
+    if(packTask){ startHeartbeat(); presenceJoin(); }
+  }
+  finally{ scanBusy=false; if(!frozen){ btn.disabled=false; } } // 프리즈면 버튼을 되살리지 않는다
+};
+
+/* 완료 CAS 0행 → 원인 구분 (2026-08-06, 규칙 28 후속 · ⚠️ 현장 미검증)
+   "Completion failed" 로 뭉개면 작업자가 다시 눌러보다 포기한다 — 세 갈래로 가른다.
+   라인 저장·실수 기록은 완료 플립 앞에서 이미 끝났으므로 어느 갈래든 유실은 없다. */
+async function completeCasFailed(id){
+  let row;
+  try{
+    const q=await sb.from("wms_pack_tasks").select("assigned_to,status,completed_by").eq("id",id).maybeSingle();
+    if(q.error) throw q.error;
+    row=q.data;
+  }catch(e){
+    // 재조회도 실패(네트워크) — 완료가 실제로는 반영됐을 수 있다.
+    // 재시도하면 반영된 경우 아래 "내 완료" 분기가 성공으로 구제한다.
+    toast("Couldn't confirm completion — check connection and try again",true);
+    if(packTask){ startHeartbeat(); presenceJoin(); }
+    return;
+  }
+  // "이미 완료" 를 성공으로 치는 것은 completed_by 가 정확히 나일 때만 —
+  // completed 만 보면 남이 완료한 것을 내 성공으로 착각한다.
+  if(row && row.status==="completed" && row.completed_by===me.id){
+    // 이전 시도가 완료 플립까지 반영되고 응답만 유실된 재시도 — ready 안내만 다시(SO 상태 쓰기는 없다 · 판정 18).
+    let note="Already completed — saved", bad=false;
+    try{ if(await checkOrderReady(packTask.order_id)) readyAlert(); }
+    catch(e){ note="Saved — could not check whether the order is fully packed"; bad=true; }
+    toast(note,bad);
+    leavePackView();
+    return;
+  }
+  // 남이 가져갔거나(assigned_to=남) 풀렸다(null/행 없음) → 검증된 프리즈 모달 재사용(리로드만).
+  freezeScreen(row && row.assigned_to && row.assigned_to!==me.id ? row.assigned_to : null);
+}
+
+// 이 오더의 배치가 전부 팩 됐나 — 뷰 wms_order_pack_progress(all_packed) 읽기만(운영이 오더 상태를 「닫을 준비」로 쓰던 update 는 없다 · 판정 18)
+async function checkOrderReady(orderId){
+  const {data,error}=await sb.from("wms_order_pack_progress").select("all_packed").eq("order_id",orderId).maybeSingle();
+  if(error) throw error;
+  return !!(data&&data.all_packed);
+}
+
+/* Hold */
+document.getElementById("holdBtn").onclick=async ()=>{
+  if(frozen) return;
+  if(!packTask)return;
+  if(!confirm("Hold this verification?\nYour progress is saved and the batch returns to the pack queue\nYou or another worker can resume it later..")) return;
+  if(!await ensureMine()) return;   // 규칙 28 — 값싼 선확인(조기 프리즈). 최종 관문은 RPC 안의 CAS (2026-08-07)
+  const btn=document.getElementById("holdBtn"); btn.disabled=true;
+  scanBusy=true;   // RPC 비행 중 스캔 차단 — saveLine 이 Hold 뒤에 끼어들지 않게 (doneBtn 과 동일)
+  stopHeartbeat(); presenceLeave();
+  try{
+    /* ── Hold 쓰기 전부 = wms_hold_pack RPC 한 트랜잭션 (2026-08-07 · 규칙 9/28 · ⑤-2a2) ──
+       CAS 플립(pending 복귀 + held_by) → 라인 최종 저장 → wms_task_holds 한 줄. 전체 롤백 확정 —
+       스캔 잔존은 saveLine 증분 저장이 담당. hold keeps pack_task as pending + clears assigned_to → drops from 'My In Progress' so anyone can resume. */
+    const payload={
+      p_task_id: packTask.id,
+      p_session_id: SID,   // 이 화면(탭) 세션 — 행의 session_id 와 다르면 CAS 0행 + reason "other_device" (2026-09-10 · 규칙 28)
+      p_lines: lines.filter(l=>l.packline_id).map(l=>({
+        id:l.packline_id, verified_base:l.verified,
+        status:(l.verified>=l.required?"verified":(l.verified>0?"in_progress":"pending")),
+        verification_method:l.vmethod||null,
+      })),
+    };
+    const {data:res,error:re}=await sb.rpc("wms_hold_pack", payload);
+    if(re) throw re;   // 예외 = 전체 롤백 — 클레임은 그대로 내 것 (아래 alert 가 정직하다)
+    if(!res || res.held!==true){
+      // CAS 0행. 서버 유도 직원(worker)이 내 세션(me.id)과 다르면 직원 행 불일치 (doneBtn 과 동일)
+      if(res && res.worker && res.worker!==me.id){ freezeScreen(null, staffMismatchMsg()); return; }
+      if(res && res.reason==="other_device"){ freezeScreen(null, otherDeviceMsg()); return; }   // 다른 화면이 열었다 (doneBtn 과 동일 · 2026-09-10)
+      await holdCasFailed(packTask.id);
+      return;
+    }
+    toast(packTask.batch_label+" held");
+    leavePackView();
+  }catch(e){
+    // ⚠️ Hold 는 눌러놓고 자리를 뜨는 동작 — 실패를 토스트로 흘리면 배치가 in_progress 로
+    // 남은 채 화면만 떠나 남이 못 잡는다. alert(단일 OK — confirm 오탭류 위험 없음)로 멈춰 세운다.
+    alert(`HOLD FAILED — this batch was NOT held.\n\nIt is still assigned to you and will NOT appear in the pack queue, so no one else can pick it up.\n\nNothing was saved. Stay on this screen and press Hold again, or ask a manager.\n\nReason: ${e.message||e}`);
+    if(packTask){ startHeartbeat(); presenceJoin(); }
+  }finally{ scanBusy=false; if(!frozen){ btn.disabled=false; } } // 프리즈면 버튼을 되살리지 않는다
+};
+
+/* Hold CAS 0행 → 원인 구분 (2026-08-07 · completeCasFailed 와 동형 · ⚠️ 현장 미검증)
+   Hold 도 결과 오인이 곧 사고다(성공 오인 = 배치가 in_progress 로 잠긴 채 방치).
+   "내 Hold" 판정 = pending + assigned_to null + held_by=나 — claim(startPack)이
+   held_by 를 null 로 정리하므로 이 조합으로 남는 경로는 내 Hold(응답 유실 뒤 재탭)뿐이다. */
+async function holdCasFailed(id){
+  let row;
+  try{
+    const q=await sb.from("wms_pack_tasks").select("assigned_to,status,held_by").eq("id",id).maybeSingle();
+    if(q.error) throw q.error;
+    row=q.data;
+  }catch(e){
+    // 재조회도 실패(네트워크) — Hold 가 실제로는 반영됐을 수 있다. 재시도가 "내 Hold" 분기로 구제.
+    alert("HOLD NOT CONFIRMED — could not reach the server.\n\nThe hold may or may not have gone through. Check the connection and press Hold again — if it already went through you will be returned to the list.");
+    if(packTask){ startHeartbeat(); presenceJoin(); }
+    return;
+  }
+  const mine = row && row.status==="pending" && !row.assigned_to && row.held_by===me.id;
+  if(mine){   // 목록 복귀 = "Hold 됐다" 신호
+    toast("Already held (returned to the pack queue)");
+    leavePackView();
+    return;
+  }
+  // 남이 가져갔거나(assigned_to=남) 풀렸다(null/행 없음) → 검증된 프리즈 모달 재사용(리로드만).
+  freezeScreen(row && row.assigned_to && row.assigned_to!==me.id ? row.assigned_to : null);
+}
+
+/* Back (keep My In Progress) */
+document.getElementById("backBtn").onclick=async ()=>{
+  stopHeartbeat(); presenceLeave();
+  // No verification done → leaving is not "work in progress": release the claim
+  // (set to pending/unassigned) so the batch goes straight back to the pack queue.
+  const didWork=(packTask&&packTask.work_started)||lines.some(l=>l.verified>0);
+  if(packTask && !didWork){
+    await sb.from("wms_pack_tasks")
+      .update({status:"pending",assigned_to:null,started_at:null,heartbeat_at:null})
+      .eq("id",packTask.id).eq("assigned_to",me.id);
+  }
+  leavePackView();
+};
+
+/* keep scan focus */
+function focusScan(){ if(frozen) return; if(document.getElementById("packView").style.display!=="none"){const s=document.getElementById("scan"); const a=document.activeElement; if(a===s)return; if(a&&(a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA")&&a!==s)return; s.focus();} }
+document.getElementById("scan").addEventListener("blur",()=>{setTimeout(focusScan,60);});
+document.addEventListener("click",e=>{ if(document.getElementById("packView").style.display==="none")return; if(e.target.tagName==="SELECT"||e.target.tagName==="OPTION")return; setTimeout(focusScan,0); });
+
+boot();
+</script>
+</body>
+</html>
