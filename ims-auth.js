@@ -303,6 +303,7 @@
     //       이 줄로 WMS 모드가 탭 줄에 선다(모드 둘 · WMS 안 탭 하나). picker · packer 줄은 그 파일이 설 때(⑤-4b · 4c — 빈 링크를 메뉴에 두지 않는다). 묶음 'warehouse' 는 groupDefs 에 없다 — WMS 안 묶음이 둘이 될 때 더한다.
     //    ✅ [2026-09-26 밤] Picking(wms-picker.html · ⑤-4b · 운영 picker.html 의 자리) — 열쇠 picking(WMS 방 · worker 기본 · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Split & Waves 앞(작업 화면 먼저 · 매니저 화면 뒤). packer 줄은 ⑤-4c.
     //    ✅ [2026-09-26 밤] Packing(wms-packer.html · ⑤-4c · 운영 packer.html 의 자리) — 열쇠 packing(WMS 방 · worker 기본) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Picking 뒤 · Split & Waves 앞. WMS 탭 셋 = Picking · Packing · Split & Waves.
+    //    ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · ⑤-5a · 운영 fulfillment.html 의 자리) — 열쇠 fulfillment(WMS 방 · worker 기본 · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Packing 뒤 · Split & Waves 앞. WMS 탭 넷 = Picking · Packing · Fulfillment · Split & Waves.
     const items=[
       ["Settings","settings.html","master","ims",false,null],
       ["Suppliers","suppliers.html","master","ims",false,null],
@@ -323,6 +324,7 @@
       ["Manager List","manager-list.html","sales","ims",false,null],
       ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
       ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
+      ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
       ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
       ["Staff","staff.html","staff","ims",false,null],
       ["Home","index.html",null,null,false,null],

@@ -17,7 +17,7 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)
+[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)  → ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · 7-p)가 Packing 뒤 · Split & Waves 앞에 더 — fulfillment 열쇠는 worker 기본이라 worker 는 Picking · Packing · Fulfillment 셋 · admin 은 스물셋(⑤-5a)
     Settings · Suppliers · Products · Families · Supplier Products ·
     Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
     ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
@@ -50,20 +50,21 @@
 📌 [정정 2026-09-26] wms-manager.html(09-26 · Claude Code ⑤-4a · 운영 manager.html 의 복사본)로 **열아홉**이다 — 같은 커밋에 고쳤다. ⚠️ WMS 화면은 공통 셋에 더해 wms-picklist.js(픽리스트 인쇄 · 운영에서 복사)도 부른다 — 그 파일을 고치면 wms-*.html 만 움직인다.
 📌 [정정 2026-09-26 밤] wms-picker.html(09-26 밤 · Claude Code ⑤-4b · 운영 picker.html 의 복사본)로 **스물**이다 — 같은 커밋에 고쳤다. picker 는 wms-confirm-modal.js(부족 완료 마찰 모달)도 부른다.
 📌 [정정 2026-09-26 밤] wms-packer.html(09-26 밤 · Claude Code ⑤-4c · 운영 packer.html 의 복사본)로 **스물하나**다 — 같은 커밋에 고쳤다. packer 도 wms-picklist.js · wms-confirm-modal.js 를 부른다.
+📌 [정정 2026-09-27] wms-fulfillment.html(09-27 · Claude Code ⑤-5a · 운영 fulfillment.html 의 복사본)로 **스물둘**이다 — 같은 커밋에 고쳤다. fulfillment 는 wms-packing.js(팔렛 · 박스 라벨 · 오더 소계 줄 · 운영에서 바이트 그대로 복사 · DB 접점 0)를 부른다 — 그 파일을 고치면 wms-fulfillment.html 만 움직인다(picker · packer 는 안 쓴다).
 ```
-[ ] 스물한 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · staff
+[ ] 스물두 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 스물한 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html · wms-packer.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 스물한 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 스물두 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html · wms-packer.html · wms-fulfillment.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 스물두 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
     ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
     ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
     둘째 인자 seenAt 을 주면 낡은 값 저장을 막고, **안 주면 예전과 똑같이 돈다**(2026-09-18).
     ⚠️ 지금 이 인자를 넘기는 화면은 **하나도 없다**(한 번 붙였다가 되돌렸다 · 정본 §13-f)
 [ ] ⭐⭐ 검사 다섯째(2026-09-26 · ⑤-4a · 절대 조건) — 운영 WMS 에서 복사해 온 화면(wms-*.html · wms-*.js)이나 ims-auth.js 를 고쳤으면
-    `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picker.html wms-packer.html wms-picklist.js wms-confirm-modal.js ims-auth.js` 가 **코드 줄에서 0** 이다
+    `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picker.html wms-packer.html wms-fulfillment.html wms-picklist.js wms-confirm-modal.js wms-packing.js ims-auth.js` 가 **코드 줄에서 0** 이다
     — 운영 프로젝트(asung-WMS)로 가는 길(설정 · 로그인 · 주소)이 이 레포에 없다 · asung-ims 에 wms-config.js 를 두지 않는다 · 화면의 Network 탭에 운영 주소 요청 0.
     ⚠️ ims-auth.js 머리 주석의 출처 메모 두 줄(3행 「원본: asung-wms 의 wms-auth.js」 · 8행 「WMS_CONFIG → IMS_CONFIG」)은 낱말만 있고 길이 아니다 — 2026-09-26 실측 grep -c 2 는 그 둘이다(코드 줄 0).
 ```
@@ -942,7 +943,7 @@ Parked and open at this store
 
 ---
 
-## 7-m. `wms-manager.html` — Split & Waves (2026-09-26 신설 · Claude Code ⑤-4a · 1판 「2026-09-26 · wm v1」 · 운영 `asung-wms/manager.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
+## 7-m. `wms-manager.html` — Split & Waves (2026-09-26 신설 · Claude Code ⑤-4a · 1판 「2026-09-26 · wm v1」 · 1.1판 「2026-09-27 · wm v1.1」 = ⑤-5a 띄어쓰기 8곳(「1lines · 12units」 → 「1 lines · 12 units」 · 로직 무변) · 운영 `asung-wms/manager.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
 
 뒷단(⑤-2a1 · 정본 `asung-wms/docs/design/so-module.md` §24-i · 판정 17 · 18 · 25 · 33): 읽기 표 `so`(status at_wms · channel warehouse · 내 창고 location_id) + `customer!so_customer_id_fkey(name)`(청구처 FK 와 둘이라 이름을 박는다) + `so_line`(보낼 줄 qty_ordered − qty_removed > 0) ·
 `wms_zone_sequence`(23행 · 열쇠 warehouse_id|zone) · `ref_warehouse`(id,name) · `ims_staff`(id,name 만 · 이름은 id 로 잇는다) · 읽기 RPC `so_pick_plan(p_so_id)`(줄 · 계획 칸 picks · need_ea · short_ea · warnings) ·
@@ -958,12 +959,12 @@ Parked and open at this store
 ⚠️ 모집단(2026-09-26 테스트 DB · Claude Code 실측): at_wms 창고 오더 **1**(SO-25003 · Asung Trading Inc. · JOJOJO - Joel Chang · Wholesale · C.B.S · CON00156 12 · 계획 칸 C070303 · short 0) · 동선 순서 23 · 창고 4(단추는 둘) · 직원 21.
 
 ```
-[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-26 · wm v1」 · ☰ Menu 에 Split & Waves(Manager List 뒤) · 탭 줄 「IMS · WMS | Split & Waves」
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · wm v1.1」 · ☰ Menu 에 Split & Waves(Manager List 뒤) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves」
     worker(wms_manage 없음)는 메뉴에 없고 주소로 열면 「You don't have access to this screen. Please contact your administrator.」 뒤 로그아웃
-[ ] 왼쪽 「RELEASED TO WMS」 에 SO-25003 한 장 — JOJOJO - Joel Chang · Toronto 태그(파랑) · 1lines · 12units · Wholesale · 수 1 · 창고 단추 All · TOR · EDM · 가격 등급 드롭다운에 Wholesale
-[ ] 카드를 누르면 오른쪽 「SO-25003 · Toronto · 1lines · 12units · Released to WMS by <풀어 준 사람 이름>」 · 경고 띠 없음 · 미리 보기 배치 SO-25003-1 — 줄 「C · CON00156 · CREME OF NATURE … · C070303 · 12」 · 「1lines · 12units → 1batches」
-[ ] max units 를 6 으로 줄여 Preview 해도 1batches(한 줄은 쪼개지 않는다) · max lines · max units 에서 Enter 가 Preview
-[ ] Create batches → 확인 → 토스트 「SO-25003 → 1batches created · Working」 · 픽리스트 창 한 장(바코드 SO-25003-1 · Order · Order Date 2026-09-25 · Terms C.B.S (Cash Before Shipment) · Ship To(so 의 ship_to_* · 비면 줄 없음) · Warehouse Toronto · Price Tier Wholesale · Printed · by 이름 · Customer · Total Lines 1 · Total Units 12 · Zones C · Batch 1 of 1) · 카드가 목록에서 사라져 「No orders released to the WMS.」
+[ ] 왼쪽 「RELEASED TO WMS」 에 SO-25003 한 장 — JOJOJO - Joel Chang · Toronto 태그(파랑) · 1 lines · 12 units · Wholesale · 수 1 · 창고 단추 All · TOR · EDM · 가격 등급 드롭다운에 Wholesale
+[ ] 카드를 누르면 오른쪽 「SO-25003 · Toronto · 1 lines · 12 units · Released to WMS by <풀어 준 사람 이름>」 · 경고 띠 없음 · 미리 보기 배치 SO-25003-1 — 줄 「C · CON00156 · CREME OF NATURE … · C070303 · 12」 · 「1 lines · 12 units → 1 batches」
+[ ] max units 를 6 으로 줄여 Preview 해도 1 batches(한 줄은 쪼개지 않는다) · max lines · max units 에서 Enter 가 Preview
+[ ] Create batches → 확인 → 토스트 「SO-25003 → 1 batches created · Working」 · 픽리스트 창 한 장(바코드 SO-25003-1 · Order · Order Date 2026-09-25 · Terms C.B.S (Cash Before Shipment) · Ship To(so 의 ship_to_* · 비면 줄 없음) · Warehouse Toronto · Price Tier Wholesale · Printed · by 이름 · Customer · Total Lines 1 · Total Units 12 · Zones C · Batch 1 of 1) · 카드가 목록에서 사라져 「No orders released to the WMS.」
 [ ] so.html 에서 SO-25003 이 Working(picking) · Recall 단추는 없다(picking 은 못 거둔다 — ⑤-5 되돌리기까지 그대로)
 [ ] Group 모드: 제목 「SMALL ORDERS」 · max lines 5 · max units 100 · 「No small orders match the limits.」 또는 카드 · 하나만 고르면 「1 / 10 totes — select at least 2」 로 Create wave 잠김 · 둘 이상은 이번 모집단으로 못 본다(오더를 하나 더 Release 하면 W-MMDD-1 · 요약 장 + 오더마다 한 장 · 토스트 「… created — 2 totes · Working」)
 [ ] 거둬들인 오더 재현 — 카드를 고른 채 so.html 다른 탭에서 Recall from WMS → 돌아와 Create batches → 「Failed to create batches: Order … — only orders released to the WMS can be batched — nothing was saved」 · 목록이 다시 읽혀 카드가 사라진다 · so.html 에서 confirmed 그대로
@@ -1039,6 +1040,40 @@ Parked and open at this store
 ```
 
 ⚠️ [2026-09-26 밤] 아직 없는 것 — fulfillment(Finalize · 팔렛 · 박스 · ⑤-5) · 되돌리기 · Health · Stats(⑤-5) · 사진(판정 33) · Take over 가지(stalePacks · 운영도 비어 있던 호환 가지) · 웨이브 멤버 팩 실측(웨이브 0).
+
+---
+
+## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
+
+뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 16 · 18 · 19 · 21 · 24-k): 오더 풀 = `wms_pack_tasks`(completed) + `so!inner(status)` eq picking · 관문 = 뷰 `wms_order_pack_progress`(all_packed) · 오더 머리 = `so`(so_number · status · location_id · location_name) + `customer!so_customer_id_fkey(name)` ·
+풀 줄(sku · base_sku · 이름 · 바코드 낱개 factor 1 + 세트 factor pack · 팩 수량 verified_base) = 읽기 창구 **`wms_pick_lines(null, p_pack_task_id)`** 팩 갈래 — 팩 과제마다 한 번(N 왕복 · 시간은 콘솔 `[fulfillment] wms_pick_lines ×N · ms`) ·
+팔렛 · 박스 · 담긴 것 = `wms_pallets` · `wms_pallet_items` 에 직접(운영 그대로 · auth_all · 판정 6 · created_by uuid · 아이템 insert 에 pack_task_id) · 선택 밖 오더의 담긴 것 표시 = `so_line`(id · sku · product_name) ·
+쓰기 RPC **`wms_finalize(p_so_ids uuid[])`** 한 번 — 첫 줄 ims_require_write(fulfillment) · ims_can_warehouse · picking 만 · 뷰 all_packed · 팔렛 담긴 수량 ≤ 팩 수량 · 타입 packing_list|direct 는 창구가 판정 · `wms_order_finalize` 한 줄 + so packed(packed_at/by) · 반환 finalized[] · count · warnings[](units_without_dims:SO:n) · shorts.
+
+⭐ 진입점은 `ims-config.js` · `ims-auth.js` 뿐(0-a 검사 다섯째) — 운영 WMS 는 그대로 돈다 · 이 화면은 테스트 프로젝트의 오더만 본다 · `wms-packing.js`(라벨 · 소계 줄)는 운영에서 바이트 그대로.
+⭐ 권한 = fulfillment 열쇠(WMS 방 · **worker 기본** · 운영 requireManager:false 와 같다) · 모드 'wms' · 탭 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves」(worker 는 셋).
+⭐ 소유권 비교 없음 — me.name 은 presence 열쇠(`me.name|fulfillment`) · 표시용만 · created_by 는 me.id · 다른 사람 이름을 보이는 자리가 없다(nameOf 는 공통 조각으로만 있다).
+⭐ **새로 그린 것(판정 19)**: 유닛(팔렛 · 독립 박스 · 중첩 박스)마다 치수 줄 — L × W × H 숫자 셋 + 단위 in|cm · 무게 + 단위 lb|kg(기본 in · lb) → `wms_pallets` 의 dim_length · dim_width · dim_height · dim_unit · weight · weight_unit 에 직접 · 트리거 `wms_pallet_dims` 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 「47.24 × 39.37 × 59.06 in · 551.16 lb」 로 보인다 · 칸 하나를 떠날 때마다 저장(행을 다시 그리지 않아 Tab 이 이어진다) · 비면 「no dimensions yet …」 노란 글자 · 0 이하 · 글자는 화면이 거부(CHECK 와 같은 규칙) · 메모 칸(Height note · Weight note)은 그대로.
+⭐ 옛 화면과 다른 것: 옛 오더 표 · 줄 표 · 스냅샷 표(자기 바코드 · 형제 세트 바코드) 없음 — 전부 창구가 준다 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 없음 → 대신 **「SO-x is <상태> — no longer Working. Finalize will be refused」 빨간 배너**(so.status ≠ picking · 판정 21) · Finalize 의 두 길(packing_list · direct)은 단추 하나 — 팔렛에 담긴 것이 있으면 packing_list · 없으면 direct(창구 판정 · 원본 규칙과 같다) · 「미배치 있어도 진행」 confirm 은 그대로 · 창구 warnings(치수 없음) · shorts(부족 → 오피스 pick_short)는 alert 로 · 창고 = me.access.warehouses(null = 전부) · 인쇄의 Warehouse 는 ref_warehouse 이름 · 사진 없음(판정 33) · 글자 표(판정 17) · 오더 id · 줄 id 는 uuid(숫자 변환 0).
+⚠️ Finalize 뒤 SO 는 **packed(Finalized)** · `wms_order_finalize` 한 줄 · 오피스 so_finalize(sales)가 인계(`wms_so_handoff` picks · units)를 받아 출고 + 인보이스 — WMS 는 재고 · 인보이스를 건드리지 않는다(판정 16). 되돌리기(Undo Finalize · wms_rollback)는 ⑤-5b admin.
+⚠️ 모집단(2026-09-27 테스트 DB · Claude Code 실측 · begin read only): 완료 팩 **1**(SO-25003-1 · 팩 과제 23 · CON00156 12 · verified 12) · all_packed t · 팔렛 0 · 아이템 0 · `wms_pick_lines(null, 23)` 1줄(바코드 075724001565 factor 1) · 첫 호출 4.87초(콜드) · 둘째 0.12초.
+
+```
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · fu v1」 · ☰ Menu 에 Fulfillment(Packing 뒤 · Split & Waves 앞) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves」 · worker 계정이면 Picking · Packing · Fulfillment 셋
+[ ] 「Select orders ▾」 → 「Orders to ship together」 에 JOJOJO - Joel Chang 아래 SO-25003 · TOR 태그 · 「Working」 · 체크 → Start working selected orders → 머리 「SO-25003 · Customer JOJOJO - Joel Chang」 · 콘솔 「[fulfillment] wms_pick_lines ×1 · nnn ms」 · Unassigned products 에 SO-25003 › SO-25003-1 › CON00156 CREME OF NATURE … 12 · 빨간 배너 없음
+    또는 오더 스캔 칸에 SO-25003 Enter → 같은 결과 · SO-25004 처럼 없는 번호 → 「No order ready to ship for …」 · Working 이 아닌 오더 번호 → 「… is Confirmed — only Working orders can be finalized here」
+[ ] + Pallet → 🟩 P1 카드(wms_pallets 한 줄 · created_by 내 ims_staff.id · order_id SO-25003 uuid) · 치수 줄 「L × W × H in · Weight lb · no dimensions yet — …」 · Height/Weight note 칸 · + Nest box · 🖨 Pallet list · Delete
+[ ] 치수: L 120 · W 100 · H 150 · 단위 cm · Weight 250 · kg → 칸을 떠날 때마다 저장 → 회색 줄 「47.24 × 39.37 × 59.06 in · 551.16 lb」(트리거가 계산 · 판정 19 실측과 같은 값) · wms_pallets 행에 dim_* 여섯 + *_in · weight_lb 넷 · 0 이나 음수 → 「Dimensions and weight must be positive numbers」 · 다시 열어도 값 그대로
+[ ] 카드를 눌러 스캔 대상(보라 테두리 · 「Scanning into: 🟩 P1」) → 바코드 075724001565 타이핑 + Enter → 「✓ P1 ← CON00156 ×1」 초록 플래시 · 풀 12 → 11 · 카드에 CON00156 1 · wms_pallet_items 한 줄(order_line_id uuid · pack_task_id 23 · qty_base 1) · Move all 모드 → 한 스캔에 나머지 11 · ↩ Undo last scan → 되돌아옴(저장은 큐 · .select() 1행)
+[ ] 드래그 · 탭으로 옮기기 · 분할(move qty 모달) · + Nest box(📦 B1 on P1 · 치수 줄 있음) · 박스 → 팔렛 중첩 · ✕ 로 풀로 되돌리기 · Delete 유닛 — 운영과 같은 동작 · 저장마다 「no row was changed」 류 실패는 빨갛게
+[ ] 🖨 Pallet list · Consolidated list per store 🖨 List → 인쇄 미리보기: PACKING LIST · Order SO-25003 · Customer JOJOJO - Joel Chang · Warehouse Asung Trading Inc. · 표 SKU CON00156 · Barcode 075724001565 · Product · Qty · 팔렛 메모 줄(H · W)
+[ ] ✓ Finalize order(s) → confirm(미배치가 남았으면 「⚠ Still has unplaced items (will finalize anyway)」) → 토스트 「1 order(s) finalized」 · 치수를 안 넣은 유닛이 있으면 alert 「SO-25003: n unit(s) without dimensions — …」 · 보드에서 사라짐 「No verified orders.」
+    → so.html 에서 SO-25003 이 **Finalized(packed)** · packed_at/by 채워짐 · wms_order_finalize 한 줄(fulfillment_type packing_list · finalized_by 내 id · units · units_without_dims) · 팔렛 · 아이템은 그대로(오피스 인계 wms_so_handoff units 에 in · lb 로) · 팔렛에 하나도 담지 않고 Finalize 하면 fulfillment_type direct
+[ ] 거둬들인 오더 재현 — Working 오더는 오피스가 거둘 수 없어(so_wms_recall 은 at_wms 만) 이 화면에서 배너를 보려면 ⑤-5b 되돌리기(Undo Split → Released) 뒤 워크스페이스를 다시 여는 때 · 그 전에는 「Finalize blocked: Order … is at_wms — only an order in warehouse work (picking) can be finalized — nothing was saved」 빨간 토스트가 유일한 신호
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_pick_lines · rpc/wms_finalize 200(이 함수들은 테스트 DB 에만 있다)
+```
+
+⚠️ [2026-09-27] 아직 없는 것 — admin(Status · Rollback · Finalized = ⑤-5b · Discrepancy · Reports · Stats · Health · Trace = ⑤-5c) · Undo Finalize · 사진(판정 33) · wms_pick_lines 의 팩 갈래를 여러 과제로 한 번에(⬜15 · 함께 보내는 오더가 많아 N 왕복이 걸리면) · 오피스 so.html 의 Finalized 대기 목록 · 시각 줄(오피스 판).
 
 ---
 

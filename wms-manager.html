@@ -216,7 +216,7 @@
    접점 19 → 대기 목록 = so(at_wms · warehouse · 내 창고) + customer(name) + so_line · 분할 미리 보기 = so_pick_plan · 배치 = wms_batch_create · 웨이브 = wms_wave_create(각 한 번 · 한 트랜잭션).
    사라진 것(⑪): voided 목록 · holdBelt(Cin7 보류·void 재확인) · needs_review · 실패 청소 · 라벨 셈 — 창구가 문(권한 · 창고 · at_wms · 줄 검사)을 지키고, 오피스가 거둬들인 오더는 창구가 막는다 → 목록을 다시 읽어 알린다.
    판정 17 글자 = STATUS_LABEL 표 하나 · 판정 33 사진 없음 · 소유권 비교 없음(me.name 은 표시용만) · 동선 순서 열쇠 warehouse_id|zone. */
-const WM_BUILD="2026-09-26 · wm v1";
+const WM_BUILD="2026-09-27 · wm v1.1";
 const STATUS_LABEL={ at_wms:"Released to WMS", picking:"Working" };   // 판정 17 — 저장 값은 그대로 · 화면 글자만 · 오피스(so.html)와 같은 글자
 let sb=null, me=null, orders=[], zoneSeq={}, filterWh="all", filterTier="all";
 let staffName={};        // ims_staff.id → name (⑥ · 표시용 · 로그인 뒤 한 번)
@@ -323,8 +323,8 @@ function renderQueue(){
       <div class="cust">${esc(o.customer_name||"—")}</div>
       <div class="meta">
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
-        <span class="tag">${o.total_lines}lines</span>
-        <span class="tag">${o.total_units}units</span>
+        <span class="tag">${o.total_lines} lines</span>
+        <span class="tag">${o.total_units} units</span>
         ${tier}
       </div>
     </div>`;
@@ -358,7 +358,7 @@ async function selectOrder(id){
   }
   document.getElementById("wsOno").textContent=selected.order_number;
   document.getElementById("wsSum").textContent=
-    whLabel(selected.wh)+" · "+selected.total_lines+"lines · "+selected.total_units+"units · "+STATUS_LABEL.at_wms+" by "+nameOf(selected.at_wms_by);
+    whLabel(selected.wh)+" · "+selected.total_lines+" lines · "+selected.total_units+" units · "+STATUS_LABEL.at_wms+" by "+nameOf(selected.at_wms_by);
   document.getElementById("wsRev").style.display="none";
   document.getElementById("createBtn").disabled=true;
   document.getElementById("batches").innerHTML="";
@@ -427,7 +427,7 @@ function buildPreview(){
   document.getElementById("createBtn").disabled=batches.length===0;
   const totalU=sorted.reduce((s,l)=>s+Number(l.units||0),0);
   document.getElementById("splitHint").textContent=
-    sorted.length+"lines · "+totalU+"units → "+batches.length+"batches";
+    sorted.length+" lines · "+totalU+" units → "+batches.length+" batches";
 }
 
 function renderBatches(){
@@ -445,7 +445,7 @@ function renderBatches(){
     }).join("");
     return `<div class="batch">
       <div class="bh"><span class="bn">${esc(selected.order_number)}-${i+1}</span>
-        <span class="bmeta">${b.length}lines · ${req}units</span></div>
+        <span class="bmeta">${b.length} lines · ${req} units</span></div>
       ${rows}
     </div>`;
   }).join("");
@@ -501,7 +501,7 @@ document.getElementById("createBtn").onclick=async ()=>{
     if(error) throw error;
     const res=data||{};
     const warns=(res.warnings||[]).map(warnText);
-    toast(res.so_number+" → "+(res.tasks||[]).length+"batches created · "+STATUS_LABEL.picking);
+    toast(res.so_number+" → "+(res.tasks||[]).length+" batches created · "+STATUS_LABEL.picking);
     printPickList(printWin, pickOrd, pickBatches, me?me.name:null);   // generate the printable pick list (printedBy 는 표시용)
     // remove from queue
     orders=orders.filter(o=>o.id!==pickOrd.id);
@@ -582,8 +582,8 @@ function renderWaveQueue(){
       <div class="cust">${esc(o.customer_name||"—")}</div>
       <div class="meta">
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
-        <span class="tag">${o.total_lines}lines</span>
-        <span class="tag">${o.total_units}units</span>
+        <span class="tag">${o.total_lines} lines</span>
+        <span class="tag">${o.total_units} units</span>
         ${tier}
       </div>
     </div>`;
