@@ -134,7 +134,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-25 · so v2.3";
+const SO_BUILD = "2026-09-26 · so v2.4";
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -156,6 +156,8 @@ let WHS = [], TERMS = [], TIERS = [], TAXES = [], ACCTS = [];
 const RANK = { worker: 1, manager: 2, supervisor: 3, admin: 4 };
 const isMgr = () => rank >= 2;
 const isSup = () => rank >= 3;
+/* v2.4 — Release to WMS · 거둬들이기는 so_release_to_wms · so_wms_recall 의 문(sales 쓰기)과 같은 기준으로 보인다(⑤-4 ⬜H · 2026-09-26) */
+const canSales = () => imsAuth.canWrite("sales");
 
 const money = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
@@ -1066,6 +1068,20 @@ function previewThenRun(title, rpc, args, draw, goLabel, after, guard){
   })();
 }
 
+/* v2.4 — Release to WMS · 거둬들이기(⑤-4 ⬜H · 창구 so_release_to_wms · so_wms_recall · 여러 오더를 받지만 이 화면은 지금 오더 하나) */
+async function releaseSo(){
+  if(!confirm(`Release ${cur.so.so_number} to the warehouse? It appears on the WMS Split screen. You can recall it until the warehouse manager splits it into pick tasks.`)) return;
+  const { error } = await sb.rpc("so_release_to_wms", { p_so_ids: [curId] });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+async function recallSo(){
+  if(!confirm(`Recall ${cur.so.so_number} from the warehouse? It goes back to Confirmed and leaves the WMS Split screen.`)) return;
+  const { error } = await sb.rpc("so_wms_recall", { p_so_ids: [curId] });
+  if(error){ alert(error.message); return; }
+  await reloadHere();
+}
+
 /* 보류 — 오더 전체의 할당을 풀고 hold 로 건다(R3 · 보류는 늘 오더 전체) · 풀기 = 다시 엔진을 돌려 잡을 수 있는 만큼 잡는다 */
 async function holdSo(){
   if(!confirm(`Put ${cur.so.so_number} on hold? Reserved stock is released for other orders; the lines stay on the order. Release the hold later to reserve again.`)) return;
@@ -1295,7 +1311,12 @@ async function loadDetail(id){
       acts.push('<button class="pobtn" data-act="reopenc">Reopen as draft</button>');
     }
     if(ch === "warehouse"){
-      acts.push('<button class="pobtn" disabled title="Comes with the warehouse screens (next week)">Release to WMS</button>');
+      /* v2.4 — Release to WMS(⑤-4 ⬜H · 판정 21) — 보류 · 백오더/선주문 줄이 있으면 막아 두고 까닭을 보인다(창구 so_release_to_wms 가 다시 본다) */
+      if(canSales()){
+        if(onHold)     acts.push('<button class="pobtn" disabled title="Release the hold first — an order on hold cannot go to the warehouse">Release to WMS</button>');
+        else if(hasBo) acts.push('<button class="pobtn" disabled title="Proceed or clear the backorder / preorder lines first">Release to WMS</button>');
+        else           acts.push('<button class="pobtn go" data-act="release" title="Send this order to the warehouse — it appears on the WMS Split screen">Release to WMS</button>');
+      }
       if(isMgr()){
         if(onHold) acts.push('<button class="pobtn go" data-act="unhold">Release hold</button>');
         else if(hasAlloc) acts.push('<button class="pobtn" data-act="hold" title="Release the reserved stock and keep the order waiting">Hold</button>');
@@ -1308,6 +1329,11 @@ async function loadDetail(id){
     }
     if(ch === "pos") acts.push('<button class="pobtn" disabled title="POS orders are finished on the POS screen (coming later)">Finish on POS</button>');
     if(isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel order…</button>');
+  }
+  /* v2.4 — 창고에 있는 오더(판정 18 · 21): at_wms = 매니저의 Split 화면에서 기다림 → 오피스가 거둬들일 수 있다 · picking = 창고가 먼저 되돌려야 한다(한 단계씩) */
+  if(ch === "warehouse" && canSales()){
+    if(s.status === "at_wms")  acts.push('<button class="pobtn" data-act="recall" title="Take the order back from the warehouse — only before the manager splits it into pick tasks">Recall from WMS</button>');
+    if(s.status === "picking") acts.push('<button class="pobtn" disabled title="The warehouse is working on it — ask the warehouse manager to send it back first">Recall from WMS</button>');
   }
   /* v1.2 — 다 받은 인보이스면 숨긴다(Caleb 화면 시험 2026-09-25 · 누르면 넣을 곳 없는 돈이 손님 잔액으로 간다) */
   if(s.status !== "cancelled" && s.status !== "draft" && ((invLive && Number(inv.remaining) > 0) || (!invLive && (s.status === "confirmed" || s.status === "packed"))))
@@ -1490,6 +1516,8 @@ async function loadDetail(id){
       if(a === "changewh")  openChangeWh();
       if(a === "proceed")   proceedBo();
       if(a === "merge")     openMerge();
+      if(a === "release")   releaseSo();
+      if(a === "recall")    recallSo();
     };
   });
   if(ed){

@@ -509,7 +509,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 
 ---
 
-## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → v1.2(다 받은 인보이스면 결제 단추 숨김 · Due at issue) → v1.3(줄 넣기 가용 재고 · 세트 숨김) → v1.4(Include sets 는 매니저만) → **2판** v2(보류·풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림) → v2.1(not reserved) → v2.2(Hold 는 잡힌 줄이 있을 때만) → **v2.3**(잡힐 것 없으면 Proceed 막힘))
+## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → v1.2(다 받은 인보이스면 결제 단추 숨김 · Due at issue) → v1.3(줄 넣기 가용 재고 · 세트 숨김) → v1.4(Include sets 는 매니저만) → **2판** v2(보류·풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림) → v2.1(not reserved) → v2.2(Hold 는 잡힌 줄이 있을 때만) → **v2.3**(잡힐 것 없으면 Proceed 막힘) → **v2.4**(Release to WMS · Recall from WMS))
 
 뒷단: 읽기 RPC `so_detail` · `so_family_members` · `so_payment_default_account` · 표 `so`(select) ·
 쓰기 RPC `so_create` · `so_line_add` · `so_lines_paste` · `so_line_update` · `so_line_remove` · `so_charge_set/remove` ·
@@ -595,9 +595,16 @@ counter 확정 · 나갔다 (manager)
 취소 · 뭉치
 [ ] Cancel order… → 사유 필수 · Check → 이 오더가 이어받은 백오더 줄이 있으면 목록이 뜨고 「다시 열까」를 골라야 넘어간다 → Cancel the order
 [ ] 형제(백오더 a · 프리오더 b · 나눈 것)는 뭉치 표에 번호·상태·남은 수량으로 보이고, 합쳐진 오더는 merged_into 로 어디로 갔는지 답한다
+창고로 보내기 · 거둬들이기 (v2.4 · 창구 so_release_to_wms · so_wms_recall)
+[ ] 창고(warehouse) 길의 Confirmed 오더에 Release to WMS 가 보인다 → 누르면 Released to WMS(at_wms) · 그 자리에 Recall from WMS 단추
+[ ] 보류 중(on hold) · 백오더 · 선주문 줄이 있으면 Release 가 막혀 있고 까닭이 뜬다
+[ ] Recall from WMS → Confirmed 로 돌아온다
+[ ] 창고가 일을 시작했으면(picking) Recall 이 막혀 있다
+[ ] sales 쓰기가 없는 사람에게는 Release · Recall 둘 다 안 보인다
+[ ] 빌드 표시 so v2.4
 ```
 
-⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다.
+⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다. → ✅ [2026-09-26] Release to WMS · Recall from WMS 는 v2.4 로 섰다
 
 ---
 
