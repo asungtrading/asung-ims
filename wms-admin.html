@@ -136,8 +136,13 @@
 <main id="app" style="display:none">
   <div class="tabs" id="tabs" style="padding:0;margin-bottom:8px">
     <button data-t="overview" class="active">Status</button>
+    <button data-t="disc">Discrepancy <span class="badge" id="discBadge" style="display:none">0</span></button>
+    <button data-t="reports">Reports <span class="badge" id="reportBadge" style="display:none">0</span></button>
+    <button data-t="stats">Stats</button>
     <button data-t="rollback">Rollback</button>
+    <button data-t="health">Health <span class="badge" id="healthBadge" style="display:none">0</span></button>
     <button data-t="packing">Finalized</button>
+    <button data-t="trace">Trace</button>
   </div>
 
     <!-- Status -->
@@ -154,10 +159,42 @@
       <div class="card"><div id="activeOrders"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
     </div>
 
+    <!-- Discrepancy -->
+    <div class="view" id="v-disc">
+      <div class="period" id="discPeriod"></div>
+      <div id="discSummary"></div>
+      <div id="discFilter" style="margin:0 0 10px"></div>
+      <div class="sect-h">Open Discrepancies <span id="discOpenCnt" style="color:var(--danger)"></span></div>
+      <div class="card"><div id="discOpen"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <div class="sect-h">Recently resolved</div>
+      <div class="card"><div id="discDone"></div></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="view" id="v-stats">
+      <div class="period" id="statsPeriod"></div>
+      <div class="sect-h">Throughput by worker <span style="font-weight:400;color:var(--mut);font-size:12.5px">— pick/pack batches completed · avg time · lines/units actually handled (qty&gt;0 — untouched lines don't count) · "minus holds" = start&rarr;complete minus recorded hold time · held = total hold time (count), tracked since Aug 24</span></div>
+      <div class="card" style="padding:14px 16px"><div id="prodTable"></div></div>
+      <div class="sect-h">Quality reports by worker <span style="font-weight:400;color:var(--mut);font-size:12.5px">— wrong location · barcode · image · box barcode (picking/packing/receiving)</span></div>
+      <div class="card" style="padding:14px 16px"><div id="qualityTable"></div></div>
+      <div class="sect-h">Mistakes by worker (discrepancy responsibility)</div>
+      <div class="card" style="padding:14px 16px"><div id="mistakeTable"></div></div>
+
+      <p style="color:var(--mut);font-size:12px;margin:8px 2px 0">Receiving and putaway statistics will appear here when receiving moves to the IMS.</p>
+    </div>
+
+    <!-- Reports (data-quality: wrong location / barcode changed / image differs) -->
+    <div class="view" id="v-reports">
+      <div class="period" id="repPeriod"></div>
+      <div id="repSummary"></div>
+      <div class="sect-h">Worker reports <span style="font-weight:400;color:var(--mut);font-size:12.5px">— wrong location · barcode changed · image differs · not enough stock (from picking/packing)</span></div>
+      <div class="card"><div id="reportsList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+    </div>
+
     <!-- Rollback -->
     <div class="view" id="v-rollback">
       <div class="sect-h">Rollback a stage <span style="font-weight:400;color:var(--mut);font-size:12.5px">— manager only · one step at a time</span></div>
-      <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Each order can be reverted only to its immediately previous stage. To go further back, undo the deeper stage first. Mistake rows tied to the undone work are never deleted — they are voided and kept for audit (Discrepancy tab · ⑤-5c). Pallets, boxes and batches are archived before they are removed.</p>
+      <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Each order can be reverted only to its immediately previous stage. To go further back, undo the deeper stage first. Mistake rows tied to the undone work are never deleted — they are voided and kept for audit (Discrepancy tab). Pallets, boxes and batches are archived before they are removed.</p>
       <div class="card"><div id="rollbackList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
       <div class="sect-h">Recent rollbacks</div>
       <div class="card"><div id="rollbackLog"></div></div>
@@ -171,6 +208,28 @@
       <div class="grid" id="fulfillStats"></div>
       <div class="sect-h">Finalized orders <span style="font-weight:400;color:var(--mut);font-size:12.5px">— print or download the packing list; direct-pack orders have none</span></div>
       <div class="card"><div id="packingList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+    </div>
+
+    <!-- Health (invariant checks) -->
+    <div class="view" id="v-health">
+      <div class="sect-h">System health <span style="font-weight:400;color:var(--mut);font-size:12.5px">— invariants that must always hold · a red card means the rule broke and needs review</span></div>
+      <div id="healthList"><div class="loading"><div class="spin"></div>Running checks…</div></div>
+    </div>
+
+    <!-- Order Trace (CCTV lookup) -->
+    <div class="view" id="v-trace">
+      <div class="sect-h">Order trace <span style="font-weight:400;color:var(--mut);font-size:12.5px">— who worked on an order, when and where — to pin down the CCTV time window fast</span></div>
+      <div class="card" style="padding:12px 14px;margin-bottom:14px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <input id="trOrderNum" placeholder="SO-12345" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;font-family:var(--mono);width:140px">
+          <button id="trOrderGo" style="border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Trace</button>
+          <span style="color:var(--mut);font-size:12px">or</span>
+          <input id="trCustomer" placeholder="Customer name (partial OK)" style="border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;width:220px">
+          <button id="trCustGo" style="border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Search</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--mut);margin-top:6px">Order number is an exact match (fastest). Customer search shows the latest 30 matches (newest orders first) with the total count.</div>
+      </div>
+      <div id="traceResult"><div class="empty">Enter an order number, or search by customer name.</div></div>
     </div>
 
 </main>
@@ -192,12 +251,33 @@
                  아카이브 → 무효화 → 삭제 · 한 트랜잭션 · 판정 21 · 35: Void 없음(그 자리에 되돌리는 길 안내) · 매니저 안내 셋은 wms_worker_mistakes 읽기 · 로그 wms_rollback_log(사람 칸 nameOf)
    Finalized(15) = so(packed · 오피스 마무리 대기 풀) + wms_order_finalize + wms_order_review + customer + so_line · 검토함 켜기·끄기 = wms_review_set(판정 22 · 26 · 끈 기록이 남는다) ·
                  팩킹리스트 재출력(Print · PDF · CSV)은 팔렛 · 아이템 읽기 그대로 · sku · 이름은 so_line · 바코드는 product_barcode(is_active · is_primary 우선) · 치수는 wms_so_handoff 가 아니라 표의 *_in · weight_lb
-   글자 표(판정 17) · 창고 id(me.access.warehouses · 시간대는 이름에 Edmonton) · 사진 없음(판정 33) · 오더 id 는 uuid(숫자 변환 0) · 과제 id 는 bigint 그대로. */
-const WK_BUILD="2026-09-27 · wa v1.2";
+   글자 표(판정 17) · 창고 id(me.access.warehouses · 시간대는 이름에 Edmonton) · 사진 없음(판정 33) · 오더 id 는 uuid(숫자 변환 0) · 과제 id 는 bigint 그대로.
+   ⑤-5c2 (2026-09-27 · wa v1.3) — 다섯 탭을 원본 구간에서 다시 옮겼다(판정 36 Trace · 37 Health · 다섯 묶음):
+   Discrepancy(8) = wms_worker_mistakes(작업자 실수 다섯 · 카테고리 하나 · 「Stock short」 는 Reports · 「Receiving」 은 입고가 올 때) · 정리 단추 「✓ Resolved」 = 직접 쓰기 manager_resolved · resolved_by(id) · resolved_at
+   Reports(5)     = wms_reports 그대로 + kind stock_short(qty_expected · qty_found) · 「Mark resolved」 직접 쓰기 · voided 칸 없음(다섯 묶음 2) · 재고 조정 연결은 판정 20 ⬜⭐ 자리
+   Stats(5)       = 계산 그대로(sbAll 페이지 누적) · wms_worker_mistakes · 사람 칸 nameOf · 입고 구간 없음(한 줄 안내)
+   Health(3)      = rpc wms_health_check 한 번(13 행 · 옛 반환 칸) · 스냅샷 · 기록 표 · cron 없음 · 배지도 라이브
+   Trace(5)       = so + 손님 + finalize 기록 + 줄 합 · 과제 체인 그대로(+ 픽 줄의 칸 행) · so_line · wms_worker_mistakes + wms_reports(stock_short) · 현지 시각은 창고 이름으로. */
+const WK_BUILD="2026-09-27 · wa v1.3";
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
 let finWh="all";   // Finalized 탭 창고 필터 (2026-08-19 — 기본 All, 조회 전용이라 제한 아님) · all | toronto | edmonton (창고 이름에서 낸 열쇠)
+let discPeriodKey="week", statsPeriodKey="week";
+let discRange=null, statsRange=null;
+let discCustom={from:null,to:null}, statsCustom={from:null,to:null};
+// Reports 탭 기간 상태 — 탭별 독립(Stats 를 1년으로 보다가 넘어와도 안 무겁게 · 2026-08-11)
+let repPeriodKey="week", repCustom={from:null,to:null}, repRange=null;
+// Throughput by worker 병합 상태 — pick/pack(loadStats)이 채운다 · prodRecv 는 입고가 IMS 로 오기 전까지 비어 있다(renderProd 가 빈 값으로 받아 그대로 선다)
+let prodPP=null, prodRecv=null;
+const RECV_FB_PREFIX="~";
+const RECV_FB_TIP="Rows predate the line-level worker column — attributed to who STARTED the receipt, not who received the lines.";
+// 배치 목록 펼침 상태 — "이름|pick|pack|recv" 단일 키(하나만 펼침)
+let prodExpanded=null;
+const REASON_LABEL={short_pick:"pick short", short_after_pack:"short after pack", over_pick:"Over-pick", stock_short:"Stock short (inventory)", pack_scan_mistake:"Packer double scan", resolved_pack_recovery:"pack recovery resolve", wrong_location:"Wrong location", barcode_mismatch:"Barcode changed", image_mismatch:"Image differs"};
+// 되돌리기 로그의 단계 값 → 화면 글자(값은 wms_rollback · wms_rollback_batch · wms_unwave 가 적는 것 · 20260926204246 · 모르는 값은 그대로)
+const STAGE_LABEL={finalized:"Finalized", fulfilled:"On pallets", pack_complete:"Pack complete", pick_complete:"Pick complete", pick_reset:"Pick reset", split:"Split", unsplit:STATUS_LABEL.at_wms, wave:"Wave"};
+function stageLabel(s){ return STAGE_LABEL[s]||s||""; }
 
 /* ---------- IMS 공통 조각 (⑤-5a wms-fulfillment.html 과 같다) ---------- */
 function whKey(name){ return /edmonton/i.test(name||"") ? "edmonton" : "toronto"; }   // CLAUDE.md §3 — Location 에 Edmonton 이 들면 edmonton · 그 외 toronto
@@ -341,8 +421,288 @@ function periodBar(containerId, curKey, custom, onChange){
 }
 function setRangeLabel(containerId,label){ const el=document.getElementById(containerId+"-lbl"); if(el)el.textContent=label; }
 
+/* ---------- 발생 요약 + 추세 (Discrepancy·Reports 공용 · 2026-08-11) ----------
+   질문은 "몇 건이 발생했나(created_at)"다 — resolved 를 빼면 "옛날 것은 다 처리됐으니 그때는
+   문제가 없었다"는 거짓 추세가 나온다(사용자 확정: 제외 조건은 voided 뿐 — 규칙 14 집계와 동일,
+   wms_reports 는 voided 컬럼이 없어 무조건 전 행). 미해결 수는 괄호로 병기 —
+   "발생 추세"와 "지금 밀린 양"은 다른 질문이고 매니저는 둘 다 알아야 한다.
+   추세 버킷: Today/This week = 일 단위, 그 외 = 주 단위(월요일 시작 — rangeFor week 와 같은 규칙).
+   순수 div/CSS — 라이브러리 없음(과설계 금지: 작업자별·SKU 순위는 범위 밖). */
+function renderIssueSummary(elId, rows, isOpenFn, cats, r, periodKey, caution, truncNote){
+  const el=document.getElementById(elId); if(!el) return;
+  const openTag=n=>n?` <span style="color:#c0392b;font-weight:700">(${n} open)</span>`:` <span style="color:var(--mut-2)">(0 open)</span>`;
+  const catLine=cats.map(([label,match])=>{
+    const s=rows.filter(match);
+    return `<span style="margin-right:14px;white-space:nowrap"><b>${label}</b> ${s.length}${openTag(s.filter(isOpenFn).length)}</span>`;
+  }).join("");
+  const daily=periodKey==="today"||periodKey==="week";
+  const dkey=d=>d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();  // 로컬 날짜 키 (toISOString 은 UTC 시프트)
+  const floorB=d=>{const x=new Date(d);x.setHours(0,0,0,0);if(!daily){const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);}return x;};
+  const to=new Date(r.toISO), buckets=[], idx=new Map();
+  for(let d=floorB(new Date(r.fromISO)); d<=to && buckets.length<200; d.setDate(d.getDate()+(daily?1:7))){
+    idx.set(dkey(d),buckets.length);
+    buckets.push({label:(d.getMonth()+1)+"/"+d.getDate(), n:0});
+  }
+  rows.forEach(x=>{ const i=idx.get(dkey(floorB(new Date(x.created_at)))); if(i!=null)buckets[i].n++; });
+  const max=Math.max(1,...buckets.map(b=>b.n));
+  const bars=buckets.map(b=>`<div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:24px">
+      <span style="font-size:10px;color:var(--mut)">${b.n||""}</span>
+      <div style="width:13px;height:${Math.round(b.n/max*44)+2}px;background:${b.n?"#5b8def":"var(--line)"};border-radius:3px 3px 0 0"></div>
+      <span style="font-size:9.5px;color:var(--mut-2);white-space:nowrap">${b.label}</span></div>`).join("");
+  el.innerHTML=`<div class="card" style="padding:12px 14px;margin:0 0 12px">
+    <div style="font-size:13px;line-height:1.9">${catLine}<span style="white-space:nowrap"><b>Total</b> ${rows.length}${openTag(rows.filter(isOpenFn).length)}</span></div>
+    <div style="font-size:11px;color:var(--mut-2);margin:3px 0 9px">${caution}${truncNote||""}</div>
+    <div style="display:flex;align-items:flex-end;gap:3px;overflow-x:auto;padding-bottom:2px">${bars}</div>
+  </div>`;
+}
+
+/* ---------- Order Trace: CCTV lookup (2026-08-13) ----------
+   손님 "물건 못 받았다" 연락 → 어느 배치를 누가 언제 작업했는지로 CCTV 시간·장소를 특정한다.
+   급한 화면 — 입력 하나로 답이 나와야 한다. 시각은 CCTV 벽시계 기준이 필요해 토론토 로컬 고정,
+   에드먼턴 오더는 EDM 로컬 병기(DB 는 UTC — Intl timeZone 변환, 오프셋 하드코딩 없음).
+   라인 테이블에는 SKU 가 없다 — order_line_id → so_line Map 조인(⑤-5c2 · 칸은 wms_pick_line_bins · 실제 칸 우선).
+   픽↔팩 라인 매칭도 order_line_id (SKU 매칭 금지 — 같은 base_sku 가 여러 order_line 일 수 있다).
+   discrepancy 배치 귀속은 pick_task_id / pack_task_id → 그 팩의 픽 배치 — 2026-08-06 이전 행은
+   링크가 NULL(규칙 41 커버리지 경계)이라 "batch unknown" 블록으로 따로 표시한다. */
+let traceWired=false;
+const TR_CUST_LIMIT=30;
+// ⑤-5c2: 오더 = so(+ 손님 · finalize 기록 · 줄 합) — normOrder 가 order_number · customer_name · wh · at_wms_at(운영의 가져온 시각 칸의 자리) · fin(finalized_at/by) · total_lines/units 를 준다
+const TR_SO_SEL=SO_SEL+",wms_order_finalize(finalized_by,finalized_at),so_line(qty_ordered,qty_removed,pack_factor)";
+const TR_SO_SEL_CUST="id,so_number,status,location_id,location_name,at_wms_at,picking_at,packed_at,created_at,customer:customer!so_customer_id_fkey!inner(name),wms_order_finalize(finalized_by,finalized_at),so_line(qty_ordered,qty_removed,pack_factor)";   // 손님 이름으로 거를 때 !inner(부모 행이 남지 않게)
+
+function loadTrace(){
+  if(!traceWired){
+    traceWired=true;
+    document.getElementById("trOrderGo").onclick=traceByOrder;
+    document.getElementById("trCustGo").onclick=traceByCustomer;
+    document.getElementById("trOrderNum").addEventListener("keydown",e=>{ if(e.key==="Enter") traceByOrder(); });
+    document.getElementById("trCustomer").addEventListener("keydown",e=>{ if(e.key==="Enter") traceByCustomer(); });
+  }
+  // 탭 재진입 시 이전 결과는 유지(급한 화면 — 다른 탭에 다녀와도 재검색시키지 않는다), 포커스만 준다
+  document.getElementById("trOrderNum").focus();
+}
+
+/* 시각 표시 — CCTV 는 현지 벽시계로 찾는다. Intl 포맷터는 캐시(재생성 비용 방지). */
+const _trF={};
+function trAt(iso,tz,withDate){
+  if(!iso) return "—";
+  const k=tz+(withDate?"|d":"|t");
+  const f=_trF[k]||(_trF[k]=new Intl.DateTimeFormat("en-CA",withDate
+    ?{timeZone:tz,month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}
+    :{timeZone:tz,hour:"2-digit",minute:"2-digit",hourCycle:"h23"}));
+  return f.format(new Date(iso));
+}
+function trDayKey(iso,tz){
+  const k=tz+"|day";
+  const f=_trF[k]||(_trF[k]=new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit"}));
+  return f.format(new Date(iso));
+}
+// "Aug 12, 09:14 → 09:52 (38 min)" — 같은 로컬 날짜면 끝은 시각만. withDur=false 는 EDM 병기용.
+// 소요는 달력 경과(근무시간 자 아님) — CCTV 구간은 벽시계 그대로가 필요하다.
+function trSpan(a,b,tz,withDur){
+  if(!a) return '<span style="color:var(--mut)">not started</span>';
+  const s=trAt(a,tz,true);
+  if(!b) return s+' → <span style="color:#8a5a08">(in progress)</span>';
+  const e=trDayKey(a,tz)===trDayKey(b,tz)?trAt(b,tz,false):trAt(b,tz,true);
+  let d="";
+  if(withDur){
+    const min=Math.round((new Date(b)-new Date(a))/60000);
+    d=` <span style="color:var(--mut)">(${min<1?"<1 min":min<90?min+" min":(min/60).toFixed(1)+" h"})</span>`;
+  }
+  return `${s} → ${e}${d}`;
+}
+
+async function traceByOrder(){
+  const num=(document.getElementById("trOrderNum").value||"").trim().toUpperCase();
+  if(!num) return;
+  const box=document.getElementById("traceResult");
+  box.innerHTML=`<div class="loading"><div class="spin"></div>Looking up ${esc(num)}…</div>`;
+  const {data,error}=await sb.from("so").select(TR_SO_SEL).eq("so_number",num).limit(1);
+  if(error){ box.innerHTML=`<div class="empty" style="color:#c0392b">Lookup failed: ${esc(error.message||"")} — try again.</div>`; return; }
+  const o=(data||[]).map(normOrder)[0];
+  if(!o){ box.innerHTML=`<div class="empty">Order not found: <b style="font-family:var(--mono)">${esc(num)}</b> — exact match only (e.g. SO-12345). Try the customer search.</div>`; return; }
+  renderTrace(o);
+}
+
+async function traceByCustomer(){
+  const term=(document.getElementById("trCustomer").value||"").trim();
+  if(!term) return;
+  const box=document.getElementById("traceResult");
+  box.innerHTML=`<div class="loading"><div class="spin"></div>Searching "${esc(term)}"…</div>`;
+  // ilike 부분 일치(admin 첫 선례). 흔한 단어("Beauty")는 수백 건 → 최근 N + 총수 캡션
+  // (2026-08-13 표시 관례: 표시 건수와 총수의 역할을 나눈다). count:"exact" 는 행과 함께 총수 — 왕복 1.
+  const {data,count,error}=await sb.from("so")
+    .select(TR_SO_SEL_CUST,{count:"exact"})
+    .ilike("customer.name","%"+term.replace(/[%_]/g,"\\$&")+"%")   // 임베드 칸 필터 — !inner 라 손님이 안 맞는 오더는 빠진다
+    .order("created_at",{ascending:false}).order("id",{ascending:false})
+    .limit(TR_CUST_LIMIT);   // caps-ok: 최근 30 사양 — 총수는 캡션이 표시
+  if(error){ box.innerHTML=`<div class="empty" style="color:#c0392b">Search failed: ${esc(error.message||"")} — try again.</div>`; return; }
+  const rows=(data||[]).map(normOrder);
+  if(!rows.length){ box.innerHTML=`<div class="empty">No orders match "${esc(term)}".</div>`; return; }
+  const total=count??rows.length;
+  box.innerHTML=`<div style="font-size:12px;color:var(--mut);margin:0 0 6px">${
+      total>rows.length?`Latest ${rows.length} of ${total} matching orders listed — refine the name to narrow down.`:`${total} matching order${total===1?"":"s"}.`
+    } Click a row to trace it.</div>
+    <div class="card"><table><thead><tr><th>Order</th><th>Customer</th><th>Warehouse</th><th>Status</th><th>Finalized</th></tr></thead><tbody>${
+    rows.map((r,i)=>`<tr data-tri="${i}" style="cursor:pointer">
+      <td style="font-family:var(--mono);font-weight:700">${esc(r.order_number)}</td>
+      <td>${esc(r.customer_name||"—")}</td>
+      <td><span class="tag wh-${r.wh}">${whLabel(r.wh)}</span></td>
+      <td><span class="tag st-${r.status}">${statusLabel(r.status)}</span></td>
+      <td style="color:var(--mut);font-size:12px">${(r.fin&&r.fin.finalized_at)?trAt(r.fin.finalized_at,WH_TZ.toronto,true):"—"}</td>
+    </tr>`).join("")}</tbody></table></div>`;
+  box.querySelectorAll("[data-tri]").forEach(tr=>tr.onclick=()=>renderTrace(rows[+tr.dataset.tri]));
+}
+
+// discrepancy 한 줄 — 표기 순서는 규칙 41 분기와 동일: declared_by(선언 — 실수 아님) 먼저, responsible(실수 귀속) 다음
+function trDiscLine(d){
+  const lbl=REASON_LABEL[d.reason]||d.reason||"—";
+  const qty=(d.ordered_base!=null||d.actual_base!=null)?` · expected ${nf(d.ordered_base)} → actual ${nf(d.actual_base)}`:"";
+  const who=d.declared_by?` · declared by ${esc(nameOf(d.declared_by))}`:(d.responsible?` · responsible: ${esc(nameOf(d.responsible))}`:"");   // 사람 칸 uuid → 이름
+  const when=d.created_at?` · ${trAt(d.created_at,WH_TZ.toronto,true)}`:"";
+  return `<div style="font-size:12px;color:#8a5a08;margin-top:2px;${d.voided_at?"text-decoration:line-through;opacity:.55":""}">⚠ <b>${esc(lbl)}</b> · <span style="font-family:var(--mono)">${esc(d.sku)}</span>${qty}${who}${when}${
+    d.resolved_at?' · <span style="color:#1a7f4e">resolved</span>':""}${
+    d.voided_at?" · voided (rollback)":""}</div>`;
+}
+
+// 배치 라벨 자연수 정렬 — baCmp(BATCH ACTIVITY)의 batch 키와 같은 방식(정규식 숫자 비교).
+// 텍스트 정렬은 SO-xxxxx-10 이 -2 앞에 온다 — CCTV 조회는 배치 번호를 눈으로 훑는 작업이라
+// 순서가 어긋나면 급할 때 놓친다(2026-08-13 사용자 결정). baCmp 를 직접 부르지 않는 이유:
+// baSort 전역(키·방향)에 묶여 있어 BATCH ACTIVITY 의 정렬 상태가 여기로 샌다.
+// SO- 형태가 아닌 라벨(wave 라벨 W-MMDD-n 등)은 정규식에 안 걸려 문자열 비교 폴백 — baCmp 와 동일.
+function trBatchCmp(a,b){
+  const pa=/^SO-(\d+)-(\d+)/.exec(a||"")||[], pb=/^SO-(\d+)-(\d+)/.exec(b||"")||[];
+  const x=(Number(pa[1])||0)-(Number(pb[1])||0); if(x) return x;
+  const y=(Number(pa[2])||0)-(Number(pb[2])||0); if(y) return y;
+  return (a||"")<(b||"")?-1:(a||"")>(b||"")?1:0;
+}
+
+// 배치 펼침 내용 — SKU 라인 표 + 그 배치의 discrepancy. 데이터는 renderTrace 가 전부 로드해 둠(추가 왕복 0).
+function trBatchDetail(t,pk,olMap,iss){
+  const packByOl=new Map(); if(pk)(pk.wms_pack_task_lines||[]).forEach(l=>packByOl.set(l.order_line_id,l));
+  const rows=(t.wms_pick_task_lines||[]).map(l=>{
+    const ol=olMap.get(l.order_line_id)||{};
+    const bins=(l.wms_pick_line_bins||[]), act=bins.filter(b=>!b.planned);   // ⑤-5c2: 칸 = 실제로 뽑은 칸(planned=false) 우선 · 없으면 계획 칸
+    const binTxt=(act.length?act:bins).map(b=>b.bin).filter(Boolean).join(", ");
+    const v=pk?packByOl.get(l.order_line_id):null;
+    const asg=Number(l.assigned_base)||0, pkd=Number(l.picked_base)||0;
+    const ver=v?(Number(v.verified_base)||0):null;
+    const pickDiff=pkd!==asg, packDiff=v!=null&&ver!==pkd;
+    return `<tr style="${pickDiff||packDiff?"background:#fdf1ec":""}">
+      <td style="font-family:var(--mono);font-size:12px">${esc(ol.order_sku||("line #"+l.order_line_id))}</td>
+      <td style="font-size:12px">${esc(ol.product_name||"—")}</td>
+      <td style="font-family:var(--mono);font-size:12px">${esc(binTxt||"—")}</td>
+      <td class="num">${nf(asg)}</td>
+      <td class="num" style="${pickDiff?"color:#c0392b;font-weight:700":""}">${nf(pkd)}${pickDiff?` (${pkd>asg?"+":""}${nf(pkd-asg)})`:""}</td>
+      <td class="num" style="${packDiff?"color:#c0392b;font-weight:700":""}">${v!=null?nf(ver)+(packDiff?` (${ver>pkd?"+":""}${nf(ver-pkd)})`:""):"—"}</td>
+    </tr>`;
+  }).join("");
+  return `<table style="width:100%"><thead><tr><th style="font-size:11px">SKU</th><th style="font-size:11px">Product</th><th style="font-size:11px">Bin</th><th class="num" style="font-size:11px">Assigned</th><th class="num" style="font-size:11px">Picked</th><th class="num" style="font-size:11px">Verified</th></tr></thead><tbody>${
+    rows||'<tr><td colspan="6" style="color:var(--mut);font-size:12px">No lines in this batch</td></tr>'}</tbody></table>${
+    iss.length?`<div style="margin-top:6px">${iss.map(trDiscLine).join("")}</div>`:""}`;
+}
+
+async function renderTrace(o){
+  const box=document.getElementById("traceResult");
+  box.innerHTML=`<div class="loading"><div class="spin"></div>Loading ${esc(o.order_number)}…</div>`;
+  try{
+    const [bt,ol,dc,rp]=await Promise.all([
+      // 배치 + 픽 라인 + 팩(pick_task_id 유니크 uq_packtasks_pick — 1:1) + 팩 라인.
+      // pick→pack→pack_lines 3단 체인은 2026-08-13 실측 통과 형태(Finalized 탭)이고,
+      // 임베드 라인은 최상위 배치 행에 실려 오므로 1000행 캡 무관(규칙 20).
+      sb.from("wms_pick_tasks")
+        .select("id,batch_label,assigned_to,completed_by,status,started_at,completed_at,wave_id,tote_no,"
+          +"wms_pick_task_lines(order_line_id,assigned_base,picked_base,status,wms_pick_line_bins(bin,planned,qty_base)),"   // ⑤-5c2: 칸은 픽 줄의 칸 행(FK pick_task_line_id)
+          +"wms_pack_tasks(id,assigned_to,completed_by,status,started_at,completed_at,"
+          +"wms_pack_task_lines(order_line_id,verified_base,status))")
+        .eq("order_id",o.id).order("batch_label"),
+      // SKU·상품명은 so_line 에 — 라인 ~1000개 오더가 실재해 캡 경계라 sbAll 전량(order_sku 이름은 표시 코드가 그대로 읽게 맞춘다)
+      sbAll(()=>sb.from("so_line").select("id,sku,product_name,line_no").eq("so_id",o.id).order("line_no")),
+      // ⑤-5c2: 실수 = wms_worker_mistakes(다섯) + 「Not enough stock」 선언 = wms_reports stock_short(판정 20) — 한 목록으로(reason stock_short · declared_by = reported_by)
+      sb.from("wms_worker_mistakes")
+        .select("id,sku,reason,ordered_base,actual_base,responsible,declared_by,created_at,resolved_at,voided_at,pick_task_id,pack_task_id")
+        .eq("order_id",o.id).order("created_at"),   // caps-ok: 오더 1건 귀속 — 수십 건 규모
+      sb.from("wms_reports").select("id,sku,qty_expected,qty_found,reported_by,created_at,resolved_at").eq("order_id",o.id).eq("kind","stock_short").order("created_at"),
+    ]);
+    if(bt.error) throw bt.error;
+    if(ol.error) throw ol.error;
+    (ol.data||[]).forEach(l=>{ l.order_sku=l.sku; });
+    const tasks=(bt.data||[]).slice().sort((a,b)=>trBatchCmp(a.batch_label,b.batch_label));   // 자연수 정렬 — 서버 .order 는 텍스트 정렬이라 -10 이 -2 앞
+    const olMap=new Map((ol.data||[]).map(l=>[l.id,l]));
+    // disc 실패는 비치명 — 본체(배치·시각·작업자)는 그대로 보여주고 경고만 남긴다
+    const discs=(dc.error?[]:(dc.data||[])).concat((rp&&!rp.error?(rp.data||[]):[]).map(x=>({id:"r"+x.id, sku:x.sku, reason:"stock_short", ordered_base:x.qty_expected, actual_base:x.qty_found, responsible:null, declared_by:x.reported_by, created_at:x.created_at, resolved_at:x.resolved_at, voided_at:null, pick_task_id:null, pack_task_id:null})));
+    const discNote=(dc.error||(rp&&rp.error))?`<div style="font-size:12px;color:#c0392b;margin:8px 0">Couldn't load mistakes: ${esc((dc.error||rp.error).message||"")} — batch info above is unaffected.</div>`:"";
+    // 배치 귀속: pick_task_id 직접 / 팩 산물은 pack_task_id → 그 팩의 픽 배치.
+    // 링크가 라이브 배치와 안 맞으면(NULL 옛 행·롤백으로 배치 삭제) orphans 로.
+    const packToPick=new Map();
+    tasks.forEach(t=>(t.wms_pack_tasks||[]).forEach(p=>packToPick.set(p.id,t.id)));
+    const discByBatch=new Map(); const orphans=[];
+    discs.forEach(d=>{
+      const tid=d.pick_task_id!=null?d.pick_task_id:(d.pack_task_id!=null?packToPick.get(d.pack_task_id):null);
+      if(tid!=null&&tasks.some(t=>t.id===tid)){ if(!discByBatch.has(tid))discByBatch.set(tid,[]); discByBatch.get(tid).push(d); }
+      else orphans.push(d);
+    });
+
+    const TZT=WH_TZ.toronto, isEdm=o.wh==="edmonton";   // 창고 이름에 Edmonton → America/Edmonton · 그 밖 America/Toronto
+    const hdr=`<div class="card" style="padding:12px 14px;margin:0 0 12px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-family:var(--mono);font-weight:800;font-size:16px">${esc(o.order_number)}</span>
+        <span style="font-size:13.5px;font-weight:600">${esc(o.customer_name||"—")}</span>
+        <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        <span class="tag st-${o.status}">${statusLabel(o.status)}</span>
+      </div>
+      <div style="font-size:12px;color:var(--mut);margin-top:4px">${o.at_wms_at?`${STATUS_LABEL.at_wms} ${trAt(o.at_wms_at,TZT,true)}`:"not released to the WMS"} · ${
+        (o.fin&&o.fin.finalized_at)?`${STATUS_LABEL.packed} ${trAt(o.fin.finalized_at,TZT,true)}${o.fin.finalized_by?" by "+esc(nameOf(o.fin.finalized_by)):""}`:"not finalized yet"
+      } · ${o.total_lines??"—"} lines · ${nf(o.total_units)} units ordered</div>
+      <div style="font-size:11.5px;color:var(--mut-2);margin-top:2px">All times are <b>Toronto local</b>${
+        isEdm?" · <b>EDM</b> lines are Edmonton local — match them to the Edmonton CCTV clock":" — match them to the CCTV clock"
+      } (the database stores UTC).</div>
+    </div>`;
+
+    let batHtml;
+    if(!tasks.length){
+      batHtml=`<div class="empty">No pick batches — this order hasn't been split yet (or its batches were rolled back — see Recent rollbacks on the Rollback tab), so nothing is recorded as physically picked.</div>`;
+    }else{
+      const autoOpen=tasks.length===1;   // 스마트 펼침: 배치 1개(대부분)면 클릭 0회로 SKU 까지
+      const edmLine=x=>isEdm?`<br><span style="color:var(--mut);font-size:11px">EDM ${trSpan(x.started_at,x.completed_at,WH_TZ.edmonton,false)}</span>`:"";
+      batHtml=`<div class="card"><table><thead><tr><th>Batch</th><th>Picked by</th><th>Pick time</th><th>Packed by</th><th>Pack time</th><th class="num">Lines verified</th><th class="num">Units verified</th><th class="num">Issues</th></tr></thead><tbody>${
+        tasks.map(t=>{
+          const pk=(t.wms_pack_tasks||[])[0]||null;
+          const iss=discByBatch.get(t.id)||[];
+          const nIss=iss.filter(d=>!d.voided_at).length;
+          let lv=0,uv=0;
+          if(pk)(pk.wms_pack_task_lines||[]).forEach(l=>{ const q=Number(l.verified_base)||0; if(q>0){lv++;uv+=q;} });
+          return `<tr data-trbt="${t.id}" style="cursor:pointer" title="Click to show/hide the SKU lines">
+            <td style="font-family:var(--mono);font-weight:700;white-space:nowrap"><span class="trcaret">${autoOpen?"▾ ":"▸ "}</span>${esc(t.batch_label||("#"+t.id))}${
+              t.wave_id?` <span class="tag" title="picked as part of a wave (multi-order tote cart)">wave${t.tote_no!=null?" · tote "+t.tote_no:""}</span>`:""}</td>
+            <td>${esc(nameOf(t.completed_by||t.assigned_to)||"—")}</td>
+            <td style="font-size:12px;white-space:nowrap">${trSpan(t.started_at,t.completed_at,TZT,true)}${edmLine(t)}</td>
+            <td>${pk?esc(nameOf(pk.completed_by||pk.assigned_to)||"—"):'<span style="color:var(--mut)">not packed</span>'}</td>
+            <td style="font-size:12px;white-space:nowrap">${pk?trSpan(pk.started_at,pk.completed_at,TZT,true)+edmLine(pk):"—"}</td>
+            <td class="num">${pk?lv:"—"}</td><td class="num">${pk?nf(uv):"—"}</td>
+            <td class="num">${nIss?`<span style="color:#c0392b;font-weight:700">⚠ ${nIss}</span>`:"—"}</td>
+          </tr>
+          <tr data-trsub="${t.id}" ${autoOpen?"":"hidden"}><td colspan="8" style="background:#fafbfd;padding:6px 10px">${trBatchDetail(t,pk,olMap,iss)}</td></tr>`;
+        }).join("")}</tbody></table></div>`;
+    }
+    const orphHtml=orphans.length?`<div class="card" style="padding:10px 12px;margin-top:12px">
+      <div style="font-size:12.5px;font-weight:700;color:#8a5a08">⚠ ${orphans.length} mistake row${orphans.length===1?"":"s"} / stock-short declaration${orphans.length===1?"":"s"} without a live batch <span style="font-weight:400;color:var(--mut)">— stock-short declarations are per order (no batch link) or the batch was removed by a rollback · batch unknown</span></div>
+      ${orphans.map(trDiscLine).join("")}</div>`:"";
+    box.innerHTML=hdr+batHtml+discNote+orphHtml;
+    // 펼침 토글 — 데이터는 전부 로드돼 있어 DOM 토글만(추가 왕복 0). 서브행 접힘은 hidden 속성(Finalized 관례).
+    box.querySelectorAll("[data-trbt]").forEach(tr=>tr.onclick=()=>{
+      const sub=box.querySelector(`[data-trsub="${tr.dataset.trbt}"]`); if(!sub) return;
+      sub.hidden=!sub.hidden;
+      const c=tr.querySelector(".trcaret"); if(c) c.textContent=sub.hidden?"▸ ":"▾ ";
+    });
+  }catch(e){
+    box.innerHTML=`<div class="empty" style="color:#c0392b">Couldn't load trace: ${esc(e.message||e)} — try again.</div>`;
+  }
+}
+
+
 function start(){
-  // tab — 이 판은 셋(Status · Rollback · Finalized) · 다른 탭은 ⑤-5c · ⑤-6
+  // tab — 여덟(원본 순서 · Receiving 은 입고가 IMS 로 올 때)
   document.getElementById("tabs").onclick=e=>{
     const b=e.target.closest("button[data-t]"); if(!b)return;
     const t=b.dataset.t;
@@ -350,13 +710,24 @@ function start(){
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     document.getElementById("v-"+t).classList.add("active");
     if(t==="overview")loadOverview();
+    if(t==="disc")loadDisc();
+    if(t==="stats")loadStats();
     if(t==="rollback")loadRollback();
+    if(t==="reports")loadReports();
     if(t==="packing")loadPacking();
+    if(t==="health")loadHealth();
+    if(t==="trace")loadTrace();
   };
+  periodBar("discPeriod",discPeriodKey,discCustom,(k,c)=>{discPeriodKey=k;loadDisc();});
+  periodBar("repPeriod",repPeriodKey,repCustom,(k,c)=>{repPeriodKey=k;loadReports();});
+  periodBar("statsPeriod",statsPeriodKey,statsCustom,(k,c)=>{statsPeriodKey=k;loadStats();});
   periodBar("finPeriod",finPeriodKey,finCustom,(k,c)=>{finPeriodKey=k;finCustom=c;loadPacking();});
   renderFinWhBar();
   subscribePresence();
   loadOverview();
+  refreshDiscBadge();
+  refreshReportBadge();
+  refreshHealthBadge();
   // keep freshness chips honest while Status tab is open
   setInterval(()=>{ if(document.getElementById("v-overview").classList.contains("active")) loadOverview(); }, 60000);
 }
@@ -810,8 +1181,8 @@ async function rollbackNotes(linkCol, ids, reasons, oids, opts){
   try{
     if(ids.length){
       const {count:cFixed}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
-        .in(linkCol,ids).in("reason",reasons).eq("manager_resolved",true);   // ⑤-5c1: 칸 이름 cin7_corrected → manager_resolved(마이그레이션 20260927214447 적용 뒤 이 판이 나가야 한다)
-      if(cFixed) notes.push(`⚠ ${cFixed} mistake row(s) from this work were already marked resolved by a manager — a stock adjustment may need reversing (they stay resolved; Discrepancy tab ⑤-5c).`);
+        .in(linkCol,ids).in("reason",reasons).eq("manager_resolved",true);   // 칸 manager_resolved(20260927214447 · 매니저가 정리한 실수 = 재고 조정이 이미 끝났을 수 있다)
+      if(cFixed) notes.push(`⚠ ${cFixed} mistake row(s) from this work were already marked resolved by a manager — a stock adjustment may need reversing (they stay resolved; Discrepancy tab).`);
     }
     const {count:cOld}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
       .in("order_id",oids).in("reason",reasons).is(linkCol,null).is("voided_at",null).is("resolved_at",null);
@@ -861,7 +1232,7 @@ async function loadRollbackLog(){
       <td style="font-family:var(--mono);font-weight:700">${esc(r.order_number||"—")}</td>
       <td style="font-family:var(--mono);font-size:12px">${esc(r.batch_label||"—")}</td>
       <td>${esc(AL[r.action]||r.action)}</td>
-      <td style="font-size:12px;color:var(--mut)">${esc(r.from_stage||"")} → ${esc(r.to_stage||"")}</td>
+      <td style="font-size:12px;color:var(--mut)">${esc(stageLabel(r.from_stage))} → ${esc(stageLabel(r.to_stage))}</td>
       <td style="font-size:12px">${esc(nameOf(r.original_worker)||"—")}</td>
       <td>${esc(nameOf(r.performed_by)||"—")}</td>
       <td style="font-size:12px;color:var(--mut)">${r.created_at?new Date(r.created_at).toLocaleString():""}</td>
@@ -1401,6 +1772,605 @@ async function printOrderPackingList(oid){
     win.document.write(html); win.document.close();
   }catch(e){ if(win){try{win.close();}catch(_){}} toast("Print failed: "+(e.message||e),true); }
 }
+
+/* ---------- Health (invariant checks via wms_health_check RPC) ---------- */
+async function loadHealth(){
+  const el=document.getElementById("healthList");
+  el.innerHTML=`<div class="loading"><div class="spin"></div>Running checks…</div>`;
+  // ⑤-5c2: 라이브 RPC 하나(wms_health_check · 20260927214447 · 13 행 · 반환 칸 sort · check_key · category · title · hint · fail_count · sample = 옛 모양) —
+  //   스냅샷 표 · 기록 표 · cron 은 없다(정본 §24-g 판정 13 가드 흔적 c) · 권한 없음(P0001)은 창구 문장 그대로 보인다
+  const {data,error}=await sb.rpc("wms_health_check");
+  if(error){
+    el.innerHTML=`<div class="empty">Health check failed: ${esc(error.message||"")}</div>`;
+    updateHealthBadge(null);
+    return;
+  }
+  const rows=data||[];
+  const crit=rows.filter(r=>r.category==="critical"&&r.fail_count>0).length;
+  const warn=rows.filter(r=>r.category==="warn"&&r.fail_count>0).length;
+  updateHealthBadge(crit);
+  let summary;
+  if(crit) summary=`<span style="color:var(--danger);font-weight:800">${crit} critical</span>`
+      +(warn?` · <span style="color:var(--warn);font-weight:700">${warn} warning${warn>1?"s":""}</span>`:"")+` to review`;
+  else if(warn) summary=`<span style="color:var(--warn);font-weight:700">${warn} warning${warn>1?"s":""}</span> · no critical issues`;
+  else summary=`<span style="color:var(--ok);font-weight:800">All clear</span> — every invariant holds`;
+  el.innerHTML=`<div style="margin:0 2px 4px;font-size:13.5px">${summary}
+      <button class="btnsm" style="margin-left:10px" onclick="loadHealth()">↻ Re-run</button></div>
+    <div style="margin:0 2px 14px;font-size:12px;color:var(--mut)">Checked just now — every visit runs the checks live (no scheduled snapshot).</div>
+    <div>${rows.map(healthCard).join("")}</div>`;
+}
+function healthCard(r){
+  const info=r.category==="info";
+  const bad=!info && Number(r.fail_count)>0;
+  const color=info?"var(--mut-2)":bad?(r.category==="critical"?"var(--danger)":"var(--warn)"):"var(--ok)";
+  const bg=info?"var(--line-2)":bad?(r.category==="critical"?"var(--danger-bg)":"var(--warn-bg)"):"var(--ok-bg)";
+  const dot=info?"·":(bad?"✕":"✓");
+  const pill=info?healthInfoValue(r.sample):(bad?`${r.fail_count} row${Number(r.fail_count)>1?"s":""}`:"OK");
+  let body=`<div style="font-size:12.5px;color:var(--mut);margin-top:6px;line-height:1.5">${esc(r.hint)}</div>`;
+  if(bad && r.sample) body+=`<details style="margin-top:10px">
+      <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)">Show sample (up to 8)</summary>
+      ${sampleTable(r.sample)}</details>`;
+  return `<div class="card" style="padding:14px 16px;margin-bottom:10px;border-left:3px solid ${color}">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-weight:700;font-size:14.5px">${esc(r.title)}</span>
+      <span class="tag" style="color:${color};background:${bg};margin-left:auto">${dot} ${esc(String(pill))}</span>
+    </div>${body}</div>`;
+}
+function healthInfoValue(s){
+  if(s && s.minutes_ago!=null){
+    const m=Number(s.minutes_ago);
+    return m<60?`${m}m ago`:m<1440?`${Math.round(m/60)}h ago`:`${Math.round(m/1440)}d ago`;
+  }
+  return "—";
+}
+function fmtHealthVal(v){ return v==null?"—":typeof v==="object"?JSON.stringify(v):String(v); }
+function sampleTable(sample){
+  if(!Array.isArray(sample))
+    return `<pre style="margin:8px 0 0;overflow-x:auto;font-family:var(--mono);font-size:12px;background:var(--line-2);padding:10px;border-radius:8px">${esc(JSON.stringify(sample,null,2))}</pre>`;
+  if(!sample.length) return "";
+  const keys=Object.keys(sample[0]);
+  return `<div style="overflow-x:auto;margin-top:8px"><table><thead><tr>${
+      keys.map(k=>`<th>${esc(k)}</th>`).join("")
+    }</tr></thead><tbody>${
+      sample.map(row=>`<tr>${keys.map(k=>`<td style="font-family:var(--mono);font-size:12px">${esc(fmtHealthVal(row[k]))}</td>`).join("")}</tr>`).join("")
+    }</tbody></table></div>`;
+}
+function updateHealthBadge(crit){
+  const b=document.getElementById("healthBadge"); if(!b) return;
+  if(crit==null){
+    // 조회 실패(권한 없음 등) — "이상 없음"(배지 숨김)과 구분되는 회색 ?
+    b.textContent="?"; b.style.display="inline-block"; b.style.background="var(--mut-2)";
+    b.title="Health check could not run — open the Health tab to see why";
+  }else if(crit>0){ b.textContent=crit; b.style.display="inline-block"; b.style.background=""; b.title=""; }
+  else { b.style.display="none"; b.style.background=""; b.title=""; }
+}
+// 배지 = 라이브 검사 한 번(부팅 때) — 기록 표가 없으니 critical 수를 바로 센다(⑤-5c2)
+async function refreshHealthBadge(){
+  try{
+    const {data,error}=await sb.rpc("wms_health_check");
+    if(error){ updateHealthBadge(null); return; }
+    updateHealthBadge((data||[]).filter(r=>r.category==="critical"&&Number(r.fail_count)>0).length);
+  }catch(e){ updateHealthBadge(null); }
+}
+
+/* ---------- Reports (data-quality) ---------- */
+// ⑤-5c2: 「Not enough stock」(stock_short · 판정 20 · 픽커·팩커 선언 · qty_expected · qty_found)도 이 표에 있다 — 열린 것 = resolved_at null · 완료 창구가 refresh/resolve 한다
+// 📌 판정 20 ⬜⭐ — stock_short 에서 실물 확인 뒤 바로 재고 조정으로 넘어가는 연결은 재고 사건 차수에서 여기(row 의 단추 자리)에 선다 · 지금은 「Mark resolved」 만
+const REPORT_KIND={wrong_location:"Wrong location", barcode_mismatch:"Barcode changed", image_mismatch:"Image differs", box_barcode:"Box barcode", stock_short:"Not enough stock"};
+let repOpen=[], repDone=[], repKind="all";   // kind filter is client-side over the loaded rows
+let repDoneTotal=0, repSumRows=[], repSumTotal=0;   // 요약·추세용 경량 행 + 서버 총계 (2026-08-11)
+async function refreshReportBadge(){
+  try{
+    const {count}=await sb.from("wms_reports").select("id",{count:"exact",head:true}).is("resolved_at",null);
+    const b=document.getElementById("reportBadge");
+    if(count&&count>0){ b.style.display="inline-block"; b.textContent=count; } else { b.style.display="none"; }
+  }catch(e){ /* table may not exist yet */ }
+}
+async function loadReports(){
+  const el=document.getElementById("reportsList");
+  el.innerHTML=`<div class="loading"><div class="spin"></div>Loading…</div>`;
+  const r=rangeFor(repPeriodKey,repCustom); repRange=r; setRangeLabel("repPeriod",r.label);
+  // open = 기간 무관 전량(미해결 큐를 기간으로 숨기면 처리 누락 — Discrepancy 탭과 같은 규칙 · 2026-08-11).
+  // done = 기간 + LIMIT 500(안전장치 — 종전 LIMIT 50 건수 자르기를 기간 기준으로 통일).
+  // sum = 요약·추세용 경량 쿼리(기간 전체 발생 — resolved 포함, wms_reports 는 voided 컬럼 없음 · 다섯 묶음 2: stock_short 도 voided 칸 없이 resolved_at 하나).
+  const [open,done,sum]=await Promise.all([
+    // 캡 위험 #8 근본 해결(2026-08-12 3단계): 미해결 큐는 잘리면 곧 처리 누락 — sbAll 페이지 누적으로 전량.
+    // 현재 11건(실측)이라 1왕복 그대로지만, 캡 도달 여부와 무관하게 전량이 보장된다. id 보조 정렬 = 동시각 tie 대비.
+    sbAll(()=>sb.from("wms_reports").select("*").is("resolved_at",null).order("created_at",{ascending:false}).order("id",{ascending:false})),   // caps-ok: sbAll 페이지 누적 — 미해결 큐 전량(#8)
+    sb.from("wms_reports").select("*",{count:"exact"}).not("resolved_at","is",null).gte("created_at",r.fromISO).lte("created_at",r.toISO).order("created_at",{ascending:false}).limit(500),
+    // ⚠️ 정렬 필수(2026-08-14): 무정렬이면 1000행 캡 도달 시 어느 1000행이 오는지 미정의라
+    //    "trend counts the first N of M" 표기가 전제하는 정렬이 실제로는 없고 추세 바 모양도 미정의로
+    //    왜곡된다. [실측 2026-08-14] 188행 — 여유. 모수 count-head 분리는 백로그 #9 유지(truncNote 공지 있음).
+    sb.from("wms_reports").select("kind,created_at,resolved_at",{count:"exact"}).gte("created_at",r.fromISO).lte("created_at",r.toISO).order("created_at",{ascending:false}).order("id",{ascending:false}),   // caps-ok: 기간 모수·잘리면 truncNote 표기(#9 — 실측 188/1000)
+  ]);
+  if(open.error){ el.innerHTML=`<div class="empty" style="font-size:12px">Couldn't load reports: ${esc(open.error.message||"")}</div>`; return; }
+  repOpen=open.data||[]; repDone=done.data||[];
+  repDoneTotal=done.count??repDone.length;
+  repSumRows=sum.data||[]; repSumTotal=sum.count??repSumRows.length;
+  renderReports();
+}
+function renderReports(){
+  const el=document.getElementById("reportsList");
+  const row=(r,actionable)=>`<tr>
+    <td style="font-family:var(--mono);font-weight:700">${esc(r.order_number||r.po_number||"")}</td>
+    <td style="font-family:var(--mono)">${esc(r.sku||"")}</td>
+    <td><span class="tag">${esc(REPORT_KIND[r.kind]||r.kind)}</span></td>
+    <td style="font-size:12px;color:var(--mut)">${r.kind==="stock_short"?`expected ${nf(r.qty_expected)} → found ${nf(r.qty_found)}${r.note?" · ":""}`:""}${esc(r.note||"")}</td>
+    <td>${esc(nameOf(r.reported_by)||"—")}${r.source?` <span style="color:var(--mut-2);font-size:11px">(${esc(r.source)})</span>`:""}</td>
+    <td style="color:var(--mut);font-size:12px">${r.created_at?new Date(r.created_at).toLocaleDateString()+(actionable?ageBadge(r.created_at):""):""}</td>
+    ${actionable
+      ? `<td><button class="btnsm ok" data-resolve="${r.id}">Mark resolved</button></td>`
+      : `<td style="color:var(--mut);font-size:12px">${r.resolved_by?esc(nameOf(r.resolved_by))+" · ":""}${r.resolved_at?new Date(r.resolved_at).toLocaleDateString():""}${resolvedIn(r.created_at,r.resolved_at)}</td>`}
+  </tr>`;
+  const keep=r=>repKind==="all"||r.kind===repKind;
+  const openR=repOpen.filter(keep), doneR=repDone.filter(keep);
+  // kind filter — counts are of OPEN reports so a manager sees where the work is
+  const kindBtn=(v,l)=>{
+    const n=v==="all"?repOpen.length:repOpen.filter(r=>r.kind===v).length;
+    return `<button data-repkind="${v}" style="border:1px solid var(--line);background:${repKind===v?"#eef4ff":"#fff"};color:${repKind===v?"#2456d6":"var(--mut)"};border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px">${l}${n?` (${n})`:""}</button>`;
+  };
+  const filterBar=`<div style="margin:0 0 10px">${kindBtn("all","All")}${Object.entries(REPORT_KIND).map(([k,l])=>kindBtn(k,l)).join("")}</div>`;
+  // 발생 요약 + 추세 (2026-08-11) — 종류 = REPORT_KIND 4종 그대로
+  renderIssueSummary("repSummary", repSumRows,
+    x=>!x.resolved_at,
+    Object.entries(REPORT_KIND).map(([k,l])=>[l, x=>x.kind===k]),
+    repRange, repPeriodKey,
+    "A drop can mean better data — or that fewer people are reporting.",
+    repSumRows.length<repSumTotal?` · trend counts the first ${repSumRows.length} of ${repSumTotal} rows`:"");
+  const doneNote=repDoneTotal>repDone.length
+    ? `<div style="font-size:11px;color:var(--mut);margin:2px 0 8px">showing first ${repDone.length} of ${repDoneTotal} resolved in this period</div>`:"";
+  const head=`<thead><tr><th>Order</th><th>SKU</th><th>Type</th><th>Detail</th><th>Reported by</th><th>Date</th><th></th></tr></thead>`;
+  el.innerHTML=`
+    ${filterBar}
+    <div class="sect-h" style="margin-top:0">Open ${openR.length?`(${openR.length})`:"(0)"}</div>
+    <table>${head}<tbody>${openR.length?openR.map(r=>row(r,true)).join(""):`<tr><td colspan="7" style="color:var(--mut);padding:14px">No open reports.</td></tr>`}</tbody></table>
+    <div class="sect-h">Resolved (recent)</div>
+    ${doneNote}
+    <table>${head}<tbody>${doneR.length?doneR.map(r=>row(r,false)).join(""):`<tr><td colspan="7" style="color:var(--mut);padding:14px">None.</td></tr>`}</tbody></table>`;
+  el.querySelectorAll("[data-resolve]").forEach(b=>b.onclick=()=>resolveReport(+b.dataset.resolve));
+  el.querySelectorAll("[data-repkind]").forEach(b=>b.onclick=()=>{ repKind=b.dataset.repkind; renderReports(); });
+  refreshReportBadge();
+}
+async function resolveReport(id){
+  const {error}=await sb.from("wms_reports").update({resolved_by:me.id, resolved_at:new Date().toISOString()}).eq("id",id);   // 사람 칸 = ims_staff.id(판정 4) · 직접 쓰기(판정 6)
+  if(error){ toast("Failed: "+error.message,true); return; }
+  toast("Resolved"); loadReports();
+}
+
+// 단위 규칙(m/h/d · 48h 경계)의 단일 출처 (2026-08-11 공용화 — Discrepancy·Reports 의 경과/소요 표시가 재사용).
+// ⚠️ fmtAge 의 표시 형식은 문자 하나도 안 바뀐다 — 종전 로직을 fmtDur+" ago" 로 재구성했을 뿐(회귀 없음).
+function fmtDur(ms){
+  if(!isFinite(ms)||ms<0) return "—";
+  const m=Math.floor(ms/60000);
+  if(m<60) return m+"m";
+  const h=Math.floor(m/60);
+  if(h<48) return h+"h";
+  return Math.floor(h/24)+"d";
+}
+function fmtAge(iso){
+  if(!iso) return "—";
+  const d=fmtDur(Date.now()-new Date(iso).getTime());
+  return d==="—"?"—":d+" ago";
+}
+// ── 경과·소요 셀 (Discrepancy·Reports 공용 · 2026-08-11) ──
+// 미해결 = created_at 경과, 색 3단계(사용자 확정): <24h 회색 / 1~3일 주황 / 3일+ 빨강.
+// 해소 = created→resolved 소요("resolved in 2h") — 회색 고정(지난 일이 미해결 색 신호를 흐리면 안 된다).
+// voided 행은 어느 쪽도 붙이지 않는다("Voided" 태그가 이미 있다).
+function ageBadge(iso){
+  if(!iso) return "";
+  const ms=Date.now()-new Date(iso).getTime();
+  if(!isFinite(ms)||ms<0) return "";
+  const day=86400000;
+  const col=ms<day?"var(--mut)":ms<3*day?"#c77700":"#c0392b";
+  return ` <span style="color:${col};font-weight:${ms<day?"400":"700"};font-size:11px">${fmtAge(iso)}</span>`;
+}
+function resolvedIn(created,resolved){
+  if(!created||!resolved) return "";
+  const d=fmtDur(new Date(resolved).getTime()-new Date(created).getTime());
+  return d==="—"?"":` · <span style="color:var(--mut-2)">resolved in ${d}</span>`;
+}
+/* ---------- Discrepancy ---------- */
+async function refreshDiscBadge(){
+  const {count}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true}).is("resolved_at",null).eq("manager_resolved",false).is("voided_at",null);
+  const b=document.getElementById("discBadge");
+  if(count&&count>0){ b.style.display="inline-block"; b.textContent=count; } else { b.style.display="none"; }
+}
+let discOpenRows=[], discDoneRows=[], discCat="all";   // category filter is client-side over the loaded rows
+let discPickerMap=new Map();   // pick_task_id → {completed_by, assigned_to} — short_pick 픽커 참고 표시용(2026-08-13)
+let discDoneTotal=0, discSumRows=[], discSumTotal=0;   // 요약·추세용 경량 행 + 서버 총계 (2026-08-11)
+// ⑤-5c2: 이 표(wms_worker_mistakes)는 작업자 실수 다섯만 — 「Stock short (inventory)」 는 Reports 탭(wms_reports stock_short) · 「Receiving」 은 입고가 IMS 로 올 때(po_receipt_diff) ⇒ 카테고리는 하나
+function discCatOf(d){
+  return "mistake";
+}
+async function loadDisc(){
+  const r=rangeFor(discPeriodKey,discCustom); discRange=r; setRangeLabel("discPeriod",r.label);
+  // open (all, any period) + recently resolved (period applied)
+  // voided(롤백 무효화) 행은 큐에서 빠지고 이력에 태그로 남는다 — 삭제가 아니라 무효화 (2026-08-06)
+  // 2026-08-11: done 은 기간이 범위를 정하고 LIMIT 500 은 안전장치(잘리면 "showing first N of M" 표기).
+  //   요약·추세는 별도 경량 쿼리 — 목록 LIMIT 과 무관하게 기간 전체를 센다. 제외 조건은 voided 뿐
+  //   (resolved 포함 — "몇 건이 발생했나"의 질문. 규칙 14 집계와 동일한 voided 제외).
+  const [open, done, sum]=await Promise.all([
+    // 캡 위험 #8 근본 해결(2026-08-12 3단계): 미해결 큐 전량 — Reports 탭 open 과 같은 처방(sbAll·id 보조 정렬).
+    sbAll(()=>sb.from("wms_worker_mistakes").select("*").is("resolved_at",null).eq("manager_resolved",false).is("voided_at",null).order("created_at",{ascending:false}).order("id",{ascending:false})),   // caps-ok: sbAll 페이지 누적 — 미해결 큐 전량(#8)
+    sb.from("wms_worker_mistakes").select("*",{count:"exact"}).or("resolved_at.not.is.null,manager_resolved.eq.true,voided_at.not.is.null").gte("created_at",r.fromISO).lte("created_at",r.toISO).order("created_at",{ascending:false}).limit(500),
+    // ⚠️ 정렬 필수(2026-08-14): Reports 탭 sum 쿼리와 같은 이유 — 무정렬 + 1000행 캡 = "first N" 미정의.
+    //    [실측 2026-08-14] 379행(voided 제외) — 여유. 모수 count-head 분리는 백로그 #9 유지.
+    sb.from("wms_worker_mistakes").select("reason,source,created_at,resolved_at,manager_resolved",{count:"exact"})
+      .is("voided_at",null).gte("created_at",r.fromISO).lte("created_at",r.toISO).order("created_at",{ascending:false}).order("id",{ascending:false}),   // caps-ok: 기간 모수·잘리면 truncNote 표기(#9 — 실측 379/1000)
+  ]);
+  discOpenRows=open.data||[]; discDoneRows=done.data||[];
+  discDoneTotal=done.count??discDoneRows.length;
+  discSumRows=sum.data||[]; discSumTotal=sum.count??discSumRows.length;
+  // short_pick 픽커 이름 조회(2026-08-13): responsible 은 설계상 안 채운다(규칙 41 — 실수 귀속 아님, 무접촉).
+  // FK 없음(20260805000000 의도 — 롤백 delete 에서 증거 보존)이라 임베드 불가 → _srcGone 패턴의 일괄 .in
+  // (N+1 금지). open 전량 + done(≤500) 의 id 를 모아 500개 청크 — 청크당 행 ≤500 이라 1000행 캡 무관.
+  // 실패는 비치명(빈 Map = "—" 유지) — 참고 표시가 목록 로드를 막으면 안 된다.
+  discPickerMap=new Map();
+  try{
+    const pids=[...new Set([...discOpenRows,...discDoneRows].map(d=>d.pick_task_id).filter(Boolean))];
+    for(let i=0;i<pids.length;i+=500){
+      const {data:pts}=await sb.from("wms_pick_tasks").select("id,completed_by,assigned_to").in("id",pids.slice(i,i+500));
+      (pts||[]).forEach(t=>discPickerMap.set(t.id,t));
+    }
+  }catch(e){ /* 참고 정보 — 조용히 생략 */ }
+  // D 표시: 매니저가 정리(manager_resolved)했는데 근거 태스크가 롤백돼 사라진 행 → "역조정 필요할 수 있음" 배지.
+  // 링크는 있는데 라이브 테이블에 없음 = 롤백/삭제됨 (컬럼 추가 없이 계산 — 일괄 2쿼리, N+1 없음).
+  try{
+    const fixed=discDoneRows.filter(d=>d.manager_resolved&&!d.voided_at);
+    const pkIds=[...new Set(fixed.map(d=>d.pack_task_id).filter(Boolean))];
+    const ptIds=[...new Set(fixed.map(d=>d.pick_task_id).filter(Boolean))];
+    const [pkLive,ptLive]=await Promise.all([
+      pkIds.length?sb.from("wms_pack_tasks").select("id").in("id",pkIds):{data:[]},
+      ptIds.length?sb.from("wms_pick_tasks").select("id").in("id",ptIds):{data:[]},
+    ]);
+    const pkSet=new Set((pkLive.data||[]).map(r=>r.id)), ptSet=new Set((ptLive.data||[]).map(r=>r.id));
+    fixed.forEach(d=>{ d._srcGone=(d.pack_task_id&&!pkSet.has(d.pack_task_id))||(d.pick_task_id&&!ptSet.has(d.pick_task_id)); });
+  }catch(e){ /* 배지는 부가 정보 — 실패해도 목록은 그린다 */ }
+  renderDisc();
+  refreshDiscBadge();
+}
+function renderDisc(){
+  // category filter bar — counts are of OPEN rows so a manager sees where the work is
+  const catBtn=(v,l)=>{
+    const n=v==="all"?discOpenRows.length:discOpenRows.filter(d=>discCatOf(d)===v).length;
+    return `<button data-disccat="${v}" style="border:1px solid var(--line);background:${discCat===v?"#eef4ff":"#fff"};color:${discCat===v?"#2456d6":"var(--mut)"};border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px">${l}${n?` (${n})`:""}</button>`;
+  };
+  document.getElementById("discFilter").innerHTML=
+    catBtn("all","All")+catBtn("mistake","Worker mistakes");
+  document.querySelectorAll("[data-disccat]").forEach(b=>b.onclick=()=>{ discCat=b.dataset.disccat; renderDisc(); });
+  const keep=d=>discCat==="all"||discCatOf(d)===discCat;
+  const openR=discOpenRows.filter(keep);
+  document.getElementById("discOpenCnt").textContent=openR.length?`(${openR.length})`:"(0)";
+  // 발생 요약 + 추세 (2026-08-11) — 카테고리 = 필터와 같은 discCatOf 구분(규칙 41: stock_short 등은 실수가 아니다)
+  renderIssueSummary("discSummary", discSumRows,
+    d=>!d.resolved_at&&!d.manager_resolved,
+    [["Worker mistakes",d=>discCatOf(d)==="mistake"]],
+    discRange, discPeriodKey,
+    "A drop can mean better stock accuracy — or fewer declarations.",
+    discSumRows.length<discSumTotal?` · trend counts the first ${discSumRows.length} of ${discSumTotal} rows`:"");
+  renderDiscTable("discOpen", openR, true);
+  renderDiscTable("discDone", discDoneRows.filter(keep), false);
+  if(discDoneTotal>discDoneRows.length){
+    document.getElementById("discDone").insertAdjacentHTML("afterbegin",
+      `<div style="font-size:11px;color:var(--mut);margin:2px 0 8px">showing first ${discDoneRows.length} of ${discDoneTotal} resolved in this period</div>`);
+  }
+}
+function discRow(d,actionable){
+  const rl=REASON_LABEL[d.reason]||d.reason;
+  const act=actionable
+    ? `<td><button class="btnsm ok" data-fix="${d.id}">✓ Resolved</button></td>`
+    : `<td style="color:var(--mut);font-size:12px">${
+        d.voided_at
+          ? `<span class="tag r-short_pick" title="${esc(d.voided_reason||"")}">Voided (rollback)</span> ${d.voided_by?esc(nameOf(d.voided_by))+" · ":""}${new Date(d.voided_at).toLocaleDateString()}`
+          : `${d._srcGone?'<span class="tag r-short_pick" title="the batch this row came from was rolled back after it was resolved">⚠ batch rolled back — reverse adjustment?</span> ':""}${d.resolved_by?esc(nameOf(d.resolved_by))+" · ":""}${d.resolved_at?new Date(d.resolved_at).toLocaleDateString():"Resolved"}${resolvedIn(d.created_at,d.resolved_at)}`
+      }</td>`;
+  // stock_short: no responsible (it is not a mistake) — show who DECLARED it + when (audit)
+  // short_pick 등 responsible 없는 행(2026-08-13): pick_task_id 로 픽커 이름을 **회색 참고 표시** —
+  // 실수 귀속(responsible)이 아니다(규칙 41 무접촉). 분기 순서 고정: declared_by → responsible → pick_task_id → "—".
+  // Map 에 없으면 롤백으로 task 가 delete 된 것(_srcGone 과 같은 판정 원리).
+  let who;
+  if(d.declared_by)
+    who=`<span style="color:#2456d6">${esc(nameOf(d.declared_by))}</span> <span style="color:var(--mut-2);font-size:11px">declared${d.source?" · "+esc(d.source):""}</span>`;
+  else if(d.responsible) who=esc(nameOf(d.responsible));
+  else if(d.pick_task_id){
+    const pk=discPickerMap.get(d.pick_task_id), nm=pk&&(pk.completed_by||pk.assigned_to);
+    who=pk ? (nm?`<span style="color:var(--mut)">picked by ${esc(nameOf(nm))}</span>`:"—")
+           : `<span style="color:var(--mut)">picker unknown — batch removed</span>`;
+  }
+  else who="—";
+  const when=d.created_at
+    ? new Date(d.created_at).toLocaleDateString()+(d.declared_by?` <span style="color:var(--mut-2)">${new Date(d.created_at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>`:"")
+      +(actionable?ageBadge(d.created_at):"")   // 미해결만 경과 색 강조 — 해소·voided 는 붙이지 않는다 (2026-08-11)
+    : "";
+  return `<tr>
+    <td style="font-family:var(--mono);font-weight:700">${esc(d.order_number||"")}</td>
+    <td style="font-family:var(--mono)">${esc(d.sku||"")}${d.note?`<div style="font-family:inherit;font-weight:400;font-size:11px;color:var(--mut);margin-top:2px">${esc(d.note)}</div>`:""}</td>
+    <td><span class="tag r-${d.reason}">${rl}</span></td>
+    <td class="num">${d.ordered_base??"—"}</td>
+    <td class="num">${d.actual_base??"—"}</td>
+    <td>${who}</td>
+    <td style="color:var(--mut);font-size:12px">${when}</td>
+    ${act}
+  </tr>`;
+}
+function renderDiscTable(id, rows, actionable){
+  const el=document.getElementById(id);
+  if(!rows.length){ el.innerHTML=`<div class="empty">${actionable?"No open discrepancies. 👍":"No activity in this period."}</div>`; return; }
+  el.innerHTML=`<table><thead><tr><th>Orders</th><th>SKU</th><th>Type</th><th class="num">Ordered</th><th class="num">Actual</th><th>Responsible</th><th>Date</th><th></th></tr></thead>
+    <tbody>${rows.map(d=>discRow(d,actionable)).join("")}</tbody></table>`;
+  if(actionable){
+    el.querySelectorAll("[data-fix]").forEach(b=>b.onclick=()=>fixDisc(+b.dataset.fix));
+  }
+}
+async function fixDisc(id){
+  if(!confirm("Mark this mistake as resolved?\n(Adjust the stock first if the shelf needs it, then press this)")) return;
+  const {error}=await sb.from("wms_worker_mistakes").update({manager_resolved:true, resolved_by:me.id, resolved_at:new Date().toISOString()}).eq("id",id);   // 직접 쓰기(판정 6) · 칸 manager_resolved(20260927214447) · 사람 = ims_staff.id
+  if(error){ toast("Action failed: "+error.message,true); return; }
+  toast("Done"); loadDisc();
+}
+
+/* ---------- Stats ---------- */
+async function loadStats(){
+  const r=rangeFor(statsPeriodKey,statsCustom); statsRange=r; setRangeLabel("statsPeriod",r.label);
+  prodPP=null; prodRecv=null; // new period — both halves refill, renderProd merges whatever has arrived
+  prodExpanded=null; // 기간 변경 = 펼침 접기(사용자 확정) — 다른 기간의 목록이 펼쳐진 채 남으면 오독한다
+  prodRecv=null;   // ⑤-5c2: 입고 통계는 입고가 IMS 로 올 때 — renderProd 는 빈 값으로 받아 pick/pack 만 그린다
+  // throughput: completed pick/pack batches (by completion time)
+  // 2026-08-11: 라인·유닛(base 낱개)까지 — 라인 테이블은 PostgREST 임베드로(왕복 수 불변, 규칙 34 패턴).
+  //   "실제 한 일" 기준(리시빙 통계와 동일 규칙): 라인 = 수량>0 인 라인 수 · 유닛 = 수량 합
+  //   (픽 picked_base / 팩 verified_base — 손대지 않은 라인은 처리량에 안 잡힌다, 섹션 부제에 명시).
+  // 캡 위험 #5 근본 해결(2026-08-12 4단계): 기간 전량 조회 4곳을 sbAll 페이지 누적으로 —
+  // 종전 무LIMIT 은 1 year/All 에서 이미 1000+ 로 지표가 과소였다(수정 후 장기 기간 숫자 증가가 정상).
+  // 집계는 순서 무관·펼침 목록은 아래 byAt 재정렬이라 표시 불변. 임베드 라인은 최상위 행에 실려
+  // 페이지와 함께 온전하다(라인 합계도 캡 무관). .order("id") = 페이지 결정성(규칙 20).
+  const [picks, packs, disc, reps]=await Promise.all([
+    sbAll(()=>sb.from("wms_pick_tasks").select("id,wave_id,assigned_to,batch_label,started_at,completed_at,wms_pick_task_lines(picked_base)").eq("status","completed").gte("completed_at",r.fromISO).lte("completed_at",r.toISO).order("id")),   // caps-ok: sbAll 페이지 누적 — 기간 전량(#5)
+    sbAll(()=>sb.from("wms_pack_tasks").select("id,assigned_to,batch_label,started_at,completed_at,wms_pack_task_lines(verified_base)").eq("status","completed").gte("completed_at",r.fromISO).lte("completed_at",r.toISO).order("id")),   // caps-ok: sbAll 페이지 누적 — 기간 전량(#5)
+    sbAll(()=>sb.from("wms_worker_mistakes").select("responsible,reason,created_at").gte("created_at",r.fromISO).lte("created_at",r.toISO).is("voided_at",null).order("id")),   // caps-ok: sbAll 페이지 누적 — 기간 전량(#5) · ⑤-5c2 표 이름만
+    // 품질 리포트 활동 — source 무필터(receiver 포함, 사용자 확정 2026-08-11). 평가·포상 표현 없음(조건 1) — 데이터 표로만.
+    sbAll(()=>sb.from("wms_reports").select("reported_by,kind,created_at").gte("created_at",r.fromISO).lte("created_at",r.toISO).order("id")),   // caps-ok: sbAll 페이지 누적 — 기간 전량(#5)
+  ]);
+  if(statsRange!==r) return; // period changed while loading — the newer call renders
+  // ── Hold 이력 조회 (2026-08-25 C 단계 · 2차 수정) — 하한 = 조회된 eligible 태스크의 min(started_at).
+  // ⚠️ 종전 from−48h 는 캡이 raw 에 걸릴 때의 논리였다 — 캡을 net 으로 옮긴 순간(주말 Hold 배치를
+  // 살리는 결정) raw 는 얼마든지 길 수 있어, 하한 밖 hold 가 조회에서 빠지면 **부분 공제로 캡을
+  // 통과한 틀린 숫자가 조용히 표시**된다. min(started_at) 하한은 상수 없이 완전하다:
+  // started_at 은 최초 시작이 보존되고(08-11 원칙 + 08-24 wave 합류 — 어떤 재개도 안 덮는다)
+  // hold 는 반드시 그 이후에만 생기므로, 이 하한으로 그 태스크들의 hold 집합이 완전하다.
+  // eligible(SINCE 이후 완료)로 좁히는 이유: 도입 전 태스크는 새 자를 계산하지 않으므로 그
+  // started_at 이 하한을 불필요하게 끌어내리면 안 된다. 직렬 왕복 +1 은 holds 뿐(수십 행 규모).
+  // 임베드 불가(task_id 다형 — FK 없음) · RPC 는 병기 단계에 과접촉(옛 자와 같은 층에서 계산해야 대조).
+  const HOLD_TRACKING_SINCE=new Date("2026-08-24T19:57:49Z");   // wms_task_holds 첫 행 실측(id 1) — 추정 아님. 그 이전엔 테이블이 없었다(실물 하한)
+  let holdMinStart=null;
+  for(const p of [...(picks.data||[]),...(packs.data||[])]){
+    if(!p.started_at||!p.completed_at)continue;
+    if(new Date(p.completed_at)<HOLD_TRACKING_SINCE)continue;
+    if(holdMinStart==null||p.started_at<holdMinStart)holdMinStart=p.started_at;
+  }
+  const holds=holdMinStart==null?{data:[]}   // eligible 태스크 0 = 조회 생략 (기간이 추적 도입 전)
+    :await sbAll(()=>sb.from("wms_task_holds").select("task_kind,task_id,held_at,resumed_at").gte("held_at",holdMinStart).lte("held_at",r.toISO).order("id"));   // caps-ok: sbAll 페이지 누적 — 하한은 min(started_at), 근거는 위 주석
+  if(statsRange!==r) return; // period changed while the hold query ran
+  // throughput + avg duration tally
+  const prod={};
+  const mkP=n=>(prod[n]=prod[n]||{pick:0,pack:0,pickMin:0,pickN:0,packMin:0,packN:0,pickLines:0,pickUnits:0,packLines:0,packUnits:0,pickList:[],packList:[],
+    pickNetMin:0,pickNetN:0,pickHeldMin:0,pickHeldCnt:0,pickElig:0,packNetMin:0,packNetN:0,packHeldMin:0,packHeldCnt:0,packElig:0,_heldWaves:new Set()});
+  // dur = 옛 자(벽시계). 24h 캡은 이 자 전용 — 벽시계에선 밤샘 Hold 가 avg 를 오염시키는 방어였다.
+  // 새 자(아래 net)는 캡을 「공제 후 값」에 건다: 오염원(Hold)을 실제로 빼므로 같은 배치가
+  // 이상치가 아니라 정확히 재진 값이 된다(2026-08-25 판단 — 실측 pick 1767: 989.7분 → 30.8분).
+  const dur=t=>{ if(!t.started_at||!t.completed_at)return null; const m=(new Date(t.completed_at)-new Date(t.started_at))/60000; return (m>=0&&m<24*60)?m:null; };
+  // ── Hold 공제 (2026-08-25 C 단계 · 병기 — 교체 아님. 옛 벽시계 avg 가 새 자의 유일한 대조군) ──
+  // HOLD_TRACKING_SINCE 는 위(조회 하한 절)에서 선언. 도입 전 완료 태스크는 새 자 계산 불가 —
+  // 분모에서 제외(⚠️ 백필 금지: 공제 0 으로 섞으면 평균이 옛 값 쪽으로 끌린다).
+  // holdMap: kind\u0001id → {min(구간 합·분), cnt}. ⚠️ 열린 행(resumed_at null)은 제외 — 완료
+  // 태스크에 열린 행 = 닫힘 유실(health hold_leak 이 감시)이라 구간을 만들 수 없다. ⚠️ 음수 구간은
+  // greatest(0) 클램프 — 과거 11행의 태블릿 시계 음수(−1.2초 규모 = 실제 0분 hold)의 실체에 대응
+  // (2026-08-25 부터는 닫기가 RPC 서버 시계라 신규 음수는 구조적으로 불가).
+  const holdMap={};
+  (holds.data||[]).forEach(h=>{ if(!h.resumed_at)return;
+    const k=h.task_kind+"\u0001"+h.task_id;
+    const e=holdMap[k]=holdMap[k]||{min:0,cnt:0};
+    e.min+=Math.max(0,(new Date(h.resumed_at)-new Date(h.held_at))/60000); e.cnt++; });
+  // netDur: 공제 후 값. wave hold 는 멤버 각각에 **전액** 공제(2026-08-25 Caleb 확정 — 멤버의
+  // dur 자체가 wave 전체 벽시계로 각자 통째로 부풀어 있으므로 빼는 것도 각자 통째여야 자가 맞는다.
+  // 5로 나누면 「wave 시간 − hold/5」라는 현실에 없는 수가 된다).
+  const netDur=(t,kind)=>{
+    if(!t.started_at||!t.completed_at)return null;
+    if(new Date(t.completed_at)<HOLD_TRACKING_SINCE)return null;   // 도입 전 — 계산 불가(백필 금지)
+    const raw=(new Date(t.completed_at)-new Date(t.started_at))/60000;
+    if(raw<0)return null;
+    const own=holdMap[kind+"\u0001"+t.id], wv=(kind==="pick"&&t.wave_id)?holdMap["wave\u0001"+t.wave_id]:null;
+    const net=Math.max(0,raw-((own?own.min:0)+(wv?wv.min:0)));
+    return net<24*60?net:null;   // held 합산은 밖(eligible 블록)에서 — 공제는 자의 성질, held 는 사실
+  };
+  // 펼침 목록(2026-08-11)은 표시 전용 push — 집계식은 무변(태스크별 tl/tu 를 합산하는 형태로만 재배열, 합계 동일).
+  (picks.data||[]).forEach(p=>{ if(!p.assigned_to)return; const v=mkP(nameOf(p.assigned_to)||p.assigned_to);   // 사람 칸 uuid → 이름(표 열쇠) v.pick++; const m=dur(p); if(m!=null){v.pickMin+=m;v.pickN++;}
+    if(new Date(p.completed_at)>=HOLD_TRACKING_SINCE){ v.pickElig++;
+      const nd=netDur(p,"pick");
+      if(nd!=null){ v.pickNetMin+=nd; v.pickNetN++; }
+      // held 합산은 netDur 성공과 **무관** (2026-08-25 2차 수정): 새 자가 캡(net≥24h)에 걸린
+      // 배치도 실제로 멈춘 시간은 사실이다 — netDur 안에서 합산하면 그 배치가 "held 0 min" 으로
+      // 거짓 표기된다. **공제는 자의 성질이고, held 는 사실이다.**
+      // wave hold 는 사람이 멈춘 1회 — 멤버 수만큼 이중 계상하지 않는다(_heldWaves dedup).
+      const own=holdMap["pick\u0001"+p.id];
+      if(own){ v.pickHeldMin+=own.min; v.pickHeldCnt+=own.cnt; }
+      if(p.wave_id!=null&&!v._heldWaves.has(String(p.wave_id))){ v._heldWaves.add(String(p.wave_id));
+        const wv=holdMap["wave\u0001"+p.wave_id]; if(wv){ v.pickHeldMin+=wv.min; v.pickHeldCnt+=wv.cnt; } }
+    }
+    let tl=0,tu=0;
+    (p.wms_pick_task_lines||[]).forEach(l=>{ const q=Number(l.picked_base)||0; if(q<=0)return; tl++; tu+=q; });
+    v.pickLines+=tl; v.pickUnits+=tu;
+    v.pickList.push({label:p.batch_label||"", lines:tl, units:tu, min:m, at:p.completed_at}); });
+  (packs.data||[]).forEach(p=>{ if(!p.assigned_to)return; const v=mkP(nameOf(p.assigned_to)||p.assigned_to); v.pack++; const m=dur(p); if(m!=null){v.packMin+=m;v.packN++;}
+    if(new Date(p.completed_at)>=HOLD_TRACKING_SINCE){ v.packElig++;
+      const nd=netDur(p,"pack");
+      if(nd!=null){ v.packNetMin+=nd; v.packNetN++; }
+      // held 는 nd 와 무관 — pick 루프의 같은 주석 참조 (공제는 자의 성질, held 는 사실)
+      const own=holdMap["pack\u0001"+p.id];
+      if(own){ v.packHeldMin+=own.min; v.packHeldCnt+=own.cnt; }
+    }
+    let tl=0,tu=0;
+    (p.wms_pack_task_lines||[]).forEach(l=>{ const q=Number(l.verified_base)||0; if(q<=0)return; tl++; tu+=q; });
+    v.packLines+=tl; v.packUnits+=tu;
+    v.packList.push({label:p.batch_label||"", lines:tl, units:tu, min:m, at:p.completed_at}); });
+  // 펼침 목록 정렬 = 완료시각 내림차순 (최근 먼저 — 상한 30 표시가 "가장 최근 30개"가 되는 근거)
+  Object.values(prod).forEach(v=>{ const byAt=(a,b)=>new Date(b.at)-new Date(a.at); v.pickList.sort(byAt); v.packList.sort(byAt); });
+  prodPP=prod; renderProd();
+  // quality reports by worker (2026-08-11) — 종류별 건수. 정렬은 표시 순서일 뿐, 순위·강조·색 차등 없음(조건 1).
+  const qual={};
+  (reps.data||[]).forEach(x=>{ if(!x.reported_by)return;
+    const who=nameOf(x.reported_by)||x.reported_by;
+    const q=qual[who]=qual[who]||{wrong_location:0,barcode_mismatch:0,image_mismatch:0,box_barcode:0,stock_short:0,total:0};
+    if(q[x.kind]!=null)q[x.kind]++; q.total++; });
+  renderQuality(qual);
+  // mistake tally (by responsible person, resolved not excluded — count occurrences themselves)
+  // NOT mistakes (2026-08-04): stock_short/pack_scan_mistake are inventory-mismatch/self-caught rows
+  // (responsible=null anyway — belt and suspenders); recv_* 는 이 표에 없다(입고 차이는 po_receipt_diff) — 목록은 원본 그대로 둔다.
+  const NOT_MISTAKE=new Set(["resolved_pack_recovery","stock_short","pack_scan_mistake","recv_over","recv_short","recv_off_po"]);
+  const mistakes={};
+  (disc.data||[]).forEach(d=>{ if(!d.responsible)return; if(NOT_MISTAKE.has(d.reason))return;
+    const who=nameOf(d.responsible)||d.responsible;
+    const m=mistakes[who]=mistakes[who]||{short_after_pack:0,over_pick:0,short_pick:0,total:0};
+    if(m[d.reason]!=null)m[d.reason]++; m.total++; });
+  renderMistakes(mistakes);
+}
+function renderProd(){
+  // one row per worker = pick/pack (prodPP) ∪ receiving (prodRecv) — 두 조회가 도착하는 대로 병합 재렌더
+  const el=document.getElementById("prodTable");
+  const pp=prodPP||{}, rv=prodRecv||{};
+  // ── ~폴백 그룹을 실명 행에 접어 넣는다 (2026-08-20 Caleb — 렌더 단계 병합) ──
+  // 집계(loadRecvStats)는 그대로 두 키로 나눠 두고(합치면 구분이 사라진다), 여기서 행만 하나로 —
+  // 수치는 exact(라인별 실작업자)/attr(2026-08-17 컬럼 도입 전 — 시작자 귀속 추정) 두 벌 분리 유지.
+  // ⚠️ 한 숫자로 합산 금지: PO-01131 형("들어갔다 나온 사람이 전량 작업자") 거짓이 부활한다(규칙 24).
+  const rvm={};
+  Object.entries(rv).forEach(([k,v])=>{
+    const fb=k.startsWith(RECV_FB_PREFIX);
+    const nm=fb?k.slice(RECV_FB_PREFIX.length):k;
+    const m=rvm[nm]=rvm[nm]||{exact:null,attr:null};
+    if(fb)m.attr=v; else m.exact=v;
+  });
+  const rvLines=rc=>rc?(((rc.exact&&rc.exact.lines)||0)+((rc.attr&&rc.attr.lines)||0)):0;   // 정렬·막대 스케일 = 표시 총량(exact+attr)
+  const names=[...new Set([...Object.keys(pp),...Object.keys(rvm)])];
+  if(!names.length){ el.innerHTML=`<div class="empty">No work completed in this period.</div>`; return; }
+  const P0={pick:0,pack:0,pickMin:0,pickN:0,packMin:0,packN:0,pickLines:0,pickUnits:0,packLines:0,packUnits:0};
+  const rows=names.map(nm=>[nm,pp[nm]||P0,rvm[nm]||null])
+    .sort((a,b)=>((b[1].pick+b[1].pack)-(a[1].pick+a[1].pack))||(rvLines(b[2])-rvLines(a[2])));
+  const batchMax=Math.max(...rows.map(([,v])=>Math.max(v.pick,v.pack)),1);
+  // receive bar has its OWN scale: a receipt can be 5 or 344 lines — sharing the batch scale would flatten pick/pack
+  const lineMax=Math.max(...rows.map(([,,rc])=>rvLines(rc)),1);
+  el.innerHTML=rows.map(([nm,v,rc])=>{
+    // rc = {exact, attr} (위 rvm) — 본문 수치(units·receipts·putaway%)는 exact 만, attr 는
+    // "(+N attributed)" 로 분리 표기(툴팁 = RECV_FB_TIP). putaway% 분모도 exact lines 만
+    // (추정 라인을 섞으면 비율이 거짓이 된다). ~~avg work time~~ 은 2026-08-25 제거(⑤) —
+    // 근거는 loadRecvStats 의 maxAt 주석(Place all 재스탬프 붕괴 · receipt 67 실측).
+    const rx=rc&&rc.exact, ra=rc&&rc.attr;
+    const exL=rx?rx.lines:0, exU=rx?rx.units:0, exN=rx?rx.n:0, atL=ra?ra.lines:0;
+    const attrTag=ra?` <span title="${RECV_FB_TIP}" style="color:var(--mut-2);border-bottom:1px dotted var(--mut-2)">(+${nf(atL)} lines · ${nf(ra.units)} units attributed)</span>`:"";
+    const recvTxt=rc?`Receive ${nf(exL)} line${exL===1?"":"s"} · ${nf(exU)} units (base) / ${exN} receipt${exN===1?"":"s"}${exL?` · putaway ${Math.round(rx.pDone/exL*100)}%`:""}${attrTag}`:"";   // 선두 구분자 " · " 는 템플릿(segBtn 앞)이 붙인다 (2026-08-11)
+    // 라인·유닛 보조 줄 (2026-08-11) — ⚠️ 세 지표(배치/라인/유닛)를 나란히 보여줄 뿐, 종합 점수·순위·정렬·
+    // 강조에 쓰지 않는다(사용자 확정 — 한 숫자로 줄이면 그 숫자에 맞춰 행동이 왜곡된다: 작은 오더 골라잡기.
+    // min/line 도 같은 이유로 회색 텍스트만 — 작은 라인만 골라잡으면 좋아지는 지표다).
+    // min/line 은 근사치 — 분모(라인)는 전 배치, 분자(시간)는 소요시간이 유효한 배치만(결측·24h+ 이상치 제외, 기존 dur 규칙).
+    const seg=(label,lines,units,min)=>lines?`${label} ${nf(lines)} line${lines===1?"":"s"} · ${nf(units)} units (base)${min!=null?` · ${(min/lines).toFixed(1)} min/line`:""}`:"";
+    // 세그 병기 (2026-08-25 C 단계 · Caleb 확정 형식): Pick 12 (avg 34.2 min · 31.1 minus holds) · held 37 min (3×)
+    //  · "minus holds" = 새 자(start→complete 에서 기록된 Hold 구간을 뺀 값 — 근무시간이 아니다)
+    //  · held 는 **합계 + 횟수**(avg 아님 — 70분 1회와 5분 14회가 같은 평균이 되는 것을 횟수가 가른다)
+    //  · 분모가 다르면(옛 캡 초과 배치가 새 자에만 들어옴) (n=N) 병기 — 조용히 다른 분모 금지
+    //  · elig=0(기간이 추적 도입 전) = 새 값·held 통째 생략 / elig>0 + hold 0 = "held 0 min" 명시
+    //    (「안 했다」와 「기록이 없던 때다」가 화면에서 같아 보이면 안 된다 — Caleb 지시)
+    const durSegTxt=(label,cnt,min,nOld,netMin,netN,heldMin,heldCnt,elig)=>{
+      let x=`${label} ${cnt}`;
+      if(nOld||netN){
+        x+=` (avg ${nOld?(min/nOld).toFixed(1)+" min":"—"}`;
+        if(netN) x+=` · ${(netMin/netN).toFixed(1)} minus holds${netN!==nOld?` (n=${netN})`:""}`;
+        x+=")";
+      }
+      if(elig) x+=` · held ${heldMin?fmtWorkDur(heldMin):"0 min"}${heldCnt?` (${heldCnt}\u00d7)`:""}`;   // fmtWorkDur = 리시빙과 같은 포맷터(90분 경계) — 네 번째 시간 포맷 규칙을 만들지 않는다. avg·minus holds 는 분 유지(뺄셈 쌍 = 같은 단위)
+      return x;
+    };
+    const subParts=[seg("Pick",v.pickLines,v.pickUnits,v.pickN?v.pickMin:null),seg("Pack",v.packLines,v.packUnits,v.packN?v.packMin:null)].filter(Boolean);
+    const subLine=subParts.length?`<div style="font-size:11px;color:var(--mut);margin:0 0 3px">${subParts.join(" — ")}</div>`:"";
+    // 배치 목록 펼침 (2026-08-11 · 표시 전용 — 메모리의 pickList/packList/recvList 를 그릴 뿐, 추가 조회 없음)
+    // 클릭 대상 = 항목 세그먼트 + 해당 막대 행 둘 다(태블릿 터치 면적). 항목별 독립 토글 — 이름 클릭 아님.
+    const expKey=k=>nm+"|"+k;
+    const caret=k=>prodExpanded===expKey(k)?"▾ ":"▸ ";
+    const segBtn=(k,txt)=>`<span data-expand="${esc(expKey(k))}" style="cursor:pointer;border-bottom:1px dotted var(--mut)">${caret(k)}${txt}</span>`;
+    // 막대 = 정확분 진하게 + 추정분 연하게(opacity .35) 이어 붙임 — 스케일(lineMax)은 표시 총량 기준
+    const recvBar=rc?`
+      <div class="bar-row" data-expand="${esc(expKey("recv"))}" style="cursor:pointer"><span class="nm" style="color:var(--recv)">Receive lines</span><div class="track" style="display:flex"><div class="fill recv" style="width:${Math.round(exL/lineMax*100)}%${atL?";border-radius:5px 0 0 5px":""}"></div>${atL?`<div class="fill recv" title="${RECV_FB_TIP}" style="width:${Math.round(atL/lineMax*100)}%;opacity:.35;border-radius:0 5px 5px 0"></div>`:""}</div><span class="val" style="width:auto;min-width:44px">${exL}${atL?`<span style="color:var(--mut-2);font-weight:400" title="${RECV_FB_TIP}">+${atL}</span>`:""}</span></div>`:"";
+    // 펼침 목록 = exact + attr 병합(attr 항목은 라벨에 " (attributed)" — esc 되므로 평문), 완료시각 재정렬
+    const recvList=rc?[...(rx?rx.list:[]),...(ra?ra.list.map(b=>({...b,label:(b.label||"—")+" (attributed)"})):[])]
+      .sort((a,b)=>(b.at?new Date(b.at).getTime():Infinity)-(a.at?new Date(a.at).getTime():Infinity)):null;
+    const exp=prodExpanded===expKey("pick")?["Pick batches",v.pickList,false]
+      :prodExpanded===expKey("pack")?["Pack batches",v.packList,false]
+      :(rc&&prodExpanded===expKey("recv"))?["Receipts",recvList,true]:null;
+    return `
+    <div style="margin:10px 0">
+      <div style="font-weight:600;font-size:13px;margin-bottom:3px">${esc(nm)} <span style="color:var(--mut);font-weight:400;font-size:12px">· ${segBtn("pick",durSegTxt("Pick",v.pick,v.pickMin,v.pickN,v.pickNetMin,v.pickNetN,v.pickHeldMin,v.pickHeldCnt,v.pickElig))} · ${segBtn("pack",durSegTxt("Pack",v.pack,v.packMin,v.packN,v.packNetMin,v.packNetN,v.packHeldMin,v.packHeldCnt,v.packElig))}${rc?` · ${segBtn("recv",recvTxt)}`:""}</span></div>
+      ${subLine}
+      <div class="bar-row" data-expand="${esc(expKey("pick"))}" style="cursor:pointer"><span class="nm" style="color:var(--tor)">Pick batches</span><div class="track"><div class="fill" style="width:${Math.round(v.pick/batchMax*100)}%"></div></div><span class="val">${v.pick}</span></div>
+      <div class="bar-row" data-expand="${esc(expKey("pack"))}" style="cursor:pointer"><span class="nm" style="color:var(--violet)">Pack batches</span><div class="track"><div class="fill pack" style="width:${Math.round(v.pack/batchMax*100)}%"></div></div><span class="val">${v.pack}</span></div>${recvBar}
+      ${exp?renderProdExpand(exp[0],exp[1],exp[2]):""}
+    </div>`;}).join("");
+  // 하나만 펼침: 같은 키 재클릭 = 접기, 다른 키 클릭 = 이전 것 자동 접힘 (단일 상태 prodExpanded)
+  el.querySelectorAll("[data-expand]").forEach(x=>x.onclick=()=>{
+    const k=x.dataset.expand;
+    prodExpanded=(prodExpanded===k)?null:k;
+    renderProd();
+  });
+}
+// 펼침 패널 — 배치 수준까지만(⚠️ 라인/SKU 수준 금지: 수백~수천 행이라 화면이 감당 못 한다 — 특정 배치는
+// 오더번호로 따로 찾는다). 정렬은 완료시각 내림차순으로 이미 정렬돼 들어온다. 상한 30 = 가장 최근 30개.
+function renderProdExpand(title,list,isRecv){
+  const CAP=30;
+  const fmtAt=at=>at
+    ? new Date(at).toLocaleDateString()+" "+new Date(at).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})
+    : `<i style="color:var(--mut)">in progress</i>`;   // 미완료 receipt — 빈칸이면 "데이터 없음"으로 오독한다 (2026-08-11)
+  // 리시빙 펼침의 시간 열은 2026-08-25 제거(⑤ — 사람별 시간은 못 낸다 · loadRecvStats maxAt 주석 참조).
+  // 문서 시간으로의 대체는 기각: 사람 행 아래 펼침에 문서 시간을 넣으면 표기를 붙여도 자리가 거짓말을 한다.
+  const rows=list.slice(0,CAP).map(b=>`<tr>
+      <td style="font-family:var(--mono);font-weight:600">${esc(b.label||"—")}</td>
+      <td class="num">${nf(b.lines)}</td><td class="num">${nf(b.units)}</td>
+      ${isRecv?"":`<td class="num">${b.min!=null?b.min.toFixed(1)+" min":"—"}</td>`}
+      <td style="color:var(--mut);font-size:12px">${fmtAt(b.at)}</td></tr>`).join("");
+  const more=list.length>CAP
+    ? `<div style="font-size:11px;color:var(--mut);margin:4px 0 0">showing the ${CAP} most recent — ${list.length-CAP} older hidden (narrow the period to see them)</div>`:"";
+  return `<div style="margin:6px 0 2px;padding:8px 10px;background:#f7f8fa;border:1px solid var(--line);border-radius:8px">
+    <table style="font-size:12px"><thead><tr><th>${isRecv?"PO / TR":"Batch"}</th><th class="num">Lines</th><th class="num">Units (base)</th>${isRecv?"":'<th class="num">Time</th>'}<th>${isRecv?"Last touch":"Completed"}</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="${isRecv?4:5}" style="color:var(--mut)">None in this period.</td></tr>`}</tbody></table>${more}</div>`;
+}
+/* ---------- Quality reports by worker (2026-08-11 — 포상 판단용 데이터) ----------
+   ⚠️ 화면은 평가·포상을 표현하지 않는다(사용자 조건): 순위 번호·1위 강조·트로피·색 차등 없음 —
+   Mistakes 표와 같은 중립 표 형식. 정렬(total 내림차순)은 표시 순서일 뿐이다.
+   매니저가 데이터를 보고 판단한다 — 화면이 상벌을 지시하는 게 아니다. */
+function renderQuality(q){
+  const rows=Object.entries(q).sort((a,b)=>b[1].total-a[1].total);
+  const el=document.getElementById("qualityTable");
+  if(!rows.length){ el.innerHTML=`<div class="empty">No quality reports in this period.</div>`; return; }
+  el.innerHTML=`<div style="font-size:11px;color:var(--mut-2);margin:0 0 8px">Higher is better — these are quality reports, not mistakes.</div>
+    <table><thead><tr><th>Worker</th><th class="num">Total</th><th class="num">Wrong location</th><th class="num">Barcode</th><th class="num">Image</th><th class="num">Box barcode</th><th class="num">Not enough stock</th></tr></thead>
+    <tbody>${rows.map(([nm,v])=>`<tr>
+      <td style="font-weight:600">${esc(nm)}</td>
+      <td class="num" style="font-weight:800">${v.total}</td>
+      <td class="num">${v.wrong_location}</td>
+      <td class="num">${v.barcode_mismatch}</td>
+      <td class="num">${v.image_mismatch}</td>
+      <td class="num">${v.box_barcode}</td>
+      <td class="num">${v.stock_short||0}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+function renderMistakes(m){
+  const rows=Object.entries(m).sort((a,b)=>b[1].total-a[1].total);
+  const el=document.getElementById("mistakeTable");
+  if(!rows.length){ el.innerHTML=`<div class="empty">No mistakes recorded in this period. 👍</div>`; return; }
+  el.innerHTML=`<table><thead><tr><th>Worker</th><th class="num">Total mistakes</th><th class="num">short after pack</th><th class="num">Over-pick</th></tr></thead>
+    <tbody>${rows.map(([nm,v])=>`<tr>
+      <td style="font-weight:600">${esc(nm)}</td>
+      <td class="num" style="font-weight:800;color:var(--danger)">${v.total}</td>
+      <td class="num">${v.short_after_pack}</td>
+      <td class="num">${v.over_pick}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
 
 boot();
 </script>

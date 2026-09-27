@@ -68,6 +68,8 @@
     `grep -c 'wms-config\|wms-auth\|WMS_CONFIG\|gftpcnkxbdjzzfvzwcfl' wms-manager.html wms-picker.html wms-packer.html wms-fulfillment.html wms-admin.html wms-picklist.js wms-confirm-modal.js wms-packing.js ims-auth.js` 가 **코드 줄에서 0** 이다
     — 운영 프로젝트(asung-WMS)로 가는 길(설정 · 로그인 · 주소)이 이 레포에 없다 · asung-ims 에 wms-config.js 를 두지 않는다 · 화면의 Network 탭에 운영 주소 요청 0.
     ⚠️ ims-auth.js 머리 주석의 출처 메모 두 줄(3행 「원본: asung-wms 의 wms-auth.js」 · 8행 「WMS_CONFIG → IMS_CONFIG」)은 낱말만 있고 길이 아니다 — 2026-09-26 실측 grep -c 2 는 그 둘이다(코드 줄 0).
+[ ] ⭐ 검사 여섯째(2026-09-27 · ⑤-5c1 부터) — 화면 파일을 옮기거나 구간을 잘라 넣었으면 **정의 없이 불리는 이름**이 0 인지 본다: 모든 <script> 를 이어 acorn(레포 밖 임시 폴더 · npm i acorn acorn-walk)으로 읽어 선언(함수 · const/let/var · 인자 · catch · 구조 분해) 밖에서 불리는 식별자를 뽑고, 브라우저 전역 · 공통 파일이 내보내는 것(imsAuth · imsHeader · esc · wmsPacking · wmsPickList · wmsConfirmModal · IMS_CONFIG)을 빼면 0.
+    ⚠️ 검사 넷(단추↔처리 · id · node --check · CSS)은 이것을 못 잡는다 — [실사고 2026-09-27] wa v1 의 Finalized 탭이 renderFulfillStats(Stats 구간과 함께 빠짐)로 Loading 에서 멈췄다 · 도구 · 명령 · 출력 원문만 보고에(스크립트는 레포에 넣지 않는다).
 ```
 📌 정본 규칙: `asung-wms/docs/design/po-module.md` §10-j 3-g.
 
@@ -1078,7 +1080,7 @@ Parked and open at this store
 
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · Status · Rollback · Finalized (2026-09-27 신설 · Claude Code ⑤-5b · 1판 「2026-09-27 · wa v1」 · 운영 `asung-wms/admin.html` 의 복사본에서 세 탭만 · 마이그레이션 없음 · 판정 34 의 둘째 차수 · 나머지 탭(Discrepancy · Reports · Stats · Health · Trace)은 ⑤-5c · Receiving 은 ⑤-6)
+## 7-q. `wms-admin.html` — WMS Admin · 여덟 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 **v1.3** 「2026-09-27 · wa v1.3」 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1094,7 +1096,7 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 ⚠️ 모집단(2026-09-27 테스트 DB · Claude Code 실측 · begin read only): SO-25003 **packed**(packed_at 20:55 · packed_by Caleb) · wms_order_finalize 한 줄(packing_list · units 1 · units_without_dims 0) · 팔렛 P1(120×100×150 cm · 250 kg → 47.24 × 39.37 × 59.06 in · 551.16 lb) · 아이템 1(qty 12 · pack_task_id 23) · 픽 과제 47 completed · 팩 과제 23 completed · 픽 칸 2(계획 1 · 실제 1) · rollback_log 0 · archive 0 · review 0 · mistakes 0 · waves 0 · 시퀀스 so 25004 · 인보이스 60001 · 크레딧 1000 그대로.
 
 ```
-[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · wa v1」 · ☰ Menu 에 WMS Admin(Split & Waves 뒤 · 맨 끝) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves · WMS Admin」 · worker 계정은 메뉴에 없고 주소로 열면 「You don't have access to this screen.」 뒤 로그아웃
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · wa v1.3」 · ☰ Menu 에 WMS Admin(Split & Waves 뒤 · 맨 끝) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves · WMS Admin」 · 화면 안 탭 여덟 = Status · Discrepancy · Reports · Stats · Rollback · Health · Finalized · Trace(원본 순서 · Receiving 없음) · worker 계정은 메뉴에 없고 주소로 열면 「You don't have access to this screen.」 뒤 로그아웃
 [ ] Status: 카드 Released to WMS 0 · Working 0 · Packing 0 · Ready to finalize 0 · Finalized 1 · 배치 카드 넷 0 · Live now(열린 WMS 화면이 없으면 「No one is working …」) · Batch activity 「No orders in progress.」 · In-Progress Orders 「No orders in progress.」(SO-25003 은 packed 라 활성이 아니다)
 [ ] Finalized: 카드 Finalized 1 · With packing list 1 · Direct pack 0 · Packing-list rate 100% · 목록에 SO-25003 · JOJOJO - Joel Chang · Lines 1 · Units 12 · Toronto · Finalized by <이름> · When(20:55) · 🖨 Print · ⬇ PDF · ⬇ CSV · 「1 of 1 not yet reviewed」 · 창고 세그 All · Toronto · Edmonton(Edmonton 으로 바꾸면 「No finalized orders in this period.」) · 기간 세그 This week
 [ ] 🖨 Print → 새 창 PACKING LIST · SO-25003 · Customer · Warehouse Asung Trading Inc. · 유닛 지도 「🟩 P1 ✔ 12 units · 47.24 × 39.37 × 59.06 in · 551.16 lb」 · 표 CON00156 · Barcode 075724001565 · Product · Qty 12 · Total qty 12 · ⬇ PDF(글자 「ASUNG TRADING INC」 머리) · ⬇ CSV(유닛 지도에 Dimensions 열)
@@ -1108,7 +1110,25 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 [ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_rollback · rpc/wms_review_set 200(이 함수들은 테스트 DB 에만 있다)
 ```
 
-⚠️ [2026-09-27] 아직 없는 것 — Discrepancy · Reports · Stats · Health · Trace(⑤-5c · 마이그레이션 1) · Receiving 탭(⑤-6) · 배치 단위 되돌리기 · 웨이브 되돌리기 실측(배치 하나 · 웨이브 0) · 한 번에 되돌리기(컷오버 뒤) · 「Finalized — no finalize record」 이상 상태의 감시(Health · ⑤-5c).
+⭐ **v1.3 다섯 탭(⑤-5c2 · 판정 36 · 37 · 다섯 묶음)** — 뒷단: Discrepancy = `wms_worker_mistakes`(작업자 실수 다섯 · 열린 것 = resolved_at null · manager_resolved false · voided_at null · sbAll) · 「✓ Resolved」 = 직접 update(manager_resolved true · resolved_by = 내 id · resolved_at) · 카테고리 하나(Stock short 는 Reports · Receiving 은 입고가 올 때) ·
+   Reports = `wms_reports`(kind 다섯 · **stock_short** = 「Not enough stock」 · Detail 칸에 expected → found) · 「Mark resolved」 직접 update(resolved_by = 내 id) · voided 칸 없음 · 재고 조정 연결은 판정 20 ⬜⭐ 자리(주석 한 줄) ·
+   Stats = 원본 셈 그대로(완료 픽·팩 + 줄 합 · 보류 공제 · sbAll) · `wms_worker_mistakes`(responsible · reason) · `wms_reports`(reported_by · kind — Quality 표에 「Not enough stock」 열) · `wms_task_holds` · 사람 = nameOf · 입고 구간 없음(한 줄 「Receiving and putaway statistics will appear here when receiving moves to the IMS.」) ·
+   Health = rpc `wms_health_check()` 한 번(20260927214447 · 13 행 · 옛 반환 칸 sort · check_key · category · title · hint · fail_count · sample) · 스냅샷 · 기록 표 · cron 없음 · 배지도 부팅 때 라이브 한 번 · 권한 없음은 창구 문장(P0001) 그대로 ·
+   Trace = `so`(+ 손님 · `wms_order_finalize` · `so_line` 합) · 손님 검색 = `customer!…!inner` ilike(최근 30 · 총수) · 과제 체인 임베드(픽 줄의 `wms_pick_line_bins` — 실제 칸 우선) · `so_line`(sku · 이름) · `wms_worker_mistakes` + `wms_reports`(stock_short) 한 목록 · 시각 = 토론토 · 창고 이름에 Edmonton 이면 EDM 줄 병기.
+⭐ 옛 화면과 다른 것(v1.3): 「Cin7 Fixed」 → 「✓ Resolved」 · Discrepancy 의 「Stock short (inventory)」 · 「Receiving」 카테고리 없음 · Health 의 「Last auto snapshot」 줄 → 「Checked just now」 · Trace 머리의 Imported → Released to WMS · Finalized by 이름 · 되돌려진 오더는 과제 체인이 비어 보인다(원본도 같다 · 안내 문구에 「see Recent rollbacks」) · Recent rollbacks 의 단계 칸은 글자 표(Finalized · On pallets · Pack complete · Pick complete · Pick reset · Split · Released to WMS · Wave) · 화면 글자에 ⑤ · 차수 번호 · Cin7 없음.
+⚠️ **시험 재료 만드는 길**(테스트 DB · 2026-09-27 저녁 실물 = SO-25003 at_wms · 과제 0 · 실수 0 · 리포트 0 → 다섯 탭이 처음엔 대부분 빈 화면): ① so.html 에서 SO-25003 이 Released to WMS 인지 확인(아니면 Release to WMS) → ② Split & Waves 에서 Create batches → ③ Picking 에서 Start · 바코드 075724001565 를 **11번만** 스캔 · 「⚠ Not enough stock」 선언(Reports 의 stock_short) · Complete as incomplete → 마찰 모달 End(wms_worker_mistakes short_pick) → ④ Packing 에서 Start verify · 11 스캔 · Complete pack → ⑤ Fulfillment 에서 팔렛 · 치수 · Finalize → 다섯 탭: Discrepancy 에 short_pick 1(Responsible 픽커) · Reports 에 Not enough stock 1(expected 12 → found 11 · 팩 완료가 resolve 했으면 Resolved 쪽) · Stats 에 픽 1 · 팩 1 · 실수 1 · 리포트 1 · Health 13 행 전부 0(또는 걸린 것) · Trace SO-25003 에 배치 한 줄(Picked by · Pick time · Packed by · Lines verified 1 · Units 11 · Issues 1).
+
+```
+[ ] Discrepancy: 기간 세그(This week 기본) · 요약 카드(Worker mistakes n (m open) · Total) + 추세 막대 · 필터 All · Worker mistakes 둘 · 「Open Discrepancies (0)」 「No open discrepancies. 👍」 · Recently resolved 「No activity in this period.」 · 재료 뒤: short_pick 행(Type 「pick short」 · Ordered 12 · Actual 11 · Responsible = 픽커 이름 · 경과 색) · 「✓ Resolved」 → confirm → 흐린 행이 Recently resolved 로 · wms_worker_mistakes.manager_resolved t · resolved_by 내 id · 배지 수 −1
+[ ] Reports: 기간 세그 · 요약(종류 다섯 · 추세) · 필터 All · Wrong location · Barcode changed · Image differs · Box barcode · Not enough stock · Open/Resolved 표 · 재료 뒤: stock_short 행(Type 「Not enough stock」 · Detail 「expected 12 → found 11」 · Reported by 픽커 · (picker)) · 「Mark resolved」 → Resolved (recent) 로 · resolved_by 내 id
+[ ] Stats: 기간 세그 · Throughput by worker(재료 뒤: 픽커 한 줄 「Pick 1 (avg n min · n minus holds) · held 0 min · Pack 1 …」 · 줄 「Pick 1 line · 11 units (base)」 · 막대 둘 · 펼침 배치 목록) · Quality reports by worker(Not enough stock 열 1) · Mistakes by worker(short_pick 1 · 평가 글자 없음) · 아래 한 줄 「Receiving and putaway statistics will appear here …」 · 입고 표 없음
+[ ] Health: 「Running checks…」 → 「All clear — every invariant holds」(또는 「n critical · n warnings to review」) · 「Checked just now — every visit runs the checks live」 · 카드 13(마지막 Last release to WMS 는 회색 ·「n m/h/d ago」) · ↻ Re-run · 탭 배지 = critical 수(0 이면 숨김) · wms_manage 없는 manager 계정이면 「Health check failed: You cannot view WMS health — this needs the wms_manage screen — ask an admin」 · 배지 「?」
+[ ] Trace: SO-25003 Enter → 머리(번호 · 손님 · Toronto · 상태 글자 · 「Released to WMS <시각> · not finalized yet(또는 Finalized <시각> by <이름>) · 1 lines · 12 units ordered」 · 「All times are Toronto local … (the database stores UTC)」) · 배치 표(Batch · Picked by · Pick time → · Packed by · Pack time · Lines verified · Units verified · Issues) · 배치 하나면 자동 펼침(SKU · Product · Bin C070303 · Assigned 12 · Picked 11 (−1) 빨강 · Verified) · 아래 ⚠ 줄(pick short · declared/responsible 이름) · 과제 0 인 오더면 「No pick batches — … (or its batches were rolled back — see Recent rollbacks on the Rollback tab) …」 · 손님 검색 「JOJOJO」 → 최근 30 표(Order · Customer · Warehouse · Status · Finalized) · 행 클릭 → 트레이스
+[ ] Rollback 탭 Recent rollbacks 의 Stage 칸이 글자로(Finalized → Pack complete · Pack complete → Pick complete · Pick complete → Pick reset · Split → Released to WMS) · 설명 글에 차수 번호 없음
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_health_check 200(부팅 때 배지 1 + 탭 열 때 1)
+```
+
+⚠️ [2026-09-27 v1.3] 아직 없는 것 — Receiving 탭 · Stats 입고 구간(입고가 IMS 로 올 때 · po_receipt_work) · 배치 단위 · 웨이브 되돌리기 실측 · 한 번에 되돌리기(컷오버 뒤) · Trace 에 되돌리기 로그 한 줄(⬜ 안) · stock_short → 재고 조정 연결(판정 20 ⬜⭐ · 재고 사건 차수).
 
 ---
 
