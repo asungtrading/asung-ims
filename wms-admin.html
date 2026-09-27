@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WMS Admin · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* ⑤-5b — 운영 asung-wms/admin.html(2026-09-10)의 복사본에서 Status · Rollback · Finalized 세 탭만. 헤더 · 로그인 · 메뉴 · 탭 줄은 IMS 공통(ims-ui.css · ims-auth.js) · 나머지 모양은 원본 그대로.
+     ⚠️ 원본은 건드리지 않는다 — 여기만 고친다 · 다른 탭(Discrepancy · Reports · Stats · Health · Receiving · Trace)은 ⑤-5c · ⑤-6 에서 원본에서 다시 옮긴다. */
+  :root{
+    --ink:#12161c; --ink-2:#1b222c; --line:#e5e9ef; --line-2:#eef1f6;
+    --paper:#f7f8fa; --card:#ffffff; --mut:#6b7686; --mut-2:#9aa4b2;
+    --accent:#2f6df6; --accent-ink:#1b4fd6;
+    --tor:#2f6df6; --edm:#12996b;
+    --ok:#16a34a; --ok-bg:#e7f7ed; --warn:#d9820a; --warn-bg:#fdf6ec; --danger:#dc2626; --danger-bg:#fdecec;
+    --violet:#7a5af0; --recv:#0d9488;
+    --radius:12px; --shadow:0 1px 2px rgba(16,22,30,.04),0 4px 16px rgba(16,22,30,.05);
+    --mono:ui-monospace,"SF Mono","DM Mono",Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.5}
+
+  /* 헤더 모양은 ims-ui.css(공통) — 원본의 header · .bar · .logo · .right · .who · .conn 규칙은 뺐다 */
+  /* tabs */
+  .tabs{max-width:1120px;margin:0 auto;padding:0 20px;display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .tabs button{border:0;background:transparent;font:inherit;font-size:13.5px;font-weight:700;color:var(--mut);padding:12px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+  .tabs button.active{color:var(--ink);border-bottom-color:var(--ink)}
+  .tabs .badge{display:inline-block;min-width:18px;padding:0 5px;height:18px;line-height:18px;text-align:center;font-family:var(--mono);font-size:11px;font-weight:800;color:#fff;background:var(--danger);border-radius:9px;margin-left:6px}
+
+  main{max-width:1120px;margin:0 auto;padding:20px}
+  .view{display:none} .view.active{display:block}
+
+  /* stat cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px}
+  .stat .k{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+  .stat .v{font-family:var(--mono);font-weight:800;font-size:28px;margin-top:4px}
+  .stat.warn .v{color:var(--warn)} .stat.bad .v{color:var(--danger)} .stat.ok .v{color:var(--ok)}
+  .stat.link{cursor:pointer;transition:.1s} .stat.link:hover{border-color:#c9d4e6}
+
+  .sect-h{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:22px 2px 10px}
+
+  /* period filter */
+  .period{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:14px}
+  .period .seg{display:inline-flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow)}
+  .period .seg button{border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:600;color:var(--mut);padding:7px 11px;border-radius:7px;cursor:pointer;white-space:nowrap}
+  .period .seg button.active{background:var(--ink);color:#fff}
+  .period .cal{display:flex;align-items:center;gap:6px;margin-left:4px}
+  .period .cal input{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:12.5px;font-family:var(--mono)}
+  .period .cal button{border:0;background:var(--accent);color:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .rangelabel{font-family:var(--mono);font-size:11.5px;color:var(--mut-2);margin-left:auto}
+
+  /* table */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  thead th{font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--mut);text-align:left;font-weight:600;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:11px 14px;border-bottom:1px solid var(--line-2);font-size:13.5px;vertical-align:middle}
+  tbody tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:right;font-family:var(--mono)}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
+  /* LIVE NOW 칩 — 어떤 페이로드가 와도 스트립이 안 깨지게: 한 줄 고정 + 넘치면 … (전체는 title 툴팁) */
+  #liveStrip .tag{display:inline-block;max-width:340px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+  .r-short_pick{color:var(--warn);background:var(--warn-bg)}
+  .r-short_after_pack{color:#fff;background:var(--danger)}
+  .r-over_pick{color:#fff;background:var(--violet)}
+  .r-stock_short{color:#2456d6;background:#eaf2ff}
+  .r-pack_scan_mistake{color:var(--mut);background:#f1f3f6}
+  .r-resolved_pack_recovery,.r-resolved{color:var(--ok);background:var(--ok-bg)}
+  /* ⑤-5b 상태 색 = IMS so.status 어휘(판정 17 글자는 STATUS_LABEL) */
+  .st-at_wms{color:var(--mut);background:var(--line-2)}
+  .st-picking{color:var(--tor);background:#eef3ff}
+  .st-packed{color:var(--ok);background:var(--ok-bg)}
+  .st-confirmed,.st-fulfilled,.st-shipped,.st-cancelled,.st-draft{color:var(--mut-2);background:var(--line-2)}
+  .cancelnote{margin-bottom:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fbfcfd;font-size:12.5px;color:var(--mut);line-height:1.55}
+  .cancelnote b{color:var(--ink)}
+  .wh-toronto{color:var(--tor);background:#eef3ff} .wh-edmonton{color:var(--edm);background:#e9f7f1}
+  .btnsm{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  a.btnsm{display:inline-block;text-decoration:none}   /* awaiting-putaway 의 "Put away →" 링크 */
+  .btnsm.ok{background:var(--ok);color:#fff;border-color:transparent}
+  .btnsm:hover{border-color:#c9d4e6}
+  /* Apply to Cin7 button states (waiting / running / done / partial / failed) */
+  .btnsm.busy{background:var(--mut-2);color:#fff;border-color:transparent}
+  .btnsm.warn{background:var(--warn);color:#fff;border-color:transparent}
+  .btnsm.bad{background:var(--danger);color:#fff;border-color:transparent}
+  .btnsm:disabled{opacity:.72;cursor:progress}
+  .btnsm:disabled:hover{border-color:var(--line)}
+  .btnsm .bspin{display:inline-block;width:9px;height:9px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;margin-right:6px;vertical-align:0;animation:sp .7s linear infinite}
+  .empty,.loading{padding:44px 20px;text-align:center;color:var(--mut)}
+  .loading .spin{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .bar-row{display:flex;align-items:center;gap:8px;margin:3px 0}
+  .bar-row .nm{width:110px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-row .track{flex:1;height:16px;background:var(--line-2);border-radius:5px;overflow:hidden}
+  .bar-row .fill{height:100%;background:var(--accent);border-radius:5px}
+  .bar-row .fill.pack{background:var(--violet)}
+  .bar-row .fill.recv{background:var(--recv)}
+  .bar-row .val{width:44px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:700}
+
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)} #toast.bad{background:var(--danger)}
+
+  /* 로그인 문(.gate)은 ims-auth.js 가 그린다 — 원본 규칙 여섯은 뺐다 */
+  /* ---- mobile ---- */
+  .card>div{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tabs{-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+  @media(max-width:700px){
+    .bar{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+    .right{flex-wrap:wrap;row-gap:6px}
+    header button{font-size:12px;padding:6px 9px}
+    .who{font-size:11.5px}
+    .tabs{padding:0 12px;gap:0}
+    .tabs button{padding:11px 10px;font-size:12.5px}
+    main{padding:12px}
+    table{min-width:560px}
+    .grid{grid-template-columns:repeat(2,1fr)}
+  }
+  .plbtn{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button title="Warehouse map" onclick="window.open('https://tools.asung.ca/warehousemap.html','_blank')">🗺 Map</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main id="app" style="display:none">
+  <div class="tabs" id="tabs" style="padding:0;margin-bottom:8px">
+    <button data-t="overview" class="active">Status</button>
+    <button data-t="rollback">Rollback</button>
+    <button data-t="packing">Finalized</button>
+  </div>
+
+    <!-- Status -->
+    <div class="view active" id="v-overview">
+      <div class="sect-h">Order Status</div>
+      <div class="grid" id="orderStats"></div>
+      <div class="sect-h">work batches</div>
+      <div class="grid" id="batchStats"></div>
+      <div class="sect-h">Live now <span style="font-weight:400;color:var(--mut);font-size:12.5px">— screens open this second · Picking/Packing (batch) · Fulfillment (orders)</span></div>
+      <div class="card" style="padding:10px 14px"><div id="liveStrip"><span style="color:var(--mut);font-size:12.5px">Connecting…</span></div></div>
+      <div class="sect-h">Batch activity <span style="font-weight:400;color:var(--mut);font-size:12.5px">— who holds what · 🟢 active (open on screen) · 🟡 away (screen closed) · release returns it to the pool with progress kept</span></div>
+      <div class="card"><div id="batchActivity"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <div class="sect-h">In-Progress Orders</div>
+      <div class="card"><div id="activeOrders"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+    </div>
+
+    <!-- Rollback -->
+    <div class="view" id="v-rollback">
+      <div class="sect-h">Rollback a stage <span style="font-weight:400;color:var(--mut);font-size:12.5px">— manager only · one step at a time</span></div>
+      <p style="color:var(--mut);font-size:12.5px;margin:0 0 12px">Each order can be reverted only to its immediately previous stage. To go further back, undo the deeper stage first. Mistake rows tied to the undone work are never deleted — they are voided and kept for audit (Discrepancy tab · ⑤-5c). Pallets, boxes and batches are archived before they are removed.</p>
+      <div class="card"><div id="rollbackList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <div class="sect-h">Recent rollbacks</div>
+      <div class="card"><div id="rollbackLog"></div></div>
+    </div>
+
+    <div class="view" id="v-packing">
+      <div class="period" id="finPeriod"></div>
+      <!-- 창고 필터 (2026-08-19 Caleb — Finalized 는 전 창고 + 선택 필터, 기본 All. 기간 필터와 같은 스타일) -->
+      <div class="period" id="finWhBar"></div>
+      <div class="sect-h">Fulfillment mix <span style="font-weight:400;color:var(--mut);font-size:12.5px">— packing list vs direct pack</span></div>
+      <div class="grid" id="fulfillStats"></div>
+      <div class="sect-h">Finalized orders <span style="font-weight:400;color:var(--mut);font-size:12.5px">— print or download the packing list; direct-pack orders have none</span></div>
+      <div class="card"><div id="packingList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+    </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script src="wms-packing.js"></script>
+<script>
+/* ⑤-5b (2026-09-27) — 운영 asung-wms/admin.html 의 복사본에서 Status · Rollback · Finalized 세 탭을 IMS 표 · 창구 위에 옮겨 세웠다(정본 so-module §24 · 판정 21 · 22 · 26 · 34 · 35 · 지시서 wms-5-5b B1~B8 · ⑤-5a wms-fulfillment.html 과 같은 모양).
+   ⚠️ 운영 원본은 건드리지 않는다 — 운영 WMS(wms.asung.ca)는 컷오버까지 Cin7 과 함께 그대로 돈다(절대 조건).
+   ⚠️ 진입점은 ims-config.js · ims-auth.js 뿐 — 운영 프로젝트의 설정 · 로그인 파일(wms- 접두 둘)로 가는 길은 이 파일에 없다(CHECKLIST 0-a 검사 다섯째 grep 0).
+   Status(17)  = so(at_wms · picking) + customer + so_line 합 · 카드 다섯(Released to WMS · Working · Packing · Ready to finalize · Finalized) — Packing · Ready 는 뷰 wms_order_pack_progress 에서 유도(판정 18) ·
+                 과제 count · 배치 활동은 표 읽기 그대로(사람 칸 nameOf) · 자리 비운 과제 풀기는 직접 쓰기(판정 6 · session_id 도 비운다) · 사라진 것: 재고 새로고침 · Cin7 보류/void 카드 · EF hold_recheck · needs_review
+   Rollback(88) = 원본의 표 직접 쓰기 55 는 전부 창구 셋으로 — wms_rollback(p_so_id, finalize|fulfillment|pack|pick|split) · wms_rollback_batch(p_task_id, pack|pick) · wms_unwave(p_wave_id) ·
+                 아카이브 → 무효화 → 삭제 · 한 트랜잭션 · 판정 21 · 35: Void 없음(그 자리에 되돌리는 길 안내) · 매니저 안내 셋은 wms_worker_mistakes 읽기 · 로그 wms_rollback_log(사람 칸 nameOf)
+   Finalized(15) = so(packed · 오피스 마무리 대기 풀) + wms_order_finalize + wms_order_review + customer + so_line · 검토함 켜기·끄기 = wms_review_set(판정 22 · 26 · 끈 기록이 남는다) ·
+                 팩킹리스트 재출력(Print · PDF · CSV)은 팔렛 · 아이템 읽기 그대로 · sku · 이름은 so_line · 바코드는 product_barcode(is_active · is_primary 우선) · 치수는 wms_so_handoff 가 아니라 표의 *_in · weight_lb
+   글자 표(판정 17) · 창고 id(me.access.warehouses · 시간대는 이름에 Edmonton) · 사진 없음(판정 33) · 오더 id 는 uuid(숫자 변환 0) · 과제 id 는 bigint 그대로. */
+const WK_BUILD="2026-09-27 · wa v1";
+const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
+let sb=null, me=null, whById={}, staffName={};
+let finPeriodKey="week", finCustom={from:null,to:null};
+let finWh="all";   // Finalized 탭 창고 필터 (2026-08-19 — 기본 All, 조회 전용이라 제한 아님) · all | toronto | edmonton (창고 이름에서 낸 열쇠)
+
+/* ---------- IMS 공통 조각 (⑤-5a wms-fulfillment.html 과 같다) ---------- */
+function whKey(name){ return /edmonton/i.test(name||"") ? "edmonton" : "toronto"; }   // CLAUDE.md §3 — Location 에 Edmonton 이 들면 edmonton · 그 외 toronto
+function whLabel(key){ return key==="edmonton" ? "Edmonton" : "Toronto"; }
+function whOf(id){ return whById[id]||{name:"",key:"toronto"}; }
+function whIdsFor(key){ return Object.keys(whById).filter(id=>whById[id].key===key); }
+function nameOf(id){ return id ? (staffName[id]||"another worker") : ""; }
+function statusLabel(s){ return STATUS_LABEL[s]||s||"?"; }
+function one(x){ return Array.isArray(x)?(x[0]||null):(x||null); }   // PostgREST 임베드 — 1:1(PK FK)은 객체 · 아니면 배열
+function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
+function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
+const SO_SEL="id,so_number,status,location_id,location_name,at_wms_at,picking_at,packed_at,customer:customer!so_customer_id_fkey(name)";   // 손님 FK 가 둘이라 이름을 박는다
+function normOrder(s){
+  s=s||{};
+  const ls=Array.isArray(s.so_line)?s.so_line:null;
+  return { id:s.id||null, order_number:s.so_number||"", status:s.status||"", warehouse_id:s.location_id||null,
+           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"",
+           at_wms_at:s.at_wms_at||null, picking_at:s.picking_at||null, packed_at:s.packed_at||null,
+           total_lines:ls?ls.length:null,
+           total_units:ls?ls.reduce((a,l)=>a+(Number(l.qty_ordered||0)-Number(l.qty_removed||0))*Number(l.pack_factor||1),0):null,   // 판매 단위 × pack_factor = 낱개(ea) · wms-manager 와 같은 셈
+           fin:one(s.wms_order_finalize), rev:one(s.wms_order_review),
+           pick_count:(one(s.wms_pick_tasks)||{}).count||0, packs:Array.isArray(s.wms_pack_tasks)?s.wms_pack_tasks:[] };
+}
+
+/* ---------- boot / login ---------- */
+function boot(){
+  imsAuth.start({ requireScreen:"wms_manage" }, (client, staffMe)=>{   // 카탈로그 wms_manage = WMS 방 · min_role manager(판정 25) · 진짜 문은 창구 첫 줄(ims_require_write)
+    sb=client; me=staffMe;
+    imsHeader(me);
+    document.getElementById("buildTag").textContent=WK_BUILD;
+    document.getElementById("app").style.display="block";
+    init();
+  });
+}
+/* initial load — 창고 · 직원 이름(id → 이름 · 이메일 안 읽음) 한 번씩 */
+async function init(){
+  const [wh, st]=await Promise.all([
+    sb.from("ref_warehouse").select("id,name"),      // caps-ok: 창고 넷
+    sb.from("ims_staff").select("id,name"),          // caps-ok: 직원 수십 · 이름은 id 로만 잇는다
+  ]);
+  const error=wh.error||st.error;
+  if(error){ toast("Initial load failed: "+error.message,true); return; }
+  (wh.data||[]).forEach(w=>{ whById[w.id]={name:w.name,key:whKey(w.name)}; });
+  (st.data||[]).forEach(s=>{ staffName[s.id]=s.name; });
+  start();
+}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+const nf=n=>Math.round(Number(n)||0).toLocaleString("en-CA");
+
+/* ---------- range 페이지 누적 공용 헬퍼 (2026-08-12 캡 위험 3~5단계) ----------
+   PostgREST 1000행 캡은 행을 반환하는 모든 조회에 걸린다(규칙 20) — 전량이 정말 필요한
+   조회는 페이지 누적만이 캡 무관. #4(pallet_items 2517행) 인라인 루프를 공용화한 것.
+   build 는 **호출마다 새 빌더를 만드는 함수**여야 한다(빌더 재사용 시 .range 가 누적 오염).
+   ⚠️ 쿼리에 결정적 order 필수 — 무정렬 페이지는 페이지 사이에서 행이 중복/누락된다
+   (동시각 tie 가 있으면 .order("id") 를 보조로). 임베드 라인은 최상위 행에 실려 오므로
+   페이지 누적으로 온전하다(캡은 최상위 행 수에만 걸린다). 반환은 {data,error} — sb 와 호환. */
+async function sbAll(build){
+  const out=[], PAGE=1000;
+  for(let from=0;;from+=PAGE){
+    const {data,error}=await build().range(from,from+PAGE-1);
+    if(error) return {data:null,error};
+    out.push(...(data||[]));
+    if(!data||data.length<PAGE) return {data:out,error:null};
+  }
+}
+
+/* ---------- 리시빙 소요시간 = 근무시간 기준 경과 ----------
+   밤·주말을 빼고 센다. ⚠️ 공휴일 미반영(이번 범위 밖 — 필요해지면 여기 상수 옆에 목록 추가).
+   주의: 이 값은 "순수 작업 시간"이 아니다 — receipt 를 열어두고 다른 일을 한 시간도 포함된다.
+   순수 작업 시간은 스캔 타임스탬프 기반 집계가 필요(백로그). */
+const WORK_HOURS={start:9,end:17};                                   // 09:00–17:00 warehouse-local
+const WORK_DAYS=[1,2,3,4,5];                                         // Mon–Fri (0=Sun)
+const WH_TZ={toronto:"America/Toronto",edmonton:"America/Edmonton"}; // 매핑에 없으면 toronto 폴백
+
+const _tzFmt={};
+// UTC instant → 해당 타임존의 벽시계 시각을 UTC ms 축에 그대로 옮긴 값 (DST 전환 시각 주변 ±1h 오차 허용)
+function tzWall(iso,tz){
+  const f=_tzFmt[tz]||(_tzFmt[tz]=new Intl.DateTimeFormat("en-CA",{timeZone:tz,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}));
+  const p={}; f.formatToParts(new Date(iso)).forEach(x=>p[x.type]=x.value);
+  return Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);
+}
+// a→b 사이의 근무 분(minute). null = 데이터 없음/음수/60일 초과, 0 = 전 구간이 근무시간 밖(표시는 "< 1 min")
+function workMinutes(aISO,bISO,warehouse){
+  if(!aISO||!bISO)return null;
+  const tz=WH_TZ[warehouse]||WH_TZ.toronto;
+  const a=tzWall(aISO,tz), b=tzWall(bISO,tz);
+  if(!(b>=a)||(b-a)>60*86400000)return null;
+  let total=0;
+  for(let d=Math.floor(a/86400000)*86400000; d<=b; d+=86400000){
+    if(!WORK_DAYS.includes(new Date(d).getUTCDay()))continue;
+    const s=Math.max(a,d+WORK_HOURS.start*3600000), e=Math.min(b,d+WORK_HOURS.end*3600000);
+    if(e>s)total+=(e-s)/60000;
+  }
+  return total;
+}
+const fmtWorkDur=m=>m<1?"< 1 min":(m<90?m.toFixed(0)+" min":(m/60).toFixed(1)+" h");
+function toast(m,bad){const el=document.getElementById("toast");el.textContent=m;el.className="show"+(bad?" bad":"");clearTimeout(el._t);el._t=setTimeout(()=>el.className="",1900);}
+
+/* ---------- period calc ---------- */
+function rangeFor(key,custom){
+  const now=new Date(); const to=new Date(now); let from=new Date(now);
+  const startOfDay=d=>{d.setHours(0,0,0,0);return d;};
+  if(key==="today"){ from=startOfDay(new Date(now)); }
+  else if(key==="week"){ const d=startOfDay(new Date(now)); const wd=(d.getDay()+6)%7; d.setDate(d.getDate()-wd); from=d; } // week starts Monday
+  else if(key==="month"){ from=new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(key==="q"){ from=new Date(now); from.setMonth(from.getMonth()-3); }
+  else if(key==="h"){ from=new Date(now); from.setMonth(from.getMonth()-6); }
+  else if(key==="y"){ from=new Date(now); from.setFullYear(from.getFullYear()-1); }
+  else if(key==="custom"){
+    from=custom.from?new Date(custom.from+"T00:00:00"):new Date(0);
+    return {fromISO:from.toISOString(), toISO:(custom.to?new Date(custom.to+"T23:59:59"):now).toISOString(), label:(custom.from||"…")+" ~ "+(custom.to||"…")};
+  }
+  else if(key==="all"){ return {fromISO:new Date(0).toISOString(), toISO:now.toISOString(), label:"All"}; }
+  const labels={today:"Today",week:"This week",month:"This month",q:"Last 3 months",h:"Last 6 months",y:"Last year"};
+  return {fromISO:from.toISOString(), toISO:to.toISOString(), label:labels[key]||key};
+}
+function periodBar(containerId, curKey, custom, onChange){
+  custom=custom||{from:null,to:null};
+  const opts=[["today","Today"],["week","This week"],["month","This month"],["q","3 months"],["h","6 months"],["y","1 year"],["all","All"]];
+  const el=document.getElementById(containerId);
+  el.innerHTML=`<div class="seg">${opts.map(([k,l])=>`<button data-k="${k}" class="${k===curKey?"active":""}">${l}</button>`).join("")}
+      <button data-k="custom" class="${curKey==="custom"?"active":""}">Calendar</button></div>
+    <div class="cal" id="${containerId}-cal" style="${curKey==="custom"?"":"display:none"}">
+      <input type="date" id="${containerId}-from" value="${custom.from||""}"> ~
+      <input type="date" id="${containerId}-to" value="${custom.to||""}">
+      <button id="${containerId}-apply">Apply</button>
+    </div>
+    <span class="rangelabel" id="${containerId}-lbl"></span>`;
+  el.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k;
+    el.querySelectorAll(".seg button").forEach(x=>x.classList.toggle("active",x===b));
+    document.getElementById(containerId+"-cal").style.display=(k==="custom")?"flex":"none";
+    if(k!=="custom") onChange(k,custom);
+  });
+  const applyBtn=document.getElementById(containerId+"-apply");
+  if(applyBtn) applyBtn.onclick=()=>{
+    custom.from=document.getElementById(containerId+"-from").value||null;
+    custom.to=document.getElementById(containerId+"-to").value||null;
+    onChange("custom",custom);
+  };
+}
+function setRangeLabel(containerId,label){ const el=document.getElementById(containerId+"-lbl"); if(el)el.textContent=label; }
+
+function start(){
+  // tab — 이 판은 셋(Status · Rollback · Finalized) · 다른 탭은 ⑤-5c · ⑤-6
+  document.getElementById("tabs").onclick=e=>{
+    const b=e.target.closest("button[data-t]"); if(!b)return;
+    const t=b.dataset.t;
+    [...document.querySelectorAll("#tabs button[data-t]")].forEach(x=>x.classList.toggle("active",x===b));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("v-"+t).classList.add("active");
+    if(t==="overview")loadOverview();
+    if(t==="rollback")loadRollback();
+    if(t==="packing")loadPacking();
+  };
+  periodBar("finPeriod",finPeriodKey,finCustom,(k,c)=>{finPeriodKey=k;finCustom=c;loadPacking();});
+  renderFinWhBar();
+  subscribePresence();
+  loadOverview();
+  // keep freshness chips honest while Status tab is open
+  setInterval(()=>{ if(document.getElementById("v-overview").classList.contains("active")) loadOverview(); }, 60000);
+}
+
+/* ---------- live presence (who has a batch open RIGHT NOW) ---------- */
+const STALE_S=150; // no heartbeat for this long = holder considered away (picker/packer HB_MS=60s 와 일치)
+let presence={};  // key -> [{name,screen,batch,order,at}]
+function subscribePresence(){
+  try{
+    const ch=sb.channel("wms-presence",{config:{presence:{key:"admin|"+me.name}}});
+    ch.on("presence",{event:"sync"},()=>{ presence=ch.presenceState()||{}; renderLiveStrip(); markLiveRows(); })
+      .subscribe();
+  }catch(e){}
+}
+function liveList(){
+  const out=[];
+  Object.keys(presence).forEach(k=>{
+    if(k.startsWith("admin|")) return; // observers don't count as workers
+    (presence[k]||[]).forEach(m=>{ if(m&&m.name) out.push(m); });
+  });
+  return out;
+}
+/* pick/pack 배치 라벨만 — batch 필드는 picker/packer 전용 페이로드 (BATCH ACTIVITY fresh() 판정 소스) */
+function liveBatchSet(){ return new Set(liveList().filter(m=>m.batch).map(m=>m.batch)); }
+/* screen 값으로 표시 분기. ⚠️ 미상 screen 은 Picking 으로 폴백하지 않는다(오표시 방지 — 규칙 24) → "Other"
+   full=true → 축약 없는 전체 라벨 (칩 title 툴팁용) */
+function liveLabel(m,full){
+  if(m.screen==="picker")  return "Picking · "+esc(m.batch||"—");
+  if(m.screen==="packer")  return "Packing · "+esc(m.batch||"—");
+  if(m.screen==="receiver"){
+    const doc=m.po?String(m.po):(m.receipt!=null?"receipt #"+m.receipt:"—");
+    const kind=/^TR-/i.test(doc)?"Transfer":"Receiving"; // 페이로드에 source_type 없음 → 문서번호 접두사로 판정
+    const stage=(m.stage==="putaway"||m.stage==="receiving")?" · "+m.stage:"";
+    return kind+stage+" · "+esc(doc);
+  }
+  if(m.screen==="fulfillment") return "Fulfillment · "+esc(full?(m.order||"—"):fulfillShort(m));
+  return "Other";
+}
+/* fulfillment 는 오더번호가 누적된다(멀티오더) — 2개까지 전부, 넘으면 "첫번째 +N more".
+   전체 목록은 칩 title(hover)로. 페이로드는 안 건드린다(표시만 축약). */
+function fulfillShort(m){
+  const all=String(m.order||"").split(/,\s*/).filter(Boolean);
+  if(!all.length) return "—";
+  if(all.length<=2) return all.join(", ");
+  return all[0]+" +"+(all.length-1)+" more";
+}
+function renderLiveStrip(){
+  const el=document.getElementById("liveStrip"); if(!el) return;
+  const ls=liveList();
+  if(!ls.length){ el.innerHTML=`<span style="color:var(--mut);font-size:12.5px">No one is working on a WMS screen right now.</span>`; return; }
+  el.innerHTML=ls.map(m=>
+    `<span class="tag" style="background:#e8f7ee;color:#1e7d43;border:1px solid #bfe8cd;margin:2px 6px 2px 0" title="${esc(m.name)} · ${liveLabel(m,true)}">
+      🟢 ${esc(m.name)} · ${liveLabel(m)}</span>`).join("");
+}
+function markLiveRows(){
+  const live=liveBatchSet();
+  document.querySelectorAll("[data-livebatch]").forEach(el=>{
+    el.style.display=live.has(el.dataset.livebatch)?"":"none";
+  });
+}
+
+/* ---------- Status ---------- */
+/* ⑤-5b: 운영의 Cin7 보류 · void 카드(renderHolds · voidCardHtml · holdResume · EF hello)와 재고 새로고침 단추는 없다(판정 21 · 오피스가 거둔 오더는 at_wms 에서만 · picking 은 되돌리기로) ·
+   활성 오더 = so status in (at_wms, picking) · 카드의 Packing · Ready to finalize 는 SO 상태가 아니라 뷰 wms_order_pack_progress 에서 유도(판정 18 · 창고 안 단계는 WMS 화면이 보여 준다) · Finalized = packed count-head. */
+async function loadOverview(){
+  const [ordersQ, pickPend, pickProg, packPend, packProg, finCnt]=await Promise.all([
+    sb.from("so").select(SO_SEL+",so_line(qty_ordered,qty_removed,pack_factor)").in("status",["at_wms","picking"]).order("at_wms_at"),   // caps-ok: 활성 풀(수십 규모) — packed 로 소진된다
+    // 캡 위험 #2·#3 근본 해결 (2026-08-12 1단계): 카드는 pending·in_progress 4개 숫자만 쓴다 — count-head(행 0개).
+    sb.from("wms_pick_tasks").select("id",{count:"exact",head:true}).eq("status","pending"),
+    sb.from("wms_pick_tasks").select("id",{count:"exact",head:true}).eq("status","in_progress"),
+    sb.from("wms_pack_tasks").select("id",{count:"exact",head:true}).eq("status","pending"),
+    sb.from("wms_pack_tasks").select("id",{count:"exact",head:true}).eq("status","in_progress"),
+    sb.from("so").select("id",{count:"exact",head:true}).eq("status","packed"),   // Finalized 카드 — count-head
+  ]);
+  if(ordersQ.error){ document.getElementById("activeOrders").innerHTML=`<div class="empty">Couldn't load orders: ${esc(ordersQ.error.message||"")}</div>`; return; }
+  const os=(ordersQ.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id));   // 창고 = me.access.warehouses(null = 전부)
+  loadBatchActivity(os);
+  // 분할 팩 진행 (규칙 9 fulfillment 게이트와 같은 뷰 — 판정은 한 곳): 팩이 1개 이상 끝났지만 전부는 아닌 오더 = fulfillment 보드에서 숨겨진 상태.
+  const prog={};
+  if(os.length){
+    const {data:pg}=await sb.from("wms_order_pack_progress")
+      .select("order_id,pick_batches,packs_done,all_packed").in("order_id",os.map(o=>o.id));
+    (pg||[]).forEach(r=>{ prog[r.order_id]=r; });
+  }
+  const pOf=o=>prog[o.id]||null;
+  const isReady=o=>o.status==="picking"&&!!(pOf(o)&&pOf(o).all_packed);
+  const isPacking=o=>o.status==="picking"&&!!(pOf(o)&&pOf(o).packs_done>0)&&!isReady(o);
+  const isWorking=o=>o.status==="picking"&&!isPacking(o)&&!isReady(o);
+  const cnt=f=>os.filter(f).length;
+  document.getElementById("orderStats").innerHTML=[
+    [STATUS_LABEL.at_wms,cnt(o=>o.status==="at_wms"),""],
+    [STATUS_LABEL.picking,cnt(isWorking),""],
+    ["Packing",cnt(isPacking),cnt(isPacking)?"warn":""],
+    ["Ready to finalize",cnt(isReady),"ok"],
+    [STATUS_LABEL.packed,finCnt.count??0,""],
+  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  // count-head 의 count 는 서버가 센 정확한 총수 — 캡·행 수신과 무관 (#2·#3 근본 해결)
+  document.getElementById("batchStats").innerHTML=[
+    ["Pick pending",pickPend.count??0,""],["Pick in progress",pickProg.count??0,""],
+    ["Pack pending",(packPend.count??0)+"",""],["Pack in progress",packProg.count??0,""],
+  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  // in-progress orders table
+  const el=document.getElementById("activeOrders");
+  if(!os.length){ el.innerHTML=`<div class="empty">No orders in progress.</div>`; }
+  else el.innerHTML=`<table><thead><tr><th>Orders</th><th>Customer</th><th>Warehouse</th><th>Status</th><th class="num">Lines</th><th class="num">units</th></tr></thead><tbody>${
+    os.map(o=>`<tr>
+      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}</td>
+      <td>${esc(o.customer_name||"—")}</td>
+      <td><span class="tag wh-${o.wh}">${whLabel(o.wh)}</span></td>
+      <td><span class="tag st-${o.status}">${statusLabel(o.status)}</span>${(p=>isReady(o)?` <span class="tag" style="color:var(--ok);background:var(--ok-bg)" title="every batch is packed — waiting for Finalize on the Fulfillment screen">✓ ready to finalize</span>`:(isPacking(o)?` <span class="tag r-short_pick" title="hidden from fulfillment until every split batch is packed">⏳ ${p.packs_done}/${p.pick_batches} packed</span>`:""))(pOf(o))}</td>
+      <td class="num">${o.total_lines??"—"}</td><td class="num">${o.total_units??"—"}</td>
+    </tr>`).join("")
+  }</tbody></table>`;
+
+}
+
+/* ---------- Batch activity (who holds what, live/idle, release) ---------- */
+/* 🟢Active/🟡Idle 판정을 heartbeat 시간이 아니라 presence(지금 화면에 열려있나)로 판정.
+   heartbeat 제거 후에도 LIVE NOW 와 동일 소스라 실시간·정확. */
+function fresh(t){ return t && t.batch_label && liveBatchSet().has(t.batch_label); }
+function idleMin(t){ return null; }   // presence 기반이라 "몇 분 유휴" 수치는 없음 (열림/닫힘만)
+let baRows=[], baSort={key:"batch",dir:1}, baWh="all";
+let baPhase="all", baState="all";   // PHASE·STATE 필터(2026-08-13) — 모듈 스코프라 60초 자동 갱신에도 선택 유지
+// STATE 는 chip HTML 에서 파생한다 — phase 판정 블록(아래 baRows 생성)은 무접촉 지시(2026-08-13).
+// chip 의 라벨 문자열(Active/Held/Away/Packed/Waiting)은 그 블록이 고정 생성하므로 판정과 항상 일치.
+const baStateOf=r=>r.chip.includes("Active")?"Active":r.chip.includes("Held")?"Held"
+  :r.chip.includes("Away")?"Away":r.chip.includes("Packed")?"Packed":"Waiting";
+async function loadBatchActivity(activeOrders){
+  const el=document.getElementById("batchActivity"); if(!el) return;
+  const ids=(activeOrders||[]).map(o=>o.id);
+  if(!ids.length){ el.innerHTML=`<div class="empty">No orders in progress.</div>`; return; }
+  const oById={}; (activeOrders||[]).forEach(o=>oById[o.id]=o);
+  const [pt, pk]=await Promise.all([
+    sb.from("wms_pick_tasks").select("id,order_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("order_id",ids).order("batch_label"),
+    sb.from("wms_pack_tasks").select("id,order_id,pick_task_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("order_id",ids),
+  ]);
+  if(pt.error){ el.innerHTML=`<div class="empty">Failed to load batches: ${esc(pt.error.message||"")}</div>`; return; }
+  const picks=pt.data||[], packs=pk.data||[];
+  const packByPick={}; packs.forEach(p=>packByPick[p.pick_task_id]=p);
+  // line sums for progress
+  const pickIds=picks.map(p=>p.id), packIds=packs.map(p=>p.id);
+  const [pls, kls]=await Promise.all([
+    pickIds.length?sb.from("wms_pick_task_lines").select("pick_task_id,assigned_base,picked_base").in("pick_task_id",pickIds):{data:[]},
+    packIds.length?sb.from("wms_pack_task_lines").select("pack_task_id,expected_base,verified_base").in("pack_task_id",packIds):{data:[]},
+  ]);
+  const pickSum={}, packSum={};
+  (pls.data||[]).forEach(l=>{ const s=pickSum[l.pick_task_id]=pickSum[l.pick_task_id]||{a:0,p:0}; s.a+=Number(l.assigned_base||0); s.p+=Number(l.picked_base||0); });
+  (kls.data||[]).forEach(l=>{ const s=packSum[l.pack_task_id]=packSum[l.pack_task_id]||{e:0,v:0}; s.e+=Number(l.expected_base||0); s.v+=Number(l.verified_base||0); });
+
+  // one row per pick batch: current phase = pack task if it exists, else pick task
+  baRows=picks.map(p=>{
+    const pack=packByPick[p.id]||null;
+    const ps=pickSum[p.id]||{a:0,p:0};
+    const ks=pack?(packSum[pack.id]||{e:0,v:0}):null;
+    let phase="", holder="", chip="", rel=null; // rel={table,id}
+    // "Pack ready" = 팩 대기열(아무나 잡으면 되는 상태). pack 행이 없는 픽 완료와, 행만 있고 스캔 0인
+    // pending pack(Start verify 후 이탈 등)은 같은 상태라 같은 모습으로 보여준다 — 2026-08-12 SO-14496:
+    // 종전 "Packing"은 팩 진행이 아니라 "팩 태스크 행 존재"여서 시작 후 멈춘 것으로 오독됐다.
+    // 표시만 바꾼다 — 태스크 생성·클레임·집계 무접촉.
+    if(pack && pack.status==="pending" && !(ks&&ks.v>0)){
+      phase="Pack ready"; holder=""; chip=`<span class="tag">⚪ Waiting</span>`;
+    } else if(pack && pack.status!=="completed"){
+      phase="Packing"; holder=nameOf(pack.assigned_to);
+      if(pack.status==="pending") chip=`<span class="tag" style="background:#fff4e0;color:#a86400">🟠 Held</span>`;   // 스캔 있는 pending 만 여기로 — 진행하다 멈춘 것
+      else if(fresh(pack)) chip=`<span class="tag" style="background:#e8f7ee;color:#1e7d43">🟢 Active</span>`;
+      else { const im=idleMin(pack); chip=`<span class="tag" style="background:#fdecec;color:#c0392b">🟡 Away (screen closed)</span>`; rel={table:"wms_pack_tasks",id:pack.id}; }
+    } else if(pack && pack.status==="completed"){
+      phase="Packed"; holder=nameOf(pack.assigned_to); chip=`<span class="tag" style="background:#eef1f6;color:#5b6472">✓ Packed</span>`;
+    } else if(p.status==="completed"){
+      phase="Pack ready"; holder=""; chip=`<span class="tag">⚪ Waiting</span>`;
+    } else if(p.status==="in_progress"){
+      phase="Picking"; holder=nameOf(p.assigned_to);
+      if(fresh(p)) chip=`<span class="tag" style="background:#e8f7ee;color:#1e7d43">🟢 Active</span>`;
+      else { const im=idleMin(p); chip=`<span class="tag" style="background:#fdecec;color:#c0392b">🟡 Away (screen closed)</span>`; rel={table:"wms_pick_tasks",id:p.id}; }
+    } else { // pending pick
+      phase="Waiting"; holder="";
+      chip=(ps.p>0)?`<span class="tag" style="background:#fff4e0;color:#a86400">🟠 Held</span>`:`<span class="tag">⚪ Waiting</span>`;
+    }
+    const o=oById[p.order_id]||{};
+    const prog = pack ? `${(ks&&ks.v)||0}/${(ks&&ks.e)||0} verified` : `${ps.p}/${ps.a} picked`;
+    return {p,o,phase,holder,chip,rel,prog,label:p.batch_label};
+  });
+  renderBatchActivity();
+}
+function baCmp(a,b){
+  const k=baSort.key, d=baSort.dir;
+  if(k==="batch"){
+    const pa=/^SO-(\d+)-(\d+)/.exec(a.label||"")||[], pb=/^SO-(\d+)-(\d+)/.exec(b.label||"")||[];
+    const x=(Number(pa[1])||0)-(Number(pb[1])||0); if(x) return x*d;
+    const y=(Number(pa[2])||0)-(Number(pb[2])||0); if(y) return y*d;
+    return (a.label||"")<(b.label||"")?-d:(a.label||"")>(b.label||"")?d:0;
+  }
+  if(k==="age") return ((a.ageSort??-1)-(b.ageSort??-1))*d;   // 경과 정렬(2026-08-13) — null(—)은 최소, 60d+ 는 최대
+  let va="",vb="";
+  if(k==="customer"){va=a.o.customer_name||"";vb=b.o.customer_name||"";}
+  else if(k==="worker"){va=a.holder||"";vb=b.holder||"";}
+  return va<vb?-d:va>vb?d:0;
+}
+function renderBatchActivity(){
+  const el=document.getElementById("batchActivity"); if(!el) return;
+  // 경과 = 오더 imported_at 기준(배치 created_at 아님 — 분할 오더의 나중 배치가 짧게 나와 지체가 가려지는
+  // 것을 방지, 2026-08-13 사용자 결정) · 근무시간 자(workMinutes — Stats 와 같은 자, 달력 시간 아님).
+  // ageMin null 이면서 ageOver=true = imported_at 은 있는데 60일 캡 초과(극단 지체 — 숨기면 안 됨) → "60 d+".
+  const nowIso=new Date().toISOString();
+  baRows.forEach(r=>{
+    r.ageMin=workMinutes(r.o.at_wms_at,nowIso,r.o.wh);   // ⑤-5b: 경과 기준 = Release to WMS 시각(운영 imported_at 의 자리) · 창고 시간대는 이름에서
+    r.ageOver=r.ageMin==null&&!!r.o.at_wms_at&&(new Date(nowIso)-new Date(r.o.at_wms_at))>60*86400000;
+    r.ageSort=r.ageMin!=null?r.ageMin:(r.ageOver?Infinity:-1);
+  });
+  // 세 필터 AND 조합. 버튼 건수 = "다른 두 필터를 적용한 뒤"의 수(현재 보이는 풀 기준 — 사용자 지시).
+  const whRows=baRows.filter(r=>baWh==="all"||r.o.wh===baWh);
+  const phasePool=whRows.filter(r=>baState==="all"||baStateOf(r)===baState);   // phase 버튼 건수용
+  const statePool=whRows.filter(r=>baPhase==="all"||r.phase===baPhase);        // state 버튼 건수용
+  let rows=whRows.filter(r=>(baPhase==="all"||r.phase===baPhase)&&(baState==="all"||baStateOf(r)===baState));
+  rows.sort(baCmp);
+  const arrow=k=>baSort.key===k?(baSort.dir>0?" ▲":" ▼"):"";
+  const th=(k,l)=>`<th data-bas="${k}" style="cursor:pointer;user-select:none">${l}${arrow(k)}</th>`;
+  const fbtn=(attr,v,cur,l)=>`<button data-${attr}="${v}" style="border:1px solid var(--line);background:${cur===v?"#eef4ff":"#fff"};color:${cur===v?"#2456d6":"var(--mut)"};border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;margin-right:6px">${l}</button>`;
+  const whBtn=(v,l)=>fbtn("bawh",v,baWh,l);
+  const cntPh=v=>v==="all"?phasePool.length:phasePool.filter(r=>r.phase===v).length;
+  const cntSt=v=>v==="all"?statePool.length:statePool.filter(r=>baStateOf(r)===v).length;
+  const phBtn=v=>fbtn("baph",v,baPhase,`${v==="all"?"All":v} (${cntPh(v)})`);
+  const stBtn=v=>fbtn("bast",v,baState,`${v==="all"?"All":v} (${cntSt(v)})`);
+  const grp=(label,btns)=>`<span style="display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 0"><span style="font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut-2);margin-right:6px">${label}</span>${btns}</span>`;
+  const bar=`<div style="padding:10px 12px 4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px">${
+    grp("Warehouse",whBtn("all","All")+whBtn("toronto","Toronto")+whBtn("edmonton","Edmonton"))}${
+    grp("Phase",["all","Waiting","Picking","Pack ready","Packing","Packed"].map(phBtn).join(""))}${
+    grp("State",["all","Active","Held","Away","Waiting","Packed"].map(stBtn).join(""))}</div>`;
+  if(!rows.length){ el.innerHTML=bar+`<div class="empty">No batches match the filters.</div>`; }
+  else{
+    let lastOid=null;
+    el.innerHTML=bar+`<table><thead><tr>${th("batch","Batch")}${th("customer","Customer")}<th>Phase</th>${th("worker","Worker")}<th class="num">Progress</th><th>State</th>${th("age","Elapsed")}<th></th></tr></thead><tbody>${
+      rows.map(r=>{
+        const sep=(baSort.key==="batch"&&lastOid!==null&&lastOid!==r.p.order_id)?' style="border-top:2px solid var(--line)"':""; lastOid=r.p.order_id;
+        return `<tr${sep}>
+        <td style="font-family:var(--mono);font-weight:700">${esc(r.label)}
+          <span data-livebatch="${esc(r.label)}" style="display:none" title="Open on a worker's screen right now">👁</span></td>
+        <td>${esc(r.o.customer_name||"—")} <span class="tag wh-${r.o.wh}">${whLabel(r.o.wh)}</span></td>
+        <td>${r.phase==="Pack ready"?`<span style="color:var(--mut)">Pack ready</span>`:r.phase==="Packing"?`<b>Packing</b>`:r.phase}</td>
+        <td>${esc(r.holder||"—")}</td>
+        <td class="num" style="font-family:var(--mono)">${r.prog}</td>
+        <td>${r.chip}</td>
+        <td>${
+          // 색 3단계(근무시간 임계 — 사용자 확정 2026-08-13): ≤16h(근무일 2일) 회색 / 16~32h 주황 / 32h+ 빨강.
+          // 색상값은 ageBadge 와 동일 — 자만 다르다(달력→근무시간).
+          r.ageMin==null
+            ? (r.ageOver?`<span style="color:#c0392b;font-weight:700;font-size:12px" title="released to the WMS more than 60 days ago (beyond the work-hours meter)">60 d+</span>`
+                        :`<span style="color:var(--mut)">—</span>`)
+            : (m=>`<span style="color:${m<=16*60?"var(--mut)":m<=32*60?"#c77700":"#c0392b"};font-weight:${m<=16*60?400:700};font-size:12px" title="work hours since release to WMS (Mon–Fri 09–17)">${fmtWorkDur(m)}</span>`)(r.ageMin)
+        }</td>
+        <td style="text-align:right">${r.rel?`<button data-reltable="${r.rel.table}" data-relid="${r.rel.id}" data-rellabel="${esc(r.label)}"
+          style="border:1px solid #f0c4c4;background:#fdecec;color:#c0392b;border-radius:8px;padding:4px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">Release</button>`:""}</td>
+      </tr>`;}).join("")
+    }</tbody></table>`;
+  }
+  el.querySelectorAll("[data-bas]").forEach(h=>h.onclick=()=>{ const k=h.dataset.bas; if(baSort.key===k) baSort.dir*=-1; else baSort={key:k,dir:1}; renderBatchActivity(); });
+  el.querySelectorAll("[data-bawh]").forEach(b=>b.onclick=()=>{ baWh=b.dataset.bawh; renderBatchActivity(); });
+  el.querySelectorAll("[data-baph]").forEach(b=>b.onclick=()=>{ baPhase=b.dataset.baph; renderBatchActivity(); });
+  el.querySelectorAll("[data-bast]").forEach(b=>b.onclick=()=>{ baState=b.dataset.bast; renderBatchActivity(); });
+  el.querySelectorAll("[data-reltable]").forEach(b=>b.onclick=()=>releaseClaim(b.dataset.reltable,+b.dataset.relid,b.dataset.rellabel));
+  markLiveRows();
+}
+async function releaseClaim(table,id,label){
+  if(!confirm(`Release ${label}?\n\nThe holder is away. The batch returns to the waiting pool with all progress kept, so anyone can pick it up.`)) return;
+  const {data,error}=await sb.from(table)
+    .update({status:"pending",assigned_to:null,heartbeat_at:null,session_id:null})   // ⑤-5b: 새 표의 session_id 도 비운다(⬜11 · picker checkOwner 가 세션을 비교)
+    .eq("id",id).eq("status","in_progress").select("id");
+  if(error){ toast("Release failed: "+error.message,true); return; }
+  if(!data||!data.length){ toast("Already released or completed",true); }
+  else toast(label+" released to the pool");
+  loadOverview();
+}
+
+/* ---------- Rollback (manager only, one step at a time) ---------- */
+// Stage detection per order → only the DEEPEST current stage is offered, so
+// intermediate stages can never be skipped.
+/* ⑤-5b: 운영의 표 직접 쓰기 55(archiveRows · voidDisc · reopenRecoveries · deleteFulfillmentRows · doRollback · doBatchRollback · doVoid · doUndoWave 안)는 전부 창구 셋으로 —
+   wms_rollback(p_so_id, p_action) · wms_rollback_batch(p_task_id, p_kind) · wms_unwave(p_wave_id) (20260926204246 · 아카이브 → 무효화 → 삭제 · 한 트랜잭션 · 첫 줄 ims_require_write(wms_manage) · manager 이상 · 창고 검사).
+   Finalize 뒤의 팩 · 픽 · 배치 되돌리기는 창구가 거부한다(SO-13893 벨트 · Undo Finalize 먼저) — 화면의 응급 차단(closed 재확인 · packBlocked)은 창구 안으로 들어갔다.
+   판정 35(Caleb 2026-09-27 「지금은 안 A」): ⊘ Void 단추 · 번호 검색 · doVoid 는 없다 — 그 자리에 되돌리는 길 안내. 한 번에 되돌리기는 컷오버 뒤 거리(창구를 순서대로 부르는 바깥 창구 하나). */
+let showFinalizedRb=false; // finalize 숨김 토글 — 기본 숨김(2026-08-12 사용자 결정: 이 화면은 되돌릴 수 있는 것만 보인다)
+const RB_SEL=SO_SEL+",wms_order_finalize(finalized_by,finalized_at)";
+async function loadRollback(){
+  const el=document.getElementById("rollbackList");
+  el.innerHTML=`<div class="loading"><div class="spin"></div>Loading…</div>`;
+  // 캡 위험 #7 근본 해결(2026-08-12 5단계): 활성과 finalized 분리 — 활성(at_wms · picking)은 packed 로 소진되는 활성 풀(수십 규모·캡 무관).
+  // finalized(packed)는 최근 200 — 사용자 확정 사양(2026-08-12): "목록은 최근 N. 옛 오더 롤백은 없다." 총수는 캡션에 count-head 로 표시.
+  const [ordsQ,packedQ,packedCnt,wvsQ]=await Promise.all([
+    sbAll(()=>sb.from("so").select(RB_SEL).in("status",["at_wms","picking"]).order("so_number").order("id")),   // caps-ok: 활성 풀 · sbAll
+    sb.from("so").select(RB_SEL).eq("status","packed").order("packed_at",{ascending:false}).limit(200),   // caps-ok: 최근 200 사양
+    sb.from("so").select("id",{count:"exact",head:true}).eq("status","packed"),
+    sb.from("wms_waves").select("id,label,warehouse_id,status,assigned_to, wms_pick_tasks(id,order_id, so(so_number))").neq("status","completed").order("label"),   // caps-ok: 완료 아닌 wave 만
+  ]);
+  const err=ordsQ.error||packedQ.error||wvsQ.error;
+  if(err){ el.innerHTML=`<div class="empty">Couldn't load: ${esc(err.message||"")}</div>`; return; }
+  const inWh=o=>inWhId(o.warehouse_id);
+  const closedRows=(packedQ.data||[]).map(normOrder).filter(inWh), closedTotal=packedCnt.count??closedRows.length;
+  const orders=[...(ordsQ.data||[]).map(normOrder).filter(inWh),...closedRows]
+    .sort((a,b)=>a.order_number<b.order_number?-1:a.order_number>b.order_number?1:0);
+  const wavesRb=((wvsQ&&wvsQ.data)||[]).filter(w=>inWhId(w.warehouse_id));
+  const finToggle=closedTotal>0?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px">
+    <button id="finToggleRb" title="Finalized orders are hidden by default. Show them to ↩ Undo Finalize — the order goes back to Working; its pallets and boxes are archived and removed."
+      style="font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:9px;padding:6px 9px;background:var(--card);cursor:pointer;color:var(--mut)">${
+      showFinalizedRb?`Hide finalized (${closedRows.length})`:`Show finalized (${closedRows.length})`}</button>
+    <span style="font-size:11.5px;color:var(--mut)">${
+      showFinalizedRb
+        ?(closedTotal>closedRows.length?`Latest ${closedRows.length} of ${closedTotal} listed — older finalized orders are not listed (rollback of old orders is not a supported path).`:"")
+        :"Finalized orders hidden — use “Show finalized” to ↩ Undo Finalize."}</span>
+  </div>`:"";
+
+  // 판정 35 — Void 의 자리: 되돌리는 길 안내(단계마다 · 실물 확인 · 판정 21) · 제한 안내는 숨긴 것을 "없다"로 위장하지 않는다
+  const whCapRb=myWarehouses()?`<div style="font-size:11.5px;color:var(--mut);margin-bottom:8px">Showing your warehouse(s) only (your warehouse access) — rollback is limited to your warehouse.</div>`:"";
+  const cancelNote=whCapRb+`<div class="cancelnote"><b>Cancelling an order that is already in the warehouse?</b> There is no one-click void — undo one stage at a time and check the goods on the shelf at each step:
+    <b>↩ Undo Pack</b> → <b>↩ Undo Split</b> (the order returns to <b>Released to WMS</b>) → the office does <b>Recall from WMS</b> on the sales order and cancels it there. A finalized order starts with <b>↩ Undo Finalize</b>.</div>`;
+
+  // active waves — undo whole wave (orders back to Released to WMS) / delete empty leftovers
+  let waveHtml="";
+  if(wavesRb.length){
+    waveHtml=`<div style="margin-bottom:14px">
+      <div style="font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:2px 0 6px">Active waves</div>
+      <table><thead><tr><th>Wave</th><th>Warehouse</th><th>Status</th><th>Picker</th><th>Orders</th><th></th></tr></thead><tbody>
+      ${wavesRb.map(w=>{
+        const ts=w.wms_pick_tasks||[];
+        const names=ts.map(t=>t.so&&t.so.so_number).filter(Boolean).join(" · ");
+        const wk=whOf(w.warehouse_id).key;
+        return `<tr>
+          <td style="font-family:var(--mono);font-weight:700">${esc(w.label)}</td>
+          <td><span class="tag wh-${wk}">${whLabel(wk)}</span></td>
+          <td style="font-size:12px">${esc(w.status)}</td>
+          <td style="font-size:12px">${esc(nameOf(w.assigned_to)||"—")}</td>
+          <td style="font-size:12px">${ts.length?`${ts.length} · ${esc(names)}`:'<span style="color:#c0392b;font-weight:700">EMPTY</span>'}</td>
+          <td style="text-align:right"><button data-uw="${w.id}" data-wl="${esc(w.label)}" data-n="${ts.length}"
+            style="border:1px solid #f0c4c4;background:#fdecec;color:#c0392b;border-radius:8px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">${ts.length?"↩ Undo Wave":"✕ Delete empty wave"}</button></td>
+        </tr>`;
+      }).join("")}
+      </tbody></table></div>`;
+  }
+
+  if(!orders.length){
+    el.innerHTML=cancelNote+waveHtml+finToggle+`<div class="empty">No orders past the split stage.</div>`;
+    wireRollbackCommon(el); loadRollbackLog(); return;
+  }
+  const ids=orders.map(o=>o.id);
+  // 다운스트림도 sbAll(#7 과 같은 뿌리): .in(오더 N개) 이라도 행 수는 오더당 배수다 — 잘리면 stage 판정(hasFulfill 등)이 조용히 얕아진다. 정렬은 기존 유지 + id 보조(페이지 결정성).
+  const [picks,packs,pitems]=await Promise.all([
+    sbAll(()=>sb.from("wms_pick_tasks").select("id,order_id,batch_label,status,assigned_to,created_by").in("order_id",ids).order("batch_label").order("id")),
+    sbAll(()=>sb.from("wms_pack_tasks").select("id,order_id,pick_task_id,status,assigned_to").in("order_id",ids).order("id")),
+    sbAll(()=>sb.from("wms_pallet_items").select("order_id,pack_task_id").in("order_id",ids).order("id")),
+  ]);
+  const pk=picks.data||[], pc=packs.data||[], pi=pitems.data||[];
+  // picked progress per batch (a held/pending batch with progress is still resettable)
+  const pkIds=pk.map(t=>t.id); let progByPick={};
+  if(pkIds.length){
+    const {data:pls}=await sbAll(()=>sb.from("wms_pick_task_lines").select("pick_task_id,picked_base").in("pick_task_id",pkIds).order("id"));
+    (pls||[]).forEach(l=>{ progByPick[l.pick_task_id]=(progByPick[l.pick_task_id]||0)+Number(l.picked_base||0); });
+  }
+  const packByPick={}; pc.forEach(p=>packByPick[p.pick_task_id]=p);
+  const palletPackIds=new Set(pi.map(x=>x.pack_task_id).filter(Boolean));   // ⑤-5a 부터 fulfillment 가 pack_task_id 를 채운다(⬜10)
+  const names=arr=>[...new Set(arr.filter(Boolean))].map(nameOf).join(", ");
+
+  const rows=orders.map(o=>{
+    const myPicks=pk.filter(x=>x.order_id===o.id);
+    const hasSplit=myPicks.length>0;
+    const pickStarted=myPicks.some(x=>x.status==="in_progress"||x.status==="completed");
+    const hasPack=pc.some(x=>x.order_id===o.id);
+    const hasFulfill=pi.some(x=>x.order_id===o.id);
+    // ── deepest stage → single action ── Finalized 최상단(2026-08-13 · SO-13893) — IMS 에서는 so.status packed + wms_order_finalize 행(창구도 같은 둘을 본다)
+    const isFinalized=o.status==="packed"&&!!o.fin;
+    let stage="", action="", btn="", worker="";
+    if(isFinalized){ stage="Finalized"; action="finalize"; btn="↩ Undo Finalize"; worker=nameOf(o.fin.finalized_by); }
+    else if(o.status==="packed"){ stage="Finalized — no finalize record"; action=""; }   // 창구가 finalize 되돌리기도 거부한다(기록 없음) — 표시만 · Health(⑤-5c) 거리
+    else if(hasFulfill){ stage="Fulfilled"; action="fulfillment"; btn="↩ Undo Fulfillment"; worker=names(pc.filter(x=>x.order_id===o.id).map(x=>x.assigned_to)); }
+    else if(hasPack){ stage="Pack complete"; action="pack"; btn="↩ Undo Pack"; worker=names(pc.filter(x=>x.order_id===o.id).map(x=>x.assigned_to)); }
+    else if(pickStarted){ stage="Pick in progress / done"; action="pick"; btn="↩ Reset Pick"; worker=names(myPicks.map(x=>x.assigned_to)); }
+    else if(hasSplit){ stage="Split (Working)"; action="split"; btn="↩ Undo Split"; worker=names(myPicks.map(x=>x.created_by)); }
+    else { stage="—"; }
+    return {o,stage,action,btn,myPicks,hasFulfill,worker};
+  }).filter(r=>r.action); // only orders with something to undo
+  const visRows=showFinalizedRb?rows:rows.filter(r=>r.o.status!=="packed");
+  const hiddenFin=rows.length-visRows.length;
+  if(!visRows.length){
+    el.innerHTML=cancelNote+waveHtml+finToggle+`<div class="empty">Nothing to roll back${hiddenFin?` — ${hiddenFin} finalized order(s) hidden (use "Show finalized" above)`:""}.</div>`;
+    wireRollbackCommon(el); loadRollbackLog(); return;
+  }
+
+  // per-batch sub-table (batch-level rollback for split orders) — 거부 사유는 창구와 같은 셋(Finalize 뒤 · 팔렛에 담김 · 팩 있음)
+  const batchRows=r=>r.myPicks.map(t=>{
+    const pack=packByPick[t.id]||null;
+    const prog=progByPick[t.id]||0;
+    let stage="", act="";
+    if(pack){
+      stage=pack.status==="completed"?"Pack complete":"Pack in progress";
+      if(r.action==="finalize")
+        act=`<span style="color:var(--mut);font-size:11.5px">Finalized — undo finalize first</span>`;
+      else if(r.hasFulfill || palletPackIds.has(pack.id))
+        act=`<span style="color:var(--mut);font-size:11.5px">On a pallet — Undo Fulfillment first</span>`;
+      else
+        act=`<button data-brb="pack" data-pickid="${t.id}" data-packid="${pack.id}" data-oid="${r.o.id}" data-on="${esc(r.o.order_number)}" data-bl="${esc(t.batch_label)}"
+          style="border:1px solid #f0c4c4;background:#fdecec;color:#c0392b;border-radius:7px;padding:3px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">↩ Undo Pack</button>`;
+    } else if(t.status==="in_progress"||t.status==="completed"||prog>0){
+      stage=t.status==="completed"?"Pick done":(t.status==="in_progress"?"Picking":"Held (progress)");
+      act=r.action==="finalize"
+        ?`<span style="color:var(--mut);font-size:11.5px">Finalized — undo finalize first</span>`
+        :`<button data-brb="pick" data-pickid="${t.id}" data-oid="${r.o.id}" data-on="${esc(r.o.order_number)}" data-bl="${esc(t.batch_label)}"
+        style="border:1px solid #f0c4c4;background:#fdecec;color:#c0392b;border-radius:7px;padding:3px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">↩ Reset Pick</button>`;
+    } else { stage="Waiting (no progress)"; act=`<span style="color:var(--mut)">—</span>`; }
+    return `<tr>
+      <td style="font-family:var(--mono);font-weight:700;padding-left:22px">${esc(t.batch_label)}</td>
+      <td style="font-size:12px">${esc(nameOf(t.assigned_to)||"—")}</td>
+      <td style="font-size:12px">${stage}${prog?` · ${prog} picked`:""}</td>
+      <td style="text-align:right">${act}</td>
+    </tr>`;
+  }).join("");
+
+  el.innerHTML=cancelNote+waveHtml+finToggle+`<table><thead><tr><th>Order</th><th>Customer</th><th>Warehouse</th><th>Current stage</th><th>Worker</th><th></th></tr></thead><tbody>${
+    visRows.map(r=>`<tr>
+      <td style="font-family:var(--mono);font-weight:700">${esc(r.o.order_number)}
+        ${r.myPicks.length>1?`<button data-bt="${r.o.id}" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 8px;font:inherit;font-size:11.5px;color:var(--mut);cursor:pointer;margin-left:6px">▸ ${r.myPicks.length} batches</button>`:""}</td>
+      <td>${esc(r.o.customer_name||"—")}</td>
+      <td><span class="tag wh-${r.o.wh}">${whLabel(r.o.wh)}</span></td>
+      <td>${esc(r.stage)}</td>
+      <td style="font-size:12px">${esc(r.worker||"—")}</td>
+      <td style="text-align:right;white-space:nowrap"><button data-rb="${r.action}" data-oid="${r.o.id}" data-on="${esc(r.o.order_number)}"
+            style="border:1px solid #f0c4c4;background:#fdecec;color:#c0392b;border-radius:8px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">${r.btn}</button></td>
+    </tr>
+    ${r.myPicks.length>1?`<tr class="batchsub" data-bsub="${r.o.id}" style="display:none"><td colspan="6" style="background:#fafbfd;padding:6px 10px">
+      <table style="width:100%"><thead><tr><th style="font-size:11px">Batch</th><th style="font-size:11px">Worker</th><th style="font-size:11px">Batch stage</th><th></th></tr></thead>
+      <tbody>${batchRows(r)}</tbody></table></td></tr>`:""}`).join("")
+  }</tbody></table>`;
+  el.querySelectorAll("[data-rb]").forEach(b=>b.onclick=()=>doRollback(b.dataset.oid, b.dataset.rb, b.dataset.on));   // so.id 는 uuid — 숫자로 바꾸지 않는다
+  wireRollbackCommon(el);
+  el.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>{
+    const sub=el.querySelector(`[data-bsub="${b.dataset.bt}"]`); if(!sub)return;
+    const open=sub.style.display!=="none";
+    sub.style.display=open?"none":"";
+    b.textContent=(open?"▸ ":"▾ ")+b.textContent.slice(2);
+  });
+  el.querySelectorAll("[data-brb]").forEach(b=>b.onclick=()=>doBatchRollback(
+    b.dataset.brb, +b.dataset.pickid, b.dataset.packid?+b.dataset.packid:null,   // 과제 id 는 bigint 그대로
+    b.dataset.oid, b.dataset.on, b.dataset.bl));
+  loadRollbackLog();
+}
+
+/* ⑤-5b: 아카이브 · 무효화 · 회복 재개 · 팔렛 삭제(운영 archiveRows · voidDisc · reopenRecoveries · deleteFulfillmentRows)는 창구 안이다(wms_rb_archive · wms_rb_void · wms_rollback).
+   화면에 남는 것은 매니저 안내 셋 — wms_worker_mistakes 를 읽기만(창구를 부르기 **전에** 세어 둔다 · 창구가 지우는 과제 id 가 필요하다). 규칙 41 화이트리스트: 팩 = short_after_pack · over_pick · pack_scan_mistake / 픽 = short_pick. */
+const PACK_VOID_REASONS=["short_after_pack","over_pick","pack_scan_mistake"];
+async function rollbackNotes(linkCol, ids, reasons, oids, opts){
+  const notes=[];
+  try{
+    if(ids.length){
+      const {count:cFixed}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
+        .in(linkCol,ids).in("reason",reasons).eq("cin7_corrected",true);
+      if(cFixed) notes.push(`⚠ ${cFixed} mistake row(s) from this work were already marked resolved by a manager — a stock adjustment may need reversing (they stay resolved; Discrepancy tab ⑤-5c).`);
+    }
+    const {count:cOld}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
+      .in("order_id",oids).in("reason",reasons).is(linkCol,null).is("voided_at",null).is("resolved_at",null);
+    if(cOld) notes.push(`⚠ ${cOld} older mistake row(s) have no task link and were NOT voided — review them manually.`);
+    if(opts&&opts.batchRecoveryNote){
+      const {count:cRec}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true})
+        .in("order_id",oids).eq("reason","resolved_pack_recovery").is("voided_at",null);
+      if(cRec) notes.push(`⚠ ${cRec} pick shortage(s) on this order were resolved during packing — THIS batch may be the one that resolved them. Verify; they are NOT auto-reopened on a batch-level undo (order-level Undo Pack reopens them).`);
+    }
+  }catch(e){ notes.push("⚠ mistake review checks failed — check the mistake rows yourself: "+(e.message||e)); }
+  return notes;
+}
+function rollbackDone(headline, voided, reopened, notes){
+  const parts=[];
+  if(voided) parts.push(voided+" mistake row(s) voided (kept for audit)");
+  if(reopened) parts.push(reopened+" pick shortage(s) reopened (pack recovery undone)");
+  if(notes.length||reopened) alert(headline+(parts.length?"\n\n• "+parts.join("\n• "):"")+(notes.length?"\n\n"+notes.join("\n"):""));
+  else toast(headline+(parts.length?" · "+parts.join(" · "):""));
+}
+
+async function doBatchRollback(kind, pickId, packId, oid, onum, label){
+  const msg = kind==="pack"
+    ? `Undo packing for batch ${label}?\n\n• Deletes pack verification for THIS batch only (a copy is archived first)\n• Other batches of ${onum} are untouched\n• This batch's pack mistake rows (short after pack / over-pick / packer double scan) are voided — kept for audit\n• Refused if the batch is already on a pallet or the order is finalized`
+    : `Reset picking for batch ${label}?\n\n• This batch's picked quantities go back to 0 and its picked bins are cleared (a copy is archived first)\n• The batch returns to the waiting pool (unassigned)\n• This batch's short-pick mistake rows are voided — kept for audit\n• Refused if the batch already has packing or the order is finalized`;
+  if(!confirm(msg)) return;
+  try{
+    // 안내는 창구 전에(창구가 과제를 지운다) · 창구 = wms_rollback_batch(p_task_id, p_kind) 한 번 — 검사 · 아카이브 · 무효화 · 삭제 · 로그가 한 트랜잭션
+    const tid=kind==="pack"?packId:pickId, linkCol=kind==="pack"?"pack_task_id":"pick_task_id", reasons=kind==="pack"?PACK_VOID_REASONS:["short_pick"];
+    const notes=await rollbackNotes(linkCol,[tid],reasons,[oid],{batchRecoveryNote:kind==="pack"});
+    const {data,error}=await sb.rpc("wms_rollback_batch",{p_task_id:tid,p_kind:kind});
+    if(error){ toast("Rollback blocked: "+(error.message||error),true); loadRollback(); return; }   // P0001 문장(「… — nothing was saved」) 그대로
+    const d=data||{};
+    rollbackDone(`${label} rolled back (${kind}) · ${d.archived??0} row(s) archived.`, d.voided||0, 0, notes);
+    loadRollback();
+  }catch(e){ toast("Rollback failed: "+(e.message||e), true); }
+}
+
+async function loadRollbackLog(){
+  const el=document.getElementById("rollbackLog");
+  if(!el) return;
+  const {data,error}=await sb.from("wms_rollback_log").select("*").order("created_at",{ascending:false}).limit(30);
+  if(error){ el.innerHTML=`<div class="empty" style="font-size:12px">Couldn't load the log: ${esc(error.message||"")}</div>`; return; }
+  if(!data||!data.length){ el.innerHTML=`<div class="empty" style="font-size:12px">No rollbacks yet.</div>`; return; }
+  const AL={finalize:"Undo Finalize",fulfillment:"Undo Fulfillment",pack:"Undo Pack",pick:"Reset Pick",split:"Undo Split",unwave:"Undo Wave"};   // ⑤-5b: void 없음(판정 35)
+  el.innerHTML=`<table><thead><tr><th>Order</th><th>Batch</th><th>Action</th><th>Stage</th><th>Original worker</th><th>Undone by</th><th>When</th></tr></thead><tbody>${
+    data.map(r=>`<tr>
+      <td style="font-family:var(--mono);font-weight:700">${esc(r.order_number||"—")}</td>
+      <td style="font-family:var(--mono);font-size:12px">${esc(r.batch_label||"—")}</td>
+      <td>${esc(AL[r.action]||r.action)}</td>
+      <td style="font-size:12px;color:var(--mut)">${esc(r.from_stage||"")} → ${esc(r.to_stage||"")}</td>
+      <td style="font-size:12px">${esc(nameOf(r.original_worker)||"—")}</td>
+      <td>${esc(nameOf(r.performed_by)||"—")}</td>
+      <td style="font-size:12px;color:var(--mut)">${r.created_at?new Date(r.created_at).toLocaleString():""}</td>
+    </tr>`).join("")
+  }</tbody></table>`;
+}
+
+const RB_CONFIRM={
+  finalize:o=>`Undo finalize for ${o}?\n\n• The order goes back to Working (all its batches stay packed)\n• Pallet/box assignments are deleted (a copy is archived first) — shared units still holding other orders' goods are kept\n• The finalize record is deleted — the office cannot fulfil it until it is finalized again\n\nContinue?`,
+  fulfillment:o=>`Undo fulfillment for ${o}?\n\n• Deletes this order's pallet/box assignments (a copy is archived first)\n• Shared units still holding other orders' goods are kept\n• Packing and picking are untouched\n\nContinue?`,
+  pack:o=>`Undo packing for ${o}?\n\n• Deletes ALL pack verification for this order (a copy is archived first)\n• Its pack mistake rows (short after pack / over-pick / packer double scan) are voided — kept for audit\n• Pick shortages that packing had resolved are reopened\n• Returns it to the pick-complete stage\n\nContinue?`,
+  pick:o=>`Reset picking for ${o}?\n\n• All picked quantities go back to 0 and picked bins are cleared (a copy is archived first)\n• Batches return to the waiting pool (unassigned)\n• Its short-pick mistake rows are voided — kept for audit\n\nContinue?`,
+  split:o=>`Undo split for ${o}?\n\n• Deletes ALL batches for this order (a copy is archived first) — waves left empty are removed\n• Its short-pick mistake rows are voided — kept for audit\n• The order returns to Released to WMS — the office can recall it from there\n\nContinue?`,
+};
+async function doRollback(oid, action, onum){
+  if(!confirm(RB_CONFIRM[action](onum))) return;
+  try{
+    // 안내는 창구 전에(창구가 과제를 지운다) — finalize · fulfillment 는 실수 표를 건드리지 않아 안내 없음(운영과 같다)
+    let notes=[];
+    if(action==="pack"){
+      const {data:ks}=await sb.from("wms_pack_tasks").select("id").eq("order_id",oid);
+      notes=await rollbackNotes("pack_task_id",(ks||[]).map(k=>k.id),PACK_VOID_REASONS,[oid],{});
+    }else if(action==="pick"||action==="split"){
+      const {data:ts}=await sb.from("wms_pick_tasks").select("id").eq("order_id",oid);
+      notes=await rollbackNotes("pick_task_id",(ts||[]).map(t=>t.id),["short_pick"],[oid],{});
+    }
+    // 창구 = wms_rollback(p_so_id, p_action) 한 번 — 벨트(Finalize 뒤 거부 · 팔렛 · 팩 순서) · 아카이브 → 무효화 → 삭제 · 상태 전이(packed→picking · picking→at_wms) · 로그가 한 트랜잭션
+    const {data,error}=await sb.rpc("wms_rollback",{p_so_id:oid,p_action:action});
+    if(error){ toast("Rollback blocked: "+(error.message||error),true); loadRollback(); return; }   // P0001 문장 그대로
+    const d=data||{};
+    if(action==="finalize") notes.push(onum+" is back to "+statusLabel(d.status||"picking")+" — it appears on the Fulfillment board again (all batches still packed).");
+    if(action==="split") notes.push(onum+" is back to "+statusLabel(d.status||"at_wms")+" — the office can recall it now.");
+    rollbackDone(onum+" rollback done ("+action+") · "+(d.archived??0)+" row(s) archived.", d.voided||0, d.reopened||0, notes);
+    loadRollback();
+  }catch(e){ toast("Rollback failed: "+(e.message||e), true); }
+}
+
+/* ---------- common wiring for wave buttons + finalize toggle (used by all loadRollback exit paths) ---------- */
+function wireRollbackCommon(el){
+  el.querySelectorAll("[data-uw]").forEach(b=>b.onclick=()=>doUndoWave(+b.dataset.uw,b.dataset.wl,+b.dataset.n));
+  const ft=el.querySelector("#finToggleRb");
+  if(ft) ft.onclick=()=>{ showFinalizedRb=!showFinalizedRb; loadRollback(); };
+}
+
+/* ---------- UNDO WAVE: dissolve the group in one go ----------
+   Member batches are deleted, their orders return to Released to WMS (kept open — NOT cancelled), and the wave row is removed.
+   Also deletes empty leftover waves (members already rolled back one by one). 창구 = wms_unwave(p_wave_id) — 팩이 있거나 Finalize 된 오더가 있으면 거부. */
+async function doUndoWave(wid,label,memberCnt){
+  if(memberCnt>0){
+    if(!confirm(`Undo ${label}?\n\n• All ${memberCnt} member batches are deleted (a copy is archived first)\n• Their orders return to Released to WMS (kept open)\n• The wave is removed\n\nPicked progress in this wave is lost. Proceed?`)) return;
+  } else {
+    if(!confirm(`Delete empty wave ${label}? It has no member batches left.`)) return;
+  }
+  try{
+    const {data:ts}=await sb.from("wms_pick_tasks").select("id,order_id").eq("wave_id",wid);
+    const tids=(ts||[]).map(t=>t.id), oids=[...new Set((ts||[]).map(t=>t.order_id).filter(Boolean))];
+    const notes=tids.length?await rollbackNotes("pick_task_id",tids,["short_pick"],oids,{}):[];
+    const {data,error}=await sb.rpc("wms_unwave",{p_wave_id:wid});
+    if(error){ toast("Undo wave blocked: "+(error.message||error),true); loadRollback(); return; }
+    const d=data||{};
+    rollbackDone(label+(tids.length?` undone — ${d.orders??oids.length} order(s) · ${d.back_to_at_wms??0} back to ${STATUS_LABEL.at_wms}`:" (empty) deleted")+` · ${d.archived??0} row(s) archived.`, d.voided||0, 0, notes);
+    loadRollback();
+  }catch(e){ toast("Undo wave failed: "+(e.message||e), true); }
+}
+
+/* ---------- Packing lists (reprint from admin) ---------- */
+// 팩 검수 실적 합산 — Finalized 상위 행의 빨간 괄호와 배치 펼침 표가 **같은 자**를 쓴다
+// (2026-08-20 Caleb — 두 곳이 따로 세면 상위 행과 펼침 숫자가 어긋나는 게 더 큰 혼란이다).
+// "실제 나간 것" = verified_base>0 인 라인 수 · 그 합 (Stats 의 "실제 한 일" 기준과 동일).
+// ⚠️ verified_base 는 packer 가 required 에서 캡해 저장하므로(over 는 overScans 메모리 전용)
+//    합이 주문량을 넘는 경우는 정상 경로에 없다.
+// ⑤-5b: 창고 필터 열쇠 all | toronto | edmonton 은 ref_warehouse 이름에서 낸 것(whIdsFor) — 서버 필터 대신 화면에서 location_id 로 거른다(모수 = packed 풀 · 작다).
+function tallyVerified(packLines){
+  let lines=0, units=0;
+  (packLines||[]).forEach(l=>{ const q=Number(l.verified_base)||0; if(q>0){ lines++; units+=q; } });
+  return {lines, units};
+}
+// Finalized 창고 필터 세그 (2026-08-19 — 기간 필터와 같은 자리·같은 .period .seg 스타일, 기본 All)
+function renderFinWhBar(){
+  const el=document.getElementById("finWhBar"); if(!el) return;
+  const b=(v,l)=>`<button data-fwh="${v}" class="${finWh===v?"active":""}">${l}</button>`;
+  el.innerHTML=`<div class="seg">${b("all","All warehouses")+b("toronto","Toronto")+b("edmonton","Edmonton")}</div>`;
+  el.querySelectorAll("[data-fwh]").forEach(x=>x.onclick=()=>{ finWh=x.dataset.fwh; renderFinWhBar(); loadPacking(); });
+}
+async function loadPacking(){
+  const r=rangeFor(finPeriodKey,finCustom); setRangeLabel("finPeriod",r.label);
+  const el=document.getElementById("packingList");
+  el.innerHTML=`<div class="loading"><div class="spin"></div>Loading…</div>`;
+  // ⑤-5b: 모수 = so status packed(창고가 Finalize 했고 오피스 마무리(so_finalize)를 기다리는 오더 · 마무리되면 fulfilled 로 빠진다 — 운영 closed 누적과 달리 소진되는 풀) · 창고 · 기간은 화면에서 거른다.
+  //   임베드: wms_order_finalize(타입 · 사람 · 시각 · 치수 없는 유닛 수) · wms_order_review(검토함 · 판정 26) · so_line(주문 lines·units) · wms_pick_tasks(count)(배치 수 배지) · wms_pack_tasks(팩 줄 verified_base)(실제 팩 수량 병기).
+  const q=await sbAll(()=>sb.from("so").select(FIN_SELECT).eq("status","packed").order("packed_at",{ascending:false}).order("id"));   // caps-ok: sbAll · 소진되는 풀
+  if(q.error){ el.innerHTML=`<div class="empty">Couldn't load: ${esc(q.error.message||"")}</div>`; return; }
+  let all=(q.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id));
+  if(finWh!=="all"){ const ids=whIdsFor(finWh); all=all.filter(o=>ids.includes(o.warehouse_id)); }
+  const finAt=o=>(o.fin&&o.fin.finalized_at)||o.packed_at;
+  const from=new Date(r.fromISO).getTime(), to=new Date(r.toISO).getTime();
+  const fin=all.filter(o=>{ const t=new Date(finAt(o)).getTime(); return t>=from&&t<=to; });
+  renderFulfillStats({total:fin.length, pk:fin.filter(o=>o.fin&&o.fin.fulfillment_type==="packing_list").length, dr:fin.filter(o=>o.fin&&o.fin.fulfillment_type==="direct").length, unknown:fin.filter(o=>!o.fin).length});
+  if(!fin.length){ el.innerHTML=`<div class="empty">No finalized orders in this period.</div>`; return; }
+  // 목록을 리뷰 기준으로 (2026-08-13 사용자 결정 · 1-D): 미리뷰 = 전량 · 리뷰 완료분 = 최근 200(캡션이 총수를 말한다)
+  const isRev=o=>!!(o.rev&&o.rev.reviewed);
+  const unrevRows=fin.filter(o=>!isRev(o)), revAll=fin.filter(isRev), revRows=revAll.slice(0,200), revTotal=revAll.length;
+  const list=[...unrevRows,...revRows].sort((a,b)=>new Date(finAt(b))-new Date(finAt(a)));
+  const unrev=unrevRows.length, finTotal=fin.length;
+  const revNote=revTotal>revRows.length
+    ? `<span style="font-size:11.5px;color:var(--mut)">Latest ${revRows.length} of ${revTotal} reviewed listed — older reviewed orders are not listed.</span>`
+    : "";
+  const fmtT=t=>t?new Date(t).toLocaleString():"";
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut);cursor:pointer"><input type="checkbox" id="finHideRev"> Hide reviewed</label>
+      <span style="font-size:12px;color:var(--mut-2)">${unrev} of ${finTotal} not yet reviewed</span>${revNote}</div>
+    <table><thead><tr><th style="width:32px">✓</th><th>Order</th><th>Customer</th><th class="num">Lines</th><th class="num">Units</th><th>Warehouse</th><th>Finalized by</th><th>When</th><th>Packing list</th></tr></thead><tbody>${
+    list.map(o=>{
+      const nb=o.pick_count||0;
+      const bt=nb>=2?` <button data-finbt="${o.id}" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 8px;font:inherit;font-size:11.5px;color:var(--mut);cursor:pointer;margin-left:6px">▸ ${nb} batches</button>`:"";
+      // 실제 팩 수량 병기 (2026-08-20 Caleb) — 괄호 = 주문(so_line 합)과 다를 때만 빨강 · 팩 미완이면 회색 (—)
+      const pks=o.packs||[];
+      const packDone=nb>0&&pks.length>=nb;
+      let pkL=0,pkU=0;
+      if(packDone) pks.forEach(p=>{ const t=tallyVerified(p.wms_pack_task_lines); pkL+=t.lines; pkU+=t.units; });
+      const packedCell=(base,actual)=>{
+        if(!packDone) return ` <span style="color:var(--mut-2);font-weight:400" title="Not fully packed — no reliable packed count">(—)</span>`;
+        if(base==null) return "";
+        return Number(base)!==actual?` <span style="color:var(--danger)" title="Actually packed (verified) — differs from the ordered amount">(${actual})</span>`:"";
+      };
+      const rev=o.rev||{};
+      const revTitle=isRev(o)?("Reviewed by "+nameOf(rev.reviewed_by)+(rev.reviewed_at?" · "+fmtT(rev.reviewed_at):""))
+                             :(rev.cleared_by?("Not reviewed — cleared by "+nameOf(rev.cleared_by)+(rev.cleared_at?" · "+fmtT(rev.cleared_at):"")):"Mark as reviewed");   // 판정 26: 끈 기록이 남는다
+      const dimsNote=(o.fin&&o.fin.units_without_dims>0)?` <span class="tag" style="color:var(--warn);background:var(--warn-bg)" title="pallets/boxes without dimensions — the office needs them for the freight quote">⚠ ${o.fin.units_without_dims} without dims</span>`:"";
+      const ftype=o.fin?o.fin.fulfillment_type:null;
+      return `<tr data-rev="${isRev(o)?1:0}" style="${isRev(o)?"opacity:.55":""}">
+      <td><input type="checkbox" class="mgrchk" data-oid="${o.id}" ${isRev(o)?"checked":""} title="${esc(revTitle)}"></td>
+      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}${bt}</td>
+      <td>${esc(o.customer_name||"—")}</td>
+      <td class="num">${o.total_lines??"—"}${packedCell(o.total_lines,pkL)}</td><td class="num">${o.total_units??"—"}${packedCell(o.total_units,pkU)}</td>
+      <td><span class="tag wh-${o.wh}">${whLabel(o.wh)}</span></td>
+      <td>${esc(o.fin?nameOf(o.fin.finalized_by):"—")}</td>
+      <td style="color:var(--mut);font-size:12px">${fmtT(finAt(o))}</td>
+      <td>${ftype==="packing_list"
+        ? `<button class="plbtn" data-print="${o.id}">🖨 Print</button> <button class="plbtn" data-pdf="${o.id}" data-onum="${esc(o.order_number)}">⬇ PDF</button> <button class="plbtn" data-csv="${o.id}" data-onum="${esc(o.order_number)}">⬇ CSV</button>${dimsNote}`
+        : ftype==="direct" ? `<span class="tag" style="color:#c2410c;border-color:#f2c9ae;background:#fff7f2">Direct pack</span>`
+        : `<span class="tag" style="color:var(--mut)">no finalize record</span>`}</td>
+    </tr>${
+      nb>=2?`<tr data-finsub="${o.id}" data-rev="${isRev(o)?1:0}" hidden><td colspan="9" style="background:#fafbfd;padding:6px 10px"><div data-finsubbox="${o.id}"></div></td></tr>`:""
+    }`;}).join("")
+  }</tbody></table>`;
+  // ── 배치 펼침(2026-08-13) — 펼치는 오더 1건만 lazy 조회·캐시 · 임베드 체인 pick→pack→lines 로 1왕복 · 사람 칸 nameOf ──
+  const finBatchCache={};
+  el.querySelectorAll("[data-finbt]").forEach(b=>b.onclick=async()=>{
+    const oid=b.dataset.finbt;
+    const sub=el.querySelector(`[data-finsub="${oid}"]`); if(!sub) return;
+    const wasOpen=!sub.hidden;
+    sub.hidden=wasOpen;
+    b.textContent=(wasOpen?"▸ ":"▾ ")+b.textContent.slice(2);
+    if(wasOpen) return;
+    const box=el.querySelector(`[data-finsubbox="${oid}"]`);
+    if(finBatchCache[oid]){ box.innerHTML=finBatchCache[oid]; return; }
+    box.innerHTML=`<span style="color:var(--mut);font-size:12px">Loading batches…</span>`;
+    try{
+      const {data,error}=await sb.from("wms_pick_tasks")
+        .select("id,batch_label,assigned_to,completed_by,wms_pack_tasks(id,assigned_to,completed_by,wms_pack_task_lines(verified_base))")
+        .eq("order_id",oid).order("batch_label");
+      if(error) throw error;
+      const html=`<table style="width:100%"><thead><tr><th style="font-size:11px">Batch</th><th style="font-size:11px">Picked by</th><th style="font-size:11px">Packed by</th><th class="num" style="font-size:11px">Lines verified</th><th class="num" style="font-size:11px">Units verified</th></tr></thead><tbody>${
+        (data||[]).map(t=>{
+          let lines=0, units=0, packer="";
+          (t.wms_pack_tasks||[]).forEach(pk=>{
+            packer=packer||pk.completed_by||pk.assigned_to||"";
+            const tv=tallyVerified(pk.wms_pack_task_lines); lines+=tv.lines; units+=tv.units;
+          });
+          const hasPack=(t.wms_pack_tasks||[]).length>0;
+          return `<tr>
+            <td style="font-family:var(--mono);font-weight:700;padding-left:22px">${esc(t.batch_label||"—")}</td>
+            <td style="font-size:12px">${esc(nameOf(t.completed_by||t.assigned_to)||"—")}</td>
+            <td style="font-size:12px">${hasPack?esc(nameOf(packer)||"—"):`<span style="color:var(--mut)">not packed</span>`}</td>
+            <td class="num">${hasPack?lines:"—"}</td><td class="num">${hasPack?nf(units):"—"}</td>
+          </tr>`;}).join("")
+      }</tbody></table>`;
+      finBatchCache[oid]=html; box.innerHTML=html;
+    }catch(e){
+      box.innerHTML=`<span style="color:#c0392b;font-size:12px">Couldn't load batches: ${esc(e.message||e)} — the list is unaffected. Collapse and expand to retry.</span>`;
+    }
+  });
+  el.querySelectorAll("[data-print]").forEach(b=>b.onclick=()=>printOrderPackingList(b.dataset.print));
+  el.querySelectorAll("[data-pdf]").forEach(b=>b.onclick=()=>downloadPackingPDF(b.dataset.pdf, b.dataset.onum));
+  el.querySelectorAll("[data-csv]").forEach(b=>b.onclick=()=>downloadPackingCSV(b.dataset.csv, b.dataset.onum));
+  el.querySelectorAll(".mgrchk").forEach(c=>c.onchange=()=>toggleMgrReviewed(c.dataset.oid,c.checked,c));
+  const hide=document.getElementById("finHideRev");
+  if(hide) hide.onchange=()=>{ el.querySelectorAll("tbody tr").forEach(tr=>{ tr.style.display=(hide.checked&&tr.dataset.rev==="1")?"none":""; }); };
+}
+const FIN_SELECT=SO_SEL+",so_line(qty_ordered,qty_removed,pack_factor),wms_order_finalize(fulfillment_type,finalized_by,finalized_at,units,units_without_dims),wms_order_review(reviewed,reviewed_by,reviewed_at,cleared_by,cleared_at),wms_pick_tasks(count),wms_pack_tasks(wms_pack_task_lines(verified_base))";
+/* 검토함(판정 22 · 26) — 창구 wms_review_set(p_so_id, p_reviewed): 서버 시각 · 서버 사람 · 켜면 reviewed_by/at · 끄면 cleared_by/at(반대쪽 기록은 남는다) · 첫 줄 ims_require_write(fulfillment) · 창고 검사 */
+async function toggleMgrReviewed(oid,checked,chk){
+  const {data,error}=await sb.rpc("wms_review_set",{p_so_id:oid,p_reviewed:!!checked});
+  if(error){ if(chk)chk.checked=!checked; toast("Save failed: "+(error.message||error),true); return; }
+  const tr=chk&&chk.closest("tr");
+  if(tr){ tr.dataset.rev=checked?"1":"0"; tr.style.opacity=checked?".55":""; }
+  if(chk&&data){ chk.title=checked?("Reviewed by "+nameOf(data.reviewed_by)+" · "+new Date(data.reviewed_at).toLocaleString()):("Not reviewed — cleared by "+nameOf(data.cleared_by)+" · "+new Date(data.cleared_at).toLocaleString()); }
+  const sub=tr&&tr.parentElement&&tr.parentElement.querySelector(`[data-finsub="${oid}"]`); if(sub) sub.dataset.rev=checked?"1":"0";
+}
+/* Finalized 탭 재출력의 공용 데이터 경로 — Print / PDF / CSV 세 출력이 전부 이걸 쓴다.
+   fulfillment.html 의 스토어별 종합 리스트와 같은 정보를 담아야 한다(2026-08-02):
+   ①이 오더의 물건이 어느 유닛에 얼마나 ②그 유닛에 함께 실린 다른 오더 ③중첩 박스의 부모 팔렛
+   ④이 오더 물건이 없는 유닛까지 포함한 유닛 지도.
+   ⚠️ 이 오더의 item 만 읽으면 ②를 알 수 없다 — 관련 유닛의 item 을 오더 무관하게 전부 읽는다.
+   ⑤-5b: 오더 머리 = so + customer · 아이템의 sku · 이름 = so_line(새 wms_pallet_items 에 그 칸이 없다 · ⑤-5a 와 같은 꼴) · 바코드 = product_barcode(is_active · is_primary 우선 · so_line.product_id 로) — 운영 스냅샷 표의 자리. */
+async function getPackingData(oid){
+  const {data:so}=await sb.from("so").select(SO_SEL).eq("id",oid).single();
+  const ord=normOrder(so);
+  const {data:mine}=await sb.from("wms_pallet_items").select("*").eq("order_id",oid);
+  const myUnitIds=[...new Set((mine||[]).map(i=>i.pallet_id).filter(Boolean))];
+
+  // 1) 이 오더가 들어간 유닛 → 부모까지 올라가 최상위(팔렛/독립박스)를 구한다
+  let units=[];
+  if(myUnitIds.length){
+    const {data:u}=await sb.from("wms_pallets").select("*").in("id",myUnitIds); units=u||[];
+    const parentIds=[...new Set(units.map(x=>x.parent_id).filter(Boolean))];
+    if(parentIds.length){
+      const {data:pu}=await sb.from("wms_pallets").select("*").in("id",parentIds);
+      (pu||[]).forEach(p=>{ if(!units.some(x=>x.id===p.id)) units.push(p); });
+    }
+  }
+  const rootIds=[...new Set(units.map(u=>u.parent_id||u.id))];
+  // 2) 최상위의 자식 박스까지 전부 (팔렛에 뭐가 더 얹혀 있는지 알아야 한다)
+  if(rootIds.length){
+    const {data:kids}=await sb.from("wms_pallets").select("*").in("parent_id",rootIds);
+    (kids||[]).forEach(k=>{ if(!units.some(x=>x.id===k.id)) units.push(k); });
+  }
+  const allUnitIds=units.map(u=>u.id);
+  // 3) 그 유닛들의 item 을 오더 무관하게 전부
+  let allItems=[];
+  if(allUnitIds.length){
+    const {data:ai}=await sb.from("wms_pallet_items").select("*").in("pallet_id",allUnitIds);
+    allItems=ai||[];
+  }
+  // 4) 함께 실린 다른 오더의 이름표
+  const otherOids=[...new Set(allItems.map(i=>i.order_id).filter(x=>x&&x!==oid))];
+  const oname={};
+  if(otherOids.length){
+    const {data:oo}=await sb.from("so").select(SO_SEL).in("id",otherOids);
+    (oo||[]).map(normOrder).forEach(o=>{ oname[o.id]=o.order_number+(o.customer_name?` (${o.customer_name})`:""); });
+  }
+  // 5) 줄의 sku · 이름 · 제품 → 바코드(낱개 · 활성 · primary 우선)
+  const lineIds=[...new Set(allItems.map(i=>i.order_line_id).filter(Boolean))];
+  const li={}, bc={};
+  if(lineIds.length){
+    const {data:sl}=await sb.from("so_line").select("id,sku,product_name,product_id").in("id",lineIds);
+    (sl||[]).forEach(l=>{ li[l.id]={sku:l.sku, name:l.product_name, product_id:l.product_id}; });
+    const pids=[...new Set((sl||[]).map(l=>l.product_id).filter(Boolean))];
+    if(pids.length){
+      const {data:bcs}=await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id",pids).eq("is_active",true).order("is_primary",{ascending:false});
+      (bcs||[]).forEach(b=>{ if(!bc[b.product_id]) bc[b.product_id]=String(b.barcode||"").trim(); });
+    }
+  }
+  const skuOf=i=>(li[i.order_line_id]||{}).sku||"", nameOfLine=i=>(li[i.order_line_id]||{}).name||"", bcOf=i=>bc[(li[i.order_line_id]||{}).product_id]||"";
+
+  const unitById={}; units.forEach(u=>unitById[u.id]=u);
+  const itemsIn=uid=>allItems.filter(i=>i.pallet_id===uid);
+  const boxesIn=uid=>units.filter(u=>u.unit_type==="box"&&u.parent_id===uid);
+  const qtyIn=(uid,x)=>itemsIn(uid).filter(i=>i.order_id===x).reduce((s,i)=>s+Number(i.qty_base||0),0);
+  const qtyUnder=(u,x)=>{ let q=qtyIn(u.id,x); if(u.unit_type==="pallet") boxesIn(u.id).forEach(b=>{ q+=qtyIn(b.id,x); }); return q; };
+  const ordsDirect=uid=>[...new Set(itemsIn(uid).map(i=>i.order_id))];
+  const ordsUnder=u=>{ const ids=itemsIn(u.id).map(i=>i.order_id);
+    if(u.unit_type==="pallet") boxesIn(u.id).forEach(b=>itemsIn(b.id).forEach(i=>ids.push(i.order_id)));
+    return [...new Set(ids)]; };
+  const alsoOf=(u,deep)=>(deep?ordsUnder(u):ordsDirect(u.id)).filter(x=>x!==oid)
+    .map(x=>({label:oname[x]||("order "+x), qty:deep?qtyUnder(u,x):qtyIn(u.id,x)}))
+    .sort((a,b)=>b.qty-a.qty);
+  const mapRow=(i,x)=>({sku:skuOf(i), barcode:bcOf(i), name:nameOfLine(i), qty:Number(i.qty_base||0)});
+  const dimsOf=u=>(u.length_in!=null&&u.width_in!=null&&u.height_in!=null&&u.weight_lb!=null)?`${u.length_in} × ${u.width_in} × ${u.height_in} in · ${u.weight_lb} lb`:"";   // 판정 19 — 저장 칸(in · lb)만 읽는다
+  const tops=units.filter(u=>!u.parent_id);
+  // 유닛 지도 — 최상위 + 그 자식 박스까지. "B4 on P1 — none" 이 있어야 받는 쪽이 안 열어본다.
+  // ⚠️ Finalized 재출력은 오더 단위라, 이 오더 물건이 전혀 없는 **다른 팔렛**은 알 수 없다
+  //    (오더↔출하 묶음 관계가 저장되지 않는다). fulfillment 화면은 선택된 오더들 기준이라 더 넓게 본다.
+  // ⚠️ 라벨은 여기서 한 번만 정규화한다(wms-packing.js) — Print/PDF/CSV 가 이 값을 그대로 쓴다.
+  //    fulfillment 화면·인쇄와 같은 표기여야 작업자가 실물에 적은 것과 대조된다.
+  const uc=wmsPacking.unitCode;
+  const unitMap=[];
+  tops.forEach(u=>{
+    unitMap.push({unitType:u.unit_type, label:uc(u), parentLabel:null, mineQty:qtyUnder(u,oid), dims:dimsOf(u)});
+    if(u.unit_type==="pallet") boxesIn(u.id).forEach(b=>
+      unitMap.push({unitType:"box", label:uc(b), parentLabel:uc(u), mineQty:qtyIn(b.id,oid), dims:dimsOf(b)}));
+  });
+  const groups=[]; let grand=0;
+  tops.forEach(u=>{
+    const mineQty=qtyUnder(u,oid); if(!mineQty) return;
+    grand+=mineQty;
+    const parts=[];
+    const direct=itemsIn(u.id).filter(i=>i.order_id===oid);
+    if(direct.length){
+      parts.push({ kind:u.unit_type==="pallet"?"loose":"box", label:uc(u), parentLabel:null,
+        sub:direct.reduce((s,i)=>s+Number(i.qty_base||0),0), mixedCount:0, also:[], rows:direct.map(mapRow) });
+    }
+    if(u.unit_type==="pallet"){
+      boxesIn(u.id).forEach(b=>{
+        const bi=itemsIn(b.id).filter(i=>i.order_id===oid); if(!bi.length) return;
+        const bo=ordsDirect(b.id);
+        parts.push({ kind:"box", label:uc(b), parentLabel:uc(u),
+          sub:bi.reduce((s,i)=>s+Number(i.qty_base||0),0),
+          mixedCount:bo.length>1?bo.length:0, also:alsoOf(b,false), rows:bi.map(mapRow) });
+      });
+    }
+    const topOrds=ordsDirect(u.id);
+    groups.push({ unitType:u.unit_type, label:uc(u), mineQty, parts,
+      mixedCount:(u.unit_type==="box"&&topOrds.length>1)?topOrds.length:0,
+      also:alsoOf(u, u.unit_type==="pallet") });
+  });
+
+  // 예전 형태(평평한 sections)를 쓰는 호출자가 남아 있어도 깨지지 않게 함께 돌려준다
+  const sections=[];
+  groups.forEach(g=>g.parts.forEach(p=>sections.push({
+    unitType:p.kind==="box"?"box":"pallet", label:p.label,
+    parentLabel:p.parentLabel, sub:p.sub, rows:p.rows })));
+
+  return {ord, wh: ord.warehouse||whLabel(ord.wh), groups, unitMap, sections, grand};   // 창고 = ref_warehouse 이름
+}
+async function buildPackingListHTML(oid, autoprint){
+  const d=await getPackingData(oid);
+  const e=s2=>String(s2==null?"":s2).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  // 재출력은 오더 1건짜리 문서지만 표마다 오더 소계 캡션을 찍는다 — fulfillment 인쇄물과 같은 줄
+  // (wms-packing.js 가 형식 소유). 표만 떼어 봐도 누구 물건인지 알아야 한다.
+  const tbl=(rows,sub)=>`<table class="pl"><thead><tr><th>SKU</th><th>Barcode</th><th>Product</th><th class="n">Qty</th></tr></thead><tbody>`
+    +wmsPacking.orderSubtotalRow(d.ord.order_number, sub)
+    +rows.map(r=>`<tr><td>${e(r.sku)}</td><td class="bcd">${e(r.barcode)}</td><td>${e(r.name)}</td><td class="n">${r.qty}</td></tr>`).join("")
+    +`</tbody></table>`;
+  const alsoHtml=(u,also)=>{
+    if(!also||!also.length) return "";
+    const icon=u.unitType==="box"?"📦":"🟩";
+    return `<div class="also">⚠ ${icon} ${e(wmsPacking.unitCode(u))} also contains ${also.length} other order${also.length>1?"s":""}: `
+      +also.map(a=>`<b>${e(a.label)}</b> — ${a.qty} units`).join(" · ")+`</div>`;
+  };
+  // at-a-glance unit map: every unit in the shipment, this order's goods marked
+  let body="";
+  if(d.unitMap&&d.unitMap.length){
+    body+=`<div class="map">`+d.unitMap.map(u=>{
+      const icon=u.unitType==="box"?"📦":"🟩";
+      const on=u.parentLabel?` on ${e(u.parentLabel)}`:"";
+      return `<span class="pm${u.mineQty>0?" yes":""}">${icon} ${e(u.label)}${on} ${u.mineQty>0?"✔ "+u.mineQty+" units":"— none"}${u.dims?` <span style="font-weight:400;color:#555">· ${e(u.dims)}</span>`:""}</span>`;   // ⑤-5b: 치수(in · lb)
+    }).join("")+`</div>`;
+  }
+  (d.groups||[]).forEach(g=>{
+    const icon=g.unitType==="box"?"📦":"🟩";
+    const mix=g.mixedCount?` <span class="mix">⚠ MIXED BOX — holds ${g.mixedCount} orders, re-sort at destination</span>`:"";
+    let inner="";
+    g.parts.forEach(p=>{
+      const pmix=p.mixedCount?` <span class="mix">⚠ MIXED BOX — holds ${p.mixedCount} orders, re-sort at destination</span>`:"";
+      const head=p.kind==="loose"?`Loose on 🟩 ${e(g.label)}`
+        :(p.parentLabel?`📦 ${e(p.label)} on 🟩 ${e(p.parentLabel)}`:`📦 ${e(p.label)}`);
+      inner+=`<div class="sec">${head} <span style="font-weight:400;color:#555">(subtotal ${p.sub})</span>${pmix}</div>`
+        +tbl(p.rows,p.sub)+alsoHtml({unitType:"box",label:p.label},p.also);
+    });
+    body+=`<div class="grp">
+      <div class="grphd">${icon} ${e(wmsPacking.unitTitle(g))} — <span class="mine">this order: ${g.mineQty} units</span>${mix}</div>
+      ${inner||'<div class="note">empty</div>'}
+      ${alsoHtml(g,g.also)}
+    </div>`;
+  });
+  if(!(d.groups||[]).length) body=`<div class="note">Direct pack — no pallet/box for this order.</div>`;
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>PACKING LIST ${e(d.ord.order_number)}</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#12161c;margin:28px;font-size:13px}
+    .h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #12161c;padding-bottom:12px}
+    .brandwrap{display:flex;flex-direction:column;gap:8px} .brandwrap img{height:38px;width:auto;display:block}
+    .doc{text-align:right;font-weight:800;font-size:20px}
+    .meta{display:flex;gap:36px;margin:16px 0} .meta b{color:#555}
+    .u{font-weight:800;margin:14px 0 4px}
+    table.pl{width:100%;border-collapse:collapse;margin-bottom:6px}
+    table.pl th,table.pl td{border-bottom:1px solid #d5dae2;padding:6px 6px;text-align:left;font-size:12.5px}
+    table.pl th{border-bottom:2px solid #12161c;font-size:11px;text-transform:uppercase;color:#555}
+    table.pl td.n,table.pl th.n{text-align:right;width:60px}
+    table.pl td.bcd{font-family:monospace;font-size:11.5px;width:130px}
+    .total{margin-top:10px;font-weight:800;font-size:15px;text-align:right}
+    .note{color:#666;margin:14px 0}
+    /* unit map + mixed-unit callouts — same information the fulfillment store list prints */
+    .map{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 14px}
+    .map .pm{font-size:11.5px;font-weight:800;font-family:monospace;border:1.5px solid #bbb;background:#fff;color:#888;border-radius:6px;padding:4px 9px}
+    .map .pm.yes{border:2.5px solid #12602c;background:#e9f7ee;color:#0d4a21}
+    .grp{border-left:6px solid #12602c;background:#f6fbf7;padding:9px 13px 11px;margin:16px 0 4px;border-radius:0 8px 8px 0;page-break-inside:avoid}
+    .grphd{font-weight:800;font-size:15px;margin-bottom:2px} .grphd .mine{color:#0d4a21}
+    .sec{font-weight:800;font-size:13px;margin:11px 0 5px}
+    .mix{color:#b40000;font-weight:800;font-size:11.5px}
+    .also{font-size:12px;color:#7a3b00;background:#fdf4e6;border:1px solid #e6c98a;border-radius:6px;padding:6px 10px;margin:8px 0 2px}
+    @media print{body{margin:14mm;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+  </style></head><body>
+    <div class="h"><div class="brandwrap"><div style="font-weight:800;font-size:20px">ASUNG</div><div style="font-weight:800;font-size:16px">PACKING LIST</div></div>
+      <div class="doc">${e(d.ord.order_number)}<br><span style="font-weight:400;font-size:12px;color:#666">${new Date().toLocaleDateString()}</span></div></div>
+    <div class="meta"><div><b>Order</b> ${e(d.ord.order_number)}</div><div><b>Customer</b> ${e(d.ord.customer_name||"—")}</div><div><b>Warehouse</b> ${d.wh}</div></div>
+    ${body}
+    <div class="total">Total qty: ${d.grand}</div>
+    ${autoprint?`<script>window.addEventListener("load",()=>{setTimeout(()=>{try{window.print();}catch(e){}},250);});<\/script>`:""}
+  </body></html>`;
+  return {html, onum: d.ord.order_number};
+}
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector(`script[src="${src}"]`)) return res();
+    const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=()=>rej(new Error("script load failed"));
+    document.head.appendChild(sc);
+  });
+}
+async function ensureJsPDF(){
+  await loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+  await loadScript("https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js");
+}
+async function logoDataURL(){
+  return null;   // ⑤-5b: asung-ims 에 로고 그림이 없다 — PDF 는 아래 글자 폴백(ASUNG TRADING INC)으로 · 원본 코드는 그대로 두되 닿지 않는다
+  try{
+    const img=new Image(); img.src="";
+    await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; });
+    const c=document.createElement("canvas"); c.width=img.naturalWidth; c.height=img.naturalHeight;
+    c.getContext("2d").drawImage(img,0,0);
+    return {url:c.toDataURL("image/png"), ratio:img.naturalWidth/img.naturalHeight};
+  }catch(e){ return null; }
+}
+async function downloadPackingPDF(oid, onum){
+  try{
+    await ensureJsPDF();
+    const d=await getPackingData(oid);
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:"mm",format:"a4"});
+    let y=14;
+    const logo=await logoDataURL();
+    if(logo){ const h=9, w=Math.min(70,h*logo.ratio); doc.addImage(logo.url,"PNG",14,y,w,h); y+=h+5; }
+    else{ doc.setFontSize(12); doc.setFont(undefined,"bold"); doc.text("ASUNG TRADING INC",14,y+4); y+=9; }
+    doc.setFontSize(16); doc.setFont(undefined,"bold"); doc.text("PACKING LIST",14,y+3);
+    doc.setFontSize(10); doc.setFont(undefined,"normal");
+    doc.text(String(d.ord.order_number),196,14,{align:"right"});
+    doc.text(new Date().toLocaleDateString(),196,19,{align:"right"});
+    y+=10;
+    doc.text(`Customer: ${d.ord.customer_name||"—"}     Warehouse: ${d.wh}`,14,y); y+=5;
+    // unit map — which units hold this order's goods and which don't
+    const wrap=(txt,x)=>{ doc.splitTextToSize(txt,196-x).forEach(ln=>{ if(y>276){doc.addPage();y=16;} doc.text(ln,x,y+4); y+=4.6; }); y+=1; };
+    if(d.unitMap&&d.unitMap.length){
+      doc.setFontSize(9); doc.setFont(undefined,"bold"); doc.text("Units in this shipment:",14,y+4); y+=5;
+      doc.setFont(undefined,"normal");
+      wrap(d.unitMap.map(u=>`${wmsPacking.unitTitle(u)}${u.parentLabel?" on "+u.parentLabel:""}: ${u.mineQty>0?u.mineQty+" units of this order":"none of this order"}${u.dims?" · "+u.dims:""}`).join("   |   "),14);
+    }
+    (d.groups||[]).forEach(g=>{
+      if(y>258){ doc.addPage(); y=16; }
+      doc.setFontSize(11); doc.setFont(undefined,"bold");
+      doc.text(`${wmsPacking.unitTitle(g)} — this order: ${g.mineQty} units`,14,y+4); y+=6;
+      if(g.mixedCount){ doc.setFontSize(9); doc.setTextColor(180,0,0); doc.text(`MIXED BOX — holds ${g.mixedCount} orders, re-sort at destination`,14,y+3); doc.setTextColor(0,0,0); y+=5; }
+      g.parts.forEach(p=>{
+        const title=p.kind==="loose"?`Loose on ${g.label}`
+          :(p.parentLabel?`${p.label} on ${p.parentLabel}`:`${p.label}`);
+        if(y>265){ doc.addPage(); y=16; }
+        doc.setFontSize(10); doc.setFont(undefined,"bold"); doc.setTextColor(0,0,0); doc.text(title,14,y+4);
+        // 표 첫 행 = 오더 소계 캡션(Print/CSV 와 같은 문구, wms-packing.js). 오더가 하나여도 찍는다.
+        const capRow=[[{content:wmsPacking.orderSubtotalText(d.ord.order_number,p.sub), colSpan:4,
+          styles:{fontStyle:"bold", font:"courier", fillColor:[241,242,244], textColor:[18,22,28]}}]];
+        doc.autoTable({
+          startY:y+6,
+          head:[["SKU","Barcode","Product","Qty"]],
+          body:capRow.concat(p.rows.map(r=>[r.sku, r.barcode, r.name, String(r.qty)])),
+          styles:{fontSize:8.5,cellPadding:1.6},
+          headStyles:{fillColor:[18,22,28]},
+          columnStyles:{0:{cellWidth:30},1:{cellWidth:36,font:"courier"},3:{halign:"right",cellWidth:14}},
+          margin:{left:14,right:14},
+        });
+        y=doc.lastAutoTable.finalY;
+        doc.setFontSize(9); doc.setFont(undefined,"normal");
+        doc.text(`Subtotal: ${p.sub}`,196,y+4,{align:"right"}); y+=6;
+        if(p.mixedCount){ doc.setTextColor(180,0,0); wrap(`MIXED BOX — holds ${p.mixedCount} orders, re-sort at destination`,14); doc.setTextColor(0,0,0); }
+        if(p.also&&p.also.length){ doc.setTextColor(122,59,0);
+          wrap(`${p.label} also contains: `+p.also.map(a=>`${a.label} — ${a.qty} units`).join("; "),14); doc.setTextColor(0,0,0); }
+      });
+      if(g.also&&g.also.length){ doc.setFontSize(9); doc.setTextColor(122,59,0);
+        wrap(`${g.label} also contains: `+g.also.map(a=>`${a.label} — ${a.qty} units`).join("; "),14);
+        doc.setTextColor(0,0,0); }
+      y+=3;
+    });
+    if(y>272){ doc.addPage(); y=16; }
+    doc.setFontSize(11); doc.setFont(undefined,"bold");
+    doc.text(`Total qty: ${d.grand}`,196,y+4,{align:"right"});
+    doc.save(`PACKING-LIST_${onum||d.ord.order_number}.pdf`);
+  }catch(e){ toast("PDF failed: "+(e.message||e),true); }
+}
+async function downloadPackingCSV(oid, onum){
+  try{
+    const d=await getPackingData(oid);
+    const q=v=>{ v=String(v==null?"":v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
+    const rows=[
+      ["Order",d.ord.order_number],["Customer",d.ord.customer_name||""],["Warehouse",d.wh],["Printed",new Date().toLocaleString()],[],
+    ];
+    // section 1 — unit map (which units hold this order's goods, which don't)
+    rows.push(["Units in this shipment"]);
+    rows.push(["Unit","On pallet","Holds this order","Qty for this order","Dimensions (in · lb)"]);
+    (d.unitMap||[]).forEach(u=>rows.push([
+      wmsPacking.unitTitle(u), u.parentLabel||"", u.mineQty>0?"YES":"no", u.mineQty, u.dims||""]));
+    rows.push([]);
+    // section 2 — contents
+    // ⚠️ Order 열을 행마다 싣는다 — CSV 는 정렬·필터로 행이 흩어지므로 소계 행만으로는
+    //    오더 구분이 유지되지 않는다. 소계 행(SKU 칸 = SUBTOTAL)은 Print/PDF 의 캡션과 짝이다.
+    rows.push(["Order","Unit","Parent","SKU","Barcode","Product","Qty"]);
+    (d.groups||[]).forEach(g=>g.parts.forEach(p=>{
+      const unit=p.kind==="loose"?`Loose on ${g.label}`:p.label;
+      const parent=p.kind==="loose"?g.label:(p.parentLabel||"");
+      p.rows.forEach(r=>rows.push([d.ord.order_number,unit,parent,r.sku,r.barcode,r.name,r.qty]));
+      rows.push([d.ord.order_number,unit,parent,"SUBTOTAL","","",p.sub]);
+    }));
+    rows.push([]);
+    // section 3 — what else rides in the same unit (the reason C exists)
+    rows.push(["Unit","Also contains order","Qty in that unit"]);
+    let anyAlso=false;
+    (d.groups||[]).forEach(g=>{
+      (g.also||[]).forEach(a=>{ anyAlso=true; rows.push([wmsPacking.unitTitle(g), a.label, a.qty]); });
+      g.parts.forEach(p=>(p.also||[]).forEach(a=>{ anyAlso=true; rows.push([p.label, a.label, a.qty]); }));
+    });
+    if(!anyAlso) rows.push(["(none — no unit is shared with another order)","",""]);
+    rows.push([]); rows.push(["Total","","","","","",d.grand]);
+    const csv="\uFEFF"+rows.map(r=>r.map(q).join(",")).join("\r\n");
+    const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download=`PACKING-LIST_${onum||oid}.csv`;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+  }catch(e){ toast("CSV failed: "+(e.message||e),true); }
+}
+
+async function printOrderPackingList(oid){
+  const win=window.open("","_blank");   // open within click gesture
+  try{
+    const {html}=await buildPackingListHTML(oid,true);
+    win.document.write(html); win.document.close();
+  }catch(e){ if(win){try{win.close();}catch(_){}} toast("Print failed: "+(e.message||e),true); }
+}
+
+boot();
+</script>
+</body>
+</html>
