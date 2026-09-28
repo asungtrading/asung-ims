@@ -330,6 +330,8 @@
       ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
       ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
       ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
+      // ✅ [2026-09-28] Bin Moves(wms-mover.html · 판정 61 · 대화 Claude · mv v1) — 열쇠 stock_move(wms 방 · 사람마다 · 판정 63) · 모드 wms · 탭 true · 묶음 warehouse.
+      ["Bin Moves","wms-mover.html","stock_move","wms",true,"warehouse"],
       ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
       ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
       ["Staff","staff.html","staff","ims",false,null],
