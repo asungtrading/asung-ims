@@ -59,6 +59,7 @@
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 45 A — 정할 사람의 권한 = 그 manager 에게 staff.html 에서 RECEIVING 을 write 로(사람마다 · 오피스 입고 전체를 준다) · 지금 켤 필요 없다(시험은 admin) · 켜는 때 = 비밀번호를 나눠 주기 전(컷오버 준비 목록)
 📌 [2026-09-28 · 오피스 판 b693d8c] 판정 46 — 「Finalized — 견적 · 결제 · 마무리 대기」 목록 = so.html 목록 필터 「Finalized — waiting for the office」(값 packed · 넓은 · 좁은 목록 둘 다) · Manager List 탭은 없다 · 같은 모집단의 창고용은 wms-admin Finalized 탭 · 판정 17 글자 표는 so.html 안에 하나(SO_STATUS_LABEL) — 공통 셋(ims-ui.js)은 무접촉(공통화는 뒤의 정리 차수 · 그때 이 절 재점검)
 ```
+📌 [2026-09-28 · adj-b 0c96926] 메뉴 항목 **스물다섯 → 스물여섯** — Stock Adjustments(stock-adjustments.html · 열쇠 stock_adjust · ims · Manager List 뒤 · 메뉴에만 · 탭 아님 · 열쇠 없는 supervisor 도 메뉴는 보이고 읽기만) · 화면을 여는 공통 셋 사용 화면은 스물다섯(stock-adjustments.html 더함)
 [ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
     settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
@@ -75,6 +76,7 @@
     — 운영 프로젝트(asung-WMS)로 가는 길(설정 · 로그인 · 주소)이 이 레포에 없다 · asung-ims 에 wms-config.js 를 두지 않는다 · 화면의 Network 탭에 운영 주소 요청 0.
     ⚠️ ims-auth.js 머리 주석의 출처 메모 두 줄(3행 「원본: asung-wms 의 wms-auth.js」 · 8행 「WMS_CONFIG → IMS_CONFIG」)은 낱말만 있고 길이 아니다 — 2026-09-26 실측 grep -c 2 는 그 둘이다(코드 줄 0).
 [ ] ⭐ 검사 여섯째(2026-09-27 · ⑤-5c1 부터 · ⑤-5c3 에서 도구를 바꿈) — 화면 파일을 옮기거나 구간을 잘라 넣었으면 **정의 없이 불리는 이름**이 0 인지 **범위를 보는** 도구로 본다: 모든 <script> 를 이어 eslint `no-undef`(레포 밖 임시 폴더 · npm i eslint · env browser · ecmaVersion 2022 · sourceType script · 공통 전역 globals = imsAuth · imsHeader · esc · wmsPacking · wmsPickList · wmsConfirmModal · IMS_CONFIG · supabase · jspdf) 로 돌려 0 ·
+    📌 [2026-09-28] 도구 = **eslint 8**(레포 밖 임시 폴더에서 `npm i eslint@8` · `--no-eslintrc -c <json>` · env browser + es2022) — 시스템 eslint 6.4 는 es2022 를 모른다(「Environment key "es2022" is unknown」)
     + 휴리스틱 하나: 원본에 없는 줄 가운데 「`//` 뒤에 코드가 이어지는 줄」(`//…; const|let|v.|if(|return|x =`)이 0 — 줄 가운데 주석이 뒤 문장을 삼키는 사고를 잡는다.
     ⚠️ 검사 넷(단추↔처리 · id · node --check · CSS)은 이것을 못 잡는다 — [실사고 둘 · 2026-09-27] ① wa v1 의 Finalized 탭이 renderFulfillStats(Stats 구간과 함께 빠짐)로 Loading 에서 멈췄다 ② wa v1.3 의 Stats 가 조립 주석이 **줄 가운데** 들어가 `v.pick++; const m=dur(p)` 를 삼켜 ReferenceError 로 비었다(wa v1.4 에서 고침) —
        ②는 「파일 어딘가에 선언돼 있으면 통과」 하는 acorn 식 검사(⑤-5c1 · 5c2)가 못 잡았다(`m` 이 다른 함수에 선언돼 있었다) ⇒ 범위를 보는 no-undef 로 · 도구 · 명령 · 출력 원문만 보고에(스크립트는 레포에 넣지 않는다).
@@ -1096,6 +1098,17 @@ Parked and open at this store
 
 ⚠️ [2026-09-26 밤] 아직 없는 것 — fulfillment(Finalize · 팔렛 · 박스 · ⑤-5) · 되돌리기 · Health · Stats(⑤-5) · 사진(판정 33) · Take over 가지(stalePacks · 운영도 비어 있던 호환 가지) · 웨이브 멤버 팩 실측(웨이브 0).
 
+⭐ [2026-09-28 · Claude Code adj-rec-a · 0c28d44] **pa v1.1** — 판정 57 · 팩 회복에 칸을 남긴다(so-module §25) · 창구 `wms_complete_pack`(asung-wms 20260928164832 · p_recovered [{sku, bin, qty}])
+```
+[ ] 빌드 표시 「2026-09-28 · pa v1.1」
+[ ] 픽보다 많이 스캔(Pack fill) → 「beyond picker's N … OK」 뒤 **칸 prompt** — 기본 = 그 줄의 픽 계획 칸 · 스캔하거나 타이핑해 바꾼다 · 빈 값이면 다시 묻는다
+[ ] Done → 확인 문구 「(in packing, 1 lines' shortfall recovered — SKU +1 from <bin>)」 · 완료 토스트 「Recovered 1 (from <bin>)」
+[ ] 완료 뒤 WMS Admin Trace 의 그 줄에 실제 칸 = 픽 칸 + 회복 칸 · 신고(stock_short)가 채워졌으면 저절로 닫힘 · short_pick → resolved_pack_recovery
+[ ] 오피스 Finalize 가 막히지 않고(픽 0 · 전량 회복도) 백오더(…b) 없음 · 원장 sale_out 이 회복 칸에서 빠진다
+[ ] ⚠️ 옛 화면(캐시 · pa v1)으로 완료하면 「Reload the packing screen (Ctrl+F5) — this version cannot record where recovered stock came from — nothing was saved」 — 아무것도 안 바뀐다(fail-closed)
+[ ] 다른 창고 칸 · 모르는 칸 → 「bin … is not an active bin at this warehouse」 거부
+```
+
 ---
 
 ## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
@@ -1209,6 +1222,15 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 
 ⚠️ [2026-09-27 v1.5 · v1.8 갱신] 아직 없는 것 — off-PO 결정 UI(**6c3 · receiving.html · 대화 Claude** — 창구 po_receipt_diff_settle_off_po 는 있다) · Confirm 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Trace 에 입고 · 되돌리기 로그 · 한 번에 되돌리기(컷오버 뒤).
 
+⭐ [2026-09-28 · Claude Code adj-b · 0c96926] **wa v1.9** — 판정 20 연결 · Reports 탭
+```
+[ ] 빌드 표시 「2026-09-28 · wa v1.9」
+[ ] Reports 의 **열린 「Not enough stock」 줄**에만 「Mark resolved」 옆 「Adjust stock」 — 다른 종류 · 닫힌 줄엔 없다
+[ ] 단추는 ims_can_adjust() 가 true 인 사람에게만(admin · 열쇠를 켠 supervisor · manager) · 열쇠 없는 supervisor · manager · worker 에게는 안 보인다(Mark resolved 만)
+[ ] 누르면 같은 창에서 stock-adjustments.html?report=<id> — 같은 신고의 초안이 있으면 그것이 열린다
+[ ] Mark resolved 는 그대로 돈다(조정 없이 닫기)
+```
+
 ---
 
 ## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
@@ -1266,6 +1288,30 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 ```
 
 ⚠️ [2026-09-27 밤 · ⑤-6c2 갱신] 아직 없는 것 — off-PO **결정**(받는다 · 거절 = 6c3 receiving.html · 대화 Claude) · 약식 등록 · 트랜스퍼 입고(운영 WMS 로만 · ⬜13) · 보관용 칸 단추(§20 판정 3 후속) · 사진(판정 33) · 확정 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Reopen 실측(wms_recv_reopen 은 ⑤-6b 화면에서).
+
+---
+
+## 7-s. `stock-adjustments.html` — Stock Adjustments (2026-09-28 신설 · 대화 Claude · 「adj v1」 → v1.1(0 인 칸 흐리게 · Last here · 칸 목록 처음부터) → **v1.2**(판정 56 원가 0 경고 · 신고에 뽑은 칸 없으면 Last bin 줄))
+
+뒷단: asung-wms `20260928142722`(창구 · 표) · `20260928151948`(속도 · 판정 54) · 정본 so-module §25(판정 47 ~ 59).
+읽기 `inv_adjust_list` · `inv_adjust_detail` · `inv_adjust_preview` · `inv_adjust_from_report` · `ims_can_adjust` · `ims_can_adjust_read` · 쓰기 `inv_adjust_create` · `inv_adjust_line_set` · `inv_adjust_line_remove` · `inv_adjust_delete` · `inv_adjust_confirm`.
+⭐ 조정은 되돌릴 수 없다(판정 53 · 틀리면 새 문서) — **확정은 시험 순서의 맨 마지막.** 원장 · 원가 레이어가 그 순간 움직인다.
+⭐ 권한 = admin(역할) + 열쇠 stock_adjust 를 직접 켠 supervisor · manager(판정 49) · worker 는 켜도 안 된다(판정 50) · 열쇠 없는 supervisor 는 목록 · 상세를 읽기만.
+
+```
+[ ] 빌드 표시 「2026-09-28 · adj v1.2」 · ☰ Menu 에 Stock Adjustments(Manager List 뒤 · 탭 아님)
+[ ] 새 문서 → 창고 고르기 → ADJ-000NN(지운 초안 번호는 빈다 · 판정 55)
+[ ] 줄 넣기: SKU · 칸 · set(N 개로) / delta(± N) · 사유 found · lost · damaged · count · other(other 는 메모 필수 · 판정 52) · 단가(선택)
+[ ] 칸 목록 — 0 인 칸은 흐리게 · 「Last here」(ims_last_bin) · 목록은 처음부터 보인다
+[ ] 줄에 장부 · 뽑혔지만 안 나간 수량(P) · 선반 기대량(장부 − P) · delta · 결과 · 원가 갈래가 보인다
+[ ] 결과가 0 아래로 가는 줄 → 미리 보기에 거부 · 확정 막힘(음수 금지)
+[ ] ⭐ CAS — 줄을 적은 뒤 다른 곳에서 같은 칸이 움직이면 확정이 「ledger changed (you saw …)」 로 거부 · Re-read(줄 다시 저장) 뒤 새 값으로
+[ ] ⭐ 판정 56 — 원가 0 으로 들어갈 줄(단가 없고 남은 레이어 0)이 있으면 확정 창에 빨간 상자(줄 이름) + 「I know these go in at cost 0」 을 체크해야 확정 · 줄 창에 설명 글
+[ ] ?report=<id>(WMS Admin 「Adjust stock」) — 「Adjust from a "Not enough stock" report」 창 · 뽑은 칸(planned=false) · SKU · 목표 set 0 이 채워짐 · 뽑은 칸이 없으면 Last bin 으로 set 0 줄 · 그것도 없으면 SKU 채운 줄 창 · 같은 신고의 초안이 있으면 그것이 열린다
+[ ] 확정(맨 마지막) → confirmed · 원장 adjust_existing/adjust_new(source ims) · 신고에서 왔으면 그 신고가 닫힌다 · Mark resolved 없이
+[ ] 확정 뒤 삭제 · 줄 고치기 거부 · 초안 삭제는 된다
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
+```
 
 ---
 
