@@ -364,7 +364,7 @@
    읽기 = po(confirmed) · po_receipt(draft) · po_receipt_work · wms_task_holds · wms_receipt_complete · product · product_barcode(낱개 + 세트 ×factor) · ref_bin · wms_zone_sequence · ims_last_bin(판정 29 — 미리 보여만 · 자동 배정 쓰기 없음).
    사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진(판정 33 · HAS_IMAGES false) · 옛 wms_ 입고 표 전부.
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
-const RC_BUILD="2026-09-27 · rc v1";
+const RC_BUILD="2026-09-27 · rc v1.1";
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -1288,7 +1288,8 @@ async function manualAdjust(id,delta){
   if(nv===l.received)return;
   const old=l.received;
   l.received=nv; l.vmethod="manual"; saveLine(l,nv-old,"manual");   // 0 에서 잘린 만큼만 델타로
-  if(l.expected>0&&l.received>=l.expected&&delta>0) autoAdvance();
+  // 판정 41(2026-09-27 · rc v1.1): + · − 로 채웠을 때는 자동으로 다음 줄로 넘어가지 않는다 — 운영은 넘어갔다(receiver 1361).
+  //   손으로 세다 한 번 더 누르면 다른 제품이 조용히 올라갔다 · 넘어가기는 스캔(제품을 확인한 뒤)과 Enter quantity(한 번 입력)만 · 직원은 Next 로 넘어간다
   renderRecv(); focusScan();
 }
 
