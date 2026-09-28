@@ -302,7 +302,7 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 비움(판정 33 · HAS_IMAGES false) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-09-26 · pa v1";
+const WK_BUILD="2026-09-28 · pa v1.1";   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 let sb=null, me=null, whById={}, staffName={};
@@ -1272,7 +1272,17 @@ function confirmFillIfNeeded(l, newVerified){
     const msg = `${l.order_sku}\n\nPicker pulled ${l.expected}, ordered ${l.required}.\nYou are going beyond what the picker pulled.\n\nDid you find the remaining ${need} from another location?\n\nOK = yes, add it.   Cancel = stop.`;
     if(!confirm(msg)) return false;   // not confirmed → nothing added
     l.fillConfirmed = true;           // confirmed once → no repeat for this line
+    if(!askRecoverBin(l)) { l.fillConfirmed = false; return false; }   // 판정 57 — 어느 칸에서 가져왔나(기본 = 픽 계획 칸)
   }
+  return true;
+}
+/* 판정 57(adj-rec-a 2026-09-28) — 픽을 넘겨 채운 낱개는 어느 칸에서 왔는지 남긴다(픽커가 뽑은 것과 같은 기록 · 출고 · 원장 · P 가 맞아진다).
+   기본 = 그 줄의 픽 계획 칸(첫째) · 스캐너로 찍거나 타이핑해 바꾼다 · 빈 값이면 계획 칸 · 서버(wms_complete_pack)가 이 창고의 활성 칸인지 다시 본다 */
+function askRecoverBin(l){
+  const b=prompt(`${l.order_sku}\nWhich bin did the extra come from?\n(scan or type the bin · leave as is for the picker's planned bin)`, l.recoverBin||l.bin||"");
+  if(b===null) return false;
+  l.recoverBin=(b||"").trim()||l.bin||"";
+  if(!l.recoverBin){ alert("A bin is needed for recovered stock — the planned bin is unknown for this line, type the bin you took it from."); return askRecoverBin(l); }
   return true;
 }
 function manualAdjust(idx,d){
@@ -1342,7 +1352,8 @@ document.getElementById("doneBtn").onclick=async ()=>{
   } else if(miss.length){
     if(!confirm(`${packTask.batch_label} Complete pack?\n${miss.length} short line(s) — all declared "Not enough stock" (stock mismatch, not a mistake).\n\nContinue?`)) { focusScan(); return; }
   } else if(!overScanLines.length) {
-    const msg=recovered.length?`${packTask.batch_label} Complete pack?\n(in packing, ${recovered.length} lines' shortfall recovered)`:`${packTask.batch_label} Complete pack?`;
+    for(const l of recovered){ if(!l.recoverBin && !askRecoverBin(l)){ focusScan(); return; } }   // 판정 57 — 회복 줄마다 칸이 있어야 완료
+    const msg=recovered.length?`${packTask.batch_label} Complete pack?\n(in packing, ${recovered.length} lines' shortfall recovered — ${recovered.map(l=>`${l.order_sku} +${l.verified-l.expected} from ${l.recoverBin}`).join(", ")})`:`${packTask.batch_label} Complete pack?`;
     if(!confirm(msg)) { focusScan(); return; }
   }
   // 규칙 28 — Pack fill·Over-scan 확인까지 끝난 뒤 쓰기 직전에 재확인.
@@ -1375,7 +1386,7 @@ document.getElementById("doneBtn").onclick=async ()=>{
       // 선언 정리 — 여전히 부족=수량 갱신 / 채워짐=해소 / 팩 회복=short_pick 해소
       p_short_refresh: miss.filter(stockFlagged).map(l=>({sku:l.order_sku, ordered_base:l.required, actual_base:l.verified})),
       p_short_resolve: lines.filter(l=>l.verified>=l.required && stockFlagged(l)).map(l=>l.order_sku),
-      p_recovered: recovered.map(l=>l.order_sku),
+      p_recovered: recovered.map(l=>({sku:l.order_sku, bin:l.recoverBin, qty:l.verified-l.expected})),   // 판정 57 — 새 모양 [{sku, bin, qty}] · 옛 모양(['SKU'])은 서버가 거부한다
     };
     const {data:res,error:re}=await sb.rpc("wms_complete_pack", payload);
     if(re) throw re;   // 예외 = 전체 롤백 — 아무것도 저장되지 않았다 (함수 메시지가 원인을 담는다)
@@ -1394,7 +1405,7 @@ document.getElementById("doneBtn").onclick=async ()=>{
     if(miss.length)extra.push(`Short ${miss.length}${declaredMiss?` (${declaredMiss} stock-short)`:""}`);
     if(realOvers.length)extra.push(`Over ${realOvers.length}`);
     if(scanMistakes.length)extra.push(`Double scan ${scanMistakes.length}`);
-    if(!miss.length&&recovered.length)extra.push(`Recovered ${recovered.length}`);
+    if(!miss.length&&recovered.length)extra.push(`Recovered ${recovered.length} (from ${recovered.map(l=>l.recoverBin).join(", ")})`);
     toast(packTask.batch_label+" Complete pack"+(extra.length?` (${extra.join(", ")})`:""));
     leavePackView();
   }catch(e){
