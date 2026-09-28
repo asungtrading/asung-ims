@@ -296,7 +296,7 @@
     <div class="recv-controls">
       <div class="scanbar">
         <input class="scanin" id="scan" inputmode="none" autocomplete="off" placeholder="Scan a barcode…">
-        <div class="scanhint"><span class="live"></span><span>Waiting for scan · box scan = ×factor units · item not on this PO → off-PO (manager approval)</span></div>
+        <div class="scanhint"><span class="live"></span><span>Waiting for scan · box scan = ×factor units · item not on this PO → off-PO (put it away · the office decides later)</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin:0 2px 8px">
         <span style="font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--mut-2)">Sort</span>
@@ -360,11 +360,13 @@
    접점 41 → 시작 = wms_recv_start(PO 당 열린 초안 하나 · 없으면 새 RCV) · 줄 · 작업 줄 · 헤더 = po_receipt_detail 한 번 · 상태 = wms_recv_state ·
    수량 = wms_recv_scan(델타 · 동시 스캔이 합쳐진다) / wms_recv_count(절대값 · 화면이 본 총량 CAS — 어긋나면 Keep theirs / Use mine / Recount) ·
    놓기 = wms_recv_putaway(작업 줄 id · 칸 id · 놓았다) · Place all = wms_recv_place_all · 보류 = wms_recv_hold · 재개 = wms_recv_resume · 끝 = wms_recv_complete(판정 28 · Partial 없음) ·
-   PO 에 없는 물건 = wms_recv_off_po(차이 큐 한 행 · 다시 스캔 = 더함 · 승인 · 투입은 ⑤-6c) · 리포트는 wms_reports 에 직접(운영 그대로 · reported_by = ims_staff.id) ·
+   PO 에 없는 물건 = wms_recv_off_po(차이 큐 한 행 · 다시 스캔 = 더함) · 놓기 = wms_recv_off_po_putaway · 뺐다 = wms_recv_off_po_removed(⑤-6c2 · 아래 머리 주석) · 리포트는 wms_reports 에 직접(운영 그대로 · reported_by = ims_staff.id) ·
    읽기 = po(confirmed) · po_receipt(draft) · po_receipt_work · wms_task_holds · wms_receipt_complete · product · product_barcode(낱개 + 세트 ×factor) · ref_bin · wms_zone_sequence · ims_last_bin(판정 29 — 미리 보여만 · 자동 배정 쓰기 없음).
    사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진(판정 33 · HAS_IMAGES false) · 옛 wms_ 입고 표 전부.
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
-const RC_BUILD="2026-09-27 · rc v1.3";
+/* ⑤-6c2 (2026-09-27 · rc v1.4) — 판정 43: off-PO 는 스캔하고 **바로 놓는다**(승인 전 차단 없음) · 놓기 = wms_recv_off_po_putaway(diff · bin · done) · 결정은 오피스 Purchase Receipts(판정 44) ·
+   결정 뒤 = po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at: accepted_* → 「Accepted — in stock」 읽기 전용 · rejected → 빨간 그룹 「Rejected — take it off <bin>」 + Removed(wms_recv_off_po_removed) · 한 제품 한 칸 */
+const RC_BUILD="2026-09-27 · rc v1.4";
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -693,11 +695,14 @@ function applyDetail(d){
       work:(x.work||[]).map(w=>({id:w.id, qty:Number(w.qty_ea||0), bin_id:w.bin_id, bin:w.bin||null, done:!!w.putaway_done})),
     });
   });
-  // PO 에 없는 물건 = 차이 큐 off_po(열린 것) — 줄처럼 보인다 · 승인 전이라 풋어웨이에서 빠진다(⑤-6c 전까지 전부 승인 대기)
-  (d.diffs||[]).filter(x=>x.kind==="off_po"&&!x.resolved_at).forEach(x=>{
+  // PO 에 없는 물건 = 차이 큐 off_po — 열린 것은 줄처럼 놓고(판정 43) · 결정된 것도 상태를 보인다(accepted · rejected/removed) · 창고가 놓은 칸 · 사람은 diff 의 칸(⑤-6c1)
+  (d.diffs||[]).filter(x=>x.kind==="off_po").forEach(x=>{
     const id="d:"+x.id, k=keep[id]||{};
-    out.push(Object.assign({}, k, { id, kind:"offpo", diff_id:x.id, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"", product_id:k.product_id||null, stock_pid:k.stock_pid||null,
-      expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:true, image_url:null, work:[] }));
+    const decided=x.resolved_at?x.resolution:null;
+    if(decided==="rejected"&&x.removed_at) return;   // 거절 · 뺀 것은 끝난 물건 — 줄로 안 보인다
+    out.push(Object.assign({}, k, { id, kind:"offpo", diff_id:x.id, product_id:x.product_id||k.product_id||null, stock_pid:k.stock_pid||x.product_id||null, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"",
+      expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:!decided, decided, image_url:null,
+      offBin:x.bin||null, offBinId:x.bin_id||null, offPlaced:!!x.placed_at, offPlacedBy:x.placed_by||null, offPlacedAt:x.placed_at||null, offRemovedBy:x.removed_by||null, offRemovedAt:x.removed_at||null, work:[] }));
   });
   lines=out;
 }
@@ -897,7 +902,7 @@ function renderRecv(){
     "doc nodes="+document.querySelectorAll("*").length);
 }
 function lineChips(l){
-  return (l.is_off_po?`<span class="chip appr">${l.needs_approval?"OFF-PO · approval pending":"OFF-PO · approved"}</span>`:"")+
+  return (l.is_off_po?`<span class="chip appr">${!l.decided?"OFF-PO · put it away — the manager decides later":l.decided==="rejected"?"OFF-PO · rejected — take it off the shelf":"OFF-PO · accepted — in stock"}</span>`:"")+
          (notInvoiced(l)?`<span class="chip noinv">NOT INVOICED</span>`:"")+
          (!l.is_off_po&&l.barcodeRows&&!l.barcodeRows.length?`<span class="chip newsku">NO BARCODE</span>`:"");
 }
@@ -1137,7 +1142,7 @@ scanEl.addEventListener("keydown",e=>{
 });
 async function processScan(code){
   // bcMap 은 id 를 담으므로 지금 살아있는 라인으로 해석한다
-  const cands=(bcMap[code]||[]).map(c=>({l:lineById(c.id),factor:c.factor})).filter(c=>c.l);
+  const cands=(bcMap[code]||[]).map(c=>({l:lineById(c.id),factor:c.factor})).filter(c=>c.l&&!(c.l.is_off_po&&c.l.decided));   // 결정된 off-PO 줄은 더할 수 없다 — 창구가 새 행을 연다(offPoScan)
   if(!cands.length){ await offPoScan(code); return; }
   if(!await ensureReceiptOpen()){ focusScan(); return; }
   // 미충족 라인 우선
@@ -1157,7 +1162,7 @@ async function processScan(code){
   const lineDone=isFilled(l);
   const over=!l.is_off_po&&l.received>l.expected;
   flash(lineDone?"done":(over?"bad":(f>1?"okbox":"ok")),
-    over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ OFF-PO ${l.order_sku}  +${f} (approval pending)`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
+    over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ OFF-PO ${l.order_sku}  +${f} — put it away`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
   if(l.is_off_po) saveOffPo(l,f); else saveLine(l,f,"scanned");
   if(lineDone) autoAdvance();
   renderRecv(); focusScan();
@@ -1175,19 +1180,19 @@ async function offPoScan(code){
     if(!p){ flash("bad","✕ Unknown barcode"); toast("Unknown barcode — ask the office to register the product",true); focusScan(); return; }
     const f=p.parent_product_id?(Number(p.pack_factor)||1):1;   // 세트를 스캔했으면 낱개 ×factor 로 적는다(창구는 낱개 제품에 적는다)
     const stockPid=p.parent_product_id||p.id;
-    if(!confirm(`${p.sku} — not on this PO.\nAdd as OFF-PO (manager approval required)?\n+${f} unit(s) will be recorded.`)){ focusScan(); return; }
+    if(!confirm(`${p.sku} — not on this PO.\nAdd as OFF-PO?\nPut it away as usual — the office accepts or rejects it later.\n+${f} unit(s) will be recorded.`)){ focusScan(); return; }
     const {data,error}=await sb.rpc("wms_recv_off_po",{p_receipt_id:receipt.id,p_product_id:stockPid,p_qty_ea:f});
     if(error) throw error;
     const id="d:"+data.diff_id;
     let l=lineById(id);
     if(!l){
       l={ id, kind:"offpo", diff_id:data.diff_id, product_id:stockPid, stock_pid:stockPid, order_sku:data.sku||p.sku, base_sku:data.sku||p.sku, product_name:p.parent_product_id?"":(p.name||""),
-          expected:0, received:0, is_off_po:true, needs_approval:true, vmethod:"scanned", image_url:null, work:[], barcodeRows:[], altCodes:[] };
+          expected:0, received:0, is_off_po:true, needs_approval:true, decided:null, offBin:null, offBinId:null, offPlaced:false, vmethod:"scanned", image_url:null, work:[], barcodeRows:[], altCodes:[] };
       lines.push(l);
     }
     l.received=Number(data.received_qty||0);
     await buildBcMap();  // 새 라인 바코드 · 이름 반영
-    flash("okbox",`✓ OFF-PO ${l.order_sku} +${f} (approval pending)`);
+    flash("okbox",`✓ OFF-PO ${l.order_sku} +${f} — put it away, the manager decides later`);
     renderRecv(); focusScan();
   }catch(e){ toast("Off-PO add failed: "+rpcMsg(e),true); focusScan(); }
 }
@@ -1309,6 +1314,7 @@ function whyOf(msg){
   const m=String(msg||"");
   if(/not found|does not belong/i.test(m)) return "deleted";
   if(/completed in the warehouse|is confirmed|is cancelled|only while draft|only a draft/i.test(m)) return "closed";
+  if(/already decided|already taken off|only a rejected item|never put on a shelf/i.test(m)) return "decided";   // ⑤-6c2 off-PO 는 오피스가 정한 뒤 창고가 못 옮긴다
   if(/changed under you|less than the .* already assigned/i.test(m)) return "conflict";
   if(/permission|cannot change|cannot view/i.test(m)) return "denied";
   return "error";
@@ -1320,12 +1326,14 @@ async function writeLine(l,op){
     else if(op.kind==="count")   res=await sb.rpc("wms_recv_count",{p_receipt_id:receipt.id,p_po_line_id:l.id,p_total_ea:op.total,p_seen_total:op.seen,p_count_method:op.method||"manual"});
     else if(op.kind==="putaway") res=await sb.rpc("wms_recv_putaway",{p_work_id:op.work_id,p_bin_id:op.bin_id,p_done:!!op.done});
     else if(op.kind==="offpo")   res=await sb.rpc("wms_recv_off_po",{p_receipt_id:receipt.id,p_product_id:op.product_id,p_qty_ea:op.qty});
+    else if(op.kind==="offpo_put") res=await sb.rpc("wms_recv_off_po_putaway",{p_diff_id:op.diff_id,p_bin_id:op.bin_id,p_done:!!op.done});   // ⑤-6c2 off-PO 놓기(한 제품 한 칸)
     else return {ok:false,why:"error",msg:"unknown op"};
   }catch(e){ return {ok:false,why:"network"}; }   // 미확인으로 남는다 — flush 가 다시 보낸다
   if(res.error){
     const why=whyOf(res.error.message);
-    if(why==="deleted"||why==="closed"||why==="conflict"||why==="denied") clearUnconfirmed(l,op);   // 다시 보내도 같은 답 — 재시도 대상이 아니다
+    if(why==="deleted"||why==="closed"||why==="conflict"||why==="denied"||why==="decided") clearUnconfirmed(l,op);   // 다시 보내도 같은 답 — 재시도 대상이 아니다
     if(why==="closed"){ receiptClosed=true; renderClosed(); toast(res.error.message,true); }
+    if(why==="decided") toast(res.error.message,true);
     if(why==="denied") toast(res.error.message,true);
     return {ok:false,why,msg:res.error.message};
   }
@@ -1368,7 +1376,7 @@ async function flushUnconfirmed(){
       const r=await queueWrite(l,op);
       if(!r.ok){
         if(r.why==="deleted"){ deleted++; await dropLine(id); break; }
-        if(r.why!=="closed"&&r.why!=="conflict"&&r.why!=="denied") failed++;
+        if(r.why!=="closed"&&r.why!=="conflict"&&r.why!=="denied"&&r.why!=="decided") failed++;
       }
     }
   }
@@ -1414,9 +1422,10 @@ async function ensureReceiptOpen(){
 async function savePutaway(w,bin_id,done){
   if(!await ensureReceiptOpen()) return false;
   const l=w.line;
-  const r=await queueWrite(l,{kind:"putaway",work_id:w.id,bin_id,done});
+  const r=await queueWrite(l,w.offpo?{kind:"offpo_put",diff_id:w.diff_id,bin_id,done}:{kind:"putaway",work_id:w.id,bin_id,done});
   if(r.ok){ putawayFailed.delete(w.id); return true; }
   if(r.why==="deleted"){ toast(l.order_sku+" row was removed — reloading",true); putawayFailed.delete(w.id); await refreshLines(); renderPutaway(); return false; }
+  if(r.why==="decided"){ await refreshLines(); renderPutaway(); return false; }
   if(r.why==="closed"||r.why==="denied") return false;
   putawayFailed.add(w.id);
   toast("Save delayed — will retry on completion",true);
@@ -1504,30 +1513,39 @@ function putRows(){
   lines.filter(l=>l.kind==="po"&&l.received>0).forEach(l=>{
     (l.work||[]).forEach(w=>rows.push({ id:w.id, line:l, qty:w.qty, bin:w.bin, bin_id:w.bin_id, done:w.done, suggested:!w.bin_id&&l.lastBin?l.lastBin:null }));
   });
+  // ⑤-6c2 off-PO = 가짜 작업 줄 하나(한 제품 한 칸 · diff 의 칸 · 놓았다) — 창구는 wms_recv_off_po_putaway · 결정 뒤에는 읽기만
+  lines.filter(l=>l.kind==="offpo"&&l.received>0).forEach(l=>{
+    rows.push({ id:l.id, diff_id:l.diff_id, offpo:true, line:l, qty:l.received, bin:l.offBin, bin_id:l.offBinId, done:l.offPlaced, decided:l.decided, suggested:!l.offBinId&&l.lastBin?l.lastBin:null });
+  });
+  rows.filter(w=>w.offpo).forEach(w=>{ w.sync=()=>{ w.line.offBin=w.bin; w.line.offBinId=w.bin_id; w.line.offPlaced=w.done; }; });   // 낙관적 갱신을 줄(line)에 되쓴다 — 다음 렌더가 여기서 다시 만든다
   return rows;
 }
 function renderPutaway(){
   const pt0=PERF?performance.now():0;
   const rows=putRows();
   const ro=receiptClosed;
-  // 그룹: bin 있는 것 (zone 동선순) / Last bin 제안(칸 없는 줄 · 놓으면 그 칸으로) / 승인 대기(off-PO) / 빈 지정 필요
-  const withBin={}, sugg={}, needBin=[], pendingAppr=lines.filter(l=>l.is_off_po&&l.needs_approval&&l.received>0);
+  // 그룹: bin 있는 것 (zone 동선순) / Last bin 제안(칸 없는 줄 · 놓으면 그 칸으로) / 거절된 off-PO(선반에서 뺀다) / 빈 지정 필요 — off-PO 줄도 같은 그룹을 탄다(판정 43)
+  const withBin={}, sugg={}, needBin=[], rejected=[];
   rows.forEach(w=>{
+    if(w.offpo&&w.decided==="rejected"){ rejected.push(w); return; }
     if(w.bin) (withBin[w.bin]=withBin[w.bin]||[]).push(w);
     else if(w.suggested) (sugg[w.suggested]=sugg[w.suggested]||[]).push(w);
     else needBin.push(w);
   });
   const byZone=(a,b)=>{ const za=zOrder(zoneOfBin(a)), zb=zOrder(zoneOfBin(b)); if(za!==zb)return za-zb; return a<b?-1:1; };
   const binKeys=Object.keys(withBin).sort(byZone), suggKeys=Object.keys(sugg).sort(byZone);
-  const rowHtml=(w,suggested)=>`
+  const rowHtml=(w,suggested)=>{
+    const lock=ro||(w.offpo&&!!w.decided);   // 결정된 off-PO 는 창고가 못 옮긴다(오피스가 정했다)
+    const offChip=w.offpo?`<span class="chip appr" style="flex:none">${w.decided?"Accepted — in stock":"OFF-PO"}</span>`:"";
+    return `
       <div class="prow ${w.done?"pdone":""} ${putawayFailed.has(w.id)?"unsaved":""}">
         <div class="thumb" ${imgStyle(w.line)}></div>
-        <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)}${suggested?" · last kept here":""}</div></div>
+        <div class="li"><div class="s">${esc(w.line.order_sku)}${offChip}</div><div class="n">${esc(w.line.product_name)}${suggested?" · last kept here":""}${w.offpo&&!w.decided?" · not on the PO — put it away, the manager decides later":""}</div></div>
         ${putawayFailed.has(w.id)?`<span class="unsv" title="Not saved yet — retried when you finish">NOT SAVED</span>`:""}
         <div class="q">${w.qty}</div>
-        <button class="chgbin" data-assign="${esc(w.id)}" title="Change bin"${ro?" disabled":""}>Change</button>
-        <button class="pk" data-place="${esc(w.id)}"${ro?" disabled":""}>${w.done?"✓ Placed":"Placed"}</button>
-      </div>`;
+        <button class="chgbin" data-assign="${esc(w.id)}" title="Change bin"${lock?" disabled":""}>Change</button>
+        <button class="pk" data-place="${esc(w.id)}"${lock?" disabled":""}>${w.done?"✓ Placed":"Placed"}</button>
+      </div>`; };
   const groupHtml=(bin,grp,suggested)=>{
     const allDone=!suggested&&grp.every(w=>w.done);
     const z=zoneOfBin(bin);
@@ -1556,17 +1574,18 @@ function renderPutaway(){
       <div class="bh"><span class="zn">?</span><span class="binbig">Bin needed</span>
         <span class="bmeta">new product here — scan or type a bin</span></div>${rws}</div>`;
   }
-  if(pendingAppr.length){
-    const rws=pendingAppr.map(l=>`
+  if(rejected.length){
+    // ⑤-6c2 거절된 off-PO — 선반에서 빼서 반품 쪽에 둔다 · 「Removed」 = wms_recv_off_po_removed(한 번 · Health off_po_rejected_on_shelf 가 닫힌다)
+    const rws=rejected.map(w=>`
       <div class="prow">
-        <div class="thumb" ${imgStyle(l)}></div>
-        <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${esc(l.product_name)}</div></div>
-        <div class="q">${l.received}</div>
-        <span class="chip appr" style="flex:none">approval pending</span>
+        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)} · ${w.bin?`take it off <b>${esc(w.bin)}</b>`:"never put on a shelf"} and set it aside for return</div></div>
+        <div class="q">${w.qty}</div>
+        ${w.bin?`<button class="pk" data-removed="${esc(w.id)}"${ro?" disabled":""}>Removed</button>`:`<span class="chip appr" style="flex:none">rejected</span>`}
       </div>`).join("");
-    html+=`<div class="bin-group needbin">
-      <div class="bh"><span class="zn">⏳</span><span class="binbig">Off-PO — waiting for manager approval</span>
-        <span class="bmeta">do not put away yet</span></div>${rws}</div>`;
+    html+=`<div class="bin-group needbin" style="border-color:#f1c4c4">
+      <div class="bh" style="background:var(--danger-bg)"><span class="zn" style="background:var(--danger)">✕</span><span class="binbig">Rejected — take it off the shelf</span>
+        <span class="bmeta">the office rejected these off-PO items</span></div>${rws}</div>`;
   }
   if(!html) html=`<div class="empty">Nothing to put away yet..</div>`;
   const pg=document.getElementById("putGroups");
@@ -1575,6 +1594,7 @@ function renderPutaway(){
   pg.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>togglePlaced(rowById(b.dataset.place)));
   pg.querySelectorAll("[data-placeall]").forEach(b=>b.onclick=()=>placeAllInBin(b.dataset.placeall,b.dataset.sugg==="1"));
   pg.querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>assignBin(rowById(b.dataset.assign)));
+  pg.querySelectorAll("[data-removed]").forEach(b=>b.onclick=()=>markRemoved(rowById(b.dataset.removed)));
   // zone 점프 칩 바 — Zone 클릭 시 그 zone 의 Bay 칩 펼침 (제안 그룹도 같은 존 셈에 든다)
   const zj=document.getElementById("putZjump"), zjb=document.getElementById("putZjumpBay");
   const allGroups=Object.assign({},withBin); suggKeys.forEach(k=>{ allGroups[k]=(allGroups[k]||[]).concat(sugg[k]); });
@@ -1613,10 +1633,11 @@ function renderPutaway(){
 
 /* Placed 토글 — 칸 있는 줄은 그 칸으로 · 제안 줄은 Last bin 으로 놓는다(누르는 순간 누가 · 언제 = 창구 · 판정 29) */
 async function togglePlaced(w){
-  if(!w||receiptClosed)return;
+  if(!w||receiptClosed||(w.offpo&&w.decided))return;
   const bin_id=w.bin_id||w.line.lastBinId; if(!bin_id){ toast("Assign a bin first",true); return; }
   const next=!w.done;
   w.done=next; if(!w.bin){ w.bin=w.line.lastBin; w.bin_id=bin_id; }
+  if(w.sync) w.sync();
   if(next) beep("ok");
   renderPutaway();                 // 낙관적 — 탭 반응을 네트워크 뒤로 밀지 않는다
   const ok=await savePutaway(w,bin_id,next);
@@ -1638,15 +1659,20 @@ async function placeAllInBin(bin,suggested){
   try{
     const todo=grp.filter(w=>w.done!==next);
     if(!todo.length){ renderPutaway(); return; }
-    todo.forEach(w=>{ w.done=next; });
+    todo.forEach(w=>{ w.done=next; if(w.sync) w.sync(); });
     if(next) beep("ok");
     renderPutaway();                                 // 낙관적 — 네트워크 앞에 피드백을 둔다
     if(!await ensureReceiptOpen()) return;
     let failed=0;
-    if(!suggested){
+    const workRows=todo.filter(w=>!w.offpo), offRows=todo.filter(w=>w.offpo&&!w.decided);   // ⑤-6c2 off-PO 줄은 창구가 달라 따로(제안 그룹 방식)
+    if(!suggested&&workRows.length){
       const {error}=await sb.rpc("wms_recv_place_all",{p_receipt_id:receipt.id,p_bin_id:grp[0].bin_id,p_done:next});
-      if(error){ failed=todo.length; toast(error.message,true); }
-    }else{
+      if(error){ failed+=workRows.length; toast(error.message,true); }
+    }
+    if(!suggested&&offRows.length){
+      for(const w of offRows){ const ok=await savePutaway(w,w.bin_id,next); if(!ok) failed++; }
+    }
+    if(suggested){
       const q=todo.slice(); let workers=Math.min(8,q.length);
       await new Promise(done=>{
         let live=workers;
@@ -1734,10 +1760,21 @@ async function commitBin(raw){
   const changed=w.bin && w.bin!==b.bin;
   w.bin=b.bin; w.bin_id=b.id;
   if(changed) w.done=false;   // 다른 자리로 바뀌면 재배치 필요 — placed 해제
+  if(w.sync) w.sync();
   beep("ok");
   closeBinModal(); renderPutaway();
   const ok=await savePutaway(w,b.id,changed?false:!!w.done);
   if(ok){ await refreshLines(); renderPutaway(); }
+}
+
+/* 거절된 off-PO 를 선반에서 뺐다 — 창구 wms_recv_off_po_removed(rejected 만 · 한 번) */
+async function markRemoved(w){
+  if(!w||!w.offpo) return;
+  if(!confirm(`Took ${w.line.order_sku} (${w.qty}) off ${w.bin||"the shelf"} and set it aside for return?`)) return;
+  const {data,error}=await sb.rpc("wms_recv_off_po_removed",{p_diff_id:w.diff_id});
+  if(error){ toast("Not saved: "+error.message,true); return; }
+  toast(w.line.order_sku+" removed from "+(data&&data.bin||w.bin||"the shelf"));
+  await refreshLines(); renderPutaway();
 }
 
 /* ---------- 완료 (Complete 하나 · 판정 28) ---------- */
@@ -1746,21 +1783,23 @@ async function serverChecks(){
   if(!await refreshLines()) return null;
   const rows=lines.filter(l=>l.kind==="po");
   const targets=rows.filter(l=>l.received>0);
-  const work=putRows();
+  const work=putRows().filter(w=>!(w.offpo&&w.decided));   // ⑤-6c2 결정된 off-PO 는 창고가 못 옮긴다 — 셈에서 뺀다(거절은 rejectedOnShelf 로)
   return {
     rows, targets,
     notPlaced:work.filter(w=>!w.done),
     noBin:work.filter(w=>!w.bin_id).length,
     shorts:rows.filter(l=>l.received<l.expected),
     overs:rows.filter(l=>l.received>l.expected),
-    pendingAppr:lines.filter(l=>l.is_off_po&&l.needs_approval&&l.received>0),
+    pendingAppr:lines.filter(l=>l.is_off_po&&!l.decided&&l.received>0),   // ⑤-6c2 아직 정하지 않은 off-PO(막지 않는다)
+    rejectedOnShelf:lines.filter(l=>l.is_off_po&&l.decided==="rejected"&&l.offBinId&&!l.offRemovedAt),
   };
 }
 function summaryText(c){
   const parts=[];
   if(c.shorts.length) parts.push("Short "+c.shorts.length+":\n"+c.shorts.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
   if(c.overs.length) parts.push("Over "+c.overs.length+":\n"+c.overs.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
-  if(c.pendingAppr.length) parts.push("Off-PO awaiting approval: "+c.pendingAppr.map(l=>l.order_sku).join(", "));
+  if(c.pendingAppr.length) parts.push("Off-PO waiting for a decision: "+c.pendingAppr.length+" ("+c.pendingAppr.map(l=>l.order_sku).join(", ")+") — the office decides in Purchase Receipts");
+  if(c.rejectedOnShelf.length) parts.push("Rejected off-PO still on a shelf: "+c.rejectedOnShelf.map(l=>l.order_sku+" @ "+l.offBin).join(", "));
   // ⚠️ SKU 를 나열하지 않는다 — 85라인 PO 에서는 목록이 화면을 넘겨 아무도 안 읽는다. bin 수로 압축한다.
   if(c.notPlaced.length){
     const bins=new Set(c.notPlaced.filter(w=>w.bin).map(w=>w.bin));

@@ -53,6 +53,9 @@
 📌 [정정 2026-09-27] wms-fulfillment.html(09-27 · Claude Code ⑤-5a · 운영 fulfillment.html 의 복사본)로 **스물둘**이다 — 같은 커밋에 고쳤다. fulfillment 는 wms-packing.js(팔렛 · 박스 라벨 · 오더 소계 줄 · 운영에서 바이트 그대로 복사 · DB 접점 0)를 부른다 — 그 파일을 고치면 wms-fulfillment.html 만 움직인다(picker · packer 는 안 쓴다).
 📌 [정정 2026-09-27] wms-admin.html(09-27 · Claude Code ⑤-5b · 운영 admin.html 의 복사본 · Status · Rollback · Finalized 세 탭)로 **스물셋**이다 — 같은 커밋에 고쳤다. admin 도 wms-packing.js(팩킹리스트 재출력의 라벨 · 소계 줄)를 부른다 — wms-packing.js 를 고치면 wms-fulfillment · wms-admin 둘이 움직인다.
 📌 [정정 2026-09-27 밤] wms-receiver.html(09-27 밤 · Claude Code ⑤-6a · 운영 receiver.html 의 복사본 · 마이그레이션 없음)로 **스물넷**이다 — 같은 커밋에 고쳤다. receiver 는 공통 셋만 부른다(wms-*.js 없음 · 인쇄는 JsBarcode CDN).
+📌 [2026-09-27 밤 · ⑤-6c2] 판정 43 — off-PO 흐름 = 창고 직원 한 번(스캔 → **바로 놓는다** · 운영의 「승인 전 풋어웨이 차단」 없앰) · 매니저 한 번(받는다 · 무상 = 원가 0 / 받는다 · 청구 = 단가 / 거절 = 장부 없음 · 「어느 칸에서 빼라」) · 정하기 전엔 「선반에는 있고 장부에는 없다」(Health 150 이 알린다)
+📌 [2026-09-27 밤 · ⑤-6c2] 판정 44 — 정하는 화면 = 오피스 Purchase Receipts(receiving.html · 대화 Claude · 6c3) 하나 · WMS Admin Receiving 탭은 「정해야 할 off-PO」 목록(보이기만) · 줄 = 딥링크 `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>`(같은 창) · 정하는 단추는 Purchase Receipts 에만
+📌 [2026-09-27 밤 · ⑤-6c2] 판정 45 A — 정할 사람의 권한 = 그 manager 에게 staff.html 에서 RECEIVING 을 write 로(사람마다 · 오피스 입고 전체를 준다) · 지금 켤 필요 없다(시험은 admin) · 켜는 때 = 비밀번호를 나눠 주기 전(컷오버 준비 목록)
 ```
 [ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
     settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
@@ -519,6 +522,8 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 ⚠️ [2026-09-18 · 09-19 갱신] 아직 없는 것 — 차이를 닫는 길(닫아도 재고로 넣을 방법이 없다) ·
    PO 밖 물건 받기 · 팩→낱개 환산 · **확정 취소(원장 상쇄가 필요하다)** ·
    트랜스퍼 입고(IMS 에 트랜스퍼 문서가 없다) · 창고 접근으로 목록 거르기 (정본 §13-f)
+⚠️ [2026-09-27 밤 · ⑤-6c2] **off-PO 결정 UI 는 6c3 · 대화 Claude** — 창구는 있다(`po_receipt_diff_settle_off_po(p_diff_id, p_resolution accepted_free|accepted_billed|rejected, p_unit_price, p_note)` · 20260928025627:310) ·
+   WMS Admin 이 `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>` 로 들어온다(판정 44 · 같은 창) — 이 화면이 그 입고를 열고 그 차이 줄을 짚어 주면 된다 · 결정 뒤 창고 화면은 po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at 만 읽는다(7-r ⑤-6c2 절)
 ```
 
 ---
@@ -1083,7 +1088,7 @@ Parked and open at this store
 
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절)
+## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1145,24 +1150,24 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 ⚠️ 모집단(2026-09-27 밤 테스트 DB · Claude Code 실측 · begin read only): RCV-00027(draft · PO-02026 · 12 · 놓음 1 · **창고 Complete** · 미확정) · RCV-00028(draft · PO-02007 · 13 줄 156 · 전부 놓음 · 닫힌 보류 1 · Complete 아님) · confirmed RCV-00005 · 00006 · 00026 · off_po 열린 행 0 · 시퀀스 RCV 28.
 
 ```
-[ ] Receiving 탭(Health 뒤 · Finalized 앞) · 배지 없음(off-PO 열린 행 0) · 「Off-PO items waiting for approval」 = 「No off-PO items waiting for approval.」 + 회색 한 줄 「Approve and reject are not available yet …」
+[ ] Receiving 탭(Health 뒤 · Finalized 앞) · 배지 없음(off-PO 열린 행 0) · 「Off-PO items waiting for a decision」 = 「No off-PO items waiting for a decision.」(v1.8 — 회색 「Approve and reject are not available yet …」 줄은 없어졌다) · 「Rejected — still on a shelf」 = 「Nothing rejected is left on a shelf.」
 [ ] Awaiting putaway = 「Nothing awaiting putaway — …」(RCV-00027 · 00028 전부 놓음) · (선택) wms-receiver 에서 RCV-00028 한 줄의 Placed 를 풀면 여기 한 줄 「⚠ 1 row / n units awaiting putaway」 + 「Put away →」 → wms-receiver.html?receipt=<uuid> 로 그 입고가 열린다
 [ ] Completed — awaiting office confirmation = RCV-00027 한 줄(PO-02026 · 공급처 · Toronto · Completed <이름> · 시각 · Review · Reopen · Confirm 단추 없음) · 아래 「1 receipt(s) still receiving/held」(RCV-00028)
 [ ] Review(RCV-00027) → 모달 「RCV-00027 · PO-02026 · Completed — awaiting office confirmation」 · started by · completed by · 📍 <칸> 1 row · 12 / line 12 of 12 · ✓ placed · counted <이름> · placed <이름> · 「Reopen for the warehouse」 · Close
 [ ] ⭐ Reopen(RCV-00027) → confirm → 「RCV-00027 reopened」 · wms_receipt_complete completed f · reopened_by 내 id · 목록에서 Completed 절이 비고 「2 receipt(s) still receiving/held」 · wms-receiver.html 에서 RCV-00027 이 다시 수정 가능(배너 없음) → 거기서 다시 Complete → 여기 Completed 절에 다시 선다
 [ ] Receiving history = RCV-00028 · 00027(draft · rows · u) · 00026 · 00006 · 00005(Confirmed by the office <이름> · 날짜 · Delete 단추 없음) · 총수 캡션 없음(5 ≤ 60) · Workers 열(counted_by · putaway_by 이름 · +n)
 [ ] ⭐ Delete 시험 — wms-receiver 에서 PO-02002(또는 PO-02001b)를 Start 해 새 초안(RCV-00029 · 번호 하나 소비 · 정상)을 만든 뒤 여기 history 의 Delete → prompt 「Delete receipt RCV-00029? Nothing has been counted on this receipt. …」 → RCV-00029 타이핑 → 「RCV-00029 deleted (1 row(s) archived)」 · po_receipt 에서 사라짐 · wms_rollback_archive 한 줄(action receipt_delete · order_number RCV-00029 · batch_label PO 번호 · src_table po_receipt) · wms_rollback_log 한 줄(receipt_delete · draft → deleted) · 틀린 번호 타이핑 → 「Receipt number mismatch — cancelled」 · confirmed 행에는 Delete 가 안 보인다
-[ ] (선택) off-PO 대기 줄 — wms-receiver 에서 RCV-00028 에 PO 에 없는 제품을 스캔 → 여기 배지 1 · 표 한 줄(RCV-00028 · PO-02007 · SKU · Received 1 · Toronto) · 단추 없음
+[ ] (선택) off-PO 대기 줄 — wms-receiver 에서 RCV-00028 에 PO 에 없는 제품을 스캔 → 여기 배지 1 · 표 한 줄(RCV-00028 · PO-02007 · SKU · Qty 1 · Bin 「no bin yet」 · Put away by — · Waiting <나이>) · 「Decide in Purchase Receipts →」 = `receiving.html?receipt=<uuid>&diff=<uuid>`(v1.8 · 같은 창 · 줄 아무 데나 눌러도 간다) — 6c3 전에는 그 화면이 diff 를 아직 못 짚는다(입고는 연다)
 [ ] Stats: 기간 This week → 「Receiving」 카드 다섯(Receipts started 2 · Units counted 168 · Confirmed by the office 0 · Completed, not yet confirmed 1 · Still receiving 1) · 표 한 줄 PO(Receipts 2 · Lines 14 · Units 168 · Avg receive(RCV-00027 만) · − holds · Avg complete → office confirm — · Counted by <이름> (14) · Put away by <이름> (14)) · Receiving by warehouse Asung Trading Inc. 2 · 14 · 168 · Putaway done 100% · Backlog 0 · 0 · Receiving differences 전부 0(기간 안 차이 없음) · Throughput by worker 의 내 이름 줄에 「Receive 14 lines · 168 units (base) / 2 receipts · putaway 100%」 + Receive lines 막대 + 펼침 「PO-02007 · RCV-00028 · 13 · 156」 「PO-02026 · RCV-00027 · 1 · 12」
 [ ] Health: 카드 15(Receipt completed in the warehouse but not confirmed for 24h · Receipt draft with nothing counted for 24h 가 long_hold 뒤 · Last release 앞) · 지금은 전부 ✓ OK(RCV-00027 Complete 가 24h 안) · 내일 이 시각 뒤 RCV-00027 을 확정 안 했으면 「1 row」 warn 이 뜬다
 [ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_recv_reopen · rpc/wms_recv_delete · rpc/po_receipt_detail · rpc/wms_health_check 200(이 함수들은 테스트 DB 에만 있다)
 ```
 
-⚠️ [2026-09-27 v1.5] 아직 없는 것 — off-PO 승인 · 거절 · 투입(⑤-6c · 안 셋 판정 대기) · Confirm 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Trace 에 입고 · 되돌리기 로그 · 한 번에 되돌리기(컷오버 뒤).
+⚠️ [2026-09-27 v1.5 · v1.8 갱신] 아직 없는 것 — off-PO 결정 UI(**6c3 · receiving.html · 대화 Claude** — 창구 po_receipt_diff_settle_off_po 는 있다) · Confirm 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Trace 에 입고 · 되돌리기 로그 · 한 번에 되돌리기(컷오버 뒤).
 
 ---
 
-## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수)
+## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
 
 뒷단(⑤-3a `20260926213035` · ⑤-3b `20260926232330` · 정본 `asung-wms/docs/design/so-module.md` §24-l · m · n · 판정 5 · 25 · 27 · 28 · 29 · 30 · 33):
 시작 = **`wms_recv_start(p_po_id)`**(PO 당 열린 초안 하나 · 있으면 그것(existing · held) · 없으면 새 RCV 번호 — ⚠️ 24-m 「안 돌린 가지」가 여기서 처음 돈다) · 줄 · 작업 줄 · 헤더 = rpc `po_receipt_detail`(lines[] = PO 라인 전부 · work[] = 빈별 작업 줄 · diffs[] off_po) · 상태 = rpc `wms_recv_state`(completed · held) ·
@@ -1177,7 +1182,7 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 ⭐ 옛 화면과 다른 것: 목록 = 「Resume Receiving」(이 창고의 draft 입고 · RCV 번호 병기 · Held / Completed 태그) + 「Ready to receive」(confirmed PO · ↻ POs) — Cin7 목록 · Applied 배지 · ↻ Transfers 없음 · expected = 이 문서에서 받을 남은 수량(ordered − received_before · 판정 5 — 인보이스 기준이 아니다) · 「NOT INVOICED」 갈래 없음 ·
    Partial 단추 없음(판정 28 · 「오늘은 여기까지」 = Hold) · 풋어웨이 진입에 자동 배정 없음(판정 29) — 칸 없는 줄은 **「suggested」 그룹**(Last bin 이름 · 「last kept here」)으로 보이고 Placed / Place all 을 누르는 순간 그 칸으로 놓인다 · Last bin 없는 줄 = 「Bin needed」 → Assign bin(스캔 · 서버 검색 300) · 모르는 칸 이름은 거부(「… is not a bin at Toronto — ask the office to add it」) ·
    풋어웨이 행 = **작업 줄**(한 라인이 여러 칸에 나뉠 수 있다 · 같은 칸으로 다시 놓으면 창구가 합친다) · Complete 뒤 = 회색 배너 「Completed by … — ask a manager to reopen …」 + 읽기 전용(판정 30 · 목록 카드 「View」) · 확정은 오피스 receiving.html(판정 27 B) ·
-   PO 에 없는 물건 = 「⏳ Off-PO — waiting for manager approval · do not put away yet」 그룹(풋어웨이 · Place all 에서 빠진다) · 그 줄은 스캔으로만 더한다(− · Enter quantity 거부 문장) · 모르는 바코드 = 「Unknown barcode — ask the office to register the product」(약식 등록은 ⑤-6 밖) ·
+   PO 에 없는 물건(rc v1.4 · 판정 43) = 풋어웨이에서 **작업 줄과 같은 그룹**을 탄다(suggested · 칸 · Bin needed · Placed · Change · Place all — 창구만 wms_recv_off_po_putaway · 한 제품 한 칸) · 줄 칩 「OFF-PO · put it away — the manager decides later」 · 그 줄은 스캔으로만 더한다(− · Enter quantity 거부 문장) · 모르는 바코드 = 「Unknown barcode — ask the office to register the product」(약식 등록은 ⑤-6 밖) ·
    사진 · 「⚑ Image differs」 없음(판정 33 · HAS_IMAGES false) · 인쇄 머리 글자 「ASUNG」 · id 는 uuid(숫자 변환 0) · 창고 이름에 Edmonton 이 들면 edmonton(존 · 시각).
 ⚠️ 모집단(2026-09-27 밤 테스트 DB · Claude Code 실측 · begin read only): draft 입고 **0** · confirmed PO 4 = PO-02001b(1줄 · 100) · PO-02002(4 · 1,015) · **PO-02007(13 · 156 · 세트 자식 13)** · **PO-02026(1 · 12)** · 전부 Toronto · 시퀀스 RCV 26(⚠️ 첫 Start 가 27 을 당긴다 — 정상 사용) · PO 2027 · SO 25004 · 인보이스 60001 · 크레딧 1000.
 
@@ -1193,12 +1198,30 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 오피스 receiving.html 에서 RCV-00027 을 열면 Counted 12 · 빈이 보인다 · Confirm 하면 확정(경고 wms_not_completed 없음 = Complete 뒤) → WMS 목록에서 사라짐(draft 아님)
 [ ] ⭐ PO-02007(13줄) Start → RCV-00028 · List 뷰 · Sort 「Zone / Last bin」 → 존 머리 · 칩 바 · Bay 칩 · 세트 바코드 스캔 → 「+<factor>」 okbox 소리 · 몇 줄 받고 Hold (later) → 「PO-02007 held」 · wms_task_holds(receipt · worker 내 id) · 목록 「Held」 · Resume → 수량 보존 · resumed_at 채워짐 · 헤더 「🟢 also here」 는 다른 기기가 같은 입고를 열었을 때
 [ ] Putaway → 여러 줄 같은 suggested 칸 → 「Place all (n)」 → 줄마다 그 칸으로 놓임 · 이미 칸 있는 그룹의 Place all → wms_recv_place_all 한 번 · 재클릭 → confirm 「Clear "placed" …」 → 전체 해제 · 🖨 Print → 「PO RECEIVING · PO-02007 · RCV-00028」 · Last bin 열 · 바코드 CODE128
-[ ] PO 에 없는 제품 바코드 스캔 → confirm 「<SKU> — not on this PO. Add as OFF-PO (manager approval required)?」 → 「✓ OFF-PO <SKU> +1 (approval pending)」 · po_receipt_diff 한 줄(kind off_po · po_line_id null · product_id · received_qty 1 · note 「off-PO (WMS receiving) — approval pending」) · 같은 것 다시 스캔 → received_qty 2(행 하나) · 줄 칩 「OFF-PO · approval pending」 · − 또는 Enter quantity → 「Off-PO quantity can only be added by scanning — ask a manager to reject the item …」 · Putaway 에 「⏳ Off-PO — waiting for manager approval · do not put away yet」 · Place all 에서 빠짐 · Complete 요약에 「Off-PO awaiting approval: <SKU>」
+[ ] PO 에 없는 제품 바코드 스캔 → confirm 「<SKU> — not on this PO. Add as OFF-PO? Put it away as usual — the office accepts or rejects it later.」 → 「✓ OFF-PO <SKU> +1 — put it away, the manager decides later」 · po_receipt_diff 한 줄(kind off_po · po_line_id null · product_id · received_qty 1 · note 「off-PO (WMS receiving) — approval pending」 ← 창구 20260926232330 의 글자 · 화면엔 안 보인다) · 같은 것 다시 스캔 → received_qty 2(행 하나) · 줄 칩 「OFF-PO · put it away — the manager decides later」 · − 또는 Enter quantity → 「Off-PO quantity can only be added by scanning — ask a manager to reject the item …」 · Putaway 는 아래 ⑤-6c2 절(rc v1.4 — 막지 않는다) · Complete 요약에 「Off-PO waiting for a decision: 1 (<SKU>) — the office decides in Purchase Receipts」
 [ ] 모르는 바코드(마스터에 없음) → 빨간 「✕ Unknown barcode」 + 토스트 「Unknown barcode — ask the office to register the product」 · 아무 표도 안 바뀐다
 [ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_recv_start · po_receipt_detail · wms_recv_state · wms_recv_scan · wms_recv_putaway · wms_recv_complete 200(이 함수들은 테스트 DB 에만 있다)
 ```
 
-⚠️ [2026-09-27 밤] 아직 없는 것 — WMS Admin 의 Receiving 탭 · Stats 입고(⑤-6b) · off-PO 승인 · 거절 · 투입 · 약식 등록(⑤-6c · 안 셋 판정 대기) · 트랜스퍼 입고(운영 WMS 로만 · ⬜13) · 보관용 칸 단추(§20 판정 3 후속) · 사진(판정 33) · 확정 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Reopen 실측(wms_recv_reopen 은 ⑤-6b 화면에서).
+⭐ ⑤-6c2 rc v1.4 — off-PO 흐름(판정 43 · 창구 20260928025627 — `wms_recv_off_po_putaway(p_diff_id, p_bin_id, p_done)` :73 · `wms_recv_off_po_removed(p_diff_id)` :106 · 읽기 = `po_receipt_detail` diffs[] 의 product_id · bin_id · bin · placed_by(_name) · placed_at · resolution · resolved_at · unit_price · removed_by(_name) · removed_at :1096):
+   off-PO 줄 = 풋어웨이의 **가짜 작업 줄 하나**(id `d:<diff_id>` · 수량 = received_qty · 칸 = diff.bin · 놓았다 = placed_at) — Last bin 이 있으면 suggested 그룹 · 없으면 Bin needed · Placed / Change / Place all 전부 같은 단추(창구만 다르다 · 한 제품 한 칸 · 나눠 놓기 없음) ·
+   결정 뒤 = accepted_* → 칩 「Accepted — in stock」 · 그 줄의 Placed · Change 잠김(오피스가 정한 물건은 창고가 못 옮긴다 · 창구도 거부) · rejected → 빨간 그룹 「Rejected — take it off the shelf」 · 「take it off <bin> and set it aside for return」 · **Removed** 단추(confirm → wms_recv_off_po_removed → 줄이 사라진다 · Health 160 이 닫힌다) · 거절인데 칸이 없으면 「never put on a shelf」 칩만 ·
+   결정된 off-PO 줄은 스캔으로 더할 수 없다(같은 바코드 = 새 off_po 행 · 창구 wms_recv_off_po) · Complete 요약 = 「Off-PO waiting for a decision: n (SKU…)」 · 「Rejected off-PO still on a shelf: SKU @ bin」(둘 다 막지 않는다 · 정보) · 6c2 만으로 「결정」은 못 낸다(6c3 receiving.html · 대화 Claude)
+```
+[ ] ⭐ Caleb 시험 순서(6c3 뒤 전부 돈다 · **[6c2] 표시 = 6c2 만으로 된다**) —
+    [6c2] PO-02002 Start → RCV-00029(번호 하나 소비 · 정상) → 라인 둘 스캔 →
+    [6c2] ABE10612 스캔 6번(또는 1번 + 5번) → confirm 「not on this PO. Add as OFF-PO? Put it away as usual …」 → 줄 칩 「OFF-PO · put it away — the manager decides later」 · po_receipt_diff off_po received_qty 6 →
+    [6c2] Putaway → off-PO 줄이 suggested(Last bin 있으면) 또는 Bin needed 에 「OFF-PO」 칩 + 「not on the PO — put it away, the manager decides later」 · Placed → po_receipt_diff.bin_id · placed_by 내 id · placed_at(작업 줄은 안 생긴다) · Change → 다른 칸 → bin_id 덮어씀 · placed 해제 → Placed 다시 →
+    [6c2] (ABE12006 스캔 3 → Placed) — 둘째 off-PO →
+    [6c2] Complete → confirm 요약 「Off-PO waiting for a decision: 2 (ABE10612, ABE12006) — the office decides in Purchase Receipts」 · 「PO-02002 completed」 →
+    [6c2] WMS Admin Receiving 탭 → 배지 2 · 「Off-PO items waiting for a decision」 두 줄(RCV-00029 · PO-02002 · SKU · Qty · Bin <칸> · Put away by <이름> · Waiting <나이>) · 줄 누름 → `receiving.html?receipt=<uuid>&diff=<uuid>` 같은 창(6c3 전엔 입고만 열린다) · Health 「Off-PO waiting for a decision for 24h」 ✓(24h 안) →
+    [6c3] Purchase Receipts 에서 ABE10612 → Accept · billed 3.10 → inv_ledger po_in(line_ref `<diff>:offpo` · received_on) · inv_layer manual 3.10 × fx · ABE12006 → Reject →
+    [6c3 뒤 · 화면은 6c2] 창고 화면 RCV-00029(Reopen 뒤 또는 읽기 전용) → ABE10612 칩 「Accepted — in stock」 · 잠김 · ABE12006 빨간 그룹 「Rejected — take it off <칸> and set it aside for return」 → Removed → confirm → 「ABE12006 removed from <칸>」 · po_receipt_diff.removed_by/at →
+    [6c3 뒤] WMS Admin 「waiting for a decision」 비어짐 · 「Rejected — still on a shelf」 비어짐(Removed 전엔 한 줄) · Stats Off-PO accepted 1 · rejected 1 · Health 150 · 160 ✓
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_recv_off_po · wms_recv_off_po_putaway · wms_recv_off_po_removed 200(테스트 DB 에만 있다)
+```
+
+⚠️ [2026-09-27 밤 · ⑤-6c2 갱신] 아직 없는 것 — off-PO **결정**(받는다 · 거절 = 6c3 receiving.html · 대화 Claude) · 약식 등록 · 트랜스퍼 입고(운영 WMS 로만 · ⬜13) · 보관용 칸 단추(§20 판정 3 후속) · 사진(판정 33) · 확정 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Reopen 실측(wms_recv_reopen 은 ⑤-6b 화면에서).
 
 ---
 
