@@ -111,7 +111,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-27 · Purchase Receipts";   // 판정 40 — 메뉴 · 탭 제목 이름만 바뀜(화면 값 receiving · 동작 무변)
+const RCV_BUILD = "2026-09-27 · off-PO decide";   // ⑤-6c3(대화 Claude) — off-PO 결정 UI · 딥링크 ?receipt=&diff= (판정 43 · 44 · 45) · 판정 40 이름은 그대로
 console.log("receiving.html build:", RCV_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -129,6 +129,8 @@ let q="", stFilter="open", supFilter="", whFilter="", dateFrom="", dateTo="", cu
 let detailSeq = 0;
 let stage = "count";          // "count" | "putaway"
 let lastBins = {};            // product_id -> { bin_id, bin, zone, received_on }
+let focusDiff = null;         // ⑤-6c3 — WMS Admin 딥링크(?diff=)가 가리키는 차이 줄 · 한 번 짚고 비운다
+let curHeader = null;         // ⑤-6c3 — off-PO 결정 창이 PO 통화 · 환율을 찾을 때 쓰는 머리(po_id)
 const pgW = imsPage(50);
 
 /* ⭐ Everything the fragments below read is declared up here.
@@ -272,6 +274,7 @@ async function loadDetail(id){
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That receipt is gone.</div></div>'; return; }
 
   const h = data.header, t = data.totals || {}, lines = data.lines || [];
+  curHeader = h;
   /* ⭐ Only a draft can be worked on. Once confirmed the quantities have been taken
      into the books and the order has been split against them. */
   const ed = h.status === "draft" && canWrite;
@@ -356,6 +359,20 @@ async function loadDetail(id){
   box.querySelectorAll("[data-reopen]").forEach(b => {
     b.onclick = () => reopenDiff(diffById(b.dataset.reopen));
   });
+  box.querySelectorAll("[data-offpo]").forEach(b => {
+    b.onclick = () => openOffPo(diffById(b.dataset.offpo));
+  });
+  /* ⑤-6c3 · 판정 44 — WMS Admin 의 「Decide in Purchase Receipts」 가 ?diff= 로 가리킨 줄을 한 번 짚는다 */
+  if(focusDiff){
+    const row = box.querySelector(`tr[data-diff="${CSS.escape(focusDiff)}"]`);
+    focusDiff = null;
+    if(row){
+      row.scrollIntoView({ block:"center" });
+      row.style.outline = "2px solid #f59e0b"; row.style.background = "#fffbeb";
+      const hit = diffById(row.dataset.diff);
+      if(hit && hit.kind === "off_po" && !hit.resolved_at && canWrite) openOffPo(hit);
+    }
+  }
 
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
@@ -476,9 +493,18 @@ const OVER_REASONS = [
   ["billed",   "Supplier will invoice the extra \u2014 cost it like the rest of the order"],
   ["credited", "Supplier will take it off the next order \u2014 cost it like the rest"]
 ];
-const reasonsFor  = (kind) => kind === "over" ? OVER_REASONS : SHORT_REASONS;
+/* ⭐ ⑤-6c3 · 판정 43 — an off-PO line is a third question: the item was not on the order at all.
+   The warehouse puts it away at once; a manager then decides once — take it (free, or billed at the
+   invoice price) or send it back. ⚠️ It has its own function (po_receipt_diff_settle_off_po) — the short
+   and over functions refuse it and say so. The list is the database's (po_receipt_diff_resolution_ck). */
+const OFFPO_REASONS = [
+  ["accepted_free",   "Accepted \u2014 free, into stock at no cost"],
+  ["accepted_billed", "Accepted \u2014 billed, into stock at the invoice price"],
+  ["rejected",        "Rejected \u2014 set aside and returned to the supplier"]
+];
+const reasonsFor  = (kind) => kind === "over" ? OVER_REASONS : (kind === "off_po" ? OFFPO_REASONS : SHORT_REASONS);
 const reasonLabel = (v) =>
-  ([...SHORT_REASONS, ...OVER_REASONS].find(r => r[0] === v) || [v, v])[1];
+  ([...SHORT_REASONS, ...OVER_REASONS, ...OFFPO_REASONS].find(r => r[0] === v) || [v, v])[1];
 
 /* ── Differences ───────────────────────────────────────
    Short is not the same as wrong — the supplier may simply be shipping in parts. But
@@ -508,17 +534,22 @@ function diffsCard(rows, ed){
             : ' <span class="on">· all received</span>') +
           ((f.fragments || []).length > 1
             ? ` <button class="pobtn" data-frag="${r.id}">pieces</button>` : "");
-      return `<tr>
+      const offpo = r.kind === "off_po";
+      /* ⑤-6c3 — an off-PO row says where it sits, because «accepted» puts it into stock in that bin */
+      const shelf = !offpo ? "" : (r.placed_at
+          ? `<div class="dim" style="font-size:11.5px">on ${esc(r.bin || "?")} · put away by ${esc(r.placed_by_name || "—")} · ${imsTs(r.placed_at)}</div>`
+          : `<div class="dim" style="font-size:11.5px">not on a shelf yet \u2014 the warehouse puts it away first</div>`);
+      return `<tr data-diff="${esc(r.id)}">
       <td class="num dim">${esc(r.line_no ?? "")}</td>
-      <td><span class="mono">${esc(r.sku || "")}</span></td>
-      <td><span class="tag">${esc(r.kind)}</span></td>
+      <td><span class="mono">${esc(r.sku || "")}</span>${shelf}</td>
+      <td><span class="tag">${offpo ? "off-PO" : esc(r.kind)}</span></td>
       <td class="num">${qty(r.expected_qty)}</td>
       <td class="num">${qty(r.received_qty)}</td>
       <td class="num">${Number(r.diff_qty) > 0
           ? `<span class="bad">+${qty(r.diff_qty)}</span>`
           : `<span class="neutral">${qty(r.diff_qty)}</span>`}</td>
-      <td style="font-size:12.5px">${whole}</td>
-      <td>${r.resolved_at
+      <td style="font-size:12.5px">${offpo ? '<span class="dim">not on the order</span>' : whole}</td>
+      <td>${offpo ? offPoSettledCell(r, ed) : r.resolved_at
           ? `${esc(reasonLabel(r.resolution))}
              <div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>
              ${r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : ""}
@@ -534,8 +565,108 @@ function diffsCard(rows, ed){
       asks for the reason. An over line is a different matter: the extra is sitting in the bin but not in
       the books, and settling it puts it there. What it is worth depends on why it came, so that is what
       the dialog asks. ⚠️ Once the extra is in the books an over line cannot be reopened — the ledger
-      only ever adds, so undoing it needs an offsetting entry, which does not exist yet.</div>
+      only ever adds, so undoing it needs an offsetting entry, which does not exist yet.
+      An off-PO line was not on the order at all: the warehouse has already put it on a shelf, and
+      deciding it either takes it into stock in that bin (free, or at the invoice price) or rejects it,
+      in which case the warehouse takes it back off and sets it aside for the supplier.</div>
   </div>`;
+}
+
+/* ⑤-6c3 — the «Settled» cell of an off-PO row. Accepted cannot be reopened (the ledger only adds);
+   a rejection can, until the warehouse has taken it off the shelf. */
+function offPoSettledCell(r, ed){
+  if(!r.resolved_at){
+    return ed ? `<button class="pobtn go" data-offpo="${esc(r.id)}">Decide</button>` : '<span class="dim">waiting for a decision</span>';
+  }
+  const who = `<div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>`;
+  const note = r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : "";
+  if(String(r.resolution || "").startsWith("accepted")){
+    const price = r.resolution === "accepted_billed" && r.unit_price != null ? ` <span class="dim">@ ${esc(Number(r.unit_price))} order currency</span>` : "";
+    return `${esc(reasonLabel(r.resolution))}${price}${who}${note}
+      <div class="dim" style="font-size:11.5px">in stock \u2014 cannot be reopened</div>`;
+  }
+  const shelf = r.removed_at
+    ? `<div class="dim" style="font-size:11.5px">taken off ${esc(r.bin || "")} by ${esc(r.removed_by_name || "—")} · ${imsTs(r.removed_at)}</div>`
+    : (r.bin ? `<div class="bad" style="font-size:11.5px">still on ${esc(r.bin)} \u2014 the warehouse takes it off</div>` : "");
+  return `${esc(reasonLabel(r.resolution))}${who}${note}${shelf}
+    ${ed && !r.removed_at ? `<button class="pobtn" data-reopen="${esc(r.id)}">Reopen</button>` : ""}`;
+}
+
+/* ⭐⭐ ⑤-6c3 · 판정 43 · 44 — deciding an off-PO line. One decision, one function
+   (po_receipt_diff_settle_off_po): take it free, take it billed at the invoice price (in the order's
+   currency — the database converts with the order's rate), or reject it. Accepting moves stock into the
+   bin it already sits in and cannot be undone here; the dialog says so before the button.
+   ⚠️ The price preview is only a preview — the database computes the cost that goes into the books. */
+async function openOffPo(r){
+  if(!r) return;
+  const placed = !!r.placed_at;
+  let cur = null, rate = null;
+  if(curHeader && curHeader.po_id){
+    const po = await sb.from("po").select("currency_id,exchange_rate").eq("id", curHeader.po_id).maybeSingle();
+    if(po.data){
+      rate = po.data.exchange_rate;
+      if(po.data.currency_id){
+        const c = await sb.from("ref_currency").select("code").eq("id", po.data.currency_id).maybeSingle();
+        cur = c.data ? c.data.code : null;
+      }
+    }
+  }
+  modalOpen(`
+    <h3 style="margin:0 0 4px">Decide an off-PO item</h3>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+      ${esc(r.sku || "")} · ${qtyPlain(r.received_qty)} not on the order${
+        placed ? ` · on <b>${esc(r.bin || "?")}</b> (put away by ${esc(r.placed_by_name || "—")})`
+               : " · <b>not on a shelf yet</b>"}</div>
+    ${placed ? "" : `<div class="msg" style="margin-bottom:10px">It can only be accepted once it is on a shelf \u2014
+      the stock goes into the bin it sits in. It can be rejected now.</div>`}
+    <div class="frow"><label>Decision</label>
+      <select id="opRes">
+        <option value="accepted_billed" ${placed ? "" : "disabled"}>${esc(OFFPO_REASONS[1][1])}</option>
+        <option value="accepted_free" ${placed ? "" : "disabled"}>${esc(OFFPO_REASONS[0][1])}</option>
+        <option value="rejected" ${placed ? "" : "selected"}>${esc(OFFPO_REASONS[2][1])}</option>
+      </select></div>
+    <div class="frow" id="opPriceRow"><label>Unit price${cur ? ` (${esc(cur)})` : ""}</label>
+      <input id="opPrice" type="number" step="any" min="0" placeholder="from the supplier invoice"></div>
+    <div id="opPreview" class="dim" style="font-size:12px;margin:-2px 0 6px"></div>
+    <div class="frow"><label>Note</label><input id="opNote" placeholder="optional"></div>
+    <div id="opWarn" class="msg" style="margin-top:8px"></div>
+    <div id="opMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="opGo">Save decision</button></div>`);
+
+  const sel = document.getElementById("opRes"), pr = document.getElementById("opPrice");
+  const sync = () => {
+    const v = sel.value, billed = v === "accepted_billed";
+    document.getElementById("opPriceRow").style.display = billed ? "" : "none";
+    const p = Number(pr.value);
+    document.getElementById("opPreview").textContent = (billed && p > 0 && rate && Number(rate) !== 1)
+      ? `≈ ${p} × ${rate} = ${(p * Number(rate)).toFixed(4)} per unit in the base currency (the database computes the real figure)` : "";
+    document.getElementById("opWarn").innerHTML = v === "rejected"
+      ? (placed ? `Nothing goes into stock. The warehouse will be told to take ${qtyPlain(r.received_qty)} off <b>${esc(r.bin || "?")}</b> and set it aside for the supplier.`
+                : "Nothing goes into stock.")
+      : `${qtyPlain(r.received_qty)} go into stock in <b>${esc(r.bin || "?")}</b>${v === "accepted_free" ? " at no cost" : " at the invoice price"}. <b>This cannot be undone here.</b>`;
+  };
+  sel.onchange = sync; pr.oninput = sync; sync();
+
+  document.getElementById("opGo").onclick = async () => {
+    const v = sel.value;
+    const price = v === "accepted_billed" ? Number(pr.value) : null;
+    if(v === "accepted_billed" && !(price > 0)){ say("opMsg", "err", "Enter the unit price from the supplier invoice (more than 0)."); return; }
+    say("opMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("po_receipt_diff_settle_off_po", {
+      p_diff_id: r.id, p_resolution: v, p_unit_price: price, p_note: document.getElementById("opNote").value || null });
+    if(error){ say("opMsg", "err", error.message); return; }
+    modalClose();
+    /* ⭐ Stock moved (or the warehouse has a job to do) — say so, the row going quiet is not the same as being told. */
+    if(data && data.remove_from_bin){
+      alert(`Rejected. Tell the warehouse: take ${qtyPlain(data.remove_from_bin.qty)} of ${r.sku || "this item"} off ${data.remove_from_bin.bin} and set it aside for the supplier.`);
+    } else if(data && String(data.resolution || v).startsWith("accepted")){
+      alert(`${qtyPlain(data.qty_added ?? r.received_qty)} of ${r.sku || "this item"} went into stock in ${data.bin || r.bin || "the bin"}`
+        + (data.cost_source === "free" ? " at no cost." : `, costed at ${data.unit_cost} per unit.`));
+    }
+    reload();
+  };
 }
 
 /* The pieces behind «12 of 12» — which document brought what. Read-only. */
@@ -974,7 +1105,9 @@ imsAuth.start({ changePw:true, requireScreen:"receiving" }, async (client, meDat
 
   /* ?id=… opens one receipt · ?po_id=… starts a new one with that order already picked,
      which is how the purchase order screen hands over. */
-  const wantId = imsParam("id");
+  /* ⑤-6c3 · 판정 44 — WMS Admin hands over with ?receipt=…&diff=… (same window); ?id= still works. */
+  const wantId = imsParam("id") || imsParam("receipt");
+  focusDiff = imsParam("diff") || null;
   if(wantId){ openRcv(wantId); return; }
   const wantPo = imsParam("po_id");
   showWide();
