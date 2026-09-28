@@ -66,6 +66,7 @@
         <option value="draft">Draft</option>
         <option value="confirmed">Confirmed</option>
         <option value="warehouse">With warehouse</option>
+        <option value="packed">Finalized — waiting for the office</option>
         <option value="shipped">Shipped</option>
         <option value="fulfilled">Fulfilled</option>
         <option value="cancelled">Cancelled</option>
@@ -99,6 +100,7 @@
             <option value="draft">Draft</option>
             <option value="confirmed">Confirmed</option>
             <option value="warehouse">With warehouse</option>
+            <option value="packed">Finalized — waiting for the office</option>
             <option value="shipped">Shipped</option>
             <option value="fulfilled">Fulfilled</option>
             <option value="cancelled">Cancelled</option>
@@ -134,7 +136,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-26 · so v2.4";
+const SO_BUILD = "2026-09-28 · so v2.5";   // 오피스 판 1 — 판정 17 글자 · Qty out · 시각 줄 셋 · Finalized 대기 필터(판정 46) · 검토함 읽기
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -174,17 +176,25 @@ const price = (v) => (v === null || v === undefined || v === "")
 const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
 const stem = (n) => String(n || "").replace(/[a-z]+$/, "");
 
+/* ⭐ v2.5 · 판정 17 — 저장값은 그대로 두고 화면 글자만 바꾼다. 창고 화면 다섯(wms-*.html)과 같은 표.
+   모르는 값은 그대로 보인다(삼키지 않는다) — 인보이스 상태도 이 함수를 거쳐 그대로 나간다.
+   📌 공통 표(ims-ui.js)로 모으는 것은 뒤의 정리 차수(manager-list · pos · so-backorders 와 함께) */
+const SO_STATUS_LABEL = {
+  draft: "Draft", confirmed: "Confirmed", at_wms: "Released to WMS", picking: "Working",
+  packed: "Finalized", shipped: "Shipped", fulfilled: "Fulfilled", cancelled: "Cancelled"
+};
+const stLbl = (s) => SO_STATUS_LABEL[s] || s;
 /* ⚠️ 색은 절제한다 — cancelled 빨강 · fulfilled 초록 · 나머지 회색 */
 function stChip(s){
-  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
-  if(s === "fulfilled") return '<span class="chip good">fulfilled</span>';
-  return `<span class="chip">${esc(s)}</span>`;
+  if(s === "cancelled") return `<span class="chip bad">${esc(stLbl(s))}</span>`;
+  if(s === "fulfilled") return `<span class="chip good">${esc(stLbl(s))}</span>`;
+  return `<span class="chip">${esc(stLbl(s))}</span>`;
 }
 const CH_LBL = { warehouse: "Warehouse", counter: "Counter", pos: "POS" };
 function rowTags(r){
   const t = [];
   if(r.status === "cancelled") t.push(`<span class="tag off">${esc(r.closed_reason === "merged" ? "merged" : "cancelled")}</span>`);
-  else t.push(`<span class="tag">${esc(r.status)}</span>`);
+  else t.push(`<span class="tag">${esc(stLbl(r.status))}</span>`);
   if(r.channel !== "warehouse") t.push(`<span class="tag">${esc(CH_LBL[r.channel] || r.channel)}</span>`);
   if(r.split_from_id) t.push('<span class="tag">split</span>');
   return t.join(" ");
@@ -1186,7 +1196,7 @@ async function openMerge(){
   if(error){ document.getElementById("mgPick").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   document.getElementById("mgPick").innerHTML = `<table><thead><tr><th></th><th>Order</th><th>Status</th><th>Ordered</th><th>Reference</th></tr></thead>
     <tbody>${(data || []).map(o => `<tr><td><input type="checkbox" data-mg="${o.id}" ${o.id === s.id ? "checked" : ""}></td>
-      <td class="mono">${esc(o.so_number)}</td><td>${esc(o.status)}${o.split_reason ? ` <span class="dim">${esc(o.split_reason.replace("_", " "))}</span>` : ""}</td><td>${dim(o.order_date)}</td><td class="mono">${dim(o.ref)}</td></tr>`).join("")}</tbody></table>
+      <td class="mono">${esc(o.so_number)}</td><td>${esc(stLbl(o.status))}${o.split_reason ? ` <span class="dim">${esc(o.split_reason.replace("_", " "))}</span>` : ""}</td><td>${dim(o.order_date)}</td><td class="mono">${dim(o.ref)}</td></tr>`).join("")}</tbody></table>
     <div class="sohint">Same customer, warehouse and currency · warehouse orders that are still draft or confirmed. Pick two or more.</div>`;
   const ids = () => Array.from(document.querySelectorAll("[data-mg]:checked")).map(c => c.dataset.mg);
   const upd = () => { document.getElementById("mgChk").disabled = ids().length < 2; };
@@ -1244,6 +1254,15 @@ function headSel(field, value, ed, opts, blank){
 }
 const addr = (a) => [a.l1, a.l2, a.city, a.prov, a.post, a.ctry].filter(Boolean).join(", ");
 
+/* v2.5 — 창고 쪽 시각 줄의 사람 이름(so_detail 은 id 만 준다 · ims_staff 읽기 열림) · 한 번 읽고 둔다 */
+let staffNames = null;
+async function loadStaffNames(){
+  if(staffNames) return staffNames;
+  const r = await sb.from("ims_staff").select("id,name");
+  staffNames = Object.fromEntries(((r && r.data) || []).map(x => [x.id, x.name]));
+  return staffNames;
+}
+
 async function loadDetail(id){
   const seq = ++detailSeq;
   const box = document.getElementById("detail");
@@ -1265,6 +1284,18 @@ async function loadDetail(id){
   if(d.data && d.data.so && d.data.so.status === "draft"){
     const h = await sb.rpc("so_merge_requote_hint", { p_so_id: id });
     if(!h.error && h.data && h.data.merged) HINT = h.data;
+  }
+  /* ⭐ v2.5 · 24-p 「시각 줄」 — 창고 길 오더의 Released · Working · Finalized 시각과 사람 · Finalized 면 검토함과 마무리 모양(판정 22 · 읽기만) */
+  let WMS = null;
+  const so0 = d.data && d.data.so;
+  if(so0 && so0.channel === "warehouse" && (so0.at_wms_at || so0.picking_at || so0.packed_at)){
+    const none = Promise.resolve({ data: null });
+    const [names, rv, fz] = await Promise.all([
+      loadStaffNames(),
+      so0.packed_at ? sb.from("wms_order_review").select("reviewed,reviewed_by,reviewed_at").eq("order_id", so0.id).maybeSingle() : none,
+      so0.packed_at ? sb.from("wms_order_finalize").select("fulfillment_type,units,units_without_dims").eq("order_id", so0.id).maybeSingle() : none,
+    ]);
+    WMS = { names: names || {}, review: (rv && rv.data) || null, fin: (fz && fz.data) || null };
   }
   if(seq !== detailSeq) return;
   if(d.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(d.error.message)}</div></div>`; return; }
@@ -1367,6 +1398,20 @@ async function loadDetail(id){
                             + (s.order_discount_source ? ` <span class="dim">${esc(s.order_discount_source)}</span>` : "")],
     ["Tax rule",       headSel("tax_rule", s.tax_rule, ed, TAXO, "Auto — from ship-to province") + " " + taxSrc],
   ];
+  /* v2.5 — 시각 줄 도우미 · 되돌리면 그 칸이 지워져 「—」 가 된다(so_wms_status) */
+  const wmsWhen = (at, by) => at
+    ? imsTs(at) + (by ? ` <span class="dim">by ${esc(WMS.names[by] || "—")}</span>` : "")
+    : '<span class="dim">—</span>';
+  const finNote = () => {
+    if(!s.packed_at || !WMS) return "";
+    const f = WMS.fin, r = WMS.review, out = [];
+    if(f) out.push(`${f.fulfillment_type === "direct" ? "direct pack — no pallets" : "packing list"} · ${qty(f.units)} unit(s)` +
+      (Number(f.units_without_dims) ? ` · <span class="bad">${qty(f.units_without_dims)} without dimensions</span>` : ""));
+    out.push(r && r.reviewed
+      ? `reviewed by ${esc(WMS.names[r.reviewed_by] || "—")} · ${imsTs(r.reviewed_at)}`
+      : "not reviewed by the warehouse manager yet");
+    return `<div class="dim" style="font-size:11.5px">${out.join("<br>")}</div>`;
+  };
   const kvR = [
     ["Bill to",        esc(s.bill_to_name || "") + (addr(billA) ? `<div class="dim" style="font-size:11.5px">${esc(addr(billA))}</div>` : "")],
     ["Ship to",        esc([s.ship_to_company, s.ship_to_contact].filter(Boolean).join(" · "))
@@ -1377,6 +1422,11 @@ async function loadDetail(id){
     ["Shipping notes", headIn("shipping_notes", s.shipping_notes, ed)],
     ["Created",        imsTs(s.created_at)],
     ["Confirmed",      s.confirmed_at ? imsTs(s.confirmed_at) : '<span class="dim">—</span>'],
+    ...(WMS ? [
+      ["Released to WMS", wmsWhen(s.at_wms_at, s.at_wms_by)],
+      ["Working",         wmsWhen(s.picking_at, s.picking_by)],
+      ["Finalized",       wmsWhen(s.packed_at, s.packed_by) + finNote()],
+    ] : []),
     ["Shipped",        s.shipped_at ? imsTs(s.shipped_at) : '<span class="dim">—</span>'],
     ["Closed",         s.closed_at ? imsTs(s.closed_at) + (s.closed_note ? ` <span class="dim">${esc(s.closed_note)}</span>` : "") : '<span class="dim">—</span>'],
     ["",               '<span id="headMsg" style="font-size:12.5px"></span>'],
@@ -1471,7 +1521,7 @@ async function loadDetail(id){
     </div>
 
     ${tbl("Lines", (data.lines || []).length,
-      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Shipped","num"],["Stock",""]] : [])
+      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Qty out","num"],["Stock",""]] : [])
         .concat([["List","num"],["Disc %","num"],["Unit","num"],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
       lines,
       `Totals use ${basisNote}. Each line's tax is rounded on its own and added up (as Cin7 does).` +

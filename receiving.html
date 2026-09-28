@@ -111,7 +111,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-27 · off-PO decide";   // ⑤-6c3(대화 Claude) — off-PO 결정 UI · 딥링크 ?receipt=&diff= (판정 43 · 44 · 45) · 판정 40 이름은 그대로
+const RCV_BUILD = "2026-09-28 · warehouse state";   // ⑤-6c3(대화 Claude) — off-PO 결정 UI · 딥링크 ?receipt=&diff= (판정 43 · 44 · 45) · 판정 40 이름은 그대로
 console.log("receiving.html build:", RCV_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -129,6 +129,8 @@ let q="", stFilter="open", supFilter="", whFilter="", dateFrom="", dateTo="", cu
 let detailSeq = 0;
 let stage = "count";          // "count" | "putaway"
 let lastBins = {};            // product_id -> { bin_id, bin, zone, received_on }
+let curWms = null;            // 오피스 판 1 — wms_recv_state(창고 Complete · 보류) · 머리 줄과 확정 창이 읽는다
+let staffNamesR = null;       // wms_recv_state 는 사람 id 만 준다 — 이름은 ims_staff 에서 한 번
 let focusDiff = null;         // ⑤-6c3 — WMS Admin 딥링크(?diff=)가 가리키는 차이 줄 · 한 번 짚고 비운다
 let curHeader = null;         // ⑤-6c3 — off-PO 결정 창이 PO 통화 · 환율을 찾을 때 쓰는 머리(po_id)
 const pgW = imsPage(50);
@@ -168,7 +170,9 @@ const WARN = {
   receipt_lines_differ_from_work: "The confirmed lines and the counted rows disagree — tell someone.",
   unassigned_rows: "Some of what was counted has no bin yet — put it away before confirming.",
   over_counted:    "More was counted than the order asks for. The extra will not enter stock on its own.",
-  short_counted:   "Less was counted than the order asks for. The rest stays on the order."
+  short_counted:   "Less was counted than the order asks for. The rest stays on the order.",
+  /* 오피스 판 1(2026-09-28) · 판정 30 — 창고 Complete 전의 확정은 막지 않고 알린다 */
+  wms_not_completed: "The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing."
 };
 const warnText = (w) => WARN[w] || w;
 
@@ -268,7 +272,17 @@ async function loadDetail(id){
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
-  const { data, error } = await sb.rpc("po_receipt_detail", { p_receipt_id: id });
+  /* 오피스 판 1 · 판정 30 — 창고 쪽 상태(po_receipt_detail 에는 없다)를 함께 읽는다 · 읽기 실패는 줄을 비울 뿐 화면을 막지 않는다 */
+  const [r1, r2] = await Promise.all([
+    sb.rpc("po_receipt_detail", { p_receipt_id: id }),
+    sb.rpc("wms_recv_state",   { p_receipt_id: id }),
+  ]);
+  const { data, error } = r1;
+  curWms = (r2 && !r2.error && r2.data) ? r2.data : null;
+  if(curWms && (curWms.completed_by || curWms.reopened_by) && !staffNamesR){
+    const st = await sb.from("ims_staff").select("id,name");
+    staffNamesR = Object.fromEntries(((st && st.data) || []).map(x => [x.id, x.name]));
+  }
   if(seq !== detailSeq) return;
   if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That receipt is gone.</div></div>'; return; }
@@ -326,7 +340,8 @@ async function loadDetail(id){
             ? ` <span class="dim">· split from ${esc(h.po_split_from_number)}</span>` : ""}`],
         ["STARTED BY", `${esc(h.created_by_name || "—")} <span class="dim">${imsTs(h.created_at)}</span>`],
         ["CONFIRMED", h.confirmed_at
-          ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"]
+          ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"],
+        ["WAREHOUSE WORK", wmsStateLine(curWms)]   // 위 「WAREHOUSE」 는 창고 이름 · 이 줄은 창고 Complete 상태
       ])}</div></div>
       ${(h.po_split_to || []).length
         ? `<div class="invsub">The rest of this order carries on as ${
@@ -398,6 +413,17 @@ async function loadDetail(id){
 
    ⚠️ The dialog spells out the consequence rather than asking "are you sure" — the
    purchase order number changes, and somebody reading it later needs to know why. */
+/* 오피스 판 1 · 판정 30 — the warehouse's own «done»: Complete in the Receiving screen. Confirming before it is
+   allowed (the office may know better), but the person should see it before pressing. */
+function wmsStateLine(w){
+  if(!w) return '<span class="dim">—</span>';
+  const nm = (id) => esc((staffNamesR || {})[id] || "—");
+  if(w.completed) return `Completed by ${nm(w.completed_by)} <span class="dim">${imsTs(w.completed_at)}</span>`;
+  if(w.held) return '<span class="bad">On hold in the warehouse</span>';
+  return '<span class="bad">Not marked complete in the warehouse yet</span>' +
+    (w.reopened_at ? ` <span class="dim">· reopened by ${nm(w.reopened_by)} ${imsTs(w.reopened_at)}</span>` : "");
+}
+
 async function confirmRcv(h, t, toPlace){
   if(toPlace > 0){
     /* The database refuses this too — asking first just saves a round trip and says
@@ -411,6 +437,10 @@ async function confirmRcv(h, t, toPlace){
   lines.push(`${qtyPlain(t.counted)} of ${qtyPlain(t.ordered)} ordered will be received into stock.`);
   if(short > 0) lines.push(`${qtyPlain(short)} is short — the order will split and the rest carries on in a new document.`);
   if(short < 0) lines.push(`${qtyPlain(-short)} more than ordered arrived — it will be recorded and left as a difference to settle.`);
+  /* 오피스 판 1 · 판정 30 — 막지 않는다 · 말한다 */
+  if(curWms && !curWms.completed)
+    lines.push("", curWms.held ? "The warehouse has this receipt ON HOLD — the count may still change."
+                               : "The warehouse has not marked this receipt complete — the count may still change.");
   lines.push("", "This cannot be undone.");
   if(!confirm(lines.join("\n"))) return;
 
@@ -435,6 +465,7 @@ async function confirmRcv(h, t, toPlace){
   else if(po.status === "closed") done.push(`${po.number_after || ""} is closed.`);
   if(data.diffs && (data.diffs.short || data.diffs.over))
     done.push("A difference was queued for someone to settle.");
+  if((data.warnings || []).includes("wms_not_completed")) done.push(warnText("wms_not_completed"));
   if(done.length) alert(done.join("\n"));
   reload();
 }
