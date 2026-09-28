@@ -136,7 +136,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-28 · so v2.5";   // 오피스 판 1 — 판정 17 글자 · Qty out · 시각 줄 셋 · Finalized 대기 필터(판정 46) · 검토함 읽기
+const SO_BUILD = "2026-09-28 · so v3";   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -1023,6 +1023,123 @@ async function runShip(){
 }
 
 
+/* ══ v3 · 오피스 판 2(2026-09-28) — 「Finalize — ship and invoice」 ══════════════════════════
+   ⭐ 창고가 Finalize 한(packed) 오더를 오피스가 끝낸다: 운임 · 택배사 · 추적번호를 적고 → so_finalize 한 번 =
+      출하(so_ship · 재고가 장부에서 빠진다 · 모자란 몫은 백오더 형제) + 인보이스 발행(번호) · 되돌리는 길이 없다
+   ⭐ 팔렛 · 박스 치수는 so_finalize 가 안 받는다 — wms_so_handoff 를 따로 읽어 보인다(판정 19 · 운임 견적 재료 · 늘 in · lb)
+   ⭐ 운임은 이 창에서만 넣는다(so_charge_set 은 초안 전용) · 픽은 보내지 않는다(so_finalize 가 handoff 의 picks 를 쓴다)
+   ⭐ 미리 보기(p_commit false)는 아무것도 쓰지 않고 번호도 안 당긴다 — 실행 단추는 「지금 입력으로 본 미리 보기」 뒤에만 켜진다
+   📌 줄 빼기(removed · 판정 9 어휘)는 이 판에 없다 — 손님이 안 받는 줄은 다음 판 */
+let finPlan = null, finKey = null;
+function finInput(){
+  const v = (id) => (document.getElementById(id).value || "").trim();
+  const o = { so_id: curId };
+  const amt = v("fnAmt");
+  if(amt !== "") o.charges = [{ name: v("fnChName") || "Freight", amount: Number(amt) }];
+  if(v("fnCar")) o.carrier = v("fnCar");
+  if(v("fnTrk")) o.tracking_number = v("fnTrk");
+  if(v("fnNote")) o.shipping_notes = v("fnNote");
+  return o;
+}
+function finCheck(o){
+  if(o.charges && !(Number.isFinite(o.charges[0].amount) && o.charges[0].amount >= 0)) return "Freight must be a number, 0 or more — leave it empty for no freight line.";
+  return null;
+}
+async function openFinalize(){
+  const s = cur.so;
+  finPlan = null; finKey = null;
+  modalOpen(`
+    <h4>Finalize ${esc(s.so_number)} — ship and invoice</h4>
+    <div class="pbody">
+      <div id="fnUnits"><div class="msg">Loading what the warehouse packed…</div></div>
+      <div class="frow"><label>Freight line</label><input id="fnChName" class="sofield" value="Freight"></div>
+      <div class="frow"><label>Freight amount (${esc(s.currency_code || "")})</label><input id="fnAmt" class="sofield" type="number" step="0.01" min="0" placeholder="empty = no freight line"></div>
+      <div class="frow"><label>Carrier</label><input id="fnCar" class="sofield" value="${esc(s.carrier || "")}"></div>
+      <div class="frow"><label>Tracking number</label><input id="fnTrk" class="sofield" value="${esc(s.tracking_number || "")}"></div>
+      <div class="frow"><label>Shipping notes</label><input id="fnNote" class="sofield" value="${esc(s.shipping_notes || "")}"></div>
+      <div id="fnOut"></div>
+      <div id="fnMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="fnPrev">Preview</button>
+      <button class="pobtn go" id="fnGo" disabled>Finalize — ship and invoice</button>
+    </div>`);
+  wireModalClose();
+  const hd = await sb.rpc("wms_so_handoff", { p_so_id: curId });
+  const box = document.getElementById("fnUnits");
+  if(!box) return;
+  if(hd.error){ box.innerHTML = `<div class="msg err">${esc(hd.error.message)}</div>`; }
+  else{
+    const h = hd.data || {};
+    const units = h.units || [];
+    const dimTxt = (u) => (u.length_in != null && u.width_in != null && u.height_in != null)
+      ? `${qty(u.length_in)} × ${qty(u.width_in)} × ${qty(u.height_in)} in` : '<span class="bad">no dimensions</span>';
+    box.innerHTML = `
+      <div class="sosub" style="margin:-4px 0 6px">What the warehouse packed — use it for the freight quote</div>
+      ${units.length ? `<table><thead><tr><th>Unit</th><th>Type</th><th>Size</th><th class="num">Weight</th><th class="num">Items</th></tr></thead><tbody>
+        ${units.map(u => `<tr><td class="mono">${esc(u.label || "")}${u.parent_unit_id ? ' <span class="dim">(inside another unit)</span>' : ""}</td>
+          <td>${esc(u.unit_type || "")}</td><td>${dimTxt(u)}</td>
+          <td class="num">${u.weight_lb != null ? qty(u.weight_lb) + " lb" : '<span class="bad">—</span>'}</td>
+          <td class="num">${qty((u.items || []).reduce((a, i) => a + Number(i.qty || 0), 0))}</td></tr>`).join("")}
+        </tbody></table>` : '<div class="msg">No pallets or boxes were recorded — a direct pack.</div>'}
+      ${Number(h.units_without_dims) ? `<div class="sowarn">⚠ ${qty(h.units_without_dims)} unit(s) have no dimensions — ask the warehouse before quoting freight.</div>` : ""}
+      ${(h.shorts || []).length ? `<div class="sowarn">⚠ Packed less than ordered: ${(h.shorts || []).map(x => `${esc(x.sku)} ${qty(x.ship)} of ${qty(x.target)}`).join(" · ")} — the rest goes to a backorder order.</div>` : ""}`;
+  }
+  const stale = () => { const g = document.getElementById("fnGo"); if(g) g.disabled = true; say("fnMsg", "", finPlan ? "Changed — preview again before finalizing." : ""); };
+  ["fnChName","fnAmt","fnCar","fnTrk","fnNote"].forEach(id => { const el = document.getElementById(id); if(el) el.oninput = stale; });
+  document.getElementById("fnPrev").onclick = previewFinalize;
+  document.getElementById("fnGo").onclick = runFinalize;
+  previewFinalize();
+}
+async function previewFinalize(){
+  const o = finInput(), bad = finCheck(o);
+  if(bad){ say("fnMsg", "err", bad); return; }
+  say("fnMsg", "", "Checking…");
+  const { data, error } = await sb.rpc("so_finalize", { p_orders: [o], p_commit: false });
+  if(!document.getElementById("fnOut")) return;
+  if(error){ say("fnMsg", "err", error.message); document.getElementById("fnGo").disabled = true; return; }
+  finPlan = data; finKey = JSON.stringify(o);
+  const od = (data.orders || [])[0] || {}, sh = od.ship || {};
+  const lines = sh.lines || [];
+  document.getElementById("fnOut").innerHTML = `
+    <div class="sosub" style="margin:10px 0 6px">What will happen</div>
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Ships</th><th class="num">Short</th></tr></thead><tbody>
+      ${lines.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.ordered)}</td>
+        <td class="num">${qty(l.picked != null ? l.picked : l.to_ship)}</td><td class="num">${Number(l.short) ? `<span class="bad">${qty(l.short)}</span>` : "—"}</td></tr>`).join("")}
+    </tbody></table>
+    ${Number(sh.backorder_lines) ? `<div class="sohint">${qty(sh.backorder_lines)} line(s) short — a backorder order is created for the rest.</div>` : ""}
+    ${(od.charges || []).length ? `<div class="sohint">Freight line: ${(od.charges || []).map(c => `${esc(c.name || "")} ${money(c.amount)}`).join(" · ")}</div>` : '<div class="sohint">No freight line.</div>'}
+    ${(od.repriced || []).some(r => r.changed) ? `<div class="sowarn">⚠ Some prices change because of what actually ships: ${(od.repriced || []).filter(r => r.changed).map(r => `${price(r.old_unit_price)} → ${price(r.new_unit_price)}`).join(" · ")}</div>` : ""}
+    <div class="sohint">Finalizing ships it — the stock leaves the books — and issues the invoice. <b>This cannot be undone here.</b> Payments already taken for this order attach themselves to the invoice.</div>
+    ${(data.warnings || []).length ? `<div class="sowarn">${warnChips(data.warnings)}</div>` : ""}`;
+  say("fnMsg", "on", "Preview ready — nothing has been saved yet.");
+  document.getElementById("fnGo").disabled = false;
+}
+async function runFinalize(){
+  const o = finInput();
+  if(!finPlan || JSON.stringify(o) !== finKey){ say("fnMsg", "err", "Preview again first — the inputs changed."); document.getElementById("fnGo").disabled = true; return; }
+  if(!confirm(`Finalize ${cur.so.so_number}?\n\nThe goods ship (stock leaves the books) and the invoice is issued.\nThis cannot be undone.`)) return;
+  say("fnMsg", "", "Shipping and invoicing…");
+  document.getElementById("fnGo").disabled = true; document.getElementById("fnPrev").disabled = true;
+  const { data, error } = await sb.rpc("so_finalize", { p_orders: [o], p_commit: true });
+  if(error){ say("fnMsg", "err", error.message); document.getElementById("fnPrev").disabled = false; return; }
+  const inv = (data.invoices || [])[0] || {}, tt = inv.totals || {};
+  const od = (data.orders || [])[0] || {}, bo = od.ship && od.ship.backorder;
+  document.getElementById("fnOut").innerHTML = `
+    <div class="socols">
+      <div class="stat">Invoice<b>${esc(inv.invoice_number || "")}</b></div>
+      <div class="stat">Amount due<b>${money(tt.amount_due)}</b></div>
+      <div class="stat">Still owed<b>${money(tt.remaining)}</b></div>
+    </div>
+    <div class="sohint">Issued ${esc(inv.issued_on || "")}${inv.due_on ? " · due " + esc(inv.due_on) : ""}.${bo && bo.so_number ? ` The short part carries on as <b class="mono">${esc(bo.so_number)}</b>.` : ""}</div>
+    ${[].concat(data.warnings || [], inv.warnings || []).length ? `<div class="sowarn">${warnChips([].concat(data.warnings || [], inv.warnings || []))}</div>` : ""}`;
+  document.getElementById("fnUnits").innerHTML = "";
+  say("fnMsg", "on", "Done.");
+  const cl = document.querySelector('#modalBox [data-m="close"]');
+  cl.textContent = "Close"; cl.onclick = async () => { modalClose(); await reloadHere(); };
+}
+
 /* ══ 2판(2026-09-25 · Caleb 「so.html 2판 가자」) — 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 ══
    ⭐ 전부 DB 창구의 미리 보기(p_commit false)를 먼저 보이고 같은 입력으로 실행한다 · 권한은 manager(병합은 초안만이면 sales)
    ⭐ 결과 모양은 확정 미리 보기와 같다(so_allocate_run 의 lines · siblings) — 같은 표로 그린다 */
@@ -1363,6 +1480,8 @@ async function loadDetail(id){
   }
   /* v2.4 — 창고에 있는 오더(판정 18 · 21): at_wms = 매니저의 Split 화면에서 기다림 → 오피스가 거둬들일 수 있다 · picking = 창고가 먼저 되돌려야 한다(한 단계씩) */
   if(ch === "warehouse" && canSales()){
+    /* v3 — 창고가 Finalize 한 오더를 오피스가 끝낸다(판정 16 · 18 · 46) · 되돌릴 수 없는 길이라 창이 미리 보기를 먼저 한다 */
+    if(s.status === "packed") acts.push('<button class="pobtn go" data-act="finalize" title="Freight, carrier and tracking — then ship (stock leaves the books) and issue the invoice">Finalize — ship and invoice…</button>');
     if(s.status === "at_wms")  acts.push('<button class="pobtn" data-act="recall" title="Take the order back from the warehouse — only before the manager splits it into pick tasks">Recall from WMS</button>');
     if(s.status === "picking") acts.push('<button class="pobtn" disabled title="The warehouse is working on it — ask the warehouse manager to send it back first">Recall from WMS</button>');
   }
@@ -1556,6 +1675,7 @@ async function loadDetail(id){
       if(a === "confirmc")  confirmCounter();
       if(a === "delete")    deleteSo();
       if(a === "ship")      openShip();
+      if(a === "finalize")  openFinalize();
       if(a === "reopenc")   reopenCounter();
       if(a === "unconfirm") unconfirmSo();
       if(a === "cancel")    openCancel();
