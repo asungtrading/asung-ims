@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock Adjustments · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css
+     (.pobtn · .pomodal/.pobox/.frow · #wide/.wfilt · .invbar/.invsub · .kv · .chip) */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .pobox input,.pobox select,.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pobox textarea{width:100%;min-height:54px;box-sizing:border-box}
+  .pobox{max-width:720px}
+
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.ok b{color:var(--good, #2b8a3e)}
+
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .prow.on{background:#eef2ff}
+  .binlist{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  .binbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
+  .binbtn.on{background:#eef2ff;border-color:#c7d2fe}
+  .herebins{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+
+  .rej{color:var(--bad);font-size:12px;margin-top:3px}
+  .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px}
+  .rejbox{border:1px solid #f3d3cf;background:#fff6f5;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px;color:var(--bad)}
+  .repbox{border:1px solid var(--line);background:#f7f9fc;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:10px 0}
+  .calc{font-size:12.5px;margin-top:8px;padding:8px 10px;border-radius:10px;background:#f7f9fc}
+  .calc b{font-family:var(--mono)}
+  .mtabs{display:flex;gap:6px}
+  .mtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .mtabs button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
+  td .pobtn{padding:3px 9px;font-size:12px}
+  .pos{color:var(--good, #2b8a3e)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wwh"><option value="">All warehouses</option></select>
+      <select id="wst">
+        <option value="">Draft &amp; confirmed</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+      </select>
+      <input type="date" id="wfrom"><span class="dash">–</span><input type="date" id="wto">
+      <input type="search" id="wq" placeholder="ADJ number · SKU · note">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">New adjustment</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Stock Adjustments — making the books agree with the shelf.
+
+   One line is always one bin and one single-unit SKU. There is no way to adjust a
+   whole warehouse total: counting one bin and then setting the warehouse total would
+   wipe out the stock sitting in the bins nobody counted.
+
+   ⭐ "Set this bin to N" is measured against what the shelf SHOULD hold, not against
+      the book. The book only drops when an order ships; anything already picked but
+      not yet shipped is off the shelf and still in the book. So:
+         shelf should be = book − picked, not shipped
+         change          = N − shelf should be
+      Measuring against the book would take the picked goods out twice — once here,
+      once again when the order ships.
+
+   ⭐ Every number comes from the database (inv_adjust_detail · inv_adjust_eval). This
+      screen does not add anything up on its own. If a number looks wrong, the RPC is.
+
+   ⚠️ A confirmed adjustment cannot be undone or deleted. A mistake is corrected with a
+      new adjustment (ruling 53).
+   ⚠️ Who can adjust is decided by ims_can_adjust() — admin by role; a supervisor or a
+      manager only when the key is switched on for them; a warehouse worker never
+      (rulings 49 · 50). The screen permission alone is NOT the answer: a supervisor
+      without the key still sees this screen, read-only.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running — the screen says its own version out loud. */
+const ADJ_BUILD = "2026-09-28 · adj v1";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2
+console.log("stock-adjustments.html build:", ADJ_BUILD);
+
+let sb = null, me = null, canAdj = false, canRead = false;
+let q = "", stFilter = "", whFilter = "", dateFrom = "", dateTo = "", curId = null;
+let detailSeq = 0;
+let whs = [];                 // [{id,name}] — the warehouses this person may use
+
+/* ⭐ Everything the fragments below read is declared up here. */
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:3 }));
+const signed = (v) => {
+  if(v === null || v === undefined || v === "") return '<span class="dim">—</span>';
+  const n = Number(v);
+  if(n > 0) return `<span class="pos">+${qty(n)}</span>`;
+  if(n < 0) return `<span class="bad">−${qty(-n)}</span>`;
+  return '<span class="dim">0</span>';
+};
+
+const REASON = {
+  found:   "Found — more than the books",
+  lost:    "Lost / missing",
+  damaged: "Damaged / thrown out",
+  count:   "Count difference",
+  other:   "Other (note needed)"
+};
+const reasonText = (r) => REASON[r] || r;
+
+const COST = {
+  manual:    "unit cost given",
+  layer_avg: "average cost here",
+  fifo:      "oldest cost first",
+  unknown:   "cost unknown",
+  none:      "—"
+};
+
+/* ⚠️ Warning codes come back as codes — the person needs a sentence. Unknown codes are shown as they came. */
+const WARN = {
+  cost_unknown:         "A line adds stock and no cost is known for this SKU in this warehouse — it will go in at 0 until someone fixes it. Give a unit cost on that line if you know it.",
+  lines_without_change: "Some lines change nothing. They stay on the document but write nothing to the stock book."
+};
+const warnText = (w) => WARN[w] || w;
+const rejText = (r) => r === "no lines" ? "Add at least one line." : r;
+
+function stChip(s){
+  if(s === "confirmed") return '<span class="chip good">confirmed</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+
+/* ── Two modes ─────────────────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  history.replaceState(null, "", location.pathname);
+  loadWide();
+}
+function openAdj(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id));
+  loadDetail(id);
+}
+async function reload(){
+  if(!curId) return;
+  const y = window.scrollY;
+  await loadDetail(curId);
+  window.scrollTo(0, y);
+}
+
+/* ── List ──────────────────────────────────────────── */
+async function loadWide(){
+  const box = document.getElementById("wrows");
+  const { data, error } = await sb.rpc("inv_adjust_list", { p_filters: {
+    status: stFilter, warehouse_id: whFilter, q: q, from: dateFrom, to: dateTo, limit: 300 } });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(data === null){ box.innerHTML = '<div class="msg">You cannot view stock adjustments.</div>'; return; }
+  if(!data.length){ box.innerHTML = '<div class="msg">No adjustments match.</div>'; return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>Number</th><th>Created</th><th>Warehouse</th><th class="num">Lines</th>
+      <th>From report</th><th>Note</th><th>Status</th><th>By</th>
+    </tr></thead><tbody>${data.map(r => `<tr data-id="${esc(r.id)}">
+        <td><span class="mono">${esc(r.adjust_number)}</span></td>
+        <td>${imsTs(r.created_at)}</td>
+        <td>${esc(r.warehouse || "")}</td>
+        <td class="num">${esc(r.line_count)}</td>
+        <td>${r.report_id ? `<span class="mono">${esc(r.report_order || "#" + r.report_id)}</span>` : '<span class="dim">—</span>'}</td>
+        <td>${dim(r.note)}</td>
+        <td>${stChip(r.status)}</td>
+        <td>${esc(r.status === "confirmed" ? (r.confirmed_by_name || "") : (r.created_by_name || ""))}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="invsub">${data.length === 300 ? "Newest 300 — narrow the filters to see older ones. " : ""}A draft
+      changes nothing yet. Only a confirmed adjustment has written to the stock book, and it cannot be undone —
+      a mistake is corrected with a new adjustment.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openAdj(el.dataset.id); });
+}
+
+/* ── Detail ────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const { data, error } = await sb.rpc("inv_adjust_detail", { p_adjust_id: id });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That adjustment is gone, or you cannot view it.</div><div style="padding:0 14px 14px"><button class="pobtn" data-act="wide">&lsaquo; All adjustments</button></div></div>';
+    box.querySelector('[data-act="wide"]').onclick = showWide; return; }
+
+  const h = data.header || {}, lines = data.lines || [], rep = data.report, pv = data.preview || null;
+  const ed = h.status === "draft" && canAdj;
+  const changed = lines.some(l => (l.rejects || []).some(x => /changed \(you saw/.test(x)));
+
+  /* totals — read off the lines the database evaluated, not recomputed */
+  let up = 0, down = 0;
+  lines.forEach(l => { const d = Number(l.delta || 0); if(d > 0) up += d; else down += d; });
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All adjustments</button>'];
+  if(ed) acts.push('<button class="pobtn" data-act="add">Add line</button>');
+  if(ed && changed) acts.push('<button class="pobtn" data-act="rereadall">Re-read changed lines</button>');
+  if(ed) acts.push(`<button class="pobtn go" data-act="confirm" ${pv && pv.can_confirm ? "" : "disabled"}>Confirm</button>`);
+  if(ed) acts.push('<button class="pobtn bad" data-act="del">Delete draft</button>');
+
+  const kvTbl = (rows) => `<table class="kv"><tbody>${
+    rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+
+  const head = kvTbl([
+    ["Warehouse", esc(h.warehouse || "")],
+    ["Note", dim(h.note)],
+    ["Created", `${imsTs(h.created_at)} · ${esc(h.created_by_name || "")}`],
+    ["Confirmed", h.confirmed_at ? `${imsTs(h.confirmed_at)} · ${esc(h.confirmed_by_name || "")} · stock date ${esc(h.posted_on || "")}` : '<span class="dim">not yet</span>']
+  ]);
+
+  const repHtml = rep ? `<div class="repbox"><b>From a "Not enough stock" report</b> ·
+      order <span class="mono">${esc(rep.order_number || "")}</span> · <span class="mono">${esc(rep.sku || "")}</span> ·
+      order needed ${qty(rep.qty_expected)} · picker found ${qty(rep.qty_found)}
+      ${rep.note ? `<div class="dim" style="margin-top:3px">${esc(rep.note)}</div>` : ""}
+      <div style="margin-top:3px">${rep.resolved_at
+        ? `Report resolved ${imsTs(rep.resolved_at)}`
+        : (h.status === "draft" ? "Confirming this adjustment marks the report resolved." : "Report still open.")}</div></div>` : "";
+
+  let pvHtml = "";
+  if(pv && h.status === "draft"){
+    if((pv.rejects || []).length) pvHtml += `<div class="rejbox"><b>Cannot confirm yet</b><br>${pv.rejects.map(r => esc(rejText(r))).join("<br>")}</div>`;
+    if((pv.warnings || []).length) pvHtml += `<div class="warnbox">${pv.warnings.map(w => "⚠ " + esc(warnText(w))).join("<br>")}</div>`;
+  }
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="invbar">
+        <h2 class="mono" style="margin:0">${esc(h.adjust_number || "")}</h2>
+        <span class="chips">${stChip(h.status)}</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+      ${!canAdj && h.status === "draft" ? '<div class="dim" style="margin-top:8px;font-size:12.5px">Read-only — adjusting stock needs the Stock adjustments key.</div>' : ""}
+      <div style="margin-top:12px">${head}</div>
+      ${repHtml}
+      <div class="gap">
+        <div class="g"><b>${esc(lines.length)}</b><span>Lines</span></div>
+        <div class="g ${up > 0 ? "ok" : ""}"><b>${up > 0 ? "+" + qty(up) : "0"}</b><span>Added (EA)</span></div>
+        <div class="g ${down < 0 ? "bad" : ""}"><b>${down < 0 ? "−" + qty(-down) : "0"}</b><span>Taken (EA)</span></div>
+      </div>
+      ${pvHtml}
+      <div id="linesBox">${linesTable(lines, h, ed)}</div>
+      <div class="invsub">Book is what the stock book holds for that bin. Picked, not shipped is already off the shelf
+        but still in the book — it leaves the book when the order ships. Shelf should be = book − picked, not shipped.
+        "Set to N" changes the book by N − shelf should be. All quantities are single units (EA).</div>
+    </div>`;
+
+  box.querySelectorAll("[data-act]").forEach(el => {
+    const a = el.dataset.act;
+    if(a === "wide") el.onclick = showWide;
+    if(a === "add") el.onclick = () => openLine(h, null);
+    if(a === "rereadall") el.onclick = () => rereadLines(lines.filter(l => (l.rejects || []).some(x => /changed \(you saw/.test(x))));
+    if(a === "confirm") el.onclick = () => openConfirm(h, lines, rep, up, down);
+    if(a === "del") el.onclick = () => deleteAdj(h);
+  });
+  box.querySelectorAll("[data-edit]").forEach(el => {
+    el.onclick = () => openLine(h, lines.find(l => l.line_id === el.dataset.edit));
+  });
+  box.querySelectorAll("[data-rm]").forEach(el => { el.onclick = () => removeLine(h, el.dataset.rm); });
+  box.querySelectorAll("[data-reread]").forEach(el => {
+    el.onclick = () => rereadLines(lines.filter(l => l.line_id === el.dataset.reread));
+  });
+}
+
+function linesTable(lines, h, ed){
+  if(!lines.length) return `<div class="msg">No lines yet.${ed ? " Add a line for each bin you counted." : ""}</div>`;
+  const conf = h.status === "confirmed";
+  return `<table><thead><tr>
+      <th class="num">#</th><th>SKU</th><th>Bin</th><th>Input</th><th>Reason</th>
+      <th class="num">Book</th><th class="num">Picked, not shipped</th><th class="num">Shelf should be</th>
+      <th class="num">Change</th><th class="num">Book after</th><th>Cost</th>${ed ? "<th></th>" : ""}
+    </tr></thead><tbody>${lines.map(l => {
+      const rej = l.rejects || [];
+      const isChanged = rej.some(x => /changed \(you saw/.test(x));
+      const input = l.mode === "set" ? `set to ${qty(l.qty_input)}` : (Number(l.qty_input) > 0 ? `add ${qty(l.qty_input)}` : `take ${qty(-Number(l.qty_input))}`);
+      /* a confirmed line shows the cost the book actually took (raw.cost) — the live evaluation would describe today's layers */
+      const lc = conf && (l.ledger_rows || []).length ? (l.ledger_rows[0].cost || {}) : null;
+      const cost = lc ? `${esc(COST[lc.branch] || lc.branch || "")}${lc.unit_cost !== undefined && lc.unit_cost !== null ? " " + esc(lc.unit_cost) : ""}${lc.amount !== undefined && lc.amount !== null ? ` <span class="dim">(${esc(lc.amount)})</span>` : ""}`
+        : conf ? '<span class="dim">—</span>'
+        : l.cost_branch === "manual" ? `${COST.manual} ${esc(l.unit_cost)}`
+        : l.cost_branch === "layer_avg" ? `${COST.layer_avg}${l.avg_unit_cost !== null && l.avg_unit_cost !== undefined ? " " + esc(l.avg_unit_cost) : ""}`
+        : l.cost_branch === "unknown" ? `<span class="bad">${COST.unknown}</span>` : esc(COST[l.cost_branch] || l.cost_branch || "");
+      const posted = conf ? ((l.ledger_rows || []).length ? '<div class="dim" style="font-size:11.5px">posted</div>'
+                                                          : '<div class="dim" style="font-size:11.5px">no change — nothing posted</div>') : "";
+      return `<tr>
+        <td class="num">${esc(l.line_no)}</td>
+        <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td><span class="mono">${esc(l.bin)}</span></td>
+        <td>${input}</td>
+        <td>${esc(reasonText(l.reason))}${l.reason_note ? `<div class="dim" style="font-size:11.5px">${esc(l.reason_note)}</div>` : ""}</td>
+        <td class="num">${qty(conf ? l.seen_ledger : l.ledger)}</td>
+        <td class="num">${qty(conf ? l.seen_picked : l.picked)}</td>
+        <td class="num">${qty(conf ? Number(l.seen_ledger) - Number(l.seen_picked) : l.basis)}</td>
+        <td class="num">${signed(l.delta)}</td>
+        <td class="num">${qty(conf ? Number(l.seen_ledger) + Number(l.delta) : l.result)}</td>
+        <td style="font-size:12px">${cost}${posted}</td>
+        ${ed ? `<td style="white-space:nowrap">
+            ${isChanged ? `<button class="pobtn" data-reread="${esc(l.line_id)}">Re-read</button>` : ""}
+            <button class="pobtn" data-edit="${esc(l.line_id)}">Edit</button>
+            <button class="pobtn bad" data-rm="${esc(l.line_id)}">✕</button></td>` : ""}
+      </tr>${rej.length && !conf ? `<tr><td></td><td colspan="${ed ? 11 : 10}"><div class="rej">${rej.map(esc).join("<br>")}</div></td></tr>` : ""}`;
+    }).join("")}</tbody></table>`;
+}
+
+/* ── A line ────────────────────────────────────────────
+   Pick the product, pick the bin, say what the shelf holds (or how many to add or take),
+   say why. The book, picked-not-shipped and the resulting change are shown before saving,
+   read from the same functions the confirm will use. */
+function lineBody(l){
+  return {
+    line_id: l.line_id, product_id: l.product_id, bin_id: l.bin_id, mode: l.mode,
+    qty: String(l.qty_input), reason: l.reason, note: l.reason_note || null,
+    unit_cost: (l.unit_cost === null || l.unit_cost === undefined) ? null : String(l.unit_cost)
+  };
+}
+
+function openLine(h, line){
+  /* st = what the modal has picked so far */
+  const st = {
+    product_id: line ? line.product_id : null, sku: line ? line.sku : "", name: line ? (line.product_name || "") : "",
+    bin_id: line ? line.bin_id : null, bin: line ? line.bin : "",
+    mode: line ? line.mode : "set", factor: 1, packSku: ""
+  };
+  const qv = line ? Number(line.qty_input) : "";
+
+  modalOpen(`
+    <h3 style="margin:0 0 10px">${line ? "Edit line " + esc(line.line_no) : "Add a line"} · ${esc(h.warehouse || "")}</h3>
+    <div class="frow"><label>Product</label>
+      <input id="lpq" placeholder="Scan or type SKU · product name" autocomplete="off" value="${esc(st.sku)}"></div>
+    <div id="lpPicked" style="font-size:12.5px;margin-top:4px"></div>
+    <div id="lpHits" class="binlist" ${line ? "hidden" : ""}><div class="msg">Type to search.</div></div>
+
+    <div class="frow" style="margin-top:12px"><label>Bin</label>
+      <input id="lbq" placeholder="Scan or type a bin — ${esc(h.warehouse || "")}" autocomplete="off" value="${esc(st.bin)}"></div>
+    <div id="lbHere"></div>
+    <div id="lbHits" class="binlist" ${line ? "hidden" : ""}><div class="msg">Type to search.</div></div>
+
+    <div class="frow" style="margin-top:12px"><label>What to do</label>
+      <span class="mtabs"><button data-mode="set">Set this bin to</button><button data-mode="delta">Add or take</button></span></div>
+    <div class="frow"><label id="lqLabel">Quantity</label>
+      <input id="lq" type="number" step="any" style="width:130px" value="${esc(qv)}">
+      <span class="dim" id="lqHint" style="font-size:12px"></span></div>
+    <div id="lcalc" class="calc" hidden></div>
+
+    <div class="frow" style="margin-top:12px"><label>Reason</label>
+      <select id="lr">${Object.keys(REASON).map(k => `<option value="${k}" ${line && line.reason === k ? "selected" : (!line && k === "count" ? "selected" : "")}>${esc(REASON[k])}</option>`).join("")}</select></div>
+    <div class="frow"><label>Note</label><input id="ln" style="flex:1" value="${esc(line ? (line.reason_note || "") : "")}" placeholder="Needed when the reason is Other"></div>
+    <div class="frow"><label>Unit cost</label>
+      <input id="lc" type="number" step="any" min="0" style="width:130px" value="${esc(line && line.unit_cost !== null && line.unit_cost !== undefined ? line.unit_cost : "")}">
+      <span class="dim" style="font-size:12px">Only for stock that is new to the books. Leave empty to use the average cost of this SKU already in the warehouse.</span></div>
+
+    <div id="lMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="lCancel">Cancel</button>
+      <button class="pobtn go" id="lSave">Save line</button></div>`);
+
+  document.getElementById("lCancel").onclick = modalClose;
+  const pHits = document.getElementById("lpHits"), bHits = document.getElementById("lbHits");
+
+  const drawMode = () => {
+    document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === st.mode));
+    document.getElementById("lqLabel").textContent = st.mode === "set" ? "Shelf holds" : "Add (+) or take (−)";
+    document.getElementById("lqHint").textContent = st.mode === "set"
+      ? "what you counted on the shelf" + (st.factor > 1 ? ` — in ${st.packSku} packs of ${st.factor}` : "")
+      : "for example 5 or -3" + (st.factor > 1 ? ` — in ${st.packSku} packs of ${st.factor}` : "");
+    calc();
+  };
+  document.querySelectorAll("[data-mode]").forEach(b => { b.onclick = () => { st.mode = b.dataset.mode; drawMode(); }; });
+
+  const eaQty = () => {
+    const raw = document.getElementById("lq").value;
+    if(raw === "" || isNaN(Number(raw))) return null;
+    return Number(raw) * (st.factor || 1);
+  };
+
+  /* The numbers the confirm will use — read, not computed, except the one subtraction the
+     person needs to see before saving (the saved line is re-evaluated by the database). */
+  let calcSeq = 0;
+  async function calc(){
+    const box = document.getElementById("lcalc");
+    if(!box) return;
+    if(!st.product_id || !st.bin_id){ box.hidden = true; return; }
+    const s = ++calcSeq;
+    const [r1, r2] = await Promise.all([
+      sb.rpc("inv_adjust_ledger", { p_warehouse: h.warehouse, p_bin: st.bin, p_sku: st.sku }),
+      sb.rpc("inv_adjust_picked", { p_warehouse_id: h.warehouse_id, p_bin_id: st.bin_id, p_product_id: st.product_id })
+    ]);
+    if(s !== calcSeq) return;
+    if(r1.error || r2.error){ box.hidden = false; box.textContent = (r1.error || r2.error).message; return; }
+    const book = Number(r1.data || 0), picked = Number(r2.data || 0), shelf = book - picked;
+    const q = eaQty();
+    let line2 = "";
+    if(q !== null){
+      const d = st.mode === "set" ? q - shelf : q;
+      line2 = `<br>Change to the book <b>${d > 0 ? "+" : (d < 0 ? "−" : "")}${esc(Math.abs(d))}</b> EA → book after <b>${esc(book + d)}</b>` +
+              (book + d < 0 ? ' <span class="bad">— below zero, will be refused</span>' : "") +
+              (d === 0 ? ' <span class="dim">— changes nothing</span>' : "");
+    }
+    box.hidden = false;
+    box.innerHTML = `Book <b>${esc(book)}</b> · picked, not shipped <b>${esc(picked)}</b> · shelf should be <b>${esc(shelf)}</b>${line2}`;
+  }
+  document.getElementById("lq").addEventListener("input", calc);
+
+  /* product — packs are allowed in the search; the line is for the single unit */
+  const showPicked = () => {
+    document.getElementById("lpPicked").innerHTML = st.product_id
+      ? `<span class="mono">${esc(st.sku)}</span> <span class="dim">${esc(st.name)}</span>` +
+        (st.factor > 1 ? `<div class="dim">You picked the pack <span class="mono">${esc(st.packSku)}</span> — the line is for the single unit, quantity × ${esc(st.factor)}.</div>` : "")
+      : "";
+  };
+  const pickProduct = async (p) => {
+    if(p.parent_product_id){
+      const { data } = await sb.from("product").select("id,sku,name,is_active").eq("id", p.parent_product_id).maybeSingle();
+      if(!data){ say("lMsg", "err", "That pack's single-unit product could not be found."); return; }
+      st.product_id = data.id; st.sku = data.sku; st.name = data.name || "";
+      st.factor = Number(p.pack_factor) > 1 ? Number(p.pack_factor) : 1; st.packSku = p.sku;
+    } else {
+      st.product_id = p.id; st.sku = p.sku; st.name = p.name || ""; st.factor = 1; st.packSku = "";
+    }
+    document.getElementById("lpq").value = st.sku;
+    pHits.hidden = true;
+    showPicked(); drawMode(); drawHere();
+  };
+  const drawP = async (t) => {
+    if(!t){ pHits.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const tt = String(t).replace(/[,()"\\]/g, "%");
+    const { data, error } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor")
+      .eq("is_active", true).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
+    if(error){ pHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}">
+        <span class="mono">${esc(p.sku)}</span>${p.parent_product_id ? ` <span class="chip">pack × ${esc(p.pack_factor)}</span>` : ""}
+        <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+      : '<div class="msg">No active product matches.</div>';
+    pHits.querySelectorAll("[data-pid]").forEach(el => { el.onclick = () => pickProduct(data.find(x => x.id === el.dataset.pid)); });
+  };
+  const lpq = document.getElementById("lpq");
+  imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
+  lpq.onkeydown = async (e) => {
+    if(e.key !== "Enter") return;
+    const code = lpq.value.trim(); if(!code) return;
+    const { data } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("is_active", true).ilike("sku", code).limit(2);
+    if(data && data.length === 1) pickProduct(data[0]);
+  };
+
+  /* bin — and, once a product is picked, the bins where the book says it is now */
+  const pickBin = (b) => {
+    st.bin_id = b.id; st.bin = b.name;
+    document.getElementById("lbq").value = b.name;
+    bHits.hidden = true;
+    document.querySelectorAll("[data-here]").forEach(x => x.classList.toggle("on", x.dataset.here === b.id));
+    calc();
+  };
+  async function drawHere(){
+    const box = document.getElementById("lbHere");
+    if(!box) return;
+    if(!st.product_id){ box.innerHTML = ""; return; }
+    const { data, error } = await sb.from("ims_inv_balance").select("bin_id,bin,qty")
+      .eq("product_id", st.product_id).eq("warehouse_id", h.warehouse_id).neq("qty", 0).order("bin").limit(50);
+    if(error || !data || !data.length){ box.innerHTML = error ? "" : '<div class="dim" style="font-size:12px;margin-top:4px">The book has none of this SKU in this warehouse.</div>'; return; }
+    const good = data.filter(r => r.bin_id);
+    box.innerHTML = `<div class="dim" style="font-size:12px;margin-top:4px">Where the book says it is now:</div>
+      <div class="herebins">${good.map(r => `<button class="binbtn ${r.bin_id === st.bin_id ? "on" : ""}" data-here="${esc(r.bin_id)}" data-name="${esc(r.bin)}">${esc(r.bin)} · ${qty(r.qty)}</button>`).join("")}
+      ${data.length > good.length ? '<span class="dim" style="font-size:12px">+ some with no bin</span>' : ""}</div>`;
+    box.querySelectorAll("[data-here]").forEach(el => { el.onclick = () => pickBin({ id: el.dataset.here, name: el.dataset.name }); });
+  }
+  const drawB = async (t) => {
+    let qy = sb.from("ref_bin").select("id,name,zone").eq("warehouse_id", h.warehouse_id).eq("is_active", true).neq("name", "");
+    if(t) qy = qy.ilike("name", `%${t}%`);
+    const { data, error } = await qy.order("name").limit(300);
+    if(error){ bHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    bHits.innerHTML = data.length ? data.map(b => `<div class="prow" data-bid="${esc(b.id)}" data-name="${esc(b.name)}">
+        <span class="mono">${esc(b.name)}</span>${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}</div>`).join("") +
+        (data.length === 300 ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "")
+      : '<div class="msg">No bin matches.</div>';
+    bHits.querySelectorAll("[data-bid]").forEach(el => { el.onclick = () => pickBin({ id: el.dataset.bid, name: el.dataset.name }); });
+  };
+  const lbq = document.getElementById("lbq");
+  imsQ(lbq, v => { bHits.hidden = false; st.bin_id = null; calc(); drawB(v); });
+  lbq.onkeydown = async (e) => {
+    if(e.key !== "Enter") return;
+    const term = lbq.value.trim(); if(!term) return;
+    const { data } = await sb.from("ref_bin").select("id,name").eq("warehouse_id", h.warehouse_id).eq("is_active", true).ilike("name", term).limit(2);
+    if(data && data.length === 1) pickBin(data[0]);
+  };
+
+  showPicked(); drawMode(); drawHere();
+  if(!line) setTimeout(() => { const i = document.getElementById("lpq"); if(i) i.focus(); }, 30);
+
+  document.getElementById("lSave").onclick = async () => {
+    if(!st.product_id){ say("lMsg", "err", "Pick a product."); return; }
+    if(!st.bin_id){ say("lMsg", "err", "Pick a bin."); return; }
+    const qn = eaQty();
+    if(qn === null){ say("lMsg", "err", "Enter a quantity."); return; }
+    const reason = document.getElementById("lr").value;
+    const note = document.getElementById("ln").value.trim();
+    if(reason === "other" && !note){ say("lMsg", "err", "Other needs a note."); return; }
+    const cost = document.getElementById("lc").value.trim();
+    say("lMsg", "", "Saving…");
+    const { error } = await sb.rpc("inv_adjust_line_set", { p_adjust_id: h.id, p_line: {
+      line_id: line ? line.line_id : null, product_id: st.product_id, bin_id: st.bin_id, mode: st.mode,
+      qty: String(qn), reason: reason, note: note || null, unit_cost: cost === "" ? null : cost } });
+    if(error){ say("lMsg", "err", error.message); return; }
+    modalClose();
+    reload();
+  };
+}
+
+/* The numbers a line was saved with are what the confirm checks against. If the book or
+   the picked-not-shipped figure moved since, the line is saved again as it is — which
+   reads the numbers afresh — and the person looks at the new change before confirming. */
+async function rereadLines(ls){
+  for(const l of ls){
+    const { error } = await sb.rpc("inv_adjust_line_set", { p_adjust_id: curId, p_line: lineBody(l) });
+    if(error){ alert(error.message); break; }
+  }
+  reload();
+}
+
+async function removeLine(h, lineId){
+  if(!confirm("Remove this line?")) return;
+  const { error } = await sb.rpc("inv_adjust_line_remove", { p_adjust_id: h.id, p_line_id: lineId });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+
+async function deleteAdj(h){
+  if(!confirm(`Delete draft ${h.adjust_number}? Nothing has been written to the stock book yet.`)) return;
+  const { error } = await sb.rpc("inv_adjust_delete", { p_adjust_id: h.id });
+  if(error){ alert(error.message); return; }
+  showWide();
+}
+
+/* ── Confirm ─────────────────────────────────────────
+   ⚠️ There is no undo. The dialog says what will change, in the person's words. */
+function openConfirm(h, lines, rep, up, down){
+  const moving = lines.filter(l => Number(l.delta) !== 0);
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Confirm ${esc(h.adjust_number)}</h3>
+    <div style="font-size:13px">
+      ${esc(h.warehouse || "")} · ${esc(lines.length)} line${lines.length === 1 ? "" : "s"} ·
+      ${up > 0 ? `<span class="pos">+${qty(up)} EA</span>` : ""} ${down < 0 ? `<span class="bad">−${qty(-down)} EA</span>` : ""}
+    </div>
+    <table style="margin-top:10px"><thead><tr><th>SKU</th><th>Bin</th><th class="num">Change</th><th class="num">Book after</th></tr></thead>
+      <tbody>${moving.map(l => `<tr><td class="mono">${esc(l.sku)}</td><td class="mono">${esc(l.bin)}</td>
+        <td class="num">${signed(l.delta)}</td><td class="num">${qty(l.result)}</td></tr>`).join("")}</tbody></table>
+    ${lines.length > moving.length ? `<div class="dim" style="font-size:12px;margin-top:4px">${esc(lines.length - moving.length)} line(s) change nothing and write nothing.</div>` : ""}
+    ${rep && !rep.resolved_at ? `<div class="repbox">The "Not enough stock" report on <span class="mono">${esc(rep.order_number || "")}</span> will be marked resolved.</div>` : ""}
+    <div class="warnbox" style="margin:10px 0 0">This writes to the stock book and cannot be undone or deleted.
+      If something is wrong afterwards, correct it with a new adjustment and put this number (${esc(h.adjust_number)}) in its note.</div>
+    <div id="cMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="cCancel">Cancel</button>
+      <button class="pobtn go" id="cGo">Confirm adjustment</button></div>`);
+  document.getElementById("cCancel").onclick = modalClose;
+  document.getElementById("cGo").onclick = async () => {
+    const btn = document.getElementById("cGo"); btn.disabled = true;
+    say("cMsg", "", "Confirming…");
+    const { data, error } = await sb.rpc("inv_adjust_confirm", { p_adjust_id: h.id });
+    if(error){ say("cMsg", "err", error.message); btn.disabled = false; return; }
+    modalClose();
+    const lg = data.ledger || {};
+    alert(`${data.adjust_number} confirmed — stock date ${data.posted_on}.\n` +
+          `${lg.rows_posted || 0} line(s) written to the stock book (${Number(lg.qty_ea_posted || 0) > 0 ? "+" : ""}${lg.qty_ea_posted || 0} EA).` +
+          (data.report_id ? (data.report_resolved ? "\nThe report was marked resolved." : "\nThe report was already resolved.") : ""));
+    reload();
+  };
+}
+
+/* ── New ───────────────────────────────────────────── */
+function openCreate(){
+  if(!whs.length){ alert("You are not set up for any warehouse."); return; }
+  modalOpen(`
+    <h3 style="margin:0 0 10px">New adjustment</h3>
+    <div class="frow"><label>Warehouse</label>
+      <select id="nw">${whs.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="frow"><label>Note</label><input id="nn" style="flex:1" placeholder="What this is about — for example the bins counted"></div>
+    <div class="dim" style="font-size:12px;margin-top:6px">One adjustment is one warehouse. The note cannot be changed later.</div>
+    <div id="nMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="nCancel">Cancel</button>
+      <button class="pobtn go" id="nGo">Start</button></div>`);
+  document.getElementById("nCancel").onclick = modalClose;
+  document.getElementById("nGo").onclick = async () => {
+    say("nMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("inv_adjust_create", {
+      p_warehouse_id: document.getElementById("nw").value, p_note: document.getElementById("nn").value.trim() || null, p_report_id: null });
+    if(error){ say("nMsg", "err", error.message); return; }
+    modalClose();
+    openAdj(data.id);
+  };
+}
+
+/* ── From a "Not enough stock" report (ruling 20) ─────
+   WMS Admin hands over with ?report=<id>. The report does not say which bin ran short, so
+   the bins come from where the picker actually picked on that order. Each is proposed as
+   "set this bin to 0" — the picker took all there was — and the person changes it after
+   looking at the shelf. Nothing is saved until Start; nothing reaches the book until Confirm. */
+async function fromReport(reportId){
+  showWide();
+  if(!canAdj){ alert("Adjusting stock needs the Stock adjustments key."); return; }
+  const rid = Number(reportId);
+  if(!Number.isInteger(rid) || rid <= 0){ alert("That report link is not valid."); return; }
+
+  /* a draft already started from this report is opened instead of starting a second one */
+  const ex = await sb.rpc("inv_adjust_list", { p_filters: { status: "draft", limit: 300 } });
+  const open = ((ex && ex.data) || []).find(a => Number(a.report_id) === rid);
+  if(open){ openAdj(open.id); return; }
+
+  const { data, error } = await sb.rpc("inv_adjust_from_report", { p_report_id: rid });
+  if(error){ alert(error.message); return; }
+  if(!data){ alert("That is not a Not-enough-stock report, or it is gone."); return; }
+  const r = data.report || {}, ls = data.lines || [];
+  const allowed = whs.some(w => w.id === data.warehouse_id);
+
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Adjust from a "Not enough stock" report</h3>
+    <div class="repbox" style="margin-top:0">Order <span class="mono">${esc(r.order_number || "")}</span> · <span class="mono">${esc(r.sku || "")}</span> ·
+      order needed ${qty(r.qty_expected)} · picker found ${qty(r.qty_found)} · ${imsTs(r.created_at)}
+      ${r.note ? `<div class="dim" style="margin-top:3px">${esc(r.note)}</div>` : ""}
+      ${r.resolved_at ? `<div class="bad" style="margin-top:3px">This report was already resolved ${imsTs(r.resolved_at)}.</div>` : ""}</div>
+    <div style="font-size:13px">Warehouse: <b>${esc(data.warehouse || "")}</b></div>
+    ${ls.length ? `<table style="margin-top:8px"><thead><tr><th>Bin</th><th class="num">Picked on this order</th><th class="num">Book</th>
+        <th class="num">Picked, not shipped</th><th class="num">Shelf should be</th><th>Proposed</th></tr></thead>
+      <tbody>${ls.map(l => `<tr><td class="mono">${esc(l.bin)}</td><td class="num">${qty(l.picked_this_order)}</td>
+        <td class="num">${qty(l.ledger)}</td><td class="num">${qty(l.picked)}</td>
+        <td class="num">${qty(Number(l.ledger) - Number(l.picked))}</td><td>set to 0</td></tr>`).join("")}</tbody></table>
+      <div class="dim" style="font-size:12px;margin-top:4px">"Set to 0" because the picker took all there was. Change a line after starting if the shelf says otherwise.</div>`
+      : '<div class="msg">No picked bin was found for this report — start the adjustment and add the line yourself.</div>'}
+    <div class="frow" style="margin-top:10px"><label>Reason</label>
+      <select id="fr">${Object.keys(REASON).map(k => `<option value="${k}" ${k === "count" ? "selected" : ""}>${esc(REASON[k])}</option>`).join("")}</select></div>
+    <div class="frow"><label>Note</label><input id="fn" style="flex:1" value="${esc(`Not enough stock — ${r.order_number || ""} · ${r.sku || ""}`)}"></div>
+    ${allowed ? "" : '<div class="err" style="font-size:12.5px;margin-top:8px">You are not set up for this warehouse.</div>'}
+    <div id="fMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="fCancel">Cancel</button>
+      <button class="pobtn go" id="fGo" ${allowed ? "" : "disabled"}>Start adjustment</button></div>`);
+  document.getElementById("fCancel").onclick = modalClose;
+  document.getElementById("fGo").onclick = async () => {
+    const reason = document.getElementById("fr").value, note = document.getElementById("fn").value.trim();
+    if(reason === "other" && !note){ say("fMsg", "err", "Other needs a note."); return; }
+    document.getElementById("fGo").disabled = true;
+    say("fMsg", "", "Saving…");
+    const c = await sb.rpc("inv_adjust_create", { p_warehouse_id: data.warehouse_id, p_note: note || null, p_report_id: rid });
+    if(c.error){ say("fMsg", "err", c.error.message); document.getElementById("fGo").disabled = false; return; }
+    for(const l of ls){
+      const s = await sb.rpc("inv_adjust_line_set", { p_adjust_id: c.data.id, p_line: {
+        product_id: l.product_id, bin_id: l.bin_id, mode: l.suggested_mode || "set", qty: String(l.suggested_qty ?? 0),
+        reason: reason, note: reason === "other" ? note : null } });
+      if(s.error){ alert(`${c.data.adjust_number} was started, but a line could not be added: ${s.error.message}`); break; }
+    }
+    modalClose();
+    openAdj(c.data.id);
+  };
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true, requireScreen:"stock_adjust" }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = ADJ_BUILD;
+
+  /* ⭐ rulings 49 · 50 — the database decides, not the screen permission */
+  const [ca, cr] = await Promise.all([sb.rpc("ims_can_adjust"), sb.rpc("ims_can_adjust_read")]);
+  canAdj = !!(ca && ca.data === true);
+  canRead = !!(cr && cr.data === true);
+
+  const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  const all = (wh && wh.data) || [];
+  const acc = (me && me.access) || imsAuth.access || {};
+  const allow = acc.warehouses;                    // null = every warehouse
+  whs = Array.isArray(allow) ? all.filter(w => allow.includes(w.id)) : all;
+  document.getElementById("wwh").innerHTML = '<option value="">All warehouses</option>' +
+    all.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+
+  if(!canRead){
+    document.getElementById("wide").hidden = false;
+    document.getElementById("wrows").innerHTML = '<div class="msg">You cannot view stock adjustments — this needs the Stock adjustments key.</div>';
+    document.getElementById("wnew").hidden = true;
+    return;
+  }
+
+  document.getElementById("wwh").onchange   = e => { whFilter = e.target.value; loadWide(); };
+  document.getElementById("wst").onchange   = e => { stFilter = e.target.value; loadWide(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom = e.target.value; loadWide(); };
+  document.getElementById("wto").onchange   = e => { dateTo   = e.target.value; loadWide(); };
+  imsQ("#wq", v => { q = v; loadWide(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; whFilter = ""; stFilter = ""; dateFrom = ""; dateTo = "";
+    ["wq","wwh","wst","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    loadWide();
+  };
+
+  const nw = document.getElementById("wnew");
+  if(canAdj) nw.onclick = openCreate; else nw.hidden = true;
+
+  /* ?id=… opens one adjustment · ?report=… starts (or reopens) one from a Not-enough-stock report (WMS Admin) */
+  const wantId = imsParam("id");
+  const wantRep = imsParam("report");
+  if(wantId){ openAdj(wantId); return; }
+  if(wantRep){ fromReport(wantRep); return; }
+  showWide();
+});
+</script>
+</body>
+</html>
