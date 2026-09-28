@@ -326,6 +326,8 @@
       ["Manager List","manager-list.html","sales","ims",false,null],
       // ✅ [2026-09-28] Stock Adjustments(stock-adjustments.html · 판정 48 ③ · adj-c) — 열쇠 stock_adjust(카탈로그 min_role manager · 20260928142722) · 모드 'ims' · 메뉴에만(탭 false · 묶음 null) · 노출은 screens 가 null 이 아닌 사람(열쇠 없는 supervisor 도 보인다 — 읽기 전용 · 단추는 화면이 ims_can_adjust 로 가린다 · 판정 49 · 50)
       ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,null],
+      // ✅ [2026-09-28] Bin Moves (office)(stock-moves.html · 판정 61 · 대화 Claude · sm v1) — 열쇠 stock_move(카탈로그 room 은 wms 지만 메뉴 필터는 screens 만 본다 — ims-auth.js vis=items.filter(!it[2] || scr[it[2]]) · 확인 2026-09-28) · 모드 ims · 메뉴에만.
+      ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,null],
       ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
       ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
       ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
