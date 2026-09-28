@@ -108,13 +108,14 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-09-28 · adj v1.1";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터
+const ADJ_BUILD = "2026-09-28 · adj v1.2";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
 console.log("stock-adjustments.html build:", ADJ_BUILD);
 
 let sb = null, me = null, canAdj = false, canRead = false;
 let q = "", stFilter = "", whFilter = "", dateFrom = "", dateTo = "", curId = null;
 let detailSeq = 0;
 let whs = [];                 // [{id,name}] — the warehouses this person may use
+let pendingPrefill = null;    // v1.2 — a product to open the Add line window with, once the new draft has loaded
 
 /* ⭐ Everything the fragments below read is declared up here. */
 const qty = (v) => (v === null || v === undefined || v === "")
@@ -309,6 +310,10 @@ async function loadDetail(id){
   box.querySelectorAll("[data-reread]").forEach(el => {
     el.onclick = () => rereadLines(lines.filter(l => l.line_id === el.dataset.reread));
   });
+  if(pendingPrefill && ed && pendingPrefill.adjust_id === h.id){
+    const pre = pendingPrefill; pendingPrefill = null;
+    openLine(h, null, pre);
+  }
 }
 
 function linesTable(lines, h, ed){
@@ -363,10 +368,11 @@ function lineBody(l){
   };
 }
 
-function openLine(h, line){
+function openLine(h, line, pre){
   /* st = what the modal has picked so far */
   const st = {
-    product_id: line ? line.product_id : null, sku: line ? line.sku : "", name: line ? (line.product_name || "") : "",
+    product_id: line ? line.product_id : (pre ? pre.product_id : null),
+    sku: line ? line.sku : (pre ? pre.sku : ""), name: line ? (line.product_name || "") : (pre ? (pre.name || "") : ""),
     bin_id: line ? line.bin_id : null, bin: line ? line.bin : "",
     mode: line ? line.mode : "set", factor: 1, packSku: ""
   };
@@ -377,7 +383,7 @@ function openLine(h, line){
     <div class="frow"><label>Product</label>
       <input id="lpq" placeholder="Scan or type SKU · product name" autocomplete="off" value="${esc(st.sku)}"></div>
     <div id="lpPicked" style="font-size:12.5px;margin-top:4px"></div>
-    <div id="lpHits" class="binlist" ${line ? "hidden" : ""}><div class="msg">Type to search.</div></div>
+    <div id="lpHits" class="binlist" ${line || pre ? "hidden" : ""}><div class="msg">Type to search.</div></div>
 
     <div class="frow" style="margin-top:12px"><label>Bin</label>
       <input id="lbq" placeholder="Scan or type a bin — ${esc(h.warehouse || "")}" autocomplete="off" value="${esc(st.bin)}"></div>
@@ -396,7 +402,8 @@ function openLine(h, line){
     <div class="frow"><label>Note</label><input id="ln" style="flex:1" value="${esc(line ? (line.reason_note || "") : "")}" placeholder="Needed when the reason is Other"></div>
     <div class="frow"><label>Unit cost</label>
       <input id="lc" type="number" step="any" min="0" style="width:130px" value="${esc(line && line.unit_cost !== null && line.unit_cost !== undefined ? line.unit_cost : "")}">
-      <span class="dim" style="font-size:12px">Only for stock that is new to the books. Leave empty to use the average cost of this SKU already in the warehouse.</span></div>
+      <span class="dim" style="font-size:12px">Only for stock that is new to the books. Left empty, the stock goes in at the average cost of this SKU still in this warehouse —
+        <b>if none is left, it goes in at 0</b>, and the saved line shows <span class="bad">cost unknown</span>.</span></div>
 
     <div id="lMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
@@ -559,7 +566,7 @@ function openLine(h, line){
 
   showPicked(); drawMode(); drawHere();
   if(!line) drawB("");                      /* the bin list is filled from the start (first 300), like receiving */
-  if(!line) setTimeout(() => { const i = document.getElementById("lpq"); if(i) i.focus(); }, 30);
+  if(!line) setTimeout(() => { const i = document.getElementById(pre ? "lq" : "lpq"); if(i) i.focus(); }, 30);
 
   document.getElementById("lSave").onclick = async () => {
     if(!st.product_id){ say("lMsg", "err", "Pick a product."); return; }
@@ -609,6 +616,10 @@ async function deleteAdj(h){
    ⚠️ There is no undo. The dialog says what will change, in the person's words. */
 function openConfirm(h, lines, rep, up, down){
   const moving = lines.filter(l => Number(l.delta) !== 0);
+  /* ⭐ ruling 56 — stock that would enter the books at cost 0 is named here, and the person
+     has to tick that they know before the button wakes up. It is not refused: the quantity
+     still has to be right even when nobody knows the cost. */
+  const zeroCost = lines.filter(l => Number(l.delta) > 0 && l.cost_branch === "unknown");
   modalOpen(`
     <h3 style="margin:0 0 10px">Confirm ${esc(h.adjust_number)}</h3>
     <div style="font-size:13px">
@@ -619,16 +630,24 @@ function openConfirm(h, lines, rep, up, down){
       <tbody>${moving.map(l => `<tr><td class="mono">${esc(l.sku)}</td><td class="mono">${esc(l.bin)}</td>
         <td class="num">${signed(l.delta)}</td><td class="num">${qty(l.result)}</td></tr>`).join("")}</tbody></table>
     ${lines.length > moving.length ? `<div class="dim" style="font-size:12px;margin-top:4px">${esc(lines.length - moving.length)} line(s) change nothing and write nothing.</div>` : ""}
+    ${zeroCost.length ? `<div class="rejbox" style="margin:10px 0 0"><b>These go into the books at cost 0</b> — no cost is left for them
+        in this warehouse and no unit cost was given:<br>${zeroCost.map(l => `<span class="mono">${esc(l.sku)}</span> <span class="mono">${esc(l.bin)}</span> +${qty(l.delta)}`).join("<br>")}
+        <div style="margin-top:6px">Cancel and give a unit cost on the line if you know it. When they are sold, their cost of goods will be 0.</div>
+        <label style="display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--fg, #222)"><input type="checkbox" id="cAck"> I know these go in at cost 0 — confirm anyway</label></div>` : ""}
     ${rep && !rep.resolved_at ? `<div class="repbox">The "Not enough stock" report on <span class="mono">${esc(rep.order_number || "")}</span> will be marked resolved.</div>` : ""}
     <div class="warnbox" style="margin:10px 0 0">This writes to the stock book and cannot be undone or deleted.
       If something is wrong afterwards, correct it with a new adjustment and put this number (${esc(h.adjust_number)}) in its note.</div>
     <div id="cMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
       <button class="pobtn" id="cCancel">Cancel</button>
-      <button class="pobtn go" id="cGo">Confirm adjustment</button></div>`);
+      <button class="pobtn go" id="cGo" ${zeroCost.length ? "disabled" : ""}>Confirm adjustment</button></div>`);
   document.getElementById("cCancel").onclick = modalClose;
+  const ack = document.getElementById("cAck");
+  if(ack) ack.onchange = () => { document.getElementById("cGo").disabled = !ack.checked; };
   document.getElementById("cGo").onclick = async () => {
-    const btn = document.getElementById("cGo"); btn.disabled = true;
+    const btn = document.getElementById("cGo");
+    if(zeroCost.length && !(ack && ack.checked)) return;
+    btn.disabled = true;
     say("cMsg", "", "Confirming…");
     const { data, error } = await sb.rpc("inv_adjust_confirm", { p_adjust_id: h.id });
     if(error){ say("cMsg", "err", error.message); btn.disabled = false; return; }
@@ -684,8 +703,37 @@ async function fromReport(reportId){
   const { data, error } = await sb.rpc("inv_adjust_from_report", { p_report_id: rid });
   if(error){ alert(error.message); return; }
   if(!data){ alert("That is not a Not-enough-stock report, or it is gone."); return; }
-  const r = data.report || {}, ls = data.lines || [];
+  const r = data.report || {};
+  let ls = data.lines || [];
   const allowed = whs.some(w => w.id === data.warehouse_id);
+
+  /* v1.2 — the pick records no bin when the picker found none. Then the report's SKU (folded
+     to its single unit) is looked up in the last bin it was in (ims_last_bin, the same answer
+     as "Last here"), and that bin is proposed as "set to 0". With no last bin either, the new
+     draft opens with the Add line window already holding the SKU. */
+  let fallback = null, prefill = null;
+  if(!ls.length && r.sku){
+    let { data: pr } = await sb.from("product").select("id,sku,name,parent_product_id").eq("sku", r.sku).maybeSingle();
+    if(pr && pr.parent_product_id){
+      const pp = await sb.from("product").select("id,sku,name,parent_product_id").eq("id", pr.parent_product_id).maybeSingle();
+      pr = pp.data || null;
+    }
+    if(pr){
+      prefill = { product_id: pr.id, sku: pr.sku, name: pr.name || "" };
+      const lb = await sb.rpc("ims_last_bin", { p_product_ids: [pr.id], p_warehouse_id: data.warehouse_id });
+      const last = (lb && !lb.error && lb.data) ? lb.data[pr.id] : null;
+      if(last && last.bin_id){
+        const [g1, g2] = await Promise.all([
+          sb.rpc("inv_adjust_ledger", { p_warehouse: data.warehouse, p_bin: last.bin, p_sku: pr.sku }),
+          sb.rpc("inv_adjust_picked", { p_warehouse_id: data.warehouse_id, p_bin_id: last.bin_id, p_product_id: pr.id })
+        ]);
+        fallback = { product_id: pr.id, sku: pr.sku, bin_id: last.bin_id, bin: last.bin, picked_this_order: null,
+                     ledger: (g1 && !g1.error) ? g1.data : null, picked: (g2 && !g2.error) ? g2.data : null,
+                     suggested_mode: "set", suggested_qty: 0 };
+        ls = [fallback];
+      }
+    }
+  }
 
   modalOpen(`
     <h3 style="margin:0 0 10px">Adjust from a "Not enough stock" report</h3>
@@ -699,8 +747,12 @@ async function fromReport(reportId){
       <tbody>${ls.map(l => `<tr><td class="mono">${esc(l.bin)}</td><td class="num">${qty(l.picked_this_order)}</td>
         <td class="num">${qty(l.ledger)}</td><td class="num">${qty(l.picked)}</td>
         <td class="num">${qty(Number(l.ledger) - Number(l.picked))}</td><td>set to 0</td></tr>`).join("")}</tbody></table>
-      <div class="dim" style="font-size:12px;margin-top:4px">"Set to 0" because the picker took all there was. Change a line after starting if the shelf says otherwise.</div>`
-      : '<div class="msg">No picked bin was found for this report — start the adjustment and add the line yourself.</div>'}
+      <div class="dim" style="font-size:12px;margin-top:4px">${fallback
+        ? "The picker found none, so the pick recorded no bin — this is the last bin the book had this SKU in. Proposed \"set to 0\" because nothing was on the shelf there. Change the line after starting if the shelf says otherwise, or add other bins."
+        : "\"Set to 0\" because the picker took all there was. Change a line after starting if the shelf says otherwise."}</div>`
+      : (prefill
+        ? `<div class="msg">No bin was recorded on the pick and the book has never had <span class="mono">${esc(prefill.sku)}</span> in this warehouse — the draft opens with the line window ready for you to pick the bin.</div>`
+        : '<div class="msg">No picked bin was found for this report — start the adjustment and add the line yourself.</div>')}
     <div class="frow" style="margin-top:10px"><label>Reason</label>
       <select id="fr">${Object.keys(REASON).map(k => `<option value="${k}" ${k === "count" ? "selected" : ""}>${esc(REASON[k])}</option>`).join("")}</select></div>
     <div class="frow"><label>Note</label><input id="fn" style="flex:1" value="${esc(`Not enough stock — ${r.order_number || ""} · ${r.sku || ""}`)}"></div>
@@ -724,6 +776,7 @@ async function fromReport(reportId){
       if(s.error){ alert(`${c.data.adjust_number} was started, but a line could not be added: ${s.error.message}`); break; }
     }
     modalClose();
+    if(!ls.length && prefill) pendingPrefill = Object.assign({ adjust_id: c.data.id }, prefill);
     openAdj(c.data.id);
   };
 }
