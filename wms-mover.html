@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Bin Moves · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* trf-b(대화 Claude · 2026-09-28) — 운영 원본이 없는 새 WMS 화면. 모양은 wms-receiver.html(rc v1.4)의 스캔 · 칸 모달 · 소리를 본떴다.
+     헤더 · 로그인 · 메뉴 · 탭 줄은 IMS 공통(ims-ui.css · ims-auth.js). */
+  :root{
+    --ink:#12161c; --ink-2:#1b222c; --line:#e5e9ef; --paper:#f7f8fa; --card:#ffffff; --mut:#6b7686; --mut-2:#9aa4b2;
+    --accent:#2f6df6; --ok:#16a34a; --ok-bg:#e7f7ed; --warn:#d9820a; --warn-bg:#fdf6ec; --danger:#dc2626; --danger-bg:#fdecec;
+    --radius:12px; --shadow:0 1px 2px rgba(16,22,30,.04),0 4px 16px rgba(16,22,30,.05);
+    --mono:ui-monospace,"SF Mono","DM Mono",Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overscroll-behavior:none}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--mut-2)}
+  .dot.on{background:var(--ok)} .dot.err{background:var(--danger)}
+
+  main{max-width:640px;margin:0 auto;padding:16px}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .ttl{font-family:var(--mono);font-weight:800;font-size:17px}
+  .top select{margin-left:auto;border:1px solid var(--line);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px;background:#fff}
+  .whtag{margin-left:auto;font-family:var(--mono);font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:6px;color:var(--accent);background:#eef3ff}
+
+  .steps{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px}
+  .step.cur{border-color:#bcd0f6;box-shadow:0 0 0 3px rgba(47,109,246,.12)}
+  .step.done{border-color:#cfe9d7}
+  .step .lbl{font-family:var(--mono);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .step .val{font-family:var(--mono);font-weight:800;font-size:22px;margin-top:2px}
+  .step .val.none{color:var(--mut-2);font-weight:600;font-size:15px;font-family:var(--sans)}
+  .step .sub{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .step .row{display:flex;align-items:center;gap:8px}
+  .step .row .sp{flex:1}
+  .lnk{border:0;background:none;color:var(--accent);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 4px}
+
+  .nums{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+  .nums .n{display:flex;flex-direction:column}
+  .nums .n b{font-family:var(--mono);font-size:16px}
+  .nums .n span{font-size:10.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+  .nums .n.max b{color:var(--ok)}
+  .nums .n.zero b{color:var(--danger)}
+  .note{font-size:12.5px;margin-top:8px;padding:7px 10px;border-radius:9px}
+  .note.warn{background:var(--warn-bg);color:#7a4a00}
+  .note.info{background:#eef3ff;color:#1b4fd6}
+
+  .qtyrow{display:flex;align-items:center;gap:8px;margin-top:10px}
+  .qtyrow input{width:110px;font-family:var(--mono);font-weight:800;font-size:28px;text-align:center;border:2px solid var(--line);border-radius:10px;padding:6px}
+  .qbtn{border:1px solid var(--line);background:#fff;border-radius:10px;font:inherit;font-weight:800;font-size:20px;width:48px;height:48px;cursor:pointer}
+  .qall{border:1px solid #cfe9d7;background:var(--ok-bg);color:#136b33;border-radius:10px;font:inherit;font-weight:700;font-size:13px;padding:0 12px;height:48px;cursor:pointer}
+  .ea{font-size:12px;color:var(--mut)}
+
+  .scanin{width:100%;border:2px solid var(--accent);border-radius:12px;padding:14px 16px;font:inherit;font-size:16px;font-family:var(--mono);letter-spacing:.02em;background:#fff}
+  .scanin:focus{outline:none;box-shadow:0 0 0 4px rgba(47,109,246,.15)}
+  .scanhint{font-size:11.5px;color:var(--mut);font-family:var(--mono);margin:6px 2px 0;display:flex;align-items:center;gap:6px}
+  .scanhint .live{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .acts{display:flex;gap:10px;margin-top:12px}
+  .btn{border:0;border-radius:10px;padding:13px 16px;font:inherit;font-size:14px;font-weight:800;cursor:pointer;flex:1}
+  .btn.go{background:var(--accent);color:#fff}
+  .btn.ghost{background:var(--card);color:var(--mut);border:1px solid var(--line)}
+  .btn:disabled{opacity:.45;cursor:default}
+  .err{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--danger-bg);color:var(--danger);font-size:13px;display:none}
+
+  .sect{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:18px 2px 6px}
+  .recent{display:flex;flex-direction:column;gap:6px}
+  .rc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:12.5px;display:flex;gap:10px;align-items:center}
+  .rc .no{font-family:var(--mono);font-weight:800}
+  .rc .sp{flex:1}
+  .rc .t{color:var(--mut)}
+  .empty{padding:14px;color:var(--mut);font-size:12.5px;text-align:center}
+  .ro{padding:30px 16px;text-align:center;color:var(--mut)}
+
+  #flash{position:fixed;left:0;right:0;top:0;z-index:60;padding:16px;text-align:center;font-weight:800;font-size:17px;color:#fff;transform:translateY(-100%);transition:transform .12s;font-family:var(--mono)}
+  #flash.show{transform:translateY(0)}
+  #flash.ok{background:var(--ok)} #flash.bad{background:var(--danger)}
+  #toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:90vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.bad{background:var(--danger)}
+
+  /* bin list modal — wms-receiver 모양 */
+  .modal-ov{position:fixed;inset:0;background:rgba(16,22,30,.5);backdrop-filter:blur(2px);z-index:70;display:flex;align-items:flex-end;justify-content:center}
+  @media(min-width:560px){.modal-ov{align-items:center}}
+  .modal{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.3);max-height:88vh;display:flex;flex-direction:column}
+  @media(min-width:560px){.modal{border-radius:16px}}
+  .modal .mh{padding:16px 18px 10px}
+  .modal .mh .t{font-family:var(--mono);font-weight:800;font-size:16px}
+  .modal .mfilter{margin:0 18px 8px}
+  .modal .mfilter input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px}
+  .modal .blist2{overflow-y:auto;padding:0 10px 6px;flex:1}
+  .modal .bitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:10px;font:inherit;cursor:pointer}
+  .modal .bitem:hover,.modal .bitem:focus{background:var(--paper)}
+  .modal .bitem .bc{font-family:var(--mono);font-weight:700;font-size:15px}
+  .modal .bitem .st{margin-left:auto;font-size:11.5px;color:var(--mut)}
+  .modal .mfoot{padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px}
+  .modal .mfoot .btn{padding:12px}
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <span class="dot" id="dot" title="Connection"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button title="Warehouse map" onclick="window.open('https://tools.asung.ca/warehousemap.html','_blank','noopener')">🗺 Map</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main id="app" style="display:none">
+  <div class="top">
+    <span class="ttl">Bin Moves</span>
+    <span id="whBox"></span>
+  </div>
+
+  <div id="work">
+    <div class="steps">
+      <div class="step" id="sFrom">
+        <div class="row"><span class="lbl">1 · From bin</span><span class="sp"></span><button class="lnk" id="fromList">List</button></div>
+        <div class="val none" id="fromVal">Scan the bin you take from</div>
+      </div>
+      <div class="step" id="sItem">
+        <div class="lbl">2 · Item</div>
+        <div class="val none" id="itemVal">Scan the product</div>
+        <div class="sub" id="itemName"></div>
+        <div id="itemNums"></div>
+        <div id="qtyBox" style="display:none">
+          <div class="qtyrow">
+            <button class="qbtn" id="qMinus" title="One less">−</button>
+            <input id="qIn" type="number" inputmode="numeric" min="1" step="1">
+            <button class="qbtn" id="qPlus" title="One more">+</button>
+            <button class="qall" id="qAll">All</button>
+          </div>
+          <div class="ea" id="qHint">single units (EA) · scan the product again to add</div>
+        </div>
+      </div>
+      <div class="step" id="sTo">
+        <div class="row"><span class="lbl">3 · To bin</span><span class="sp"></span><button class="lnk" id="toList">List</button></div>
+        <div class="val none" id="toVal">Scan the bin you put it in</div>
+        <div class="sub" id="toSub"></div>
+      </div>
+    </div>
+
+    <input class="scanin" id="scan" inputmode="none" autocomplete="off" placeholder="Scan…">
+    <div class="scanhint"><span class="live"></span><span id="hint">Scan the FROM bin</span></div>
+
+    <div class="err" id="err"></div>
+
+    <div class="acts">
+      <button class="btn ghost" id="resetBtn">Start over</button>
+      <button class="btn go" id="moveBtn" disabled>Move</button>
+    </div>
+  </div>
+
+  <div class="ro" id="readOnly" style="display:none">You can look at bin moves but not make them — moving stock needs the Bin moves key. Ask a manager to switch it on for you.</div>
+
+  <div class="sect">Recent moves in this warehouse</div>
+  <div class="recent" id="recent"><div class="empty">Loading…</div></div>
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Bin Moves — the warehouse scans stock from one bin to another.
+
+   One move = from bin → item → quantity → to bin → Move. It is saved the moment Move is
+   pressed (inv_move_now — no draft on this screen; the office screen keeps drafts).
+
+   ⭐ How much can move is decided by the database; this screen only shows the same numbers
+      before the person presses Move:
+         can move = book − picked, not shipped − waiting for pickers now
+      "Picked, not shipped" is already off the shelf. "Waiting for pickers" is what a picker who
+      is working right now (or has put a pick on hold) still expects to find in this bin —
+      that part stays (ruling 62). Plans of picks nobody has started follow the stock to the
+      new bin by themselves, and the screen says how many.
+   ⚠️ The database refuses anything wrong (bins of another warehouse, the same bin, a set or
+      pack SKU, more than can move, the book changed in between) and says why — the screen
+      shows that sentence as it is.
+   ⚠️ Only single units go into the book. Scanning a box or pack barcode adds its pack size.
+   ⚠️ Screen state lives in memory only — nothing is kept on the device.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running — the screen says its own version out loud. */
+const MV_BUILD = "2026-09-28 · mv v1";   // trf-b(대화 Claude) — 판정 60 ~ 63 · 창구 1429943(inv_move_now · inv_move_open_plans)
+console.log("wms-mover.html build:", MV_BUILD);
+
+let sb = null, me = null, canMove = false, actx = null, busy = false;
+let whs = [], wh = null;                  // wh = {id, name}
+const st = { from: null, item: null, to: null, info: null, qty: 0 };
+/* st.from / st.to = {id, name} · st.item = {id, sku, name, factor, scanned} · st.info = {book, picked, waiting, max, follow, plans} */
+const codeCache = new Map();              // scanned code → {id, sku, name, factor} (this session)
+
+/* ── small helpers ──────────────────────────────────── */
+const $ = (id) => document.getElementById(id);
+const n0 = (v) => Number(v || 0);
+const fmt = (v) => Number(v || 0).toLocaleString("en-CA", { maximumFractionDigits: 3 });
+function rpcMsg(e){ return (e && e.message) || String(e || "error"); }
+function setConn(s){ const d = $("dot"); d.className = "dot " + (s === "ok" ? "on" : s === "err" ? "err" : ""); }
+function toast(m, bad){ const el = $("toast"); el.textContent = m; el.className = "show" + (bad ? " bad" : ""); clearTimeout(el._t); el._t = setTimeout(() => el.className = "", 3200); }
+function showErr(m){ const el = $("err"); if(!m){ el.style.display = "none"; el.textContent = ""; return; } el.textContent = m; el.style.display = "block"; }
+function focusScan(){ const s = $("scan"); if(s && canMove && !document.getElementById("binModal")) setTimeout(() => s.focus(), 30); }
+
+/* ── sound / vibrate / flash — the same family as the other WMS screens ── */
+function initAudio(){ if(!actx){ try{ actx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ actx = null; } } }
+function beep(kind){
+  if(!actx) return;
+  try{ if(actx.state === "suspended") actx.resume(); }catch(e){ /* ignore */ }
+  const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+  if(kind === "ok"){
+    o.type = "sine"; o.frequency.setValueAtTime(1050, t);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.13);
+  } else if(kind === "done"){
+    o.type = "sine";
+    o.frequency.setValueAtTime(1046.5, t); o.frequency.setValueAtTime(1318.5, t + 0.09);
+    o.frequency.setValueAtTime(1568, t + 0.18); o.frequency.setValueAtTime(2093, t + 0.27);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.01);
+    g.gain.setValueAtTime(0.55, t + 0.34); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.52);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.53);
+  } else {
+    o.type = "square";
+    for(let i = 0; i < 6; i++) o.frequency.setValueAtTime(i % 2 ? 1600 : 2400, t + i * 0.12);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(1.0, t + 0.015);
+    g.gain.setValueAtTime(1.0, t + 0.66); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.72);
+    o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.73);
+  }
+}
+function vibe(kind){ try{ if(navigator.vibrate) navigator.vibrate(kind === "bad" ? [160, 80, 160, 80, 220] : 25); }catch(e){ /* ignore */ } }
+function flash(kind, msg){
+  const el = $("flash"), cls = kind === "done" ? "ok" : kind;
+  el.className = "show " + cls; el.textContent = msg;
+  clearTimeout(el._t); el._t = setTimeout(() => el.className = cls, kind === "done" ? 1300 : 700);
+  beep(kind); vibe(kind);
+}
+
+/* ── lookups ──────────────────────────────────────────
+   Bins are looked up in the chosen warehouse only · active only. Products: barcode first
+   (product_barcode · active), then SKU typed by hand. A pack or set turns into its single
+   unit with the pack size as the step. */
+async function binByName(name){
+  const { data, error } = await sb.from("ref_bin").select("id,name").eq("warehouse_id", wh.id).eq("is_active", true)
+    .ilike("name", String(name).trim()).limit(2);
+  if(error) throw error;
+  return (data && data.length === 1) ? { id: data[0].id, name: String(data[0].name).trim() } : null;
+}
+async function productByCode(code){
+  const key = String(code).trim();
+  if(codeCache.has(key)) return codeCache.get(key);
+  let pid = null;
+  const { data: bc, error: e1 } = await sb.from("product_barcode").select("product_id").eq("barcode", key).eq("is_active", true).limit(5);
+  if(e1) throw e1;
+  const ids = [...new Set((bc || []).map(b => b.product_id))];
+  if(ids.length > 1) throw new Error(`Barcode ${key} belongs to more than one product — ask the office`);
+  if(ids.length === 1) pid = ids[0];
+  let p = null;
+  if(pid){
+    const r = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor,is_active").eq("id", pid).maybeSingle();
+    if(r.error) throw r.error; p = r.data;
+  } else {
+    const r = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor,is_active").ilike("sku", key).limit(2);
+    if(r.error) throw r.error;
+    if(r.data && r.data.length === 1) p = r.data[0];
+  }
+  if(!p) return null;
+  let base = p, factor = 1;
+  if(p.parent_product_id){
+    const r = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor,is_active").eq("id", p.parent_product_id).maybeSingle();
+    if(r.error) throw r.error;
+    if(!r.data) throw new Error(`${p.sku} is a pack whose single unit could not be found — ask the office`);
+    base = r.data; factor = Number(p.pack_factor) > 1 ? Number(p.pack_factor) : 1;
+  }
+  if(base.is_active === false) throw new Error(`${base.sku} is inactive — ask the office`);
+  const out = { id: base.id, sku: base.sku, name: base.name || "", factor, scanned: p.sku };
+  codeCache.set(key, out);
+  return out;
+}
+
+/* The same numbers the database will check: book and picked-not-shipped (the adjustment
+   pieces) and the open pick plans of this bin (inv_move_open_plans · ruling 62). */
+async function loadInfo(){
+  if(!st.from || !st.item){ st.info = null; return; }
+  const from = st.from, item = st.item;
+  const [r1, r2, r3] = await Promise.all([
+    sb.rpc("inv_adjust_ledger", { p_warehouse: wh.name, p_bin: from.name, p_sku: item.sku }),
+    sb.rpc("inv_adjust_picked", { p_warehouse_id: wh.id, p_bin_id: from.id, p_product_id: item.id }),
+    sb.rpc("inv_move_open_plans", { p_warehouse_id: wh.id, p_bin_id: from.id, p_product_id: item.id })
+  ]);
+  if(st.from !== from || st.item !== item) return;           // the person moved on meanwhile
+  const bad = r1.error || r2.error || r3.error;
+  if(bad){ setConn("err"); throw bad; }
+  setConn("ok");
+  const plans = r3.data || [];
+  const book = n0(r1.data), picked = n0(r2.data);
+  const waiting = plans.reduce((s, p) => s + n0(p.blocking_qty), 0);
+  const follow = plans.reduce((s, p) => s + n0(p.movable_qty), 0);
+  st.info = { book, picked, waiting, follow, max: book - picked - waiting,
+              waitingBy: plans.filter(p => n0(p.blocking_qty) > 0).map(p => `${p.batch_label || p.so_number} ${fmt(p.blocking_qty)}`) };
+}
+
+/* ── state → screen ─────────────────────────────────── */
+function render(){
+  const cur = !st.from ? "from" : !st.item ? "item" : !st.to ? "to" : "go";
+  $("sFrom").className = "step " + (st.from ? "done" : "cur");
+  $("sItem").className = "step " + (cur === "item" ? "cur" : st.item ? "done" : "");
+  $("sTo").className = "step " + (cur === "to" ? "cur" : st.to ? "done" : "");
+
+  $("fromVal").className = "val" + (st.from ? "" : " none");
+  $("fromVal").textContent = st.from ? st.from.name : "Scan the bin you take from";
+
+  $("itemVal").className = "val" + (st.item ? "" : " none");
+  $("itemVal").textContent = st.item ? st.item.sku : "Scan the product";
+  $("itemName").textContent = st.item ? (st.item.name + (st.item.factor > 1 ? ` · scanned ${st.item.scanned} (pack of ${st.item.factor})` : "")) : "";
+
+  const i = st.info;
+  if(st.item && i){
+    const warn = [];
+    if(i.waiting > 0) warn.push(`<div class="note warn">${fmt(i.waiting)} must stay — a picker is working on it now: ${esc(i.waitingBy.join(", "))}</div>`);
+    if(i.follow > 0) warn.push(`<div class="note info">${fmt(i.follow)} planned for picks that have not started will follow to the new bin</div>`);
+    if(i.max <= 0) warn.push('<div class="note warn">Nothing can move from this bin right now.</div>');
+    $("itemNums").innerHTML = `<div class="nums">
+        <div class="n"><b>${fmt(i.book)}</b><span>Book</span></div>
+        <div class="n"><b>${fmt(i.picked)}</b><span>Picked, not shipped</span></div>
+        <div class="n"><b>${fmt(i.waiting)}</b><span>Waiting for pickers</span></div>
+        <div class="n ${i.max > 0 ? "max" : "zero"}"><b>${fmt(Math.max(i.max, 0))}</b><span>Can move</span></div>
+      </div>${warn.join("")}`;
+  } else {
+    $("itemNums").innerHTML = st.item ? '<div class="sub">Reading the bin…</div>' : "";
+  }
+  $("qtyBox").style.display = st.item ? "block" : "none";
+  if(document.activeElement !== $("qIn")) $("qIn").value = st.item ? String(st.qty) : "";
+  $("qAll").textContent = i ? `All ${fmt(Math.max(i.max, 0))}` : "All";
+
+  $("toVal").className = "val" + (st.to ? "" : " none");
+  $("toVal").textContent = st.to ? st.to.name : "Scan the bin you put it in";
+  $("toSub").textContent = st.to && st.to.book !== undefined ? `Book there now: ${fmt(st.to.book)} · after: ${fmt(n0(st.to.book) + n0(st.qty))}` : "";
+
+  $("hint").textContent =
+    cur === "from" ? "Scan the FROM bin" :
+    cur === "item" ? `Scan the product in ${st.from.name}` :
+    cur === "to"   ? "Scan the product again to add · or scan the TO bin" :
+                     `Press Move — or scan ${st.to.name} again to move`;
+  const ok = cur === "go" && !busy && i && st.qty > 0 && st.qty <= i.max;
+  $("moveBtn").disabled = !ok;
+  $("moveBtn").textContent = st.item && st.to ? `Move ${fmt(st.qty)} → ${st.to.name}` : "Move";
+}
+
+function resetAll(keepFrom){
+  st.item = null; st.to = null; st.info = null; st.qty = 0;
+  if(!keepFrom) st.from = null;
+  showErr(""); render(); focusScan();
+}
+function setQty(v){
+  const q = Math.max(0, Math.floor(Number(v) || 0));
+  st.qty = q; render();
+}
+
+/* ── the one scan box — what a scan means depends on the step ── */
+async function onScan(raw){
+  const code = String(raw || "").trim();
+  if(!code || busy || !canMove) return;
+  initAudio(); showErr("");
+  try{
+    if(!st.from){
+      const b = await binByName(code);
+      if(!b){ flash("bad", "✕ Not a bin here"); toast(`"${code}" is not an active bin at ${wh.name}`, true); return; }
+      st.from = b; flash("ok", "From " + b.name); render(); return;
+    }
+    if(!st.item){
+      const p = await productByCode(code);
+      if(!p){
+        const b = await binByName(code);
+        if(b){ st.from = b; flash("ok", "From " + b.name); render(); return; }   // a second bin scan before any item = change the from bin
+        flash("bad", "✕ Unknown barcode"); toast("Unknown barcode — ask the office to register the product", true); return;
+      }
+      st.item = p; st.qty = p.factor; render();
+      await loadInfo();
+      if(st.info && st.qty > st.info.max) st.qty = Math.max(st.info.max, 0);
+      flash(st.info && st.info.max > 0 ? "ok" : "bad", st.info && st.info.max > 0 ? p.sku : "✕ Nothing can move");
+      render(); return;
+    }
+    // item chosen: the same product again adds its pack size · a bin = the TO bin · the TO bin again = Move
+    if(st.to && code.toUpperCase() === st.to.name.toUpperCase()){ await doMove(); return; }
+    const p = await productByCode(code).catch(() => null);
+    if(p && p.id === st.item.id){
+      const next = st.qty + p.factor;
+      if(st.info && next > st.info.max){ flash("bad", "✕ Only " + fmt(st.info.max) + " can move"); return; }
+      st.qty = next; flash("ok", "+" + p.factor + " = " + fmt(st.qty)); render(); return;
+    }
+    if(p){ flash("bad", "✕ Different product"); toast(`That is ${p.sku} — finish ${st.item.sku} first or press Start over`, true); return; }
+    const b = await binByName(code);
+    if(!b){ flash("bad", "✕ Not a bin here"); toast(`"${code}" is not an active bin at ${wh.name}`, true); return; }
+    if(b.id === st.from.id){ flash("bad", "✕ Same bin"); toast("From and to are the same bin", true); return; }
+    st.to = b; render();
+    const r = await sb.rpc("inv_adjust_ledger", { p_warehouse: wh.name, p_bin: b.name, p_sku: st.item.sku });
+    if(st.to === b && !r.error){ b.book = n0(r.data); }
+    flash("ok", "To " + b.name); render();
+  }catch(e){
+    flash("bad", "✕ Error"); showErr(rpcMsg(e));
+  }finally{
+    focusScan();
+  }
+}
+
+/* ── Move — saved at once (inv_move_now: create + line + confirm in one go) ── */
+async function doMove(){
+  if(busy || !st.from || !st.item || !st.to) return;
+  if(!(st.qty > 0)){ flash("bad", "✕ Quantity"); return; }
+  busy = true; render(); showErr("");
+  const line = { product_id: st.item.id, from_bin_id: st.from.id, to_bin_id: st.to.id, qty: String(st.qty) };
+  const { data, error } = await sb.rpc("inv_move_now", { p_warehouse_id: wh.id, p_lines: [line], p_note: null });
+  busy = false;
+  if(error){
+    setConn("err");
+    flash("bad", "✕ Not moved");
+    showErr(rpcMsg(error));
+    try{ await loadInfo(); }catch(e){ /* the message above already says what happened */ }
+    render(); focusScan(); return;
+  }
+  setConn("ok");
+  const moved = (data && data.plans_moved) || [];
+  flash("done", `✓ ${data.move_number} · ${fmt(st.qty)} ${st.item.sku}`);
+  toast(`${data.move_number}: ${fmt(st.qty)} ${st.item.sku} ${st.from.name} → ${st.to.name}` +
+        (moved.length ? ` · ${moved.length} waiting pick plan${moved.length === 1 ? "" : "s"} now point to ${st.to.name}` : ""));
+  resetAll(true);                           // the next item often comes from the same bin
+  loadRecent();
+}
+
+/* ── bin list (for bins without a label) ── */
+function closeBinModal(){ const m = document.getElementById("binModal"); if(m) m.remove(); focusScan(); }
+function openBinModal(which){
+  if(!canMove) return;
+  if(which === "to" && (!st.from || !st.item)) { toast("Choose the from bin and the item first", true); return; }
+  closeBinModal();
+  const ov = document.createElement("div");
+  ov.className = "modal-ov"; ov.id = "binModal";
+  ov.innerHTML = `<div class="modal" role="dialog" aria-label="Choose a bin">
+      <div class="mh"><div class="t">${which === "from" ? "From bin" : "To bin"} · ${esc(wh.name)}</div></div>
+      <div class="mfilter"><input id="binFilter" autocomplete="off" placeholder="Filter bins…"></div>
+      <div class="blist2" id="binOpts"><div class="empty">Loading…</div></div>
+      <div class="mfoot"><button class="btn ghost" id="binCancel">Cancel</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.addEventListener("mousedown", e => { if(e.target === ov) closeBinModal(); });
+  $("binCancel").onclick = closeBinModal;
+  let seq = 0;
+  const draw = async (f) => {
+    const my = ++seq;
+    let q = sb.from("ref_bin").select("id,name").eq("warehouse_id", wh.id).eq("is_active", true).neq("name", "").order("name").limit(300);   // caps-ok: 300 — type to narrow
+    if(f) q = q.ilike("name", "%" + f + "%");
+    const { data, error } = await q;
+    const box = document.getElementById("binOpts");
+    if(my !== seq || !box) return;
+    if(error){ box.innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
+    const rows = (data || []).filter(b => which !== "to" || b.id !== st.from.id);
+    box.innerHTML = rows.length ? rows.map(b => `<button class="bitem" data-bin="${esc(b.id)}" data-name="${esc(b.name)}"><span class="bc">${esc(b.name)}</span></button>`).join("") +
+        (rows.length >= 299 ? '<div class="empty">First 300 — type to narrow</div>' : "")
+      : '<div class="empty">No bin matches.</div>';
+    box.querySelectorAll("[data-bin]").forEach(btn => { btn.onclick = () => {
+      closeBinModal();
+      if(which === "from"){ resetAll(false); st.from = { id: btn.dataset.bin, name: btn.dataset.name }; initAudio(); flash("ok", "From " + st.from.name); render(); focusScan(); }
+      else onScan(btn.dataset.name);
+    }; });
+  };
+  let ft = null;
+  $("binFilter").addEventListener("input", e => { clearTimeout(ft); ft = setTimeout(() => draw(e.target.value.trim()), 180); });
+  draw("");
+  setTimeout(() => { const i = document.getElementById("binFilter"); if(i) i.focus(); }, 50);
+}
+
+/* ── recent moves (read) ── */
+async function loadRecent(){
+  const box = $("recent");
+  const { data, error } = await sb.rpc("inv_move_list", { p_filters: { status: "confirmed", warehouse_id: wh.id, limit: 10 } });
+  if(error){ box.innerHTML = `<div class="empty">${esc(error.message)}</div>`; return; }
+  if(data === null){ box.innerHTML = '<div class="empty">You cannot view bin moves.</div>'; return; }
+  if(!data.length){ box.innerHTML = '<div class="empty">No moves yet.</div>'; return; }
+  box.innerHTML = data.map(m => `<div class="rc"><span class="no">${esc(m.move_number)}</span>
+      <span>${esc(m.line_count)} line${Number(m.line_count) === 1 ? "" : "s"} · ${fmt(m.qty_ea)} EA${Number(m.plans_moved_count) > 0 ? ` · ${esc(m.plans_moved_count)} pick plan(s) moved` : ""}</span>
+      <span class="sp"></span><span class="t">${imsTs(m.confirmed_at || m.created_at)}</span></div>`).join("");
+}
+
+/* ── warehouse ── */
+function pickWarehouse(id){
+  wh = whs.find(w => w.id === id) || whs[0] || null;
+  resetAll(false);
+  if(wh) loadRecent();
+}
+
+/* ── start ── */
+imsAuth.start({ requireScreen: "stock_move" }, async (client, meData) => {   // 카탈로그 stock_move = WMS 방 · 사람마다(판정 63) · 진짜 문은 창구 첫 줄(inv_move_require)
+  sb = client; me = meData;
+  imsHeader(me);
+  $("buildTag").textContent = MV_BUILD;
+  $("app").style.display = "block";
+  canMove = imsAuth.canWrite("stock_move");
+
+  const r = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  if(r.error){ setConn("err"); $("recent").innerHTML = `<div class="empty">${esc(r.error.message)}</div>`; return; }
+  setConn("ok");
+  const acc = (me && me.access) || imsAuth.access || {};
+  const allow = Array.isArray(acc.warehouses) && acc.warehouses.length ? acc.warehouses : null;   // null = every warehouse
+  whs = (r.data || []).filter(w => !allow || allow.includes(w.id));
+  if(!whs.length){ $("work").style.display = "none"; $("readOnly").style.display = "block"; $("readOnly").textContent = "You are not set up for any warehouse."; return; }
+  if(whs.length > 1){
+    $("whBox").innerHTML = `<select id="whSel">${whs.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select>`;
+    $("whSel").onchange = e => pickWarehouse(e.target.value);
+  } else {
+    $("whBox").innerHTML = `<span class="whtag">${esc(whs[0].name)}</span>`;
+  }
+
+  if(!canMove){ $("work").style.display = "none"; $("readOnly").style.display = "block"; }
+
+  const scan = $("scan");
+  scan.addEventListener("keydown", e => {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    const v = scan.value; scan.value = "";
+    onScan(v);
+  });
+  document.addEventListener("pointerdown", initAudio, { once: true });
+  $("fromList").onclick = () => openBinModal("from");
+  $("toList").onclick = () => openBinModal("to");
+  $("resetBtn").onclick = () => resetAll(false);
+  $("moveBtn").onclick = () => { initAudio(); doMove(); };
+  $("qMinus").onclick = () => { setQty(st.qty - 1); focusScan(); };
+  $("qPlus").onclick = () => { setQty(st.qty + 1); focusScan(); };
+  $("qAll").onclick = () => { if(st.info) setQty(Math.max(st.info.max, 0)); focusScan(); };
+  $("qIn").addEventListener("input", e => setQty(e.target.value));
+  $("qIn").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); focusScan(); } });
+
+  pickWarehouse(whs[0].id);
+});
+</script>
+</body>
+</html>
