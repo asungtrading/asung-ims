@@ -60,6 +60,7 @@
 📌 [2026-09-28 · 오피스 판 b693d8c] 판정 46 — 「Finalized — 견적 · 결제 · 마무리 대기」 목록 = so.html 목록 필터 「Finalized — waiting for the office」(값 packed · 넓은 · 좁은 목록 둘 다) · Manager List 탭은 없다 · 같은 모집단의 창고용은 wms-admin Finalized 탭 · 판정 17 글자 표는 so.html 안에 하나(SO_STATUS_LABEL) — 공통 셋(ims-ui.js)은 무접촉(공통화는 뒤의 정리 차수 · 그때 이 절 재점검)
 ```
 📌 [2026-09-28 · adj-b 0c96926] 메뉴 항목 **스물다섯 → 스물여섯** — Stock Adjustments(stock-adjustments.html · 열쇠 stock_adjust · ims · Manager List 뒤 · 메뉴에만 · 탭 아님 · 열쇠 없는 supervisor 도 메뉴는 보이고 읽기만) · 화면을 여는 공통 셋 사용 화면은 스물다섯(stock-adjustments.html 더함)
+📌 [2026-09-28 · 칸 옮기기 7fca511 · c9b2ed0] 메뉴 항목 **스물여섯 → 스물여덟** — Bin Moves(wms-mover.html · 열쇠 stock_move · wms · Receiving 뒤 · Split & Waves 앞 · 탭) · Bin Moves (office)(stock-moves.html · 같은 열쇠 · ims · Stock Adjustments 뒤 · 메뉴에만 · 탭 아님 · 메뉴 필터는 screens 만 본다 — ims-auth.js:344) · 화면을 여는 공통 셋 사용 화면은 스물일곱(wms-mover.html · stock-moves.html 더함)
 [ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
     settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
@@ -1310,6 +1311,48 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] ?report=<id>(WMS Admin 「Adjust stock」) — 「Adjust from a "Not enough stock" report」 창 · 뽑은 칸(planned=false) · SKU · 목표 set 0 이 채워짐 · 뽑은 칸이 없으면 Last bin 으로 set 0 줄 · 그것도 없으면 SKU 채운 줄 창 · 같은 신고의 초안이 있으면 그것이 열린다
 [ ] 확정(맨 마지막) → confirmed · 원장 adjust_existing/adjust_new(source ims) · 신고에서 왔으면 그 신고가 닫힌다 · Mark resolved 없이
 [ ] 확정 뒤 삭제 · 줄 고치기 거부 · 초안 삭제는 된다
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
+```
+
+---
+
+## 7-t. `wms-mover.html` — Bin Moves (2026-09-28 신설 · 대화 Claude · 「mv v1」 · 창고 스캔 · 운영 원본 없는 새 WMS 화면)
+
+뒷단: asung-wms `20260928182712`(창구 · 표 · 1429943) · 정본 so-module §26(판정 60 ~ 63 · 묶음 열).
+읽기 `inv_move_open_plans` · `inv_move_list` · 쓰기 `inv_move_now`(create + 줄 + 확정을 한 트랜잭션에 — 초안이 남지 않는다).
+⭐ 옮기기는 되돌릴 수 없다 — 틀리면 반대 방향 새 옮기기(메모에 원래 번호 · 판정 53 모양). 원장은 행 둘(출발 − · 도착 +) · 원가 레이어는 안 움직인다.
+⭐ 권한 = 열쇠 stock_move(Bin moves)를 켠 사람 · worker 도 켤 수 있다 · admin · supervisor 는 역할로(판정 63).
+
+```
+[ ] 빌드 표시 「2026-09-28 · mv v1」 · 헤더 IMS 공통(☰ Menu 가 이름 바로 옆 · 🗺 Map · Sign Out) · WMS 탭 줄에 Bin Moves(Receiving 뒤)
+[ ] ⭐ 시험 순서(so-module §26-d ①): C070303 → CON00156(장부 4 · 기다리는 과제 125 의 계획 1) → 1 → C070304 → Move = MV-00001
+[ ] 판정 62 알림 둘 — 옮기기 전 「N planned for picks that have not started will follow to the new bin」 · 옮긴 뒤 최근 목록에 「N pick plan(s) moved」
+[ ] 뽑는 중인 과제가 그 칸에서 기다리면 「N must stay — a picker is working on it now: <batch>」 · 남는 것이 없으면 「Nothing can move from this bin right now.」
+[ ] 넘게 옮기면 창구 거부 문장 그대로 — 「only 18 can move (ledger 24 − picked not shipped 0 − waiting for pickers 6: SO-79402-1 waits 6) — you asked 24」 모양
+[ ] 같은 칸 · 다른 창고 칸 · 비활성 칸 · 세트 SKU(낱개 EA · 팩 바코드는 화면이 환산) 거부
+[ ] DB: transfer_out −q 출발 seq 2 · transfer_in +q 도착 seq 1 · raw.kind bin_move · 기다리는 과제 계획이 도착 칸으로
+[ ] 열쇠 없는 사람 — 작업 칸이 숨고 읽기 전용 안내만(스캔 칸에 포커스가 안 간다)
+[ ] 기기 저장 없음 — localStorage · sessionStorage 0(규칙 5)
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
+```
+
+---
+
+## 7-u. `stock-moves.html` — Bin Moves (office) (2026-09-28 신설 · 대화 Claude · 「sm v1」 · stock-adjustments 모양)
+
+뒷단: 7-t 와 같다(`20260928182712`). 읽기 `inv_move_list` · `inv_move_detail` · `inv_move_preview` · 쓰기 `inv_move_create` · `inv_move_line_set` · `inv_move_line_remove` · `inv_move_delete` · `inv_move_confirm`.
+⭐ 확정은 시험 순서의 맨 마지막 — 원장 · 기다리는 픽 계획이 그 순간 움직인다. 초안 삭제는 되고(번호는 빈다 · 판정 55) 확정 뒤 삭제는 안 된다.
+
+```
+[ ] 빌드 표시 「2026-09-28 · sm v1」 · ☰ Menu 에 Bin Moves (office)(Stock Adjustments 뒤 · 탭 아님)
+[ ] ⭐ 시험 순서(so-module §26-d ②): New move → C070304 → C070303 · 1 · 줄에 「SO-25003b-1 (waiting): 1 follows」
+[ ] 여러 줄 · 같은 SKU · 출발 · 도착 다시 적으면 그 줄이 고쳐진다 · 줄 지우기
+[ ] 확정 전 상자 — 거부가 있으면 「Cannot confirm yet」 + 창구 문장 · 따라갈 계획이 있으면 「When confirmed, N EA planned for picks that have not started will follow to the new bins.」
+[ ] ⭐ CAS — 줄을 적은 뒤 같은 출발 칸이 움직이면 확정이 「ledger changed (you saw …)」 로 거부 · 줄 다시 저장 뒤 새 값으로
+[ ] 확정(맨 마지막) = MV-00002 · 「Pick plans moved with this stock: SO-25003b-1 · CON00156 1 · C070304 → C070303」
+[ ] DB: 네 줄(−1 C070303 · +1 C070304 · −1 C070304 · +1 C070303) · 잔고 C070303 4 · C070304 0 · 과제 125 계획 C070303
+[ ] 열쇠 없는 사람 — 초안에 「Read-only — moving stock needs the Bin moves key.」 · 버튼 없음
+[ ] 기기 저장 없음 — localStorage · sessionStorage 0
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
 ```
 
