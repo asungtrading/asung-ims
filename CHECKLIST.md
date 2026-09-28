@@ -57,6 +57,7 @@
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 43 — off-PO 흐름 = 창고 직원 한 번(스캔 → **바로 놓는다** · 운영의 「승인 전 풋어웨이 차단」 없앰) · 매니저 한 번(받는다 · 무상 = 원가 0 / 받는다 · 청구 = 단가 / 거절 = 장부 없음 · 「어느 칸에서 빼라」) · 정하기 전엔 「선반에는 있고 장부에는 없다」(Health 150 이 알린다)
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 44 — 정하는 화면 = 오피스 Purchase Receipts(receiving.html · 대화 Claude · 6c3) 하나 · WMS Admin Receiving 탭은 「정해야 할 off-PO」 목록(보이기만) · 줄 = 딥링크 `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>`(같은 창) · 정하는 단추는 Purchase Receipts 에만
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 45 A — 정할 사람의 권한 = 그 manager 에게 staff.html 에서 RECEIVING 을 write 로(사람마다 · 오피스 입고 전체를 준다) · 지금 켤 필요 없다(시험은 admin) · 켜는 때 = 비밀번호를 나눠 주기 전(컷오버 준비 목록)
+📌 [2026-09-28 · 오피스 판 b693d8c] 판정 46 — 「Finalized — 견적 · 결제 · 마무리 대기」 목록 = so.html 목록 필터 「Finalized — waiting for the office」(값 packed · 넓은 · 좁은 목록 둘 다) · Manager List 탭은 없다 · 같은 모집단의 창고용은 wms-admin Finalized 탭 · 판정 17 글자 표는 so.html 안에 하나(SO_STATUS_LABEL) — 공통 셋(ims-ui.js)은 무접촉(공통화는 뒤의 정리 차수 · 그때 이 절 재점검)
 ```
 [ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
     settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
@@ -532,12 +533,22 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 [ ] Save decision(「This cannot be undone here.」) → 받은 것 = Settled 칸 「in stock — cannot be reopened」 · 단추 없음
 [ ] 거절 = 「still on <칸> — the warehouse takes it off」(빨강) + Reopen · 창고가 Removed 를 누른 뒤 = 「taken off <칸> by <이름> · 시각」 · Reopen 사라짐
 [ ] 시험 뒤 확인 쿼리(대화 Claude · begin read only · 시험 전 0 행 확인됨) 요지 — 그 입고의 off_po 차이 줄(resolution · bin · placed · removed) · 원장 po_in `line_ref <diff_id>:offpo`(occurred_on = received_on) · 레이어 cost_source free / manual — 거절 줄은 원장 · 레이어 0
-   ⚠️ 끝까지 시험(창고 스캔 → 놓기 → 여기 결정 → 창고 Removed)은 7-r 의 「Caleb 시험 순서」 · 아직 안 돌렸다(2026-09-27 · Caleb 「테스트는 나중에 할께」)
+   ⚠️ 끝까지 시험(창고 스캔 → 놓기 → 여기 결정 → 창고 Removed)은 7-r 의 「Caleb 시험 순서」 · 아직 안 돌렸다(2026-09-27 · Caleb 「테스트는 나중에 할께」)  → ✅ [2026-09-27 밤] 돌았다 — RCV-00029 · ABE10612 5 accepted_billed 3.1 E020202 → 원장 po_in +5 · 레이어 4.319075 manual / ABE12006 3 rejected · removed t · 원장 · 레이어 0(정본 so-module §24-s) · ⚠️ 6b Delete(RCV-00029)는 그대로 안 했다
+```
+
+⭐ [2026-09-28 · 대화 Claude b693d8c · 오피스 판 1] **창고 작업 상태(WAREHOUSE WORK)** — 빌드 표시 「2026-09-28 · warehouse state」 · 판정 30(경고만 · 막지 않는다 · 오피스 혼자 받는 길은 그대로) · 창구 `wms_recv_state(p_receipt_id)`(asung-wms 20260926232330:530 · 읽기) · 확정 반환 `warnings` 의 `wms_not_completed`(:578)
+   ⚠️ `po_receipt_detail` 에는 wms 가 없다 — 화면이 wms_recv_state 를 따로 읽는다 · 목록 칩은 안 넣었다(⬜) · 머리 kv 의 「WAREHOUSE」 는 창고 이름 · 이 줄은 「WAREHOUSE WORK」
+```
+[ ] 헤더 빌드 표시가 「2026-09-28 · warehouse state」다
+[ ] draft 입고 상세 머리에 WAREHOUSE WORK 줄 — 창고가 Complete 했으면 「Completed by <이름> · <시각>」 · 보류 중이면 빨간 「On hold in the warehouse」 · 아니면 빨간 「Not marked complete in the warehouse yet」(Reopen 됐으면 「· reopened by <이름> · <시각>」)
+[ ] ⭐ WMS Admin Receiving 에서 Reopen 한 입고를 여기서 Confirm → 확인 창에 「The warehouse has not marked this receipt complete — the count may still change.」(보류면 「… ON HOLD …」) — 취소하면 아무것도 안 바뀐다 · 막지는 않는다(판정 30)
+[ ] 그대로 확정하면 확정 뒤 안내에 「The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing.」 · Complete 뒤 확정이면 이 줄이 없다
+[ ] Caleb(admin) 시험 2026-09-28 — RCV-00028 Reopen 뒤 빨간 줄 · 확정 창 경고를 보고 취소 ✅ (그 뒤 창고에서 다시 Complete · 미확정 그대로)
 ```
 
 ---
 
-## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → v1.2(다 받은 인보이스면 결제 단추 숨김 · Due at issue) → v1.3(줄 넣기 가용 재고 · 세트 숨김) → v1.4(Include sets 는 매니저만) → **2판** v2(보류·풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림) → v2.1(not reserved) → v2.2(Hold 는 잡힌 줄이 있을 때만) → **v2.3**(잡힐 것 없으면 Proceed 막힘) → **v2.4**(Release to WMS · Recall from WMS))
+## 7-f. `so.html` — 판매 오더 (2026-09-25 신설 · 대화 Claude · 「2026-09-25 · so v1」 → v1.1(경고 읽기 쉽게 · 인보이스 링크) → v1.2(다 받은 인보이스면 결제 단추 숨김 · Due at issue) → v1.3(줄 넣기 가용 재고 · 세트 숨김) → v1.4(Include sets 는 매니저만) → **2판** v2(보류·풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림) → v2.1(not reserved) → v2.2(Hold 는 잡힌 줄이 있을 때만) → **v2.3**(잡힐 것 없으면 Proceed 막힘) → **v2.4**(Release to WMS · Recall from WMS) → **v2.5**(판정 17 글자 · Qty out · 시각 줄 · Finalized 필터 판정 46 · b693d8c) → **v3**(Finalize — ship and invoice · f73b980))
 
 뒷단: 읽기 RPC `so_detail` · `so_family_members` · `so_payment_default_account` · 표 `so`(select) ·
 쓰기 RPC `so_create` · `so_line_add` · `so_lines_paste` · `so_line_update` · `so_line_remove` · `so_charge_set/remove` ·
@@ -632,7 +643,31 @@ counter 확정 · 나갔다 (manager)
 [ ] 빌드 표시 so v2.4
 ```
 
-⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다. → ✅ [2026-09-26] Release to WMS · Recall from WMS 는 v2.4 로 섰다
+⭐ [2026-09-28 · 대화 Claude · 오피스 판] **so v2.5**(b693d8c · 판정 17 글자 · Qty out · 시각 줄 · Finalized 필터 판정 46 · 검토함 읽기) → **so v3**(f73b980 · Finalize 창) · 마이그레이션 0 · 정본 so-module §24-s
+   뒷단 더한 것: 읽기 `wms_so_handoff(p_so_id)`(asung-wms 20260926204246:142 · 팔렛 · 박스 in · lb · shorts) · 표 `wms_order_finalize` · `wms_order_review`(select · 읽기) · `ims_staff(id,name)`(시각 줄 이름) · 쓰기 `so_finalize(p_orders, p_commit, p_shipped_on)`(:259 · sales)
+   ⚠️ so_finalize 는 handoff 의 picks 만 읽는다 — 치수는 화면이 wms_so_handoff 로 따로 보인다 · packed 오더의 운임은 이 창에서만(so_charge_set 은 draft 전용)
+   ⚠️⚠️ v3 실행은 **되돌릴 수 없다** — 원장 차감(inv_post_sale) · 인보이스 번호(nextval) · packed 재료를 소진한다 ⇒ 시험 순서 = v2.5 · Purchase Receipts 경고 → v3 미리 보기 → **맨 마지막에** 실행 → 확인 쿼리(읽기) · 다음 packed 재료는 새 오더로 한 바퀴(정본 §24-q)
+```
+so v2.5
+[ ] 빌드 표시가 so v2.5 이후(지금 「2026-09-28 · so v3」)
+[ ] 목록 · 상세 · 뭉치 표의 상태가 판정 17 글자 — Draft · Confirmed · Released to WMS · Working · Finalized · Shipped · Fulfilled · Cancelled(저장값 packed 는 「Finalized」)
+[ ] Status 필터(넓은 · 좁은 목록 둘 다)에 「Finalized — waiting for the office」 — packed 창고 오더만 뜬다(판정 46)
+[ ] 확정 뒤 줄 표 머리가 「Qty out」(전 「Shipped」)
+[ ] 창고 길 오더의 상세 오른쪽에 시각 줄 셋 — Released to WMS · Working · Finalized(토론토 시각 + 이름) · 되돌려 지워진 칸은 「—」 · counter · POS 오더엔 안 뜬다
+[ ] Finalized 줄 아래 packing list / direct · 유닛 수 · 치수 없는 유닛(빨강) · 검토함(창고 매니저가 켠 것 · 읽기만 · 켜고 끄는 곳은 WMS Admin Finalized 탭)
+so v3 — Finalize 창
+[ ] packed 오더 상세에 「Finalize — ship and invoice…」(sales 쓰기가 있을 때만)
+[ ] 창을 열면 팔렛 · 박스 표(in · lb · 항목 수) · 치수 없음이면 「⚠ N unit(s) have no dimensions — ask the warehouse before quoting freight.」 · 덜 싼 줄이면 「⚠ Packed less than ordered: SKU n of m — the rest goes to a backorder order.」
+[ ] 운임 이름 · 금액(비우면 운임 줄 없음 · 「No freight line.」) · 택배사 · 추적번호 · 배송 메모
+[ ] 미리 보기가 한 번 저절로 돈다 — 「Preview ready — nothing has been saved yet.」 · 아무것도 안 바뀐다(번호 무변)
+[ ] 입력을 바꾸면 실행 단추가 꺼진다 · Preview 를 다시 눌러야 켜진다 · 바뀐 입력으로 누르면 「Preview again first — the inputs changed.」
+[ ] 실행 → 확인 창 「Finalize SO-…? … This cannot be undone.」 → 결과 = 인보이스 번호 · amount due · remaining · 백오더 번호(모자란 몫) · warnings
+[ ] 📌 줄 빼기(removed · 손님이 뺐다)는 이 판에 없다(⬜ 다음 판)
+[ ] ⭐ Caleb(admin) 시험 2026-09-28 — SO-25003 실행 ✅ · 확인 쿼리: SO-25003 fulfilled · shipped t · closed t / SO-25003a cancelled / SO-25003b confirmed(모자란 1) · inv_ledger sale_out C070303 CON00156 −11 ims · so_invoice_number_seq 60002 — Cin7 없이 IMS 만으로 닫힌 첫 창고 오더
+```
+⬜ Finalize 창의 줄 빼기(removed · 판정 9) · 견적서(so_proforma) 인쇄 단추 · 판정 17 표 공통화(ims-ui.js · manager-list · pos · so-backorders · 0-a 재점검)
+
+⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다. → ✅ [2026-09-26] Release to WMS · Recall from WMS 는 v2.4 로 섰다 → ✅ [2026-09-28] 오피스 마무리(so_finalize)는 v3 로 섰다 · 인쇄 · 손님 잔액 화면은 그대로
 
 ---
 
