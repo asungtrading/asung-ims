@@ -364,7 +364,7 @@
    읽기 = po(confirmed) · po_receipt(draft) · po_receipt_work · wms_task_holds · wms_receipt_complete · product · product_barcode(낱개 + 세트 ×factor) · ref_bin · wms_zone_sequence · ims_last_bin(판정 29 — 미리 보여만 · 자동 배정 쓰기 없음).
    사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진(판정 33 · HAS_IMAGES false) · 옛 wms_ 입고 표 전부.
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
-const RC_BUILD="2026-09-27 · rc v1.1";
+const RC_BUILD="2026-09-27 · rc v1.2";
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -396,7 +396,9 @@ function whOf(id){ return whById[id]||{name:"",key:"toronto"}; }
 function nameOf(id){ return id ? (staffName[id]||"another worker") : ""; }
 function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
 function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
-function canConfirm(){ return !!(me&&me.access&&me.access.screens&&me.access.screens.wms_receiving_confirm); }   // 판정 27 스위치 — 지금은 아무에게도 없다
+// 판정 42(2026-09-27): 확정 단추는 그 사람의 perms 에 wms_receiving_confirm 을 **직접** 체크했을 때만 보인다 — admin · supervisor 는 역할로 모든 화면을 받지만(ims_can_write) 이 단추는 그걸로 켜지지 않는다.
+//   이것은 보이기 규칙(되돌릴 수 없는 확정을 창고 화면에서 한 번에 누르지 않게)이지 권한 판정이 아니다 — 권한은 여전히 DB(wms_recv_confirm 첫 줄 문) · 확정은 오피스 Purchase Receipts 에서(판정 27 B)
+function canConfirm(){ return !!(me&&me.access&&me.access.screens&&me.access.screens.wms_receiving_confirm&&Array.isArray(me.perms)&&me.perms.includes("wms_receiving_confirm")); }
 function rpcMsg(e){ return (e&&e.message)||String(e||"error"); }
 
 /* ---------- boot ---------- */
