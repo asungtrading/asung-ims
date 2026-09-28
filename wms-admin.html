@@ -141,6 +141,7 @@
     <button data-t="stats">Stats</button>
     <button data-t="rollback">Rollback</button>
     <button data-t="health">Health <span class="badge" id="healthBadge" style="display:none">0</span></button>
+    <button data-t="recv">Receiving <span class="badge" id="recvBadge" style="display:none">0</span></button>
     <button data-t="packing">Finalized</button>
     <button data-t="trace">Trace</button>
   </div>
@@ -180,7 +181,19 @@
       <div class="sect-h">Mistakes by worker (discrepancy responsibility)</div>
       <div class="card" style="padding:14px 16px"><div id="mistakeTable"></div></div>
 
-      <p style="color:var(--mut);font-size:12px;margin:8px 2px 0">Receiving and putaway statistics will appear here when receiving moves to the IMS.</p>
+      <div class="sect-h">Receiving <span style="font-weight:400;color:var(--mut);font-size:12.5px">— receipts started in this period · receive = start → warehouse Complete (includes putaway — Complete is pressed after placing) · confirm = Complete → office confirmation (Purchase Receipts) · durations in work hours · "− holds" = start&rarr;complete wall clock minus recorded hold time — per receipt, not per worker (several people can share one receipt)</span></div>
+      <div class="grid" id="recvStatGrid"></div>
+      <div class="card" style="padding:14px 16px;margin-top:12px"><div id="recvTypeTable"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <p style="color:var(--mut);font-size:12px;margin:8px 2px 0">⚠ Durations count <b>work hours only</b> (Mon–Fri 09:00–17:00, warehouse-local time; statutory holidays not excluded). This is elapsed work time from start to completion — <b>not</b> hands-on time: a receipt left open while doing other work still counts. "&lt; 1 min" means the whole span fell outside work hours.</p>
+      <p style="color:var(--mut);font-size:12px;margin:8px 2px 0">⚠ <b>Workers are counted by who counted the row and who placed it</b> (two separate columns on every work row — a bulk "Place all" re-stamps only the placing column, never the counting one). Lines = distinct PO lines with a count in the period · units = base units counted.</p>
+      <div class="sect-h">Receiving by warehouse</div>
+      <div class="card" style="padding:14px 16px"><div id="recvByTable"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+
+      <div class="sect-h">Putaway <span style="font-weight:400;color:var(--mut);font-size:12.5px">— rows counted in this period</span></div>
+      <div class="grid" id="putawayStatGrid"></div>
+
+      <div class="sect-h">Receiving differences <span style="font-weight:400;color:var(--mut);font-size:12.5px">— over / short recorded by the office at confirmation · off-PO recorded at the dock</span></div>
+      <div class="grid" id="recvDiscGrid"></div>
     </div>
 
     <!-- Reports (data-quality: wrong location / barcode changed / image differs) -->
@@ -198,6 +211,18 @@
       <div class="card"><div id="rollbackList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
       <div class="sect-h">Recent rollbacks</div>
       <div class="card"><div id="rollbackLog"></div></div>
+    </div>
+
+    <!-- Receiving (⑤-6b · 운영 admin 239~252 의 자리 · Apply 절은 「Completed — awaiting office confirmation」 으로) -->
+    <div class="view" id="v-recv">
+      <div class="sect-h">Off-PO items waiting for approval <span style="font-weight:400;color:var(--mut);font-size:12.5px">— items scanned at the dock that are not on the PO · putaway is blocked until a manager approves</span></div>
+      <div class="card"><div id="recvApprovals"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <div class="sect-h">Awaiting putaway <span style="font-weight:400;color:var(--mut);font-size:12.5px">— counted and given a bin, but nobody has confirmed placing it there · stock the pickers cannot find</span></div>
+      <div class="card"><div id="recvBacklog"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+      <div class="sect-h">Completed — awaiting office confirmation <span style="font-weight:400;color:var(--mut);font-size:12.5px">— the warehouse pressed Complete · the office confirms the receipt into stock in Purchase Receipts · Reopen sends it back to the receiving screen</span></div>
+      <div class="card"><div id="recvExports"></div></div>
+      <div class="sect-h">Receiving history <span style="font-weight:400;color:var(--mut);font-size:12.5px">— recent receipts</span></div>
+      <div class="card"><div id="recvHistory"></div></div>
     </div>
 
     <div class="view" id="v-packing">
@@ -258,7 +283,14 @@
    Stats(5)       = 계산 그대로(sbAll 페이지 누적) · wms_worker_mistakes · 사람 칸 nameOf · 입고 구간 없음(한 줄 안내)
    Health(3)      = rpc wms_health_check 한 번(13 행 · 옛 반환 칸) · 스냅샷 · 기록 표 · cron 없음 · 배지도 라이브
    Trace(5)       = so + 손님 + finalize 기록 + 줄 합 · 과제 체인 그대로(+ 픽 줄의 칸 행) · so_line · wms_worker_mistakes + wms_reports(stock_short) · 현지 시각은 창고 이름으로. */
-const WK_BUILD="2026-09-27 · wa v1.4";
+/* ⑤-6b (2026-09-27 · wa v1.5) — Receiving 탭 · Stats 입고 구간을 운영 admin(2569~3320 · 3729~3933)에서 다시 옮겼다(⑤-6 조사 A-2 19 · A-3 3 · 판정 38 · 39 · 40):
+   Receiving = po_receipt(draft · 최근 60) + po_receipt_work · wms_task_holds · wms_receipt_complete 임베드 · 승인 대기 = po_receipt_diff kind off_po(열린 것 · 읽기만 — 승인 · 거절은 다음 차수) ·
+                「Awaiting putaway」(칸 있고 putaway_done false) · 「Put away →」 = wms-receiver.html?receipt=<uuid> · 「Completed — awaiting office confirmation」 + Reopen(rpc wms_recv_reopen) · 확정 단추는 화면 값 wms_receiving_confirm 이 있을 때만(rpc wms_recv_confirm) ·
+                리뷰 모달 = rpc po_receipt_detail · Delete = rpc wms_recv_delete(아카이브 → 삭제 · draft 만) · 사라진 것: Apply(dry-run · commit) · applied 배지 · Mark externally applied · Back to completed · 트랜스퍼 · Source TR · 승인 · 거절 단추
+   Stats 입고 = po_receipt(created_at 기간 · confirmed_at) + po_receipt_work(counted_by/at · putaway_by/at 두 축 · distinct po_line_id) + wms_receipt_complete(completed_at) + wms_task_holds(receipt_id) + po_receipt_diff(kind · resolved_at) · prodRecv 병합 되살림 ·
+                사라진 것: Transfer receipts · Applied bins failed · Applied outside WMS · Transfer lines moved · 「− holds」 는 receipt_id 로 · complete → apply 는 complete → office confirm
+   Health = 15 행(20260928014844 · hold_leak 입고 가지 · receipt_completed_not_confirmed · stale_receipt_draft) — 화면 코드 무변(반환 칸 같음) */
+const WK_BUILD="2026-09-27 · wa v1.5";
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -702,7 +734,7 @@ async function renderTrace(o){
 
 
 function start(){
-  // tab — 여덟(원본 순서 · Receiving 은 입고가 IMS 로 올 때)
+  // tab — 아홉(원본 순서 · ⑤-6b 에 Receiving)
   document.getElementById("tabs").onclick=e=>{
     const b=e.target.closest("button[data-t]"); if(!b)return;
     const t=b.dataset.t;
@@ -717,6 +749,7 @@ function start(){
     if(t==="packing")loadPacking();
     if(t==="health")loadHealth();
     if(t==="trace")loadTrace();
+    if(t==="recv")loadRecv();
   };
   periodBar("discPeriod",discPeriodKey,discCustom,(k,c)=>{discPeriodKey=k;loadDisc();});
   periodBar("repPeriod",repPeriodKey,repCustom,(k,c)=>{repPeriodKey=k;loadReports();});
@@ -728,6 +761,7 @@ function start(){
   refreshDiscBadge();
   refreshReportBadge();
   refreshHealthBadge();
+  refreshRecvBadge();
   // keep freshness chips honest while Status tab is open
   setInterval(()=>{ if(document.getElementById("v-overview").classList.contains("active")) loadOverview(); }, 60000);
 }
@@ -1969,6 +2003,275 @@ function resolvedIn(created,resolved){
   const d=fmtDur(new Date(resolved).getTime()-new Date(created).getTime());
   return d==="—"?"":` · <span style="color:var(--mut-2)">resolved in ${d}</span>`;
 }
+/* ---------- Receiving tab (⑤-6b · 운영 admin 2569~3320 의 자리 · 데이터 부분만 IMS 표 · 창구) ---------- */
+// 상태 = po_receipt.status(draft · confirmed · cancelled) + 창고 Complete(wms_receipt_complete) + 열린 보류(wms_task_holds.receipt_id) — 운영의 in_progress/held/partial/completed/externally_applied 자리
+function recvStatusOf(r){ return r.status!=="draft"?r.status:(r.completed?"completed":(r.held?"held":"in_progress")); }
+const RECV_ST_LABEL={in_progress:"In progress",held:"Held",completed:"Completed — awaiting office confirmation",confirmed:"Confirmed by the office",cancelled:"Cancelled"};
+/* ── awaiting putaway ──
+   "옮길 일이 남은 줄" = 센 줄(qty>0)에 칸은 정해졌는데(bin_id) 작업자가 "놓았다"(putaway_done)를 남기지 않은 줄.
+   오피스 확정은 칸 없는 줄만 막고 putaway_done 은 보지 않는다 → 이 지표는 장부가 아니라 **실물 위치**를 말한다. */
+const recvNotPlaced={};   // receipt id -> {lines,units}
+function countNotPlaced(rows){
+  let lines=0, units=0;
+  (rows||[]).forEach(w=>{
+    const q=Number(w.qty_ea)||0;
+    if(q<=0) return;
+    if(!w.bin_id) return;             // 자리 미정 = 풋어웨이 대기가 아니라 bin 지정 대기
+    if(w.putaway_done) return;
+    lines++; units+=q;
+  });
+  return {lines,units};
+}
+async function refreshRecvBadge(){
+  try{
+    const {count}=await sb.from("po_receipt_diff").select("id",{count:"exact",head:true}).eq("kind","off_po").is("resolved_at",null);
+    const b=document.getElementById("recvBadge");
+    if(count>0){ b.textContent=count; b.style.display=""; } else b.style.display="none";
+  }catch(e){}
+}
+const RCV_SEL="id,receipt_number,status,received_on,created_by,created_at,updated_at,confirmed_at,confirmed_by,warehouse_id,"
+  +"po:po!po_receipt_po_id_fkey(id,po_number,supplier:supplier!po_supplier_id_fkey(name)),"
+  +"work:po_receipt_work(id,po_line_id,qty_ea,bin_id,putaway_done,updated_at,counted_by,putaway_by),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed,completed_by,completed_at)";
+function normRcv(r){
+  const c=Array.isArray(r.complete)?r.complete[0]:r.complete;
+  r.completed=!!(c&&c.completed); r.completed_by=c&&c.completed_by||null; r.completed_at=c&&c.completed_at||null;
+  r.held=(r.holds||[]).some(h=>!h.resumed_at);
+  r.po_number=r.po&&r.po.po_number||""; r.supplier_name=r.po&&r.po.supplier&&r.po.supplier.name||"";
+  r.wh=whOf(r.warehouse_id).key;
+  r.last_at=(r.work||[]).reduce((m,w)=>(w.updated_at&&w.updated_at>m)?w.updated_at:m, r.updated_at||r.created_at);   // 「Last activity」 = 작업 줄의 마지막 저장
+  return r;
+}
+async function loadRecv(){
+  const ap=document.getElementById("recvApprovals");
+  ap.innerHTML=`<div class="loading"><div class="spin"></div>Loading…</div>`;
+  // 작업 대상 전량 + 표시용 최근 N(운영 2026-08-14 재편 그대로): work = draft 전량(sbAll) · recent = 최근 60(history 표시 전용 · 총수는 캡션) · pend = 열린 off-PO 차이 행
+  // 창고 경계 = me.access.warehouses(inWhId · 클라이언트 필터 — 임베드 서버 필터는 !inner 없이는 조용히 틀린다)
+  const [pend,workQ,recentQ,rTotalQ]=await Promise.all([
+    sb.from("po_receipt_diff").select("id,receipt_id,product_id,received_qty,note,created_at,receipt:po_receipt(receipt_number,warehouse_id,po:po!po_receipt_po_id_fkey(po_number,supplier:supplier!po_supplier_id_fkey(name))),product(sku,name)")   // caps-ok: 열린 off-PO 행만 — 승인 · 거절로 소진되는 소수
+      .eq("kind","off_po").is("resolved_at",null).order("created_at",{ascending:false}),
+    sbAll(()=>sb.from("po_receipt").select(RCV_SEL).eq("status","draft").order("updated_at",{ascending:false}).order("id",{ascending:false})),   // caps-ok: sbAll 페이지 누적 — 열린 초안 전량(작업 대상 · 확정으로 소진)
+    sb.from("po_receipt").select(RCV_SEL).order("updated_at",{ascending:false}).limit(60),   // caps-ok: 최근 60 사양 — history 표시 전용(집계 모수 아님), 총수는 캡션
+    sb.from("po_receipt").select("id",{count:"exact",head:true}),
+  ]);
+  const rerr=pend.error||workQ.error||recentQ.error;
+  if(rerr){ ap.innerHTML=`<div class="empty" style="font-size:12px">Receiving could not be loaded.<br><span style="color:var(--mut-2);font-size:11px">(${esc(rerr.message||"")})</span></div>`;
+    document.getElementById("recvExports").innerHTML=""; document.getElementById("recvHistory").innerHTML="";
+    document.getElementById("recvBacklog").innerHTML=""; return; }
+
+  // ── off-PO waiting for approval (읽기만 — 승인 · 거절 · 투입은 다음 차수) ──
+  const pd=(pend.data||[]).filter(d=>d.receipt&&inWhId(d.receipt.warehouse_id));
+  const aphead=`<thead><tr><th>Receipt</th><th>PO</th><th>SKU</th><th>Product</th><th class="num">Received</th><th>Warehouse</th><th>Date</th></tr></thead>`;
+  const aprow=d=>{ const r=d.receipt||{}, p=r.po||{}; return `<tr>
+    <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number||"")}</td>
+    <td style="font-family:var(--mono)">${esc(p.po_number||"")}</td>
+    <td style="font-family:var(--mono)">${esc(d.product&&d.product.sku||"")}</td>
+    <td style="font-size:12px;color:var(--mut)">${esc(d.product&&d.product.name||"")}</td>
+    <td class="num" style="font-family:var(--mono);font-weight:700">${Number(d.received_qty||0)}</td>
+    <td>${whLabel(whOf(r.warehouse_id).key)}</td>
+    <td style="color:var(--mut);font-size:12px">${d.created_at?new Date(d.created_at).toLocaleDateString():""}</td>
+  </tr>`; };
+  ap.innerHTML=(pd.length
+    ? `<table>${aphead}<tbody>${pd.map(aprow).join("")}</tbody></table>`
+    : `<div style="color:var(--mut);padding:14px;font-size:13px">No off-PO items waiting for approval.</div>`)
+    +`<div style="color:var(--mut-2);padding:8px 14px;font-size:12px;border-top:1px solid var(--line)">Approve and reject are not available yet — the item stays waiting and cannot be put away.</div>`;
+
+  // ── 병합: 집계 모수 = draft 전량(work) · recent 는 history 채움용 · dedup 선착순 ──
+  const _rById=new Map();
+  [...(workQ.data||[]), ...(recentQ.data||[])].forEach(r=>{ if(!_rById.has(r.id)) _rById.set(r.id,normRcv(r)); });
+  const rs=[..._rById.values()].filter(r=>inWhId(r.warehouse_id)).sort((a,b)=>new Date(b.last_at||0)-new Date(a.last_at||0));
+  const rTotal=rTotalQ.count??rs.length;
+  rs.forEach(r=>{ recvNotPlaced[r.id]=countNotPlaced(r.work); });
+  // 진행 요약 — 작업 줄은 센 줄만 있다(껍데기 없음): 흔적 = 센 줄 · bin · placed
+  const recvWork={};
+  rs.forEach(r=>{
+    let rows=0, units=0, bins=0, placed=0;
+    (r.work||[]).forEach(w=>{ const q=Number(w.qty_ea)||0; if(q>0){ rows++; units+=q; } if(w.bin_id) bins++; if(w.putaway_done) placed++; });
+    recvWork[r.id]={rows,units,bins,placed, empty: rows===0};
+  });
+  const backlog=rs.filter(r=>r.status==="draft"&&recvNotPlaced[r.id].lines>0)
+    .sort((a,b)=>recvNotPlaced[b.id].units-recvNotPlaced[a.id].units);
+  const bl=document.getElementById("recvBacklog");
+  const blTot=backlog.reduce((s,r)=>({lines:s.lines+recvNotPlaced[r.id].lines,units:s.units+recvNotPlaced[r.id].units}),{lines:0,units:0});
+  bl.innerHTML=!backlog.length
+    ? `<div style="color:var(--mut);padding:14px;font-size:13px">Nothing awaiting putaway — every counted row with a bin is confirmed placed.</div>`
+    : `<div style="padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;font-weight:700;color:var(--warn)">
+         ⚠ ${nf(blTot.lines)} row${blTot.lines===1?"":"s"} / ${nf(blTot.units)} unit${blTot.units===1?"":"s"} awaiting putaway
+         <span style="font-weight:400;color:var(--mut);font-size:12px"> across ${backlog.length} receipt${backlog.length===1?"":"s"}</span></div>
+       <table><thead><tr><th>Receipt</th><th>PO</th><th>Warehouse</th><th>Workers</th><th>Status</th>
+         <th class="num">Rows</th><th class="num">Units</th><th>Last activity</th><th></th></tr></thead><tbody>${
+        backlog.map(r=>{ const np=recvNotPlaced[r.id];
+          return `<tr>
+          <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number)}</td>
+          <td style="font-family:var(--mono)">${esc(r.po_number)}</td>
+          <td>${whLabel(r.wh)}</td>
+          <td style="font-size:12px">${recvWorkersCell(r)}</td>
+          <td>${RECV_ST_LABEL[recvStatusOf(r)]||recvStatusOf(r)}</td>
+          <td class="num" style="font-family:var(--mono);font-weight:700;color:var(--warn)">${nf(np.lines)}</td>
+          <td class="num" style="font-family:var(--mono);font-weight:700">${nf(np.units)}</td>
+          <td style="color:var(--mut);font-size:12px">${fmtAge(r.last_at)}</td>
+          <td style="white-space:nowrap">${r.completed
+            ? `<span style="font-size:11.5px;color:var(--mut-2)" title="Completed in the warehouse — reopen it below to put away again">completed</span>`
+            : `<a class="btnsm" href="wms-receiver.html?receipt=${esc(r.id)}" title="Open the receiving screen for this receipt">Put away →</a>`}</td>
+        </tr>`;}).join("")}</tbody></table>`;
+
+  // ── Completed — awaiting office confirmation (운영 「Apply to Cin7」 절의 자리 · 확정은 오피스 · 판정 27 B) ──
+  const completed=rs.filter(r=>r.status==="draft"&&r.completed);
+  const pending=rs.filter(r=>r.status==="draft"&&!r.completed);
+  const ex=document.getElementById("recvExports");
+  ex.innerHTML=(completed.length
+    ? `<table><thead><tr><th>Receipt</th><th>PO</th><th>Supplier</th><th>Warehouse</th><th>Completed</th><th></th></tr></thead><tbody>${
+        completed.map(r=>{ const np=recvNotPlaced[r.id]||{lines:0,units:0};
+          const npTag=np.lines?` <span class="tag" style="color:var(--warn);background:var(--warn-bg)" title="These rows have a bin but nobody confirmed placing the stock there — check the floor.">⚠ ${np.lines} row${np.lines>1?"s":""} not placed</span>`:"";
+          return `<tr>
+          <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number)}${npTag}</td>
+          <td style="font-family:var(--mono)">${esc(r.po_number)}</td>
+          <td>${esc(r.supplier_name||"—")}</td>
+          <td>${whLabel(r.wh)}</td>
+          <td style="font-size:12px;color:var(--mut)">${esc(nameOf(r.completed_by)||"—")} · ${r.completed_at?new Date(r.completed_at).toLocaleString():""}</td>
+          <td style="white-space:nowrap"><button class="btnsm" data-review="${esc(r.id)}">Review</button> <button class="btnsm" style="color:var(--warn)" data-reopen="${esc(r.id)}" data-rcv="${esc(r.receipt_number)}">Reopen</button>${canConfirmRcv()?` <button class="btnsm ok" data-confirm="${esc(r.id)}" data-rcv="${esc(r.receipt_number)}">Confirm into stock</button>`:""}</td>
+        </tr>`;}).join("")}</tbody></table>`
+    : `<div style="color:var(--mut);padding:14px;font-size:13px">Nothing completed — receipts appear here once the warehouse presses Complete. The office confirms them into stock in Purchase Receipts.</div>`)
+    +(pending.length?`<div style="color:var(--mut-2);padding:8px 14px;font-size:12px;border-top:1px solid var(--line)">${pending.length} receipt(s) still receiving/held.</div>`:"");
+  ex.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>reviewReceipt(b.dataset.review));
+  ex.querySelectorAll("[data-reopen]").forEach(b=>b.onclick=()=>reopenReceipt(b.dataset.reopen,b.dataset.rcv));
+  ex.querySelectorAll("[data-confirm]").forEach(b=>b.onclick=()=>confirmReceipt(b.dataset.confirm,b.dataset.rcv));
+
+  // ── history (최근 60 표시 · 총수 캡션 — 숨긴 것을 "없다"로 위장하지 않는다) ──
+  const hist=document.getElementById("recvHistory");
+  const acc=myWarehouses();
+  const whNote=acc?`<div style="font-size:11.5px;color:var(--mut);padding:8px 14px 0">Showing your warehouse${acc.length>1?"s":""} only (your warehouse access).</div>`:"";
+  const histNote=whNote+(rTotal>60?`<div style="font-size:11.5px;color:var(--mut);padding:8px 14px 0">Latest 60 of ${rTotal} receipts listed.</div>`:"");
+  hist.innerHTML=rs.length
+    ? histNote+`<table><thead><tr><th>Receipt</th><th>PO</th><th>Supplier</th><th>Warehouse</th><th>Status</th><th>Workers</th><th>Updated</th><th></th></tr></thead><tbody>${
+        rs.slice(0,60).map(r=>{
+          const np=recvNotPlaced[r.id]||{lines:0,units:0};
+          const wk=recvWork[r.id];
+          const wkTag=wk.empty
+            ?` <span class="tag" style="color:var(--mut);background:var(--line-2,#eef1f6)" title="Opened but nothing was counted. Deleting loses nothing.">Empty</span>`
+            :` <span style="color:var(--mut);font-size:11px;white-space:nowrap">${wk.rows} rows · ${nf(wk.units)} u</span>`;
+          const wkline=wk.empty
+            ?"Nothing has been counted on this receipt."
+            :`⚠️ ${nf(wk.units)} unit(s) already counted across ${wk.rows} row(s) — this progress will be deleted (an archived copy is kept).`;
+          const st=recvStatusOf(r);
+          return `<tr>
+          <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number)}${np.lines&&r.status==="draft"?` <span class="tag" style="color:var(--warn);background:var(--warn-bg)" title="${np.lines} row(s) / ${np.units} unit(s) have a bin but were never confirmed placed — see &quot;Awaiting putaway&quot; above.">⚠ ${np.lines} not placed</span>`:""}</td>
+          <td style="font-family:var(--mono)">${esc(r.po_number)}</td>
+          <td>${esc(r.supplier_name||"—")}</td>
+          <td>${whLabel(r.wh)}</td>
+          <td>${RECV_ST_LABEL[st]||st}${r.status==="draft"?wkTag:""}${r.status==="confirmed"&&r.confirmed_at?` <span style="color:var(--mut);font-size:11px">${esc(nameOf(r.confirmed_by)||"")} · ${new Date(r.confirmed_at).toLocaleDateString()}</span>`:""}</td>
+          <td style="font-size:12px">${recvWorkersCell(r)}</td>
+          <td style="color:var(--mut);font-size:12px">${r.last_at?new Date(r.last_at).toLocaleString():""}</td>
+          <td style="white-space:nowrap"><button class="btnsm" data-review="${esc(r.id)}">Review</button>${r.status==="draft"?` <button class="btnsm" style="color:var(--danger)" data-delrcpt="${esc(r.id)}" data-rcv="${esc(r.receipt_number)}" data-wkline="${esc(wkline)}">Delete</button>`:""}</td>
+        </tr>`;}).join("")}</tbody></table>`
+    : `<div style="color:var(--mut);padding:14px;font-size:13px">No receipts yet.</div>`;
+  hist.querySelectorAll("[data-delrcpt]").forEach(b=>b.onclick=()=>deleteReceipt(b.dataset.delrcpt,b.dataset.rcv,b.dataset.wkline||""));
+  hist.querySelectorAll("[data-review]").forEach(b=>b.onclick=()=>reviewReceipt(b.dataset.review));
+  refreshRecvBadge();
+}
+function canConfirmRcv(){ return !!(me&&me.access&&me.access.screens&&me.access.screens.wms_receiving_confirm); }   // 판정 27 스위치 — 지금은 아무에게도 없다
+/* 삭제 = 창구 wms_recv_delete(아카이브 → 삭제 · draft 만 · 한 트랜잭션) — 운영 deleteReceipt 의 아카이브 → 삭제를 창구가 한다 */
+async function deleteReceipt(rid,rcv,wkline){
+  const typed=prompt(`Delete receipt ${rcv}?\n${wkline?wkline+"\n":""}All counting and putaway progress for this receipt is removed (a copy is archived first). Off-PO items waiting on it are removed with it.\n\nType the receipt number to confirm:`,"");
+  if(typed===null) return;
+  if(typed.trim().toUpperCase()!==String(rcv).toUpperCase()){ toast("Receipt number mismatch — cancelled",true); return; }
+  const {data,error}=await sb.rpc("wms_recv_delete",{p_receipt_id:rid});
+  if(error){ toast("Delete failed: "+error.message,true); return; }
+  toast(rcv+" deleted ("+(data&&data.archived||0)+" row(s) archived)"); loadRecv();
+}
+/* Reopen = 창구 wms_recv_reopen(wms_manage · draft 만) — Complete 를 풀어 창고 화면에서 다시 고칠 수 있게 */
+async function reopenReceipt(rid,rcv){
+  if(!confirm(`Reopen ${rcv} for the warehouse?\nComplete is undone and the receipt can be changed again in the receiving screen. Press Complete there afterwards.`)) return;
+  const {error}=await sb.rpc("wms_recv_reopen",{p_receipt_id:rid});
+  if(error){ toast("Reopen failed: "+error.message,true); return; }
+  toast(rcv+" reopened"); loadRecv();
+}
+/* 확정 스위치(판정 27 B) — 화면 값 wms_receiving_confirm 이 있는 사람에게만 단추가 보인다 · 창구 wms_recv_confirm(창고 Complete 뒤에만) */
+async function confirmReceipt(rid,rcv){
+  if(!canConfirmRcv()) return;
+  if(!confirm(`Confirm ${rcv} into stock?\nThis writes the stock ledger and cannot be undone here.`)) return;
+  const {data,error}=await sb.rpc("wms_recv_confirm",{p_receipt_id:rid});
+  if(error){ toast("Confirm failed: "+error.message,true); return; }
+  alert(rcv+" confirmed."+(data&&data.warnings&&data.warnings.length?"\n\nNotes: "+data.warnings.join(", "):""));
+  loadRecv();
+}
+/* ── 작업자 표시 — 두 축(counted_by · putaway_by)의 사람 전원(distinct · 이름은 nameOf) ── */
+function recvWorkers(r){
+  const seen=new Set();
+  (r.work||[]).forEach(w=>{ if(w.counted_by) seen.add(w.counted_by); if(w.putaway_by) seen.add(w.putaway_by); });
+  const names=[...seen].map(id=>nameOf(id)||"?");
+  return names.length?names:(r.created_by?[nameOf(r.created_by)||"?"]:[]);
+}
+function recvWorkersCell(r){
+  const names=recvWorkers(r);
+  if(!names.length) return '<span style="color:var(--mut-2)">—</span>';
+  return `<span title="${esc(names.join(" · "))}">${esc(names[0])}${names.length>1?` <span class="tag" style="font-size:10px" title="${esc(names.join(" · "))}">+${names.length-1}</span>`:""}</span>`;
+}
+/* 리뷰 모달 = rpc po_receipt_detail(헤더 · 줄 · 작업 줄 · 차이) — 칸별로 묶어 보인다(운영 reviewReceipt 의 뜻) */
+async function reviewReceipt(rid){
+  try{
+    const [dt,st]=await Promise.all([ sb.rpc("po_receipt_detail",{p_receipt_id:rid}), sb.rpc("wms_recv_state",{p_receipt_id:rid}) ]);
+    if(dt.error) throw dt.error;
+    const d=dt.data; if(!d||!d.header){ toast("Receipt not found",true); return; }
+    const h=d.header, s=st.data||{};
+    const rows=[];
+    (d.lines||[]).forEach(l=>(l.work||[]).forEach(w=>rows.push({line:l,w})));
+    const withBin={}, noBin=[];
+    rows.filter(x=>Number(x.w.qty_ea||0)>0).forEach(x=>{ if(x.w.bin) (withBin[x.w.bin]=withBin[x.w.bin]||[]).push(x); else noBin.push(x); });
+    const lineRow=x=>{
+      const l=x.line, w=x.w;
+      const over=Number(l.counted)>Number(l.ordered)-Number(l.received_before);
+      const short=Number(l.counted)<Number(l.ordered)-Number(l.received_before);
+      const flags=[over?`<span class="badge" style="background:var(--warn-bg,#fdf6ec);color:var(--warn,#d9820a)">OVER</span>`:"",
+        short?`<span class="badge" style="background:#fdecec;color:var(--danger)">SHORT</span>`:"",
+        w.putaway_done?`<span style="color:var(--ok)">✓ placed</span>`:`<span style="color:var(--mut-2)">not placed</span>`,
+        w.counted_by_name?`<span style="color:var(--mut)">counted ${esc(w.counted_by_name)}</span>`:"",
+        w.putaway_by_name?`<span style="color:var(--mut)">placed ${esc(w.putaway_by_name)}</span>`:""].filter(Boolean).join(" ");
+      return `<tr>
+        <td style="font-family:var(--mono);font-weight:700">${esc(l.sku)}</td>
+        <td style="font-size:12px;color:var(--mut);max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(l.product_name||"")}</td>
+        <td class="num" style="font-family:var(--mono);font-weight:700">${Number(w.qty_ea||0)} <span style="color:var(--mut);font-weight:400">/ line ${Number(l.counted||0)} of ${Number(l.ordered||0)-Number(l.received_before||0)}</span></td>
+        <td style="font-size:12px">${flags}</td></tr>`;
+    };
+    let body="";
+    Object.keys(withBin).sort().forEach(bin=>{
+      const g=withBin[bin];
+      body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px">📍 ${esc(bin)} <span style="color:var(--mut);font-weight:400;font-size:12px">· ${g.length} row(s)</span></div>
+        <table style="width:100%"><tbody>${g.map(lineRow).join("")}</tbody></table>`;
+    });
+    if(noBin.length) body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px;color:var(--warn,#d9820a)">⚠ No bin assigned</div>
+      <table style="width:100%"><tbody>${noBin.map(lineRow).join("")}</tbody></table>`;
+    const offs=(d.diffs||[]).filter(x=>x.kind==="off_po"&&!x.resolved_at);
+    if(offs.length) body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px;color:#7c3aed">⏳ Off-PO — waiting for approval</div>
+      <table style="width:100%"><tbody>${offs.map(x=>`<tr><td style="font-family:var(--mono);font-weight:700">${esc(x.sku||"")}</td><td></td><td class="num" style="font-family:var(--mono);font-weight:700">${Number(x.received_qty||0)}</td><td style="font-size:12px;color:var(--mut)">${esc(x.note||"")}</td></tr>`).join("")}</tbody></table>`;
+    const notCounted=(d.lines||[]).filter(l=>Number(l.counted||0)===0).length;
+    if(notCounted) body+=`<div style="margin:10px 0 2px;font-size:12px;color:var(--mut)">${notCounted} PO line(s) not counted yet.</div>`;
+    if(!body) body=`<div style="color:var(--mut);padding:12px">No counted rows.</div>`;
+    const stLbl=h.status!=="draft"?RECV_ST_LABEL[h.status]||h.status:(s.completed?RECV_ST_LABEL.completed:(s.held?RECV_ST_LABEL.held:RECV_ST_LABEL.in_progress));
+    const npRv=countNotPlaced((d.lines||[]).flatMap(l=>l.work||[]));
+    const npBanner=npRv.lines?`<div style="margin:8px 0 2px;padding:9px 11px;border-radius:9px;background:var(--warn-bg);border:1px solid #f0dcc0;color:#8a5a08;font-size:12.5px;line-height:1.5">
+        ⚠ <b>${npRv.lines} row(s) / ${npRv.units} unit(s) not confirmed placed.</b> They have a bin, but nobody pressed Placed — the stock may not physically be there.</div>`:"";
+    const canDel=h.status==="draft";
+    const ov=document.createElement("div"); ov.id="rvModal";
+    ov.style.cssText="position:fixed;inset:0;background:rgba(16,22,30,.5);z-index:80;display:flex;align-items:center;justify-content:center;padding:20px";
+    ov.innerHTML=`<div style="background:var(--card);border-radius:14px;max-width:680px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 50px rgba(0,0,0,.3)">
+      <div style="padding:16px 18px 8px;border-bottom:1px solid var(--line)">
+        <div style="font-family:var(--mono);font-weight:800;font-size:16px">${esc(h.receipt_number)} <span class="badge">${esc(h.po_number||"")}</span> <span class="badge">${esc(stLbl)}</span></div>
+        <div style="font-size:12.5px;color:var(--mut);margin-top:3px">${esc(h.supplier_name||"—")} · ${esc(h.warehouse_name||"")} · started by ${esc(h.created_by_name||"—")}${s.completed?` · completed by ${esc(nameOf(s.completed_by)||"—")}`:""}${h.confirmed_at?` · confirmed by ${esc(h.confirmed_by_name||"—")}`:""}</div>
+        <div style="font-size:11.5px;color:var(--mut-2);margin-top:2px">Counted rows grouped by bin. The office confirms the receipt into stock in Purchase Receipts.</div>
+      </div>
+      <div style="overflow-y:auto;padding:8px 18px 12px;flex:1">${npBanner}${body}</div>
+      <div style="padding:12px 18px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;align-items:center">
+        ${(canDel&&s.completed)?`<button class="btnsm" id="rvReopen" style="color:var(--warn,#d9820a)">Reopen for the warehouse</button>`:""}
+        <button class="btnsm" id="rvClose">Close</button></div>
+    </div>`;
+    document.body.appendChild(ov);
+    ov.addEventListener("mousedown",e=>{ if(e.target===ov) ov.remove(); });
+    document.getElementById("rvClose").onclick=()=>ov.remove();
+    const rb=document.getElementById("rvReopen");
+    if(rb) rb.onclick=async()=>{ ov.remove(); await reopenReceipt(rid,h.receipt_number); };
+  }catch(e){ toast("Review failed: "+(e.message||e),true); }
+}
+
 /* ---------- Discrepancy ---------- */
 async function refreshDiscBadge(){
   const {count}=await sb.from("wms_worker_mistakes").select("id",{count:"exact",head:true}).is("resolved_at",null).eq("manager_resolved",false).is("voided_at",null);
@@ -2114,7 +2417,6 @@ async function loadStats(){
   const r=rangeFor(statsPeriodKey,statsCustom); statsRange=r; setRangeLabel("statsPeriod",r.label);
   prodPP=null; prodRecv=null; // new period — both halves refill, renderProd merges whatever has arrived
   prodExpanded=null; // 기간 변경 = 펼침 접기(사용자 확정) — 다른 기간의 목록이 펼쳐진 채 남으면 오독한다
-  prodRecv=null;   // ⑤-5c2: 입고 통계는 입고가 IMS 로 올 때 — renderProd 는 빈 값으로 받아 pick/pack 만 그린다
   // throughput: completed pick/pack batches (by completion time)
   // 2026-08-11: 라인·유닛(base 낱개)까지 — 라인 테이블은 PostgREST 임베드로(왕복 수 불변, 규칙 34 패턴).
   //   "실제 한 일" 기준(리시빙 통계와 동일 규칙): 라인 = 수량>0 인 라인 수 · 유닛 = 수량 합
@@ -2216,6 +2518,7 @@ async function loadStats(){
   // 펼침 목록 정렬 = 완료시각 내림차순 (최근 먼저 — 상한 30 표시가 "가장 최근 30개"가 되는 근거)
   Object.values(prod).forEach(v=>{ const byAt=(a,b)=>new Date(b.at)-new Date(a.at); v.pickList.sort(byAt); v.packList.sort(byAt); });
   prodPP=prod; renderProd();
+  loadRecvStats(r); // receiving/putaway stats fill in independently — never blocks pick/pack render (rule 34)
   // quality reports by worker (2026-08-11) — 종류별 건수. 정렬은 표시 순서일 뿐, 순위·강조·색 차등 없음(조건 1).
   const qual={};
   (reps.data||[]).forEach(x=>{ if(!x.reported_by)return;
@@ -2372,6 +2675,140 @@ function renderMistakes(m){
     </tr>`).join("")}</tbody></table>`;
 }
 
+
+/* ---------- Stats: receiving / putaway (⑤-6b · 운영 admin 3729~3933 의 자리 · shares the stats period bar) ---------- */
+async function loadRecvStats(r){
+  // one round-trip batch: receipts + embedded work rows · complete rows / receiving differences (rule 34 — no per-line queries) · sbAll 페이지 누적(기간 전량)
+  // 범위 = 「기간 안에 작업이 있었을 수 있는 것」 = created_at ≤ to 이고 (미확정이거나 confirmed_at ≥ from) — 넓어진 만큼은 아래 줄 단위 기간 판정(counted_at)이 걸러낸다(운영 2026-08-17 개정 그대로)
+  const [rec,disc]=await Promise.all([
+    sbAll(()=>sb.from("po_receipt")   // caps-ok: sbAll 페이지 누적 — 기간에 걸친 receipt 전량(줄 필터가 후단)
+      .select("id,receipt_number,status,warehouse_id,created_at,confirmed_at,created_by,po:po!po_receipt_po_id_fkey(po_number),work:po_receipt_work(po_line_id,qty_ea,bin_id,putaway_done,counted_by,counted_at,putaway_by,putaway_at),complete:wms_receipt_complete(completed,completed_at)")
+      .lte("created_at",r.toISO)
+      .or("confirmed_at.is.null,confirmed_at.gte."+r.fromISO)
+      .order("id")),
+    sbAll(()=>sb.from("po_receipt_diff").select("kind,resolved_at").gte("created_at",r.fromISO).lte("created_at",r.toISO).order("id")),   // caps-ok: sbAll 페이지 누적 — 기간 전량
+  ]);
+  if(statsRange!==r) return; // period changed while loading — the newer call renders
+  const err=rec.error||disc.error;
+  if(err){
+    const msg=`<div class="empty">Failed to load: ${esc(err.message||err)}</div>`;
+    document.getElementById("recvTypeTable").innerHTML=msg;
+    document.getElementById("recvByTable").innerHTML=msg;
+    return;
+  }
+  const recs=(rec.data||[]).map(normRcv);
+  // ── 보류 공제(문서 단위 · 픽·팩 C 와 같은 자) — 하한 = 이 receipt 들의 min(created_at) · receipt_id 로 잇는다 ──
+  let rHoldMinStart=null;
+  recs.forEach(rc=>{ if(rc.completed_at&&rc.created_at){ if(rHoldMinStart==null||rc.created_at<rHoldMinStart) rHoldMinStart=rc.created_at; } });
+  const rholds=rHoldMinStart==null?{data:[]}
+    :await sbAll(()=>sb.from("wms_task_holds").select("receipt_id,held_at,resumed_at").not("receipt_id","is",null).gte("held_at",rHoldMinStart).order("id"));   // caps-ok: sbAll 페이지 누적 — 하한은 min(created_at)
+  if(statsRange!==r) return; // period changed while the hold query ran
+  const rHoldMap={};   // receipt_id → 공제 분(닫힌 행만 · greatest(0) 클램프)
+  (rholds.data||[]).forEach(h=>{ if(!h.resumed_at)return;
+    rHoldMap[h.receipt_id]=(rHoldMap[h.receipt_id]||0)+Math.max(0,(new Date(h.resumed_at)-new Date(h.held_at))/60000); });
+
+  const T={n:0,lines:0,units:0,rMin:0,rN:0,aMin:0,aN:0,netMin:0,netN:0,counters:{},placers:{}};
+  const byWorker={}, byWh={};
+  let confirmed=0, completedNotConfirmed=0, stillReceiving=0;
+  let pLines=0,pDone=0,backLines=0,backUnits=0;
+  const fromMs=Date.parse(r.fromISO), toMs=Date.parse(r.toISO);
+  const inPeriod=ts=>{ if(!ts)return false; const t=Date.parse(ts); return t>=fromMs&&t<=toMs; };
+  recs.forEach(rc=>{
+    const whName=whOf(rc.warehouse_id).name||"?";
+    const wh=byWh[whName]=byWh[whName]||{n:0,lines:0,units:0};
+    const rcInPeriod=inPeriod(rc.created_at);
+    if(rcInPeriod){
+      T.n++; wh.n++;
+      const rm=workMinutes(rc.created_at,rc.completed_at,rc.wh);
+      if(rm!=null){ T.rMin+=rm;T.rN++; }
+      if(rc.completed_at&&rc.created_at){
+        const raw=(new Date(rc.completed_at)-new Date(rc.created_at))/60000;
+        if(raw>=0){ const net=Math.max(0,raw-(rHoldMap[rc.id]||0)); if(net<24*60){ T.netMin+=net; T.netN++; } }
+      }
+      const am=workMinutes(rc.completed_at,rc.confirmed_at,rc.wh);
+      if(am!=null){ T.aMin+=am;T.aN++; }
+      if(rc.status==="confirmed") confirmed++;
+      else if(rc.status==="draft"&&rc.completed) completedNotConfirmed++;
+      else if(rc.status==="draft") stillReceiving++;
+    }
+    // ── 줄 · 사람 귀속은 작업 줄의 counted_at 기준(수량 축) · 놓기는 putaway_by(놓기 축) ──
+    const lineSet=new Set(); const touched=new Map();
+    (rc.work||[]).forEach(w=>{
+      const q=Number(w.qty_ea)||0;
+      if(q<=0)return;
+      if(!(w.counted_at?inPeriod(w.counted_at):rcInPeriod)) return;
+      lineSet.add(w.po_line_id); T.units+=q; wh.units+=q;
+      if(w.counted_by) T.counters[w.counted_by]=(T.counters[w.counted_by]||0)+1;
+      if(w.putaway_by) T.placers[w.putaway_by]=(T.placers[w.putaway_by]||0)+1;
+      pLines++;
+      if(w.putaway_done){ pDone++; } else{ backLines++; backUnits+=q; }
+      const key=w.counted_by||rc.created_by||"(unknown)";
+      const tw=touched.get(key)||{lines:new Set(),units:0,pDone:0,maxAt:null};
+      tw.lines.add(w.po_line_id); tw.units+=q; if(w.putaway_done)tw.pDone++;
+      if(w.counted_at&&(!tw.maxAt||w.counted_at>tw.maxAt))tw.maxAt=w.counted_at;
+      touched.set(key,tw);
+    });
+    T.lines+=lineSet.size; wh.lines+=lineSet.size;
+    touched.forEach((tw,key)=>{
+      const nm=nameOf(key)||"(unknown)";
+      const w=byWorker[nm]=byWorker[nm]||{n:0,lines:0,units:0,pDone:0,list:[]};
+      w.n++; w.lines+=tw.lines.size; w.units+=tw.units; w.pDone+=tw.pDone;
+      w.list.push({label:(rc.po_number||"")+" · "+(rc.receipt_number||""), lines:tw.lines.size, units:tw.units, at:tw.maxAt||rc.completed_at||null});
+    });
+  });
+  Object.values(byWorker).forEach(w=>w.list.sort((a,b)=>(b.at?new Date(b.at).getTime():Infinity)-(a.at?new Date(a.at).getTime():Infinity)));
+
+  document.getElementById("recvStatGrid").innerHTML=[
+    ["Receipts started",T.n,""],
+    ["Units counted (base)",nf(T.units),""],
+    ["Confirmed by the office",confirmed,confirmed>0?"ok":""],
+    ["Completed, not yet confirmed",completedNotConfirmed,completedNotConfirmed>0?"warn":""],
+    ["Still receiving",stillReceiving,""],
+  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+  const peopleCell=obj=>{
+    const es=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+    if(!es.length) return `<td style="color:var(--mut-2)">—</td>`;
+    const full=es.map(([id,c])=>`${nameOf(id)||"?"} (${c})`).join(" · ");
+    const shown=(es.length>6?es.slice(0,5):es).map(([id,c])=>`${esc(nameOf(id)||"?")} (${nf(c)})`).join(" · ");
+    const more=es.length>6?` <span style="color:var(--mut)">+${es.length-5} more</span>`:"";
+    return `<td style="font-size:12px" title="${esc(full)}">${shown}${more}</td>`;
+  };
+  document.getElementById("recvTypeTable").innerHTML=(T.n===0&&T.lines===0)
+    ? `<div class="empty">No receiving in this period.</div>`
+    : `<table><thead><tr><th>Type</th><th class="num">Receipts</th><th class="num">Lines</th><th class="num">Units (base)</th><th class="num">Avg receive (work hrs)</th><th class="num">Avg receive − holds</th><th class="num">Avg complete → office confirm (work hrs)</th><th>Counted by (rows)</th><th>Put away by (rows)</th></tr></thead>
+       <tbody><tr><td style="font-weight:600">PO</td>
+         <td class="num">${T.n}</td><td class="num">${nf(T.lines)}</td><td class="num">${nf(T.units)}</td>
+         <td class="num">${T.rN?fmtWorkDur(T.rMin/T.rN):"—"}</td><td class="num">${T.netN?fmtWorkDur(T.netMin/T.netN):"—"}</td><td class="num">${T.aN?fmtWorkDur(T.aMin/T.aN):"—"}</td>${peopleCell(T.counters)}${peopleCell(T.placers)}</tr></tbody></table>`;
+
+  // per-worker receiving merges into "Throughput by worker" (renderProd) — no separate worker table
+  prodRecv=byWorker; renderProd();
+
+  const whRows=Object.entries(byWh).filter(([,v])=>v.n||v.lines).sort((a,b)=>b[1].units-a[1].units);
+  document.getElementById("recvByTable").innerHTML=!whRows.length
+    ? `<div class="empty">No receiving in this period.</div>`
+    : `<table><thead><tr><th>Warehouse</th><th class="num">Receipts</th><th class="num">Lines</th><th class="num">Units (base)</th></tr></thead>
+       <tbody>${whRows.map(([wh,v])=>`<tr><td style="font-weight:600">${esc(wh)}</td>
+         <td class="num">${v.n}</td><td class="num">${nf(v.lines)}</td><td class="num">${nf(v.units)}</td></tr>`).join("")}</tbody></table>`;
+
+  const donePct=pLines?Math.round(pDone/pLines*100):0;
+  document.getElementById("putawayStatGrid").innerHTML=[
+    ["Putaway done",pLines?donePct+"%":"—",pLines?(donePct>=90?"ok":"warn"):""],
+    ["Backlog rows (not put away)",backLines,backLines>0?"warn":(pLines?"ok":"")],
+    ["Backlog units (base)",nf(backUnits),backLines>0?"warn":""],
+  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+  let dOver=0,dShort=0,dOff=0,dOpen=0;
+  (disc.data||[]).forEach(d=>{
+    if(d.kind==="over")dOver++; else if(d.kind==="short")dShort++; else if(d.kind==="off_po")dOff++;
+    if(!d.resolved_at)dOpen++;
+  });
+  document.getElementById("recvDiscGrid").innerHTML=[
+    ["Over (got more)",dOver,dOver>0?"warn":""],
+    ["Short (got less)",dShort,dShort>0?"warn":""],
+    ["Off-PO",dOff,dOff>0?"warn":""],
+    ["Still open",dOpen,dOpen>0?"bad":"ok"],
+  ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+}
 
 boot();
 </script>

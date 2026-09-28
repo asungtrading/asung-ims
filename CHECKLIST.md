@@ -17,7 +17,7 @@
 ```
 [ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)  → ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · 7-p)가 Packing 뒤 · Split & Waves 앞에 더 — fulfillment 열쇠는 worker 기본이라 worker 는 Picking · Packing · Fulfillment 셋 · admin 은 스물셋(⑤-5a)  → ✅ [2026-09-27] WMS Admin(wms-admin.html · 7-q)이 Split & Waves 뒤에 더 — wms_manage 열쇠(manager 는 켜 준 사람만) · worker 는 그대로 셋 · admin 은 스물넷(⑤-5b)  → ✅ [2026-09-27 밤] Receiving(wms-receiver.html · 7-r)이 Fulfillment 뒤 · Split & Waves 앞에 더 — wms_receiving 열쇠(WMS 방 · min_role 없음 = worker 도 저절로 본다 · R8 실측) · worker 는 넷 · admin 은 스물다섯(⑤-6a)
+[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)  → ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · 7-p)가 Packing 뒤 · Split & Waves 앞에 더 — fulfillment 열쇠는 worker 기본이라 worker 는 Picking · Packing · Fulfillment 셋 · admin 은 스물셋(⑤-5a)  → ✅ [2026-09-27] WMS Admin(wms-admin.html · 7-q)이 Split & Waves 뒤에 더 — wms_manage 열쇠(manager 는 켜 준 사람만) · worker 는 그대로 셋 · admin 은 스물넷(⑤-5b)  → ✅ [2026-09-27 밤] Receiving(wms-receiver.html · 7-r)이 Fulfillment 뒤 · Split & Waves 앞에 더 — wms_receiving 열쇠(WMS 방 · min_role 없음 — ⑤-6a2 판정 39 부터 worker 도 **사람마다 켠다**(staff.html) · Caleb 이 worker 7 에게 넷을 켰다) · worker 는 넷 · admin 은 스물다섯(⑤-6a)  → ✅ [2026-09-27] 판정 40 — 오피스 입고 메뉴 이름 「Receiving」 → **「Purchase Receipts」**(receiving.html · 화면 값 · 파일 이름 무변) · 창고 화면이 「Receiving」
     Settings · Suppliers · Products · Families · Supplier Products ·
     Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
     ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
@@ -444,7 +444,7 @@
 
 ---
 
-## 7-e. `receiving.html` — 입고 (2026-09-18 신설 · 대화 Claude)
+## 7-e. `receiving.html` — Purchase Receipts(오피스 입고 · 판정 40 으로 메뉴 이름이 「Receiving」 → 「Purchase Receipts」 · 2026-09-18 신설 · 대화 Claude)
 
 뒷단: 뷰 `po_receipt_list`·`po_receipt_diff_list`(목록) · RPC `po_receipt_detail`(상세) ·
 쓰기 RPC `po_receipt_create` · `po_receipt_work_save/delete/split/putaway/putaway_all/unassign` ·
@@ -1083,7 +1083,7 @@ Parked and open at this store
 
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · 여덟 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때)
+## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1099,7 +1099,7 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 ⚠️ 모집단(2026-09-27 테스트 DB · Claude Code 실측 · begin read only): SO-25003 **packed**(packed_at 20:55 · packed_by Caleb) · wms_order_finalize 한 줄(packing_list · units 1 · units_without_dims 0) · 팔렛 P1(120×100×150 cm · 250 kg → 47.24 × 39.37 × 59.06 in · 551.16 lb) · 아이템 1(qty 12 · pack_task_id 23) · 픽 과제 47 completed · 팩 과제 23 completed · 픽 칸 2(계획 1 · 실제 1) · rollback_log 0 · archive 0 · review 0 · mistakes 0 · waves 0 · 시퀀스 so 25004 · 인보이스 60001 · 크레딧 1000 그대로.
 
 ```
-[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · wa v1.4」 · ☰ Menu 에 WMS Admin(Split & Waves 뒤 · 맨 끝) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves · WMS Admin」 · 화면 안 탭 여덟 = Status · Discrepancy · Reports · Stats · Rollback · Health · Finalized · Trace(원본 순서 · Receiving 없음) · worker 계정은 메뉴에 없고 주소로 열면 「You don't have access to this screen.」 뒤 로그아웃
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · wa v1.5」 · ☰ Menu 에 WMS Admin(Split & Waves 뒤 · 맨 끝) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Split & Waves · WMS Admin」 · 화면 안 탭 아홉 = Status · Discrepancy · Reports · Stats · Rollback · Health · Receiving · Finalized · Trace(원본 순서) · worker 계정은 메뉴에 없고 주소로 열면 「You don't have access to this screen.」 뒤 로그아웃
 [ ] Status: 카드 Released to WMS 0 · Working 0 · Packing 0 · Ready to finalize 0 · Finalized 1 · 배치 카드 넷 0 · Live now(열린 WMS 화면이 없으면 「No one is working …」) · Batch activity 「No orders in progress.」 · In-Progress Orders 「No orders in progress.」(SO-25003 은 packed 라 활성이 아니다)
 [ ] Finalized: 카드 Finalized 1 · With packing list 1 · Direct pack 0 · Packing-list rate 100% · 목록에 SO-25003 · JOJOJO - Joel Chang · Lines 1 · Units 12 · Toronto · Finalized by <이름> · When(20:55) · 🖨 Print · ⬇ PDF · ⬇ CSV · 「1 of 1 not yet reviewed」 · 창고 세그 All · Toronto · Edmonton(Edmonton 으로 바꾸면 「No finalized orders in this period.」) · 기간 세그 This week
 [ ] 🖨 Print → 새 창 PACKING LIST · SO-25003 · Customer · Warehouse Asung Trading Inc. · 유닛 지도 「🟩 P1 ✔ 12 units · 47.24 × 39.37 × 59.06 in · 551.16 lb」 · 표 CON00156 · Barcode 075724001565 · Product · Qty 12 · Total qty 12 · ⬇ PDF(글자 「ASUNG TRADING INC」 머리) · ⬇ CSV(유닛 지도에 Dimensions 열)
@@ -1131,11 +1131,38 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 [ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_health_check 200(부팅 때 배지 1 + 탭 열 때 1)
 ```
 
-⚠️ [2026-09-27 v1.3] 아직 없는 것 — Receiving 탭 · Stats 입고 구간(입고가 IMS 로 올 때 · po_receipt_work) · 배치 단위 · 웨이브 되돌리기 실측 · 한 번에 되돌리기(컷오버 뒤) · Trace 에 되돌리기 로그 한 줄(⬜ 안) · stock_short → 재고 조정 연결(판정 20 ⬜⭐ · 재고 사건 차수).
+⚠️ [2026-09-27 v1.3] 아직 없는 것 — Receiving 탭 · Stats 입고 구간(입고가 IMS 로 올 때 · po_receipt_work) · 배치 단위 · 웨이브 되돌리기 실측 · 한 번에 되돌리기(컷오버 뒤) · Trace 에 되돌리기 로그 한 줄(⬜ 안) · stock_short → 재고 조정 연결(판정 20 ⬜⭐ · 재고 사건 차수).  → ✅ [2026-09-27 밤] Receiving 탭 · Stats 입고 = v1.5(아래)
+
+⭐ **v1.5 Receiving 탭 · Stats 입고(⑤-6b · 2026-09-27 · Claude Code · 마이그레이션 `20260928014844_wms_5_6b_recv_delete_health_receipt.sql`)** — 뒷단:
+   Receiving = `po_receipt`(draft 전량 sbAll + 최근 60 · `po!po_receipt_po_id_fkey(po_number · supplier!po_supplier_id_fkey(name))` · `po_receipt_work`(qty · bin · placed · counted_by · putaway_by) · `wms_task_holds`(열린 보류) · `wms_receipt_complete`(completed_by/at) 임베드) ·
+   승인 대기 = `po_receipt_diff` kind off_po 열린 것(+ receipt · product 임베드 · **읽기만** — 한 줄 「Approve and reject are not available yet — the item stays waiting and cannot be put away」) · 배지 = 그 수 ·
+   「Awaiting putaway」 = 칸 있고 putaway_done false 인 줄(draft 만) · 「Put away →」 = `wms-receiver.html?receipt=<uuid>` · 「Completed — awaiting office confirmation」 = 창고 Complete 된 draft + **Reopen**(rpc `wms_recv_reopen` · wms_manage) + Confirm 단추(화면 값 wms_receiving_confirm 이 있을 때만 · rpc `wms_recv_confirm` · 지금 0 명) ·
+   history 최근 60 · 총수 캡션 · Review = rpc `po_receipt_detail` + `wms_recv_state`(칸별 묶음 · counted/placed 사람 · off-PO 대기 · 안 센 라인 수) · **Delete** = rpc **`wms_recv_delete(p_receipt_id)`**(draft 만 · manager 이상 · 창고 · 지우기 전에 po_receipt · work · diff · holds · complete 행을 `wms_rollback_archive`(action receipt_delete) 에 · `wms_rollback_log` 한 줄 · 입력 확인 = RCV 번호 타이핑).
+   Stats 입고 = `po_receipt`(created_at 기간 · confirmed_at) + `po_receipt_work`(counted_by/at · putaway_by/at 두 축 · lines = distinct po_line_id · units = Σ qty_ea) + `wms_receipt_complete.completed_at`(받는 시간 = 시작 → Complete) + `wms_task_holds.receipt_id`(− holds) + `po_receipt_diff`(over · short · off_po · 열림) · Throughput by worker 의 「Receive lines」 병합 되살림(prodRecv · 열쇠 = counted_by 이름 · 펼침 = PO · RCV).
+   Health = rpc 그대로 · **15 행**(hold_leak 에 입고 가지 · receipt_completed_not_confirmed 130 · stale_receipt_draft 140 — 화면 코드 무변).
+⭐ 옛 화면과 다른 것(v1.5): 「Apply to Cin7」 절 → 「Completed — awaiting office confirmation」 · applied/외부 처리 배지 · Mark externally applied · Back to completed · dry-run/commit · 트랜스퍼 배너 · Source TR 없음 · 승인 · 거절 단추 없음(다음 차수) · 상태 글자 = In progress · Held · Completed — awaiting office confirmation · Confirmed by the office · Cancelled · 오피스 화면은 「Purchase Receipts」(판정 40) ·
+   Stats 「Transfer receipts」 · 「Applied bins failed」 · 「Applied outside WMS」 · 「Transfer lines moved」 없음 · 「Avg complete → apply」 → 「Avg complete → office confirm」 · Workers 열 둘(Counted by · Put away by — Place all 재스탬프 각주 사라짐 · 두 축이라) · 「Receiving discrepancies … never recorded before 2026-07-28」 각주 없음.
+⚠️ 모집단(2026-09-27 밤 테스트 DB · Claude Code 실측 · begin read only): RCV-00027(draft · PO-02026 · 12 · 놓음 1 · **창고 Complete** · 미확정) · RCV-00028(draft · PO-02007 · 13 줄 156 · 전부 놓음 · 닫힌 보류 1 · Complete 아님) · confirmed RCV-00005 · 00006 · 00026 · off_po 열린 행 0 · 시퀀스 RCV 28.
+
+```
+[ ] Receiving 탭(Health 뒤 · Finalized 앞) · 배지 없음(off-PO 열린 행 0) · 「Off-PO items waiting for approval」 = 「No off-PO items waiting for approval.」 + 회색 한 줄 「Approve and reject are not available yet …」
+[ ] Awaiting putaway = 「Nothing awaiting putaway — …」(RCV-00027 · 00028 전부 놓음) · (선택) wms-receiver 에서 RCV-00028 한 줄의 Placed 를 풀면 여기 한 줄 「⚠ 1 row / n units awaiting putaway」 + 「Put away →」 → wms-receiver.html?receipt=<uuid> 로 그 입고가 열린다
+[ ] Completed — awaiting office confirmation = RCV-00027 한 줄(PO-02026 · 공급처 · Toronto · Completed <이름> · 시각 · Review · Reopen · Confirm 단추 없음) · 아래 「1 receipt(s) still receiving/held」(RCV-00028)
+[ ] Review(RCV-00027) → 모달 「RCV-00027 · PO-02026 · Completed — awaiting office confirmation」 · started by · completed by · 📍 <칸> 1 row · 12 / line 12 of 12 · ✓ placed · counted <이름> · placed <이름> · 「Reopen for the warehouse」 · Close
+[ ] ⭐ Reopen(RCV-00027) → confirm → 「RCV-00027 reopened」 · wms_receipt_complete completed f · reopened_by 내 id · 목록에서 Completed 절이 비고 「2 receipt(s) still receiving/held」 · wms-receiver.html 에서 RCV-00027 이 다시 수정 가능(배너 없음) → 거기서 다시 Complete → 여기 Completed 절에 다시 선다
+[ ] Receiving history = RCV-00028 · 00027(draft · rows · u) · 00026 · 00006 · 00005(Confirmed by the office <이름> · 날짜 · Delete 단추 없음) · 총수 캡션 없음(5 ≤ 60) · Workers 열(counted_by · putaway_by 이름 · +n)
+[ ] ⭐ Delete 시험 — wms-receiver 에서 PO-02002(또는 PO-02001b)를 Start 해 새 초안(RCV-00029 · 번호 하나 소비 · 정상)을 만든 뒤 여기 history 의 Delete → prompt 「Delete receipt RCV-00029? Nothing has been counted on this receipt. …」 → RCV-00029 타이핑 → 「RCV-00029 deleted (1 row(s) archived)」 · po_receipt 에서 사라짐 · wms_rollback_archive 한 줄(action receipt_delete · order_number RCV-00029 · batch_label PO 번호 · src_table po_receipt) · wms_rollback_log 한 줄(receipt_delete · draft → deleted) · 틀린 번호 타이핑 → 「Receipt number mismatch — cancelled」 · confirmed 행에는 Delete 가 안 보인다
+[ ] (선택) off-PO 대기 줄 — wms-receiver 에서 RCV-00028 에 PO 에 없는 제품을 스캔 → 여기 배지 1 · 표 한 줄(RCV-00028 · PO-02007 · SKU · Received 1 · Toronto) · 단추 없음
+[ ] Stats: 기간 This week → 「Receiving」 카드 다섯(Receipts started 2 · Units counted 168 · Confirmed by the office 0 · Completed, not yet confirmed 1 · Still receiving 1) · 표 한 줄 PO(Receipts 2 · Lines 14 · Units 168 · Avg receive(RCV-00027 만) · − holds · Avg complete → office confirm — · Counted by <이름> (14) · Put away by <이름> (14)) · Receiving by warehouse Asung Trading Inc. 2 · 14 · 168 · Putaway done 100% · Backlog 0 · 0 · Receiving differences 전부 0(기간 안 차이 없음) · Throughput by worker 의 내 이름 줄에 「Receive 14 lines · 168 units (base) / 2 receipts · putaway 100%」 + Receive lines 막대 + 펼침 「PO-02007 · RCV-00028 · 13 · 156」 「PO-02026 · RCV-00027 · 1 · 12」
+[ ] Health: 카드 15(Receipt completed in the warehouse but not confirmed for 24h · Receipt draft with nothing counted for 24h 가 long_hold 뒤 · Last release 앞) · 지금은 전부 ✓ OK(RCV-00027 Complete 가 24h 안) · 내일 이 시각 뒤 RCV-00027 을 확정 안 했으면 「1 row」 warn 이 뜬다
+[ ] 콘솔(F12) 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl(운영) 요청 0 · rpc/wms_recv_reopen · rpc/wms_recv_delete · rpc/po_receipt_detail · rpc/wms_health_check 200(이 함수들은 테스트 DB 에만 있다)
+```
+
+⚠️ [2026-09-27 v1.5] 아직 없는 것 — off-PO 승인 · 거절 · 투입(⑤-6c · 안 셋 판정 대기) · Confirm 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Trace 에 입고 · 되돌리기 로그 · 한 번에 되돌리기(컷오버 뒤).
 
 ---
 
-## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수)
+## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수)
 
 뒷단(⑤-3a `20260926213035` · ⑤-3b `20260926232330` · 정본 `asung-wms/docs/design/so-module.md` §24-l · m · n · 판정 5 · 25 · 27 · 28 · 29 · 30 · 33):
 시작 = **`wms_recv_start(p_po_id)`**(PO 당 열린 초안 하나 · 있으면 그것(existing · held) · 없으면 새 RCV 번호 — ⚠️ 24-m 「안 돌린 가지」가 여기서 처음 돈다) · 줄 · 작업 줄 · 헤더 = rpc `po_receipt_detail`(lines[] = PO 라인 전부 · work[] = 빈별 작업 줄 · diffs[] off_po) · 상태 = rpc `wms_recv_state`(completed · held) ·
@@ -1145,7 +1172,7 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 읽기 = `po`(confirmed + supplier) · `po_receipt`(draft + po · work · holds · complete 임베드) · `product` · `product_barcode`(낱개 factor 1 + 그 낱개를 parent 로 둔 세트 ×pack_factor — wms_pick_lines 와 같은 뜻) · `ref_bin`(창고 · 활성 · 모달은 300 씩 서버 검색 · 스캔은 정확 일치) · `wms_zone_sequence`(warehouse_id|zone) · rpc `ims_last_bin`(판정 29 — **미리 보여만** · 자동 배정 쓰기 없음) · `ref_warehouse` · `ims_staff`(id,name) · 쓰기 직접 = `wms_reports`(barcode_mismatch · box_barcode · receipt_id · po_number · reported_by = ims_staff.id · source receiver).
 
 ⭐ 진입점은 `ims-config.js` · `ims-auth.js` 뿐(0-a 검사 다섯째 grep 0) — 운영 WMS 는 그대로 돈다 · 이 화면은 테스트 프로젝트의 발주만 본다.
-⭐ 권한 = wms_receiving 열쇠(WMS 방 · min_role 없음 · ⚠️ R8 실측: ims_can_view/write 는 worker 에게 wms 방의 min_role 없는 화면을 **저절로** 준다(⑤-2a1 20260926192314) — perms ["wms"] 만 있는 worker 도 들어온다) · 모드 'wms' · 탭 「IMS · WMS | Picking · Packing · Fulfillment · Receiving · Split & Waves · WMS Admin」.
+⭐ 권한 = wms_receiving 열쇠(WMS 방 · min_role 없음 · **사람마다 켠다** — 판정 39 · 20260928010908 이 worker 의 자동 가지를 뺐다 · Caleb 이 staff.html 에서 worker 7 에게 PICKING · PACKING · FULFILLMENT · WMS_RECEIVING write 를 켰다 · R8 의 「저절로」 는 그 마이그레이션 전 실측) · 모드 'wms' · 탭 「IMS · WMS | Picking · Packing · Fulfillment · Receiving · Split & Waves · WMS Admin」.
 ⭐ 소유권 비교 없음(리시빙은 원래 소유자가 없다 — 나눠 받기가 기능) · me.name 은 presence 열쇠 · payload 표시용만 · 「Started by」 = created_by nameOf · 창고 = me.access.warehouses(null 이면 전부).
 ⭐ 옛 화면과 다른 것: 목록 = 「Resume Receiving」(이 창고의 draft 입고 · RCV 번호 병기 · Held / Completed 태그) + 「Ready to receive」(confirmed PO · ↻ POs) — Cin7 목록 · Applied 배지 · ↻ Transfers 없음 · expected = 이 문서에서 받을 남은 수량(ordered − received_before · 판정 5 — 인보이스 기준이 아니다) · 「NOT INVOICED」 갈래 없음 ·
    Partial 단추 없음(판정 28 · 「오늘은 여기까지」 = Hold) · 풋어웨이 진입에 자동 배정 없음(판정 29) — 칸 없는 줄은 **「suggested」 그룹**(Last bin 이름 · 「last kept here」)으로 보이고 Placed / Place all 을 누르는 순간 그 칸으로 놓인다 · Last bin 없는 줄 = 「Bin needed」 → Assign bin(스캔 · 서버 검색 300) · 모르는 칸 이름은 거부(「… is not a bin at Toronto — ask the office to add it」) ·
@@ -1155,9 +1182,10 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 ⚠️ 모집단(2026-09-27 밤 테스트 DB · Claude Code 실측 · begin read only): draft 입고 **0** · confirmed PO 4 = PO-02001b(1줄 · 100) · PO-02002(4 · 1,015) · **PO-02007(13 · 156 · 세트 자식 13)** · **PO-02026(1 · 12)** · 전부 Toronto · 시퀀스 RCV 26(⚠️ 첫 Start 가 27 을 당긴다 — 정상 사용) · PO 2027 · SO 25004 · 인보이스 60001 · 크레딧 1000.
 
 ```
-[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · rc v1」 · ☰ Menu 에 Receiving(Fulfillment 뒤 · Split & Waves 앞) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Receiving · Split & Waves · WMS Admin」 · worker 계정도 들어온다(R8) · 초록 점(연결)
+[ ] 로그인 뒤 헤더 「이름 · 역할」 · 「2026-09-27 · rc v1.1」 · ☰ Menu 에 Receiving(Fulfillment 뒤 · Split & Waves 앞) · 탭 줄 「IMS · WMS | Picking · Packing · Fulfillment · Receiving · Split & Waves · WMS Admin」 · worker 계정도 들어온다(R8) · 초록 점(연결)
 [ ] 목록: 「Scan a PO barcode or load the confirmed POs …」 · Resume Receiving 비어 있음 · ↻ POs → Ready to receive 에 PO-02001b · PO-02002 · PO-02007 · PO-02026(공급처 · Confirmed · 날짜 · Toronto) · PO 스캔 칸에 PO-02026 Enter → 바로 시작
 [ ] ⭐ PO-02026 Start → 토스트 없음(새 초안) · po_receipt 한 줄 RCV-00027(draft · created_by 내 id · warehouse Toronto) · 제목 「PO-02026 · RCV-00027」 · Single 뷰 줄 하나 0 / 12 · Barcode 줄(낱개 · ×factor 세트) · Last bin 칩(원장에 자리가 있으면) · ⚑ Barcode changed · ⚑ Box barcode (사진 칸 · Image differs 없음)
+[ ] ⭐ 창고 기기(태블릿 · 스캐너)에서 소리 — 스캔 성공(짧은 삑) · 줄 완료(올라가는 소리) · 세트 스캔(세 음) · 실패(사이렌)가 들린다(Caleb 은 PC 에서 못 들어 봤다 · 2026-09-27) · − · + 로 수량이 차도 다음 줄로 안 넘어간다(판정 41)
 [ ] 바코드 스캔(타이핑 + Enter) → 「✓ <SKU> +1 (1/12)」 · po_receipt_work 한 줄(qty_ea 1 · bin null · counted_by 내 id · count_method scanned) · 12 번째에 「· DONE」 + 완료 소리 · 13 번째 → confirm 「expected quantity already met …」 → 「⚠ OVER … 13/12」 · − 로 12 로 돌림(스테퍼 = 델타 · count_method manual)
 [ ] Enter quantity → 10 → 10 / 12 · 다른 탭(또는 오피스 receiving.html)에서 같은 줄을 11 로 바꾼 뒤 Enter quantity 12 → 「Quantity conflict — Someone else set this to 11 while you were entering 12」 · Keep theirs → 11 · Use mine → 12 · Recount → 다시 묻기
 [ ] Putaway → → 자동 배정 없음: Last bin 이 있으면 「<bin> · suggested」 그룹에 「last kept here」 줄 · Placed → 그 칸에 놓임(work.bin_id · putaway_done t · putaway_by 내 id) · Last bin 없으면 「Bin needed」 → Assign bin → 칸 스캔(정확 일치) 또는 목록(300 · 타이핑 필터 · 존 머리) → 줄이 그 칸 그룹으로 · Placed · Change → 다른 칸 → placed 해제 · 모르는 이름 → 「"X" is not a bin at Toronto — ask the office to add it」
