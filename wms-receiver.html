@@ -1,0 +1,1916 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Receiving · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* ⑤-6a — 운영 asung-wms/receiver.html(2026-09-27 · b623843)의 복사본. 헤더 · 로그인 · 메뉴 · 탭 줄은 IMS 공통(ims-ui.css · ims-auth.js) · 나머지 모양은 원본 그대로.
+     ⚠️ 원본은 건드리지 않는다 — 여기만 고친다. */
+  :root{
+    --ink:#12161c; --ink-2:#1b222c; --line:#e5e9ef; --line-2:#eef1f6;
+    --paper:#f7f8fa; --card:#ffffff; --mut:#6b7686; --mut-2:#9aa4b2;
+    --accent:#2f6df6; --accent-ink:#1b4fd6;
+    --tor:#2f6df6; --edm:#12996b;
+    --ok:#16a34a; --ok-bg:#e7f7ed; --warn:#d9820a; --warn-bg:#fdf6ec; --danger:#dc2626; --danger-bg:#fdecec;
+    --radius:12px; --shadow:0 1px 2px rgba(16,22,30,.04),0 4px 16px rgba(16,22,30,.05);
+    --mono:ui-monospace,"SF Mono","DM Mono",Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overscroll-behavior:none}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45;overscroll-behavior:none}
+
+  .conn{display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--mut-2)}
+  .dot.on{background:var(--ok)} .dot.err{background:var(--danger)}
+
+  main{max-width:760px;margin:0 auto;padding:16px}
+  .lead{font-size:13px;color:var(--mut);margin:2px 2px 12px}
+  .sect{font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:14px 2px 6px}
+  .sect:first-child{margin-top:0}
+
+  .btn{border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;transition:.1s;white-space:nowrap}
+  .btn.dark{background:var(--ink);color:#fff} .btn.dark:hover{background:var(--ink-2)}
+  .btn.ghost{background:var(--card);color:var(--mut);border:1px solid var(--line)}
+  .btn.go{background:var(--accent);color:#fff}
+  .btn.ok{background:var(--ok);color:#fff}
+  .btn.warn{background:#fff;color:var(--danger);border:1px solid #f1c4c4}
+  .btn.hold{background:#fff;color:var(--warn);border:1px solid #f0d9ae}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  /* PO / receipt cards */
+  .blist{display:flex;flex-direction:column;gap:10px}
+  .bcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.1s}
+  .bcard:hover{border-color:#c9d4e6}
+  .bcard.resume{border-color:#bcd0f6;background:#f5f8ff}
+  .bcard .bl{font-family:var(--mono);font-weight:800;font-size:16px}
+  .bcard .sub{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .bcard .go{margin-left:auto;background:var(--ink);color:#fff;border:0;border-radius:9px;padding:10px 16px;font:inherit;font-weight:700;font-size:13.5px;cursor:pointer;flex:none}
+  .bcard .go.resumebtn{background:var(--accent)}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+  .tag.wh-toronto{color:var(--tor);background:#eef3ff} .tag.wh-edmonton{color:var(--edm);background:#e9f7f1}
+  .tag.st{color:var(--warn);background:var(--warn-bg)}
+  .empty,.loading{padding:44px 20px;text-align:center;color:var(--mut)}
+  .loading .spin{width:22px;height:22px;border:2.5px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* scan bar */
+  .scanbar{background:var(--paper);padding:6px 0 12px}
+  .recv-controls,.put-controls{position:sticky;top:55px;z-index:15;background:var(--paper)}
+  .put-controls{padding:2px 0 6px}
+  .recv-controls .zjump,.put-controls .zjump{margin-bottom:6px}
+  .scanin{width:100%;border:2px solid var(--accent);border-radius:12px;padding:14px 16px;font:inherit;font-size:16px;font-family:var(--mono);letter-spacing:.02em;background:#fff}
+  .scanin:focus{outline:none;box-shadow:0 0 0 4px rgba(47,109,246,.15)}
+  .scanhint{font-size:11px;color:var(--mut-2);font-family:var(--mono);margin:5px 2px 0;display:flex;align-items:center;gap:6px}
+  .scanhint .live{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  #flash{position:fixed;left:0;right:0;top:0;z-index:60;padding:16px;text-align:center;font-weight:800;font-size:17px;color:#fff;transform:translateY(-100%);transition:transform .12s;font-family:var(--mono)}
+  #flash.show{transform:translateY(0)}
+  #flash.ok{background:var(--ok)} #flash.bad{background:var(--danger)}
+
+  /* receiving view */
+  .pwrap{display:none}
+  .ptop{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .ptitle{font-family:var(--mono);font-weight:800;font-size:17px}
+  .pmeta{font-size:12px;color:var(--mut)}
+  .prog{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:2px 0 14px}
+  .prog i{display:block;height:100%;background:var(--ok);width:0;transition:width .2s}
+
+  .list{display:none;flex-direction:column;gap:8px}
+
+  /* segmented view toggle (picker와 동일) */
+  .seg{margin-left:auto;display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:3px}
+  .seg button{border:0;background:transparent;font:inherit;font-size:12.5px;font-weight:700;color:var(--mut);padding:6px 11px;border-radius:6px;cursor:pointer}
+  .seg button.active{background:var(--ink);color:#fff}
+
+  /* single view (picker 이식) */
+  .single{display:none;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .single .body{padding:16px}
+  .single .head{display:flex;gap:14px;margin-bottom:6px}
+  .single .img{width:150px;height:150px;flex:none;border:1px solid var(--line);border-radius:12px;background:#f1f3f6 center/contain no-repeat}
+  .single .info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .single .nm{font-size:15px;font-weight:600;margin:2px 0 2px}
+  .single .sku{font-family:var(--mono);font-size:17px;font-weight:800;color:var(--ink);letter-spacing:.01em}
+  .single .barcodes{margin:2px 0 4px;padding:9px 11px;background:var(--paper);border:1px solid var(--line);border-radius:10px}
+  .single .barcodes .bc{display:flex;align-items:center;gap:10px;padding:2px 0;font-family:var(--mono);font-size:13px}
+  .single .barcodes .bl{color:var(--mut);min-width:58px;font-weight:700;font-size:11.5px}
+  .single .barcodes .bv{font-weight:700;letter-spacing:.02em}
+  .single .barcodes .bv.empty{color:var(--mut-2);font-weight:400;font-style:italic}
+  .reportrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+  .reportrow .rep{flex:1 1 30%;min-width:104px;border:1px solid #f0d9ae;background:#fffdf6;color:#a86e12;border-radius:9px;padding:8px 6px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .reportrow .rep:active{background:#fdf3df}
+  .reportrow .rep.on{background:#a86e12;border-color:#a86e12;color:#fff}
+  .reportrow .rep:disabled{opacity:.55;cursor:default}
+  .lastbin{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--accent-ink);background:#eef3ff;border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+  .lastbin.none{color:var(--mut-2);background:#f1f3f6}
+  .qtybox{display:flex;align-items:flex-end;gap:8px;margin-top:14px}
+  .qtybig{font-family:var(--mono);font-weight:800;font-size:40px;line-height:1}
+  .qtybig .of{font-size:22px;color:var(--mut-2);font-weight:700}
+  .qtybox.done .qtybig{color:var(--ok)}
+  .qtybox.overq .qtybig{color:var(--warn)}
+  .single .stepper{margin-left:auto;display:flex;gap:8px}
+  .single .stepper button{width:42px;height:42px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:22px;font-weight:700;color:var(--ink);cursor:pointer}
+  .single .stepper button:active{background:var(--paper)}
+  .navrow{display:flex;gap:10px;margin-top:14px}
+  .navrow .btn{flex:1}
+  .manual{margin-top:10px;font-size:12.5px;color:var(--accent);background:none;border:0;cursor:pointer;font-weight:700;padding:4px}
+  .lrow{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;display:flex;align-items:center;gap:12px}
+  .zdiv{display:flex;align-items:center;gap:8px;padding:10px 4px 2px}
+  .zdiv .zn{font-family:var(--mono);font-weight:800;font-size:12px;color:#fff;background:var(--mut);min-width:26px;height:26px;border-radius:7px;display:grid;place-items:center;padding:0 7px}
+  .zdiv .zl{font-family:var(--mono);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut)}
+  .zdiv .zc{margin-left:auto;font-size:11px;color:var(--mut-2);font-family:var(--mono)}
+  .zdiv.nobin .zn{background:var(--warn,#d9820a)}
+  /* 완료 라인 구역 구분선 (주문 수량을 정확히 채운 라인은 아래로 내려간다) */
+  .gdiv{display:flex;align-items:center;gap:8px;margin:12px 0 2px;padding:11px 4px 3px;border-top:1px dashed var(--line)}
+  .gdiv .gl{font-family:var(--mono);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ok)}
+  .gdiv .gc{margin-left:auto;font-size:11px;color:var(--mut-2);font-family:var(--mono)}
+  /* zone 점프 칩 바 */
+  .zjump{display:flex;flex-wrap:wrap;gap:8px;margin:0 2px 10px}
+  .zjump .zchip{display:inline-flex;align-items:center;gap:2px;min-height:40px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 15px;font:inherit;font-family:var(--mono);font-size:14px;font-weight:800;color:var(--ink);cursor:pointer}
+  .zjump .zchip:hover{border-color:var(--accent);color:var(--accent)}
+  .zjump .zchip .c{color:var(--mut-2);font-weight:600;font-size:10px;margin-left:3px}
+  .zjump .zchip.nobin{color:var(--warn,#d9820a);border-color:#f0d9ae}
+  .zjump .zchip.alldone{opacity:.5}
+  .zjump .zchip.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .lrow.cur{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
+  .lrow.done{background:var(--ok-bg);border-color:#bfe6cd}
+  .lrow.over{background:var(--warn-bg);border-color:#f0d9ae}
+  .lrow.offpo{background:#fbf5ff;border-color:#e3cdf5}
+  .lrow .thumb{width:44px;height:44px;border-radius:8px;background:#f1f3f6 center/cover no-repeat;flex:none;border:1px solid var(--line)}
+  .lrow .li{flex:1;min-width:0}
+  .lrow .li .s{font-family:var(--mono);font-weight:800;font-size:15.5px;color:var(--ink)}
+  .lrow .li .n{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .li .b{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .lrow .q{font-family:var(--mono);font-weight:800;font-size:15px;white-space:nowrap;text-align:right}
+  .lrow.done .q{color:var(--ok)}
+  .lrow.over .q{color:var(--warn)}
+  .lrow .stepper{display:flex;gap:6px;flex:none}
+  .lrow .stepper button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:20px;font-weight:700;color:var(--ink);cursor:pointer}
+  .chip{font-family:var(--mono);font-size:10px;font-weight:800;padding:1px 6px;border-radius:5px;margin-left:6px}
+  .chip.appr{color:#7c3aed;background:#f3ebff}
+  .chip.newsku{color:var(--warn);background:var(--warn-bg)}
+  /* 인보이스에 없는 오더 라인 (expected 0 — 공장 백오더). 흐리게 두되 스캔은 가능해야 한다 */
+  .chip.noinv{color:var(--mut);background:#eef1f6}
+  .lrow.noinv{opacity:.55}
+  .gdiv.noinv .gl{color:var(--mut)}
+
+  .foot{position:sticky;bottom:0;background:rgba(247,248,250,.95);backdrop-filter:blur(8px);border-top:1px solid var(--line);margin:16px -16px -16px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  .foot .row{display:flex;gap:10px}
+  .foot .row .btn{flex:1;padding:13px}
+
+  /* putaway view */
+  .bin-group{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+  .bin-group .bh{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#f4f6f9;border-bottom:1px solid var(--line)}
+  .bin-group.donegrp .bh{background:var(--ok-bg)}
+  .bin-group.needbin .bh{background:var(--warn-bg)}
+  .bin-group .zn{font-family:var(--mono);font-weight:800;font-size:13px;color:#fff;background:var(--mut);min-width:30px;height:30px;border-radius:8px;display:grid;place-items:center;padding:0 7px}
+  .bin-group .binbig{font-family:var(--mono);font-weight:800;font-size:19px}
+  .bin-group .bmeta{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--mut)}
+  /* bin 단위 일괄 완료 — 작업자는 한 자리에 서서 그 자리 물건을 다 놓는다. 클릭 = bin 수 (라인 수 아님) */
+  .bin-group .pkall{border:1px solid var(--line);background:#fff;border-radius:9px;min-height:40px;padding:8px 14px;font:inherit;font-size:12.5px;font-weight:800;color:var(--mut);cursor:pointer;flex:none;white-space:nowrap}
+  .bin-group .pkall:hover{border-color:#c9d4e6;color:var(--accent)}
+  .bin-group.donegrp .pkall{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .prow{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line-2)}
+  .prow:last-child{border-bottom:0}
+  .prow.pdone{background:var(--ok-bg)}
+  .prow .thumb{width:40px;height:40px;border-radius:8px;background:#f1f3f6 center/cover no-repeat;flex:none;border:1px solid var(--line)}
+  .prow .li{flex:1;min-width:0}
+  .prow .li .s{font-family:var(--mono);font-weight:800;font-size:14.5px}
+  .prow .li .n{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prow .q{font-family:var(--mono);font-weight:800;font-size:14px}
+  .prow .pk{border:1px solid var(--line);background:#fff;border-radius:9px;min-height:40px;padding:8px 16px;font:inherit;font-size:13px;font-weight:700;color:var(--mut);cursor:pointer;flex:none}
+  .prow.pdone .pk{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .prow .assign{border:1px solid #f0d9ae;background:#fffdf6;color:#a86e12;border-radius:9px;min-height:40px;padding:8px 16px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;flex:none}
+  .prow .chgbin{border:1px solid var(--line);background:#fff;border-radius:9px;min-height:40px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:700;color:var(--mut);cursor:pointer;flex:none}
+  .prow .chgbin:hover{border-color:#c9d4e6;color:var(--accent)}
+  /* 저장 실패 표시 — 값은 되돌리지 않는다(규칙 24: 로컬 값이 진실이고 완료 때 flush 된다).
+     대신 "저장 안 됨"을 화면에 남겨 UI 가 성공을 가장하지 않게 한다. */
+  .prow.unsaved{background:var(--danger-bg)}
+  .prow .unsv{font-family:var(--mono);font-size:10px;font-weight:800;color:var(--danger);flex:none;letter-spacing:.03em}
+
+  #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:50;max-width:90vw}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.bad{background:var(--danger)}
+
+  /* bin assign modal */
+  .modal-ov{position:fixed;inset:0;background:rgba(16,22,30,.5);backdrop-filter:blur(2px);z-index:70;display:flex;align-items:flex-end;justify-content:center}
+  @media(min-width:560px){.modal-ov{align-items:center}}
+  .modal{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.3);max-height:88vh;display:flex;flex-direction:column}
+  @media(min-width:560px){.modal{border-radius:16px}}
+  .modal .mh{padding:16px 18px 10px}
+  .modal .mh .t{font-family:var(--mono);font-weight:800;font-size:16px}
+  .modal .mh .s{font-size:12.5px;color:var(--mut);margin-top:2px}
+  .modal .mscan{margin:0 18px 6px}
+  .modal .mscan input{width:100%;border:2px solid var(--accent);border-radius:11px;padding:13px 15px;font:inherit;font-size:16px;font-family:var(--mono);letter-spacing:.02em;background:#fff}
+  .modal .mscan input:focus{outline:none;box-shadow:0 0 0 4px rgba(47,109,246,.15)}
+  .modal .mscan .h{font-size:11px;color:var(--mut-2);font-family:var(--mono);margin:5px 2px 0;display:flex;align-items:center;gap:6px}
+  .modal .mscan .h .live{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+  .modal .ord{display:flex;align-items:center;gap:8px;padding:2px 18px 8px;font-size:11.5px;color:var(--mut)}
+  .modal .ord::before,.modal .ord::after{content:"";flex:1;height:1px;background:var(--line)}
+  .modal .mfilter{margin:0 18px 8px}
+  .modal .mfilter input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px;font:inherit;font-size:13px}
+  .modal .blist2{overflow-y:auto;padding:0 10px 6px;flex:1}
+  .modal .bzone{font-family:var(--mono);font-size:10px;font-weight:800;text-transform:uppercase;color:var(--mut);padding:8px 8px 4px}
+  .modal .bitem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:transparent;border-radius:9px;padding:10px 10px;font:inherit;cursor:pointer}
+  .modal .bitem:hover,.modal .bitem:focus{background:var(--paper)}
+  .modal .bitem .zn{font-family:var(--mono);font-weight:800;font-size:12px;color:#fff;background:var(--mut);min-width:26px;height:26px;border-radius:7px;display:grid;place-items:center;padding:0 6px;flex:none}
+  .modal .bitem .bc{font-family:var(--mono);font-weight:700;font-size:15px}
+  .modal .bitem .st{margin-left:auto;font-size:11px;color:var(--mut-2)}
+  .modal .mfoot{padding:10px 18px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px}
+  .modal .mfoot .btn{flex:1;padding:12px}
+  .modal .mmap{display:block;text-align:center;padding:8px;font-size:12.5px;color:var(--accent);font-weight:700;text-decoration:none}
+
+  .gate{max-width:440px;margin:12vh auto;padding:28px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .gate h2{margin:0 0 6px;font-size:18px}
+  .gate p{margin:0 0 18px;color:var(--mut);font-size:13.5px;line-height:1.6}
+  .gate label{display:block;font-family:var(--mono);font-size:11px;color:var(--mut);text-transform:uppercase;margin:0 0 5px}
+  .gate input{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;font-size:13px;margin-bottom:14px;font-family:var(--mono)}
+
+  @media(max-width:480px){
+    .bar{flex-wrap:wrap;row-gap:8px;padding:10px 12px}
+    .right{flex-wrap:wrap;row-gap:6px}
+    main{padding:12px}
+    .foot .row{flex-wrap:wrap}
+    .foot .row .btn{flex:1 1 45%}
+    .reportrow .rep{font-size:11px}
+  }
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span id="alsoHere" style="display:none;font-size:11.5px;font-weight:700;font-family:ui-monospace,Menlo,monospace;color:#1e7d43;background:#e8f7ee;border:1px solid #bfe8cd;border-radius:7px;padding:3px 8px" title=""></span>
+  <span class="who" id="who"></span>
+  <span class="dot" id="dot" title="Connection"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button title="Warehouse map" onclick="window.open('https://tools.asung.ca/warehousemap.html','_blank','noopener')">🗺 Map</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main id="app" style="display:none">
+
+  <!-- ── PO / receipt list ── -->
+  <div id="listView">
+    <div class="lead">Scan a PO barcode or load the confirmed POs to start receiving.</div>
+    <div class="scanbar" style="position:static;padding:0 0 12px">
+      <input class="scanin" id="poScan" inputmode="none" autocomplete="off" placeholder="Scan a PO barcode…">
+      <div class="scanhint"><span class="live"></span><span>Scan the PO barcode to find and open it</span></div>
+    </div>
+    <div id="myList" class="blist"></div>
+    <div class="sect" style="display:flex;align-items:center;gap:10px">Ready to receive
+      <span style="font-weight:400;text-transform:none;letter-spacing:0">— confirmed POs for your warehouse</span>
+      <span id="poHidden" style="font-weight:400;text-transform:none;letter-spacing:0;display:none"></span>
+      <button class="btn ghost" id="loadPosBtn" style="margin-left:auto;padding:6px 12px;font-size:12px">↻ POs</button>
+    </div>
+    <div id="poList" class="blist"></div>
+    <div class="loading" id="lLoading" style="display:none"><div class="spin"></div>Loading…</div>
+    <div class="empty" id="lEmpty" style="display:none">No confirmed POs to receive..</div>
+  </div>
+
+  <!-- ── Receiving (scan verify) ── -->
+  <div class="pwrap" id="recvView">
+    <div class="ptop">
+      <button class="btn ghost" id="backBtn">← List</button>
+      <div>
+        <div class="ptitle" id="rTitle"></div>
+        <div class="pmeta" id="rMeta"></div>
+      </div>
+      <div class="seg" id="viewSeg">
+        <button data-v="single" class="active">Single</button>
+        <button data-v="list">List</button>
+      </div>
+      <button class="btn ghost" id="printBtn" title="Print this receiving list">🖨 Print</button>
+      <button class="btn go" id="toPutawayBtn">Putaway →</button>
+    </div>
+    <div id="closedBanner" style="display:none;background:#5b6472;color:#fff;font-weight:800;font-size:13.5px;padding:10px 14px;border-radius:10px;margin-bottom:10px"></div>
+    <div class="prog"><i id="progBar"></i></div>
+
+    <div class="recv-controls">
+      <div class="scanbar">
+        <input class="scanin" id="scan" inputmode="none" autocomplete="off" placeholder="Scan a barcode…">
+        <div class="scanhint"><span class="live"></span><span>Waiting for scan · box scan = ×factor units · item not on this PO → off-PO (manager approval)</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:0 2px 8px">
+        <span style="font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--mut-2)">Sort</span>
+        <select id="sortSel" style="border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:12.5px;background:#fff;color:var(--ink);cursor:pointer">
+          <option value="po">PO order</option>
+          <option value="zone">Zone / Last bin</option>
+          <option value="product">Product (A–Z)</option>
+          <option value="sku">SKU (A–Z)</option>
+        </select>
+      </div>
+      <div class="zjump" id="rZjump" style="display:none"></div>
+      <div class="zjump" id="rZjumpBay" style="display:none"></div>
+    </div>
+
+    <div class="single" id="rSingle"></div>
+    <div class="list" id="rList"></div>
+
+    <div class="foot">
+      <div class="row">
+        <button class="btn hold" id="holdBtn">Hold (later)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Putaway guide ── -->
+  <div class="pwrap" id="putView">
+    <div class="ptop">
+      <button class="btn ghost" id="putBackBtn">← Receiving</button>
+      <div>
+        <div class="ptitle" id="pTitle"></div>
+        <div class="pmeta" id="pMeta"></div>
+      </div>
+    </div>
+    <div class="lead">Walk the route below and place items at each bin. Tap <b>Placed</b> as you go — the suggested bin is where this product was last kept.</div>
+    <div class="put-controls">
+      <div class="zjump" id="putZjump"></div>
+      <div class="zjump" id="putZjumpBay" style="display:none"></div>
+    </div>
+    <div id="putGroups"></div>
+
+    <div class="foot">
+      <div class="row">
+        <button class="btn ok" id="completeBtn">Complete</button>
+        <button class="btn dark" id="confirmBtn" style="display:none" title="Confirm this receipt into stock (office confirmation)">Confirm receipt</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ⑤-6a (2026-09-27) — 운영 asung-wms/receiver.html 의 복사본을 IMS 표 · 창구 위에 옮겨 세웠다(정본 so-module §24 · 지시서 wms-5-6-rulings · ⑤-4b/4c 화면과 같은 모양).
+   ⚠️ 운영 원본은 건드리지 않는다 — 운영 WMS(wms.asung.ca)는 컷오버까지 Cin7 과 함께 그대로 돈다(절대 조건).
+   ⚠️ 진입점은 ims-config.js · ims-auth.js 뿐 — 운영 프로젝트의 설정 · 로그인 파일로 가는 길은 이 파일에 없다(CHECKLIST 0-a 검사 다섯째 grep 0).
+   접점 41 → 시작 = wms_recv_start(PO 당 열린 초안 하나 · 없으면 새 RCV) · 줄 · 작업 줄 · 헤더 = po_receipt_detail 한 번 · 상태 = wms_recv_state ·
+   수량 = wms_recv_scan(델타 · 동시 스캔이 합쳐진다) / wms_recv_count(절대값 · 화면이 본 총량 CAS — 어긋나면 Keep theirs / Use mine / Recount) ·
+   놓기 = wms_recv_putaway(작업 줄 id · 칸 id · 놓았다) · Place all = wms_recv_place_all · 보류 = wms_recv_hold · 재개 = wms_recv_resume · 끝 = wms_recv_complete(판정 28 · Partial 없음) ·
+   PO 에 없는 물건 = wms_recv_off_po(차이 큐 한 행 · 다시 스캔 = 더함 · 승인 · 투입은 ⑤-6c) · 리포트는 wms_reports 에 직접(운영 그대로 · reported_by = ims_staff.id) ·
+   읽기 = po(confirmed) · po_receipt(draft) · po_receipt_work · wms_task_holds · wms_receipt_complete · product · product_barcode(낱개 + 세트 ×factor) · ref_bin · wms_zone_sequence · ims_last_bin(판정 29 — 미리 보여만 · 자동 배정 쓰기 없음).
+   사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진(판정 33 · HAS_IMAGES false) · 옛 wms_ 입고 표 전부.
+   Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
+const RC_BUILD="2026-09-27 · rc v1";
+const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
+let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
+let myReceipts=[], openPos=[];
+let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
+let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (HAS_IMAGES 가 서면 쓴다)
+let sortMode="po";   // 검수 리스트/싱글 표시 순서: po|zone|product|sku
+
+/* ?debug=perf — 진입/렌더 소요와 DOM 노드 수를 콘솔에 남긴다 (평상시 no-op) */
+const PERF=new URLSearchParams(location.search).get("debug")==="perf";
+function perfLog(){ if(PERF) console.log.apply(console,["[perf]"].concat([].slice.call(arguments))); }
+
+/* ---------- 동시 작업 상태 (한 PO 를 여러 명이 나눠 받는다) ---------- */
+/* unconfirmed: 이 세션이 창구에 보냈지만 아직 「저장됐다」 를 확인받지 못한 쓰기(op)만 담는다 — 라인 id → [op].
+   op = {kind:"scan",delta,method} | {kind:"count",total,seen,method} | {kind:"putaway",work_id,bin_id,done} | {kind:"offpo",product_id,qty}
+   ⚠️ 라인 상태를 통째로 다시 보내지 않는다(운영 patchFor 와 다른 점) — 창구가 델타 · CAS 로 남의 작업을 지킨다.
+      정상 경로에서는 이 집합이 비어 있으므로 Hold/완료가 아무것도 다시 쓰지 않는다. */
+const unconfirmed=new Map();   // line.id -> [op]
+const writeChain=new Map();    // line.id -> Promise (같은 라인 창구 호출 추월 방지)
+/* putawayFailed: 놓기 쓰기가 확정적으로 실패한 작업 줄 — 행에 "NOT SAVED" 를 남기는 용도(실패 뒤에만 들어온다). */
+const putawayFailed=new Set();
+let presCh=null, presOthers=[];
+let receiptClosed=false;       // 창고 Complete 된 입고를 열어둔 화면 — 쓰기 차단 (판정 30 · 아래 ensureReceiptOpen)
+let lastOpenCheck=0;
+
+/* ---------- IMS 공통 조각 (⑤-4b wms-picker.html 과 같다) ---------- */
+function whKey(name){ return /edmonton/i.test(name||"") ? "edmonton" : "toronto"; }   // CLAUDE.md §3 — Location 에 Edmonton 이 들면 edmonton · 그 외 toronto
+function whLabel(key){ return key==="edmonton" ? "Edmonton" : "Toronto"; }
+function whOf(id){ return whById[id]||{name:"",key:"toronto"}; }
+function nameOf(id){ return id ? (staffName[id]||"another worker") : ""; }
+function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
+function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
+function canConfirm(){ return !!(me&&me.access&&me.access.screens&&me.access.screens.wms_receiving_confirm); }   // 판정 27 스위치 — 지금은 아무에게도 없다
+function rpcMsg(e){ return (e&&e.message)||String(e||"error"); }
+
+/* ---------- boot ---------- */
+function boot(){
+  imsAuth.start({ requireScreen:"wms_receiving" }, (client, staffMe)=>{   // 카탈로그 wms_receiving = WMS 방 · min_role 없음(판정 25) · 진짜 문은 창구 첫 줄(ims_require_write)
+    sb=client; me=staffMe;
+    imsHeader(me);
+    document.getElementById("buildTag").textContent=RC_BUILD;
+    document.getElementById("app").style.display="block";
+    init();
+  });
+}
+function setConn(s){const d=document.getElementById("dot");d.className="dot "+(s==="ok"?"on":s==="err"?"err":"");}
+function toast(m,bad){const el=document.getElementById("toast");el.textContent=m;el.className="show"+(bad?" bad":"");clearTimeout(el._t);el._t=setTimeout(()=>el.className="",2200);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- sound / vibrate / flash (picker와 동일 계열) ---------- */
+function initAudio(){ if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(kind){
+  if(!actx) return;
+  const t=actx.currentTime;
+  if(kind==="ok"){
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="sine";o.frequency.setValueAtTime(1050,t);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.13);
+  }else if(kind==="done"){
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+    o.frequency.setValueAtTime(1046.5,t);o.frequency.setValueAtTime(1318.5,t+0.09);
+    o.frequency.setValueAtTime(1568,t+0.18);o.frequency.setValueAtTime(2093,t+0.27);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.55,t+0.01);
+    g.gain.setValueAtTime(0.55,t+0.34);g.gain.exponentialRampToValueAtTime(0.0001,t+0.52);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.53);
+  }else if(kind==="okbox"){
+    const o=actx.createOscillator(),g=actx.createGain();o.type="sine";
+    o.frequency.setValueAtTime(880,t);o.frequency.setValueAtTime(1100,t+0.09);o.frequency.setValueAtTime(1320,t+0.18);
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.5,t+0.01);
+    g.gain.setValueAtTime(0.5,t+0.26);g.gain.exponentialRampToValueAtTime(0.0001,t+0.32);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.33);
+  }else{
+    try{ if(actx.state==="suspended") actx.resume(); }catch(e){}
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.type="square";
+    for(let i=0;i<6;i++) o.frequency.setValueAtTime(i%2?1600:2400, t+i*0.12);
+    g.gain.setValueAtTime(0.0001,t);
+    g.gain.exponentialRampToValueAtTime(1.0,t+0.015);
+    g.gain.setValueAtTime(1.0,t+0.66);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.72);
+    o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+0.73);
+  }
+}
+function vibe(kind){ try{ navigator.vibrate && navigator.vibrate(kind==="ok"?25:[160,80,160,80,220]); }catch(e){} }
+function flash(kind,msg){
+  const el=document.getElementById("flash");
+  const cls=(kind==="okbox"||kind==="done")?"ok":kind;
+  el.className="show "+cls; el.textContent=msg;
+  clearTimeout(el._t); el._t=setTimeout(()=>el.className=cls,(kind==="okbox"||kind==="done")?1200:700);
+  beep(kind==="bad"?"bad":kind); vibe(kind==="bad"?"bad":"ok");
+}
+
+/* ---------- presence: 같은 receipt 를 누가 함께 받고 있는지 ---------- */
+/* picker/packer 와 같은 "wms-presence" 채널. 이벤트 기반이라 서버 폴링·타이머가 없다(규칙 22, 배터리).
+   ⚠️ batch 필드를 넣지 않는다 — admin 의 liveBatchSet()/BATCH ACTIVITY 판정이 batch 를
+      picker/packer 배치 라벨로 해석하므로, receiver 가 넣으면 배치 활동이 잘못 표시된다.
+   stage = "receiving"|"putaway" — admin LIVE NOW 가 검수/풋어웨이 단계를 표시하는 데 쓴다.
+   화면 전환 시점에 한 번씩만 재-track (타이머 금지 — 규칙 22). */
+function presenceKey(){ return me.name+"|receiver:"+(receipt?receipt.id:""); }
+let presStage="receiving";
+function presencePayload(){
+  return { name:me.name, screen:"receiver", receipt:receipt.id,
+           po:receipt.po_number, stage:presStage, at:new Date().toISOString() };
+}
+function presenceStage(stage){
+  presStage=stage;
+  if(presCh&&receipt){ try{ presCh.track(presencePayload()); }catch(e){} }
+}
+function presenceJoin(){
+  presenceLeave();
+  if(!receipt) return;
+  presStage="receiving";   // 열면 항상 검수 화면부터
+  try{
+    presCh=sb.channel("wms-presence",{config:{presence:{key:presenceKey()}}});
+    presCh.on("presence",{event:"sync"},()=>{ readPresence(); renderAlsoHere(); })
+      .subscribe(st=>{
+        if(st==="SUBSCRIBED"&&receipt) presCh.track(presencePayload());
+      });
+  }catch(e){}
+}
+function presenceLeave(){
+  if(presCh){ try{ presCh.untrack(); sb.removeChannel(presCh); }catch(e){} presCh=null; }
+  presOthers=[]; renderAlsoHere();
+}
+function readPresence(){
+  const st=(presCh&&presCh.presenceState&&presCh.presenceState())||{};
+  const mineKey=presenceKey(), out=[];
+  Object.keys(st).forEach(k=>{
+    if(k===mineKey) return;
+    (st[k]||[]).forEach(m=>{
+      if(m&&m.screen==="receiver"&&receipt&&String(m.receipt)===String(receipt.id)) out.push(m);
+    });
+  });
+  presOthers=out;
+}
+function othersLabel(){
+  return [...new Set(presOthers.map(m=>m.name).filter(Boolean))].join(", ");
+}
+function renderAlsoHere(){
+  const el=document.getElementById("alsoHere"); if(!el) return;
+  const who=receipt?othersLabel():"";
+  if(!who){ el.style.display="none"; el.textContent=""; el.title=""; return; }
+  el.style.display="inline-block";
+  el.textContent="🟢 also here: "+who;
+  el.title=who+" also has "+receipt.po_number+" open. Each line is saved on its own — Hold and Complete never overwrite their work.";
+}
+
+/* ---------- init ---------- */
+async function init(){
+  const [wh, st, zs]=await Promise.all([
+    sb.from("ref_warehouse").select("id,name"),                          // caps-ok: 창고 넷
+    sb.from("ims_staff").select("id,name"),                              // caps-ok: 직원 수십 · 이름은 id 로만 잇는다(이메일 안 읽음)
+    sb.from("wms_zone_sequence").select("warehouse_id,zone,sequence_order"),   // caps-ok: 존 마스터 — 수십 행(23), 창고 구조 변경 시에만 증가
+  ]);
+  const error=wh.error||st.error||zs.error;
+  if(error){setConn("err");toast("Initial load failed: "+error.message,true);return;}
+  setConn("ok");
+  (wh.data||[]).forEach(w=>{ whById[w.id]={name:w.name,key:whKey(w.name)}; });
+  (st.data||[]).forEach(s=>{ staffName[s.id]=s.name; });
+  (zs.data||[]).forEach(z=>zoneSeq[z.warehouse_id+"|"+z.zone]=z.sequence_order);
+  const rid=new URLSearchParams(location.search).get("receipt");
+  if(rid){ openReceipt(rid); return; }   // admin Reopen · 「Put away →」 딥링크(uuid)
+  loadMyReceipts();
+}
+
+/* ---------- 열린 입고(draft) — 이 창고의 것 전부 · 나눠 받기라 「내 것」이 아니다 ---------- */
+const RCV_SEL="id,receipt_number,status,received_on,created_by,created_at,updated_at,warehouse_id,"
+  +"po:po!po_receipt_po_id_fkey(id,po_number,supplier:supplier!po_supplier_id_fkey(name)),"
+  +"work:po_receipt_work(qty_ea,bin_id,putaway_done,updated_at),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed)";
+async function loadMyReceipts(){
+  // 열린 초안만(status draft) — 확정 · 취소는 오피스 몫이라 목록에서 빠진다. 창고 Complete 된 초안은 남아 「Completed」 로 보인다(판정 30 · 매니저 Reopen 까지 읽기 전용).
+  const {data,error}=await sb.from("po_receipt").select(RCV_SEL)   // caps-ok: 열린 초안만 — 확정으로 소진되는 활성 풀
+    .eq("status","draft").order("updated_at",{ascending:false});
+  if(error){toast("Failed to load receipts",true);return;}
+  myReceipts=(data||[]).filter(r=>inWhId(r.warehouse_id)).map(r=>{
+    const c=Array.isArray(r.complete)?r.complete[0]:r.complete;
+    r.completed=!!(c&&c.completed);
+    r.held=(r.holds||[]).some(h=>!h.resumed_at);
+    r.po_number=r.po&&r.po.po_number||""; r.po_id=r.po&&r.po.id||null; r.supplier_name=r.po&&r.po.supplier&&r.po.supplier.name||"";
+    r.wh=whOf(r.warehouse_id).key;
+    // 「Last activity」 = 작업 줄의 마지막 저장(po_receipt.updated_at 은 줄 저장으로 안 움직인다)
+    r.last_at=(r.work||[]).reduce((m,w)=>(w.updated_at&&w.updated_at>m)?w.updated_at:m, r.updated_at||r.created_at);
+    return r;
+  });
+  renderList();
+}
+// 작업 흔적 요약 — 작업 줄(po_receipt_work)은 센 줄만 있다(껍데기 없음) · 흔적 = 센 줄 · bin 배정 · placed
+function receiptWorkOf(rows){
+  let recvLines=0, units=0, bins=0, placed=0;
+  (rows||[]).forEach(w=>{
+    const q=Number(w.qty_ea)||0;
+    if(q>0){ recvLines++; units+=q; }
+    if(w.bin_id) bins++;
+    if(w.putaway_done) placed++;
+  });
+  return {recvLines,units,bins,placed, empty:recvLines===0};
+}
+// 마지막 갱신 — **창고별 로컬** 표시(사용자 결정 2026-08-14 · DB 는 UTC, Intl timeZone — 오프셋 하드코딩 금지).
+// 이 화면은 작업자 화면이라 자기 창고 벽시계 하나면 충분하다("몇 시간 전인가"의 판단 기준).
+// ⚠️ admin Order Trace(trAt)와 다른 이유: 거기는 CCTV 를 현지 시계로 찾는 화면이라
+//    토론토 기준 + 에드먼턴 오더 EDM 병기 — 둘 다 필요했다. 여기는 하나만.
+const WH_TZ={toronto:"America/Toronto",edmonton:"America/Edmonton"}; // 매핑에 없으면 toronto 폴백 (admin 과 동일)
+function whAt(iso,warehouse){
+  if(!iso) return "—";
+  return new Date(iso).toLocaleString("en-CA",{timeZone:WH_TZ[warehouse]||WH_TZ.toronto,month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+}
+
+function stLabel(r){return r.completed?"Completed — awaiting office confirmation":r.held?"Held":"In progress";}
+function renderList(){
+  const my=document.getElementById("myList");
+  my.innerHTML=(myReceipts.length?`<div class="sect">Resume Receiving</div>`:"")+myReceipts.map(r=>{
+    const wk=receiptWorkOf(r.work);
+    // ⚠️ 소유권 문구 금지 — 리시빙은 소유자가 없고 나눠 받기가 기능이다. created_by 는 「이 사람이 시작했다」 → "Started by".
+    const wkHtml=wk.empty
+      ?`<span class="tag st" style="color:#5b6472;background:#eef1f6" title="Opened but nothing was counted yet.">Empty</span>`
+      :`<span style="color:#5b6472;font-size:11.5px;white-space:nowrap">${wk.recvLines} rows · ${wk.units.toLocaleString("en-CA")} u · ${wk.placed} placed</span>`;
+    return `
+    <div class="bcard resume" data-rid="${esc(r.id)}">
+      <div>
+        <div class="bl">${esc(r.po_number)} <span style="font-size:12px;color:var(--mut);font-weight:600">${esc(r.receipt_number)}</span></div>
+        <div class="sub">${esc(r.supplier_name||"—")}
+          <span class="tag wh-${r.wh}">${whLabel(r.wh)}</span>
+          <span class="tag st"${r.completed?' style="color:#5b6472;background:#eef1f6"':""}>${stLabel(r)}</span> ${wkHtml}</div>
+        <div class="sub">Started by ${esc(nameOf(r.created_by)||"—")} · Last activity ${whAt(r.last_at,r.wh)}</div>
+      </div>
+      <button class="go resumebtn">${r.completed?"View":"Resume"}</button>
+    </div>`;}).join("");
+  my.querySelectorAll(".bcard").forEach(el=>{ el.onclick=()=>resumeReceipt(el.dataset.rid); });
+
+  const pl=document.getElementById("poList");
+  // 위 Resume 섹션에 이미 카드로 떠 있는 PO 는 아래 목록에서 숨긴다(키 = po_id). 기준은 「화면에 렌더된 myReceipts」 뿐이다.
+  const shownPo=new Set(myReceipts.map(r=>r.po_id).filter(Boolean));
+  const visPos=openPos.map((p,i)=>({p,i})).filter(({p})=>!shownPo.has(p.id));
+  const hidden=openPos.length-visPos.length;
+  const ph=document.getElementById("poHidden");
+  ph.textContent=hidden?`— ${hidden} already open above`:"";
+  ph.style.display=hidden?"":"none";
+  pl.innerHTML=visPos.map(({p,i})=>`<div class="bcard" data-pi="${i}">
+      <div>
+        <div class="bl">${esc(p.po_number)}</div>
+        <div class="sub">${esc(p.supplier_name||"—")} · Confirmed${p.order_date?" · "+esc(String(p.order_date).slice(0,10)):""}
+          <span class="tag wh-${p.wh}">${whLabel(p.wh)}</span></div>
+      </div>
+      <button class="go">Start</button>
+    </div>`).join("");
+  pl.querySelectorAll(".bcard").forEach(el=>{ el.onclick=()=>startPo(+el.dataset.pi); });
+  document.getElementById("lEmpty").style.display=(myReceipts.length||visPos.length)?"none":"block";
+  // HID 스캐너 포커스
+  if(document.getElementById("listView").style.display!=="none"){
+    const os=document.getElementById("poScan"); if(os&&document.activeElement!==os) os.focus();
+  }
+}
+
+/* ---------- 확정된 PO 목록 (온디맨드 · 오피스 receiving.html 의 New receipt 와 같은 집합) ---------- */
+document.getElementById("loadPosBtn").onclick=()=>loadOpenPos("");
+async function loadOpenPos(search){
+  document.getElementById("lLoading").style.display="block";
+  document.getElementById("lEmpty").style.display="none";
+  try{
+    let q=sb.from("po").select("id,po_number,status,order_date,ship_to_warehouse_id,supplier:supplier!po_supplier_id_fkey(name)")   // caps-ok: confirmed 발주 — 받으면 closed 로 빠지는 활성 풀
+      .eq("status","confirmed").order("po_number");
+    if(search) q=q.ilike("po_number","%"+search+"%");
+    const {data,error}=await q;
+    if(error) throw error;
+    openPos=(data||[]).filter(p=>!p.ship_to_warehouse_id||inWhId(p.ship_to_warehouse_id))
+      .map(p=>({ id:p.id, po_number:p.po_number, status:p.status, order_date:p.order_date, warehouse_id:p.ship_to_warehouse_id,
+                 wh:whOf(p.ship_to_warehouse_id).key, supplier_name:p.supplier&&p.supplier.name||"" }));
+    renderList();
+    if(search&&!openPos.length&&!myReceipts.some(r=>r.po_number.toUpperCase()===search.toUpperCase()))
+      toast("No confirmed PO for "+search,true);
+  }catch(e){ toast("PO load failed: "+rpcMsg(e),true); }
+  finally{ document.getElementById("lLoading").style.display="none"; }
+}
+
+/* ---------- PO 스캔 진입 ---------- */
+document.getElementById("poScan").addEventListener("keydown",async e=>{
+  if(e.key!=="Enter")return;
+  e.preventDefault(); initAudio();
+  const v=document.getElementById("poScan").value.trim();
+  document.getElementById("poScan").value="";
+  if(!v)return;
+  // 1) 열린 초안에 있으면 바로 재개 (PO 번호 또는 RCV 번호)
+  const mine=myReceipts.find(r=>r.po_number.toUpperCase()===v.toUpperCase()||String(r.receipt_number||"").toUpperCase()===v.toUpperCase());
+  if(mine){ resumeReceipt(mine.id); return; }
+  // 2) 확정 PO 검색 → 정확 일치면 바로 시작
+  await loadOpenPos(v);
+  const hit=openPos.findIndex(p=>(p.po_number||"").toUpperCase()===v.toUpperCase());
+  if(hit>=0) startPo(hit);
+});
+
+/* ---------- PO 시작 — 창구 wms_recv_start (PO 당 열린 초안 하나 · 없으면 새 RCV 번호) ---------- */
+async function startPo(i){
+  initAudio();
+  const p=openPos[i]; if(!p)return;
+  document.getElementById("lLoading").style.display="block";
+  try{
+    const {data,error}=await sb.rpc("wms_recv_start",{p_po_id:p.id});
+    if(error) throw error;
+    if(data&&data.existing) toast("Continuing "+(data.receipt_number||"the open receipt")+" for "+p.po_number);
+    await openReceipt(data.id);
+  }catch(e){ toast("Failed to start PO: "+rpcMsg(e),true); }
+  finally{ document.getElementById("lLoading").style.display="none"; }
+}
+
+async function resumeReceipt(rid){
+  initAudio();
+  await openReceipt(rid);
+}
+
+/* ---------- receipt 열기 (po_receipt_detail + wms_recv_state → 즉시 렌더 → enrich) ---------- */
+function applyDetail(d){
+  // 줄 = PO 라인 전부(po_receipt_detail 이 그린다 · 껍데기 없음) · expected = 이 문서에서 받을 남은 수량(ordered − received_before · 판정 5) · received = 센 합 · work = 작업 줄(빈별)
+  const keep={}; lines.forEach(l=>{ keep[l.id]=l; });
+  const out=(d.lines||[]).map(x=>{
+    const k=keep[x.po_line_id]||{};
+    return Object.assign({}, k, {
+      id:x.po_line_id, kind:"po", product_id:x.product_id, order_sku:x.sku, product_name:x.product_name,
+      base_sku:k.base_sku||x.sku, stock_pid:k.stock_pid||x.product_id,
+      ordered:Number(x.ordered||0), received_before:Number(x.received_before||0),
+      expected:Math.max(0,Number(x.ordered||0)-Number(x.received_before||0)),
+      received:unconfirmed.has(x.po_line_id)&&k.received!=null?k.received:Number(x.counted||0),   // 미확인 쓰기가 걸린 줄은 내 값이 더 최신
+      is_off_po:false, needs_approval:false, image_url:null,
+      work:(x.work||[]).map(w=>({id:w.id, qty:Number(w.qty_ea||0), bin_id:w.bin_id, bin:w.bin||null, done:!!w.putaway_done})),
+    });
+  });
+  // PO 에 없는 물건 = 차이 큐 off_po(열린 것) — 줄처럼 보인다 · 승인 전이라 풋어웨이에서 빠진다(⑤-6c 전까지 전부 승인 대기)
+  (d.diffs||[]).filter(x=>x.kind==="off_po"&&!x.resolved_at).forEach(x=>{
+    const id="d:"+x.id, k=keep[id]||{};
+    out.push(Object.assign({}, k, { id, kind:"offpo", diff_id:x.id, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"", product_id:k.product_id||null, stock_pid:k.stock_pid||null,
+      expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:true, image_url:null, work:[] }));
+  });
+  lines=out;
+}
+async function loadDetail(rid){
+  const [dt, st]=await Promise.all([ sb.rpc("po_receipt_detail",{p_receipt_id:rid}), sb.rpc("wms_recv_state",{p_receipt_id:rid}) ]);
+  if(dt.error) throw dt.error;
+  if(st.error) throw st.error;
+  return {d:dt.data, s:st.data||{}};
+}
+async function openReceipt(rid){
+  let d,s;
+  try{ ({d,s}=await loadDetail(rid)); }catch(e){ toast("Receipt not found: "+rpcMsg(e),true); loadMyReceipts(); return; }
+  if(!d||!d.header){toast("Receipt not found",true);loadMyReceipts();return;}
+  const h=d.header;
+  if(h.status!=="draft"){ toast(h.receipt_number+" is "+h.status+" — this receipt is closed.",true); loadMyReceipts(); return; }
+  if(!inWhId(h.warehouse_id)){ toast(h.receipt_number+" is at another warehouse — you are not set up for it.",true); loadMyReceipts(); return; }
+  receipt={ id:h.id, receipt_number:h.receipt_number, po_id:h.po_id, po_number:h.po_number, supplier_name:h.supplier_name||"",
+            warehouse_id:h.warehouse_id, warehouse_name:h.warehouse_name||whOf(h.warehouse_id).name, wh:whKey(h.warehouse_name||whOf(h.warehouse_id).name),
+            created_by:h.created_by, completed:!!s.completed, completed_by:s.completed_by||null, completed_at:s.completed_at||null };
+  unconfirmed.clear(); writeChain.clear();   // 새 receipt — 이전 세션의 미확인분은 이어받지 않는다
+  putawayFailed.clear(); lastOpenCheck=0;
+  receiptClosed=receipt.completed;           // 판정 30 — 창고 Complete 뒤에는 읽기 전용(매니저 Reopen 까지)
+  if(s.held&&!receipt.completed){
+    // 보류 이력 닫기(서버 시계) — 운영 openReceipt 의 「held → 재개」 가지 · 실패해도 화면은 연다(hold_leak 검사 몫)
+    sb.rpc("wms_recv_resume",{p_receipt_id:rid}).then(r=>{ if(r.error) console.warn("hold close failed", r.error); });
+  }
+  lines=[]; applyDetail(d);
+  // 즉시 화면 전환 + 렌더 (규칙 17: enrich는 뒤에 독립으로)
+  const fi=lines.findIndex(l=>l.expected>0&&l.received<l.expected);
+  curIdx=fi<0?0:fi;
+  document.getElementById("listView").style.display="none";
+  document.getElementById("putView").style.display="none";
+  document.getElementById("recvView").style.display="block";
+  document.getElementById("rTitle").textContent=receipt.po_number+" · "+receipt.receipt_number;
+  document.getElementById("rMeta").textContent=whLabel(receipt.wh)+" · "+(receipt.supplier_name||"");
+  renderClosed();
+  renderRecv(); focusScan();
+  if(HAS_IMAGES) loadImageFlags();   // ⚑ Image differs 눌린 상태 복원 (독립 — 실패해도 리시빙 뷰는 뜬다)
+  await buildBcMap();   // 바코드 맵 + Last bin enrich (독립)
+  renderRecv(); focusScan();
+  presenceJoin();       // 같은 PO 를 함께 받는 사람 표시 (독립)
+}
+function renderClosed(){
+  const b=document.getElementById("closedBanner");
+  const on=!!(receipt&&receiptClosed);
+  b.style.display=on?"block":"none";
+  b.textContent=on?`Completed${receipt.completed_by?" by "+nameOf(receipt.completed_by):""}${receipt.completed_at?" · "+whAt(receipt.completed_at,receipt.wh):""} — ask a manager to reopen before changing anything. The office confirms it into stock.`:"";
+  document.getElementById("holdBtn").disabled=on;
+  document.getElementById("completeBtn").disabled=on;
+  const cb=document.getElementById("confirmBtn");
+  cb.style.display=(on&&canConfirm())?"":"none";
+}
+/* 서버 값을 내 화면에 다시 읽는다(작업 줄 병합 · 남의 스캔 · 승인). 미확인 쓰기가 걸린 줄의 received 는 건드리지 않는다(applyDetail). */
+async function refreshLines(){
+  if(!receipt) return false;
+  try{
+    const {d,s}=await loadDetail(receipt.id);
+    if(!d||!d.header) return false;
+    if(d.header.status!=="draft"){ receiptClosed=true; alert(receipt.receipt_number+" was "+d.header.status+" by the office. Your screen is out of date."); exitToList(); return false; }
+    receipt.completed=!!s.completed; receipt.completed_by=s.completed_by||null; receipt.completed_at=s.completed_at||null;
+    receiptClosed=receipt.completed;
+    applyDetail(d); renderClosed();
+    return true;
+  }catch(e){ console.warn("refresh failed",e); return false; }
+}
+
+/* ---------- 창고 bin 찾기 (ref_bin · 그 입고의 창고 · 활성) ---------- */
+/* 운영은 창고 bin 전량을 미리 받았다 — 이제 모달이 서버에서 300 개씩 거르고(receiving.html 과 같다) 스캔 · 타이핑은 정확 일치로 찾는다. */
+async function binSearch(filter){
+  const f=(filter||"").trim();
+  let q=sb.from("ref_bin").select("id,name").eq("warehouse_id",receipt.warehouse_id).eq("is_active",true).order("name").limit(300);   // caps-ok: 300 사양 — 더는 타이핑으로 좁힌다(안내 줄)
+  if(f) q=q.ilike("name","%"+f+"%");
+  const {data,error}=await q;
+  if(error) throw error;
+  return (data||[]).map(b=>({id:b.id,bin:String(b.name).trim(),zone:zoneOfBin(String(b.name).trim())}));
+}
+async function binByName(name){
+  const {data,error}=await sb.from("ref_bin").select("id,name").eq("warehouse_id",receipt.warehouse_id).eq("is_active",true).ilike("name",String(name).trim()).limit(2);
+  if(error) throw error;
+  return (data&&data.length===1)?{id:data[0].id,bin:String(data[0].name).trim()}:null;
+}
+
+/* ---------- bcMap: 낱개(factor 1) + 그 낱개를 parent 로 둔 세트(×pack_factor) 의 바코드 — wms_pick_lines 와 같은 뜻 ---------- */
+/* ⚠️ 담는 것은 line.id 다 — 배열 인덱스가 아니다(운영 주석 그대로). */
+async function buildBcMap(){
+  bcMap={};
+  const pids=[...new Set(lines.map(l=>l.product_id).filter(Boolean))];
+  const offSkus=[...new Set(lines.filter(l=>l.kind==="offpo"&&!l.product_id).map(l=>l.order_sku).filter(Boolean))];
+  if(!pids.length&&!offSkus.length)return;
+  try{
+    // 1) 줄의 제품(+ off-PO 는 sku 로) → parent · pack_factor
+    let q=sb.from("product").select("id,sku,name,parent_product_id,pack_factor");
+    q=(pids.length&&offSkus.length)?q.or(`id.in.(${pids.join(",")}),sku.in.(${offSkus.map(s=>'"'+s.replace(/"/g,'')+'"').join(",")})`)
+     :pids.length?q.in("id",pids):q.in("sku",offSkus);
+    const {data:own,error:e1}=await q;
+    if(e1) throw e1;
+    const bySku={}, byId={};
+    (own||[]).forEach(p=>{ byId[p.id]=p; bySku[String(p.sku).toUpperCase()]=p; });
+    lines.forEach(l=>{
+      const p=l.product_id?byId[l.product_id]:bySku[String(l.order_sku||"").toUpperCase()];
+      if(!p) return;
+      l.product_id=p.id; l.product_name=l.product_name||p.name||"";
+      l.stock_pid=p.parent_product_id||p.id;
+    });
+    const stockPids=[...new Set(lines.map(l=>l.stock_pid).filter(Boolean))];
+    // 2) 낱개(stock) 행 + 그 낱개를 parent 로 둔 세트 행 전부
+    const {data:fam,error:e2}=await sb.from("product").select("id,sku,parent_product_id,pack_factor")
+      .or(`id.in.(${stockPids.join(",")}),parent_product_id.in.(${stockPids.join(",")})`);
+    if(e2) throw e2;
+    const famById={}; (fam||[]).forEach(p=>{ famById[p.id]=p; });
+    lines.forEach(l=>{ const sp=famById[l.stock_pid]; if(sp) l.base_sku=sp.sku; });
+    const famIds=Object.keys(famById);
+    // 3) 그 제품들의 활성 바코드
+    const {data:bcs,error:e3}=await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id",famIds).eq("is_active",true);
+    if(e3) throw e3;
+    const bcByPid={}; (bcs||[]).forEach(b=>{ (bcByPid[b.product_id]=bcByPid[b.product_id]||[]).push(b); });
+    const factorOf=p=>p.parent_product_id?(Number(p.pack_factor)||1):1;
+    lines.forEach(l=>{
+      const members=(fam||[]).filter(p=>p.id===l.stock_pid||p.parent_product_id===l.stock_pid);
+      l.barcodeRows=[]; l.altCodes=[];
+      members.forEach(p=>{
+        const f=factorOf(p);
+        const rows=(bcByPid[p.id]||[]).slice().sort((a,b)=>(b.is_primary?1:0)-(a.is_primary?1:0));
+        rows.forEach((b,ix)=>{
+          const code=String(b.barcode||"").trim(); if(!code)return;
+          const arr=(bcMap[code]=bcMap[code]||[]);
+          if(!arr.some(c=>c.id===l.id)) arr.push({id:l.id,factor:f});
+          if(ix===0) l.barcodeRows.push({factor:f, barcode:code}); else if(f===1) l.altCodes.push(code);
+        });
+        // SKU 직접 타이핑 대응(낱개 · 세트 sku 모두)
+        const sk=String(p.sku||"").trim();
+        if(sk){ const arr=(bcMap[sk]=bcMap[sk]||[]); if(!arr.some(c=>c.id===l.id)) arr.push({id:l.id,factor:f}); }
+      });
+      l.barcodeRows.sort((a,b)=>a.factor-b.factor);
+    });
+  }catch(e){ toast("Barcode lookup failed: "+rpcMsg(e),true); }
+  // Last bin 참고 칩 (독립 enrich · 판정 29 — 미리 보여만 · 쓰지 않는다) · 원장이 답한다(ims_last_bin)
+  try{
+    const stockPids=[...new Set(lines.map(l=>l.stock_pid).filter(Boolean))];
+    if(!stockPids.length) return;
+    const {data,error}=await sb.rpc("ims_last_bin",{p_product_ids:stockPids,p_warehouse_id:receipt.warehouse_id});
+    if(error) throw error;
+    lines.forEach(l=>{
+      const hit=data&&l.stock_pid?data[l.stock_pid]:null;
+      l.lastBin=hit&&hit.bin?String(hit.bin).trim():null;
+      l.lastBinId=hit&&hit.bin_id?hit.bin_id:null;
+      l.lastBinCur=!!(hit&&hit.bin);
+    });
+  }catch(e){}
+}
+
+/* ---------- 라인 조회 · 상태 판정 (한 군데서만) ---------- */
+/* 수량을 쓰는 모든 경로(스캔·스테퍼·수동입력)는 인덱스가 아니라 id 로 라인을 찾는다.
+   렌더와 클릭 사이에 배열이 바뀌어도(남이 지운 오프-PO 라인 등) 옆 라인에 쓰지 않는다. */
+function lineById(id){ return lines.find(x=>x.id===id); }
+/* "주문 수량을 정확히 채웠다" — 부족도 초과도 아닌 상태. 정렬·색·비프가 같은 기준을 쓴다. */
+function isFilled(l){ return l.expected>0 && l.received===l.expected; }
+/* 인보이스에 없는 오더 라인 — IMS 의 기준은 PO 확정 수량 하나(판정 5)라 이 갈래는 없다. 렌더가 부르는 이름만 남긴다(늘 false). */
+function notInvoiced(l){ return false; }
+
+/* ---------- receiving 렌더 ---------- */
+/* 표시 순서: lines 는 고정, 순서만 인덱스 배열로.
+   1차 키는 항상 "주문 수량을 정확히 채웠는가" — 채운 라인만 아래로 내린다.
+   ⚠️ short 는 아직 할 일이고, over 는 매니저 확인이 필요하다. 둘 다 위에 남긴다.
+      오프-PO(expected=0)도 승인 대기라 위에 남는다 — isFilled 가 expected>0 을 요구하므로 자동.
+   ⚠️ 완료된 라인끼리는 원래 순서(i)를 지킨다. 방금 스캔한 게 위로 튀어오르면
+      "아까 뭘 찍었지" 확인이 어려워진다.
+   비교는 base 단위 — expected/received 는 expected_base/received_base 이고
+   스캔은 이미 factor 를 곱해 더한다 (규칙 3). */
+function orderedIdx(){ return sortedIdx(true); }
+/* groupFilled=false → 완료 라인을 내리지 않은 "순수" sortMode 순서.
+   ⚠️ autoAdvance 가 이걸 쓴다. 표시 순서로 다음을 찾으면 방금 채운 라인이 맨 아래로
+      내려간 탓에 뒤가 비어, 매번 리스트 맨 위 미충족 라인으로 되돌아간다 —
+      존 순서로 걷던 작업자가 이미 지나온 존으로 끌려간다. */
+function sortedIdx(groupFilled){
+  const idx=lines.map((_,i)=>i);
+  // 그룹: 0=할 일(미충족·초과·off-PO) · 1=충족(아래로) · 2=인보이스에 없음(맨 아래·흐림).
+  // ⚠️ notInvoiced 인데 received>0 이면 그룹 0 — 인보이스보다 더 온 물건이라 매니저가 봐야 한다(over).
+  const key=i=>{
+    const l=lines[i], g=(groupFilled&&isFilled(l))?1:((groupFilled&&notInvoiced(l)&&l.received===0)?2:0);
+    if(sortMode==="zone"){ const z=l.lastBin?zoneOfBin(l.lastBin):null; return [g, z==null?1:0, zOrder(z), l.lastBin||"~", i]; }
+    if(sortMode==="product") return [g, (l.product_name||"~").toUpperCase(), i];
+    if(sortMode==="sku") return [g, (l.order_sku||"~").toUpperCase(), i];
+    return [g, i];
+  };
+  return idx.sort((a,b)=>{ const ka=key(a),kb=key(b); for(let j=0;j<ka.length;j++){ if(ka[j]<kb[j])return -1; if(ka[j]>kb[j])return 1; } return 0; });
+}
+function totalExp(){return lines.reduce((s,l)=>s+l.expected,0);}
+function totalRecv(){return lines.reduce((s,l)=>s+Math.min(l.received,l.expected||l.received),0);}
+function imgStyle(l){ return (HAS_IMAGES&&l.image_url)?`style="background-image:url('${esc(l.image_url)}')"`:"style=\"display:none\""; }   // 판정 33 — 사진 칸을 안 그린다
+function renderRecv(){
+  const rt0=PERF?performance.now():0;
+  const tot=totalExp(), rc=totalRecv();
+  document.getElementById("progBar").style.width=(tot?Math.round(Math.min(rc,tot)/tot*100):0)+"%";
+  if(view==="single") renderSingle(); else renderRList();
+  if(PERF) perfLog("renderRecv("+view+")",Math.round(performance.now()-rt0)+"ms",
+    "doc nodes="+document.querySelectorAll("*").length);
+}
+function lineChips(l){
+  return (l.is_off_po?`<span class="chip appr">${l.needs_approval?"OFF-PO · approval pending":"OFF-PO · approved"}</span>`:"")+
+         (notInvoiced(l)?`<span class="chip noinv">NOT INVOICED</span>`:"")+
+         (!l.is_off_po&&l.barcodeRows&&!l.barcodeRows.length?`<span class="chip newsku">NO BARCODE</span>`:"");
+}
+function lastBinChip(l){
+  if(l.lastBin===undefined) return "";
+  return l.lastBin?`<span class="lastbin${l.lastBinCur?"":" "}">Last bin ${esc(l.lastBin)}</span>`
+                  :`<span class="lastbin none">no last bin</span>`;
+}
+function barcodeBlock(l){
+  const rows=l.barcodeRows||[];
+  const base=rows.find(r=>r.factor===1);
+  const variants=rows.filter(r=>r.factor>1).sort((a,b)=>a.factor-b.factor);
+  const shown=new Set();
+  const bcLine=(label,code)=>{ const c=(code||"").trim(); if(c)shown.add(c); return `<div class="bc"><span class="bl">${label}</span><span class="bv${c?"":" empty"}">${c?esc(c):"(no barcode)"}</span></div>`; };
+  let html=bcLine("Barcode", base?base.barcode:"");
+  variants.forEach(v=>{ html+=bcLine("×"+v.factor, v.barcode); });
+  (l.altCodes||[]).filter(c=>!shown.has(c)).forEach(c=>{ html+=bcLine("ALT-UPC", c); });
+  return `<div class="barcodes">${html}</div>`;
+}
+function renderSingle(){
+  document.getElementById("rSingle").style.display="block";
+  document.getElementById("rList").style.display="none";
+  if(!lines.length){document.getElementById("rSingle").innerHTML="";return;}
+  if(curIdx>=lines.length)curIdx=lines.length-1;
+  const l=lines[curIdx];
+  const done=isFilled(l);
+  const over=l.received>l.expected;
+  document.getElementById("rSingle").innerHTML=`
+    <div class="body">
+      <div class="head">
+        <div class="img" ${imgStyle(l)}></div>
+        <div class="info">
+          <div class="nm">${esc(l.product_name)}</div>
+          <div class="sku">${esc(l.order_sku)}${l.base_sku&&l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${lastBinChip(l)}</div>
+          <div style="margin-top:4px">${lineChips(l)}</div>
+        </div>
+      </div>
+      ${barcodeBlock(l)}
+      <div class="qtybox ${done?"done":""} ${over?"overq":""}">
+        <div class="qtybig">${l.received}<span class="of"> / ${l.expected}</span></div>
+        <div class="stepper">
+          <button data-step="-1">−</button>
+          <button data-step="1">+</button>
+        </div>
+      </div>
+      <button class="manual" data-manual>Enter quantity</button>
+      <div class="navrow">
+        <button class="btn ghost" data-nav="-1">← Prev</button>
+        <button class="btn dark" data-nav="1">Next →</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--mut-2);margin-top:8px">${(orderedIdx().indexOf(curIdx)+1)} / ${lines.length}</div>
+      <div class="reportrow">
+        <button class="rep" data-rep="bc">⚑ Barcode changed</button>
+        <button class="rep" data-rep="box">⚑ Box barcode</button>
+        ${HAS_IMAGES?`<button class="rep ${imgFlagged(l)?"on":""}" data-rep="img" ${imgBusy?"disabled":""}>${imgFlagged(l)?"✓":"⚑"} Image differs</button>`:""}
+      </div>
+    </div>`;
+  const s=document.getElementById("rSingle");
+  s.querySelectorAll("[data-step]").forEach(b=>b.onclick=()=>{manualAdjust(l.id,+b.dataset.step);});
+  s.querySelector("[data-manual]").onclick=()=>manualSet(l.id);
+  s.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{move(+b.dataset.nav);});
+  s.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.rep==="img") toggleImageReport(l.id);
+    else reportIssueRecv(b.dataset.rep, l.id);
+  });
+}
+function renderRList(){
+  document.getElementById("rSingle").style.display="none";
+  const el=document.getElementById("rList");
+  el.style.display="flex";
+  const ord=orderedIdx();
+  // 완료 라인은 아래로 내려가므로 zone 헤더 카운트도 그룹별로 세야 한다.
+  // 그렇지 않으면 위쪽 "Zone C 8" 아래에 3줄만 붙고 나머지는 완료 구역에 있어 오해를 준다.
+  const zoneOf=l=>l.lastBin?zoneOfBin(l.lastBin):"__none";
+  // sortedIdx 와 같은 3그룹 기준 (0=할 일 · 1=충족 · 2=인보이스에 없음) — 구분선 카운트가 어긋나면 오해를 준다.
+  const grpOf=i=>{const l=lines[i];return isFilled(l)?1:((notInvoiced(l)&&l.received===0)?2:0);};
+  const zoneCount={}, zoneGrp={}, doneCount=ord.filter(i=>grpOf(i)===1).length,
+        noInvCount=ord.filter(i=>grpOf(i)===2).length;
+  if(sortMode==="zone") ord.forEach(i=>{
+    const z=zoneOf(lines[i]);
+    zoneCount[z]=(zoneCount[z]||0)+1;                                  // 칩 바용 (전체)
+    const k=grpOf(i)+"|"+z; zoneGrp[k]=(zoneGrp[k]||0)+1;              // 구분선용 (그룹별)
+  });
+  let curZone=null, curGrp=null, html="";
+  ord.forEach(idx=>{
+    const l=lines[idx], g=grpOf(idx);
+    if(g!==curGrp){
+      curGrp=g; curZone=null;   // 그룹이 바뀌면 zone 헤더도 다시 시작
+      if(g===1) html+=`<div class="gdiv"><span class="gl">Received in full</span><span class="gc">${doneCount}</span></div>`;
+      if(g===2) html+=`<div class="gdiv noinv"><span class="gl">Not on invoice — not expected</span><span class="gc">${noInvCount}</span></div>`;
+    }
+    if(sortMode==="zone"){
+      const z=zoneOf(l);
+      if(z!==curZone){
+        curZone=z;
+        const n=zoneGrp[g+"|"+z];
+        html+= z==="__none"
+          ? `<div class="zdiv nobin" data-zone="__none"><span class="zn">?</span><span class="zl">No last bin</span><span class="zc">${n}</span></div>`
+          : `<div class="zdiv" data-zone="${esc(z)}"><span class="zn">${esc(z||"·")}</span><span class="zl">Zone ${esc(z||"·")}</span><span class="zc">${n}</span></div>`;
+      }
+    }
+    const done=isFilled(l);
+    const over=l.received>l.expected;
+    const cls=(l.is_off_po?"offpo":(over?"over":(done?"done":"")))+(idx===curIdx?" cur":"")
+      +((notInvoiced(l)&&l.received===0)?" noinv":"");
+    html+=`<div class="lrow ${cls}" data-id="${l.id}" data-bay="${l.lastBin?esc(bayOfBin(l.lastBin)):"__none"}">
+      <div class="thumb" ${imgStyle(l)}></div>
+      <div class="li"><div class="s">${esc(l.order_sku)}${lineChips(l)}</div>
+        <div class="n">${esc(l.product_name)}</div>
+        <div class="b">${lastBinChip(l)}</div></div>
+      <div class="q">${l.received} / ${l.expected}</div>
+      <div class="stepper">
+        <button data-step="-1" data-i="${l.id}">−</button>
+        <button data-step="1" data-i="${l.id}">+</button>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll("[data-step]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();manualAdjust(b.dataset.i,+b.dataset.step);});
+  el.querySelectorAll(".lrow").forEach(r=>r.onclick=()=>{
+    const i=lines.findIndex(x=>x.id===r.dataset.id); if(i<0) return;
+    curIdx=i; renderRecv(); focusScan();
+  });
+  const cur=el.querySelector(".lrow.cur"); if(cur)cur.scrollIntoView({block:"nearest"});
+  // zone 점프 칩 바 (Zone 정렬일 때만) — Zone 클릭 시 그 zone 의 Bay 칩 펼침
+  const zj=document.getElementById("rZjump"), zjb=document.getElementById("rZjumpBay");
+  if(sortMode==="zone" && Object.keys(zoneCount).length){
+    const zones=Object.keys(zoneCount).sort((a,b)=>{ if(a==="__none")return 1; if(b==="__none")return -1; const d=zOrder(a)-zOrder(b); return d||(a<b?-1:1); });
+    // 남은 라인이 없는 zone 은 흐리게 — 아래로 내려간 완료분까지 세어 헷갈리지 않게
+    const dim=z=>((zoneCount[z]-(zoneGrp["1|"+z]||0))===0?" alldone":"");
+    zj.innerHTML=zones.map(z=>z==="__none"
+      ? `<button class="zchip nobin${dim(z)}" data-zj="__none">?<span class="c">${zoneCount[z]}</span></button>`
+      : `<button class="zchip${dim(z)}" data-zj="${esc(z)}">${esc(z)}<span class="c">${zoneCount[z]}</span></button>`).join("");
+    zj.style.display="flex"; zjb.style.display="none"; zjb.innerHTML="";
+    zj.querySelectorAll("[data-zj]").forEach(c=>c.onclick=()=>{
+      const z=c.dataset.zj;
+      const hd=el.querySelector(`.zdiv[data-zone="${z==="__none"?"__none":CSS.escape(z)}"]`);
+      if(hd) hd.scrollIntoView({behavior:"smooth",block:"start"});
+      // 그 zone 의 bay 칩 펼치기 (__none 은 bay 없음)
+      zj.querySelectorAll(".zchip").forEach(x=>x.classList.toggle("sel",x===c));
+      if(z==="__none"){ zjb.style.display="none"; zjb.innerHTML=""; return; }
+      const bays={};
+      ord.forEach(i=>{ const li=lines[i]; if(li.lastBin&&zoneOfBin(li.lastBin)===z){ const b=bayOfBin(li.lastBin); bays[b]=(bays[b]||0)+1; } });
+      const bk=Object.keys(bays).sort();
+      zjb.innerHTML=bk.map(b=>`<button class="zchip" data-bay="${esc(b)}">${esc(b)}<span class="c">${bays[b]}</span></button>`).join("");
+      zjb.style.display=bk.length?"flex":"none";
+      zjb.querySelectorAll("[data-bay]").forEach(bc=>bc.onclick=()=>{
+        const row=el.querySelector(`.lrow[data-bay="${CSS.escape(bc.dataset.bay)}"]`);
+        if(row) row.scrollIntoView({behavior:"smooth",block:"center"});
+      });
+    });
+  }else{ zj.style.display="none"; zj.innerHTML=""; zjb.style.display="none"; zjb.innerHTML=""; }
+}
+function move(dir){
+  const ord=orderedIdx();
+  const pos=ord.indexOf(curIdx);
+  const np=Math.max(0,Math.min(ord.length-1,pos+dir));
+  curIdx=ord[np]; renderRecv(); focusScan();
+}
+function autoAdvance(){
+  const ord=sortedIdx(false);   // 걷는 순서는 완료 그룹화와 무관하게 유지
+  const pos=ord.indexOf(curIdx);
+  // 표시 순서로 현재 다음부터 미충족 라인 탐색 → 없으면 처음부터
+  for(let k=pos+1;k<ord.length;k++){ const l=lines[ord[k]]; if(l.expected>0&&l.received<l.expected){ curIdx=ord[k]; return; } }
+  for(let k=0;k<ord.length;k++){ const l=lines[ord[k]]; if(l.expected>0&&l.received<l.expected){ curIdx=ord[k]; return; } }
+}
+document.getElementById("sortSel").onchange=e=>{ sortMode=e.target.value; renderRecv(); focusScan(); };
+/* 수량 직접 입력은 절대값이라 스캔(delta)처럼 자동 병합할 수 없다.
+   "실제는 12개다"라는 사람의 선언이므로, 그 사이 값이 바뀌었으면 자동 재시도하지 않고 묻는다.
+   창구 wms_recv_count 가 「화면이 본 총량」 과 지금 총량이 다르면 거부한다 — 그 문장을 받아 여기서 묻는다. presence 로 후보만 보여준다. */
+function askQtyConflict(l,theirs,mine){
+  return new Promise(resolve=>{
+    const who=othersLabel();
+    const ov=document.createElement("div");
+    ov.className="modal-ov";
+    ov.innerHTML=`
+      <div class="modal" role="dialog" aria-label="Quantity conflict">
+        <div class="mh"><div class="t">Quantity conflict</div>
+          <div class="s">${esc(l.order_sku)} · ${esc(l.product_name||"")}</div></div>
+        <div style="padding:2px 18px 14px;font-size:13.5px;line-height:1.6">
+          Someone else set this to <b>${theirs}</b> while you were entering <b>${mine}</b>.
+          <div style="color:var(--mut);font-size:12.5px;margin-top:6px">
+            ${who?`On this PO right now: ${esc(who)}`:"Changed by another receiver."}</div>
+        </div>
+        <div class="mfoot" style="flex-direction:column;gap:8px">
+          <button class="btn ghost" data-c="theirs" style="width:100%">Keep theirs (${theirs})</button>
+          <button class="btn dark" data-c="mine" style="width:100%">Use mine (${mine})</button>
+          <button class="btn hold" data-c="recount" style="width:100%">Recount</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done=c=>{ try{ov.remove();}catch(e){} resolve(c); };
+    ov.querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>done(b.dataset.c));
+    ov.addEventListener("mousedown",e=>{ if(e.target===ov) done(null); });
+  });
+}
+async function manualSet(id){
+  const l=lineById(id); if(!l){ focusScan(); return; }
+  if(l.is_off_po){ toast("Off-PO quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); focusScan(); return; }
+  if(!await ensureReceiptOpen()){ focusScan(); return; }
+  const before=l.received;                       // 프롬프트를 열 때 내가 알고 있던 값 = 창구에 넘기는 seen
+  const v=prompt(`${l.order_sku} Enter quantity received:`, l.received);
+  if(v===null){focusScan();return;}
+  let n=parseInt(v,10); if(isNaN(n)||n<0)n=0;
+  if(n>l.expected&&!confirm(`${l.order_sku} — exceeds expected quantity (${n} > ${l.expected}). Continue?`)){focusScan();return;}
+  await setCount(l, n, before);
+  if(l.expected>0&&l.received>=l.expected) autoAdvance();
+  renderRecv(); focusScan();
+}
+/* 절대값 저장 — 창구가 seen ≠ 지금이면 거부한다 → 서버 값을 다시 읽어 묻는다(운영 askQtyConflict 그대로 · 판정은 창구) */
+async function setCount(l, n, seen){
+  const r=await queueWrite(l,{kind:"count",total:n,seen,method:"manual"});
+  if(r.ok){ l.received=n; l.vmethod="manual"; return true; }
+  if(r.why==="conflict"){
+    await refreshLines();
+    const cur=lineById(l.id); const theirs=cur?cur.received:l.received;
+    const choice=await askQtyConflict(l,theirs,n);
+    if(choice==="mine") return setCount(l, n, theirs);
+    if(choice==="recount"){ renderRecv(); return manualSet(l.id); }
+    return false;   // theirs · 바깥 탭 = 서버 값 유지
+  }
+  if(r.why==="deleted"||r.why==="closed") return false;
+  toast("Save delayed — will retry on completion",true);
+  return false;
+}
+document.getElementById("viewSeg").onclick=e=>{
+  const b=e.target.closest("button");if(!b)return;
+  view=b.dataset.v;
+  [...document.querySelectorAll("#viewSeg button")].forEach(x=>x.classList.toggle("active",x===b));
+  renderRecv(); focusScan();
+};
+
+/* ---------- 스캔 ---------- */
+const scanEl=document.getElementById("scan");
+scanEl.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){ e.preventDefault(); const v=scanEl.value.trim(); scanEl.value=""; if(v)processScan(v); }
+});
+async function processScan(code){
+  // bcMap 은 id 를 담으므로 지금 살아있는 라인으로 해석한다
+  const cands=(bcMap[code]||[]).map(c=>({l:lineById(c.id),factor:c.factor})).filter(c=>c.l);
+  if(!cands.length){ await offPoScan(code); return; }
+  if(!await ensureReceiptOpen()){ focusScan(); return; }
+  // 미충족 라인 우선
+  let hit=cands.find(c=>c.l.received<c.l.expected);
+  if(!hit){
+    hit=cands.find(c=>c.l.is_off_po)||cands[0];
+    const l=hit.l;
+    if(!l.is_off_po){
+      const msg=`${l.order_sku} — expected quantity already met (${l.received}/${l.expected}).\nReceive ${hit.factor} more anyway? (over-receipt is flagged)`;
+      if(!confirm(msg)){ focusScan(); return; }
+    }
+  }
+  const l=hit.l, f=hit.factor;
+  l.received+=f;
+  l.vmethod="scanned";
+  curIdx=lines.indexOf(l);
+  const lineDone=isFilled(l);
+  const over=!l.is_off_po&&l.received>l.expected;
+  flash(lineDone?"done":(over?"bad":(f>1?"okbox":"ok")),
+    over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ OFF-PO ${l.order_sku}  +${f} (approval pending)`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
+  if(l.is_off_po) saveOffPo(l,f); else saveLine(l,f,"scanned");
+  if(lineDone) autoAdvance();
+  renderRecv(); focusScan();
+}
+
+/* ---------- 오프-PO 스캔 → 창구 wms_recv_off_po (차이 큐 한 행 · 매니저 승인 대기) ---------- */
+async function offPoScan(code){
+  try{
+    if(!await ensureReceiptOpen()){ focusScan(); return; }
+    // 바코드 → 제품 · 없으면 SKU 직접 일치
+    let p=null;
+    const {data:bc}=await sb.from("product_barcode").select("product_id").eq("barcode",code).eq("is_active",true).limit(1);
+    if(bc&&bc.length){ const r=await sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("id",bc[0].product_id).limit(1); p=r.data&&r.data[0]||null; }
+    if(!p){ const r2=await sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("sku",code).limit(1); p=r2.data&&r2.data[0]||null; }
+    if(!p){ flash("bad","✕ Unknown barcode"); toast("Unknown barcode — ask the office to register the product",true); focusScan(); return; }
+    const f=p.parent_product_id?(Number(p.pack_factor)||1):1;   // 세트를 스캔했으면 낱개 ×factor 로 적는다(창구는 낱개 제품에 적는다)
+    const stockPid=p.parent_product_id||p.id;
+    if(!confirm(`${p.sku} — not on this PO.\nAdd as OFF-PO (manager approval required)?\n+${f} unit(s) will be recorded.`)){ focusScan(); return; }
+    const {data,error}=await sb.rpc("wms_recv_off_po",{p_receipt_id:receipt.id,p_product_id:stockPid,p_qty_ea:f});
+    if(error) throw error;
+    const id="d:"+data.diff_id;
+    let l=lineById(id);
+    if(!l){
+      l={ id, kind:"offpo", diff_id:data.diff_id, product_id:stockPid, stock_pid:stockPid, order_sku:data.sku||p.sku, base_sku:data.sku||p.sku, product_name:p.parent_product_id?"":(p.name||""),
+          expected:0, received:0, is_off_po:true, needs_approval:true, vmethod:"scanned", image_url:null, work:[], barcodeRows:[], altCodes:[] };
+      lines.push(l);
+    }
+    l.received=Number(data.received_qty||0);
+    await buildBcMap();  // 새 라인 바코드 · 이름 반영
+    flash("okbox",`✓ OFF-PO ${l.order_sku} +${f} (approval pending)`);
+    renderRecv(); focusScan();
+  }catch(e){ toast("Off-PO add failed: "+rpcMsg(e),true); focusScan(); }
+}
+function saveOffPo(l,qty){
+  queueWrite(l,{kind:"offpo",product_id:l.product_id,qty}).then(r=>{
+    if(r.ok) return;
+    if(r.why==="deleted"){ toast(l.order_sku+" was removed by a manager",true); dropLine(l.id).then(renderRecv); return; }
+    if(r.why==="closed") return;
+    toast("Save delayed — will retry on completion",true);
+  });
+}
+
+/* ============================================================
+   데이터품질 리포트 → wms_reports (picker/packer 와 같은 성격)
+   ------------------------------------------------------------
+   매니저에게 알리기만 한다 — bcMap 수정 없음. 매니저가 WMS Admin 의 Reports 탭에서 보고 마스터를 고친다(박스 바코드 값 포함 — note 에 담는다).
+   receiver 는 오더가 없으므로 receipt_id + po_number 로 귀속
+   (order_id 는 null · reported_by 는 ims_staff.id).
+   ============================================================ */
+async function reportIssueRecv(kind, id){
+  const l=lineById(id); if(!l){ focusScan(); return; }
+  let kindDb, note, okMsg;
+  if(kind==="box"){
+    // 박스(×factor) 바코드 업데이트 — 스캔 값이 리포트의 본체라 필수
+    const boxes=(l.barcodeRows||[]).filter(r=>r.factor>1&&r.barcode);
+    const listed=boxes.map(r=>`×${r.factor} ${r.barcode}`).join(", ")||"none";
+    const got=prompt(`Box barcode for ${l.order_sku}\nListed: ${listed}\n\nScan the new box barcode`, "");
+    if(got===null){ focusScan(); return; }
+    if(!got.trim()){ toast("No barcode scanned — not reported",true); focusScan(); return; }
+    kindDb="box_barcode"; note=`New box barcode ${got.trim()} · listed ${listed}`;
+    okMsg="Box barcode reported";
+  }else{
+    const listed=[...new Set([...(l.barcodeRows||[]).map(r=>String(r.barcode||"").trim()), ...(l.altCodes||[])].filter(Boolean))].join(", ")||"—";
+    const got=prompt(`Barcode changed for ${l.order_sku}\nListed: ${listed}\n\nScan or type the new barcode (optional)`, "");
+    if(got===null){ focusScan(); return; }
+    kindDb="barcode_mismatch"; note=`Listed ${listed}${got.trim()?` · new ${got.trim()}`:""}`;
+    okMsg="Barcode issue reported";
+  }
+  try{
+    const {error}=await sb.from("wms_reports").insert({
+      receipt_id:receipt.id, po_number:receipt.po_number, sku:l.order_sku,
+      kind:kindDb, note, reported_by:me.id, source:"receiver"
+    });
+    if(error) throw error;
+    toast(okMsg);
+  }catch(e){ toast("Report failed: "+(e.message||e),true); }
+  focusScan();
+}
+
+/* ---------- image mismatch report (toggle, no detail prompt) → wms_reports ----------
+   One open report per receipt+sku+kind: press to report, press again to cancel.     */
+const IMG_NOTE="Image does not match the physical product";
+function imgKey(l){ return receipt?receipt.id+"|"+(l.order_sku||""):""; }
+function imgFlagged(l){ const k=imgKey(l); return !!k && imgFlags.has(k); }
+async function loadImageFlags(){
+  imgFlags=new Set();
+  try{
+    const rid=receipt?receipt.id:null;
+    const skus=[...new Set(lines.map(l=>l.order_sku).filter(Boolean))];
+    if(!rid||!skus.length) return;
+    const {data,error}=await sb.from("wms_reports")
+      .select("receipt_id,sku").eq("kind","image_mismatch").is("resolved_at",null)
+      .eq("receipt_id",rid).in("sku",skus);
+    if(error) throw error;
+    (data||[]).forEach(r=>imgFlags.add(r.receipt_id+"|"+(r.sku||"")));
+    renderRecv();
+  }catch(e){ /* pressed state is cosmetic — never block the receiving view */ }
+}
+async function toggleImageReport(id){
+  const l=lineById(id); if(!l||imgBusy||!HAS_IMAGES) return;   // 판정 33 — 사진이 서기 전에는 부르지 않는다
+  const rid=receipt?receipt.id:null;
+  if(!rid){ toast("Cannot report — receipt unknown",true); focusScan(); return; }
+  const key=rid+"|"+(l.order_sku||""), on=imgFlags.has(key);
+  imgBusy=true; renderRecv();
+  try{
+    if(on){
+      // cancel: only the still-open report — resolved history is never deleted
+      const {error}=await sb.from("wms_reports").delete()
+        .eq("receipt_id",rid).eq("sku",l.order_sku).eq("kind","image_mismatch").is("resolved_at",null);
+      if(error) throw error;
+      imgFlags.delete(key); toast("Image report cancelled");
+    }else{
+      const {error}=await sb.from("wms_reports").insert({
+        receipt_id:rid, po_number:receipt.po_number, sku:l.order_sku,
+        kind:"image_mismatch", note:IMG_NOTE, reported_by:me.id, source:"receiver"
+      });
+      if(error) throw error;
+      imgFlags.add(key); toast("Image issue reported");
+    }
+  }catch(e){ toast("Report failed: "+(e.message||e),true); }
+  imgBusy=false; renderRecv(); focusScan();
+}
+
+/* ---------- 수동 조정 (스테퍼 ±1 = 델타 · 창구 wms_recv_scan 이 동시 조정을 합친다) ---------- */
+async function manualAdjust(id,delta){
+  const l=lineById(id); if(!l) return;
+  if(l.is_off_po){ toast("Off-PO quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); return; }
+  if(!await ensureReceiptOpen()) return;
+  const nv=Math.max(0,l.received+delta);
+  if(nv>l.expected&&delta>0&&!confirm(`${l.order_sku} — exceeds expected quantity (${nv} > ${l.expected}). Continue?`)) return;
+  if(nv===l.received)return;
+  const old=l.received;
+  l.received=nv; l.vmethod="manual"; saveLine(l,nv-old,"manual");   // 0 에서 잘린 만큼만 델타로
+  if(l.expected>0&&l.received>=l.expected&&delta>0) autoAdvance();
+  renderRecv(); focusScan();
+}
+
+/* ============================================================
+   저장 엔진 — 남의 작업을 덮지 않는 쓰기 (창구 판)
+   ------------------------------------------------------------
+   운영은 라인 행을 PATCH 하고 .select() 1행으로 성공을 판정했다. 이제 쓰기는 전부 창구다:
+   스캔 = 델타(wms_recv_scan · 같은 라인 잠금 아래 합쳐진다) · 손 고치기 = 절대값 + 화면이 본 총량(wms_recv_count · CAS) ·
+   놓기 = 작업 줄 id(wms_recv_putaway) · off-PO = 더하기(wms_recv_off_po). 성공 = 창구가 값을 돌려줌 · 실패 = 문장(「— nothing was saved」).
+   ============================================================ */
+function markUnconfirmed(l,op){ const a=unconfirmed.get(l.id)||[]; a.push(op); unconfirmed.set(l.id,a); }
+function clearUnconfirmed(l,op){ const a=unconfirmed.get(l.id)||[]; const i=a.indexOf(op); if(i>=0)a.splice(i,1); if(!a.length) unconfirmed.delete(l.id); }
+function whyOf(msg){
+  const m=String(msg||"");
+  if(/not found|does not belong/i.test(m)) return "deleted";
+  if(/completed in the warehouse|is confirmed|is cancelled|only while draft|only a draft/i.test(m)) return "closed";
+  if(/changed under you|less than the .* already assigned/i.test(m)) return "conflict";
+  if(/permission|cannot change|cannot view/i.test(m)) return "denied";
+  return "error";
+}
+async function writeLine(l,op){
+  let res;
+  try{
+    if(op.kind==="scan")         res=await sb.rpc("wms_recv_scan",{p_receipt_id:receipt.id,p_po_line_id:l.id,p_delta_ea:op.delta,p_count_method:op.method||"scanned"});
+    else if(op.kind==="count")   res=await sb.rpc("wms_recv_count",{p_receipt_id:receipt.id,p_po_line_id:l.id,p_total_ea:op.total,p_seen_total:op.seen,p_count_method:op.method||"manual"});
+    else if(op.kind==="putaway") res=await sb.rpc("wms_recv_putaway",{p_work_id:op.work_id,p_bin_id:op.bin_id,p_done:!!op.done});
+    else if(op.kind==="offpo")   res=await sb.rpc("wms_recv_off_po",{p_receipt_id:receipt.id,p_product_id:op.product_id,p_qty_ea:op.qty});
+    else return {ok:false,why:"error",msg:"unknown op"};
+  }catch(e){ return {ok:false,why:"network"}; }   // 미확인으로 남는다 — flush 가 다시 보낸다
+  if(res.error){
+    const why=whyOf(res.error.message);
+    if(why==="deleted"||why==="closed"||why==="conflict"||why==="denied") clearUnconfirmed(l,op);   // 다시 보내도 같은 답 — 재시도 대상이 아니다
+    if(why==="closed"){ receiptClosed=true; renderClosed(); toast(res.error.message,true); }
+    if(why==="denied") toast(res.error.message,true);
+    return {ok:false,why,msg:res.error.message};
+  }
+  clearUnconfirmed(l,op);
+  const d=res.data||{};
+  if(op.kind==="scan"||op.kind==="count"){ if(d.counted!=null&&!unconfirmed.has(l.id)) l.received=Number(d.counted); }   // 이 줄의 쓰기가 다 확인됐을 때만 서버 총량으로 맞춘다
+  if(op.kind==="offpo"&&d.received_qty!=null) l.received=Number(d.received_qty);
+  return {ok:true,data:d};
+}
+/* 라인별 직렬화 — 같은 라인의 창구 호출이 서로 추월하지 않게. 라인별이라 라인 5 의 느린 쓰기가 라인 9 를 막지 않는다. */
+function queueWrite(l,op){
+  markUnconfirmed(l,op);
+  const prev=writeChain.get(l.id)||Promise.resolve();
+  const next=prev.then(()=>writeLine(l,op)).catch(()=>({ok:false,why:"chain"}));
+  writeChain.set(l.id,next);
+  next.then(()=>{ if(writeChain.get(l.id)===next) writeChain.delete(l.id); });
+  return next;
+}
+/* 라인이 서버에서 사라진 경우 — 로컬에서도 제거.
+   bcMap 이 id 를 담으므로 splice 후 재구성이 필요 없다 (죽은 id 는 스캔 때 걸러진다).
+   커서만 id 로 되짚어 준다 — 인덱스로 두면 지워진 라인 위쪽이면 한 칸 밀린다. */
+async function dropLine(id){
+  const i=lines.findIndex(x=>x.id===id);
+  if(i<0) return;
+  const curId=lines[curIdx]?lines[curIdx].id:null;
+  lines.splice(i,1);
+  unconfirmed.delete(id); writeChain.delete(id);
+  const ci=curId==null?-1:lines.findIndex(x=>x.id===curId);
+  curIdx=ci>=0?ci:Math.min(i,Math.max(0,lines.length-1));
+}
+/* 미확인 쓰기 재시도 — "will retry on completion" 약속을 실제로 이행하는 곳. 실패한 op 만 다시 보낸다(델타 · CAS 라 남의 작업을 건드리지 않는다). */
+async function flushUnconfirmed(){
+  let failed=0, deleted=0;
+  for(const id of [...unconfirmed.keys()]){
+    const ops=(unconfirmed.get(id)||[]).slice();
+    const l=lines.find(x=>x.id===id);
+    if(!l){ unconfirmed.delete(id); continue; }
+    unconfirmed.delete(id);
+    for(const op of ops){
+      const r=await queueWrite(l,op);
+      if(!r.ok){
+        if(r.why==="deleted"){ deleted++; await dropLine(id); break; }
+        if(r.why!=="closed"&&r.why!=="conflict"&&r.why!=="denied") failed++;
+      }
+    }
+  }
+  return {failed,deleted,ok:failed===0};
+}
+
+/* ---------- 저장 (백그라운드 — UI 는 낙관적으로 즉시 갱신) ---------- */
+/* ⚠️ 여기에 await 를 걸어 렌더·비프를 막지 말 것. ca-central-1 왕복이 스캔 피드백 앞에
+      들어가면 작업자가 "안 먹었다"고 판단해 재스캔한다 → 과다 계상. */
+function saveLine(l,delta,method){
+  if(!delta) return;
+  queueWrite(l,{kind:"scan",delta,method:method||"scanned"}).then(r=>{
+    if(r.ok) return;
+    if(r.why==="deleted"){ toast(l.order_sku+" was removed — reload the list",true); dropLine(l.id).then(renderRecv); return; }
+    if(r.why==="conflict"){ toast(r.msg||"Count conflicts with the bin rows — reload",true); refreshLines().then(renderRecv); return; }
+    if(r.why==="closed"||r.why==="denied") return;
+    toast("Save delayed — will retry on completion",true);
+  });
+}
+/* 쓰기 직전 상태 가드 (판정 30).
+   ⚠️ 리시빙에는 소유자가 없다 — 한 receipt 를 여러 명이 나눠 받는 것이 정상 기능이라 picker/packer 의 ensureMine 을 옮길 수 없다.
+      리시빙에서 실제로 갈라지는 상태는 **창고 Complete**(wms_recv_state.completed)와 오피스 확정(po_receipt.status)이다 — 창구(wms_recv_gate)가 어차피 거부하지만
+      화면이 먼저 알면 작업자가 헛손질을 안 한다. 단일 창구 읽기 · 3초 억제 · 확인 실패 시 통과(best-effort). 타이머 없음. */
+async function ensureReceiptOpen(){
+  if(!receipt) return false;
+  if(receiptClosed){ toast("This receipt is completed — ask a manager to reopen it",true); return false; }
+  const now=performance.now();
+  if(now-lastOpenCheck<3000) return true;
+  lastOpenCheck=now;
+  let res;
+  try{ res=await sb.rpc("wms_recv_state",{p_receipt_id:receipt.id}); }
+  catch(e){ console.warn("state check failed",e); return true; }   // 와이파이 순단으로 작업을 멈추지 않는다
+  if(res.error||!res.data) return true;
+  if(res.data.completed){
+    receiptClosed=true; receipt.completed=true; receipt.completed_by=res.data.completed_by||null; receipt.completed_at=res.data.completed_at||null;
+    renderClosed();
+    alert("This receipt was completed in the warehouse by "+(nameOf(res.data.completed_by)||"someone else")+".\nYour screen is out of date — changes are no longer saved. Ask a manager to reopen it.");
+    return false;
+  }
+  return true;
+}
+/* 놓기 저장 — 작업 줄 id 로(라인당 여러 줄) · 실패해도 로컬 값을 되돌리지 않는다(putawayFailed 에 남겨 "NOT SAVED") */
+async function savePutaway(w,bin_id,done){
+  if(!await ensureReceiptOpen()) return false;
+  const l=w.line;
+  const r=await queueWrite(l,{kind:"putaway",work_id:w.id,bin_id,done});
+  if(r.ok){ putawayFailed.delete(w.id); return true; }
+  if(r.why==="deleted"){ toast(l.order_sku+" row was removed — reloading",true); putawayFailed.delete(w.id); await refreshLines(); renderPutaway(); return false; }
+  if(r.why==="closed"||r.why==="denied") return false;
+  putawayFailed.add(w.id);
+  toast("Save delayed — will retry on completion",true);
+  return false;
+}
+
+/* ---------- Hold (창구 wms_recv_hold — 문서 status 는 draft 그대로 · 보류 행 하나) ---------- */
+document.getElementById("holdBtn").onclick=async ()=>{
+  if(!receipt||receiptClosed)return;
+  if(!confirm("Hold this receiving?\nProgress is saved. Resume from the list anytime.")) return;
+  try{
+    const f=await flushUnconfirmed();
+    if(f.failed && !confirm(f.failed+" line(s) could not be saved (connection?).\nHold anyway? Those counts would be lost.")) return;
+    const {error}=await sb.rpc("wms_recv_hold",{p_receipt_id:receipt.id});
+    if(error) throw error;
+    toast(receipt.po_number+" held");
+    exitToList();
+  }catch(e){ toast("Hold failed: "+rpcMsg(e),true); }
+};
+
+document.getElementById("backBtn").onclick=async ()=>{
+  // 아무것도 안 받았고 새로 만든 세션이면 그대로 두고 나가도 무해 (in_progress로 남아 재개 가능)
+  exitToList();
+};
+function exitToList(){
+  presenceLeave();
+  unconfirmed.clear(); writeChain.clear(); putawayFailed.clear();
+  receiptClosed=false; lastOpenCheck=0; renderClosed();
+  receipt=null;lines=[];bcMap={};imgFlags=new Set();imgBusy=false;
+  document.getElementById("recvView").style.display="none";
+  document.getElementById("putView").style.display="none";
+  document.getElementById("listView").style.display="block";
+  loadMyReceipts();
+}
+
+/* ---------- Putaway 진입 (판정 29 — 자동 배정 쓰기 없음 · Last bin 은 화면이 미리 보여만 준다) ---------- */
+document.getElementById("toPutawayBtn").onclick=async ()=>{
+  const targets=lines.filter(l=>l.received>0);
+  if(!targets.length){ toast("Nothing received yet",true); return; }
+  const t0=performance.now();
+  await refreshLines();   // 작업 줄(빈별) · 남의 놓기 · 승인 상태를 서버에서 — 한 번의 왕복
+  showPutaway();
+  perfLog("putaway entry",Math.round(performance.now()-t0)+"ms","lines="+targets.length);
+};
+
+function zoneOfBin(bin){
+  if(!bin)return "";
+  if(receipt.wh==="edmonton") return /^E[A-Z]/.test(bin)?bin.charAt(1):bin.charAt(0);
+  return bin.charAt(0);
+}
+/* 구조: [E?] Zone Rack(숫자2) Bay Shelf.
+   - 랙 뒤가 숫자 4자리+ (0101 등): 베이(2)+셸프(2) → bay = 존+랙+베이2  (EZ010101→EZ0101)
+   - 랙 뒤에 문자 섞임 (Pallet05, HAIR 등): 나머지 전부가 베이, 셸프 없음 → bay = bin 통째 (EZ01Pallet05→EZ01Pallet05)
+   토론토는 E 없음(C020303→C0203), 에드먼튼은 E 포함 표시(EZ0101). */
+function bayOfBin(bin){
+  if(!bin)return "";
+  const pre=(receipt.wh==="edmonton"&&/^E/i.test(bin))?bin.slice(0,2):bin.slice(0,1); // E+Zone 또는 Zone
+  const rest=bin.slice(pre.length);
+  const m=rest.match(/^(\d{2})(.*)$/);          // 랙(숫자2) + 그 뒤
+  if(!m) return bin;                             // 랙이 숫자2 아니면 비정형 → 통째
+  const rack=m[1], after=m[2];
+  if(/^\d{4}/.test(after)) return pre+rack+after.slice(0,2);  // 숫자형: 베이2 잘라냄 (셸프 제거)
+  return bin;                                    // 팔레트/문자형: 나머지 전부가 베이 = bin 통째
+}
+function zOrder(z){ const k=receipt.warehouse_id+"|"+(z||""); return zoneSeq[k]!=null?zoneSeq[k]:9999; }
+
+function showPutaway(){
+  document.getElementById("recvView").style.display="none";
+  document.getElementById("putView").style.display="block";
+  document.getElementById("pTitle").textContent=receipt.po_number+" · Putaway";
+  document.getElementById("pMeta").textContent=whLabel(receipt.wh)+" · "+(receipt.supplier_name||"")+(receiptClosed?" · Completed — read only":"");
+  renderPutaway();
+  presenceStage("putaway");
+}
+document.getElementById("putBackBtn").onclick=()=>{
+  document.getElementById("putView").style.display="none";
+  document.getElementById("recvView").style.display="block";
+  renderRecv(); focusScan();
+  presenceStage("receiving");
+};
+
+/* 풋어웨이 행 = 작업 줄(po_receipt_work) — 한 라인이 여러 칸에 나뉠 수 있다. 칸 없는 줄은 Last bin 을 「제안」 으로 보인다(판정 29). */
+function putRows(){
+  const rows=[];
+  lines.filter(l=>l.kind==="po"&&l.received>0).forEach(l=>{
+    (l.work||[]).forEach(w=>rows.push({ id:w.id, line:l, qty:w.qty, bin:w.bin, bin_id:w.bin_id, done:w.done, suggested:!w.bin_id&&l.lastBin?l.lastBin:null }));
+  });
+  return rows;
+}
+function renderPutaway(){
+  const pt0=PERF?performance.now():0;
+  const rows=putRows();
+  const ro=receiptClosed;
+  // 그룹: bin 있는 것 (zone 동선순) / Last bin 제안(칸 없는 줄 · 놓으면 그 칸으로) / 승인 대기(off-PO) / 빈 지정 필요
+  const withBin={}, sugg={}, needBin=[], pendingAppr=lines.filter(l=>l.is_off_po&&l.needs_approval&&l.received>0);
+  rows.forEach(w=>{
+    if(w.bin) (withBin[w.bin]=withBin[w.bin]||[]).push(w);
+    else if(w.suggested) (sugg[w.suggested]=sugg[w.suggested]||[]).push(w);
+    else needBin.push(w);
+  });
+  const byZone=(a,b)=>{ const za=zOrder(zoneOfBin(a)), zb=zOrder(zoneOfBin(b)); if(za!==zb)return za-zb; return a<b?-1:1; };
+  const binKeys=Object.keys(withBin).sort(byZone), suggKeys=Object.keys(sugg).sort(byZone);
+  const rowHtml=(w,suggested)=>`
+      <div class="prow ${w.done?"pdone":""} ${putawayFailed.has(w.id)?"unsaved":""}">
+        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)}${suggested?" · last kept here":""}</div></div>
+        ${putawayFailed.has(w.id)?`<span class="unsv" title="Not saved yet — retried when you finish">NOT SAVED</span>`:""}
+        <div class="q">${w.qty}</div>
+        <button class="chgbin" data-assign="${esc(w.id)}" title="Change bin"${ro?" disabled":""}>Change</button>
+        <button class="pk" data-place="${esc(w.id)}"${ro?" disabled":""}>${w.done?"✓ Placed":"Placed"}</button>
+      </div>`;
+  const groupHtml=(bin,grp,suggested)=>{
+    const allDone=!suggested&&grp.every(w=>w.done);
+    const z=zoneOfBin(bin);
+    const doneN=grp.filter(w=>w.done).length;
+    // 일괄 버튼: 작업자는 bin 단위로 움직인다 → 클릭 수를 라인 수에서 bin 수로 내린다. 전부 placed 면 눌린 상태로 보이고 재클릭이 전체 해제(실수 복구).
+    const allBtn=`<button class="pkall" data-placeall="${esc(bin)}" data-sugg="${suggested?1:0}"${ro?" disabled":""}>${
+      allDone?"✓ All placed":(grp.length>1?`Place all ${doneN?`(${doneN}/${grp.length})`:`(${grp.length})`}`:"Place all")}</button>`;
+    return `<div class="bin-group ${allDone?"donegrp":""}" data-zone="${esc(z||"·")}" data-bay="${esc(bayOfBin(bin))}" data-bin="${esc(bin)}">
+      <div class="bh"><span class="zn">${esc(z||"·")}</span><span class="binbig">${esc(bin)}</span>
+        <span class="bmeta">${grp.length} item${grp.length>1?"s":""}${suggested?" · suggested":""}</span>${allBtn}</div>
+      ${grp.map(w=>rowHtml(w,suggested)).join("")}
+    </div>`;
+  };
+  let html="";
+  html+=binKeys.map(bin=>groupHtml(bin,withBin[bin],false)).join("");
+  html+=suggKeys.map(bin=>groupHtml(bin,sugg[bin],true)).join("");
+  if(needBin.length){
+    const rws=needBin.map(w=>`
+      <div class="prow">
+        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)} · no last location</div></div>
+        <div class="q">${w.qty}</div>
+        <button class="assign" data-assign="${esc(w.id)}"${ro?" disabled":""}>Assign bin</button>
+      </div>`).join("");
+    html+=`<div class="bin-group needbin">
+      <div class="bh"><span class="zn">?</span><span class="binbig">Bin needed</span>
+        <span class="bmeta">new product here — scan or type a bin</span></div>${rws}</div>`;
+  }
+  if(pendingAppr.length){
+    const rws=pendingAppr.map(l=>`
+      <div class="prow">
+        <div class="thumb" ${imgStyle(l)}></div>
+        <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${esc(l.product_name)}</div></div>
+        <div class="q">${l.received}</div>
+        <span class="chip appr" style="flex:none">approval pending</span>
+      </div>`).join("");
+    html+=`<div class="bin-group needbin">
+      <div class="bh"><span class="zn">⏳</span><span class="binbig">Off-PO — waiting for manager approval</span>
+        <span class="bmeta">do not put away yet</span></div>${rws}</div>`;
+  }
+  if(!html) html=`<div class="empty">Nothing to put away yet..</div>`;
+  const pg=document.getElementById("putGroups");
+  pg.innerHTML=html;
+  const rowById=id=>rows.find(w=>w.id===id);
+  pg.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>togglePlaced(rowById(b.dataset.place)));
+  pg.querySelectorAll("[data-placeall]").forEach(b=>b.onclick=()=>placeAllInBin(b.dataset.placeall,b.dataset.sugg==="1"));
+  pg.querySelectorAll("[data-assign]").forEach(b=>b.onclick=()=>assignBin(rowById(b.dataset.assign)));
+  // zone 점프 칩 바 — Zone 클릭 시 그 zone 의 Bay 칩 펼침 (제안 그룹도 같은 존 셈에 든다)
+  const zj=document.getElementById("putZjump"), zjb=document.getElementById("putZjumpBay");
+  const allGroups=Object.assign({},withBin); suggKeys.forEach(k=>{ allGroups[k]=(allGroups[k]||[]).concat(sugg[k]); });
+  const allKeys=Object.keys(allGroups).sort(byZone);
+  const zoneStat={};
+  allKeys.forEach(bin=>{ const z=zoneOfBin(bin)||"·"; const g=allGroups[bin]; (zoneStat[z]=zoneStat[z]||{n:0,done:0}); zoneStat[z].n+=g.length; zoneStat[z].done+=g.filter(w=>w.done).length; });
+  const zones=Object.keys(zoneStat).sort((a,b)=>{ const d=zOrder(a)-zOrder(b); return d||(a<b?-1:1); });
+  let chips=zones.map(z=>{
+    const done=zoneStat[z].done>=zoneStat[z].n;
+    return `<button class="zchip ${done?"alldone":""}" data-zj="${esc(z)}">${esc(z)}<span class="c">${zoneStat[z].done}/${zoneStat[z].n}</span></button>`;
+  });
+  if(needBin.length) chips.push(`<button class="zchip nobin" data-zj="__needbin">?<span class="c">${needBin.length}</span></button>`);
+  if(zones.length>1||needBin.length){
+    zj.innerHTML=chips.join(""); zj.style.display="flex"; zjb.style.display="none"; zjb.innerHTML="";
+    zj.querySelectorAll("[data-zj]").forEach(c=>c.onclick=()=>{
+      const z=c.dataset.zj;
+      let target = z==="__needbin" ? pg.querySelector(".bin-group.needbin") : pg.querySelector(`.bin-group[data-zone="${CSS.escape(z)}"]`);
+      if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+      zj.querySelectorAll(".zchip").forEach(x=>x.classList.toggle("sel",x===c));
+      if(z==="__needbin"){ zjb.style.display="none"; zjb.innerHTML=""; return; }
+      const bayStat={};
+      allKeys.filter(bin=>zoneOfBin(bin)===z).forEach(bin=>{ const b=bayOfBin(bin); const g=allGroups[bin]; (bayStat[b]=bayStat[b]||{n:0,done:0}); bayStat[b].n+=g.length; bayStat[b].done+=g.filter(w=>w.done).length; });
+      const bk=Object.keys(bayStat).sort();
+      zjb.innerHTML=bk.map(b=>{ const d=bayStat[b].done>=bayStat[b].n; return `<button class="zchip ${d?"alldone":""}" data-bay="${esc(b)}">${esc(b)}<span class="c">${bayStat[b].done}/${bayStat[b].n}</span></button>`; }).join("");
+      zjb.style.display=bk.length>1?"flex":"none";  // bay 하나뿐이면 굳이 안 펼침
+      zjb.querySelectorAll("[data-bay]").forEach(bc=>bc.onclick=()=>{
+        const g2=pg.querySelector(`.bin-group[data-bay="${CSS.escape(bc.dataset.bay)}"]`);
+        if(g2) g2.scrollIntoView({behavior:"smooth",block:"start"});
+      });
+    });
+  }else{ zj.style.display="none"; zj.innerHTML=""; zjb.style.display="none"; zjb.innerHTML=""; }
+  if(PERF) perfLog("renderPutaway",Math.round(performance.now()-pt0)+"ms",
+    "putGroups nodes="+pg.querySelectorAll("*").length,
+    "doc nodes="+document.querySelectorAll("*").length);
+}
+
+/* Placed 토글 — 칸 있는 줄은 그 칸으로 · 제안 줄은 Last bin 으로 놓는다(누르는 순간 누가 · 언제 = 창구 · 판정 29) */
+async function togglePlaced(w){
+  if(!w||receiptClosed)return;
+  const bin_id=w.bin_id||w.line.lastBinId; if(!bin_id){ toast("Assign a bin first",true); return; }
+  const next=!w.done;
+  w.done=next; if(!w.bin){ w.bin=w.line.lastBin; w.bin_id=bin_id; }
+  if(next) beep("ok");
+  renderPutaway();                 // 낙관적 — 탭 반응을 네트워크 뒤로 밀지 않는다
+  const ok=await savePutaway(w,bin_id,next);
+  if(ok){ await refreshLines(); renderPutaway(); }   // 같은 칸 줄 병합(merged_into) · 남의 놓기 반영
+}
+
+/* bin 단위 일괄 완료 — 칸에 이미 배정된 줄은 창구 wms_recv_place_all 한 번(이미 그 상태인 줄은 창구가 안 쓴다) ·
+   제안(Last bin) 그룹은 줄마다 wms_recv_putaway(그 칸 · 놓았다) — 동시 8개(운영 패턴). ⚠️ 직렬 await 금지(규칙 34). */
+let placingBin=null;
+async function placeAllInBin(bin,suggested){
+  if(placingBin===bin||receiptClosed) return;
+  const rows=putRows();
+  const grp=suggested?rows.filter(w=>!w.bin&&w.suggested===bin):rows.filter(w=>w.bin===bin);
+  if(!grp.length) return;
+  const next=suggested?true:!grp.every(w=>w.done);          // 전부 done 이면 재클릭 = 전체 해제(제안 그룹은 늘 놓기)
+  if(!next && !confirm(`Clear "placed" for all ${grp.length} item${grp.length>1?"s":""} in ${bin}?`)) return;
+  placingBin=bin;
+  const t0=performance.now();
+  try{
+    const todo=grp.filter(w=>w.done!==next);
+    if(!todo.length){ renderPutaway(); return; }
+    todo.forEach(w=>{ w.done=next; });
+    if(next) beep("ok");
+    renderPutaway();                                 // 낙관적 — 네트워크 앞에 피드백을 둔다
+    if(!await ensureReceiptOpen()) return;
+    let failed=0;
+    if(!suggested){
+      const {error}=await sb.rpc("wms_recv_place_all",{p_receipt_id:receipt.id,p_bin_id:grp[0].bin_id,p_done:next});
+      if(error){ failed=todo.length; toast(error.message,true); }
+    }else{
+      const q=todo.slice(); let workers=Math.min(8,q.length);
+      await new Promise(done=>{
+        let live=workers;
+        for(let k=0;k<workers;k++)(async()=>{
+          while(q.length){ const w=q.shift(); const ok=await savePutaway(w,w.line.lastBinId,true); if(!ok) failed++; }   // 줄마다 제 Last bin id(같은 이름 = 같은 칸)
+          if(--live===0) done();
+        })();
+      });
+    }
+    perfLog("place all",Math.round(performance.now()-t0)+"ms","bin="+bin,"n="+todo.length,"failed="+failed);
+    if(failed) toast(failed+" of "+todo.length+" line(s) not saved yet — will retry on completion",true);
+    await refreshLines(); renderPutaway();
+  } finally { placingBin=null; }
+}
+
+/* 빈 지정: 스캔(1순위) + 서버 검색(폴백) 모달 */
+function assignBin(w){ if(w&&!receiptClosed) openBinModal(w); }
+function closeBinModal(){
+  const ov=document.getElementById("binModal"); if(ov)ov.remove();
+}
+let binOptSeq=0;
+async function renderBinOptions(filter){
+  const box=document.getElementById("binOpts"); if(!box) return;
+  const seq=++binOptSeq;
+  let rows=[];
+  try{ rows=await binSearch(filter); }catch(e){ box.innerHTML=`<div style="padding:14px;color:var(--mut);font-size:12.5px">Bin list unavailable — scan or type the bin above.</div>`; return; }
+  if(seq!==binOptSeq||!document.getElementById("binOpts")) return;   // 더 늦게 친 글자의 답이 먼저 왔다 · 또는 모달이 닫혔다
+  if(!rows.length){ box.innerHTML=`<div style="padding:14px;color:var(--mut);font-size:12.5px">No bin matches "${esc(filter)}". You can still scan/type it above.</div>`; return; }
+  rows=sortBins(rows);
+  let html="", curZone=null;
+  rows.forEach(b=>{
+    if(b.zone!==curZone){ curZone=b.zone; html+=`<div class="bzone">Zone ${esc(curZone||"·")}</div>`; }
+    html+=`<button class="bitem" data-bin="${esc(b.id)}" data-name="${esc(b.bin)}"><span class="zn">${esc(b.zone||"·")}</span><span class="bc">${esc(b.bin)}</span></button>`;
+  });
+  if(rows.length>=300) html+=`<div style="padding:10px;color:var(--mut-2);font-size:11px">Showing 300 — type to filter</div>`;
+  box.innerHTML=html;
+  box.querySelectorAll("[data-bin]").forEach(btn=>btn.onclick=()=>commitBin({id:btn.dataset.bin,bin:btn.dataset.name}));
+}
+function sortBins(arr){
+  return arr.sort((a,b)=>{ const za=zOrder(a.zone),zb=zOrder(b.zone); if(za!==zb)return za-zb; return a.bin<b.bin?-1:1; });
+}
+function openBinModal(w){
+  closeBinModal();
+  const l=w.line;
+  const ov=document.createElement("div");
+  ov.className="modal-ov"; ov.id="binModal";
+  ov.innerHTML=`
+    <div class="modal" role="dialog" aria-label="Assign bin">
+      <div class="mh"><div class="t">${w.bin?"Change bin":"Assign bin"}</div>
+        <div class="s">${esc(l.order_sku)} · ${esc(l.product_name||"")} · qty ${w.qty}${w.bin?` · now: <b>${esc(w.bin)}</b>`:(l.lastBin?` · last kept: <b>${esc(l.lastBin)}</b>`:"")}</div></div>
+      <div class="mscan">
+        <input id="binScan" inputmode="none" autocomplete="off" placeholder="Scan a bin barcode…">
+        <div class="h"><span class="live"></span><span>Scan the bin barcode — or pick from the list below</span></div>
+      </div>
+      <div class="ord">or choose</div>
+      <div class="mfilter"><input id="binFilter" autocomplete="off" placeholder="Filter bins (code or zone)…"></div>
+      <div class="blist2" id="binOpts"><div style="padding:14px;color:var(--mut);font-size:12.5px">Loading…</div></div>
+      <a class="mmap" href="https://tools.asung.ca/warehousemap.html" target="_blank" rel="noopener">🗺 Open warehouse map</a>
+      <div class="mfoot"><button class="btn ghost" id="binCancel">Cancel</button></div>
+    </div>`;
+  document.body.appendChild(ov);
+  ov.dataset.workId=w.id;
+  ov.addEventListener("mousedown",e=>{ if(e.target===ov) closeBinModal(); });
+  document.getElementById("binCancel").onclick=closeBinModal;
+  renderBinOptions("");
+  const scan=document.getElementById("binScan");
+  scan.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){ e.preventDefault(); const v=scan.value.trim(); scan.value=""; if(v)commitBin(v); }
+  });
+  const filt=document.getElementById("binFilter");
+  let ft=null;
+  filt.addEventListener("input",()=>{ clearTimeout(ft); ft=setTimeout(()=>renderBinOptions(filt.value),180); });
+  setTimeout(()=>scan.focus(),50);   // 스캐너 포커스
+}
+/* raw = 스캔 · 타이핑한 이름(문자열) 또는 목록에서 고른 {id,bin}. 칸은 ref_bin 에 있어야 한다(창구가 그 창고 · 활성을 다시 본다). */
+async function commitBin(raw){
+  const ov=document.getElementById("binModal"); if(!ov)return;
+  const w=putRows().find(x=>x.id===ov.dataset.workId); if(!w)return;
+  let b=(raw&&typeof raw==="object")?raw:null;
+  if(!b){
+    const name=String(raw).trim().toUpperCase(); if(!name)return;
+    try{ b=await binByName(name); }catch(e){ toast("Bin lookup failed: "+rpcMsg(e),true); return; }
+    if(!b){ toast(`"${name}" is not a bin at ${whLabel(receipt.wh)} — ask the office to add it`,true); return; }
+  }
+  const changed=w.bin && w.bin!==b.bin;
+  w.bin=b.bin; w.bin_id=b.id;
+  if(changed) w.done=false;   // 다른 자리로 바뀌면 재배치 필요 — placed 해제
+  beep("ok");
+  closeBinModal(); renderPutaway();
+  const ok=await savePutaway(w,b.id,changed?false:!!w.done);
+  if(ok){ await refreshLines(); renderPutaway(); }
+}
+
+/* ---------- 완료 (Complete 하나 · 판정 28) ---------- */
+/* ⚠️ 요약은 반드시 서버에서 다시 읽는다(po_receipt_detail). 메모리 스냅샷으로 계산하면 한 PO 를 나눠 받을 때 다른 사람이 받은 물량이 전부 short 로 표시된다. */
+async function serverChecks(){
+  if(!await refreshLines()) return null;
+  const rows=lines.filter(l=>l.kind==="po");
+  const targets=rows.filter(l=>l.received>0);
+  const work=putRows();
+  return {
+    rows, targets,
+    notPlaced:work.filter(w=>!w.done),
+    noBin:work.filter(w=>!w.bin_id).length,
+    shorts:rows.filter(l=>l.received<l.expected),
+    overs:rows.filter(l=>l.received>l.expected),
+    pendingAppr:lines.filter(l=>l.is_off_po&&l.needs_approval&&l.received>0),
+  };
+}
+function summaryText(c){
+  const parts=[];
+  if(c.shorts.length) parts.push("Short "+c.shorts.length+":\n"+c.shorts.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
+  if(c.overs.length) parts.push("Over "+c.overs.length+":\n"+c.overs.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
+  if(c.pendingAppr.length) parts.push("Off-PO awaiting approval: "+c.pendingAppr.map(l=>l.order_sku).join(", "));
+  // ⚠️ SKU 를 나열하지 않는다 — 85라인 PO 에서는 목록이 화면을 넘겨 아무도 안 읽는다. bin 수로 압축한다.
+  if(c.notPlaced.length){
+    const bins=new Set(c.notPlaced.filter(w=>w.bin).map(w=>w.bin));
+    let s=c.notPlaced.length+" row"+(c.notPlaced.length>1?"s":"")+" not placed";
+    if(bins.size) s+=" in "+bins.size+" bin"+(bins.size>1?"s":"");
+    if(c.noBin) s+=" ("+c.noBin+" with no bin yet — the office cannot confirm until every row has a bin)";
+    parts.push(s);
+  }
+  return parts.length?("\n\n"+parts.join("\n\n")):"";
+}
+
+let finishing=false;
+/* 확인 다이얼로그를 띄우기 전에 (1) 내 미확인분 flush (2) 서버 재조회 — 이 순서여야 요약이 "이 PO 의 실제 상태"가 된다. */
+async function preFinish(){
+  const f=await flushUnconfirmed();
+  if(f.failed && !confirm(f.failed+" line(s) could not be saved (connection?).\nContinue anyway? Those counts would be missing.")) return null;
+  const c=await serverChecks();
+  if(!c){ toast("Could not read this receipt from the server",true); return null; }
+  renderPutaway();
+  return c;
+}
+document.getElementById("completeBtn").onclick=async ()=>{
+  if(finishing||receiptClosed) return; finishing=true;
+  try{
+    const c=await preFinish(); if(!c) return;
+    if(!c.targets.length){ toast("Nothing received",true); return; }
+    if(!confirm(`Complete — receiving for ${receipt.po_number} (${receipt.receipt_number}) is finished in the warehouse. The office confirms it into stock; anything not received stays on the order.${summaryText(c)}\n\nContinue?`)) return;
+    await finishReceipt();
+  } finally { finishing=false; }
+};
+async function finishReceipt(){
+  const bD=document.getElementById("completeBtn");
+  bD.disabled=true;
+  try{
+    const {data,error}=await sb.rpc("wms_recv_complete",{p_receipt_id:receipt.id});
+    if(error) throw error;
+    const nb=Number(data&&data.lines_without_bin||0);
+    toast(receipt.po_number+" completed"+(nb?` — ${nb} row(s) still have no bin`:""));
+    exitToList();
+  }catch(e){ toast("Completion failed: "+rpcMsg(e),true); bD.disabled=false; }
+}
+/* 확정 스위치(판정 27 B) — 화면 값 wms_receiving_confirm 이 있는 사람에게만 단추가 보인다(지금은 아무에게도 없다). 창고 Complete 뒤에만. */
+document.getElementById("confirmBtn").onclick=async ()=>{
+  if(!receipt||!receiptClosed||!canConfirm()) return;
+  if(!confirm(`Confirm ${receipt.receipt_number} into stock?\nThis writes the stock ledger and cannot be undone here.`)) return;
+  try{
+    const {data,error}=await sb.rpc("wms_recv_confirm",{p_receipt_id:receipt.id});
+    if(error) throw error;
+    alert(receipt.receipt_number+" confirmed."+(data&&data.warnings&&data.warnings.length?"\n\nNotes: "+data.warnings.join(", "):""));
+    exitToList();
+  }catch(e){ toast("Confirm failed: "+rpcMsg(e),true); }
+};
+
+/* ---------- 리시빙 리스트 프린트 (문서번호 바코드 + 라인 · 픽리스트와 동일 형식) ---------- */
+document.getElementById("printBtn").onclick=()=>{
+  if(!receipt||!lines.length){ toast("Nothing to print",true); return; }   // 줄 = PO 라인(off-PO 는 expected 0 으로 함께)
+  const win=window.open("","_blank");           // 사용자 클릭 안에서 열어야 팝업차단 회피
+  if(!win){ toast("Popup blocked - allow popups for this site",true); return; }
+  printReceivingList(win);
+};
+function printReceivingList(win){
+  const wh=whLabel(receipt.wh);
+  const today=new Date().toLocaleDateString();
+  const esc2=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  // 라스트빈(존) 순 → 창고 동선대로 걷기 좋게
+  const ordIdx=lines.map((_,i)=>i).sort((a,b)=>{
+    const la=lines[a], lb=lines[b];
+    const za=la.lastBin?zoneOfBin(la.lastBin):null, zb=lb.lastBin?zoneOfBin(lb.lastBin):null;
+    const ka=[za==null?1:0, zOrder(za), la.lastBin||"~", a], kb=[zb==null?1:0, zOrder(zb), lb.lastBin||"~", b];
+    for(let i=0;i<ka.length;i++){ if(ka[i]<kb[i])return -1; if(ka[i]>kb[i])return 1; }
+    return 0;
+  });
+  const units=lines.reduce((s,l)=>s+Number(l.expected||0),0);
+  const rows=ordIdx.map(i=>{
+    const l=lines[i];
+    return `<tr>
+      <td class="bin">${l.lastBin?esc2(l.lastBin):'<span class="nb">no bin</span>'}</td>
+      <td class="sku">${esc2(l.order_sku)}${l.base_sku&&l.base_sku!==l.order_sku?`<div class="sub">base ${esc2(l.base_sku)}</div>`:""}</td>
+      <td>${esc2(l.product_name||"")}</td>
+      <td class="num">${l.expected||0}</td>
+      <td class="chk"></td>
+    </tr>`;
+  }).join("");
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>PO ${esc2(receipt.po_number)}</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\\/script>
+  <style>
+    *{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;color:#12161c;margin:28px;font-size:12.5px}
+    .top{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #12161c;padding-bottom:14px}
+    .brandwrap{display:flex;flex-direction:column;gap:8px}
+    .brandwrap .logo{font-size:18px;font-weight:800;letter-spacing:.08em}
+    .doc{font-size:24px;font-weight:800;letter-spacing:.02em}
+    .bc{text-align:right}
+    .info{display:flex;gap:48px;margin:18px 0 12px}
+    .info div{line-height:1.7} .info b{display:inline-block;min-width:104px;color:#555}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border-bottom:1px solid #e3e7ee;padding:7px 8px;text-align:left;vertical-align:top}
+    th{background:#f4f6f9;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#555}
+    td.bin{font-family:"Courier New",monospace;font-weight:700;white-space:nowrap}
+    td.sku{font-family:"Courier New",monospace;white-space:nowrap}
+    td.sub{font-size:10.5px;color:#777}
+    .sub{font-size:10.5px;color:#777;font-weight:400}
+    .nb{color:#b26a00;font-weight:700;font-family:Arial}
+    td.num{text-align:right;font-weight:700;white-space:nowrap}
+    td.chk{width:64px} td.chk:after{content:"";display:block;width:16px;height:16px;border:1.5px solid #9aa5b4;border-radius:3px;margin:1px auto}
+    @media print{body{margin:12mm} thead{display:table-header-group} tr{page-break-inside:avoid}}
+  </style></head>
+  <body>
+    <div class="top">
+      <div class="brandwrap"><div class="logo">ASUNG</div><div class="doc">PO RECEIVING</div></div>
+      <div class="bc"><svg id="bcsvg" data-code="${esc2(receipt.po_number)}"></svg></div>
+    </div>
+    <div class="info">
+      <div>
+        <div><b>PO</b>${esc2(receipt.po_number)} · ${esc2(receipt.receipt_number)}</div>
+        <div><b>Supplier</b>${esc2(receipt.supplier_name||"—")}</div>
+        <div><b>Warehouse</b>${wh}</div>
+      </div>
+      <div>
+        <div><b>Total Lines</b>${lines.length}</div>
+        <div><b>Total Units</b>${units}</div>
+        <div><b>Printed</b>${today}</div>
+        <div><b>Received By</b>________________</div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Last bin</th><th>SKU</th><th>Product</th><th style="text-align:right">Qty</th><th>✓</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <script>
+      try{ JsBarcode(document.getElementById("bcsvg"), "${esc2(receipt.po_number)}", {format:"CODE128",displayValue:true,fontSize:15,height:50,margin:0}); }catch(e){}
+      window.addEventListener("load",function(){ setTimeout(function(){ try{window.print();}catch(e){} }, 450); });
+    <\\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ---------- 스캔 포커스 유지 (picker와 동일) ---------- */
+function focusScan(){
+  if(document.getElementById("recvView").style.display==="none") return;
+  const s=document.getElementById("scan");
+  const a=document.activeElement;
+  if(a===s) return;
+  if(a && (a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA") && a!==s) return;
+  s.focus();
+}
+document.getElementById("scan").addEventListener("blur",()=>{ setTimeout(focusScan,60); });
+document.addEventListener("click",e=>{
+  if(document.getElementById("recvView").style.display==="none")return;
+  const t=e.target;
+  if(t.tagName==="INPUT"||t.tagName==="SELECT"||t.tagName==="OPTION"||t.tagName==="BUTTON")return;
+  setTimeout(focusScan,0);
+});
+
+boot();
+</script>
+</body>
+</html>

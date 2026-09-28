@@ -326,6 +326,7 @@
       ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
       ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
       ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
+      ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
       ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
       ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
       ["Staff","staff.html","staff","ims",false,null],
