@@ -315,7 +315,8 @@
       ["Purchase Invoices","invoices.html","purchasing","ims",true,"purchasing"],
       ["Charges","charges.html","purchasing","ims",true,"purchasing"],
       ["Supplier Payments","payments.html","purchasing","ims",true,"purchasing"],
-      ["Receiving","receiving.html","receiving","ims",true,"purchasing"],
+      // ✅ [2026-09-27] 판정 40 — 오피스 입고 화면의 메뉴 이름 「Receiving」 → 「Purchase Receipts」(창고 입고 wms-receiver.html 의 「Receiving」 과 겹쳐서 · 구매 줄 이름 모양에 맞춤) · 화면 값 · 파일 이름 무변
+      ["Purchase Receipts","receiving.html","receiving","ims",true,"purchasing"],
       ["Sales Orders","so.html","sales","ims",true,"sales"],
       ["Sales Invoices","so-invoices.html","sales","ims",true,"sales"],
       ["Customer Payments","so-payments.html","sales","ims",true,"sales"],

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Receiving · Asung IMS</title>
+<title>Purchase Receipts · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
   /* Local to this screen — shared rules live in ims-ui.css
@@ -111,7 +111,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-23 · Toronto date";
+const RCV_BUILD = "2026-09-27 · Purchase Receipts";   // 판정 40 — 메뉴 · 탭 제목 이름만 바뀜(화면 값 receiving · 동작 무변)
 console.log("receiving.html build:", RCV_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
