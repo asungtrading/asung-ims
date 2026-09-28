@@ -27,6 +27,7 @@
   .binbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
   .binbtn.on{background:#eef2ff;border-color:#c7d2fe}
   .herebins{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .binbtn.zero{color:var(--muted);border-style:dashed}
 
   .rej{color:var(--bad);font-size:12px;margin-top:3px}
   .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px}
@@ -107,7 +108,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-09-28 · adj v1";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2
+const ADJ_BUILD = "2026-09-28 · adj v1.1";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터
 console.log("stock-adjustments.html build:", ADJ_BUILD);
 
 let sb = null, me = null, canAdj = false, canRead = false;
@@ -498,17 +499,42 @@ function openLine(h, line){
     document.querySelectorAll("[data-here]").forEach(x => x.classList.toggle("on", x.dataset.here === b.id));
     calc();
   };
+  /* Where this SKU is in this warehouse, by the book. A bin at 0 is still shown (dimmed) —
+     the moment someone adjusts a SKU that the book has at 0 is exactly when they want to know
+     where it used to live ("found it on the shelf"). With nothing above 0 anywhere, the last bin
+     it was in comes from ims_last_bin — the same answer receiving's "Last bin" gives (regular
+     bins before overflow bins). */
   async function drawHere(){
     const box = document.getElementById("lbHere");
     if(!box) return;
     if(!st.product_id){ box.innerHTML = ""; return; }
-    const { data, error } = await sb.from("ims_inv_balance").select("bin_id,bin,qty")
-      .eq("product_id", st.product_id).eq("warehouse_id", h.warehouse_id).neq("qty", 0).order("bin").limit(50);
-    if(error || !data || !data.length){ box.innerHTML = error ? "" : '<div class="dim" style="font-size:12px;margin-top:4px">The book has none of this SKU in this warehouse.</div>'; return; }
-    const good = data.filter(r => r.bin_id);
-    box.innerHTML = `<div class="dim" style="font-size:12px;margin-top:4px">Where the book says it is now:</div>
-      <div class="herebins">${good.map(r => `<button class="binbtn ${r.bin_id === st.bin_id ? "on" : ""}" data-here="${esc(r.bin_id)}" data-name="${esc(r.bin)}">${esc(r.bin)} · ${qty(r.qty)}</button>`).join("")}
-      ${data.length > good.length ? '<span class="dim" style="font-size:12px">+ some with no bin</span>' : ""}</div>`;
+    const pid = st.product_id;
+    const [r1, r2] = await Promise.all([
+      sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active")
+        .eq("product_id", pid).eq("warehouse_id", h.warehouse_id).not("bin_id", "is", null)
+        .order("qty", { ascending:false }).order("bin").limit(50),
+      sb.rpc("ims_last_bin", { p_product_ids: [pid], p_warehouse_id: h.warehouse_id })
+    ]);
+    if(st.product_id !== pid || !document.getElementById("lbHere")) return;
+    if(r1.error){ box.innerHTML = ""; return; }
+    const rows = (r1.data || []).filter(r => r.bin_is_active !== false);
+    const live = rows.filter(r => Number(r.qty) !== 0), zero = rows.filter(r => Number(r.qty) === 0);
+    const last = (r2 && !r2.error && r2.data) ? r2.data[pid] : null;
+    const btn = (id, name, label, cls) =>
+      `<button class="binbtn ${cls || ""} ${id === st.bin_id ? "on" : ""}" data-here="${esc(id)}" data-name="${esc(name)}">${label}</button>`;
+    let html = "";
+    if(live.length){
+      html = `<div class="dim" style="font-size:12px;margin-top:4px">Where the book says it is now:</div>
+        <div class="herebins">${live.map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · ${qty(r.qty)}`)).join("")}
+        ${zero.map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · 0`, "zero")).join("")}</div>`;
+    } else if(last && last.bin_id){
+      html = `<div class="dim" style="font-size:12px;margin-top:4px">The book has none of this SKU in this warehouse now. Last bin it was in:</div>
+        <div class="herebins">${btn(last.bin_id, last.bin, `Last here: ${esc(last.bin)} · 0 now`, "zero")}
+        ${zero.filter(r => r.bin_id !== last.bin_id).map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · 0`, "zero")).join("")}</div>`;
+    } else {
+      html = '<div class="dim" style="font-size:12px;margin-top:4px">The book has never had this SKU in this warehouse — pick the bin from the list.</div>';
+    }
+    box.innerHTML = html;
     box.querySelectorAll("[data-here]").forEach(el => { el.onclick = () => pickBin({ id: el.dataset.here, name: el.dataset.name }); });
   }
   const drawB = async (t) => {
@@ -532,6 +558,7 @@ function openLine(h, line){
   };
 
   showPicked(); drawMode(); drawHere();
+  if(!line) drawB("");                      /* the bin list is filled from the start (first 300), like receiving */
   if(!line) setTimeout(() => { const i = document.getElementById("lpq"); if(i) i.focus(); }, 30);
 
   document.getElementById("lSave").onclick = async () => {
