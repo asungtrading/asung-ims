@@ -53,6 +53,7 @@
 📌 [정정 2026-09-27] wms-fulfillment.html(09-27 · Claude Code ⑤-5a · 운영 fulfillment.html 의 복사본)로 **스물둘**이다 — 같은 커밋에 고쳤다. fulfillment 는 wms-packing.js(팔렛 · 박스 라벨 · 오더 소계 줄 · 운영에서 바이트 그대로 복사 · DB 접점 0)를 부른다 — 그 파일을 고치면 wms-fulfillment.html 만 움직인다(picker · packer 는 안 쓴다).
 📌 [정정 2026-09-27] wms-admin.html(09-27 · Claude Code ⑤-5b · 운영 admin.html 의 복사본 · Status · Rollback · Finalized 세 탭)로 **스물셋**이다 — 같은 커밋에 고쳤다. admin 도 wms-packing.js(팩킹리스트 재출력의 라벨 · 소계 줄)를 부른다 — wms-packing.js 를 고치면 wms-fulfillment · wms-admin 둘이 움직인다.
 📌 [정정 2026-09-27 밤] wms-receiver.html(09-27 밤 · Claude Code ⑤-6a · 운영 receiver.html 의 복사본 · 마이그레이션 없음)로 **스물넷**이다 — 같은 커밋에 고쳤다. receiver 는 공통 셋만 부른다(wms-*.js 없음 · 인쇄는 JsBarcode CDN).
+📌 [2026-09-27 · a03af89] 판정 40 — 두 Receiving 이름: 오피스 receiving.html 의 메뉴 · 탭 이름 = 「Purchase Receipts」 · 창고 wms-receiver.html = 「Receiving」 · 화면 값(receiving · wms_receiving) · 파일 이름 무변 ⇒ 0 절 ☰ Menu 줄의 「Receiving」 은 구매 묶음에서 「Purchase Receipts」 로 읽는다
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 43 — off-PO 흐름 = 창고 직원 한 번(스캔 → **바로 놓는다** · 운영의 「승인 전 풋어웨이 차단」 없앰) · 매니저 한 번(받는다 · 무상 = 원가 0 / 받는다 · 청구 = 단가 / 거절 = 장부 없음 · 「어느 칸에서 빼라」) · 정하기 전엔 「선반에는 있고 장부에는 없다」(Health 150 이 알린다)
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 44 — 정하는 화면 = 오피스 Purchase Receipts(receiving.html · 대화 Claude · 6c3) 하나 · WMS Admin Receiving 탭은 「정해야 할 off-PO」 목록(보이기만) · 줄 = 딥링크 `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>`(같은 창) · 정하는 단추는 Purchase Receipts 에만
 📌 [2026-09-27 밤 · ⑤-6c2] 판정 45 A — 정할 사람의 권한 = 그 manager 에게 staff.html 에서 RECEIVING 을 write 로(사람마다 · 오피스 입고 전체를 준다) · 지금 켤 필요 없다(시험은 admin) · 켜는 때 = 비밀번호를 나눠 주기 전(컷오버 준비 목록)
@@ -522,8 +523,16 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 ⚠️ [2026-09-18 · 09-19 갱신] 아직 없는 것 — 차이를 닫는 길(닫아도 재고로 넣을 방법이 없다) ·
    PO 밖 물건 받기 · 팩→낱개 환산 · **확정 취소(원장 상쇄가 필요하다)** ·
    트랜스퍼 입고(IMS 에 트랜스퍼 문서가 없다) · 창고 접근으로 목록 거르기 (정본 §13-f)
-⚠️ [2026-09-27 밤 · ⑤-6c2] **off-PO 결정 UI 는 6c3 · 대화 Claude** — 창구는 있다(`po_receipt_diff_settle_off_po(p_diff_id, p_resolution accepted_free|accepted_billed|rejected, p_unit_price, p_note)` · 20260928025627:310) ·
-   WMS Admin 이 `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>` 로 들어온다(판정 44 · 같은 창) — 이 화면이 그 입고를 열고 그 차이 줄을 짚어 주면 된다 · 결정 뒤 창고 화면은 po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at 만 읽는다(7-r ⑤-6c2 절)
+⭐ [2026-09-27 · 대화 Claude 80a98b9 · ⑤-6c3] **off-PO 결정 UI** — 빌드 표시 「2026-09-27 · off-PO decide」 · 판정 43 · 44 · 45 · 창구 `po_receipt_diff_settle_off_po(p_diff_id, p_resolution, p_unit_price, p_note)`(asung-wms 20260928025627:310)
+   들어오는 길 = WMS Admin Receiving 탭 「Decide in Purchase Receipts →」 = `receiving.html?receipt=<po_receipt.id>&diff=<po_receipt_diff.id>`(같은 창 · 옛 `?id=` 도 그대로) → 그 입고가 열리고 그 차이 줄로 스크롤 · 아직 안 정했고 쓰기 권한이 있으면 결정 창이 바로 뜬다
+   ⚠️ 정할 사람 = 오피스 RECEIVING write(판정 45 A · 확정 · 부족 · 초과 · 삭제도 함께 받는다) · 지금은 admin 으로 시험 · manager 에게는 비밀번호 전에 켠다
+[ ] ?receipt=&diff= 로 열면 그 입고 · 그 줄(off-PO 태그 · 칸 · 놓은 사람)이 보이고 「Decide an off-PO item」 창이 뜬다 · 쓰기 권한이 없으면 「waiting for a decision」 글자만(단추 없음)
+[ ] Decision 셋 — 「Accepted — billed, into stock at the invoice price」 · 「Accepted — free, into stock at no cost」 · 「Rejected — set aside and returned to the supplier」(「Nothing goes into stock.」)
+[ ] billed 는 Unit price(PO 통화) 필수 — 0 이하 → 「Enter the unit price from the supplier invoice (more than 0).」 · 외화 PO 면 「≈ 단가 × 환율 = … per unit in the base currency (the database computes the real figure)」 미리보기
+[ ] Save decision(「This cannot be undone here.」) → 받은 것 = Settled 칸 「in stock — cannot be reopened」 · 단추 없음
+[ ] 거절 = 「still on <칸> — the warehouse takes it off」(빨강) + Reopen · 창고가 Removed 를 누른 뒤 = 「taken off <칸> by <이름> · 시각」 · Reopen 사라짐
+[ ] 시험 뒤 확인 쿼리(대화 Claude · begin read only · 시험 전 0 행 확인됨) 요지 — 그 입고의 off_po 차이 줄(resolution · bin · placed · removed) · 원장 po_in `line_ref <diff_id>:offpo`(occurred_on = received_on) · 레이어 cost_source free / manual — 거절 줄은 원장 · 레이어 0
+   ⚠️ 끝까지 시험(창고 스캔 → 놓기 → 여기 결정 → 창고 Removed)은 7-r 의 「Caleb 시험 순서」 · 아직 안 돌렸다(2026-09-27 · Caleb 「테스트는 나중에 할께」)
 ```
 
 ---
