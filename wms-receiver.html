@@ -366,10 +366,40 @@
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
 /* ⑤-6c2 (2026-09-27 · rc v1.4) — 판정 43: off-PO 는 스캔하고 **바로 놓는다**(승인 전 차단 없음) · 놓기 = wms_recv_off_po_putaway(diff · bin · done) · 결정은 오피스 Purchase Receipts(판정 44) ·
    결정 뒤 = po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at: accepted_* → 「Accepted — in stock」 읽기 전용 · rejected → 빨간 그룹 「Rejected — take it off <bin>」 + Removed(wms_recv_off_po_removed) · 한 제품 한 칸 */
-const RC_BUILD="2026-09-27 · rc v1.4";
+const RC_BUILD="2026-09-29 · rc v1.5";   // tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
+/* ---------- tf-3(판정 83) 트랜스퍼 도착 갈래 — PO 입고 줄은 그대로 · 트랜스퍼 입고는 같은 모양으로 채워 옆에 둔다 ----------
+   목록: 도착 예정 트랜스퍼(inv_transfer in_transit · receiving · 도착 창고 = 내 창고 · 읽기 정책 tr-3a:75) · 열린 초안의 트랜스퍼 임베드(FK po_receipt_transfer_id_fkey · tr-3a)
+   시작: wms_recv_start(p_po_id ← 트랜스퍼 id · tr-3a:738) · 상세: tf_receipt_detail(tr-3a:305)을 po_receipt_detail 모양으로 — 줄 id = 트랜스퍼 줄 id · 세기 창구 scan · count 는 coalesce 로 짝(tr-3a:790 · 810) · 놓기는 작업 줄 id(무변)
+   Complete = 도착 = 확정(판정 70 · wms_recv_complete 반환 arrived · tr-3a:831 · tf_arrive tr-4b:345) · 창고 Confirm 단추 없음(창구 po_receipt_confirm_by 도 거부 · tr-3a:900) · off-PO 없음(창구 거부 · tr-3a:869 — 보내지 않은 물건은 오피스 Transfers 에서) · 판정 74: 보낸 수량까지만 받는다 */
+const TR_EMB="transfer:inv_transfer!po_receipt_transfer_id_fkey(id,transfer_number,status,from_warehouse_id,to_warehouse_id,departed_at)";
+const TR_STATUS_LABEL={ in_transit:"In transit", receiving:"Receiving", received:"Received", picking:"Working", at_wms:"Released to WMS", confirmed:"Confirmed", cancelled:"Cancelled" };
+function torontoDate(iso){ try{ return iso?new Intl.DateTimeFormat("en-CA",{timeZone:"America/Toronto",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(iso)):""; }catch(e){ return String(iso||"").slice(0,10); } }
+function trFill(r){   // 트랜스퍼 입고 행에만 PO 자리를 채운다(PO 행은 po 가 있어 손대지 않는다)
+  const x=r&&r.transfer; if(!r||r.po||!x) return r;
+  r.is_transfer=true; r.transfer_id=x.id; r.po_id=null; r.po_number=x.transfer_number||""; r.from_name=whOf(x.from_warehouse_id).name||""; r.supplier_name="from "+(r.from_name||"—"); return r;
+}
+function trTag(o){ return o&&o.is_transfer ? `<span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
+async function loadArrivingTransfers(search){
+  let q=sb.from("inv_transfer").select("id,transfer_number,status,from_warehouse_id,to_warehouse_id,departed_at").in("status",["in_transit","receiving"]).order("departed_at");   // caps-ok: 운송 중 · 받는 중 — 도착으로 소진되는 활성 풀
+  if(search) q=q.ilike("transfer_number","%"+search+"%");
+  const {data,error}=await q;
+  if(error){ toast("Failed to load transfers: "+error.message,true); return []; }
+  return (data||[]).filter(x=>inWhId(x.to_warehouse_id)).map(x=>({ id:x.id, transfer_id:x.id, is_transfer:true, po_number:x.transfer_number, status:x.status, status_label:TR_STATUS_LABEL[x.status]||x.status,
+    order_date:torontoDate(x.departed_at), warehouse_id:x.to_warehouse_id, wh:whOf(x.to_warehouse_id).key, from_name:whOf(x.from_warehouse_id).name||"", supplier_name:"from "+(whOf(x.from_warehouse_id).name||"—") }));
+}
+// tf_receipt_detail → po_receipt_detail 모양(applyDetail 이 그대로 그린다): 줄 id = 트랜스퍼 줄 id · ordered = 보낸 EA(expected_ea · 판정 74) · received_before 0 · diffs 에 off_po 는 없다
+function tfDetailAsPo(t){
+  if(!t||!t.header) return t;
+  const h=t.header;
+  return { header:{ id:h.id, receipt_number:h.receipt_number, status:h.status, received_on:h.received_on, po_id:null, po_number:h.transfer_number, supplier_name:"from "+(h.from_warehouse||"—"),
+                    warehouse_id:h.warehouse_id, warehouse_name:h.warehouse_name, created_by:h.created_by||null, transfer_id:h.transfer_id, transfer_number:h.transfer_number, from_warehouse:h.from_warehouse||"", transfer_status:h.transfer_status },
+           lines:(t.lines||[]).map(l=>({ po_line_id:l.line_id, product_id:l.product_id, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, ordered:Number(l.expected_ea||0), received_before:0, counted:l.counted, work:l.work||[] })),
+           diffs:[], wms:t.wms };
+}
+function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms it into stock; anything not received stays on the order."; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
 let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (HAS_IMAGES 가 서면 쓴다)
 let sortMode="po";   // 검수 리스트/싱글 표시 순서: po|zone|product|sku
@@ -538,7 +568,8 @@ async function init(){
 /* ---------- 열린 입고(draft) — 이 창고의 것 전부 · 나눠 받기라 「내 것」이 아니다 ---------- */
 const RCV_SEL="id,receipt_number,status,received_on,created_by,created_at,updated_at,warehouse_id,"
   +"po:po!po_receipt_po_id_fkey(id,po_number,supplier:supplier!po_supplier_id_fkey(name)),"
-  +"work:po_receipt_work(qty_ea,bin_id,putaway_done,updated_at),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed)";
+  +"work:po_receipt_work(qty_ea,bin_id,putaway_done,updated_at),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed),"
+  +TR_EMB;   // tf-3 — 트랜스퍼 임베드 한 키 더(PO 입고 행은 transfer null)
 async function loadMyReceipts(){
   // 열린 초안만(status draft) — 확정 · 취소는 오피스 몫이라 목록에서 빠진다. 창고 Complete 된 초안은 남아 「Completed」 로 보인다(판정 30 · 매니저 Reopen 까지 읽기 전용).
   const {data,error}=await sb.from("po_receipt").select(RCV_SEL)   // caps-ok: 열린 초안만 — 확정으로 소진되는 활성 풀
@@ -549,6 +580,7 @@ async function loadMyReceipts(){
     r.completed=!!(c&&c.completed);
     r.held=(r.holds||[]).some(h=>!h.resumed_at);
     r.po_number=r.po&&r.po.po_number||""; r.po_id=r.po&&r.po.id||null; r.supplier_name=r.po&&r.po.supplier&&r.po.supplier.name||"";
+    trFill(r);   // tf-3 — 트랜스퍼 입고 행: 번호 = TRF · 공급처 자리 = 「from <출발 창고>」
     r.wh=whOf(r.warehouse_id).key;
     // 「Last activity」 = 작업 줄의 마지막 저장(po_receipt.updated_at 은 줄 저장으로 안 움직인다)
     r.last_at=(r.work||[]).reduce((m,w)=>(w.updated_at&&w.updated_at>m)?w.updated_at:m, r.updated_at||r.created_at);
@@ -592,6 +624,7 @@ function renderList(){
         <div class="bl">${esc(r.po_number)} <span style="font-size:12px;color:var(--mut);font-weight:600">${esc(r.receipt_number)}</span></div>
         <div class="sub">${esc(r.supplier_name||"—")}
           <span class="tag wh-${r.wh}">${whLabel(r.wh)}</span>
+          ${trTag(r)}
           <span class="tag st"${r.completed?' style="color:#5b6472;background:#eef1f6"':""}>${stLabel(r)}</span> ${wkHtml}</div>
         <div class="sub">Started by ${esc(nameOf(r.created_by)||"—")} · Last activity ${whAt(r.last_at,r.wh)}</div>
       </div>
@@ -602,6 +635,7 @@ function renderList(){
   const pl=document.getElementById("poList");
   // 위 Resume 섹션에 이미 카드로 떠 있는 PO 는 아래 목록에서 숨긴다(키 = po_id). 기준은 「화면에 렌더된 myReceipts」 뿐이다.
   const shownPo=new Set(myReceipts.map(r=>r.po_id).filter(Boolean));
+  myReceipts.forEach(r=>{ if(r.transfer_id) shownPo.add(r.transfer_id); });   // tf-3 — 열린 트랜스퍼 입고도 아래 시작 목록에서 숨긴다
   const visPos=openPos.map((p,i)=>({p,i})).filter(({p})=>!shownPo.has(p.id));
   const hidden=openPos.length-visPos.length;
   const ph=document.getElementById("poHidden");
@@ -610,7 +644,7 @@ function renderList(){
   pl.innerHTML=visPos.map(({p,i})=>`<div class="bcard" data-pi="${i}">
       <div>
         <div class="bl">${esc(p.po_number)}</div>
-        <div class="sub">${esc(p.supplier_name||"—")} · Confirmed${p.order_date?" · "+esc(String(p.order_date).slice(0,10)):""}
+        <div class="sub">${esc(p.supplier_name||"—")} · ${p.status_label||"Confirmed"}${p.order_date?" · "+esc(String(p.order_date).slice(0,10)):""} ${trTag(p)}
           <span class="tag wh-${p.wh}">${whLabel(p.wh)}</span></div>
       </div>
       <button class="go">Start</button>
@@ -637,6 +671,7 @@ async function loadOpenPos(search){
     openPos=(data||[]).filter(p=>!p.ship_to_warehouse_id||inWhId(p.ship_to_warehouse_id))
       .map(p=>({ id:p.id, po_number:p.po_number, status:p.status, order_date:p.order_date, warehouse_id:p.ship_to_warehouse_id,
                  wh:whOf(p.ship_to_warehouse_id).key, supplier_name:p.supplier&&p.supplier.name||"" }));
+    openPos=openPos.concat(await loadArrivingTransfers(search));   // tf-3 — 도착 예정 트랜스퍼(도착 창고 = 내 창고 · 떠난 날 · from <출발 창고>)
     renderList();
     if(search&&!openPos.length&&!myReceipts.some(r=>r.po_number.toUpperCase()===search.toUpperCase()))
       toast("No confirmed PO for "+search,true);
@@ -707,6 +742,14 @@ function applyDetail(d){
   lines=out;
 }
 async function loadDetail(rid){
+  // tf-3 — 트랜스퍼 입고면 tf_receipt_detail(PO 입고는 아래 po_receipt_detail 그대로) · 종류는 po_receipt.transfer_id 한 칸으로(select 정책 using(true) · 20260918161537:157)
+  const {data:rr}=await sb.from("po_receipt").select("transfer_id").eq("id",rid).maybeSingle();
+  if(rr&&rr.transfer_id){
+    const [tdt, tst]=await Promise.all([ sb.rpc("tf_receipt_detail",{p_receipt_id:rid}), sb.rpc("wms_recv_state",{p_receipt_id:rid}) ]);
+    if(tdt.error) throw tdt.error;
+    if(tst.error) throw tst.error;
+    return {d:tfDetailAsPo(tdt.data), s:tst.data||{}};
+  }
   const [dt, st]=await Promise.all([ sb.rpc("po_receipt_detail",{p_receipt_id:rid}), sb.rpc("wms_recv_state",{p_receipt_id:rid}) ]);
   if(dt.error) throw dt.error;
   if(st.error) throw st.error;
@@ -722,6 +765,7 @@ async function openReceipt(rid){
   receipt={ id:h.id, receipt_number:h.receipt_number, po_id:h.po_id, po_number:h.po_number, supplier_name:h.supplier_name||"",
             warehouse_id:h.warehouse_id, warehouse_name:h.warehouse_name||whOf(h.warehouse_id).name, wh:whKey(h.warehouse_name||whOf(h.warehouse_id).name),
             created_by:h.created_by, completed:!!s.completed, completed_by:s.completed_by||null, completed_at:s.completed_at||null };
+  receipt.is_transfer=!!h.transfer_id; receipt.transfer_id=h.transfer_id||null; receipt.from_name=h.from_warehouse||"";   // tf-3
   unconfirmed.clear(); writeChain.clear();   // 새 receipt — 이전 세션의 미확인분은 이어받지 않는다
   putawayFailed.clear(); lastOpenCheck=0;
   receiptClosed=receipt.completed;           // 판정 30 — 창고 Complete 뒤에는 읽기 전용(매니저 Reopen 까지)
@@ -738,6 +782,7 @@ async function openReceipt(rid){
   document.getElementById("recvView").style.display="block";
   document.getElementById("rTitle").textContent=receipt.po_number+" · "+receipt.receipt_number;
   document.getElementById("rMeta").textContent=whLabel(receipt.wh)+" · "+(receipt.supplier_name||"");
+  if(receipt.is_transfer) document.getElementById("rMeta").textContent=whLabel(receipt.wh)+" · from "+(receipt.from_name||"—")+" · Transfer — expected = sent";   // tf-3
   renderClosed();
   renderRecv(); focusScan();
   if(HAS_IMAGES) loadImageFlags();   // ⚑ Image differs 눌린 상태 복원 (독립 — 실패해도 리시빙 뷰는 뜬다)
@@ -754,6 +799,7 @@ function renderClosed(){
   document.getElementById("completeBtn").disabled=on;
   const cb=document.getElementById("confirmBtn");
   cb.style.display=(on&&canConfirm())?"":"none";
+  if(receipt&&receipt.is_transfer) cb.style.display="none";   // tf-3 판정 70 — 트랜스퍼는 Complete 가 곧 확정(창구 po_receipt_confirm_by 도 거부)
 }
 /* 서버 값을 내 화면에 다시 읽는다(작업 줄 병합 · 남의 스캔 · 승인). 미확인 쓰기가 걸린 줄의 received 는 건드리지 않는다(applyDetail). */
 async function refreshLines(){
@@ -1108,6 +1154,7 @@ async function manualSet(id){
   if(v===null){focusScan();return;}
   let n=parseInt(v,10); if(isNaN(n)||n<0)n=0;
   if(n>l.expected&&!confirm(`${l.order_sku} — exceeds expected quantity (${n} > ${l.expected}). Continue?`)){focusScan();return;}
+  if(receipt.is_transfer&&n>l.expected) toast("Only what was sent is taken in — the office decides the rest",true);   // tf-3 판정 74
   await setCount(l, n, before);
   if(l.expected>0&&l.received>=l.expected) autoAdvance();
   renderRecv(); focusScan();
@@ -1143,6 +1190,9 @@ scanEl.addEventListener("keydown",e=>{
 async function processScan(code){
   // bcMap 은 id 를 담으므로 지금 살아있는 라인으로 해석한다
   const cands=(bcMap[code]||[]).map(c=>({l:lineById(c.id),factor:c.factor})).filter(c=>c.l&&!(c.l.is_off_po&&c.l.decided));   // 결정된 off-PO 줄은 더할 수 없다 — 창구가 새 행을 연다(offPoScan)
+  if(!cands.length&&receipt&&receipt.is_transfer){   // tf-3 — 트랜스퍼 상자에 문서에 없는 물건: off-PO 없음(창구도 거부 · tr-3a:869) · 오피스가 Transfers 에서 정리
+    flash("bad","✕ "+code+" — not on this transfer"); toast("Not on this transfer — items that were not sent are settled by the office on the Transfers screen",true); focusScan(); return;
+  }
   if(!cands.length){ await offPoScan(code); return; }
   if(!await ensureReceiptOpen()){ focusScan(); return; }
   // 미충족 라인 우선
@@ -1163,6 +1213,7 @@ async function processScan(code){
   const over=!l.is_off_po&&l.received>l.expected;
   flash(lineDone?"done":(over?"bad":(f>1?"okbox":"ok")),
     over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ OFF-PO ${l.order_sku}  +${f} — put it away`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
+  if(over&&receipt.is_transfer) setTimeout(()=>toast("Only what was sent is taken in — the office decides the rest",true),700);   // tf-3 판정 74
   if(l.is_off_po) saveOffPo(l,f); else saveLine(l,f,"scanned");
   if(lineDone) autoAdvance();
   renderRecv(); focusScan();
@@ -1293,6 +1344,7 @@ async function manualAdjust(id,delta){
   if(!await ensureReceiptOpen()) return;
   const nv=Math.max(0,l.received+delta);
   if(nv>l.expected&&delta>0&&!confirm(`${l.order_sku} — exceeds expected quantity (${nv} > ${l.expected}). Continue?`)) return;
+  if(receipt.is_transfer&&delta>0&&nv>l.expected) toast("Only what was sent is taken in — the office decides the rest",true);   // tf-3 판정 74
   if(nv===l.received)return;
   const old=l.received;
   l.received=nv; l.vmethod="manual"; saveLine(l,nv-old,"manual");   // 0 에서 잘린 만큼만 델타로
@@ -1497,6 +1549,7 @@ function showPutaway(){
   document.getElementById("putView").style.display="block";
   document.getElementById("pTitle").textContent=receipt.po_number+" · Putaway";
   document.getElementById("pMeta").textContent=whLabel(receipt.wh)+" · "+(receipt.supplier_name||"")+(receiptClosed?" · Completed — read only":"");
+  if(receipt.is_transfer) document.getElementById("pMeta").textContent=whLabel(receipt.wh)+" · from "+(receipt.from_name||"—")+" · Transfer"+(receiptClosed?" · Completed — read only":"");   // tf-3
   renderPutaway();
   presenceStage("putaway");
 }
@@ -1826,7 +1879,7 @@ document.getElementById("completeBtn").onclick=async ()=>{
   try{
     const c=await preFinish(); if(!c) return;
     if(!c.targets.length){ toast("Nothing received",true); return; }
-    if(!confirm(`Complete — receiving for ${receipt.po_number} (${receipt.receipt_number}) is finished in the warehouse. The office confirms it into stock; anything not received stays on the order.${summaryText(c)}\n\nContinue?`)) return;
+    if(!confirm(`Complete — receiving for ${receipt.po_number} (${receipt.receipt_number}) is finished in the warehouse. ${completeNote()}${summaryText(c)}\n\nContinue?`)) return;
     await finishReceipt();
   } finally { finishing=false; }
 };
@@ -1838,6 +1891,14 @@ async function finishReceipt(){
     if(error) throw error;
     const nb=Number(data&&data.lines_without_bin||0);
     toast(receipt.po_number+" completed"+(nb?` — ${nb} row(s) still have no bin`:""));
+    if(data&&data.arrived){   // tf-3 — 트랜스퍼: Complete = 도착(판정 70) · 반환 arrived(tr-3a:831) · freight{posted, errors}(tr-4b:345 · 판정 78 — 운임 오류는 도착을 막지 않는다)
+      const a=data.arrived, fr=a.freight||{}, nDiff=Number(a.over_lines||0)+Number(a.short_lines||0);
+      toast("Arrived — "+(a.transfer_number||receipt.po_number)+" is received"+(Number(fr.posted)>0?" · freight added to cost":""));
+      let note="";
+      if(Array.isArray(fr.errors)&&fr.errors.length) note+="Freight could not be added — the office will check\n";
+      if(nDiff) note+=nDiff+" line(s) did not match what was sent — the office settles it on the Transfers screen";
+      if(note) alert(note.trim());
+    }
     exitToList();
   }catch(e){ toast("Completion failed: "+rpcMsg(e),true); bD.disabled=false; }
 }

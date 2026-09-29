@@ -1273,7 +1273,7 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 
 ---
 
-## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
+## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → … rc v1.4 → Claude Code tf-3 **rc v1.5** 「2026-09-29 · rc v1.5」 = 판정 83 트랜스퍼 도착 갈래(아래 tf-3 절) → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
 
 뒷단(⑤-3a `20260926213035` · ⑤-3b `20260926232330` · 정본 `asung-wms/docs/design/so-module.md` §24-l · m · n · 판정 5 · 25 · 27 · 28 · 29 · 30 · 33):
 시작 = **`wms_recv_start(p_po_id)`**(PO 당 열린 초안 하나 · 있으면 그것(existing · held) · 없으면 새 RCV 번호 — ⚠️ 24-m 「안 돌린 가지」가 여기서 처음 돈다) · 줄 · 작업 줄 · 헤더 = rpc `po_receipt_detail`(lines[] = PO 라인 전부 · work[] = 빈별 작업 줄 · diffs[] off_po) · 상태 = rpc `wms_recv_state`(completed · held) ·
@@ -1328,6 +1328,19 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 ```
 
 ⚠️ [2026-09-27 밤 · ⑤-6c2 갱신] 아직 없는 것 — off-PO **결정**(받는다 · 거절 = 6c3 receiving.html · 대화 Claude) · 약식 등록 · 트랜스퍼 입고(운영 WMS 로만 · ⬜13) · 보관용 칸 단추(§20 판정 3 후속) · 사진(판정 33) · 확정 단추 실측(wms_receiving_confirm 을 켠 사람이 없다) · Reopen 실측(wms_recv_reopen 은 ⑤-6b 화면에서).
+
+⭐ [2026-09-29 · Claude Code tf-3 · 판정 83 · 66 · 68 · 70 · 74] **rc v1.5 — 트랜스퍼 도착 갈래** — PO 입고 줄은 그대로 · 트랜스퍼 갈래를 옆에(patch ~/asung/prompts/tf-3-receiver.patch · − 줄 4 는 보고에 이유).
+   시작 목록에 도착 예정 트랜스퍼(inv_transfer in_transit · receiving · 도착 창고 = 내 창고) · 시작 = wms_recv_start(문서 id) · 상세 = tf_receipt_detail 을 po_receipt_detail 모양으로 · 세기 · 놓기 창구 무변(coalesce) ·
+   Complete = 도착 = 확정(반환 arrived · freight) · Confirm into stock 단추 없음(창구도 거부) · off-PO 스캔 거부(창구도 거부) · 보낸 수량보다 많이 세면 「Only what was sent is taken in — the office decides the rest」.
+```
+[ ] 빌드 표시 「2026-09-29 · rc v1.5」 · PO 입고 한 바퀴(시작 · 세기 · 놓기 · Complete · 오피스 확정)가 어제와 같다
+[ ] ↻ POs → Ready to receive 에 발주 옆 「TRF-0000n · from Toronto · In transit · <떠난 날> · Edmonton · Transfer」 · 검색 칸에 TRF 번호도 걸린다 · 출발 창고 로그인에는 안 뜬다
+[ ] Start → RCV 번호 · 제목 「TRF-0000n · RCV-000nn」 · 「Edmonton · from Toronto · Transfer — expected = sent」 · 줄 기대 = 보낸 EA · Resume Receiving 에 꼬리표 Transfer · 아래 시작 목록에서는 숨는다
+[ ] 스캔 · Enter quantity · ± 로 보낸 것보다 많이 → over 표시 + 「Only what was sent is taken in — the office decides the rest」 · 문서에 없는 바코드 → 「✕ … not on this transfer」(off-PO 행 없음)
+[ ] Putaway 「… · from Toronto · Transfer」 · suggested = 도착 창고의 Last bin(ims_last_bin 은 창고 · 제품 기준) · Confirm receipt 단추 없음(wms_receiving_confirm 을 켜도)
+[ ] Complete → confirm 「Complete = arrival: the counted quantities go into stock now; …」 → 「Arrived — TRF-0000n is received」(운임이 도착 전에 확정돼 있으면 「· freight added to cost」) · 차이가 있으면 alert 「N line(s) did not match what was sent — …」
+[ ] 오피스 receiving.html · transfers.html — 입고는 confirmed(창고 Complete 가 확정) · TRF received · 원장 · 레이어 · 운임(판정 78)
+```
 
 ---
 
@@ -1435,6 +1448,20 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 배치 → 픽 리스트 인쇄 = 도착 창고 이름 · 주소 없음 → Picking(하나는 일부러 모자라게) → Packing → Fulfillment
 [ ] Finalize → 토스트 「… left for … — in transit」 · transfers.html 에 in transit · Sent · short · 운송 중 수량
 [ ] 판매와 트랜스퍼 섞기 · 트랜스퍼 둘(도착 같음 / 다름)의 경고 글자
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
+## 7-x. ⑥-3 끝에서 끝 — 에드먼튼에서 받기 (2026-09-29 · Claude Code tf-3 · 판정 83 · rc v1.5)
+
+```
+[ ] PO 입고 한 바퀴 먼저 — 확정된 발주 하나로 시작 → 세기 → 놓기 → Complete(→ 오피스 확정) · 화면 글자가 어제와 같다
+[ ] 7-w 로 떠난 TRF — 에드먼튼 로그인 Receiving 시작 목록에 「TRF-0000n · from Toronto · Transfer」 · 토론토 로그인에는 안 뜬다
+[ ] 시작 → 머리에 TRF 번호 · 줄 기대 = Sent(EA) · 세기 · 칸에 놓기 · 한 줄은 일부러 덜 · 한 줄은 일부러 더
+[ ] Complete → 「Arrived — … is received」 · 「did not match」 한 줄 · Confirm into stock 단추 없음 · off-PO 단추 없음
+[ ] transfers.html — received · Received · In transit(덜 온 몫) · Arrival differences(less · more) · Settle in transit · Decide
+[ ] 운임을 도착 전에 확정해 둔 TRF 면 Complete 순간 「freight added to cost」 · transfers.html On stock cost = Freight
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
