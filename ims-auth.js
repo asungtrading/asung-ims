@@ -328,6 +328,8 @@
       ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,null],
       // ✅ [2026-09-28] Bin Moves (office)(stock-moves.html · 판정 61 · 대화 Claude · sm v1) — 열쇠 stock_move(카탈로그 room 은 wms 지만 메뉴 필터는 screens 만 본다 — ims-auth.js vis=items.filter(!it[2] || scr[it[2]]) · 확인 2026-09-28) · 모드 ims · 메뉴에만.
       ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,null],
+      // ✅ [2026-09-29] Transfers(transfers.html · ⑥-1 · 대화 Claude · tf v1) — 열쇠 transfer(카탈로그 · tr-1a 20260928201753) · 모드 ims · 메뉴에만(탭 false · 묶음 null) · 자리는 임시(판정 82 메뉴 정리)
+      ["Transfers","transfers.html","transfer","ims",false,null],
       ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
       ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
       ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],

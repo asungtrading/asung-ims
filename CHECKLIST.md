@@ -61,6 +61,7 @@
 ```
 📌 [2026-09-28 · adj-b 0c96926] 메뉴 항목 **스물다섯 → 스물여섯** — Stock Adjustments(stock-adjustments.html · 열쇠 stock_adjust · ims · Manager List 뒤 · 메뉴에만 · 탭 아님 · 열쇠 없는 supervisor 도 메뉴는 보이고 읽기만) · 화면을 여는 공통 셋 사용 화면은 스물다섯(stock-adjustments.html 더함)
 📌 [2026-09-28 · 칸 옮기기 7fca511 · c9b2ed0] 메뉴 항목 **스물여섯 → 스물여덟** — Bin Moves(wms-mover.html · 열쇠 stock_move · wms · Receiving 뒤 · Split & Waves 앞 · 탭) · Bin Moves (office)(stock-moves.html · 같은 열쇠 · ims · Stock Adjustments 뒤 · 메뉴에만 · 탭 아님 · 메뉴 필터는 screens 만 본다 — ims-auth.js:344) · 화면을 여는 공통 셋 사용 화면은 스물일곱(wms-mover.html · stock-moves.html 더함)
+📌 [2026-09-29 · ⑥-1 tf-scr-1] 메뉴 항목 **스물여덟 → 스물아홉** — Transfers(transfers.html · 열쇠 transfer · ims · Bin Moves (office) 뒤 · 메뉴에만 · 탭 아님 · 자리는 임시 — 판정 82 메뉴 정리 때 다시) · 화면을 여는 공통 셋 사용 화면은 스물여덟(transfers.html 더함) · ⚠️ 아래 「스물네 화면」 목록 줄은 낡았다(「스물네」 세 줄 65 · 69 · 70 + 스물넷 이름 목록 줄 66 = 네 곳) — 판정 82 메뉴 정리 때 한 번에 고친다
 [ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
     settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
@@ -1354,6 +1355,34 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 열쇠 없는 사람 — 초안에 「Read-only — moving stock needs the Bin moves key.」 · 버튼 없음
 [ ] 기기 저장 없음 — localStorage · sessionStorage 0
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
+```
+
+---
+
+## 7-v. `transfers.html` — Transfers (2026-09-29 신설 · 대화 Claude · 「tf v1」 · stock-moves 모양 · ⑥-1)
+
+뒷단: so-module §27(tr-1a ~ tr-4b · 715f900 ~ d5c93cc). 읽기 `inv_transfer_list` · `inv_transfer_detail` · `po_charge_detail` · `so_available_many` · `po_receipt` · `po_receipt_diff` · `inv_transfer_settle`(표 직접) ·
+쓰기 `inv_transfer_create` · `line_set` · `line_remove` · `delete` · `confirm` · `unconfirm` · `cancel` · `tf_release` · `tf_wms_recall` · `tf_settle` · `tf_over_decide` · `tf_charge_create` · `update` · `alloc_add` · `alloc_update` · `alloc_delete` · `confirm` · `delete`.
+⭐ 되돌릴 수 없는 것(운송 중 정리 lost · 더 온 몫 결정 · 원가에 얹힌 운임)은 시험 순서의 맨 마지막 · 창고 화면(⑥-2 · ⑥-3)이 선 뒤의 끝에서 끝 시험에서.
+⚠️ 창고 화면 다섯 · 입고 화면이 트랜스퍼를 보이게 되는 것은 ⑥-2 · ⑥-3 — 그 전에는 이 화면의 Release 까지만 시험된다.
+
+```
+[ ] 빌드 표시 「2026-09-29 · tf v1」 · ☰ Menu 에 Transfers(Bin Moves (office) 뒤 · 탭 아님)
+[ ] New transfer — 출발 · 도착 같으면 「From and to are the same warehouse — use Bin Moves …」 · 다르면 TRF-00001 초안 · 상세로 넘어간다
+[ ] Add line — 제품 검색(낱개 · 세트 둘 다 · 세트는 「pack × N」) · 출발 창고 「book · held · available」 줄 · 가용보다 많으면 빨간 「more than available」
+[ ] 같은 제품 두 줄 거부 문장 · Edit · ✕ · 초안 삭제(번호는 빈다 · 판정 55)
+[ ] 가용보다 많은 줄 → 상세 빨간 상자 「Not enough available at …」 · Confirm 단추 흐림
+[ ] Confirm → confirmed(초록) · 「The stock is held at the from warehouse …」 · 같은 SKU 판매 가용이 그만큼 줄었는지(so.html 줄 넣기의 가용)
+[ ] Back to draft → draft · 가용 돌아옴 · 다시 Confirm
+[ ] Release to WMS → at warehouse · Recall from warehouse → confirmed · 다시 Release
+[ ] Cancel transfer(초안 · 확정일 때만 단추) — 이유를 받는다 · cancelled(빨강) · 메모에 이유가 붙는다
+[ ] Add freight charge(초안 · 취소에는 단추 없음) — Check → 「This transfer has not arrived yet …」 경고 · Save as draft → 청구서 창이 열린다
+[ ] 청구서 창 — Edit(머리) · 배분 금액 Save · Add a transfer(번호) · ✕ · 배분 합 ≠ 총액이면 Confirm 거부 문장 · Delete(확정된 적 없는 것만)
+[ ] 도착 전 청구서 Confirm → 「Confirmed. It is not on the stock cost yet …」 · Reopen 은 원가에 안 얹혔으니 된다
+[ ] 운임 칸 · 요약 숫자 — Freight (CAD) · On stock cost (CAD)(도착 전 0 · 노란 강조)
+[ ] 열쇠 없는 사람 — 「Read-only — changing transfers needs the Transfers key.」 · 단추 없음 · 조정 열쇠 없는 사람에게 Settle in transit · Decide 단추 없음
+[ ] 기기 저장 없음 — localStorage · sessionStorage 0 · 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
+⬜ ⑥-2 · ⑥-3 뒤 끝에서 끝: 픽 · 팩 · Finalize = 출발(Sent · short) → 에드먼튼 입고 Complete(Received · 차이) → Settle in transit(lost · returned) → Decide(sent more · found 원가 0 체크) → 운임 도착 순간 얹힘(판정 78)
 ```
 
 ---

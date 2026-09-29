@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transfers · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css
+     (.pobtn · .pomodal/.pobox/.frow · #wide/.wfilt · .invbar/.invsub · .kv · .chip)
+     Same frame as stock-moves.html (sm v1) and stock-adjustments.html (adj v1.2). */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .pobox input,.pobox select,.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pobox textarea{width:100%;min-height:54px;box-sizing:border-box}
+  .pobox{max-width:760px}
+  .pobox.wide{max-width:980px}
+  .pobox .pbody table{font-size:12.5px}
+
+  .dhead{padding:14px 14px 0}
+  .acts{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.warn b{color:var(--warn)}
+
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .binlist{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+
+  .bad{color:var(--bad)}
+  .good{color:var(--good)}
+  .pobtn.bad{color:var(--bad);border-color:#f3d3cf}
+  .pobtn.bad:hover{background:#fdf0ef}
+  .infobox{border:1px solid #c7d2fe;background:#eef3ff;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px;color:#1b4fd6}
+  .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px}
+  .rejbox{border:1px solid #f3d3cf;background:#fff6f5;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:0 14px 10px;color:var(--bad)}
+  .pbody .infobox,.pbody .warnbox,.pbody .rejbox{margin:10px 0 0}
+  .calc{font-size:12.5px;margin-top:8px;padding:8px 10px;border-radius:10px;background:#f7f9fc}
+  .calc b{font-family:var(--mono)}
+  td .pobtn{padding:3px 9px;font-size:12px}
+  td input.qin{width:90px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;font:inherit;font-size:12.5px;text-align:right}
+  td input.bin{width:120px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;font:inherit;font-size:12.5px}
+  td select{border:1px solid var(--line);border-radius:8px;padding:4px 7px;font:inherit;font-size:12.5px}
+  .arrow{color:var(--muted);padding:0 4px}
+  .sub{font-size:11.5px;color:var(--muted)}
+  .sec{padding:12px 14px 4px;font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wst">
+        <option value="">All statuses</option>
+        <option value="draft">Draft</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="at_wms">At warehouse</option>
+        <option value="picking">Picking</option>
+        <option value="in_transit">In transit</option>
+        <option value="receiving">Receiving</option>
+        <option value="received">Received</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <select id="wfw"><option value="">From: all</option></select>
+      <select id="wtw"><option value="">To: all</option></select>
+      <input type="date" id="wfrom"><span class="dash">–</span><input type="date" id="wto">
+      <input type="search" id="wq" placeholder="TRF number · SKU · note">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew">New transfer</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+  </div>
+</section>
+
+<main id="detail" hidden></main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Transfers (office) — moving stock from one warehouse to another.
+
+   The document goes the same way a sales order goes through the warehouse:
+
+      draft → confirmed (stock at the from warehouse is held for it)
+            → Release to WMS → Split & Waves → Picking → Packing
+            → Fulfillment Finalize = it leaves (out of the from warehouse, into IN TRANSIT)
+            → the to warehouse counts it on its Receiving screen and puts it into bins
+            → Complete there = received (no office confirm)
+
+   ⭐ If the pickers could not find everything, only what was picked leaves; the rest is closed
+      on this transfer ("short") — make a new transfer for it.
+   ⭐ If less arrives than left, the difference stays IN TRANSIT until someone with the
+      Stock adjustments key settles it here: lost, or returned to a bin at the from warehouse.
+   ⭐ If more arrives than left, the receiving warehouse takes only what was sent; the extra waits
+      for a decision here (Stock adjustments key): the from warehouse really sent more, or the
+      to warehouse found them (a stock adjustment — its cost may be 0).
+   ⭐ Freight goes onto the cost of what arrived, split by cost amount. A charge confirmed before
+      the transfer arrives is added the moment the receiving warehouse completes the arrival.
+   ⭐ Every number comes from the database (inv_transfer_detail · tf_receipt tables · po_charge_detail).
+      The one number worked out on this screen is "In transit" per line (sent − received − lost −
+      returned) — it is a guide only; tf_settle checks the real in-transit balance in the stock book.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running — the screen says its own version out loud. */
+const TF_BUILD = "2026-09-29 · tf v1";   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+console.log("transfers.html build:", TF_BUILD);
+
+let sb = null, me = null, canWrite = false, canAdj = false;
+let q = "", stFilter = "", fwFilter = "", twFilter = "", dateFrom = "", dateTo = "", curId = null;
+let detailSeq = 0;
+let allWhs = [], sups = [], curs = [];
+
+const ST_LABEL = { draft:"draft", confirmed:"confirmed", at_wms:"at warehouse", picking:"picking",
+                   in_transit:"in transit", receiving:"receiving", received:"received", cancelled:"cancelled" };
+const KIND_LABEL = { freight:"Freight", duty:"Duty", brokerage:"Brokerage", other:"Other" };
+const WARN_TEXT = {
+  charge_number_exists:              "A charge with this number already exists for this supplier.",
+  total_amount_zero:                 "The total is 0.",
+  transfer_not_arrived_yet:          "This transfer has not arrived yet. You can save and confirm the charge now — it is added to the cost of the stock automatically the moment the receiving warehouse completes the arrival.",
+  cost_not_on_stock_not_arrived_yet: "Confirmed. It is not on the stock cost yet because the transfer has not arrived — it will be added automatically when the receiving warehouse completes the arrival.",
+  cost_dropped_no_basis:             "Part of this charge could not be added to any stock — nothing that arrived can carry it (for example everything on that transfer was lost or returned).",
+  alloc_on_cancelled_transfer:       "One of the transfers on this charge is cancelled.",
+  alloc_on_cancelled_po:             "One of the purchase orders on this charge is cancelled.",
+  unallocated:                       "The allocated amount does not match the total yet — confirm will be refused until it does.",
+  no_allocs:                         "No transfer is on this charge yet.",
+  unit_cost_unknown_zero:            "The receiving warehouse had no cost for this SKU — the found units went into the books at cost 0."
+};
+const warnText = (w) => WARN_TEXT[w] || w;
+
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:3 }));
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+const n0 = (v) => Number(v || 0);
+
+/* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다. 화면마다 둔다(charges.html 과 같은 몸). */
+function torontoToday() {
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+
+function stChip(s){
+  const t = esc(ST_LABEL[s] || s);
+  if(s === "confirmed" || s === "received") return `<span class="chip good">${t}</span>`;
+  if(s === "in_transit" || s === "receiving" || s === "at_wms" || s === "picking") return `<span class="chip warn">${t}</span>`;
+  if(s === "cancelled") return `<span class="chip bad">${t}</span>`;
+  return `<span class="chip">${t}</span>`;
+}
+function chgChip(s){
+  if(s === "confirmed") return '<span class="chip good">confirmed</span>';
+  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
+  return `<span class="chip">${esc(s)}</span>`;
+}
+function modalOpen(html, wide){
+  const b = document.getElementById("modalBox");
+  b.className = "pobox" + (wide ? " wide" : "");
+  b.innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+
+/* In transit per line, in the line's units — a guide only (tf_settle reads the stock book). */
+function inTransit(l){
+  if(l.qty_sent === null || l.qty_sent === undefined) return null;
+  return n0(l.qty_sent) - n0(l.qty_received) - n0(l.qty_lost) - n0(l.qty_returned);
+}
+/* "3 (36 EA)" when the line is a pack */
+function uq(v, pf){
+  if(v === null || v === undefined) return '<span class="dim">—</span>';
+  const f = n0(pf) || 1;
+  return f > 1 && n0(v) !== 0 ? `${qty(v)} <span class="sub">(${qty(n0(v) * f)} EA)</span>` : qty(v);
+}
+
+/* ── two modes ── */
+function showWide(){
+  curId = null; detailSeq++;
+  document.getElementById("wide").hidden = false;
+  document.getElementById("detail").hidden = true;
+  history.replaceState(null, "", location.pathname);
+  loadWide();
+}
+function openTransfer(id){
+  curId = id;
+  document.getElementById("wide").hidden = true;
+  document.getElementById("detail").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id));
+  loadDetail(id);
+}
+async function reload(){
+  if(!curId) return;
+  const y = window.scrollY;
+  await loadDetail(curId);
+  window.scrollTo(0, y);
+}
+
+/* ── list ── */
+async function loadWide(){
+  const box = document.getElementById("wrows");
+  const { data, error } = await sb.rpc("inv_transfer_list", { p_filters: {
+    status: stFilter, from_warehouse_id: fwFilter, to_warehouse_id: twFilter, q: q, from: dateFrom, to: dateTo, limit: 300 } });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  if(data === null){ box.innerHTML = '<div class="msg">You cannot view transfers.</div>'; return; }
+  if(!data.length){ box.innerHTML = '<div class="msg">No transfers match.</div>'; return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>Number</th><th>Created</th><th>From → To</th><th class="num">Lines</th><th class="num">Qty (EA)</th>
+      <th>Status</th><th>Left</th><th>Received</th><th>Note</th><th>By</th>
+    </tr></thead><tbody>${data.map(r => `<tr data-id="${esc(r.id)}">
+        <td><span class="mono">${esc(r.transfer_number)}</span></td>
+        <td>${imsTs(r.created_at)}</td>
+        <td>${esc(r.from_warehouse || "")}<span class="arrow">→</span>${esc(r.to_warehouse || "")}</td>
+        <td class="num">${esc(r.line_count)}</td>
+        <td class="num">${qty(r.qty_ea)}</td>
+        <td>${stChip(r.status)}</td>
+        <td>${imsTs(r.departed_at)}</td>
+        <td>${imsTs(r.received_at)}</td>
+        <td>${dim(r.note)}</td>
+        <td>${esc(r.status === "draft" ? (r.created_by_name || "") : (r.confirmed_by_name || r.created_by_name || ""))}</td>
+      </tr>`).join("")}</tbody></table>
+    <div class="invsub">${data.length === 300 ? "Newest 300 — narrow the filters to see older ones. " : ""}A draft holds nothing yet.
+      Confirmed holds the stock at the from warehouse. After Release to WMS the warehouse splits, picks and packs it;
+      Fulfillment Finalize is the moment it leaves. The to warehouse completes the arrival on its Receiving screen.</div>`;
+  box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openTransfer(el.dataset.id); });
+}
+
+/* ── detail ── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [rd, rr, rdf, rs] = await Promise.all([
+    sb.rpc("inv_transfer_detail", { p_transfer_id: id }),
+    sb.from("po_receipt").select("id,receipt_number,status,created_at,confirmed_at").eq("transfer_id", id).order("created_at"),
+    sb.from("po_receipt_diff").select("id,kind,transfer_line_id,expected_qty,received_qty,note,resolution,resolution_note,resolved_at,receipt_id,created_at").eq("transfer_id", id).order("created_at"),
+    sb.from("inv_transfer_settle").select("id,transfer_line_id,action,qty_ea,bin,note,settled_at,diff_id").eq("transfer_id", id).order("settled_at")
+  ]);
+  if(seq !== detailSeq) return;
+  const { data, error } = rd;
+  if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  if(!data){
+    box.innerHTML = '<div class="card"><div class="msg">That transfer is gone, or you cannot view it.</div><div style="padding:0 14px 14px"><button class="pobtn" data-act="wide">&lsaquo; All transfers</button></div></div>';
+    box.querySelector('[data-act="wide"]').onclick = showWide; return;
+  }
+  const h = data.header || {}, lines = data.lines || [], short = data.shortage || [], fr = data.freight || {};
+  const receipts = (rr && rr.data) || [], diffs = (rdf && rdf.data) || [], settles = (rs && rs.data) || [];
+  const sideErr = [rr, rdf, rs].map(x => x && x.error ? x.error.message : null).filter(Boolean);
+  const s = h.status;
+  const left = ["in_transit", "receiving", "received"].includes(s);
+  const ed = s === "draft" && canWrite;
+
+  const totReq  = lines.reduce((a, l) => a + n0(l.qty_ea), 0);
+  const totSent = lines.reduce((a, l) => a + n0(l.qty_sent) * n0(l.pack_factor), 0);
+  const totRecv = lines.reduce((a, l) => a + n0(l.qty_received) * n0(l.pack_factor), 0);
+  const totLost = lines.reduce((a, l) => a + n0(l.qty_lost) * n0(l.pack_factor), 0);
+  const totTran = lines.reduce((a, l) => a + Math.max(n0(inTransit(l)), 0) * n0(l.pack_factor), 0);
+  const settleable = lines.filter(l => n0(inTransit(l)) > 0);
+  const openOver = diffs.filter(d => d.kind === "over" && !d.resolved_at);
+
+  const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All transfers</button>'];
+  if(ed) acts.push('<button class="pobtn" data-act="add">Add line</button>');
+  if(ed) acts.push(`<button class="pobtn go" data-act="confirm" ${lines.length && !short.length ? "" : "disabled"}>Confirm</button>`);
+  if(canWrite && s === "confirmed") acts.push('<button class="pobtn go" data-act="release">Release to WMS</button>');
+  if(canWrite && s === "confirmed") acts.push('<button class="pobtn" data-act="unconfirm">Back to draft</button>');
+  if(canWrite && s === "at_wms") acts.push('<button class="pobtn" data-act="recall">Recall from warehouse</button>');
+  if(canAdj && left && settleable.length) acts.push('<button class="pobtn" data-act="settle">Settle in transit</button>');
+  if(canWrite && s !== "draft" && s !== "cancelled") acts.push('<button class="pobtn" data-act="charge">Add freight charge</button>');
+  if(ed) acts.push('<button class="pobtn bad" data-act="del">Delete draft</button>');
+  if(canWrite && (s === "draft" || s === "confirmed")) acts.push('<button class="pobtn bad" data-act="cancel">Cancel transfer</button>');
+
+  const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+  const when = (t) => t ? imsTs(t) : '<span class="dim">not yet</span>';
+  const head = kvTbl([
+    ["From → To", `${esc(h.from_warehouse || "")}<span class="arrow">→</span>${esc(h.to_warehouse || "")}`],
+    ["Note", dim(h.note)],
+    ["Created", `${imsTs(h.created_at)} · ${esc(h.created_by_name || "")}`],
+    ["Confirmed", h.confirmed_at ? `${imsTs(h.confirmed_at)} · ${esc(h.confirmed_by_name || "")}` : '<span class="dim">not yet</span>'],
+    ["Released to WMS", when(h.at_wms_at)],
+    ["Picking started", when(h.picking_at)],
+    ["Left (Finalize)", when(h.departed_at)],
+    ["Counting started", when(h.receiving_at)],
+    ["Received (Complete)", when(h.received_at)],
+    ...(h.cancelled_at ? [["Cancelled", imsTs(h.cancelled_at)]] : []),
+    ["Arrival receipt", receipts.length ? receipts.map(r => `<span class="mono">${esc(r.receipt_number || "")}</span> · ${esc(r.status || "")}`).join("<br>") : '<span class="dim">none yet</span>']
+  ]);
+
+  let boxes = "";
+  if(sideErr.length) boxes += `<div class="rejbox">Part of this page could not be read: ${sideErr.map(esc).join(" · ")}</div>`;
+  if(s === "draft" && short.length){
+    boxes += `<div class="rejbox"><b>Not enough available at ${esc(h.from_warehouse || "")}</b> — confirm will be refused. Reduce these lines:<br>${short.map(x =>
+      `<span class="mono">${esc(x.sku)}</span> needs ${qty(x.need_ea)} EA · available ${qty(x.available_ea)} EA`).join("<br>")}</div>`;
+  }
+  if(s === "confirmed") boxes += '<div class="infobox">The stock is held at the from warehouse. Release to WMS sends it to the warehouse to be split and picked.</div>';
+  if(s === "at_wms") boxes += '<div class="infobox">At the warehouse, waiting for Split &amp; Waves. It can be recalled until pick tasks are made. Once it is in work, it can no longer be cancelled.</div>';
+  if(s === "picking") boxes += '<div class="infobox">The warehouse is working on it. It leaves the from warehouse at Fulfillment Finalize.</div>';
+  const shortSent = lines.filter(l => n0(l.short_sent) > 0);
+  if(shortSent.length) boxes += `<div class="warnbox"><b>Sent short</b> — the pickers could not find everything. What was not sent is closed on this transfer; make a new transfer if it should still go.<br>${shortSent.map(l =>
+      `<span class="mono">${esc(l.sku)}</span> asked ${uq(l.qty, l.pack_factor)} · sent ${uq(l.qty_sent, l.pack_factor)} · short ${uq(l.short_sent, l.pack_factor)}`).join("<br>")}</div>`;
+  if(left && settleable.length && s === "received") boxes += `<div class="warnbox"><b>Still in transit after the arrival</b> — ${qty(totTran)} EA did not arrive. ${canAdj
+      ? "Settle it: lost, or returned to a bin at the from warehouse." : "Someone with the Stock adjustments key settles it (lost or returned)."}</div>`;
+  if(openOver.length) boxes += `<div class="warnbox"><b>More arrived than was sent</b> — the receiving warehouse took only what was sent. ${canAdj
+      ? "Decide each one below." : "Someone with the Stock adjustments key decides each one."}</div>`;
+
+  const frTot = n0(fr.total_cad), frPost = n0(fr.posted_cad);
+  const gap = `<div class="gap">
+      <div class="g"><b>${esc(lines.length)}</b><span>Lines</span></div>
+      <div class="g"><b>${qty(totReq)}</b><span>Asked (EA)</span></div>
+      <div class="g"><b>${s === "draft" || s === "confirmed" || s === "at_wms" || s === "picking" || s === "cancelled" ? '<span class="dim">—</span>' : qty(totSent)}</b><span>Sent (EA)</span></div>
+      <div class="g"><b>${s === "received" ? qty(totRecv) : '<span class="dim">—</span>'}</b><span>Received (EA)</span></div>
+      <div class="g ${totTran > 0 && s === "received" ? "warn" : ""}"><b>${left ? qty(totTran) : '<span class="dim">—</span>'}</b><span>In transit (EA)</span></div>
+      <div class="g ${totLost > 0 ? "bad" : ""}"><b>${qty(totLost)}</b><span>Lost (EA)</span></div>
+      <div class="g"><b>${money(frTot)}</b><span>Freight (CAD)</span></div>
+      <div class="g ${frTot !== frPost ? "warn" : ""}"><b>${money(frPost)}</b><span>On stock cost (CAD)</span></div>
+    </div>`;
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="dhead">
+        <div class="invbar">
+          <span class="pn">${esc(h.transfer_number || "")}</span>
+          <span class="chips">${stChip(s)}</span>
+        </div>
+        <div class="acts">${acts.join("")}</div>
+        ${!canWrite ? '<div class="dim" style="margin-top:8px;font-size:12.5px">Read-only — changing transfers needs the Transfers key.</div>' : ""}
+        <div style="margin-top:12px">${head}</div>
+      </div>
+      ${gap}
+      ${boxes}
+      <div id="linesBox">${linesTable(lines, ed, s)}</div>
+      ${diffsBlock(diffs, lines)}
+      ${settleBlock(settles, lines)}
+      <div class="invsub">Quantities are in each line's own unit; a pack line also shows single units (EA). Sent is what left at
+        Fulfillment Finalize. Received is what the to warehouse put into bins at Complete. In transit = sent − received − lost −
+        returned (a guide — the settle checks the stock book). Carried cost is the purchase freight and duty that was on these
+        units at the from warehouse and moved with them.</div>
+    </div>
+    ${freightCard(fr, h)}`;
+
+  box.querySelectorAll("[data-act]").forEach(el => {
+    const a = el.dataset.act;
+    if(a === "wide") el.onclick = showWide;
+    if(a === "add") el.onclick = () => openLine(h, null);
+    if(a === "confirm") el.onclick = () => openConfirm(h, lines);
+    if(a === "unconfirm") el.onclick = () => simpleAct(h, "inv_transfer_unconfirm", `Put ${h.transfer_number} back to draft? The held stock is let go.`);
+    if(a === "release") el.onclick = () => openRelease(h, lines);
+    if(a === "recall") el.onclick = () => recallTransfer(h);
+    if(a === "settle") el.onclick = () => openSettle(h, settleable);
+    if(a === "charge") el.onclick = () => openChargeCreate(h);
+    if(a === "del") el.onclick = () => deleteTransfer(h);
+    if(a === "cancel") el.onclick = () => cancelTransfer(h);
+  });
+  box.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => openLine(h, lines.find(l => l.line_id === el.dataset.edit)); });
+  box.querySelectorAll("[data-rm]").forEach(el => { el.onclick = () => removeLine(h, el.dataset.rm); });
+  box.querySelectorAll("[data-over]").forEach(el => { el.onclick = () => openOverDecide(h, diffs.find(d => d.id === el.dataset.over), lines); });
+  box.querySelectorAll("[data-chg]").forEach(el => { el.onclick = () => openCharge(el.dataset.chg); });
+}
+
+function linesTable(lines, ed, s){
+  if(!lines.length) return `<div class="msg">No lines yet.${ed ? " Add a line for each product you send." : ""}</div>`;
+  const left = ["in_transit", "receiving", "received"].includes(s);
+  return `<table><thead><tr>
+      <th class="num">#</th><th>SKU</th><th class="num">Asked</th><th class="num">Sent</th><th class="num">Received</th>
+      <th class="num">Lost</th><th class="num">Returned</th><th class="num">Extra sent</th><th class="num">In transit</th>
+      <th class="num">Carried cost</th>${ed ? "<th></th>" : ""}
+    </tr></thead><tbody>${lines.map(l => {
+      const it = inTransit(l);
+      const c = l.carried || {};
+      const carriedTxt = n0(c.total) !== 0
+        ? `${money(c.total)}<div class="sub">${n0(c.in_transit) ? "in transit " + money(c.in_transit) + " · " : ""}${n0(c.arrived) ? "arrived " + money(c.arrived) : ""}${n0(c.returned) ? " · returned " + money(c.returned) : ""}</div>`
+        : '<span class="dim">—</span>';
+      return `<tr>
+        <td class="num">${esc(l.line_no)}</td>
+        <td><span class="mono">${esc(l.sku)}</span>${n0(l.pack_factor) > 1 ? ` <span class="chip">pack × ${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td class="num"><b>${uq(l.qty, l.pack_factor)}</b></td>
+        <td class="num">${uq(l.qty_sent, l.pack_factor)}${n0(l.short_sent) > 0 ? `<div class="sub bad">short ${qty(l.short_sent)}</div>` : ""}</td>
+        <td class="num">${uq(l.qty_received, l.pack_factor)}</td>
+        <td class="num">${n0(l.qty_lost) ? `<span class="bad">${uq(l.qty_lost, l.pack_factor)}</span>` : '<span class="dim">0</span>'}</td>
+        <td class="num">${n0(l.qty_returned) ? uq(l.qty_returned, l.pack_factor) : '<span class="dim">0</span>'}</td>
+        <td class="num">${n0(l.qty_extra) ? uq(l.qty_extra, l.pack_factor) : '<span class="dim">0</span>'}</td>
+        <td class="num">${left ? (n0(it) > 0 ? `<b>${uq(it, l.pack_factor)}</b>` : '<span class="dim">0</span>') : '<span class="dim">—</span>'}</td>
+        <td class="num">${carriedTxt}</td>
+        ${ed ? `<td style="white-space:nowrap">
+            <button class="pobtn" data-edit="${esc(l.line_id)}">Edit</button>
+            <button class="pobtn bad" data-rm="${esc(l.line_id)}">✕</button></td>` : ""}
+      </tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+function diffsBlock(diffs, lines){
+  if(!diffs.length) return "";
+  const skuOf = (lid) => { const l = lines.find(x => x.line_id === lid); return l ? l.sku : ""; };
+  return `<div class="sec">Arrival differences</div>
+    <table><thead><tr><th>SKU</th><th>Kind</th><th class="num">Sent (EA)</th><th class="num">Arrived (EA)</th><th class="num">Difference</th><th>Decision</th><th></th></tr></thead>
+    <tbody>${diffs.map(d => {
+      const df = n0(d.received_qty) - n0(d.expected_qty);
+      const open = !d.resolved_at;
+      let act = "";
+      if(open && d.kind === "over" && canAdj) act = `<button class="pobtn go" data-over="${esc(d.id)}">Decide</button>`;
+      if(open && d.kind === "short") act = '<span class="sub">settle it with “Settle in transit”</span>';
+      return `<tr>
+        <td class="mono">${esc(skuOf(d.transfer_line_id))}</td>
+        <td>${d.kind === "over" ? '<span class="chip warn">more arrived</span>' : d.kind === "short" ? '<span class="chip warn">less arrived</span>' : esc(d.kind)}</td>
+        <td class="num">${qty(d.expected_qty)}</td>
+        <td class="num">${qty(d.received_qty)}</td>
+        <td class="num ${df < 0 ? "bad" : ""}">${df > 0 ? "+" : ""}${qty(df)}</td>
+        <td>${open ? '<span class="dim">open</span>' : `${esc(d.resolution || "")} <span class="sub">${imsTs(d.resolved_at)}</span>${d.resolution_note ? `<div class="sub">${esc(d.resolution_note)}</div>` : ""}`}</td>
+        <td>${act}</td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+function settleBlock(settles, lines){
+  if(!settles.length) return "";
+  const skuOf = (lid) => { const l = lines.find(x => x.line_id === lid); return l ? l.sku : ""; };
+  return `<div class="sec">In-transit settlements</div>
+    <table><thead><tr><th>When</th><th>SKU</th><th>Action</th><th class="num">Qty (EA)</th><th>Back into bin</th><th>Note</th></tr></thead>
+    <tbody>${settles.map(x => `<tr>
+        <td>${imsTs(x.settled_at)}</td>
+        <td class="mono">${esc(skuOf(x.transfer_line_id))}</td>
+        <td>${x.action === "lost" ? '<span class="chip bad">lost</span>' : '<span class="chip">returned</span>'}</td>
+        <td class="num">${qty(x.qty_ea)}</td>
+        <td class="mono">${dim(x.bin)}</td>
+        <td>${dim(x.note)}</td>
+      </tr>`).join("")}</tbody></table>`;
+}
+
+function freightCard(fr, h){
+  const ch = (fr && fr.charges) || [];
+  return `<div class="card">
+      <h3>Freight and other charges on this transfer</h3>
+      ${ch.length ? `<table><thead><tr>
+          <th>Charge</th><th>Supplier</th><th>Kind</th><th>Date</th><th>Status</th><th class="num">Total</th>
+          <th class="num">On this transfer</th><th class="num">On stock cost (CAD)</th><th></th>
+        </tr></thead><tbody>${ch.map(c => `<tr>
+          <td class="mono">${esc(c.charge_number)}</td>
+          <td>${esc(c.supplier_name || "")}</td>
+          <td>${esc(KIND_LABEL[c.kind] || c.kind)}</td>
+          <td>${dim(c.charge_date)}</td>
+          <td>${chgChip(c.status)}</td>
+          <td class="num">${money(c.total_amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
+          <td class="num">${money(c.amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
+          <td class="num">${money(c.posted_cad)}${n0(c.layers) ? `<div class="sub">${esc(c.layers)} layer${n0(c.layers) === 1 ? "" : "s"}</div>` : ""}</td>
+          <td><button class="pobtn" data-chg="${esc(c.charge_id)}">Open</button></td>
+        </tr>`).join("")}</tbody></table>`
+      : `<div class="msg">No charges yet.${canWrite && h.status !== "draft" && h.status !== "cancelled" ? " Use “Add freight charge” when the carrier's bill comes in." : ""}</div>`}
+      <div class="invsub">Freight goes onto the cost of what arrived, split by cost amount (the last line takes the cents).
+        Lost units' share is carried by what arrived; returned units and units found at the receiving warehouse take none.
+        A charge confirmed before the transfer arrives is added the moment the receiving warehouse completes the arrival.
+        Pay a charge on the supplier payments screen, the same way as any charge.</div>
+    </div>`;
+}
+
+/* ── a line ─────────────────────────────────────────
+   Any active product, single or pack (a pack line is in packs; single units = qty × pack size).
+   Before saving, the from warehouse's available stock is shown (book − held for sales − held for
+   other transfers · so_available_many). Confirm checks it again for the whole transfer. */
+function openLine(h, line){
+  const st = {
+    product_id: line ? line.product_id : null, sku: line ? line.sku : "", name: line ? (line.product_name || "") : "",
+    factor: line ? (n0(line.pack_factor) || 1) : 1, stock_pid: line ? line.stock_product_id : null
+  };
+  modalOpen(`
+    <h4>${line ? "Edit line " + esc(line.line_no) : "Add a line"} · ${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Product</label><input id="lpq" placeholder="Scan or type SKU · product name" autocomplete="off" value="${esc(st.sku)}"></div>
+      <div id="lpPicked" style="font-size:12.5px;margin-top:4px"></div>
+      <div id="lpHits" class="binlist" ${line ? "hidden" : ""}><div class="msg">Type to search.</div></div>
+      <div class="frow" style="margin-top:12px"><label>Quantity</label>
+        <input id="lq" type="number" step="1" min="1" style="flex:0 0 130px" value="${esc(line ? n0(line.qty) : "")}">
+        <span class="dim" id="lqHint" style="font-size:12px">single units (EA)</span></div>
+      <div id="lcalc" class="calc" hidden></div>
+      <div id="lMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="lCancel">Cancel</button>
+      <button class="pobtn go" id="lSave">Save line</button></div>`);
+  document.getElementById("lCancel").onclick = modalClose;
+  const pHits = document.getElementById("lpHits");
+
+  let calcSeq = 0;
+  async function calc(){
+    const box = document.getElementById("lcalc"); if(!box) return;
+    if(!st.product_id){ box.hidden = true; return; }
+    const sq = ++calcSeq;
+    const { data, error } = await sb.rpc("so_available_many", { p_stock_pids: [st.stock_pid], p_location_id: h.from_warehouse_id });
+    if(sq !== calcSeq || !document.getElementById("lcalc")) return;
+    box.hidden = false;
+    if(error){ box.textContent = error.message; return; }
+    const r = (data || [])[0] || {};
+    const av = n0(r.available_ea);
+    const raw = document.getElementById("lq").value;
+    const need = raw === "" || isNaN(Number(raw)) ? null : Number(raw) * st.factor;
+    box.innerHTML = `At ${esc(h.from_warehouse || "")}: book <b>${qty(r.qty_ea)}</b> EA · held <b>${qty(r.allocated_ea)}</b> · available <b>${qty(av)}</b> EA` +
+      (need !== null ? `<br>This line needs <b>${qty(need)}</b> EA` + (need > av ? ' <span class="bad">— more than available, confirm will be refused</span>' : "") : "") +
+      (line ? '<br><span class="dim">Other lines of this draft are not counted here — confirm checks them all together.</span>' : "");
+  }
+  document.getElementById("lq").addEventListener("input", calc);
+
+  const showPicked = () => {
+    document.getElementById("lpPicked").innerHTML = st.product_id
+      ? `<span class="mono">${esc(st.sku)}</span> <span class="dim">${esc(st.name)}</span>` +
+        (st.factor > 1 ? `<div class="dim">A pack — the line is in packs; single units = quantity × ${esc(st.factor)}.</div>` : "")
+      : "";
+    document.getElementById("lqHint").textContent = st.factor > 1 ? `packs of ${st.factor}` : "single units (EA)";
+  };
+  const pickProduct = (p) => {
+    st.product_id = p.id; st.sku = p.sku; st.name = p.name || "";
+    st.factor = p.parent_product_id && n0(p.pack_factor) > 1 ? n0(p.pack_factor) : 1;
+    st.stock_pid = p.parent_product_id || p.id;
+    document.getElementById("lpq").value = st.sku;
+    pHits.hidden = true;
+    showPicked(); calc();
+  };
+  const drawP = async (t) => {
+    if(!t){ pHits.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const tt = String(t).replace(/[,()"\\]/g, "%");
+    const { data, error } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor")
+      .eq("is_active", true).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
+    if(error){ pHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}"><span class="mono">${esc(p.sku)}</span>${p.parent_product_id ? ` <span class="chip">pack × ${esc(p.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+      : '<div class="msg">No active product matches.</div>';
+    pHits.querySelectorAll("[data-pid]").forEach(el => { el.onclick = () => pickProduct(data.find(x => x.id === el.dataset.pid)); });
+  };
+  const lpq = document.getElementById("lpq");
+  imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
+  lpq.onkeydown = async (e) => {
+    if(e.key !== "Enter") return;
+    const code = lpq.value.trim(); if(!code) return;
+    const { data } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("is_active", true).ilike("sku", code).limit(2);
+    if(data && data.length === 1) pickProduct(data[0]);
+  };
+
+  showPicked(); calc();
+  if(!line) setTimeout(() => { const i = document.getElementById("lpq"); if(i) i.focus(); }, 30);
+
+  document.getElementById("lSave").onclick = async () => {
+    if(!st.product_id){ say("lMsg", "err", "Pick a product."); return; }
+    const raw = document.getElementById("lq").value;
+    if(raw === "" || !(Number(raw) > 0)){ say("lMsg", "err", "Enter a quantity."); return; }
+    say("lMsg", "", "Saving…");
+    const { error } = await sb.rpc("inv_transfer_line_set", { p_transfer_id: h.id, p_line: {
+      line_id: line ? line.line_id : null, product_id: st.product_id, qty: String(raw) } });
+    if(error){ say("lMsg", "err", error.message); return; }
+    modalClose(); reload();
+  };
+}
+
+async function removeLine(h, lineId){
+  if(!confirm("Remove this line?")) return;
+  const { error } = await sb.rpc("inv_transfer_line_remove", { p_transfer_id: h.id, p_line_id: lineId });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+async function deleteTransfer(h){
+  if(!confirm(`Delete draft ${h.transfer_number}? Nothing has been held or moved yet. The number is not used again.`)) return;
+  const { error } = await sb.rpc("inv_transfer_delete", { p_transfer_id: h.id });
+  if(error){ alert(error.message); return; }
+  showWide();
+}
+async function cancelTransfer(h){
+  const note = prompt(`Cancel ${h.transfer_number}? ${h.status === "confirmed" ? "The held stock is let go. " : ""}The document stays, marked cancelled.\n\nReason (optional):`, "");
+  if(note === null) return;
+  const { error } = await sb.rpc("inv_transfer_cancel", { p_transfer_id: h.id, p_note: note.trim() || null });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+async function simpleAct(h, fn, question){
+  if(!confirm(question)) return;
+  const { error } = await sb.rpc(fn, { p_transfer_id: h.id });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+async function recallTransfer(h){
+  if(!confirm(`Recall ${h.transfer_number} from the warehouse? It goes back to confirmed (the stock stays held). This works only while no pick tasks have been made.`)) return;
+  const { error } = await sb.rpc("tf_wms_recall", { p_ids: [h.id] });
+  if(error){ alert(error.message); return; }
+  reload();
+}
+
+/* ── confirm — holds the stock at the from warehouse ── */
+function openConfirm(h, lines){
+  modalOpen(`
+    <h4>Confirm ${esc(h.transfer_number)}</h4>
+    <div class="pbody">
+      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.length)} line${lines.length === 1 ? "" : "s"}</div>
+      <table style="margin-top:10px"><thead><tr><th>SKU</th><th class="num">Qty</th></tr></thead>
+        <tbody>${lines.map(l => `<tr><td class="mono">${esc(l.sku)}</td><td class="num">${uq(l.qty, l.pack_factor)}</td></tr>`).join("")}</tbody></table>
+      <div class="infobox">Confirming holds this stock at ${esc(h.from_warehouse || "")} — it is no longer available for sales or other
+        transfers. If anything is short, confirm is refused and nothing changes. Nothing moves yet; you can still put it back to draft.</div>
+      <div id="cMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="cCancel">Cancel</button>
+      <button class="pobtn go" id="cGo">Confirm transfer</button></div>`);
+  document.getElementById("cCancel").onclick = modalClose;
+  document.getElementById("cGo").onclick = async () => {
+    const btn = document.getElementById("cGo"); btn.disabled = true;
+    say("cMsg", "", "Confirming…");
+    const { error } = await sb.rpc("inv_transfer_confirm", { p_transfer_id: h.id });
+    if(error){ say("cMsg", "err", error.message); btn.disabled = false; return; }
+    modalClose(); reload();
+  };
+}
+
+/* ── release to the warehouse ── */
+function openRelease(h, lines){
+  const ea = lines.reduce((a, l) => a + n0(l.qty_ea), 0);
+  modalOpen(`
+    <h4>Release ${esc(h.transfer_number)} to WMS</h4>
+    <div class="pbody">
+      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.length)} line${lines.length === 1 ? "" : "s"} · ${qty(ea)} EA</div>
+      <div class="infobox">It goes to ${esc(h.from_warehouse || "")}'s Split &amp; Waves, then Picking, Packing and Fulfillment — the same way a
+        sales order goes. The pick list shows ${esc(h.to_warehouse || "")} as where it goes. It leaves the warehouse at Fulfillment Finalize.</div>
+      <div class="warnbox">You can recall it until the warehouse makes pick tasks. After that it can no longer be cancelled.</div>
+      <div id="rMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="rCancel">Cancel</button>
+      <button class="pobtn go" id="rGo">Release to WMS</button></div>`);
+  document.getElementById("rCancel").onclick = modalClose;
+  document.getElementById("rGo").onclick = async () => {
+    const btn = document.getElementById("rGo"); btn.disabled = true;
+    say("rMsg", "", "Releasing…");
+    const { error } = await sb.rpc("tf_release", { p_ids: [h.id] });
+    if(error){ say("rMsg", "err", error.message); btn.disabled = false; return; }
+    modalClose(); reload();
+  };
+}
+
+/* ── settle in transit (Stock adjustments key · ruling 75) ─────────
+   lost:   out of IN TRANSIT; its cost share is written off (the stock value goes down).
+   return: out of IN TRANSIT and back into a bin at the from warehouse (its cost goes back with it).
+   Quantities here are single units (EA). */
+function openSettle(h, ls){
+  modalOpen(`
+    <h4>Settle in transit · ${esc(h.transfer_number)}</h4>
+    <div class="pbody">
+      <div style="font-size:12.5px">For each line, choose what happened to the units still in transit. Leave a line on “—” to skip it.
+        Quantities are single units (EA).</div>
+      <table style="margin-top:10px"><thead><tr><th>SKU</th><th class="num">In transit (EA)</th><th>What happened</th><th class="num">Qty (EA)</th><th>Back into bin at ${esc(h.from_warehouse || "")}</th><th>Note</th></tr></thead>
+        <tbody>${ls.map(l => `<tr data-sl="${esc(l.line_id)}">
+          <td class="mono">${esc(l.sku)}</td>
+          <td class="num">${qty(n0(inTransit(l)) * (n0(l.pack_factor) || 1))}</td>
+          <td><select data-f="action"><option value="">—</option><option value="lost">Lost</option><option value="return">Returned to sender</option></select></td>
+          <td><input class="qin" data-f="qty" type="number" step="1" min="1" value="${esc(n0(inTransit(l)) * (n0(l.pack_factor) || 1))}"></td>
+          <td><input class="bin" data-f="bin" list="sBins" placeholder="bin" autocomplete="off" disabled></td>
+          <td><input class="bin" data-f="note" placeholder="optional"></td>
+        </tr>`).join("")}</tbody></table>
+      <datalist id="sBins"></datalist>
+      <div class="warnbox"><b>Lost</b> takes the units out of the books for good — their cost is written off and the stock value goes down.
+        <b>Returned</b> puts them back into the bin you name at ${esc(h.from_warehouse || "")}, with their cost.</div>
+      <div id="sMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="sCancel">Cancel</button>
+      <button class="pobtn go" id="sGo">Save settlement</button></div>`, true);
+  document.getElementById("sCancel").onclick = modalClose;
+  const rows = Array.from(document.querySelectorAll("[data-sl]"));
+  rows.forEach(tr => {
+    const act = tr.querySelector('[data-f="action"]'), bin = tr.querySelector('[data-f="bin"]');
+    act.onchange = () => { bin.disabled = act.value !== "return"; if(bin.disabled) bin.value = ""; };
+    imsQ(bin, async (t) => {
+      let qy = sb.from("ref_bin").select("name").eq("warehouse_id", h.from_warehouse_id).eq("is_active", true).neq("name", "");
+      if(t) qy = qy.ilike("name", `%${t}%`);
+      const { data } = await qy.order("name").limit(50);
+      const dl = document.getElementById("sBins");
+      if(dl) dl.innerHTML = (data || []).map(b => `<option value="${esc(b.name)}"></option>`).join("");
+    });
+  });
+  document.getElementById("sGo").onclick = async () => {
+    const out = [];
+    for(const tr of rows){
+      const action = tr.querySelector('[data-f="action"]').value;
+      if(!action) continue;
+      const qv = tr.querySelector('[data-f="qty"]').value;
+      if(!(Number(qv) > 0)){ say("sMsg", "err", "Enter a quantity on every line you settle."); return; }
+      const e = { line_id: tr.dataset.sl, action: action, qty: String(qv) };
+      if(action === "return"){
+        const b = tr.querySelector('[data-f="bin"]').value.trim();
+        if(!b){ say("sMsg", "err", "Name the bin at the from warehouse for every returned line."); return; }
+        e.bin = b;
+      }
+      const note = tr.querySelector('[data-f="note"]').value.trim();
+      if(note) e.note = note;
+      out.push(e);
+    }
+    if(!out.length){ say("sMsg", "err", "Choose Lost or Returned on at least one line."); return; }
+    const lost = out.filter(e => e.action === "lost").reduce((a, e) => a + Number(e.qty), 0);
+    if(lost > 0 && !confirm(`${lost} EA will be written off as lost. This cannot be undone. Go ahead?`)) return;
+    const btn = document.getElementById("sGo"); btn.disabled = true;
+    say("sMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("tf_settle", { p_transfer_id: h.id, p_lines: out });
+    if(error){ say("sMsg", "err", error.message); btn.disabled = false; return; }
+    modalClose();
+    alert(`${data.transfer_number} settled — lost ${n0(data.lost_ea)} EA · returned ${n0(data.returned_ea)} EA` +
+          (n0(data.diffs_closed) ? ` · ${data.diffs_closed} arrival difference${n0(data.diffs_closed) === 1 ? "" : "s"} closed.` : "."));
+    reload();
+  };
+}
+
+/* ── more arrived than was sent (Stock adjustments key · ruling 76) ─────────
+   sent_more: the from warehouse really sent more — out of a bin there (default: the planned pick bin),
+              into the bin the arrival went into, with the from warehouse's cost.
+   found:     the to warehouse found them — a stock adjustment (reason found) at the to warehouse;
+              if that warehouse has no cost for the SKU, they go in at cost 0 (ruling 56). */
+function openOverDecide(h, d, lines){
+  if(!d) return;
+  const l = lines.find(x => x.line_id === d.transfer_line_id) || {};
+  const extra = n0(d.received_qty) - n0(d.expected_qty);
+  modalOpen(`
+    <h4>More arrived than was sent · ${esc(h.transfer_number)}</h4>
+    <div class="pbody">
+      <div style="font-size:13px"><span class="mono">${esc(l.sku || "")}</span> — sent ${qty(d.expected_qty)} EA, ${esc(h.to_warehouse || "")} counted ${qty(d.received_qty)} EA.
+        <b>${qty(extra)} EA</b> extra wait for your decision.</div>
+      <div class="frow" style="margin-top:12px"><label><input type="radio" name="oc" value="sent_more"> ${esc(h.from_warehouse || "")} sent more</label>
+        <span class="sub">they leave a bin at ${esc(h.from_warehouse || "")} with its cost</span></div>
+      <div class="frow" id="oBinRow" hidden><label>From bin</label><input id="oBin" list="oBins" placeholder="blank = the planned pick bin" autocomplete="off"></div>
+      <datalist id="oBins"></datalist>
+      <div class="frow"><label><input type="radio" name="oc" value="found"> Found at ${esc(h.to_warehouse || "")}</label>
+        <span class="sub">a stock adjustment (reason found) at ${esc(h.to_warehouse || "")}</span></div>
+      <div id="oZero" class="rejbox" hidden><b>These may go into the books at cost 0</b> — if ${esc(h.to_warehouse || "")} has no cost left for this SKU,
+        the found units go in at 0 until someone fixes it.<br>
+        <label style="color:var(--ink)"><input type="checkbox" id="oZeroOk"> I know these may go in at cost 0</label></div>
+      <div class="frow" style="margin-top:10px"><label>Note</label><input id="oNote" placeholder="optional"></div>
+      <div id="oMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="oCancel">Cancel</button>
+      <button class="pobtn go" id="oGo">Save decision</button></div>`);
+  document.getElementById("oCancel").onclick = modalClose;
+  const radios = Array.from(document.querySelectorAll('input[name="oc"]'));
+  const choice = () => { const r = radios.find(x => x.checked); return r ? r.value : ""; };
+  radios.forEach(r => { r.onchange = () => {
+    document.getElementById("oBinRow").hidden = choice() !== "sent_more";
+    document.getElementById("oZero").hidden = choice() !== "found";
+  }; });
+  imsQ("#oBin", async (t) => {
+    let qy = sb.from("ref_bin").select("name").eq("warehouse_id", h.from_warehouse_id).eq("is_active", true).neq("name", "");
+    if(t) qy = qy.ilike("name", `%${t}%`);
+    const { data } = await qy.order("name").limit(50);
+    const dl = document.getElementById("oBins");
+    if(dl) dl.innerHTML = (data || []).map(b => `<option value="${esc(b.name)}"></option>`).join("");
+  });
+  document.getElementById("oGo").onclick = async () => {
+    const c = choice();
+    if(!c){ say("oMsg", "err", "Choose sent more or found."); return; }
+    if(c === "found" && !document.getElementById("oZeroOk").checked){ say("oMsg", "err", "Tick “I know these may go in at cost 0” first."); return; }
+    let binId = null;
+    if(c === "sent_more"){
+      const bn = document.getElementById("oBin").value.trim();
+      if(bn){
+        const { data, error } = await sb.from("ref_bin").select("id").eq("warehouse_id", h.from_warehouse_id).eq("name", bn).limit(2);
+        if(error){ say("oMsg", "err", error.message); return; }
+        if(!data || data.length !== 1){ say("oMsg", "err", `Bin ${bn} is not a bin at ${h.from_warehouse}.`); return; }
+        binId = data[0].id;
+      }
+    }
+    const btn = document.getElementById("oGo"); btn.disabled = true;
+    say("oMsg", "", "Saving…");
+    const note = document.getElementById("oNote").value.trim() || null;
+    const { data, error } = await sb.rpc("tf_over_decide", { p_diff_id: d.id, p_choice: c, p_from_bin: binId, p_note: note });
+    if(error){ say("oMsg", "err", error.message); btn.disabled = false; return; }
+    modalClose();
+    const w = (data && data.warnings) || [];
+    alert(c === "sent_more"
+      ? `Decided: ${data.transfer_number} sent ${n0(data.qty_ea)} EA more — out of ${data.from_bin}, into ${data.to_bin}.`
+      : `Decided: found at the receiving warehouse${data.adjust_number ? " — adjustment " + data.adjust_number : ""}.` + (w.length ? "\n\n" + w.map(warnText).join("\n") : ""));
+    reload();
+  };
+}
+
+/* ── freight charges (Transfers key · ruling 67 · 77 · 78) ─────────
+   A charge document is the carrier's bill. It starts as a draft with one allocation line on this
+   transfer (the whole total). One bill can be split across several transfers (add a transfer,
+   change the amounts) — the allocated amounts must add up to the total before it can be confirmed.
+   Confirm puts it onto the cost of the stock that arrived. Once it is on stock cost it cannot be
+   reopened — enter an offsetting charge instead. */
+function chargeForm(v){
+  const supOpts = sups.map(s => `<option value="${esc(s.id)}" ${v.supplier_id === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  const curOpts = curs.map(c => `<option value="${esc(c.id)}" ${v.currency_id === c.id ? "selected" : ""}>${esc(c.code)}</option>`).join("");
+  const kindOpts = Object.keys(KIND_LABEL).map(k => `<option value="${k}" ${v.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("");
+  return `
+    <div class="frow"><label>Supplier (carrier)</label><select id="fSup"><option value="">— choose —</option>${supOpts}</select></div>
+    <div class="frow"><label>Bill number</label><input id="fNum" value="${esc(v.charge_number || "")}" placeholder="the carrier's invoice number"></div>
+    <div class="frow"><label>Bill date</label><input id="fDate" type="date" value="${esc(v.charge_date || torontoToday())}"></div>
+    <div class="frow"><label>Due date</label><input id="fDue" type="date" value="${esc(v.due_date || "")}"></div>
+    <div class="frow"><label>Kind</label><select id="fKind">${kindOpts}</select></div>
+    <div class="frow"><label>Total</label><input id="fTot" type="number" step="0.01" value="${esc(v.total_amount === undefined || v.total_amount === null ? "" : v.total_amount)}"></div>
+    <div class="frow"><label>Currency</label><select id="fCur"><option value="">— choose —</option>${curOpts}</select></div>
+    <div class="frow"><label>Exchange rate</label><input id="fRate" type="number" step="0.000001" value="${esc(v.exchange_rate || "")}" placeholder="CAD per 1 unit of the bill's currency — only when not CAD"></div>
+    <div class="frow"><label>Description</label><input id="fDesc" value="${esc(v.description || "")}"></div>
+    <div class="frow"><label>Note</label><input id="fNote" value="${esc(v.note || "")}"></div>`;
+}
+function readChargeForm(){
+  const val = (id) => document.getElementById(id).value.trim();
+  return {
+    supplier_id: val("fSup") || null, charge_number: val("fNum"), charge_date: val("fDate") || null, due_date: val("fDue") || null,
+    kind: val("fKind"), total_amount: val("fTot") === "" ? null : Number(val("fTot")), currency_id: val("fCur") || null,
+    exchange_rate: val("fRate") === "" ? null : Number(val("fRate")), description: val("fDesc") || null, note: val("fNote") || null
+  };
+}
+
+function openChargeCreate(h){
+  const cad = curs.find(c => c.code === "CAD");
+  modalOpen(`
+    <h4>Add a charge · ${esc(h.transfer_number)}</h4>
+    <div class="pbody">
+      ${chargeForm({ kind: "freight", currency_id: cad ? cad.id : "" })}
+      <div class="dim" style="font-size:12px">The whole total goes on ${esc(h.transfer_number)}. To split one bill across several transfers,
+        open the charge after saving and add the others.</div>
+      <div id="fWarn"></div>
+      <div id="fMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="fCancel">Cancel</button>
+      <button class="pobtn" id="fCheck">Check</button>
+      <button class="pobtn go" id="fGo" disabled>Save as draft</button></div>`);
+  document.getElementById("fCancel").onclick = modalClose;
+  const args = (commit) => { const v = readChargeForm(); return {
+    p_transfer_id: h.id, p_supplier_id: v.supplier_id, p_charge_number: v.charge_number, p_charge_date: v.charge_date, p_kind: v.kind,
+    p_total_amount: v.total_amount, p_currency_id: v.currency_id, p_exchange_rate: v.exchange_rate, p_due_date: v.due_date,
+    p_description: v.description, p_note: v.note, p_commit: commit }; };
+  const check = async () => {
+    const a = args(false);
+    if(!a.p_supplier_id){ say("fMsg", "err", "Choose the supplier."); return false; }
+    if(!a.p_charge_number){ say("fMsg", "err", "Enter the bill number."); return false; }
+    if(a.p_total_amount === null){ say("fMsg", "err", "Enter the total."); return false; }
+    if(!a.p_currency_id){ say("fMsg", "err", "Choose the currency."); return false; }
+    say("fMsg", "", "Checking…");
+    const { data, error } = await sb.rpc("tf_charge_create", a);
+    if(error){ say("fMsg", "err", error.message); document.getElementById("fGo").disabled = true; return false; }
+    const w = data.warnings || [];
+    document.getElementById("fWarn").innerHTML = w.length ? `<div class="warnbox">${w.map(x => esc(warnText(x))).join("<br>")}</div>` : '<div class="infobox">Looks fine.</div>';
+    document.getElementById("fGo").disabled = w.includes("charge_number_exists");
+    say("fMsg", "", "");
+    return true;
+  };
+  document.getElementById("fCheck").onclick = check;
+  ["fSup", "fNum", "fTot", "fCur"].forEach(i => document.getElementById(i).addEventListener("change", () => { document.getElementById("fGo").disabled = true; }));
+  document.getElementById("fGo").onclick = async () => {
+    const btn = document.getElementById("fGo"); btn.disabled = true;
+    say("fMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("tf_charge_create", args(true));
+    if(error){ say("fMsg", "err", error.message); return; }
+    modalClose();
+    await reload();
+    if(data && data.charge_id) openCharge(data.charge_id);
+  };
+}
+
+async function openCharge(chargeId){
+  modalOpen('<h4>Charge</h4><div class="pbody"><div class="msg">Loading…</div></div>', true);
+  const { data, error } = await sb.rpc("po_charge_detail", { p_charge_id: chargeId });
+  if(error){ modalOpen(`<h4>Charge</h4><div class="pbody"><div class="msg err">${esc(error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" id="xClose">Close</button></div>`, true);
+    document.getElementById("xClose").onclick = modalClose; return; }
+  if(!data){ modalOpen('<h4>Charge</h4><div class="pbody"><div class="msg">That charge is gone.</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" id="xClose">Close</button></div>', true);
+    document.getElementById("xClose").onclick = modalClose; return; }
+  const c = data.header || {}, m = data.money || {}, al = data.allocs || [], pays = data.payments || [], w = data.warnings || [];
+  const poSide = al.some(a => a.po_id);
+  const draft = c.status === "draft";
+  const ed = draft && canWrite && !poSide;
+  const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+  modalOpen(`
+    <h4>${esc(KIND_LABEL[c.kind] || c.kind)} charge <span class="mono">${esc(c.charge_number)}</span> ${chgChip(c.status)}</h4>
+    <div class="pbody">
+      ${kvTbl([
+        ["Supplier", esc(c.supplier_name || "")],
+        ["Bill date", dim(c.charge_date)], ["Due date", dim(c.due_date)],
+        ["Total", `${money(c.total_amount)} ${esc(c.currency_code || "")}${c.exchange_rate ? ` <span class="dim">@ ${esc(c.exchange_rate)}</span>` : ""}`],
+        ["Allocated", `${money(m.alloc_sum)} · unallocated ${n0(m.unallocated) ? `<span class="bad">${money(m.unallocated)}</span>` : money(0)}`],
+        ["Paid", `${money(m.paid)} · unpaid ${money(m.unpaid)}`],
+        ["Description", dim(c.description)], ["Note", dim(c.note)],
+        ["Created", `${imsTs(c.created_at)} · ${esc(c.created_by_name || "")}`],
+        ["Confirmed", c.confirmed_at ? `${imsTs(c.confirmed_at)} · ${esc(c.confirmed_by_name || "")}` : '<span class="dim">not yet</span>']
+      ])}
+      ${poSide ? '<div class="warnbox">This charge is also on purchase orders — it is handled on the Charges screen (purchasing key).</div>' : ""}
+      ${w.length ? `<div class="warnbox">${w.map(x => esc(warnText(x))).join("<br>")}</div>` : ""}
+      <div class="sec" style="border-top:0;padding-left:0">On transfers</div>
+      <table><thead><tr><th>Document</th><th>Status</th><th class="num">Amount (${esc(c.currency_code || "")})</th>${ed ? "<th></th>" : ""}</tr></thead>
+        <tbody>${al.map(a => `<tr>
+          <td class="mono">${esc(a.transfer_number || a.po_number || "")}</td>
+          <td>${a.transfer_id ? stChip(a.transfer_status) : esc(a.po_status || "")}</td>
+          <td class="num">${ed ? `<input class="qin" data-amt="${esc(a.alloc_id)}" type="number" step="0.01" value="${esc(a.amount)}">` : money(a.amount)}</td>
+          ${ed ? `<td style="white-space:nowrap"><button class="pobtn" data-asave="${esc(a.alloc_id)}">Save</button> <button class="pobtn bad" data-adel="${esc(a.alloc_id)}">✕</button></td>` : ""}
+        </tr>`).join("")}</tbody></table>
+      ${ed ? `<div class="frow" style="margin-top:10px"><label>Add a transfer</label><input id="aNum" placeholder="TRF-00012" style="flex:0 0 150px">
+          <input id="aAmt" type="number" step="0.01" placeholder="amount" style="flex:0 0 120px"><button class="pobtn" id="aAdd">Add</button></div>` : ""}
+      ${pays.length ? `<div class="sec" style="border-top:0;padding-left:0">Payments</div>
+        <table><thead><tr><th>Paid on</th><th>Reference</th><th class="num">Applied</th></tr></thead>
+        <tbody>${pays.map(p => `<tr><td>${dim(p.paid_on)}</td><td>${esc(p.reference || "")}</td><td class="num">${money(p.alloc_amount)} ${esc(p.currency_code || "")}</td></tr>`).join("")}</tbody></table>` : ""}
+      <div id="xWarn"></div>
+      <div id="xMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot">
+      ${ed && !c.confirmed_at ? '<button class="pobtn bad" id="xDel">Delete</button>' : ""}
+      <span class="sp"></span>
+      <button class="pobtn" id="xClose">Close</button>
+      ${ed ? '<button class="pobtn" id="xEdit">Edit</button>' : ""}
+      ${ed ? '<button class="pobtn go" id="xConfirm">Confirm — put on stock cost</button>' : ""}
+      ${c.status === "confirmed" && canWrite && !poSide ? '<button class="pobtn" id="xReopen">Reopen</button>' : ""}
+    </div>`, true);
+  const done = async (keepOpen) => { await reload(); if(keepOpen) openCharge(chargeId); else modalClose(); };
+  document.getElementById("xClose").onclick = modalClose;
+  document.querySelectorAll("[data-asave]").forEach(el => { el.onclick = async () => {
+    const inp = document.querySelector(`[data-amt="${el.dataset.asave}"]`);
+    if(inp.value === "" || isNaN(Number(inp.value))){ say("xMsg", "err", "Enter an amount."); return; }
+    const { error } = await sb.rpc("tf_charge_alloc_update", { p_alloc_id: el.dataset.asave, p_amount: Number(inp.value) });
+    if(error){ say("xMsg", "err", error.message); return; }
+    done(true);
+  }; });
+  document.querySelectorAll("[data-adel]").forEach(el => { el.onclick = async () => {
+    if(!confirm("Take this transfer off the charge?")) return;
+    const { error } = await sb.rpc("tf_charge_alloc_delete", { p_alloc_id: el.dataset.adel });
+    if(error){ say("xMsg", "err", error.message); return; }
+    done(true);
+  }; });
+  const aAdd = document.getElementById("aAdd");
+  if(aAdd) aAdd.onclick = async () => {
+    const num = document.getElementById("aNum").value.trim().toUpperCase();
+    const amt = document.getElementById("aAmt").value;
+    if(!num){ say("xMsg", "err", "Enter a transfer number."); return; }
+    const { data: tx, error: e1 } = await sb.from("inv_transfer").select("id,transfer_number").eq("transfer_number", num).limit(2);
+    if(e1){ say("xMsg", "err", e1.message); return; }
+    if(!tx || tx.length !== 1){ say("xMsg", "err", `Transfer ${num} not found.`); return; }
+    const { data: r, error } = await sb.rpc("tf_charge_alloc_add", { p_charge_id: chargeId, p_transfer_id: tx[0].id, p_amount: amt === "" ? 0 : Number(amt) });
+    if(error){ say("xMsg", "err", error.message); return; }
+    if(r && (r.warnings || []).length) alert(r.warnings.map(warnText).join("\n"));
+    done(true);
+  };
+  const xDel = document.getElementById("xDel");
+  if(xDel) xDel.onclick = async () => {
+    if(!confirm(`Delete charge ${c.charge_number}? The document and its allocation lines disappear for good.`)) return;
+    const { error } = await sb.rpc("tf_charge_delete", { p_charge_id: chargeId });
+    if(error){ say("xMsg", "err", error.message); return; }
+    done(false);
+  };
+  const xEdit = document.getElementById("xEdit");
+  if(xEdit) xEdit.onclick = () => openChargeEdit(c, chargeId);
+  const xConfirm = document.getElementById("xConfirm");
+  if(xConfirm) xConfirm.onclick = async () => {
+    if(!confirm(`Confirm ${c.charge_number}? It is put onto the cost of the stock that arrived. Once it is on stock cost it cannot be reopened — you would enter an offsetting charge instead.`)) return;
+    xConfirm.disabled = true;
+    say("xMsg", "", "Confirming…");
+    const { data: r, error } = await sb.rpc("tf_charge_confirm", { p_charge_id: chargeId, p_confirm: true });
+    if(error){ say("xMsg", "err", error.message); xConfirm.disabled = false; return; }
+    const ww = (r && r.warnings) || [];
+    if(ww.length) alert(`${c.charge_number} confirmed.\n\n` + ww.map(warnText).join("\n"));
+    done(true);
+  };
+  const xReopen = document.getElementById("xReopen");
+  if(xReopen) xReopen.onclick = async () => {
+    if(!confirm(`Reopen ${c.charge_number} to draft? This works only while nothing of it is on stock cost yet and nothing is paid.`)) return;
+    const { error } = await sb.rpc("tf_charge_confirm", { p_charge_id: chargeId, p_confirm: false });
+    if(error){ say("xMsg", "err", error.message); return; }
+    done(true);
+  };
+}
+
+function openChargeEdit(c, chargeId){
+  modalOpen(`
+    <h4>Edit charge <span class="mono">${esc(c.charge_number)}</span></h4>
+    <div class="pbody">
+      ${chargeForm(c)}
+      <div class="dim" style="font-size:12px">Changing the total does not change the allocation lines — fix them on the charge afterwards.</div>
+      <div id="eMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="eCancel">Cancel</button>
+      <button class="pobtn go" id="eGo">Save</button></div>`);
+  document.getElementById("eCancel").onclick = () => openCharge(chargeId);
+  document.getElementById("eGo").onclick = async () => {
+    const v = readChargeForm();
+    if(!v.supplier_id || !v.charge_number || v.total_amount === null || !v.currency_id || !v.charge_date){ say("eMsg", "err", "Supplier, bill number, bill date, total and currency are needed."); return; }
+    const old = { supplier_id: c.supplier_id, charge_number: c.charge_number, charge_date: c.charge_date, due_date: c.due_date || null, kind: c.kind,
+                  total_amount: c.total_amount === null ? null : Number(c.total_amount), currency_id: c.currency_id,
+                  exchange_rate: c.exchange_rate === null || c.exchange_rate === undefined ? null : Number(c.exchange_rate),
+                  description: c.description || null, note: c.note || null };
+    const patch = {};
+    Object.keys(v).forEach(k => { if(String(v[k] === null ? "" : v[k]) !== String(old[k] === null ? "" : old[k])) patch[k] = v[k]; });
+    if(!Object.keys(patch).length){ openCharge(chargeId); return; }
+    say("eMsg", "", "Saving…");
+    const { error } = await sb.rpc("tf_charge_update", { p_charge_id: chargeId, p_patch: patch });
+    if(error){ say("eMsg", "err", error.message); return; }
+    await reload();
+    openCharge(chargeId);
+  };
+}
+
+/* ── new ── */
+function openCreate(){
+  const acc = (me && me.access) || imsAuth.access || {};
+  const allow = Array.isArray(acc.warehouses) && acc.warehouses.length ? acc.warehouses : null;   // null = every warehouse
+  const opts = (sel) => allWhs.map(w => `<option value="${esc(w.id)}" ${w.id === sel ? "selected" : ""}>${esc(w.name)}</option>`).join("");
+  const mine = allow ? allWhs.filter(w => allow.includes(w.id)) : allWhs;
+  const fromDef = mine.length ? mine[0].id : (allWhs[0] ? allWhs[0].id : "");
+  const toDef = (allWhs.find(w => w.id !== fromDef) || {}).id || "";
+  modalOpen(`
+    <h4>New transfer</h4>
+    <div class="pbody">
+      <div class="frow"><label>From warehouse</label><select id="nf">${opts(fromDef)}</select></div>
+      <div class="frow"><label>To warehouse</label><select id="nt">${opts(toDef)}</select></div>
+      <div class="frow"><label>Note</label><input id="nn" placeholder="What this is about — for example the weekly Edmonton top-up"></div>
+      <div class="dim" style="font-size:12px">You must be set up for the from or the to warehouse. Releasing to the warehouse needs the from warehouse.
+        To move stock inside one warehouse, use Bin Moves.</div>
+      <div id="nMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="nCancel">Cancel</button>
+      <button class="pobtn go" id="nGo">Start</button></div>`);
+  document.getElementById("nCancel").onclick = modalClose;
+  document.getElementById("nGo").onclick = async () => {
+    const f = document.getElementById("nf").value, t = document.getElementById("nt").value;
+    if(!f || !t){ say("nMsg", "err", "Choose both warehouses."); return; }
+    if(f === t){ say("nMsg", "err", "From and to are the same warehouse — use Bin Moves inside one warehouse."); return; }
+    say("nMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("inv_transfer_create", { p_from_warehouse_id: f, p_to_warehouse_id: t, p_note: document.getElementById("nn").value.trim() || null });
+    if(error){ say("nMsg", "err", error.message); return; }
+    modalClose(); openTransfer(data.id);
+  };
+}
+
+/* ── start ── */
+imsAuth.start({ changePw:true, requireScreen:"transfer" }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = TF_BUILD;
+  canWrite = imsAuth.canWrite("transfer");
+
+  const [ca, wh, su, cu] = await Promise.all([
+    sb.rpc("ims_can_adjust"),
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("supplier").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code")
+  ]);
+  canAdj = !!(ca && ca.data === true);
+  allWhs = (wh && wh.data) || [];
+  sups = (su && su.data) || [];
+  curs = (cu && cu.data) || [];
+  const whOpts = allWhs.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+  document.getElementById("wfw").innerHTML = '<option value="">From: all</option>' + whOpts;
+  document.getElementById("wtw").innerHTML = '<option value="">To: all</option>' + whOpts;
+
+  document.getElementById("wst").onchange   = e => { stFilter = e.target.value; loadWide(); };
+  document.getElementById("wfw").onchange   = e => { fwFilter = e.target.value; loadWide(); };
+  document.getElementById("wtw").onchange   = e => { twFilter = e.target.value; loadWide(); };
+  document.getElementById("wfrom").onchange = e => { dateFrom = e.target.value; loadWide(); };
+  document.getElementById("wto").onchange   = e => { dateTo   = e.target.value; loadWide(); };
+  imsQ("#wq", v => { q = v; loadWide(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; stFilter = ""; fwFilter = ""; twFilter = ""; dateFrom = ""; dateTo = "";
+    ["wq","wst","wfw","wtw","wfrom","wto"].forEach(i => document.getElementById(i).value = "");
+    loadWide();
+  };
+  const nw = document.getElementById("wnew");
+  if(canWrite) nw.onclick = openCreate; else nw.hidden = true;
+
+  const wantId = imsParam("id");
+  if(wantId){ openTransfer(wantId); return; }
+  showWide();
+});
+</script>
+</body>
+</html>
