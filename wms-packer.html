@@ -302,7 +302,7 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 비움(판정 33 · HAS_IMAGES false) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-09-29 · pa v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+const WK_BUILD="2026-09-29 · pa v1.3";   // tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 let sb=null, me=null, whById={}, staffName={};
@@ -341,6 +341,7 @@ function docId(t){ return t ? (t.order_id||t.transfer_id||null) : null; }       
 function isTr(){ return !!(packTask&&packTask.transfer_id); }
 function repDoc(id){ return isTr() ? {transfer_id:id} : {order_id:id}; }             // wms_reports 쓰기 · 찾기 — 문서 종류로 열 이름(CHECK 많아야 하나 · tr-1a:365)
 function lineCols(olid){ return isTr() ? {transfer_line_id:olid} : {order_line_id:olid}; }   // wms_pack_task_lines — 창구 wms_pick_lines 의 order_line_id 는 coalesce(문서 줄 id)
+let startLineIds=[];   // tf-2c 판정 87 A — 시작 갈래에서 insert 가 돌려준 팩 줄 [{id, order_line_id, transfer_line_id}] · enterPack 이 바로 짝을 맞춘다(되찾기 조회 없이)
 const TR_STATUS_LABEL={ confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", in_transit:"In transit", receiving:"Receiving", received:"Received", cancelled:"Cancelled" };
 function trTag(o){ return o&&o.is_transfer ? `<span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
 
@@ -752,7 +753,7 @@ async function startPack(pickId){
     pack_task_id:packTask.id, ...lineCols(l.order_line_id),   // tf-2a — 판매 order_line_id · 트랜스퍼 transfer_line_id
     expected_base:Number(l.picked_base||0), verified_base:0, status:"pending"
   }));
-  if(rows.length){ const {error:le}=await sb.from("wms_pack_task_lines").insert(rows); if(le){ await sb.from("wms_pack_tasks").delete().eq("id",packTask.id); toast("Failed to create lines: "+le.message,true); return; } }
+  if(rows.length){ const ins2=await sb.from("wms_pack_task_lines").insert(rows).select("id,order_line_id,transfer_line_id"); startLineIds=ins2.data||[]; const le=ins2.error; if(le){ await sb.from("wms_pack_tasks").delete().eq("id",packTask.id); toast("Failed to create lines: "+le.message,true); return; } }   // tf-2c — insert 가 팩 줄 id 를 돌려준다(판매 · 트랜스퍼 같은 길)
   lines=(pl||[]).map(r=>lineFromRpc(r,false)); finishBuild(); enterPack();
 }
 
@@ -822,12 +823,19 @@ function finishBuild(){
 }
 
 async function enterPack(){
+  // tf-2c 판정 87 A — 시작 갈래: insert 가 돌려준 팩 줄 id 를 바로 · 열쇠 = 문서 줄 id(판매 order_line_id · 트랜스퍼 transfer_line_id = 창구 wms_pick_lines 의 coalesce 값)
+  if(startLineIds.length&&lines.some(l=>l.packline_id==null)){
+    const m0={}; startLineIds.forEach(r=>{ m0[r.order_line_id||r.transfer_line_id]=r.id; });
+    lines.forEach(l=>{ if(l.packline_id==null) l.packline_id=m0[l.order_line_id]||null; });
+  }
+  startLineIds=[];
   // in start path, packline_id if missing, fill via re-query (needed for saving)
   if(lines.some(l=>l.packline_id==null)){
-    const {data}=await sb.from("wms_pack_task_lines").select("id,order_line_id").eq("pack_task_id",packTask.id);
-    const m={}; (data||[]).forEach(r=>m[r.order_line_id]=r.id);
+    const {data}=await sb.from("wms_pack_task_lines").select("id,order_line_id,transfer_line_id").eq("pack_task_id",packTask.id);   // tf-2c — 트랜스퍼 팩 줄은 transfer_line_id 에 있다
+    const m={}; (data||[]).forEach(r=>m[r.order_line_id||r.transfer_line_id]=r.id);   // tf-2c 판정 87 — 열쇠 = 문서 줄 id(판매는 order_line_id 그대로)
     lines.forEach(l=>{ if(l.packline_id==null) l.packline_id=m[l.order_line_id]||null; });
   }
+  if(lines.some(l=>l.packline_id==null)) toast("Reload — some lines cannot be saved",true);   // tf-2c 판정 87 C — 조용히 지나가지 않는다
   curIdx=lines.findIndex(l=>l.verified<l.required); if(curIdx<0)curIdx=0;
   renderShortAlert();   // re-rendered again once loadStockFlags() knows about declarations
   skuFilter=""; lastScan=null; clearTimeout(advTimer); const _se=document.getElementById("skuSearch"); if(_se)_se.value="";
@@ -1348,7 +1356,7 @@ function manualAdjust(idx,d){
 }
 
 async function saveLine(l){
-  if(!l.packline_id)return;
+  if(!l.packline_id){ toast("Reload — this line cannot be saved",true); return; }   // tf-2c 판정 87 C — 옛 조용한 return(2026-09-29 553 에서 센 것이 어디에도 안 남았다)
   if(!await ensureMine()) return;      // 규칙 28 — 쓰기 직전 소유권 재확인 (scan · stepper · manual 공통 관문)
   if(l.verified>0) markWorkStarted(); // first real verify = this claim is genuine work
   const st=l.verified>=l.required?"verified":(l.verified>0?"in_progress":"pending");

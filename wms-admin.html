@@ -295,7 +295,7 @@
 /* adj-b (2026-09-28 · wa v1.9) — Reports 탭: 열린 「Not enough stock」 줄에 「Adjust stock」(stock-adjustments.html?report=<id> · 같은 창 · 판정 20 · 44 모양) · 보이기는 ims_can_adjust() 한 번(판정 49 · 50 · fail-closed) · 「Mark resolved」 는 그대로(묶음 9) */
 /* ⑤-6c2 (2026-09-27 · wa v1.8) — Receiving 탭: 「Off-PO items waiting for a decision」(읽기 · 줄 = Purchase Receipts 딥링크 receiving.html?receipt=<uuid>&diff=<uuid> · 판정 44) ·
    「Rejected — still on a shelf」(rejected · 칸 있음 · removed_at null · Health 160 과 같은 모집단) · Stats 차이 카드에 off-PO 결정 어휘(accepted_free · accepted_billed · rejected) */
-const WK_BUILD="2026-09-29 · wa v1.11";   // tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-09-29 · wa v1.12";   // tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -2119,12 +2119,14 @@ async function refreshRecvBadge(){
 }
 const RCV_SEL="id,receipt_number,status,received_on,created_by,created_at,updated_at,confirmed_at,confirmed_by,warehouse_id,"
   +"po:po!po_receipt_po_id_fkey(id,po_number,supplier:supplier!po_supplier_id_fkey(name)),"
-  +"work:po_receipt_work(id,po_line_id,qty_ea,bin_id,putaway_done,updated_at,counted_by,putaway_by),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed,completed_by,completed_at)";
+  +"work:po_receipt_work(id,po_line_id,qty_ea,bin_id,putaway_done,updated_at,counted_by,putaway_by),holds:wms_task_holds(id,resumed_at),complete:wms_receipt_complete(completed,completed_by,completed_at),"
+  +"transfer:inv_transfer!po_receipt_transfer_id_fkey(id,transfer_number,from_warehouse_id)";   // tf-2c — 트랜스퍼 입고의 문서(PO 입고 행은 transfer null · FK tf-3 실측)
 function normRcv(r){
   const c=Array.isArray(r.complete)?r.complete[0]:r.complete;
   r.completed=!!(c&&c.completed); r.completed_by=c&&c.completed_by||null; r.completed_at=c&&c.completed_at||null;
   r.held=(r.holds||[]).some(h=>!h.resumed_at);
   r.po_number=r.po&&r.po.po_number||""; r.supplier_name=r.po&&r.po.supplier&&r.po.supplier.name||"";
+  if(!r.po&&r.transfer){ r.is_transfer=true; r.po_number=r.transfer.transfer_number||""; r.supplier_name="from "+(whOf(r.transfer.from_warehouse_id).name||"—")+" · Transfer"; }   // tf-2c — 트랜스퍼 입고 행: 번호 = TRF · 공급처 자리 = 출발 창고(PO 행은 po 가 있어 손대지 않는다)
   r.wh=whOf(r.warehouse_id).key;
   r.last_at=(r.work||[]).reduce((m,w)=>(w.updated_at&&w.updated_at>m)?w.updated_at:m, r.updated_at||r.created_at);   // 「Last activity」 = 작업 줄의 마지막 저장
   return r;
@@ -2791,7 +2793,7 @@ async function loadRecvStats(r){
   // 범위 = 「기간 안에 작업이 있었을 수 있는 것」 = created_at ≤ to 이고 (미확정이거나 confirmed_at ≥ from) — 넓어진 만큼은 아래 줄 단위 기간 판정(counted_at)이 걸러낸다(운영 2026-08-17 개정 그대로)
   const [rec,disc]=await Promise.all([
     sbAll(()=>sb.from("po_receipt")   // caps-ok: sbAll 페이지 누적 — 기간에 걸친 receipt 전량(줄 필터가 후단)
-      .select("id,receipt_number,status,warehouse_id,created_at,confirmed_at,created_by,po:po!po_receipt_po_id_fkey(po_number),work:po_receipt_work(po_line_id,qty_ea,bin_id,putaway_done,counted_by,counted_at,putaway_by,putaway_at),complete:wms_receipt_complete(completed,completed_at)")
+      .select("id,receipt_number,status,warehouse_id,created_at,confirmed_at,created_by,po:po!po_receipt_po_id_fkey(po_number),work:po_receipt_work(po_line_id,transfer_line_id,qty_ea,bin_id,putaway_done,counted_by,counted_at,putaway_by,putaway_at),complete:wms_receipt_complete(completed,completed_at)")
       .lte("created_at",r.toISO)
       .or("confirmed_at.is.null,confirmed_at.gte."+r.fromISO)
       .order("id")),
@@ -2846,14 +2848,14 @@ async function loadRecvStats(r){
       const q=Number(w.qty_ea)||0;
       if(q<=0)return;
       if(!(w.counted_at?inPeriod(w.counted_at):rcInPeriod)) return;
-      lineSet.add(w.po_line_id); T.units+=q; wh.units+=q;
+      lineSet.add(w.po_line_id||w.transfer_line_id); T.units+=q; wh.units+=q;   // tf-2c 판정 87 — 줄 열쇠 = 문서 줄 id(트랜스퍼 입고 줄은 transfer_line_id · PO 는 그대로)
       if(w.counted_by) T.counters[w.counted_by]=(T.counters[w.counted_by]||0)+1;
       if(w.putaway_by) T.placers[w.putaway_by]=(T.placers[w.putaway_by]||0)+1;
       pLines++;
       if(w.putaway_done){ pDone++; } else{ backLines++; backUnits+=q; }
       const key=w.counted_by||rc.created_by||"(unknown)";
       const tw=touched.get(key)||{lines:new Set(),units:0,pDone:0,maxAt:null};
-      tw.lines.add(w.po_line_id); tw.units+=q; if(w.putaway_done)tw.pDone++;
+      tw.lines.add(w.po_line_id||w.transfer_line_id); tw.units+=q; if(w.putaway_done)tw.pDone++;   // tf-2c
       if(w.counted_at&&(!tw.maxAt||w.counted_at>tw.maxAt))tw.maxAt=w.counted_at;
       touched.set(key,tw);
     });

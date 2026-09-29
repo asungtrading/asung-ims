@@ -1088,7 +1088,7 @@ Parked and open at this store
 
 ---
 
-## 7-o. `wms-packer.html` — Packing (2026-09-26 밤 신설 · Claude Code ⑤-4c · 1판 「2026-09-26 · pa v1」 → pa v1.1(adj-rec-a) → Claude Code tf-2a **pa v1.2** 「2026-09-29 · pa v1.2」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) · 운영 `asung-wms/packer.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음)
+## 7-o. `wms-packer.html` — Packing (2026-09-26 밤 신설 · Claude Code ⑤-4c · 1판 「2026-09-26 · pa v1」 → pa v1.1(adj-rec-a) → Claude Code tf-2a **pa v1.2** 「2026-09-29 · pa v1.2」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) → Claude Code tf-2c **pa v1.3** 「2026-09-29 · pa v1.3」 = 판정 87(팩 줄 id 되찾기 결함 · 553 · 아래 tf-2c 절) · 운영 `asung-wms/packer.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음)
 
 뒷단(⑤-2a2 · ⑤-4b · 정본 `asung-wms/docs/design/so-module.md` §24 · 판정 17 · 18 · 20 · 21 · 25 · 33): 읽기 창구 **`wms_pick_lines`** — 시작은 `(p_task_ids [픽 과제])` · 재개는 팩 갈래 `(null, p_pack_task_id)`(pack_line_id · expected_base · verified_base · pack_verification_method + 픽 assigned(required) · 제품 · 바코드 · 칸 · 가용) ·
 표 `wms_pick_tasks`(완료 픽 풀 · `so!inner(...)` + `so.status = picking`) · `wms_pack_tasks`(시작 insert · 클레임 · 세션 · held · 완료 확인) · `wms_pack_task_lines`(시작 insert · 스캔 저장 verified_by uuid) · `wms_pick_task_lines`(부족 배지) · `wms_reports`(barcode_mismatch · **stock_short** — 픽커 선언은 「declared by 이름」) · `wms_order_pack_progress`(all_packed 읽기만) · `so`(상태 배너 · 재인쇄) · `ref_warehouse` · `ims_staff`(id,name) ·
@@ -1137,6 +1137,14 @@ Parked and open at this store
 [ ] 팩 화면 「Toronto · Transfer to <도착 창고>」 · 리로드(?pack=) 복원 · 🖨 Print = 픽 화면과 같은 트랜스퍼 인쇄
 [ ] (선택) 「⚠ Not enough stock」 · 「⚑ Barcode changed」 → wms_reports transfer_id · Complete pack → 「All batches … packed! — ready to be finalized」(뷰 order_id = 문서 id)
 [ ] Pack fill(픽보다 많이) 회복 칸 prompt 는 판매와 같다(창구 p_recovered 가 문서를 가른다 · 20260928164832 → tr-1b2 재발행)
+```
+
+⭐ [2026-09-29 · Claude Code tf-2c · 판정 87 A + C] **pa v1.3** — 시작 갈래의 팩 줄 id 되찾기가 order_line_id 로만 짝을 맞춰 트랜스퍼 팩 줄(transfer_line_id)을 못 찾았다(553 · 스캔이 어디에도 안 남고 Complete 가 「packed 0, picked 1 + recovered 1」로 거부 · 목록에서도 사라짐). 이제 insert 가 돌려준 줄 id 를 바로 쓰고, 되찾기 조회도 문서 줄 id(order_line_id || transfer_line_id)로 · 저장 못 하는 줄은 빨간 토스트(patch ~/asung/prompts/tf-2c-packer.patch · − 줄 4 는 보고에 이유).
+```
+[ ] 빌드 표시 「2026-09-29 · pa v1.3」 · 판매 팩 시작 → 스캔 → Complete pack 이 어제와 같다(팩 줄 id 는 insert 반환에서 · 되찾기 조회는 안 돈다)
+[ ] ⭐ 시작 갈래로 트랜스퍼를 싼다 — Pack Queue 의 TRF-0000n-1 Start verify → 스캔 1 → wms_pack_task_lines.verified_base 1(저장이 남는다 · work_started t) → Pack fill +1(칸) → 2 / 2 → Complete pack → 통과 · wms_pick_line_bins 에 pack_task_id 붙은 회복 칸 행
+[ ] 553 처럼 남은 in_progress 팩은 오더 스캔 칸에 TRF-00001-1 → Resume verify(재개 갈래) → 스캔 → Complete
+[ ] 저장 못 하는 줄이 있으면(옛 화면 · 캐시) 빨간 「Reload — this line cannot be saved」 · 조용히 지나가지 않는다
 ```
 
 ---
@@ -1193,7 +1201,7 @@ Parked and open at this store
 
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (→ Claude Code tf-2b **wa v1.11** 「2026-09-29 · wa v1.11」 = 판정 83 트랜스퍼 갈래(Status · Rollback · Trace · 재출력 라벨 85-1) + 판정 86 ③-2 A(Finalized 탭에 운송 중 트랜스퍼 · 같은 🖨 · PDF · CSV) — 절 끝 tf-2b 항목 · 2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
+## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (→ Claude Code tf-2b **wa v1.11** 「2026-09-29 · wa v1.11」 = 판정 83 트랜스퍼 갈래(Status · Rollback · Trace · 재출력 라벨 85-1) + 판정 86 ③-2 A(Finalized 탭에 운송 중 트랜스퍼 · 같은 🖨 · PDF · CSV) → tf-2c **wa v1.12** = 판정 87 훑기(Stats 입고 줄 수 · Receiving 탭 트랜스퍼 입고 번호) — 절 끝 tf-2b 항목 · 2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1286,6 +1294,12 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 [ ] Rollback — 트랜스퍼 행에 ↩ Undo Split / Reset Pick / Undo Pack / Undo Fulfillment(창구 wms_rollback 이 문서 id 를 받는다 · 떠난 트랜스퍼(in_transit)는 목록에 없다 — 되돌리지 못한다)
 [ ] Trace — TRF-0000n 정확히 → 머리 「TRF · <도착 창고> · Transfer · In transit/Working」 · 배치 · 줄(SKU · 이름은 뷰) · 실수 · 신고(transfer_id) · 손님 이름 검색은 판매만
 [ ] Finalized(판정 86 ③-2 A) — 창고 마무리 뒤 · 도착 전 트랜스퍼(in transit · receiving)가 판매 옆에 「TRF-0000n · Transfer · <도착 창고> · Finalized by · When」 · ✓ 검토 칸 자리엔 꼬리표(검토 없음 · 「N of M not yet reviewed」 셈에서 빠진다) · 🖨 · PDF · CSV = 「Ship to warehouse <도착 창고>」 · ▸ N batches 펼침 · 에드먼튼이 Complete 하면 빠진다 · Trace 에는 재출력 없다(판정 86 ③)
+```
+
+⭐ [2026-09-29 · Claude Code tf-2c · 판정 87 훑기] **wa v1.12** — Stats 입고의 줄 수가 po_line_id 로만 세어 트랜스퍼 입고 줄이 null 하나로 접히던 것 → 문서 줄 id(po_line_id || transfer_line_id) · Receiving 탭의 트랜스퍼 입고 행에 TRF 번호 · 「from <출발 창고> · Transfer」(patch ~/asung/prompts/tf-2c-admin.patch).
+```
+[ ] 빌드 표시 「2026-09-29 · wa v1.12」 · Stats 입고 · Receiving 탭의 PO 입고 숫자 · 행이 어제와 같다
+[ ] 에드먼튼이 TRF 입고를 세는 동안 Receiving 탭 「work」 목록에 「TRF-0000n · from Toronto · Transfer」 · Stats 입고 Lines 가 트랜스퍼 줄 수만큼 는다
 ```
 
 ---
