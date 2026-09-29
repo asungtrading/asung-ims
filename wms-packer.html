@@ -302,7 +302,7 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 비움(판정 33 · HAS_IMAGES false) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-09-28 · pa v1.1";   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+const WK_BUILD="2026-09-29 · pa v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 let sb=null, me=null, whById={}, staffName={};
@@ -318,13 +318,31 @@ function statusLabel(s){ return STATUS_LABEL[s]||s||"?"; }
 function normOrder(s){
   s=s||{};
   return { id:s.id||null, order_number:s.so_number||"", status:s.status||"", warehouse_id:s.location_id||null,
-           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"" };
+           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"",
+           is_transfer:!!s._transfer, dest_name:s._dest||"" };   // tf-2a — 트랜스퍼면 true · 도착 창고 이름(판매 행은 false · "")
 }
 function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
 function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
-const SO_EMB="so(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name))";
+const TR_COLS="id,transfer_number,status,from_warehouse_id,to_warehouse_id";
+const TR_EMB="transfer:inv_transfer(" +TR_COLS+")";   // tf-2a — 트랜스퍼 과제의 문서(FK wms_pick_tasks · wms_pack_tasks 의 transfer_id 하나씩 · tr-1a:350 · 354 · 읽기 정책 tr-1b2:1192)
+const TR_IN_PICK="inv_transfer!wms_pick_tasks_transfer_id_fkey!inner("+TR_COLS+")";   // 트랜스퍼 상태로 거를 때(!inner · 표 이름으로 필터 inv_transfer.status)
+const TR_IN_PACK="inv_transfer!wms_pack_tasks_transfer_id_fkey!inner("+TR_COLS+")";
+const SO_EMB="so(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name)), "+TR_EMB;   // tf-2a — 판매 임베드 그대로 + 트랜스퍼 임베드(판매 행은 transfer null)
 const SO_EMB_IN="so!inner(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name))";   // 오더 상태로 거를 때(!inner — 없으면 임베드만 null 이 되고 부모 행은 남는다 · 운영 2026-08-14 실측)
-const PKSEL="id,batch_label,order_id,pick_task_id,status,assigned_to,started_at,heartbeat_at,work_started,held_by,session_id";
+const PKSEL="id,batch_label,order_id,transfer_id,pick_task_id,status,assigned_to,started_at,heartbeat_at,work_started,held_by,session_id";   // tf-2a — transfer_id 한 칸 더(판매 행은 null)
+/* ---------- tf-2a(판정 83) 트랜스퍼 갈래 — 판매 조회 줄은 그대로 · 트랜스퍼 과제(so null)는 읽은 뒤 so 자리에 같은 모양으로 채운다 ----------
+   번호 = TRF- · 손님 자리 = 도착 창고 이름 · 창고 = 출발 창고 · 상태 어휘는 판매와 같다(picking = Working · 묶음 열 4) · 줄 · 바코드 · 칸은 창구 wms_pick_lines 가 이미 문서를 가른다(tr-1b2).
+   쓰기: 팩 과제 · 팩 줄 · 신고는 문서 종류로 열 이름을 가른다(order_id|transfer_id · order_line_id|transfer_line_id · CHECK 정확히 하나 · tr-1a:354 · 356). */
+function soLike(x){ const from=whOf(x.from_warehouse_id).name, to=whOf(x.to_warehouse_id).name;
+  return { id:x.id, so_number:x.transfer_number||"", status:x.status||"", location_id:x.from_warehouse_id||null, location_name:from, customer:{name:to}, _transfer:true, _dest:to }; }
+function docFill(t){ const x=t&&(t.transfer||t.inv_transfer); if(t && !t.so && x) t.so=soLike(x); return t; }
+function docFillAll(rows){ (rows||[]).forEach(docFill); return rows; }
+function docId(t){ return t ? (t.order_id||t.transfer_id||null) : null; }            // 문서 id(판매 so.id · 트랜스퍼 inv_transfer.id) — 뷰 · 신고의 열쇠(coalesce · 정본 27-d 5)
+function isTr(){ return !!(packTask&&packTask.transfer_id); }
+function repDoc(id){ return isTr() ? {transfer_id:id} : {order_id:id}; }             // wms_reports 쓰기 · 찾기 — 문서 종류로 열 이름(CHECK 많아야 하나 · tr-1a:365)
+function lineCols(olid){ return isTr() ? {transfer_line_id:olid} : {order_line_id:olid}; }   // wms_pack_task_lines — 창구 wms_pick_lines 의 order_line_id 는 coalesce(문서 줄 id)
+const TR_STATUS_LABEL={ confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", in_transit:"In transit", receiving:"Receiving", received:"Received", cancelled:"Cancelled" };
+function trTag(o){ return o&&o.is_transfer ? `<span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
 
 /* ---------- lease / presence (heartbeat 제거 — 스캔 시 이어받기로 대체) ---------- */
 let presCh=null;
@@ -505,6 +523,7 @@ async function restoreFromUrl(id){
     const {data:pk,error}=await sb.from("wms_pack_tasks").select(PKSEL+", "+SO_EMB).eq("id",id).maybeSingle();
     if(error) throw error;
     if(pk && pk.status==="in_progress" && pk.assigned_to===me.id){
+      docFill(pk);   // tf-2a
       packLookup[pk.id]=pk;          // resumePack 이 이 캐시를 읽는다 — 기존 로드 경로 그대로 재사용
       await resumePack(pk.id); return;
     }
@@ -536,6 +555,13 @@ async function loadQueue(){
   ]);
   document.getElementById("bloading").style.display="none";
   if(donePick.error||allPack.error){toast("Failed to load list: "+((donePick.error||allPack.error).message||""),true);return;}
+  // tf-2a — 트랜스퍼 과제(so 없음 · 위 !inner 가 떨어뜨린다)는 inv_transfer!inner + 트랜스퍼 상태 picking 으로 따로 읽어 같은 풀에 더한다(판매 조회는 위 그대로)
+  const [trPick, trPack]=await Promise.all([
+    sb.from("wms_pick_tasks").select("id,batch_label,order_id,transfer_id,completed_at,wave_id,tote_no, "+TR_IN_PICK).eq("status","completed").eq("inv_transfer.status","picking").order("completed_at",{ascending:false}).limit(1000),   // caps-ok: Working 트랜스퍼만
+    sb.from("wms_pack_tasks").select(PKSEL+", "+TR_IN_PACK).eq("inv_transfer.status","picking").order("id",{ascending:false}).limit(1000),   // caps-ok: Working 트랜스퍼만
+  ]);
+  if(trPick.error||trPack.error){ toast("Failed to load transfer batches: "+((trPick.error||trPack.error).message||""),true); }
+  donePick.data=(donePick.data||[]).concat(docFillAll(trPick.data||[])); allPack.data=(allPack.data||[]).concat(docFillAll(trPack.data||[]));
   const inWh=s=>inWhId(s&&s.location_id);
   const packs=(allPack.data||[]);
   const claimedPickIds=new Set(packs.filter(p=>p.status==="in_progress"||p.status==="completed").map(p=>p.pick_task_id));
@@ -563,6 +589,11 @@ async function checkOrderBanner(orderIds){
   const el=document.getElementById("voidBanner"); if(!el) return;
   el.style.display="none";
   try{
+    // tf-2a — 트랜스퍼 과제는 inv_transfer 의 상태로(판매 갈래는 아래 그대로)
+    if(packTask&&packTask.transfer_id){
+      const {data:td}=await sb.from("inv_transfer").select("transfer_number,status").eq("id",packTask.transfer_id).neq("status","picking");
+      if(td&&td.length){ el.textContent="⚠ "+td.map(r=>r.transfer_number+" is "+(TR_STATUS_LABEL[r.status]||r.status)).join(", ")+" — this batch is no longer Working. Stop and tell your manager"; el.style.display="block"; }
+    }
     const ids=(orderIds||[]).filter(Boolean); if(!ids.length) return;
     const {data}=await sb.from("so").select("so_number,status").in("id",ids).neq("status","picking");
     if(data&&data.length){
@@ -577,6 +608,7 @@ function qcard(o,label,btnTxt,attr,resume,shortCnt){
       <div class="bl">${esc(label)}</div>
       <div class="sub">${esc(o.customer_name||"—")}
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        ${trTag(o)}
         ${shortCnt?`<span class="tag short">Incomplete ${shortCnt}</span>`:""}</div>
     </div>
     <button class="go ${resume?"resumebtn":""}">${btnTxt}</button>
@@ -647,6 +679,7 @@ async function scanTakeoverPack(f){
   const {data:ip}=await sb.from("wms_pack_tasks")   // caps-ok: 진행 중 팩만 — 완료로 소진되는 활성 풀(동시 작업자 수 규모)
     .select(PKSEL+", "+SO_EMB)
     .eq("status","in_progress");
+  docFillAll(ip);   // tf-2a
   const hit=(ip||[]).find(p=>{
     if(!inWhId(p.so&&p.so.location_id)) return false;
     const on=((p.so&&p.so.so_number)||"").toUpperCase(); const bl=(p.batch_label||"").toUpperCase();
@@ -708,6 +741,7 @@ async function startPack(pickId){
   const now=new Date().toISOString();
   const ins=await sb.from("wms_pack_tasks").insert({
     order_id:pt.order_id, pick_task_id:pickId, batch_label:pt.batch_label,
+    transfer_id:pt.transfer_id||null,   // tf-2a — 트랜스퍼 픽이면 그 문서(판매는 null · CHECK 정확히 하나)
     assigned_to:me.id,session_id:SID, status:"in_progress", started_at:now, heartbeat_at:now, work_started:false
   }).select();
   if(ins.error){ toast(ins.error.message.includes("uq_packtasks_pick")?"Another worker is already verifying this":("Start failed: "+ins.error.message),true); loadQueue(); return; }
@@ -715,7 +749,7 @@ async function startPack(pickId){
   startHeartbeat(); presenceJoin();
   // pack_task_lines create (expected = qty the pick produced)
   const rows=(pl||[]).map(l=>({
-    pack_task_id:packTask.id, order_line_id:l.order_line_id,
+    pack_task_id:packTask.id, ...lineCols(l.order_line_id),   // tf-2a — 판매 order_line_id · 트랜스퍼 transfer_line_id
     expected_base:Number(l.picked_base||0), verified_base:0, status:"pending"
   }));
   if(rows.length){ const {error:le}=await sb.from("wms_pack_task_lines").insert(rows); if(le){ await sb.from("wms_pack_tasks").delete().eq("id",packTask.id); toast("Failed to create lines: "+le.message,true); return; } }
@@ -759,6 +793,7 @@ async function resumePack(packId){
   const {data:pl,error}=await sb.rpc("wms_pick_lines",{p_pack_task_id:packId});   // 팩 갈래 — 팩 줄 + 픽 assigned(required) + 제품 · 바코드 · 칸 · 가용
   if(error){toast("Failed to load lines: "+error.message,true);return;}
   packTask={id:packId, order_id:pk.order_id, pick_task_id:pk.pick_task_id, batch_label:pk.batch_label, work_started:!!pk.work_started}; order=normOrder(pk.so);
+  packTask.transfer_id=pk.transfer_id||null;   // tf-2a
   startHeartbeat(); presenceJoin();
   lines=(pl||[]).map(r=>lineFromRpc(r,true));
   finishBuild(); enterPack();
@@ -802,6 +837,7 @@ async function enterPack(){
   setUrlParam("pack", packTask.id);   // 리로드 복원 지점 — start/resume/takeover/scanTakeover 전부 여기로 수렴
   document.getElementById("pTitle").textContent=packTask.batch_label;
   document.getElementById("pMeta").textContent=whLabel(order.wh)+" · "+esc(order.customer_name||"");
+  if(order.is_transfer) document.getElementById("pMeta").textContent=whLabel(order.wh)+" · Transfer to "+(order.dest_name||"—");   // tf-2a
   renderPack(); focusScan();
   // 오더 상태 배너(판정 21) — 진행 중 팩은 숨기지 않고 알린다(실물이 있다). 부가 정보 — 실패해도 진입 유지.
   checkOrderBanner([packTask.order_id]);
@@ -834,6 +870,24 @@ async function reprintPickList(win){
   const today=new Date().toLocaleDateString();
   // the order row on screen carries only a few columns — re-read it for the print fields,
   // and count the order's batches so the "Batch i of N" footer matches the original print
+  if(packTask.transfer_id){   // tf-2a — 트랜스퍼: so 를 읽지 않는다 · Ship To = 도착 창고 이름 · 주소 · 결제조건 · 가격 등급 없음(판정 72 묶음 열 7)
+    const {data:tsibs}=await sb.from("wms_pick_tasks").select("id,batch_label,wave_id,tote_no").eq("transfer_id",packTask.transfer_id);
+    const tself=(tsibs||[]).find(t=>t.batch_label===packTask.batch_label); const tplain=(tsibs||[]).filter(t=>!t.wave_id);
+    const tm=/-(\d+)$/.exec(packTask.batch_label||""); const tidx=tm?Number(tm[1]):0;
+    let twave=null;
+    if(tself&&tself.wave_id){ try{ const {data:w}=await sb.from("wms_waves").select("label").eq("id",tself.wave_id).single(); twave=w?w.label:null; }catch(e){ twave=null; } }
+    wmsPickList.render(win, `PICK LIST ${order.order_number||packTask.batch_label}`, wmsPickList.batchPage({
+      batchLabel:packTask.batch_label, orderNumber:order.order_number, reference:null, orderDate:null, terms:null,
+      shipAddress:{ DisplayAddressLine1:order.dest_name?("Transfer to "+order.dest_name):"", DisplayAddressLine2:"" },
+      warehouse:order.wh, priceTier:null, printed:today, printedBy:(me?me.name:null),
+      wave:twave, tote:(tself&&tself.wave_id)?tself.tote_no:null,
+      customerName:order.dest_name||order.customer_name,
+      totalLines:lines.length, totalUnits:lines.reduce((s,l)=>s+Number(l.required||0),0),
+      zones:[...new Set(lines.map(l=>(l.zone||"·")))].sort().join(", "), comments:null,
+      footer:(tself&&tself.wave_id)?`Tote ${tself.tote_no||"—"}`:(tidx&&tplain.length)?`Batch ${tidx} of ${tplain.length}`:(tidx?`Batch ${tidx}`:""),
+    }));
+    return;
+  }
   const [ordRes, sibRes]=await Promise.all([
     sb.from("so").select(SO_PRINT).eq("id",packTask.order_id).single(),
     sb.from("wms_pick_tasks").select("id,batch_label,wave_id,tote_no").eq("order_id",packTask.order_id),
@@ -983,6 +1037,7 @@ async function reportIssuePack(kind, idx){
   try{
     const {error}=await sb.from("wms_reports").insert({
       order_id:packTask.order_id, order_number:order.order_number, sku:l.order_sku,
+      transfer_id:packTask.transfer_id||null,   // tf-2a — 트랜스퍼면 그 문서(판매는 null)
       kind:"barcode_mismatch", note:`Listed ${listed}${got.trim()?` · new ${got.trim()}`:""}`,
       reported_by:me.id, source:"packer"
     });
@@ -1044,7 +1099,7 @@ async function toggleImageReport(idx){
    The order still ships short; a manager checks the shelf from the report list and adjusts. The packer only declares AFTER checking the shelf.
    If the picker already declared, the line shows "Stock short — declared by {picker}" so the packer does not search the shelf again in vain.
    ⚠️ 열린 선언 = resolved_at null(운영의 voided_at 구분은 없다 — wms_reports 에는 resolved 만) — 완료 창구가 p_short_refresh 로 수량을 고치고 p_short_resolve 로 채워진 것을 닫는다. */
-function stockKeyPack(l){ const oid=packTask?packTask.order_id:null; return oid?oid+"|"+(l.order_sku||""):""; }
+function stockKeyPack(l){ const oid=docId(packTask); return oid?oid+"|"+(l.order_sku||""):""; }   // tf-2a — 문서 id(판매는 그대로 order_id)
 function stockFlagged(l){ const k=stockKeyPack(l); return !!k && stockFlags.has(k); }
 function stockDeclOf(l){ const k=stockKeyPack(l); return k?stockDecl[k]:null; }
 function renderShortAlert(){
@@ -1064,15 +1119,15 @@ function renderShortAlert(){
 async function loadStockFlags(){
   stockFlags=new Set(); stockDecl={};
   try{
-    const oid=packTask?packTask.order_id:null;
+    const oid=docId(packTask);   // tf-2a — 문서 id(판매는 그대로 order_id)
     const skus=[...new Set(lines.map(l=>l.order_sku).filter(Boolean))];
     if(!oid||!skus.length) return;
     const {data,error}=await sb.from("wms_reports")
-      .select("order_id,sku,reported_by,source").eq("kind","stock_short").is("resolved_at",null)
-      .eq("order_id",oid).in("sku",skus);
+      .select("order_id,transfer_id,sku,reported_by,source").eq("kind","stock_short").is("resolved_at",null)
+      .match(repDoc(oid)).in("sku",skus);   // tf-2a — 판매 {order_id} · 트랜스퍼 {transfer_id}
     if(error) throw error;
     (data||[]).forEach(r=>{
-      const k=r.order_id+"|"+(r.sku||"");
+      const k=(r.order_id||r.transfer_id)+"|"+(r.sku||"");   // tf-2a
       stockFlags.add(k); stockDecl[k]={by:nameOf(r.reported_by)||null, src:r.source||null};
     });
     renderShortAlert(); renderPack();
@@ -1081,7 +1136,7 @@ async function loadStockFlags(){
 async function toggleStockShortPack(idx){
   const l=lines[idx]; if(!l||stockBusy) return;
   if(!await ensureMine()) return;   // 규칙 28 — 선언도 쓰기다
-  const oid=packTask?packTask.order_id:null;
+  const oid=docId(packTask);   // tf-2a — 문서 id(판매는 그대로 order_id)
   if(!oid){ toast("Cannot declare — order unknown",true); focusScan(); return; }
   const key=oid+"|"+(l.order_sku||""), on=stockFlags.has(key);
   stockBusy=true; renderPack();
@@ -1089,13 +1144,13 @@ async function toggleStockShortPack(idx){
     if(on){
       // cancel: only the still-open declaration — resolved history is never deleted
       const {error}=await sb.from("wms_reports").delete()
-        .eq("order_id",oid).eq("sku",l.order_sku).eq("kind","stock_short").is("resolved_at",null);
+        .match(repDoc(oid)).eq("sku",l.order_sku).eq("kind","stock_short").is("resolved_at",null);   // tf-2a
       if(error) throw error;
       stockFlags.delete(key); delete stockDecl[key]; toast("Stock-short declaration cancelled");
     }else{
       if(!confirm(`${l.order_sku}\n\nDeclare NOT ENOUGH STOCK?\nOrdered ${l.required}, physically here ${l.verified}.\n\nGo CHECK THE SHELF first — only declare if the rest\nreally is not there.\n\nThis is NOT counted as a worker mistake — it goes to the\nmanager's report list as a stock mismatch to check and adjust.`)){ stockBusy=false; renderPack(); focusScan(); return; }
       const {error}=await sb.from("wms_reports").insert({
-        order_id:oid, order_number:order.order_number, sku:l.order_sku,
+        ...repDoc(oid), order_number:order.order_number, sku:l.order_sku,   // tf-2a — 판매 order_id · 트랜스퍼 transfer_id
         kind:"stock_short", note:"Not enough stock on the shelf (declared while packing · "+packTask.batch_label+")",
         qty_expected:l.required, qty_found:l.verified,
         reported_by:me.id, source:"packer"
@@ -1437,7 +1492,7 @@ async function completeCasFailed(id){
   if(row && row.status==="completed" && row.completed_by===me.id){
     // 이전 시도가 완료 플립까지 반영되고 응답만 유실된 재시도 — ready 안내만 다시(SO 상태 쓰기는 없다 · 판정 18).
     let note="Already completed — saved", bad=false;
-    try{ if(await checkOrderReady(packTask.order_id)) readyAlert(); }
+    try{ if(await checkOrderReady(docId(packTask))) readyAlert(); }   // tf-2a — 뷰의 order_id 는 문서 id(coalesce · tr-1b1)
     catch(e){ note="Saved — could not check whether the order is fully packed"; bad=true; }
     toast(note,bad);
     leavePackView();

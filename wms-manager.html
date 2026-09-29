@@ -216,11 +216,40 @@
    접점 19 → 대기 목록 = so(at_wms · warehouse · 내 창고) + customer(name) + so_line · 분할 미리 보기 = so_pick_plan · 배치 = wms_batch_create · 웨이브 = wms_wave_create(각 한 번 · 한 트랜잭션).
    사라진 것(⑪): voided 목록 · holdBelt(Cin7 보류·void 재확인) · needs_review · 실패 청소 · 라벨 셈 — 창구가 문(권한 · 창고 · at_wms · 줄 검사)을 지키고, 오피스가 거둬들인 오더는 창구가 막는다 → 목록을 다시 읽어 알린다.
    판정 17 글자 = STATUS_LABEL 표 하나 · 판정 33 사진 없음 · 소유권 비교 없음(me.name 은 표시용만) · 동선 순서 열쇠 warehouse_id|zone. */
-const WM_BUILD="2026-09-27 · wm v1.1";
+const WM_BUILD="2026-09-29 · wm v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래
 const STATUS_LABEL={ at_wms:"Released to WMS", picking:"Working" };   // 판정 17 — 저장 값은 그대로 · 화면 글자만 · 오피스(so.html)와 같은 글자
 let sb=null, me=null, orders=[], zoneSeq={}, filterWh="all", filterTier="all";
 let staffName={};        // ims_staff.id → name (⑥ · 표시용 · 로그인 뒤 한 번)
 let warehouses=[];       // [{id,name,key}] — 동선 순서(wms_zone_sequence)가 있는 창고 ∩ 내 창고(me.access.warehouses · null/빈 배열 = 전부)
+let whName={};           // tf-2a — ref_warehouse.id → name (트랜스퍼의 도착 창고 이름 · 표시용)
+/* ---------- tf-2a(판정 83) 트랜스퍼 갈래 — 판매 조회는 그대로 · 공용 목록 뷰 wms_order_doc · wms_order_doc_line(tr-1a · 1b1)에서 at_wms 트랜스퍼를 읽어 orders 에 같은 모양으로 더한다 ----------
+   손님 자리 = 도착 창고 이름(party_name) · 배송지 · 가격 등급 · 결제조건 없음 · 인쇄 Ship To = 도착 창고 이름(판정 72 묶음 열 7) · 창구(so_pick_plan · wms_batch_create · wms_wave_create)는 문서 id 를 그대로 받는다(tr-1b1 · 1b2). */
+async function loadTransfers(acc){
+  let q=sb.from("wms_order_doc").select("doc_id,doc_number,warehouse_id,warehouse_name,dest_warehouse_id,dest_warehouse_name,at_wms_at,comments")   // caps-ok: at_wms 트랜스퍼 — 배치로 소진되는 활성 풀
+    .eq("doc_kind","transfer").eq("status","at_wms").order("at_wms_at");
+  if(acc) q=q.in("warehouse_id", acc);
+  const {data:docs,error}=await q;
+  if(error){ toast("Failed to load transfers: "+error.message,true); return []; }
+  if(!docs||!docs.length) return [];
+  const {data:dl,error:le}=await sb.from("wms_order_doc_line").select("doc_id,line_id,line_no,sku,product_name,pack_factor,qty_target")   // caps-ok: 위 문서들의 줄만(문서당 200 줄 안팎)
+    .eq("doc_kind","transfer").in("doc_id",docs.map(d=>d.doc_id)).order("line_no");
+  if(le){ toast("Failed to load transfer lines: "+le.message,true); return []; }
+  const byDoc={}; (dl||[]).forEach(l=>{ (byDoc[l.doc_id]=byDoc[l.doc_id]||[]).push(l); });
+  return docs.map(d=>{
+    const dest=d.dest_warehouse_name||whName[d.dest_warehouse_id]||"";
+    const lines=(byDoc[d.doc_id]||[]).filter(l=>Number(l.qty_target)>0).map(l=>({ id:l.line_id, line_no:l.line_no, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, qty_ordered:l.qty_target, qty_removed:0 }));
+    return {
+      id:d.doc_id, order_number:d.doc_number, customer_name:dest, is_transfer:true, dest_name:dest,
+      warehouse_id:d.warehouse_id, warehouse:d.warehouse_name||"", wh:whKey(d.warehouse_name),
+      order_date:null, reference:null, comments:d.comments, price_tier:null, terms:null,
+      ship_address:{ DisplayAddressLine1:dest?("Transfer to "+dest):"", DisplayAddressLine2:"" },   // 인쇄 Ship To = 도착 창고 이름 · 주소 없음
+      at_wms_at:d.at_wms_at, at_wms_by:null,
+      lines, total_lines:lines.length,
+      total_units:lines.reduce((s,l)=>s+Number(l.qty_ordered)*Number(l.pack_factor||1),0),
+    };
+  });
+}
+function trTag(o){ return o&&o.is_transfer ? `<span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
 let selected=null, selLines=[], preview=null, plan=null;
 
 function boot(){
@@ -262,6 +291,7 @@ async function init(){
   if(error){ toast("Initial load failed: "+error.message,true); return; }
   (zs.data||[]).forEach(z=>{ zoneSeq[z.warehouse_id+"|"+z.zone]=z.sequence_order; });
   (st.data||[]).forEach(s=>{ staffName[s.id]=s.name; });
+  (wh.data||[]).forEach(w=>{ whName[w.id]=w.name; });   // tf-2a — 도착 창고 이름
   const seqWh=new Set((zs.data||[]).map(z=>z.warehouse_id));
   const acc=(me.access&&Array.isArray(me.access.warehouses)&&me.access.warehouses.length)?me.access.warehouses:null;   // null · 빈 배열 = 전부(ims_can_warehouse 와 같다)
   warehouses=(wh.data||[]).filter(w=>seqWh.has(w.id)&&(!acc||acc.includes(w.id)))
@@ -295,6 +325,9 @@ async function loadOrders(){
       total_units:lines.reduce((s,l)=>s+(Number(l.qty_ordered)-Number(l.qty_removed))*Number(l.pack_factor||1),0),   // 판매 단위 × pack_factor = 낱개(ea)
     };
   });
+  // tf-2a — at_wms 트랜스퍼(출발 창고 = 내 창고)를 판매 옆에 · 오래된 순서는 at_wms_at 으로 다시
+  const trs=await loadTransfers(acc);
+  if(trs.length) orders=orders.concat(trs).sort((a,b)=>String(a.at_wms_at||"").localeCompare(String(b.at_wms_at||"")));
   populateTierFilter(); renderQueue();
 }
 
@@ -323,6 +356,7 @@ function renderQueue(){
       <div class="cust">${esc(o.customer_name||"—")}</div>
       <div class="meta">
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        ${trTag(o)}
         <span class="tag">${o.total_lines} lines</span>
         <span class="tag">${o.total_units} units</span>
         ${tier}
@@ -359,6 +393,8 @@ async function selectOrder(id){
   document.getElementById("wsOno").textContent=selected.order_number;
   document.getElementById("wsSum").textContent=
     whLabel(selected.wh)+" · "+selected.total_lines+" lines · "+selected.total_units+" units · "+STATUS_LABEL.at_wms+" by "+nameOf(selected.at_wms_by);
+  if(selected.is_transfer) document.getElementById("wsSum").textContent=
+    whLabel(selected.wh)+" · "+selected.total_lines+" lines · "+selected.total_units+" units · Transfer to "+(selected.dest_name||"—")+" · "+STATUS_LABEL.at_wms;   // tf-2a
   document.getElementById("wsRev").style.display="none";
   document.getElementById("createBtn").disabled=true;
   document.getElementById("batches").innerHTML="";
@@ -502,6 +538,7 @@ document.getElementById("createBtn").onclick=async ()=>{
     const res=data||{};
     const warns=(res.warnings||[]).map(warnText);
     toast(res.so_number+" → "+(res.tasks||[]).length+" batches created · "+STATUS_LABEL.picking);
+    if(pickOrd.is_transfer) toast(res.so_number+" → "+(res.tasks||[]).length+" batches created · Transfer to "+(pickOrd.dest_name||"—")+" · "+STATUS_LABEL.picking);   // tf-2a
     printPickList(printWin, pickOrd, pickBatches, me?me.name:null);   // generate the printable pick list (printedBy 는 표시용)
     // remove from queue
     orders=orders.filter(o=>o.id!==pickOrd.id);
@@ -582,6 +619,7 @@ function renderWaveQueue(){
       <div class="cust">${esc(o.customer_name||"—")}</div>
       <div class="meta">
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        ${trTag(o)}
         <span class="tag">${o.total_lines} lines</span>
         <span class="tag">${o.total_units} units</span>
         ${tier}
@@ -621,6 +659,7 @@ function renderWaveWorkbench(){
     <div class="batch"><div class="bh">
       <span class="bn">TOTE ${i+1} · ${esc(o.order_number)}</span>
       <span class="bmeta">${esc(o.customer_name||"—")} · ${o.total_lines} lines · ${o.total_units} units</span>
+      ${trTag(o)}
       <button data-rm="${o.id}" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 9px;font:inherit;font-size:12px;font-weight:700;color:var(--danger);cursor:pointer">✕</button>
     </div></div>`).join("");
   document.getElementById("wvTotes").querySelectorAll("[data-rm]").forEach(b=>{

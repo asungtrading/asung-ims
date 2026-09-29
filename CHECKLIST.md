@@ -1002,7 +1002,7 @@ Parked and open at this store
 
 ---
 
-## 7-m. `wms-manager.html` — Split & Waves (2026-09-26 신설 · Claude Code ⑤-4a · 1판 「2026-09-26 · wm v1」 · 1.1판 「2026-09-27 · wm v1.1」 = ⑤-5a 띄어쓰기 8곳(「1lines · 12units」 → 「1 lines · 12 units」 · 로직 무변) · 운영 `asung-wms/manager.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
+## 7-m. `wms-manager.html` — Split & Waves (2026-09-26 신설 · Claude Code ⑤-4a · 1판 「2026-09-26 · wm v1」 · 1.1판 「2026-09-27 · wm v1.1」 → Claude Code tf-2a **wm v1.2** 「2026-09-29 · wm v1.2」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) = ⑤-5a 띄어쓰기 8곳(「1lines · 12units」 → 「1 lines · 12 units」 · 로직 무변) · 운영 `asung-wms/manager.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
 
 뒷단(⑤-2a1 · 정본 `asung-wms/docs/design/so-module.md` §24-i · 판정 17 · 18 · 25 · 33): 읽기 표 `so`(status at_wms · channel warehouse · 내 창고 location_id) + `customer!so_customer_id_fkey(name)`(청구처 FK 와 둘이라 이름을 박는다) + `so_line`(보낼 줄 qty_ordered − qty_removed > 0) ·
 `wms_zone_sequence`(23행 · 열쇠 warehouse_id|zone) · `ref_warehouse`(id,name) · `ims_staff`(id,name 만 · 이름은 id 로 잇는다) · 읽기 RPC `so_pick_plan(p_so_id)`(줄 · 계획 칸 picks · need_ea · short_ea · warnings) ·
@@ -1033,9 +1033,18 @@ Parked and open at this store
 ⚠️ [2026-09-26] 아직 없는 것 — picker(⑤-4b · wms-picker.html · 읽기 창구 wms_pick_lines) · packer(⑤-4c) · 되돌리기 · Health(⑤-5) · 픽리스트 재인쇄 · 웨이브 실측(오더 둘 이상) · 검토함(wms_order_review · 판정 22 · 끔) ·
    존 마스터(ref_bin.zone) — 채워지면 so_pick_plan 이 주는 값을 먼저 쓴다(지금은 칸 이름 규칙) · 창고 단추의 짧은 이름(TOR · EDM)은 이름에 Edmonton 이 드는지로 가른다(CLAUDE.md §3 규칙 그대로 · 셋째 창고가 생기면 고친다).
 
+⭐ [2026-09-29 · Claude Code tf-2a · 판정 83] **wm v1.2 — 트랜스퍼 갈래** — 판매 조회 줄(sb.from("so") · so_line · so(...) 임베드)은 그대로 · 트랜스퍼 갈래를 옆에 더했다(patch ~/asung/prompts/tf-2a-*.patch · − 줄은 보고에 이유).
+```
+[ ] 빌드 표시 「2026-09-29 · wm v1.2」 · 판매 오더 목록 · 카드 · 미리 보기 · 인쇄가 어제와 같다(판매 한 바퀴 먼저)
+[ ] transfers.html 에서 Release to WMS 한 TRF 가 RELEASED TO WMS 에 판매 옆에 — 손님 자리에 도착 창고 이름 · 꼬리표 「Transfer」 · 가격 등급 드롭다운에 안 든다(tier 없음) · 창고 단추(TOR · EDM)는 출발 창고
+[ ] 카드를 누르면 「TRF-00001 · Toronto · N lines · N units · Transfer to <도착 창고> · Released to WMS」 · 미리 보기 배치 TRF-00001-1(so_pick_plan 이 문서 id 로) · 부족이면 Short 띠
+[ ] Create batches → 토스트 「TRF-00001 → 1 batches created · Transfer to <도착 창고> · Working」 · 픽리스트 = Ship To 「Transfer to <도착 창고>」 · Customer <도착 창고> · Order Date · Terms · Price Tier 줄 없음(판정 72 묶음 열 7)
+[ ] Group 모드에 TRF 도 후보(줄 · 낱개 한도 안이면) · 웨이브 토트 줄에 꼬리표 Transfer
+```
+
 ---
 
-## 7-n. `wms-picker.html` — Picking (2026-09-26 밤 신설 · Claude Code ⑤-4b · 1판 「2026-09-26 · pk v1」 · 운영 `asung-wms/picker.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
+## 7-n. `wms-picker.html` — Picking (2026-09-26 밤 신설 · Claude Code ⑤-4b · 1판 「2026-09-26 · pk v1」 → Claude Code tf-2a **pk v1.1** 「2026-09-29 · pk v1.1」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) · 운영 `asung-wms/picker.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다)
 
 뒷단(⑤-2a2 · ⑤-4b · 정본 `asung-wms/docs/design/so-module.md` §24 · 판정 17 · 20 · 21 · 25 · 33): 읽기 창구 **`wms_pick_lines(p_task_ids[])`**(20260927010322 · 줄 · 제품 · base_sku · 세트 · 바코드(낱개 factor 1 + 세트 factor pack) · 계획 칸 · 실제 칸 · 존 · 창고 가용 — 한 번 · 51줄 0.34초 실측) ·
 표 `wms_pick_tasks` · `wms_waves`(+ 임베드 `so(id,so_number,status,location_id,location_name,customer!so_customer_id_fkey(name))` · `wms_pick_task_lines(count)`) · `wms_pick_task_lines`(스캔 저장 · picked_by uuid) · `wms_reports`(wrong_location · barcode_mismatch · **stock_short** qty_expected/qty_found · reported_by uuid) · `so`(상태 배너 · 재인쇄 머리) · `wms_zone_sequence` · `ref_warehouse` · `ims_staff`(id,name) ·
@@ -1067,9 +1076,19 @@ Parked and open at this store
 ⚠️ [2026-09-26 밤] 아직 없는 것 — packer(⑤-4c · wms_pick_lines 의 팩 갈래 p_pack_task_id 는 이미 있다) · 되돌리기 · Health · Stats(⑤-5) · 웨이브 실측(오더 둘 이상 · Split & Waves 의 Group) · 사진(판정 33) · Take over 가지(stalePool · 운영도 비어 있던 호환 가지) ·
    되돌린 오더의 과제 정리(⑤-5 wms_rollback 이 archive + void) — 그 전에는 「no longer Working」 배너가 유일한 신호.
 
+⭐ [2026-09-29 · Claude Code tf-2a · 판정 83] **pk v1.1 — 트랜스퍼 갈래** — 판매 조회 줄(sb.from("so") · so_line · so(...) 임베드)은 그대로 · 트랜스퍼 갈래를 옆에 더했다(patch ~/asung/prompts/tf-2a-*.patch · − 줄은 보고에 이유).
+```
+[ ] 빌드 표시 「2026-09-29 · pk v1.1」 · 판매 배치 시작 → 스캔 → 완료 · 인쇄가 어제와 같다(판매 한 바퀴 먼저)
+[ ] Waiting Batches 에 TRF-00001-1 — 도착 창고 이름 · N lines · 출발 창고 태그 · 꼬리표 「Transfer」 · 오더 스캔 칸에 TRF-00001 Enter 로 걸린다
+[ ] Start → 제목 TRF-00001-1 · 「Toronto · Transfer to <도착 창고>」 · 줄 · 칸 · 바코드 · 가용은 판매와 같다(wms_pick_lines) · 리로드(?batch=) 복원
+[ ] 🖨 Print → Ship To 「Transfer to <도착 창고>」 · Customer <도착 창고> · Terms · Order Date · Price Tier 없음 · Batch i of N
+[ ] (하나는 일부러 모자라게) 「⚠ Not enough stock」 선언 → wms_reports 에 transfer_id 채워지고 order_id null · 다시 누르면 취소 · Complete as incomplete → wms_worker_mistakes 에 transfer_id
+[ ] transfers.html 에서 Recall from warehouse(at_wms 일 때만 된다) 한 트랜스퍼의 과제는 대기 풀에서 숨고 · 진행 중이면 빨간 배너 「TRF-00001 is Released to WMS — … no longer Working」
+```
+
 ---
 
-## 7-o. `wms-packer.html` — Packing (2026-09-26 밤 신설 · Claude Code ⑤-4c · 1판 「2026-09-26 · pa v1」 · 운영 `asung-wms/packer.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음)
+## 7-o. `wms-packer.html` — Packing (2026-09-26 밤 신설 · Claude Code ⑤-4c · 1판 「2026-09-26 · pa v1」 → pa v1.1(adj-rec-a) → Claude Code tf-2a **pa v1.2** 「2026-09-29 · pa v1.2」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) · 운영 `asung-wms/packer.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음)
 
 뒷단(⑤-2a2 · ⑤-4b · 정본 `asung-wms/docs/design/so-module.md` §24 · 판정 17 · 18 · 20 · 21 · 25 · 33): 읽기 창구 **`wms_pick_lines`** — 시작은 `(p_task_ids [픽 과제])` · 재개는 팩 갈래 `(null, p_pack_task_id)`(pack_line_id · expected_base · verified_base · pack_verification_method + 픽 assigned(required) · 제품 · 바코드 · 칸 · 가용) ·
 표 `wms_pick_tasks`(완료 픽 풀 · `so!inner(...)` + `so.status = picking`) · `wms_pack_tasks`(시작 insert · 클레임 · 세션 · held · 완료 확인) · `wms_pack_task_lines`(시작 insert · 스캔 저장 verified_by uuid) · `wms_pick_task_lines`(부족 배지) · `wms_reports`(barcode_mismatch · **stock_short** — 픽커 선언은 「declared by 이름」) · `wms_order_pack_progress`(all_packed 읽기만) · `so`(상태 배너 · 재인쇄) · `ref_warehouse` · `ims_staff`(id,name) ·
@@ -1111,9 +1130,18 @@ Parked and open at this store
 [ ] 다른 창고 칸 · 모르는 칸 → 「bin … is not an active bin at this warehouse」 거부
 ```
 
+⭐ [2026-09-29 · Claude Code tf-2a · 판정 83] **pa v1.2 — 트랜스퍼 갈래** — 판매 조회 줄(sb.from("so") · so_line · so(...) 임베드)은 그대로 · 트랜스퍼 갈래를 옆에 더했다(patch ~/asung/prompts/tf-2a-*.patch · − 줄은 보고에 이유).
+```
+[ ] 빌드 표시 「2026-09-29 · pa v1.2」 · 판매 팩 시작 → 스캔 → Complete pack 이 어제와 같다(판매 한 바퀴 먼저)
+[ ] Pack Queue 에 TRF-00001-1 — 도착 창고 이름 · 출발 창고 태그 · 꼬리표 「Transfer」 · Start verify → wms_pack_tasks 한 줄(transfer_id 채움 · order_id null) · wms_pack_task_lines 의 transfer_line_id(order_line_id null)
+[ ] 팩 화면 「Toronto · Transfer to <도착 창고>」 · 리로드(?pack=) 복원 · 🖨 Print = 픽 화면과 같은 트랜스퍼 인쇄
+[ ] (선택) 「⚠ Not enough stock」 · 「⚑ Barcode changed」 → wms_reports transfer_id · Complete pack → 「All batches … packed! — ready to be finalized」(뷰 order_id = 문서 id)
+[ ] Pack fill(픽보다 많이) 회복 칸 prompt 는 판매와 같다(창구 p_recovered 가 문서를 가른다 · 20260928164832 → tr-1b2 재발행)
+```
+
 ---
 
-## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
+## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 → Claude Code tf-2a **fu v1.1** 「2026-09-29 · fu v1.1」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 16 · 18 · 19 · 21 · 24-k): 오더 풀 = `wms_pack_tasks`(completed) + `so!inner(status)` eq picking · 관문 = 뷰 `wms_order_pack_progress`(all_packed) · 오더 머리 = `so`(so_number · status · location_id · location_name) + `customer!so_customer_id_fkey(name)` ·
 풀 줄(sku · base_sku · 이름 · 바코드 낱개 factor 1 + 세트 factor pack · 팩 수량 verified_base) = 읽기 창구 **`wms_pick_lines(null, p_pack_task_id)`** 팩 갈래 — 팩 과제마다 한 번(N 왕복 · 시간은 콘솔 `[fulfillment] wms_pick_lines ×N · ms`) ·
@@ -1144,6 +1172,16 @@ Parked and open at this store
 ```
 
 ⚠️ [2026-09-27] 아직 없는 것 — admin(Status · Rollback · Finalized = ⑤-5b · Discrepancy · Reports · Stats · Health · Trace = ⑤-5c) · Undo Finalize · 사진(판정 33) · wms_pick_lines 의 팩 갈래를 여러 과제로 한 번에(⬜15 · 함께 보내는 오더가 많아 N 왕복이 걸리면) · 오피스 so.html 의 Finalized 대기 목록 · 시각 줄(오피스 판).
+
+⭐ [2026-09-29 · Claude Code tf-2a · 판정 83] **fu v1.1 — 트랜스퍼 갈래** — 판매 조회 줄(sb.from("so") · so_line · so(...) 임베드)은 그대로 · 트랜스퍼 갈래를 옆에 더했다(patch ~/asung/prompts/tf-2a-*.patch · − 줄은 보고에 이유).
+```
+[ ] 빌드 표시 「2026-09-29 · fu v1.1」 · 판매 오더 Finalize(packed) · 팔렛 · 라벨 · 팩킹리스트가 어제와 같다(판매 한 바퀴 먼저)
+[ ] 「Select orders ▾」 에 도착 창고 이름 아래 TRF-00001 · TOR 태그 · 「Working」 · 꼬리표 「Transfer」 · 오더 스캔 칸 TRF-00001 Enter 도 같다(팩 미완이면 「N/M batches packed」)
+[ ] 작업대 머리 「TRF-00001 · Customer <도착 창고>」 + 칩 「TRF-00001 · Transfer to <도착 창고>」 · 판매와 함께 고르면 「sale + transfer mixed」 경고(막지 않는다 · ⬜ 판정 거리)
+[ ] + Pallet → wms_pallets 에 transfer_id(order_id null) · 스캔 → wms_pallet_items 에 transfer_id · transfer_line_id(order_* null) · 옮기기 · 분할 · ✕ · Delete 는 그대로
+[ ] 🖨 Pallet list · Store list — Customer 자리에 도착 창고 이름 · Warehouse 출발 창고(라벨 이름은 「Customer」 그대로 — ⬜ 「Ship to warehouse」 로 바꿀지 판정 거리)
+[ ] ✓ Finalize → 토스트 「TRF-00001 left for <도착 창고> — in transit」 · 모자란 줄이 있으면 alert 「Short — closed on the transfer (sent what was picked)」(판정 74) · transfers.html 에 in transit · Sent · short
+```
 
 ---
 
@@ -1383,6 +1421,21 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 열쇠 없는 사람 — 「Read-only — changing transfers needs the Transfers key.」 · 단추 없음 · 조정 열쇠 없는 사람에게 Settle in transit · Decide 단추 없음
 [ ] 기기 저장 없음 — localStorage · sessionStorage 0 · 콘솔 빨간 오류 없음 · Network 에 운영 주소 요청 0
 ⬜ ⑥-2 · ⑥-3 뒤 끝에서 끝: 픽 · 팩 · Finalize = 출발(Sent · short) → 에드먼튼 입고 Complete(Received · 차이) → Settle in transit(lost · returned) → Decide(sent more · found 원가 0 체크) → 운임 도착 순간 얹힘(판정 78)
+```
+
+---
+
+## 7-w. ⑥-2a 끝에서 끝 — 토론토에서 떠나기 (2026-09-29 · Claude Code tf-2a · 판정 83 · wm v1.2 · pk v1.1 · pa v1.2 · fu v1.1)
+
+창고 화면 넷이 트랜스퍼를 판매 오더처럼 보인다 — 판매 조회는 그대로 · 트랜스퍼 갈래만 옆에(patch ~/asung/prompts/tf-2a-*.patch). 도착(⑥-3 wms-receiver)은 다음 차수 — 이 절은 출발까지.
+
+```
+[ ] 판매 한 바퀴 먼저 — 새 판매 오더 하나로 Split & Waves → Picking → Packing → Fulfillment Finalize(packed) · 화면 글자 · 인쇄가 어제와 같다
+[ ] transfers.html 에서 TRF 확정 → Release to WMS → Split & Waves 대기 목록에 TRF · 손님 자리에 도착 창고 · 꼬리표 Transfer · 배송지 · 가격 칸 없음
+[ ] 배치 → 픽 리스트 인쇄 = 도착 창고 이름 · 주소 없음 → Picking(하나는 일부러 모자라게) → Packing → Fulfillment
+[ ] Finalize → 토스트 「… left for … — in transit」 · transfers.html 에 in transit · Sent · short · 운송 중 수량
+[ ] 판매와 트랜스퍼 섞기 · 트랜스퍼 둘(도착 같음 / 다름)의 경고 글자
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
 ---

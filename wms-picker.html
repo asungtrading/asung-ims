@@ -264,7 +264,7 @@
    클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 안내 · Cin7 void 배너 — 대신 「오더가 Working 이 아니다」 배너(판정 21 · so.status) ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found) · 사진 비움(판정 33 · HAS_IMAGES false — 마스터에 사진이 서면 켠다) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다 · 동선 순서 열쇠 warehouse_id|zone. */
-const WP_BUILD="2026-09-26 · pk v1";
+const WP_BUILD="2026-09-29 · pk v1.1";   // tf-2a(판정 83) — 트랜스퍼 갈래
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17 — 저장 값은 그대로 · 글자만
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
@@ -289,14 +289,28 @@ function statusLabel(s){ return STATUS_LABEL[s]||s||"?"; }
 function normOrder(s){
   s=s||{};
   return { id:s.id||null, order_number:s.so_number||"", status:s.status||"", warehouse_id:s.location_id||null,
-           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"" };
+           warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"",
+           is_transfer:!!s._transfer, dest_name:s._dest||"" };   // tf-2a — 트랜스퍼면 true · 도착 창고 이름(판매 행은 false · "")
 }
 function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부(ims_can_warehouse 와 같다)
 function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
 // 임베드 select — 과제(+ 오더 · 손님 · 줄 수) · 웨이브(+ 멤버 과제 · 오더)
-const SO_EMB="so(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name))";
-const TSEL="id,batch_label,status,assigned_to,started_at,work_started,held_by,order_id,wave_id,tote_no,session_id, "+SO_EMB+", wms_pick_task_lines(count)";
-const WSEL="id,label,warehouse_id,status,assigned_to,started_at,held_by,session_id,created_by, wms_pick_tasks(id,batch_label,tote_no,order_id, "+SO_EMB+", wms_pick_task_lines(count))";
+const TR_EMB="transfer:inv_transfer!wms_pick_tasks_transfer_id_fkey(id,transfer_number,status,from_warehouse_id,to_warehouse_id)";   // tf-2a — 트랜스퍼 과제의 문서(FK wms_pick_tasks.transfer_id · tr-1a:350 · 읽기 정책 tr-1b2:1192)
+const SO_EMB="so(id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name)), "+TR_EMB;   // tf-2a — 판매 임베드 그대로 + 트랜스퍼 임베드(판매 행은 transfer null)
+const TSEL="id,batch_label,status,assigned_to,started_at,work_started,held_by,order_id,transfer_id,wave_id,tote_no,session_id, "+SO_EMB+", wms_pick_task_lines(count)";
+const WSEL="id,label,warehouse_id,status,assigned_to,started_at,held_by,session_id,created_by, wms_pick_tasks(id,batch_label,tote_no,order_id,transfer_id, "+SO_EMB+", wms_pick_task_lines(count))";
+/* ---------- tf-2a(판정 83) 트랜스퍼 갈래 — 판매 임베드 so(...) · 판매 조회 줄은 그대로 · 트랜스퍼 과제(so null · transfer 있음)는 읽은 뒤 so 자리에 같은 모양으로 채운다 ----------
+   번호 = TRF-(transfer_number) · 손님 자리 = 도착 창고 이름 · 창고 = 출발 창고 · 상태 어휘는 판매와 같다(at_wms · picking · 묶음 열 4) · 줄 · 칸 · 가용은 창구 wms_pick_lines 가 이미 문서를 가른다(tr-1b2). */
+function soLike(x){ const from=whOf(x.from_warehouse_id).name, to=whOf(x.to_warehouse_id).name;
+  return { id:x.id, so_number:x.transfer_number||"", status:x.status||"", location_id:x.from_warehouse_id||null, location_name:from, customer:{name:to}, _transfer:true, _dest:to }; }
+function docFill(t){ if(t && !t.so && t.transfer) t.so=soLike(t.transfer); return t; }
+function docFillAll(rows){ (rows||[]).forEach(docFill); return rows; }
+function docFillWaves(ws){ (ws||[]).forEach(w=>docFillAll(w.wms_pick_tasks)); return ws; }
+function docId(t){ return t ? (t.order_id||t.transfer_id||null) : null; }            // 문서 id(판매 so.id · 트랜스퍼 inv_transfer.id) — 창구 · 신고 정리의 열쇠(coalesce · 정본 27-d 5)
+function isTrDoc(id){ return !!id && ((!!task&&task.transfer_id===id) || tasks.some(t=>t.transfer_id===id)); }
+function repDoc(id){ return isTrDoc(id) ? {transfer_id:id} : {order_id:id}; }        // wms_reports 쓰기 · 찾기 — 문서 종류로 열 이름(CHECK 많아야 하나 · tr-1a:365)
+const TR_STATUS_LABEL={ confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", in_transit:"In transit", receiving:"Receiving", received:"Received", cancelled:"Cancelled" };
+function trTag(o){ return o&&o.is_transfer ? `<span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
 
 /* ---------- lease / presence (heartbeat 제거 — 스캔 시 이어받기로 대체) ---------- */
 /* 픽리스트 종이가 소유권을 보증하므로 상시 heartbeat 불필요. 배터리 절감.
@@ -443,6 +457,7 @@ async function restoreFromUrl(kind, id){
       if(error) throw error;
       if(t && t.status==="in_progress" && t.assigned_to===me.id){
         if(!await claimSession("task",id)){ toast("That batch changed while loading — resume it from the list",true); loadBatches(); return; }   // 이 탭이 이긴다 (2026-09-10 · Reload 로 되찾는 경로)
+        docFill(t);   // tf-2a
         task=t; order=normOrder(t.so);        // resumeBatch 와 같은 조건·같은 이어짐 (목록 캐시 없이)
         startHeartbeat(); presenceJoin();
         await loadLines(); return;
@@ -550,6 +565,7 @@ async function loadBatches(){
     sb.from("wms_waves").select(WSEL).eq("status","pending").is("assigned_to",null).order("label"),   // caps-ok: 대기 wave 풀 — 시작으로 소진
   ]);
   document.getElementById("bloading").style.display="none";
+  docFillAll(mine.data); docFillAll(pool.data); docFillWaves(wmine&&wmine.data); docFillWaves(wpool&&wpool.data);   // tf-2a — 트랜스퍼 과제를 so 자리에
   if(mine.error||pool.error){toast("Failed to load batches: "+((mine.error||pool.error).message||""),true);return;}
   const inWh=b=>inWhId(b.so&&b.so.location_id);
   const wInWh=w=>inWhId(w.warehouse_id);
@@ -574,6 +590,7 @@ function batchCardHtml(b,mode){ // mode: "start" | "resume" | "takeover" | "held
       <div class="bl">${esc(b.batch_label)}</div>
       <div class="sub">${esc(o.customer_name||"—")} · ${cnt} lines
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
+        ${trTag(o)}
         ${o.status&&o.status!=="picking"?`<span class="tag rev">${esc(statusLabel(o.status))}</span>`:""}
         ${held?'<span class="tag" style="background:#fff4e0;color:#a86400">⏸ you held this</span>':""}
         ${take?`<span class="tag rev">${esc(nameOf(b.assigned_to)||"?")} · idle ${im?im+"m":"?"}</span>`:""}</div>
@@ -680,6 +697,7 @@ async function scanTakeover(f){
   const {data:tasksIP}=await sb.from("wms_pick_tasks")   // caps-ok: 진행 중 픽만 — 소진되는 활성 풀
     .select("id,batch_label,status,assigned_to,wave_id,order_id,work_started,session_id, "+SO_EMB)
     .eq("status","in_progress");
+  docFillAll(tasksIP);   // tf-2a
   const hit=(tasksIP||[]).find(t=>{
     if(!inWhId(t.so&&t.so.location_id)) return false;
     const on=((t.so&&t.so.so_number)||"").toUpperCase(); const bl=(t.batch_label||"").toUpperCase();
@@ -817,6 +835,7 @@ async function loadLines(){
   curWh=order.warehouse_id;
   pickTitle=task.batch_label;
   pickMeta=whLabel(order.wh)+" · "+(order.customer_name||"");
+  if(order.is_transfer) pickMeta=whLabel(order.wh)+" · Transfer to "+(order.dest_name||"—");   // tf-2a
   await enterPickView();
 }
 
@@ -902,6 +921,20 @@ async function reprintPickList(win){
   }
   // Single batch: the order row on screen only carries a few columns — re-read it for the print fields,
   // and count the order's batches so the "Batch i of N" footer matches the original print.
+  if(task.transfer_id){   // tf-2a — 트랜스퍼: so 를 읽지 않는다 · Ship To = 도착 창고 이름 · 주소 · 결제조건 · 가격 등급 없음(판정 72 묶음 열 7)
+    const {data:tsibs}=await sb.from("wms_pick_tasks").select("id,batch_label").eq("transfer_id",task.transfer_id).is("wave_id",null);
+    const tm=/-(\d+)$/.exec(task.batch_label||""); const tidx=tm?Number(tm[1]):0; const tn=(tsibs||[]).length;
+    wmsPickList.render(win, `PICK LIST ${order.order_number||task.batch_label}`, wmsPickList.batchPage({
+      batchLabel:task.batch_label, orderNumber:order.order_number, reference:null, orderDate:null, terms:null,
+      shipAddress:{ DisplayAddressLine1:order.dest_name?("Transfer to "+order.dest_name):"", DisplayAddressLine2:"" },
+      warehouse:order.wh, priceTier:null, printed:today, printedBy:(me?me.name:null),
+      customerName:order.dest_name||order.customer_name,
+      totalLines:lines.length, totalUnits:lines.reduce((s,l)=>s+Number(l.assigned||0),0),
+      zones:[...new Set(lines.map(l=>(l.zone||"·")))].sort().join(", "), comments:null,
+      footer:(tidx&&tn)?`Batch ${tidx} of ${tn}`:(tidx?`Batch ${tidx}`:""),
+    }));
+    return;
+  }
   const [ordRes, sibRes]=await Promise.all([
     sb.from("so").select(SO_PRINT).eq("id",task.order_id).single(),
     sb.from("wms_pick_tasks").select("id,batch_label").eq("order_id",task.order_id).is("wave_id",null),
@@ -962,6 +995,7 @@ async function startWave(id){
   // Hold 구간 이력 닫기 (2026-08-24 → 2026-08-25 RPC · 서버 시계) — wave 는 wave 행 1건이므로
   // kind='wave'·task_id=wave id. held 재개면 닫고 신규 시작이면 0행 no-op(startBatch 주석 참조).
   sb.rpc("wms_resume_hold",{p_task_kind:"wave",p_task_id:id}).then(r=>{ if(r.error) console.warn("hold close failed", r.error); });
+  docFillAll(ts);   // tf-2a
   tasks=ts.sort((a,b)=>(a.tote_no||0)-(b.tote_no||0));
   startHeartbeat(); presenceJoin();
   await loadWaveLines();
@@ -978,6 +1012,7 @@ async function resumeWave(id){
   const {data:ts,error:te}=await sb.from("wms_pick_tasks")
     .select("*, "+SO_EMB).eq("wave_id",id);
   if(te||!ts||!ts.length){ toast("Failed to load wave batches",true); resetToList(); return; }
+  docFillAll(ts);   // tf-2a
   tasks=ts.sort((a,b)=>(a.tote_no||0)-(b.tote_no||0));
   startHeartbeat(); presenceJoin();
   await loadWaveLines();
@@ -999,6 +1034,7 @@ async function takeoverWave(id){
     .update({assigned_to:me.id,session_id:SID,heartbeat_at:now}).eq("wave_id",id)
     .select("*, "+SO_EMB);
   if(!ts||!ts.length){ toast("Failed to open wave batches",true); resetToList(); return; }
+  docFillAll(ts);   // tf-2a
   tasks=ts.sort((a,b)=>(a.tote_no||0)-(b.tote_no||0));
   startHeartbeat(); presenceJoin();
   await loadWaveLines();
@@ -1230,7 +1266,7 @@ async function reportIssue(kind, idx){
 const IMG_NOTE="Image does not match the physical product";
 function lineOrder(l){
   return wave ? {id:l._orderId, num:l._orderNumber||""}
-              : {id:task?task.order_id:null, num:order?order.order_number:""};
+              : {id:task?docId(task):null, num:order?order.order_number:""};   // tf-2a — 문서 id(order_id 또는 transfer_id · 판매는 그대로 order_id)
 }
 function imgKey(l){ const o=lineOrder(l); return o.id?o.id+"|"+(l.order_sku||""):""; }
 function imgFlagged(l){ const k=imgKey(l); return !!k && imgFlags.has(k); }
@@ -1293,6 +1329,11 @@ async function loadStockFlags(){
       .in("order_id",oids).in("sku",skus);
     if(error) throw error;
     (data||[]).forEach(r=>stockFlags.add(r.order_id+"|"+(r.sku||"")));
+    const tids=oids.filter(isTrDoc);   // tf-2a — 트랜스퍼 문서의 선언은 transfer_id 열에 있다
+    if(tids.length){
+      const {data:td}=await sb.from("wms_reports").select("transfer_id,sku").eq("kind","stock_short").is("resolved_at",null).in("transfer_id",tids).in("sku",skus);
+      (td||[]).forEach(r=>stockFlags.add(r.transfer_id+"|"+(r.sku||"")));
+    }
     renderPick();
   }catch(e){ /* pressed state is cosmetic — never block the pick view */ }
 }
@@ -1307,13 +1348,13 @@ async function toggleStockShort(idx){
     if(on){
       // cancel: only the still-open declaration — resolved history is never deleted
       const {error}=await sb.from("wms_reports").delete()
-        .eq("order_id",o.id).eq("sku",l.order_sku).eq("kind","stock_short").is("resolved_at",null);
+        .match(repDoc(o.id)).eq("sku",l.order_sku).eq("kind","stock_short").is("resolved_at",null);   // tf-2a — 판매 {order_id} · 트랜스퍼 {transfer_id}
       if(error) throw error;
       stockFlags.delete(key); toast("Stock-short declaration cancelled");
     }else{
       if(!confirm(`${l.order_sku}\n\nDeclare NOT ENOUGH STOCK on the shelf?\nNeeded ${l.assigned}, you could only find ${l.picked}.\n\nThis is NOT counted as a picker mistake — it goes to the\nmanager's report list as a stock mismatch to check and adjust.\nOnly declare it if the shelf is really empty.`)){ stockBusy=false; renderPick(); focusScan(); return; }
       const {error}=await sb.from("wms_reports").insert({
-        order_id:o.id, order_number:o.num, sku:l.order_sku,
+        ...repDoc(o.id), order_number:o.num, sku:l.order_sku,   // tf-2a — 판매 order_id · 트랜스퍼 transfer_id(CHECK 많아야 하나)
         kind:"stock_short", note:"Not enough stock on the shelf (declared while picking · "+(wave?("tote "+(l._tote||"?")):(task?task.batch_label:""))+")",
         qty_expected:l.assigned, qty_found:l.picked,
         reported_by:me.id, source:"picker"
@@ -1404,7 +1445,7 @@ async function finish(allowShort){
         verification_method:l.vmethod||null,
       })),
       p_mistakes: plain.map(l=>({
-        order_id: wave? l._orderId : task.order_id,
+        order_id: wave? l._orderId : docId(task),   // tf-2a — 창구는 문서 id 로 짝을 맞춘다(coalesce(order_id, transfer_id) · tr-1b2)
         pick_task_id: wave? (l._taskId||null) : task.id,   // wave 는 라인별 멤버 task (규칙 18)
         sku:l.order_sku, ordered_base:l.assigned, actual_base:l.picked,
       })),
@@ -1439,6 +1480,12 @@ async function checkOrderBanner(orderIds){
   const el=document.getElementById("voidBanner"); if(!el) return;
   el.style.display="none";
   try{
+    // tf-2a — 트랜스퍼 과제는 inv_transfer 의 상태로(Working 이 아니면 = 오피스가 거두었거나 취소 · 판매 갈래는 아래 그대로)
+    const tids=[...new Set((wave?tasks:[task]).filter(Boolean).map(t=>t.transfer_id).filter(Boolean))];
+    if(tids.length){
+      const {data:td}=await sb.from("inv_transfer").select("transfer_number,status").in("id",tids).neq("status","picking");
+      if(td&&td.length){ el.textContent="⚠ "+td.map(r=>r.transfer_number+" is "+(TR_STATUS_LABEL[r.status]||r.status)).join(", ")+" — this "+(wave?"wave":"batch")+" is no longer Working. Stop and tell your manager"; el.style.display="block"; }
+    }
     const ids=(orderIds||[]).filter(Boolean); if(!ids.length) return;
     const {data}=await sb.from("so").select("so_number,status").in("id",ids).neq("status","picking");
     if(data&&data.length){
