@@ -295,7 +295,7 @@
 /* adj-b (2026-09-28 · wa v1.9) — Reports 탭: 열린 「Not enough stock」 줄에 「Adjust stock」(stock-adjustments.html?report=<id> · 같은 창 · 판정 20 · 44 모양) · 보이기는 ims_can_adjust() 한 번(판정 49 · 50 · fail-closed) · 「Mark resolved」 는 그대로(묶음 9) */
 /* ⑤-6c2 (2026-09-27 · wa v1.8) — Receiving 탭: 「Off-PO items waiting for a decision」(읽기 · 줄 = Purchase Receipts 딥링크 receiving.html?receipt=<uuid>&diff=<uuid> · 판정 44) ·
    「Rejected — still on a shelf」(rejected · 칸 있음 · removed_at null · Health 160 과 같은 모집단) · Stats 차이 카드에 off-PO 결정 어휘(accepted_free · accepted_billed · rejected) */
-const WK_BUILD="2026-09-28 · wa v1.9";
+const WK_BUILD="2026-09-29 · wa v1.11";   // tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -336,7 +336,51 @@ function normOrder(s){
            total_lines:ls?ls.length:null,
            total_units:ls?ls.reduce((a,l)=>a+(Number(l.qty_ordered||0)-Number(l.qty_removed||0))*Number(l.pack_factor||1),0):null,   // 판매 단위 × pack_factor = 낱개(ea) · wms-manager 와 같은 셈
            fin:one(s.wms_order_finalize), rev:one(s.wms_order_review),
-           pick_count:(one(s.wms_pick_tasks)||{}).count||0, packs:Array.isArray(s.wms_pack_tasks)?s.wms_pack_tasks:[] };
+           pick_count:(one(s.wms_pick_tasks)||{}).count||0, packs:Array.isArray(s.wms_pack_tasks)?s.wms_pack_tasks:[],
+           is_transfer:false, dest_name:"" };   // tf-2b — 판매 행은 false(트랜스퍼는 loadTransferDocs 가 만든다)
+}
+/* ---------- tf-2b(판정 83) 트랜스퍼 갈래 — 판매 조회 줄은 그대로 · 트랜스퍼 문서는 공용 목록 뷰 wms_order_doc · wms_order_doc_line(tr-1a:399 · 413 · 1b1:43)에서 normOrder 와 같은 모양으로 옆에 더한다 ----------
+   과제 · 팔렛 · 실수 · 신고는 transfer_id 열로 따로 읽어 order_id 자리에 채운다(docFillRow · 읽기 정책 inv_transfer 에 wms_manage tr-1b2:1192) · 되돌리기 창구(wms_rollback · wms_rollback_batch · wms_unwave)는 문서 id 를 그대로 받는다(tr-2:321 · tr-1b2:1102) ·
+   Finalized 탭(판정 86 ③-2 A): 트랜스퍼는 창고 마무리부터 도착 Complete 까지(inv_transfer.status in_transit · receiving) 판매 옆에 서고 같은 🖨 · PDF · CSV 로 다시 뽑는다 · 도착(received)하면 빠진다 · 검토 표시(판매 전용)는 트랜스퍼 줄에서 숨긴다 · Trace 에 재출력은 없다(판정 86 ③) · 판정 85-1: 팩킹리스트 라벨 「Customer」 → 트랜스퍼면 「Ship to warehouse」 */
+const TR_DOC_SEL="doc_kind,doc_id,doc_number,status,warehouse_id,warehouse_name,dest_warehouse_id,dest_warehouse_name,party_name,at_wms_at,picking_at,done_at,created_at";
+const TR_STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", in_transit:"In transit", receiving:"Receiving", received:"Received", cancelled:"Cancelled" };
+function docKey(o){ return o&&o.is_transfer ? {transfer_id:o.id} : {order_id:o.id}; }             // 표 읽기 · 판매 {order_id} · 트랜스퍼 {transfer_id}
+function docFillRow(r){ if(r){ if(r.order_id==null&&r.transfer_id) r.order_id=r.transfer_id; if(r.order_line_id==null&&r.transfer_line_id) r.order_line_id=r.transfer_line_id; } return r; }
+function docFillAll(rows){ (rows||[]).forEach(docFillRow); return rows; }
+function trStatusLabel(o){ return o&&o.is_transfer ? (TR_STATUS_LABEL[o.status]||o.status||"?") : statusLabel(o?o.status:null); }
+function trTag(o){ return o&&o.is_transfer ? ` <span class="tag" style="background:#fff4e0;color:#a86400">Transfer</span>` : ""; }
+function custLabel(d){ return d&&d.ord&&d.ord.is_transfer ? "Ship to warehouse" : "Customer"; }   // 판정 85-1
+async function loadTransferDocs(filter){
+  let q=sb.from("wms_order_doc").select(TR_DOC_SEL).eq("doc_kind","transfer"); q=filter?filter(q):q;   // caps-ok: 상태 · 번호 · id 로 좁힌다(활성 풀 규모)
+  const {data,error}=await q;
+  if(error||!data||!data.length) return [];
+  const ids=data.map(d=>d.doc_id);
+  const [ln, fn]=await Promise.all([
+    sb.from("wms_order_doc_line").select("doc_id,qty_target,pack_factor").eq("doc_kind","transfer").in("doc_id",ids),
+    sb.from("wms_order_finalize").select("transfer_id,finalized_by,finalized_at").in("transfer_id",ids),
+  ]);
+  const sums={}; (ln.data||[]).forEach(l=>{ const t=sums[l.doc_id]=sums[l.doc_id]||{n:0,u:0}; t.n++; t.u+=Number(l.qty_target||0)*Number(l.pack_factor||1); });
+  const fins={}; (fn.data||[]).forEach(f=>{ fins[f.transfer_id]=f; });
+  return data.map(d=>{ const to=d.dest_warehouse_name||whOf(d.dest_warehouse_id).name||"", t=sums[d.doc_id]||{n:0,u:0};
+    return { id:d.doc_id, order_number:d.doc_number||"", status:d.status||"", warehouse_id:d.warehouse_id||null,
+             warehouse:d.warehouse_name||whOf(d.warehouse_id).name||"", wh:whKey(d.warehouse_name||whOf(d.warehouse_id).name), customer_name:to,
+             at_wms_at:d.at_wms_at||null, picking_at:d.picking_at||null, packed_at:null, total_lines:t.n, total_units:t.u,
+             fin:fins[d.doc_id]||null, rev:null, pick_count:0, packs:[], is_transfer:true, dest_name:to }; });
+}
+async function loadTransferFinRows(){   // tf-2b 판정 86 ③-2 A — Finalized 탭의 트랜스퍼: 창고 마무리(출발) 뒤 · 도착 Complete 전(in_transit · receiving) · 검토 · 배치 수 · 팩 줄은 transfer_id 열로
+  const rows=await loadTransferDocs(q=>q.in("status",["in_transit","receiving"]).order("done_at",{ascending:false}));   // caps-ok: 운송 중 · 받는 중 — 도착으로 소진되는 활성 풀
+  if(!rows.length) return rows;
+  const ids=rows.map(o=>o.id);
+  const [rv, pt, pk]=await Promise.all([
+    sb.from("wms_order_review").select("transfer_id,reviewed,reviewed_by,reviewed_at,cleared_by,cleared_at").in("transfer_id",ids),
+    sb.from("wms_pick_tasks").select("transfer_id").in("transfer_id",ids),
+    sb.from("wms_pack_tasks").select("transfer_id,wms_pack_task_lines(verified_base)").in("transfer_id",ids),
+  ]);
+  const revs={}; (rv.data||[]).forEach(r=>{ revs[r.transfer_id]=r; });
+  const pcs={}; (pt.data||[]).forEach(t=>{ pcs[t.transfer_id]=(pcs[t.transfer_id]||0)+1; });
+  const pks={}; (pk.data||[]).forEach(x=>{ (pks[x.transfer_id]=pks[x.transfer_id]||[]).push(x); });
+  rows.forEach(o=>{ o.rev=revs[o.id]||null; o.pick_count=pcs[o.id]||0; o.packs=pks[o.id]||[]; });
+  return rows;
 }
 
 /* ---------- boot / login ---------- */
@@ -555,6 +599,11 @@ async function traceByOrder(){
   if(!num) return;
   const box=document.getElementById("traceResult");
   box.innerHTML=`<div class="loading"><div class="spin"></div>Looking up ${esc(num)}…</div>`;
+  if(/^TRF-/.test(num)){   // tf-2b — 트랜스퍼 번호는 공용 목록 뷰에서(판매 조회는 아래 그대로)
+    const t=(await loadTransferDocs(q=>q.eq("doc_number",num).limit(1)))[0];
+    if(!t){ box.innerHTML=`<div class="empty">Transfer not found: <b style="font-family:var(--mono)">${esc(num)}</b> — exact match only (e.g. TRF-00001).</div>`; return; }
+    renderTrace(t); return;
+  }
   const {data,error}=await sb.from("so").select(TR_SO_SEL).eq("so_number",num).limit(1);
   if(error){ box.innerHTML=`<div class="empty" style="color:#c0392b">Lookup failed: ${esc(error.message||"")} — try again.</div>`; return; }
   const o=(data||[]).map(normOrder)[0];
@@ -650,22 +699,24 @@ async function renderTrace(o){
       // 임베드 라인은 최상위 배치 행에 실려 오므로 1000행 캡 무관(규칙 20).
       sb.from("wms_pick_tasks")
         .select("id,batch_label,assigned_to,completed_by,status,started_at,completed_at,wave_id,tote_no,"
-          +"wms_pick_task_lines(order_line_id,assigned_base,picked_base,status,wms_pick_line_bins(bin,planned,qty_base)),"   // ⑤-5c2: 칸은 픽 줄의 칸 행(FK pick_task_line_id)
+          +"wms_pick_task_lines(order_line_id,transfer_line_id,assigned_base,picked_base,status,wms_pick_line_bins(bin,planned,qty_base)),"   // ⑤-5c2: 칸은 픽 줄의 칸 행(FK pick_task_line_id) · tf-2b transfer_line_id 한 칸 더
           +"wms_pack_tasks(id,assigned_to,completed_by,status,started_at,completed_at,"
-          +"wms_pack_task_lines(order_line_id,verified_base,status))")
-        .eq("order_id",o.id).order("batch_label"),
+          +"wms_pack_task_lines(order_line_id,transfer_line_id,verified_base,status))")
+        .match(docKey(o)).order("batch_label"),   // tf-2b — 판매 {order_id} · 트랜스퍼 {transfer_id}(같은 필터)
       // SKU·상품명은 so_line 에 — 라인 ~1000개 오더가 실재해 캡 경계라 sbAll 전량(order_sku 이름은 표시 코드가 그대로 읽게 맞춘다)
-      sbAll(()=>sb.from("so_line").select("id,sku,product_name,line_no").eq("so_id",o.id).order("line_no")),
+      o.is_transfer ? sbAll(()=>sb.from("wms_order_doc_line").select("line_id,sku,product_name,line_no").eq("doc_id",o.id).order("line_no")).then(r=>{ (r.data||[]).forEach(l=>{ l.id=l.line_id; }); return r; })   // tf-2b — 트랜스퍼 줄은 뷰(판매는 오른쪽 그대로)
+                    : sbAll(()=>sb.from("so_line").select("id,sku,product_name,line_no").eq("so_id",o.id).order("line_no")),
       // ⑤-5c2: 실수 = wms_worker_mistakes(다섯) + 「Not enough stock」 선언 = wms_reports stock_short(판정 20) — 한 목록으로(reason stock_short · declared_by = reported_by)
       sb.from("wms_worker_mistakes")
         .select("id,sku,reason,ordered_base,actual_base,responsible,declared_by,created_at,resolved_at,voided_at,pick_task_id,pack_task_id")
-        .eq("order_id",o.id).order("created_at"),   // caps-ok: 오더 1건 귀속 — 수십 건 규모
-      sb.from("wms_reports").select("id,sku,qty_expected,qty_found,reported_by,created_at,resolved_at").eq("order_id",o.id).eq("kind","stock_short").order("created_at"),
+        .match(docKey(o)).order("created_at"),   // caps-ok: 오더 1건 귀속 — 수십 건 규모 · tf-2b docKey
+      sb.from("wms_reports").select("id,sku,qty_expected,qty_found,reported_by,created_at,resolved_at").match(docKey(o)).eq("kind","stock_short").order("created_at"),   // tf-2b docKey
     ]);
     if(bt.error) throw bt.error;
     if(ol.error) throw ol.error;
     (ol.data||[]).forEach(l=>{ l.order_sku=l.sku; });
     const tasks=(bt.data||[]).slice().sort((a,b)=>trBatchCmp(a.batch_label,b.batch_label));   // 자연수 정렬 — 서버 .order 는 텍스트 정렬이라 -10 이 -2 앞
+    tasks.forEach(t=>{ (t.wms_pick_task_lines||[]).forEach(docFillRow); (t.wms_pack_tasks||[]).forEach(p=>(p.wms_pack_task_lines||[]).forEach(docFillRow)); });   // tf-2b — 트랜스퍼 줄 id 를 order_line_id 자리에
     const olMap=new Map((ol.data||[]).map(l=>[l.id,l]));
     // disc 실패는 비치명 — 본체(배치·시각·작업자)는 그대로 보여주고 경고만 남긴다
     const discs=(dc.error?[]:(dc.data||[])).concat((rp&&!rp.error?(rp.data||[]):[]).map(x=>({id:"r"+x.id, sku:x.sku, reason:"stock_short", ordered_base:x.qty_expected, actual_base:x.qty_found, responsible:null, declared_by:x.reported_by, created_at:x.created_at, resolved_at:x.resolved_at, voided_at:null, pick_task_id:null, pack_task_id:null})));
@@ -687,7 +738,8 @@ async function renderTrace(o){
         <span style="font-family:var(--mono);font-weight:800;font-size:16px">${esc(o.order_number)}</span>
         <span style="font-size:13.5px;font-weight:600">${esc(o.customer_name||"—")}</span>
         <span class="tag wh-${o.wh}">${whLabel(o.wh)}</span>
-        <span class="tag st-${o.status}">${statusLabel(o.status)}</span>
+        <span class="tag st-${o.status}">${trStatusLabel(o)}</span>
+        ${trTag(o)}
       </div>
       <div style="font-size:12px;color:var(--mut);margin-top:4px">${o.at_wms_at?`${STATUS_LABEL.at_wms} ${trAt(o.at_wms_at,TZT,true)}`:"not released to the WMS"} · ${
         (o.fin&&o.fin.finalized_at)?`${STATUS_LABEL.packed} ${trAt(o.fin.finalized_at,TZT,true)}${o.fin.finalized_by?" by "+esc(nameOf(o.fin.finalized_by)):""}`:"not finalized yet"
@@ -844,6 +896,7 @@ async function loadOverview(){
   ]);
   if(ordersQ.error){ document.getElementById("activeOrders").innerHTML=`<div class="empty">Couldn't load orders: ${esc(ordersQ.error.message||"")}</div>`; return; }
   const os=(ordersQ.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id));   // 창고 = me.access.warehouses(null = 전부)
+  (await loadTransferDocs(q=>q.in("status",["at_wms","picking"]).order("at_wms_at"))).filter(o=>inWhId(o.warehouse_id)).forEach(o=>os.push(o));   // tf-2b — 창고 안 트랜스퍼(뷰 · 같은 상태 어휘)
   loadBatchActivity(os);
   // 분할 팩 진행 (규칙 9 fulfillment 게이트와 같은 뷰 — 판정은 한 곳): 팩이 1개 이상 끝났지만 전부는 아닌 오더 = fulfillment 보드에서 숨겨진 상태.
   const prog={};
@@ -876,7 +929,7 @@ async function loadOverview(){
   if(!os.length){ el.innerHTML=`<div class="empty">No orders in progress.</div>`; }
   else el.innerHTML=`<table><thead><tr><th>Orders</th><th>Customer</th><th>Warehouse</th><th>Status</th><th class="num">Lines</th><th class="num">units</th></tr></thead><tbody>${
     os.map(o=>`<tr>
-      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}</td>
+      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}${trTag(o)}</td>
       <td>${esc(o.customer_name||"—")}</td>
       <td><span class="tag wh-${o.wh}">${whLabel(o.wh)}</span></td>
       <td><span class="tag st-${o.status}">${statusLabel(o.status)}</span>${(p=>isReady(o)?` <span class="tag" style="color:var(--ok);background:var(--ok-bg)" title="every batch is packed — waiting for Finalize on the Fulfillment screen">✓ ready to finalize</span>`:(isPacking(o)?` <span class="tag r-short_pick" title="hidden from fulfillment until every split batch is packed">⏳ ${p.packs_done}/${p.pick_batches} packed</span>`:""))(pOf(o))}</td>
@@ -906,6 +959,14 @@ async function loadBatchActivity(activeOrders){
     sb.from("wms_pick_tasks").select("id,order_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("order_id",ids).order("batch_label"),
     sb.from("wms_pack_tasks").select("id,order_id,pick_task_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("order_id",ids),
   ]);
+  const trIds=ids.filter(id=>oById[id]&&oById[id].is_transfer);   // tf-2b — 트랜스퍼의 과제는 transfer_id 열
+  if(trIds.length){
+    const [tp, tk]=await Promise.all([
+      sb.from("wms_pick_tasks").select("id,order_id,transfer_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("transfer_id",trIds).order("batch_label"),
+      sb.from("wms_pack_tasks").select("id,order_id,transfer_id,pick_task_id,batch_label,status,assigned_to,started_at,heartbeat_at,work_started").in("transfer_id",trIds),
+    ]);
+    pt.data=(pt.data||[]).concat(docFillAll(tp.data||[])); pk.data=(pk.data||[]).concat(docFillAll(tk.data||[]));
+  }
   if(pt.error){ el.innerHTML=`<div class="empty">Failed to load batches: ${esc(pt.error.message||"")}</div>`; return; }
   const picks=pt.data||[], packs=pk.data||[];
   const packByPick={}; packs.forEach(p=>packByPick[p.pick_task_id]=p);
@@ -1061,7 +1122,7 @@ async function loadRollback(){
     sbAll(()=>sb.from("so").select(RB_SEL).in("status",["at_wms","picking"]).order("so_number").order("id")),   // caps-ok: 활성 풀 · sbAll
     sb.from("so").select(RB_SEL).eq("status","packed").order("packed_at",{ascending:false}).limit(200),   // caps-ok: 최근 200 사양
     sb.from("so").select("id",{count:"exact",head:true}).eq("status","packed"),
-    sb.from("wms_waves").select("id,label,warehouse_id,status,assigned_to, wms_pick_tasks(id,order_id, so(so_number))").neq("status","completed").order("label"),   // caps-ok: 완료 아닌 wave 만
+    sb.from("wms_waves").select("id,label,warehouse_id,status,assigned_to, wms_pick_tasks(id,order_id,transfer_id, so(so_number), inv_transfer(transfer_number))").neq("status","completed").order("label"),   // caps-ok: 완료 아닌 wave 만 · tf-2b 트랜스퍼 임베드(판매 행은 null)
   ]);
   const err=ordsQ.error||packedQ.error||wvsQ.error;
   if(err){ el.innerHTML=`<div class="empty">Couldn't load: ${esc(err.message||"")}</div>`; return; }
@@ -1069,6 +1130,9 @@ async function loadRollback(){
   const closedRows=(packedQ.data||[]).map(normOrder).filter(inWh), closedTotal=packedCnt.count??closedRows.length;
   const orders=[...(ordsQ.data||[]).map(normOrder).filter(inWh),...closedRows]
     .sort((a,b)=>a.order_number<b.order_number?-1:a.order_number>b.order_number?1:0);
+  (await loadTransferDocs(q=>q.in("status",["at_wms","picking"]))).filter(inWh).forEach(o=>orders.push(o));   // tf-2b — 창고 안 트랜스퍼(떠난 것은 되돌리지 못한다 · 창구 몫)
+  orders.sort((a,b)=>a.order_number<b.order_number?-1:a.order_number>b.order_number?1:0);
+  ((wvsQ&&wvsQ.data)||[]).forEach(w=>(w.wms_pick_tasks||[]).forEach(t=>{ if(!t.so&&t.inv_transfer) t.so={so_number:t.inv_transfer.transfer_number}; }));   // tf-2b — 웨이브 멤버 이름
   const wavesRb=((wvsQ&&wvsQ.data)||[]).filter(w=>inWhId(w.warehouse_id));
   const finToggle=closedTotal>0?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px">
     <button id="finToggleRb" title="Finalized orders are hidden by default. Show them to ↩ Undo Finalize — the order goes back to Working; its pallets and boxes are archived and removed."
@@ -1119,6 +1183,15 @@ async function loadRollback(){
     sbAll(()=>sb.from("wms_pack_tasks").select("id,order_id,pick_task_id,status,assigned_to").in("order_id",ids).order("id")),
     sbAll(()=>sb.from("wms_pallet_items").select("order_id,pack_task_id").in("order_id",ids).order("id")),
   ]);
+  const trIdsRb=orders.filter(o=>o.is_transfer).map(o=>o.id);   // tf-2b — 트랜스퍼의 과제 · 팔렛은 transfer_id 열
+  if(trIdsRb.length){
+    const [tpk, tpc, tpi]=await Promise.all([
+      sbAll(()=>sb.from("wms_pick_tasks").select("id,order_id,transfer_id,batch_label,status,assigned_to,created_by").in("transfer_id",trIdsRb).order("batch_label").order("id")),
+      sbAll(()=>sb.from("wms_pack_tasks").select("id,order_id,transfer_id,pick_task_id,status,assigned_to").in("transfer_id",trIdsRb).order("id")),
+      sbAll(()=>sb.from("wms_pallet_items").select("order_id,transfer_id,pack_task_id").in("transfer_id",trIdsRb).order("id")),
+    ]);
+    picks.data=(picks.data||[]).concat(docFillAll(tpk.data||[])); packs.data=(packs.data||[]).concat(docFillAll(tpc.data||[])); pitems.data=(pitems.data||[]).concat(docFillAll(tpi.data||[]));
+  }
   const pk=picks.data||[], pc=packs.data||[], pi=pitems.data||[];
   // picked progress per batch (a held/pending batch with progress is still resettable)
   const pkIds=pk.map(t=>t.id); let progByPick={};
@@ -1186,7 +1259,7 @@ async function loadRollback(){
 
   el.innerHTML=cancelNote+waveHtml+finToggle+`<table><thead><tr><th>Order</th><th>Customer</th><th>Warehouse</th><th>Current stage</th><th>Worker</th><th></th></tr></thead><tbody>${
     visRows.map(r=>`<tr>
-      <td style="font-family:var(--mono);font-weight:700">${esc(r.o.order_number)}
+      <td style="font-family:var(--mono);font-weight:700">${esc(r.o.order_number)}${trTag(r.o)}
         ${r.myPicks.length>1?`<button data-bt="${r.o.id}" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 8px;font:inherit;font-size:11.5px;color:var(--mut);cursor:pointer;margin-left:6px">▸ ${r.myPicks.length} batches</button>`:""}</td>
       <td>${esc(r.o.customer_name||"—")}</td>
       <td><span class="tag wh-${r.o.wh}">${whLabel(r.o.wh)}</span></td>
@@ -1379,6 +1452,7 @@ async function loadPacking(){
   const q=await sbAll(()=>sb.from("so").select(FIN_SELECT).eq("status","packed").order("packed_at",{ascending:false}).order("id"));   // caps-ok: sbAll · 소진되는 풀
   if(q.error){ el.innerHTML=`<div class="empty">Couldn't load: ${esc(q.error.message||"")}</div>`; return; }
   let all=(q.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id));
+  (await loadTransferFinRows()).filter(o=>inWhId(o.warehouse_id)).forEach(o=>all.push(o));   // tf-2b 판정 86 ③-2 A — 운송 중 트랜스퍼를 판매 옆에(마무리 시각 · 창고 · 기간 필터는 같은 줄)
   if(finWh!=="all"){ const ids=whIdsFor(finWh); all=all.filter(o=>ids.includes(o.warehouse_id)); }
   const finAt=o=>(o.fin&&o.fin.finalized_at)||o.packed_at;
   const from=new Date(r.fromISO).getTime(), to=new Date(r.toISO).getTime();
@@ -1389,7 +1463,7 @@ async function loadPacking(){
   const isRev=o=>!!(o.rev&&o.rev.reviewed);
   const unrevRows=fin.filter(o=>!isRev(o)), revAll=fin.filter(isRev), revRows=revAll.slice(0,200), revTotal=revAll.length;
   const list=[...unrevRows,...revRows].sort((a,b)=>new Date(finAt(b))-new Date(finAt(a)));
-  const unrev=unrevRows.length, finTotal=fin.length;
+  const unrev=unrevRows.filter(o=>!o.is_transfer).length, finTotal=fin.filter(o=>!o.is_transfer).length;   // tf-2b 판정 86 — 검토 셈은 판매만(트랜스퍼 줄은 검토 표시를 숨긴다) · 판매만이면 전과 같은 수
   const revNote=revTotal>revRows.length
     ? `<span style="font-size:11.5px;color:var(--mut)">Latest ${revRows.length} of ${revTotal} reviewed listed — older reviewed orders are not listed.</span>`
     : "";
@@ -1417,7 +1491,7 @@ async function loadPacking(){
       const dimsNote=(o.fin&&o.fin.units_without_dims>0)?` <span class="tag" style="color:var(--warn);background:var(--warn-bg)" title="pallets/boxes without dimensions — the office needs them for the freight quote">⚠ ${o.fin.units_without_dims} without dims</span>`:"";
       const ftype=o.fin?o.fin.fulfillment_type:null;
       return `<tr data-rev="${isRev(o)?1:0}" style="${isRev(o)?"opacity:.55":""}">
-      <td><input type="checkbox" class="mgrchk" data-oid="${o.id}" ${isRev(o)?"checked":""} title="${esc(revTitle)}"></td>
+      <td>${o.is_transfer?trTag(o).trim():`<input type="checkbox" class="mgrchk" data-oid="${o.id}" ${isRev(o)?"checked":""} title="${esc(revTitle)}">`}</td>
       <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}${bt}</td>
       <td>${esc(o.customer_name||"—")}</td>
       <td class="num">${o.total_lines??"—"}${packedCell(o.total_lines,pkL)}</td><td class="num">${o.total_units??"—"}${packedCell(o.total_units,pkU)}</td>
@@ -1447,7 +1521,7 @@ async function loadPacking(){
     try{
       const {data,error}=await sb.from("wms_pick_tasks")
         .select("id,batch_label,assigned_to,completed_by,wms_pack_tasks(id,assigned_to,completed_by,wms_pack_task_lines(verified_base))")
-        .eq("order_id",oid).order("batch_label");
+        .match(docKey(list.find(o=>o.id===oid)||{id:oid})).order("batch_label");   // tf-2b — 판매 {order_id} · 트랜스퍼 {transfer_id}
       if(error) throw error;
       const html=`<table style="width:100%"><thead><tr><th style="font-size:11px">Batch</th><th style="font-size:11px">Picked by</th><th style="font-size:11px">Packed by</th><th class="num" style="font-size:11px">Lines verified</th><th class="num" style="font-size:11px">Units verified</th></tr></thead><tbody>${
         (data||[]).map(t=>{
@@ -1495,7 +1569,9 @@ async function toggleMgrReviewed(oid,checked,chk){
 async function getPackingData(oid){
   const {data:so}=await sb.from("so").select(SO_SEL).eq("id",oid).single();
   const ord=normOrder(so);
-  const {data:mine}=await sb.from("wms_pallet_items").select("*").eq("order_id",oid);
+  if(!so){ Object.assign(ord,(await loadTransferDocs(q=>q.eq("doc_id",oid)))[0]||{}); }   // tf-2b — 트랜스퍼면 뷰에서(재출력 단추는 아직 Finalized 탭(판매)에만 있다)
+  const {data:mine}=await sb.from("wms_pallet_items").select("*").match(docKey(ord));   // tf-2b — 판매 {order_id} · 트랜스퍼 {transfer_id}
+  docFillAll(mine);
   const myUnitIds=[...new Set((mine||[]).map(i=>i.pallet_id).filter(Boolean))];
 
   // 1) 이 오더가 들어간 유닛 → 부모까지 올라가 최상위(팔렛/독립박스)를 구한다
@@ -1520,6 +1596,7 @@ async function getPackingData(oid){
   if(allUnitIds.length){
     const {data:ai}=await sb.from("wms_pallet_items").select("*").in("pallet_id",allUnitIds);
     allItems=ai||[];
+    docFillAll(allItems);   // tf-2b
   }
   // 4) 함께 실린 다른 오더의 이름표
   const otherOids=[...new Set(allItems.map(i=>i.order_id).filter(x=>x&&x!==oid))];
@@ -1527,6 +1604,8 @@ async function getPackingData(oid){
   if(otherOids.length){
     const {data:oo}=await sb.from("so").select(SO_SEL).in("id",otherOids);
     (oo||[]).map(normOrder).forEach(o=>{ oname[o.id]=o.order_number+(o.customer_name?` (${o.customer_name})`:""); });
+    const unkTr=otherOids.filter(id=>!oname[id]);   // tf-2b — so 에 없으면 트랜스퍼
+    if(unkTr.length){ (await loadTransferDocs(q=>q.in("doc_id",unkTr))).forEach(o=>{ oname[o.id]=o.order_number+" (Transfer to "+(o.dest_name||"—")+")"; }); }
   }
   // 5) 줄의 sku · 이름 · 제품 → 바코드(낱개 · 활성 · primary 우선)
   const lineIds=[...new Set(allItems.map(i=>i.order_line_id).filter(Boolean))];
@@ -1534,7 +1613,9 @@ async function getPackingData(oid){
   if(lineIds.length){
     const {data:sl}=await sb.from("so_line").select("id,sku,product_name,product_id").in("id",lineIds);
     (sl||[]).forEach(l=>{ li[l.id]={sku:l.sku, name:l.product_name, product_id:l.product_id}; });
-    const pids=[...new Set((sl||[]).map(l=>l.product_id).filter(Boolean))];
+    const unkTl=lineIds.filter(id=>!li[id]);   // tf-2b — so_line 에 없으면 트랜스퍼 줄(뷰)
+    if(unkTl.length){ const {data:tl}=await sb.from("wms_order_doc_line").select("line_id,sku,product_name,product_id").eq("doc_kind","transfer").in("line_id",unkTl); (tl||[]).forEach(l=>{ li[l.line_id]={sku:l.sku, name:l.product_name, product_id:l.product_id}; }); }
+    const pids=[...new Set(Object.values(li).map(l=>l.product_id).filter(Boolean))];   // tf-2b — 판매 줄 + 트랜스퍼 줄의 제품(판매만이면 전과 같은 집합)
     if(pids.length){
       const {data:bcs}=await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id",pids).eq("is_active",true).order("is_primary",{ascending:false});
       (bcs||[]).forEach(b=>{ if(!bc[b.product_id]) bc[b.product_id]=String(b.barcode||"").trim(); });
@@ -1672,7 +1753,7 @@ async function buildPackingListHTML(oid, autoprint){
   </style></head><body>
     <div class="h"><div class="brandwrap"><div style="font-weight:800;font-size:20px">ASUNG</div><div style="font-weight:800;font-size:16px">PACKING LIST</div></div>
       <div class="doc">${e(d.ord.order_number)}<br><span style="font-weight:400;font-size:12px;color:#666">${new Date().toLocaleDateString()}</span></div></div>
-    <div class="meta"><div><b>Order</b> ${e(d.ord.order_number)}</div><div><b>Customer</b> ${e(d.ord.customer_name||"—")}</div><div><b>Warehouse</b> ${d.wh}</div></div>
+    <div class="meta"><div><b>Order</b> ${e(d.ord.order_number)}</div><div><b>${custLabel(d)}</b> ${e(d.ord.customer_name||"—")}</div><div><b>Warehouse</b> ${d.wh}</div></div>
     ${body}
     <div class="total">Total qty: ${d.grand}</div>
     ${autoprint?`<script>window.addEventListener("load",()=>{setTimeout(()=>{try{window.print();}catch(e){}},250);});<\/script>`:""}
@@ -1715,7 +1796,7 @@ async function downloadPackingPDF(oid, onum){
     doc.text(String(d.ord.order_number),196,14,{align:"right"});
     doc.text(new Date().toLocaleDateString(),196,19,{align:"right"});
     y+=10;
-    doc.text(`Customer: ${d.ord.customer_name||"—"}     Warehouse: ${d.wh}`,14,y); y+=5;
+    doc.text(`${custLabel(d)}: ${d.ord.customer_name||"—"}     Warehouse: ${d.wh}`,14,y); y+=5;
     // unit map — which units hold this order's goods and which don't
     const wrap=(txt,x)=>{ doc.splitTextToSize(txt,196-x).forEach(ln=>{ if(y>276){doc.addPage();y=16;} doc.text(ln,x,y+4); y+=4.6; }); y+=1; };
     if(d.unitMap&&d.unitMap.length){
@@ -1768,7 +1849,7 @@ async function downloadPackingCSV(oid, onum){
     const d=await getPackingData(oid);
     const q=v=>{ v=String(v==null?"":v); return /[",\n]/.test(v)?('"'+v.replace(/"/g,'""')+'"'):v; };
     const rows=[
-      ["Order",d.ord.order_number],["Customer",d.ord.customer_name||""],["Warehouse",d.wh],["Printed",new Date().toLocaleString()],[],
+      ["Order",d.ord.order_number],[custLabel(d),d.ord.customer_name||""],["Warehouse",d.wh],["Printed",new Date().toLocaleString()],[],
     ];
     // section 1 — unit map (which units hold this order's goods, which don't)
     rows.push(["Units in this shipment"]);

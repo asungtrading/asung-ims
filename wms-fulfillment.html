@@ -343,7 +343,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 없음(판정 33). */
-const WK_BUILD="2026-09-29 · fu v1.1";   // tf-2a(판정 83) — 트랜스퍼 갈래
+const WK_BUILD="2026-09-29 · fu v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -385,6 +385,11 @@ function docCols(id,olid){ return isTrId(id) ? {transfer_id:id, transfer_line_id
 function docFillRow(r){ if(r){ if(r.order_id==null&&r.transfer_id) r.order_id=r.transfer_id; if(r.order_line_id==null&&r.transfer_line_id) r.order_line_id=r.transfer_line_id; } return r; }
 function docFillAll(rows){ (rows||[]).forEach(docFillRow); return rows; }
 function trTag(o){ return o&&o.is_transfer ? `<span class="otag" style="color:#a86400;background:#fff4e0">Transfer</span>` : ""; }
+/* tf-2b 판정 84 ① — 판매 오더와 트랜스퍼는 한 작업대에 올리지 않는다(스캔 · 고르기 · 마무리 앞 셋 다) · DB 안전띠 wms_finalize(tr-2b)와 같은 뜻 · 판정 85-1 라벨 */
+const MIX_MSG="A sale and a transfer cannot be on the same workbench — finish or clear one first";
+function docKindOf(id){ const o=orderById[id]||(availOrders||[]).find(x=>x.id===id)||extOrders[id]; return o?(o.is_transfer?"transfer":"so"):null; }
+function mixedKinds(ids){ return new Set((ids||[]).map(docKindOf).filter(Boolean)).size>1; }
+function custLabel(){ return orders.some(o=>o.is_transfer) ? "Ship to warehouse" : "Customer"; }
 function itSku(i){ const li=lineInfo[i.order_line_id]; return li?li.sku:(i.order_sku||"?"); }     // 새 wms_pallet_items 에는 order_sku · product_name 칸이 없다 — 줄 표에서
 function itName(i){ const li=lineInfo[i.order_line_id]; return li?li.name:(i.product_name||""); }
 function packTaskFor(olid){ const p=poolLines.find(x=>x.order_line_id===olid&&remainingFor(x)>0)||poolLines.find(x=>x.order_line_id===olid); return p?p.pack_task_id:null; }   // ⬜10 — 담긴 것이 어느 팩 배치에서 왔나(되돌리기 창구의 「팔렛에 담긴 배치」 검사)
@@ -571,6 +576,7 @@ document.getElementById("pickCancel").onclick=()=>{ document.getElementById("ord
 document.getElementById("startBtn").onclick=()=>{
   const checked=[...document.querySelectorAll("#orderList input:checked")].map(c=>c.value);   // so.id 는 uuid — 숫자로 바꾸지 않는다
   if(!checked.length){ toast("Select at least one order",true); return; }
+  if(mixedKinds(checked)){ toast(MIX_MSG,true); return; }   // tf-2b 판정 84 ①
   orderIds=checked;
   document.getElementById("orderPicker").style.display="none";
   loadWorkspace();
@@ -616,6 +622,7 @@ async function scanLoadOrder(v){
     }catch(e){ /* 안내 실패는 기본 메시지로 */ }
     toast("No order ready to ship for "+v,true); return;
   }
+  if(!orderIds.includes(o.id)&&mixedKinds([...orderIds,o.id])){ toast(MIX_MSG,true); return; }   // tf-2b 판정 84 ①
   if(!orderIds.includes(o.id)) orderIds=[...orderIds,o.id];
   document.getElementById("orderPicker").style.display="none";
   await loadWorkspace();
@@ -641,6 +648,7 @@ document.getElementById("completeBtn").onclick=async ()=>{
   if(direct.length) msg+=`\n\nDirect pack — no pallet/box (pickup / immediate ship):\n`+direct.map(x=>"· "+x.o.order_number).join("\n");
   if(partial.length) msg+=`\n\n\u26a0 Still has unplaced items (will finalize anyway):\n`+partial.map(x=>`· ${x.o.order_number} (${x.unplaced} units)`).join("\n");
   msg+=`\n\nFinalized orders leave the fulfillment board.`;
+  if(mixedKinds(orders.map(o=>o.id))){ toast(MIX_MSG,true); return; }   // tf-2b 판정 84 ① — 마무리 앞에서 한 번 더(DB 의 wms_finalize 도 거부한다)
   if(!confirm(msg)) return;
   const btn=document.getElementById("completeBtn"); btn.disabled=true;
   try{
@@ -688,11 +696,11 @@ async function loadWorkspace(){
   // header info
   const custs=[...new Set(orders.map(o=>o.customer_name||"—"))];
   document.getElementById("ordInfo").innerHTML=
-    `<b>${orders.map(o=>esc(o.order_number)).join(", ")}</b> · Customer <b>${custs.map(esc).join(" / ")}</b>`
+    `<b>${orders.map(o=>esc(o.order_number)).join(", ")}</b> · ${custLabel()} <b>${custs.map(esc).join(" / ")}</b>`
     +(custs.length>1?` <span class="otag" style="color:var(--warn);background:var(--warn-bg)">${custs.length} customers mixed</span>`:"");
-  // tf-2a — 트랜스퍼 표시 · 판매와 트랜스퍼를 한 작업대에 섞으면 경고만(막을지는 ⬜ 판정 거리)
-  document.getElementById("ordInfo").innerHTML+=orders.filter(o=>o.is_transfer).map(o=>` <span class="otag" style="color:#a86400;background:#fff4e0">${esc(o.order_number)} · Transfer to ${esc(o.dest_name||"—")}</span>`).join("")
-    +((orders.some(o=>o.is_transfer)&&orders.some(o=>!o.is_transfer))?` <span class="otag" style="color:var(--warn);background:var(--warn-bg)">sale + transfer mixed</span>`:"");
+  // tf-2a — 트랜스퍼 표시 · tf-2b 판정 84 ①: 섞임은 들어오는 길에서 막는다(위 startBtn · scanLoadOrder) — 그래도 섞여 있으면 빨간 글자(마무리는 앞에서 다시 막고 DB 도 거부한다)
+  document.getElementById("ordInfo").innerHTML+=orders.filter(o=>o.is_transfer).map(o=>` <span class="otag" style="color:#a86400;background:#fff4e0">${esc(o.order_number)} · Transfer to ${esc(o.dest_name||"—")}</span>`).join("");
+  if(mixedKinds(orderIds)) document.getElementById("ordInfo").innerHTML+=` <span class="otag" style="color:#c0392b;background:#fdecec">${esc(MIX_MSG)}</span>`;
   document.getElementById("pickBtn").textContent=`${orderIds.length} orders ▾`;
 
   // static pool: completed pack lines of all selected orders
@@ -1599,7 +1607,7 @@ function printUnit(uid){
   const pa=document.getElementById("printArea");
   pa.innerHTML=`
     <div class="pl-h"><div class="brand">ASUNG</div><div class="doc">PACKING LIST<br>${new Date().toLocaleDateString()}</div></div>
-    <div class="pl-meta"><div>Order <b>${esc(orderStr)}</b></div><div>Customer <b>${custs.map(esc).join(" / ")}</b></div><div>Warehouse <b>${wh}</b></div></div>
+    <div class="pl-meta"><div>Order <b>${esc(orderStr)}</b></div><div>${custLabel()} <b>${custs.map(esc).join(" / ")}</b></div><div>Warehouse <b>${wh}</b></div></div>
     <div class="pl-unit">${uIcon(u)} ${esc(uTitle(u))}</div>
     ${body}
     <div class="pl-total">Total qty: ${grand}</div>`;

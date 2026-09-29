@@ -1141,7 +1141,7 @@ Parked and open at this store
 
 ---
 
-## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 → Claude Code tf-2a **fu v1.1** 「2026-09-29 · fu v1.1」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
+## 7-p. `wms-fulfillment.html` — Fulfillment (2026-09-27 신설 · Claude Code ⑤-5a · 1판 「2026-09-27 · fu v1」 → Claude Code tf-2a **fu v1.1** 「2026-09-29 · fu v1.1」 = 판정 83 트랜스퍼 갈래(아래 tf-2a 절) → Claude Code tf-2b **fu v1.2** 「2026-09-29 · fu v1.2」 = 판정 84 ①(판매 · 트랜스퍼 한 작업대 금지) · 85-1(「Ship to warehouse」) · 운영 `asung-wms/fulfillment.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 34 「세번에 나누는 A」의 첫 차수)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 16 · 18 · 19 · 21 · 24-k): 오더 풀 = `wms_pack_tasks`(completed) + `so!inner(status)` eq picking · 관문 = 뷰 `wms_order_pack_progress`(all_packed) · 오더 머리 = `so`(so_number · status · location_id · location_name) + `customer!so_customer_id_fkey(name)` ·
 풀 줄(sku · base_sku · 이름 · 바코드 낱개 factor 1 + 세트 factor pack · 팩 수량 verified_base) = 읽기 창구 **`wms_pick_lines(null, p_pack_task_id)`** 팩 갈래 — 팩 과제마다 한 번(N 왕복 · 시간은 콘솔 `[fulfillment] wms_pick_lines ×N · ms`) ·
@@ -1183,9 +1183,17 @@ Parked and open at this store
 [ ] ✓ Finalize → 토스트 「TRF-00001 left for <도착 창고> — in transit」 · 모자란 줄이 있으면 alert 「Short — closed on the transfer (sent what was picked)」(판정 74) · transfers.html 에 in transit · Sent · short
 ```
 
+⭐ [2026-09-29 · Claude Code tf-2b · 판정 84 ① · 85-1] **fu v1.2** — 판매 · 트랜스퍼 한 작업대 금지(들어오는 길 둘 + 마무리 앞 · DB 안전띠 wms_finalize tr-2b) · 팩킹리스트 「Ship to warehouse」(patch ~/asung/prompts/tf-2b-fulfillment.patch).
+```
+[ ] 빌드 표시 「2026-09-29 · fu v1.2」 · 판매 오더만의 한 바퀴(고르기 · 스캔 · 팔렛 · 인쇄 「Customer」 · Finalize)가 어제와 같다
+[ ] 판매 오더를 올린 뒤 TRF 를 고르거나 스캔 → 「A sale and a transfer cannot be on the same workbench — finish or clear one first」 · 반대(트랜스퍼 뒤 판매)도 같다 · 목록에서 둘을 함께 체크해 Start → 같은 문장
+[ ] 트랜스퍼만 올리면 머리 「… · Ship to warehouse <도착 창고>」 · 팩킹리스트 · 스토어 리스트 라벨 「Ship to warehouse」 · 「sale + transfer mixed」 글자는 없다
+[ ] (DB 안전띠) 옛 화면(캐시)으로 섞어 Finalize 해도 창구가 「A sale and a transfer cannot be finalized together — finalize them separately — nothing was saved」
+```
+
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
+## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (→ Claude Code tf-2b **wa v1.11** 「2026-09-29 · wa v1.11」 = 판정 83 트랜스퍼 갈래(Status · Rollback · Trace · 재출력 라벨 85-1) + 판정 86 ③-2 A(Finalized 탭에 운송 중 트랜스퍼 · 같은 🖨 · PDF · CSV) — 절 끝 tf-2b 항목 · 2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1269,6 +1277,15 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 [ ] 단추는 ims_can_adjust() 가 true 인 사람에게만(admin · 열쇠를 켠 supervisor · manager) · 열쇠 없는 supervisor · manager · worker 에게는 안 보인다(Mark resolved 만)
 [ ] 누르면 같은 창에서 stock-adjustments.html?report=<id> — 같은 신고의 초안이 있으면 그것이 열린다
 [ ] Mark resolved 는 그대로 돈다(조정 없이 닫기)
+```
+
+⭐ [2026-09-29 · Claude Code tf-2b · 판정 83 · 85-1 · 86] **wa v1.11 — 트랜스퍼 갈래** — 판매 조회 줄은 그대로(patch ~/asung/prompts/tf-2b-admin.patch · − 줄은 보고에 이유) · 트랜스퍼는 공용 목록 뷰에서 같은 모양으로.
+```
+[ ] 빌드 표시 「2026-09-29 · wa v1.11」 · Status · Rollback · Finalized · Trace 의 판매 표시가 어제와 같다(검토 ✓ · 「N of M not yet reviewed」 · Hide reviewed · 🖨 · PDF · CSV)
+[ ] Status — 창고 안 트랜스퍼(Released to WMS · Working)가 표에 「TRF-0000n · <도착 창고> · 출발 창고 · Transfer」 · 카드 수에 든다 · Batch activity 에 그 배치
+[ ] Rollback — 트랜스퍼 행에 ↩ Undo Split / Reset Pick / Undo Pack / Undo Fulfillment(창구 wms_rollback 이 문서 id 를 받는다 · 떠난 트랜스퍼(in_transit)는 목록에 없다 — 되돌리지 못한다)
+[ ] Trace — TRF-0000n 정확히 → 머리 「TRF · <도착 창고> · Transfer · In transit/Working」 · 배치 · 줄(SKU · 이름은 뷰) · 실수 · 신고(transfer_id) · 손님 이름 검색은 판매만
+[ ] Finalized(판정 86 ③-2 A) — 창고 마무리 뒤 · 도착 전 트랜스퍼(in transit · receiving)가 판매 옆에 「TRF-0000n · Transfer · <도착 창고> · Finalized by · When」 · ✓ 검토 칸 자리엔 꼬리표(검토 없음 · 「N of M not yet reviewed」 셈에서 빠진다) · 🖨 · PDF · CSV = 「Ship to warehouse <도착 창고>」 · ▸ N batches 펼침 · 에드먼튼이 Complete 하면 빠진다 · Trace 에는 재출력 없다(판정 86 ③)
 ```
 
 ---
@@ -1447,7 +1464,7 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] transfers.html 에서 TRF 확정 → Release to WMS → Split & Waves 대기 목록에 TRF · 손님 자리에 도착 창고 · 꼬리표 Transfer · 배송지 · 가격 칸 없음
 [ ] 배치 → 픽 리스트 인쇄 = 도착 창고 이름 · 주소 없음 → Picking(하나는 일부러 모자라게) → Packing → Fulfillment
 [ ] Finalize → 토스트 「… left for … — in transit」 · transfers.html 에 in transit · Sent · short · 운송 중 수량
-[ ] 판매와 트랜스퍼 섞기 · 트랜스퍼 둘(도착 같음 / 다름)의 경고 글자
+[ ] 판매와 트랜스퍼 섞기는 **막힌다**(fu v1.2 · 판정 84 · 「A sale and a transfer cannot be on the same workbench …」 · DB 도 거부) · 트랜스퍼 둘(도착 같음 / 다름)은 함께 올라간다(⬜ 판정 거리)
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
@@ -1462,6 +1479,19 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] Complete → 「Arrived — … is received」 · 「did not match」 한 줄 · Confirm into stock 단추 없음 · off-PO 단추 없음
 [ ] transfers.html — received · Received · In transit(덜 온 몫) · Arrival differences(less · more) · Settle in transit · Decide
 [ ] 운임을 도착 전에 확정해 둔 TRF 면 Complete 순간 「freight added to cost」 · transfers.html On stock cost = Freight
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
+## 7-y. ⑥-2b — WMS Admin 에서 트랜스퍼 보기 · 되돌리기 (2026-09-29 · Claude Code tf-2b · 판정 83 · 84 · 85-1 · wa v1.10 · fu v1.2 · 마이그레이션 20260929152617_transfer_2b)
+
+```
+[ ] 판매 한 바퀴 먼저(wms-round-verify OK 11 · 화면 판매 표시 어제와 같다)
+[ ] 7-w 의 TRF 가 Working 일 때 — Status 표 · Batch activity · Rollback 행에 보인다 · Trace 에 TRF 번호로 찾힌다
+[ ] Rollback ↩ Undo Split → transfers.html 에 at warehouse(Released to WMS) · 다시 Split & Waves 에 뜬다
+[ ] Fulfillment 에서 판매 + TRF 섞기 → 화면이 막는다 · (옛 화면이면) DB 가 막는다
+[ ] 떠난 TRF(in transit) — Rollback 목록에 없다 · Trace 머리 「In transit」 · Finalized 탭에 있다(검토 칸 없음 · 🖨 · PDF · CSV 「Ship to warehouse」) · 에드먼튼 Complete 뒤 Finalized 에서 빠진다
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
