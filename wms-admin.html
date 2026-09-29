@@ -295,7 +295,7 @@
 /* adj-b (2026-09-28 · wa v1.9) — Reports 탭: 열린 「Not enough stock」 줄에 「Adjust stock」(stock-adjustments.html?report=<id> · 같은 창 · 판정 20 · 44 모양) · 보이기는 ims_can_adjust() 한 번(판정 49 · 50 · fail-closed) · 「Mark resolved」 는 그대로(묶음 9) */
 /* ⑤-6c2 (2026-09-27 · wa v1.8) — Receiving 탭: 「Off-PO items waiting for a decision」(읽기 · 줄 = Purchase Receipts 딥링크 receiving.html?receipt=<uuid>&diff=<uuid> · 판정 44) ·
    「Rejected — still on a shelf」(rejected · 칸 있음 · removed_at null · Health 160 과 같은 모집단) · Stats 차이 카드에 off-PO 결정 어휘(accepted_free · accepted_billed · rejected) */
-const WK_BUILD="2026-09-29 · wa v1.12";   // tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-09-29 · wa v1.13";   // tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -357,7 +357,7 @@ async function loadTransferDocs(filter){
   const ids=data.map(d=>d.doc_id);
   const [ln, fn]=await Promise.all([
     sb.from("wms_order_doc_line").select("doc_id,qty_target,pack_factor").eq("doc_kind","transfer").in("doc_id",ids),
-    sb.from("wms_order_finalize").select("transfer_id,finalized_by,finalized_at").in("transfer_id",ids),
+    sb.from("wms_order_finalize").select("transfer_id,fulfillment_type,finalized_by,finalized_at,units,units_without_dims").in("transfer_id",ids),   // tf-2d — 판매 FIN_SELECT 임베드와 같은 칸(타입 · 유닛 · 치수 없는 유닛)
   ]);
   const sums={}; (ln.data||[]).forEach(l=>{ const t=sums[l.doc_id]=sums[l.doc_id]||{n:0,u:0}; t.n++; t.u+=Number(l.qty_target||0)*Number(l.pack_factor||1); });
   const fins={}; (fn.data||[]).forEach(f=>{ fins[f.transfer_id]=f; });
@@ -1567,7 +1567,7 @@ async function toggleMgrReviewed(oid,checked,chk){
    ⚠️ 이 오더의 item 만 읽으면 ②를 알 수 없다 — 관련 유닛의 item 을 오더 무관하게 전부 읽는다.
    ⑤-5b: 오더 머리 = so + customer · 아이템의 sku · 이름 = so_line(새 wms_pallet_items 에 그 칸이 없다 · ⑤-5a 와 같은 꼴) · 바코드 = product_barcode(is_active · is_primary 우선 · so_line.product_id 로) — 운영 스냅샷 표의 자리. */
 async function getPackingData(oid){
-  const {data:so}=await sb.from("so").select(SO_SEL).eq("id",oid).single();
+  const {data:so}=await sb.from("so").select(SO_SEL).eq("id",oid).maybeSingle();   // tf-2d — 트랜스퍼 id 면 0행(single 은 406 을 콘솔에 남긴다) · 판매는 한 행 그대로
   const ord=normOrder(so);
   if(!so){ Object.assign(ord,(await loadTransferDocs(q=>q.eq("doc_id",oid)))[0]||{}); }   // tf-2b — 트랜스퍼면 뷰에서(재출력 단추는 아직 Finalized 탭(판매)에만 있다)
   const {data:mine}=await sb.from("wms_pallet_items").select("*").match(docKey(ord));   // tf-2b — 판매 {order_id} · 트랜스퍼 {transfer_id}
