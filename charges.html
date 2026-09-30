@@ -103,7 +103,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-09-23 · Toronto date";
+const CHG_BUILD = "2026-09-29 · exchange rate";   // 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 console.log("charges.html build:", CHG_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -279,7 +279,11 @@ async function loadDetail(id){
   ];
   const kvR = [
     ["Currency",     `<span class="mono">${dim(h.currency_code)}</span>` +
-                     (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
+                     (ed && h.currency_code && h.currency_code !== "CAD"
+                       ? ` <span class="dim">· CAD per ${esc(h.currency_code)}</span> <input class="qin pin" type="number" step="any" min="0" value="${esc(h.exchange_rate ?? "")}" data-head="exchange_rate" title="Exchange rate — needed before a foreign-currency charge can be confirmed">`
+                       : (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : ""))],
+    /* ⭐ A foreign-currency charge needs its rate before it can be confirmed — the cost that reaches stock is in CAD.
+       The confirm refusal names this field («Exchange rate»); until 2026-09-29 there was no box to type it in. */
     ["Created by",   dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
     ["Confirmed by", dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     ["Cancelled",    h.cancelled_at ? `<span class="off">${imsTs(h.cancelled_at)}</span>` +
