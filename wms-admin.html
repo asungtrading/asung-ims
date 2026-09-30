@@ -298,7 +298,7 @@
 /* inv-basis-4 (2026-09-29 · wa v1.14) — 판정 88 ⑧ · 93 · 98 (inv_basis_2 20260929195458): Receiving 탭(배지 · 「waiting for a decision」 · 「Rejected — still on a shelf」) · Review 모달 · Stats 차이 카드가 off_invoice 를 off_po 옆에 본다(글자 「Off-invoice」 · 옛 off_po 행은 옛 이름) ·
    수량 = received − expected(줄 있는 off_invoice = 오피스 확정이 만든 인보이스 초과 · 줄 없는 행 = PO 밖 품목 · expected 0) · Health 151 off_invoice_undecided 는 RPC 반환(title · hint)을 그대로 그린다 — 화면 글자 없음 · 판매 · 트랜스퍼 · PO 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · Health 161 없음 ⇒ 「Rejected — still on a shelf」 · Review 의 rejected 글자 · Stats 의 rejected 카드는 옛 off_po 행에만 */
-const WK_BUILD="2026-09-29 · wa v1.14";   // inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-09-30 · wa v1.15";   // pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -2020,7 +2020,7 @@ function renderReports(){
     <td style="font-family:var(--mono);font-weight:700">${esc(r.order_number||r.po_number||"")}</td>
     <td style="font-family:var(--mono)">${esc(r.sku||"")}</td>
     <td><span class="tag">${esc(REPORT_KIND[r.kind]||r.kind)}</span></td>
-    <td style="font-size:12px;color:var(--mut)">${r.kind==="stock_short"?`expected ${nf(r.qty_expected)} → found ${nf(r.qty_found)}${r.note?" · ":""}`:""}${esc(r.note||"")}</td>
+    <td style="font-size:12px;color:var(--mut)">${r.kind==="stock_short"?`expected ${nf(r.qty_expected)} → found ${nf(r.qty_found)}${r.note?" · ":""}`:""}${(r.kind==="wrong_location"&&r.found_bin)?`<span style="font-family:var(--mono);font-weight:700;color:var(--ink)">${esc(r.planned_bin||"—")} → ${esc(r.found_bin)}${r.bin_qty!=null?` · ${nf(r.bin_qty)}`:""}</span><br>`:""}${esc(r.note||"")}</td>
     <td>${esc(nameOf(r.reported_by)||"—")}${r.source?` <span style="color:var(--mut-2);font-size:11px">(${esc(r.source)})</span>`:""}</td>
     <td style="color:var(--mut);font-size:12px">${r.created_at?new Date(r.created_at).toLocaleDateString()+(actionable?ageBadge(r.created_at):""):""}</td>
     ${actionable
