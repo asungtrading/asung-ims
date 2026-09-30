@@ -163,6 +163,22 @@
   .fzbox .sub{font-size:12.5px;color:var(--mut)}
   .fzbox button{width:100%;padding:13px}
 
+  /* pick-bin(판정 122) — 칸 바꾸기 단추 · 칸 창 · 나눠 뽑은 칸 줄 */
+  .binchg{margin-left:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:12.5px;font-weight:700;cursor:pointer}
+  .binnow{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-family:var(--mono)}
+  .binsplit{font-family:var(--mono);font-size:12px;color:#a86400;margin-top:4px}
+  .bdlist{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow-y:auto;margin:6px 0 12px}
+  .bdrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-family:var(--mono);font-size:14px;cursor:pointer;text-align:left;width:100%}
+  .bdrow.cur{border-color:var(--ink);border-width:2px}
+  .bdrow .bq{font-size:12px;color:var(--mut)}
+  .bdrow .bt{font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:6px;background:#e8eefb;color:#2952a3;margin-left:6px}
+  .bdrow .bt.off{background:#fde8e8;color:var(--danger)}
+  .bdtype{display:flex;gap:6px;margin-bottom:10px}
+  .bdtype input{flex:1;padding:11px;border:1px solid var(--line);border-radius:10px;font-family:var(--mono);font-size:14px}
+  .bdtype button{width:auto;padding:11px 14px}
+  .bdempty{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:4px 0 14px}
+  .bdempty input{width:20px;height:20px}
+
   /* ---- mobile ---- */
   @media(max-width:480px){
     main{padding:12px}
@@ -238,6 +254,18 @@
 
 </main>
 
+<!-- pick-bin(판정 122 · 124) — Different bin: pick this line from another bin -->
+<div class="fz" id="binDlg" style="display:none">
+  <div class="fzbox">
+    <div class="t" style="color:var(--ink)" id="bdTitle">Pick from a different bin</div>
+    <p class="sub" id="bdSub"></p>
+    <div class="bdlist" id="bdList"></div>
+    <div class="bdtype"><input id="bdType" autocomplete="off" placeholder="Other bin — type its name"><button class="btn ghost" id="bdUse">Use</button></div>
+    <label class="bdempty"><input type="checkbox" id="bdEmpty"> The planned bin was empty (tell the manager)</label>
+    <button class="btn ghost" id="bdCancel">Cancel</button>
+  </div>
+</div>
+
 <!-- Ownership lost: the claim moved to someone else (or was released) while this screen stayed open -->
 <div class="fz" id="freeze" style="display:none">
   <div class="fzbox">
@@ -264,7 +292,7 @@
    클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 안내 · Cin7 void 배너 — 대신 「오더가 Working 이 아니다」 배너(판정 21 · so.status) ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found) · 사진 비움(판정 33 · HAS_IMAGES false — 마스터에 사진이 서면 켠다) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다 · 동선 순서 열쇠 warehouse_id|zone. */
-const WP_BUILD="2026-09-29 · pk v1.1";   // tf-2a(판정 83) — 트랜스퍼 갈래
+const WP_BUILD="2026-09-30 · pk v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17 — 저장 값은 그대로 · 글자만
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
@@ -826,7 +854,60 @@ function lineFromRpc(r, t){
     vmethod:r.verification_method||null, _sync:true,
     _taskId:r.pick_task_id, _tote:r.tote_no||0,
     _orderId:r.so_id, _orderNumber:r.so_number||"", _customer:r.customer_name||"",
+    planned:pb.map(b=>({bin_id:b.bin_id, bin:b.bin||"", qty:Number(b.qty_base||0)})),   // pick-bin — 계획 칸(순서 = 계획 행 id)
+    stockBins:(r.stock_bins||[]).map(b=>({bin_id:b.bin_id, bin:b.bin||"", zone:b.zone||"", qty:Number(b.qty||0), active:b.is_active!==false, planned:!!b.planned})),   // 판정 122 — 칸 목록(EA · 계획 먼저)
+    ...binStateFrom(pb, r.actual_bins||[], Number(r.picked_base||0)),                  // 판정 121 — 저장된 실제 칸을 되살린다(보류 · 이어받기 · 다른 기기)
   };
+}
+/* ── pick-bin(판정 121 ~ 124) — 줄마다 칸 상태 ──
+   auto = 계획 칸 순서로 채울 수량(서버 planned 규칙과 같은 식) · man = 「Different bin」 으로 고른 칸에 쌓인 수량 [{bin_id, bin, qty}] ·
+   binSel = 지금 스캔이 쌓일 칸(null = 계획 칸 자동) · picked = auto + Σman 이 늘 성립한다.
+   저장은 늘 칸 배열을 명시해서 보낸다(서버 mode given) — kept/planned 갈래에 기대지 않는다. */
+function autoFill(planned, q){
+  const out=[]; let rem=q;
+  for(const b of planned){ if(rem<=0) break; const t=Math.min(rem, b.qty); if(t>0){ out.push({bin_id:b.bin_id, bin:b.bin, qty:t}); rem-=t; } }
+  if(rem>0 && planned.length){ const f=planned[0]; const hit=out.find(x=>x.bin_id===f.bin_id); if(hit) hit.qty+=rem; else out.unshift({bin_id:f.bin_id, bin:f.bin, qty:rem}); rem=0; }   // 계획보다 많이 → 첫 계획 칸(서버와 같다)
+  return rem>0 ? null : out;
+}
+function mergeBins(a){ const m=[]; (a||[]).forEach(x=>{ const h=m.find(y=>y.bin_id===x.bin_id); if(h) h.qty+=x.qty; else m.push({bin_id:x.bin_id, bin:x.bin, qty:x.qty}); }); return m.filter(x=>x.qty>0); }
+function sameBins(a,b){ const A=mergeBins(a), B=mergeBins(b); return A.length===B.length && A.every(x=>B.some(y=>y.bin_id===x.bin_id && y.qty===x.qty)); }
+function binStateFrom(pbRaw, actualRaw, picked){
+  const planned=(pbRaw||[]).map(b=>({bin_id:b.bin_id, bin:b.bin||"", qty:Number(b.qty_base||0)}));
+  const act=mergeBins((actualRaw||[]).map(b=>({bin_id:b.bin_id, bin:b.bin||"", qty:Number(b.qty_base||0)})));
+  const sum=act.reduce((s,x)=>s+x.qty,0);
+  if(picked>0 && sum===picked){
+    const af=autoFill(planned, picked);
+    if(af && sameBins(af, act)) return {auto:picked, man:[], binSel:null};
+    const last=act[act.length-1];
+    return {auto:0, man:act, binSel:{bin_id:last.bin_id, bin:last.bin}};
+  }
+  return {auto:picked, man:[], binSel:null};   // 저장이 없거나 합이 다르다 — 계획 칸으로(다음 저장이 맞춘다)
+}
+function allocOf(l){
+  const af=autoFill(l.planned||[], l.auto||0);
+  if(af===null) return null;
+  return mergeBins(af.concat(l.man||[]));
+}
+function setPicked(l, n){   // 판정 121 — 수량이 바뀌면 칸 상태도 함께(늘면 지금 칸에 · 줄면 마지막에 쌓은 것부터)
+  let d=n-l.picked;
+  if(d>0){
+    if(l.binSel){ const h=l.man.find(x=>x.bin_id===l.binSel.bin_id); if(h) h.qty+=d; else l.man.push({bin_id:l.binSel.bin_id, bin:l.binSel.bin, qty:d}); }
+    else l.auto+=d;
+  }else if(d<0){
+    let r=-d;
+    if(l.binSel){ const h=l.man.find(x=>x.bin_id===l.binSel.bin_id); if(h){ const t=Math.min(r,h.qty); h.qty-=t; r-=t; } }
+    for(let i=l.man.length-1;i>=0&&r>0;i--){ const t=Math.min(r,l.man[i].qty); l.man[i].qty-=t; r-=t; }
+    if(r>0) l.auto=Math.max(0,l.auto-r);
+    l.man=l.man.filter(x=>x.qty>0);
+  }
+  l.picked=n;
+}
+function curBinName(l){ return l.binSel ? l.binSel.bin : (l.bin||""); }
+function splitText(l){   // 계획과 다르게 적힐 때만 한 줄로 — 「C070303 ×4 · C070304 ×2」
+  const a=allocOf(l); if(!a||!a.length) return "";
+  const af=autoFill(l.planned||[], l.picked);
+  if(af && sameBins(af, a)) return "";
+  return a.map(x=>x.bin+" ×"+x.qty).join(" · ");
 }
 async function loadLines(){
   const {data,error}=await sb.rpc("wms_pick_lines",{p_task_ids:[task.id]});
@@ -1096,7 +1177,9 @@ function renderSingle(){
       <div class="head">
         ${HAS_IMAGES?`<div class="img">${imgTag(l)}</div>`:""}
         <div class="info">
-          <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.bins||l.bin||"—")}</span>${l.bin?`<button class="mapchip" data-map="${esc(l.bin)}" title="Find this bin on the warehouse map">🗺</button>`:""}</div>
+          <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.binSel?l.binSel.bin:(l.bins||l.bin||"—"))}</span>${curBinName(l)?`<button class="mapchip" data-map="${esc(curBinName(l))}" title="Find this bin on the warehouse map">🗺</button>`:""}${(!done&&!frozen)?`<button class="binchg" data-binchg>⇄ Different bin</button>`:""}</div>
+          ${l.binSel?`<span class="binnow">Planned: ${esc(l.bins||l.bin||"—")}</span>`:""}
+          ${splitText(l)?`<div class="binsplit">Picked from ${esc(splitText(l))}</div>`:""}
           <div class="nm">${esc(l.product_name)}</div>
           <div class="sku">${esc(l.order_sku)}${l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${availChip(l)}</div>
         </div>
@@ -1128,6 +1211,8 @@ function renderSingle(){
   s.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{move(+b.dataset.nav);});
   const bl=s.querySelector("[data-backlist]");
   if(bl) bl.onclick=backToList;
+  const bc=s.querySelector("[data-binchg]");
+  if(bc) bc.onclick=()=>openBinDlg(curIdx);
   s.querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>{
     if(b.dataset.rep==="img") toggleImageReport(curIdx);
     else if(b.dataset.rep==="stock") toggleStockShort(curIdx);
@@ -1146,7 +1231,7 @@ function renderList(){
     return `<div class="lrow ${cls}" data-idx="${idx}">
       <span class="zn">${esc(l.zone||"·")}</span>${l._tote?`<span class="tt">T${l._tote}</span>`:""}
       ${HAS_IMAGES?`<div class="thumb">${imgTag(l)}</div>`:""}
-      <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${esc(l.product_name)}</div><div class="b">${esc(l.bins||l.bin||"—")}${availChip(l)}</div></div>
+      <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${esc(l.product_name)}</div><div class="b">${esc(l.binSel?l.binSel.bin+" (planned "+(l.bins||l.bin||"—")+")":(l.bins||l.bin||"—"))}${availChip(l)}</div></div>
       <div class="q">${l.picked} / ${l.assigned}</div>
     </div>`;
   }).join("");
@@ -1186,13 +1271,19 @@ function processScan(code){
   if(frozen) return;
   if(scanBusy) return;              // a decision modal is open — ignore scans meanwhile
   const cands=bcMap[code];
-  if(!cands||!cands.length){ flash("bad","✕ Barcode not in this "+(wave?"wave":"batch")); return; }
+  if(!cands||!cands.length){
+    // 판정 122 — 칸 이름을 스캔 · 타자하면 지금 줄의 칸을 바꾼다(칸 이름 ∩ 제품 바코드 = 0 · 조사 실측) · 목록에 없는 칸은 「Different bin」 창에서
+    const cl=lines[curIdx];
+    const sbin=cl && (cl.stockBins||[]).find(b=>b.bin.toUpperCase()===code.toUpperCase());
+    if(sbin && cl.picked<cl.assigned){ chooseBin(cl, sbin, false); renderPick(); focusScan(); return; }
+    flash("bad","✕ Barcode not in this "+(wave?"wave":"batch")); return;
+  }
   // unfilled lines first (route order — in a wave the same SKU fills tote by tote)
   let hit=cands.find(c=>lines[c.idx].picked<lines[c.idx].assigned);
   if(!hit){ const l=lines[cands[0].idx]; flash("bad","✕ Quantity already met: "+l.order_sku); return; }
   const l=lines[hit.idx], f=hit.factor;
   if(l.picked+f>l.assigned){ flash("bad",`✕ Quantity exceeded (${l.picked}+${f} > ${l.assigned})`); return; }
-  l.picked+=f;
+  setPicked(l, l.picked+f);
   l.vmethod=f>1?"scanned_variant":"scanned_base";
   curIdx=hit.idx;
   const lineDone=l.picked>=l.assigned;
@@ -1213,7 +1304,7 @@ function manualAdjust(idx,delta){
   if(frozen) return;
   const l=lines[idx]; const nv=Math.max(0,Math.min(l.assigned,l.picked+delta));
   if(nv===l.picked)return;
-  l.picked=nv; l.vmethod="manual"; saveLine(l);
+  setPicked(l, nv); l.vmethod="manual"; saveLine(l);
   if(l.picked>=l.assigned) autoAdvance();   // reach target → jump to next item (same as scan)
   renderPick(); focusScan();
 }
@@ -1223,11 +1314,75 @@ function manualSet(idx){
   const v=prompt(`${l.order_sku} Enter quantity (0 ~ ${l.assigned})`, l.picked);
   if(v===null){focusScan();return;}
   let n=parseInt(v,10); if(isNaN(n))n=0; n=Math.max(0,Math.min(l.assigned,n));
-  l.picked=n; l.vmethod="manual"; saveLine(l);
+  setPicked(l, n); l.vmethod="manual"; saveLine(l);
   if(l.picked>=l.assigned) autoAdvance();
   renderPick(); focusScan();
 }
 function move(dir){ curIdx=Math.max(0,Math.min(lines.length-1,curIdx+dir)); renderPick(); focusScan(); }
+
+/* ---------- pick-bin(판정 122 · 123 · 124) — Different bin ----------
+   칸 목록(계획 먼저 · 장부 재고 있는 칸) 에서 고르거나 이름을 친다 · 친 이름은 이 창고 칸인지 ref_bin 으로 먼저 본다(서버도 다시 본다) ·
+   장부가 모자라도 막지 않는다(판정 123 — 저장 반환의 warnings 로 알린다) · 체크하면 wrong_location 을 칸 셋과 함께 자동으로(판정 124). */
+let bdLine=null;
+function openBinDlg(idx){
+  if(frozen) return;
+  const l=lines[idx]; if(!l) return;
+  bdLine=l; scanBusy=true;
+  document.getElementById("bdTitle").textContent=`Pick ${l.order_sku} from a different bin`;
+  document.getElementById("bdSub").textContent=`Planned: ${l.bins||l.bin||"—"} · still to pick ${l.assigned-l.picked}. The next scans go to the bin you choose.`;
+  const cur=curBinName(l);
+  const rows=(l.stockBins||[]);
+  document.getElementById("bdList").innerHTML=rows.length ? rows.map((b,i)=>`<button class="bdrow ${b.bin===cur?"cur":""}" data-bd="${i}">
+      <span>${esc(b.bin)}${b.planned?`<span class="bt">planned</span>`:""}${b.active?"":`<span class="bt off">inactive</span>`}</span>
+      <span class="bq">ledger ${b.qty}</span></button>`).join("")
+    : `<p class="sub">No bin in this warehouse shows stock for this item. Type the bin name below.</p>`;
+  document.querySelectorAll("#bdList [data-bd]").forEach(b=>b.onclick=()=>{ const pickRow=rows[+b.dataset.bd]; closeBinDlg(); chooseBin(l, pickRow, document.getElementById("bdEmpty").checked); renderPick(); focusScan(); });
+  document.getElementById("bdType").value="";
+  document.getElementById("bdEmpty").checked=false;
+  document.getElementById("binDlg").style.display="grid";
+}
+function closeBinDlg(){ document.getElementById("binDlg").style.display="none"; scanBusy=false; scanEl.value=""; }
+document.getElementById("bdCancel").onclick=()=>{ closeBinDlg(); bdLine=null; focusScan(); };
+document.getElementById("bdUse").onclick=async ()=>{
+  const l=bdLine; if(!l) return;
+  const name=document.getElementById("bdType").value.trim(); if(!name) return;
+  const inList=(l.stockBins||[]).find(b=>b.bin.toUpperCase()===name.toUpperCase());
+  let pick=inList||null;
+  if(!pick){
+    const {data,error}=await sb.from("ref_bin").select("id,name,is_active").eq("warehouse_id", curWh).ilike("name", name).limit(2);
+    if(error){ toast("Could not check the bin: "+error.message,true); return; }
+    const hit=(data||[]).find(b=>String(b.name).toUpperCase()===name.toUpperCase());
+    if(!hit){ toast(`Bin ${name} is not in this warehouse`,true); return; }
+    pick={bin_id:hit.id, bin:hit.name, qty:0, active:hit.is_active!==false, planned:false};
+  }
+  const empty=document.getElementById("bdEmpty").checked;
+  closeBinDlg(); chooseBin(l, pick, empty); renderPick(); focusScan();
+};
+function chooseBin(l, b, plannedEmpty){
+  const first=(l.planned||[])[0];
+  const backToPlan=first && b.bin_id===first.bin_id && !(l.man||[]).length;
+  l.binSel = backToPlan ? null : {bin_id:b.bin_id, bin:b.bin};
+  flash("ok", backToPlan ? `✓ ${l.order_sku} · back to the planned bin ${b.bin}` : `✓ ${l.order_sku} · now picking from ${b.bin}`);
+  if(b.active===false) toast(`Heads-up: ${b.bin} is marked inactive`,true);
+  else if(b.qty!=null && b.qty<(l.assigned-l.picked)) toast(`Heads-up: the ledger shows ${b.qty} at ${b.bin}`,true);
+  if(plannedEmpty) reportPlannedEmpty(l, b);
+}
+async function reportPlannedEmpty(l, b){   // 판정 124 — 칸 셋은 칸으로(planned_bin · found_bin · bin_qty) · kind wrong_location 만
+  const o=lineOrder(l);
+  if(!o.id){ toast("Cannot report — order unknown",true); return; }
+  const qty=Math.max(1, l.assigned-l.picked);
+  try{
+    const {error}=await sb.from("wms_reports").insert({
+      ...repDoc(o.id), order_number:o.num, sku:l.order_sku,   // 판매 order_id · 트랜스퍼 transfer_id(tr-1a:365)
+      kind:"wrong_location",
+      note:`Listed bin ${l.bins||l.bin||"—"} · found at ${b.bin} · planned bin was empty`,
+      planned_bin:l.bin||null, found_bin:b.bin, bin_qty:qty,
+      reported_by:me.id, source:"picker"
+    });
+    if(error) throw error;
+    toast("Empty planned bin reported to the manager");
+  }catch(e){ toast("Report failed: "+(e.message||e),true); }
+}
 
 /* ---------- picker issue reports (wrong location / barcode changed) → wms_reports ---------- */
 async function reportIssue(kind, idx){
@@ -1367,19 +1522,49 @@ async function toggleStockShort(idx){
 }
 
 /* ---------- save (background) ---------- */
+/* pick-bin(판정 121) — 줄 저장 = wms_pick_line_save RPC(줄 행 + 실제 칸 행을 한 트랜잭션 · CAS · 권한 문 · 판정 39) ·
+   칸 배열은 늘 명시(allocOf) · 같은 줄의 저장은 한 번에 하나씩(뒤따른 요청이 앞질러 옛 상태를 덮지 않게) — 도중에 바뀌면 끝나고 한 번 더.
+   예외 · 0행이면 _sync=false 로 남기고 완료(wms_complete_pick)가 bins 를 다시 보내 맞춘다. */
 async function saveLine(l){
   l._sync=false;
+  if(l._saving){ l._again=true; return; }
+  l._saving=true;
+  try{
+    do{ l._again=false; await saveLineOnce(l); }while(l._again && !frozen);
+  }finally{ l._saving=false; }
+}
+async function saveLineOnce(l){
   if(!await ensureMine()) return;   // 규칙 28 — 쓰기 직전 소유권 재확인 (scan · stepper · manual 공통 관문)
   if(l.picked>0) markWorkStarted(); // first real pick = this claim is genuine work
   const st=l.picked>=l.assigned?"picked":(l.picked>0?"in_progress":"pending");
-  // picked_at/picked_by (2026-08-21 · 라인 시각 편승 1단계): "이 라인을 마지막으로 만진 시각/사람" —
-  // 리시빙 last_received_by/at 과 동형. 기존 UPDATE 에 필드만 편승 — 요청 수 증가 0(배터리 무영향).
-  // 시각은 클라이언트(태블릿) — 리시빙과 동일, 시계 오차는 백로그. Stats 계산 교체는 2단계. picked_by 는 ims_staff.id.
-  const {error}=await sb.from("wms_pick_task_lines")
-    .update({picked_base:l.picked,verification_method:l.vmethod,status:st,
-             picked_at:new Date().toISOString(),picked_by:me.id}).eq("id",l.id);
-  l._sync=!error;
-  if(error){ toast("Save delayed — will retry on completion",true); }
+  const alloc=l.picked>0 ? allocOf(l) : [];
+  const {data:res,error}=await sb.rpc("wms_pick_line_save",{
+    p_line_id:l.id, p_picked_base:l.picked,
+    p_bins: (alloc&&alloc.length) ? alloc.map(x=>({bin_id:x.bin_id, qty_base:x.qty})) : null,
+    p_status:st, p_verification_method:l.vmethod||null, p_session_id:SID,
+  });
+  if(error){ l._sync=false; toast("Save delayed — will retry on completion: "+(error.message||error),true); return; }
+  if(!res || res.saved!==true){
+    l._sync=false;
+    if(res && res.worker && res.worker!==me.id){ freezeScreen(null, staffMismatchMsg()); return; }
+    if(res && res.reason==="other_device"){ freezeScreen(null, otherDeviceMsg()); return; }
+    await ensureMine();   // not_yours · 그 밖 — 소유권 재확인(잃었으면 프리즈)
+    return;
+  }
+  l._sync=true;
+  (res.warnings||[]).forEach(w=>{   // 판정 123 — 막지 않고 알린다(줄마다 같은 경고는 한 번)
+    l._warned=l._warned||{};
+    if(l._warned[w]) return; l._warned[w]=true;
+    let m=w;
+    const ls=/^ledger_short:([^:]+):([^<]+)<(.+)$/.exec(w), ib=/^inactive_bin:(.+)$/.exec(w);
+    if(ls) m=`Heads-up: the ledger shows only ${ls[2]} at ${ls[1]} — picked ${ls[3]} there`;
+    else if(ib) m=`Heads-up: ${ib[1]} is marked inactive`;
+    toast(m,true);
+  });
+}
+async function waitSaves(ms){   // 완료 · 보류 앞 — 날아가는 줄 저장이 끝나기를 잠깐 기다린다(완료는 bins 를 다시 보내니 늦어도 맞다)
+  const until=Date.now()+(ms||4000);
+  while(lines.some(l=>l._saving) && Date.now()<until){ await new Promise(r=>setTimeout(r,60)); }
 }
 
 /* ---------- Done ---------- */
@@ -1425,10 +1610,11 @@ async function finish(allowShort){
   const btnD=document.getElementById("doneBtn"), btnS=document.getElementById("shortBtn");
   btnD.disabled=btnS.disabled=true;
   scanBusy=true;   // RPC 비행 중 스캔 차단 — saveLine 이 완료 뒤에 끼어들지 않게 (2026-08-06)
+  await waitSaves();   // pick-bin — 날아가는 줄 저장을 먼저 끝낸다
   stopHeartbeat(); presenceLeave();
   try{
     /* ── 완료 쓰기 전부 = wms_complete_pick RPC 한 트랜잭션 (2026-08-06 · 규칙 9/18/28 · ⑤-2a2) ──
-       라인 최종 저장 → 실제 칸 행(계획 칸 순서 · bins 는 안 보낸다) → short_pick 실수(p_mistakes) → stock_short 정리 → CAS 플립.
+       라인 최종 저장 → 실제 칸 행(pick-bin 판정 121 — 줄마다 bins 를 명시해 보낸다 · 줄 저장이 이미 적은 것과 같다) → short_pick 실수(p_mistakes) → stock_short 정리 → CAS 플립.
        wave 는 CAS 가 wave 행(소유권 단위)이고 멤버 task 는 함수가 wave_id 로 서버 유도 —
        종전의 "멤버 먼저 → wave 나중" 순서 규칙은 원자성이 대체한다(틈 소멸).
        계산은 여기(JS — 규칙 41 의 선언 라인 제외 필터 포함), 쓰기는 함수가.
@@ -1439,11 +1625,15 @@ async function finish(allowShort){
       p_task_id: wave? null : task.id,
       p_wave_id: wave? wave.id : null,
       p_session_id: SID,   // 이 화면(탭) 세션 — 행의 session_id 와 다르면 CAS 0행 + reason "other_device" (2026-09-10 · 규칙 28)
-      p_lines: lines.map(l=>({
-        id:l.id, picked_base:l.picked,
-        status:(l.picked>=l.assigned?"picked":"short"),
-        verification_method:l.vmethod||null,
-      })),
+      p_lines: lines.map(l=>{
+        const a=l.picked>0 ? allocOf(l) : null;   // 판정 121 — 실제 칸을 명시(줄 저장이 늦었어도 완료가 맞춘다 · 합 = picked)
+        return {
+          id:l.id, picked_base:l.picked,
+          status:(l.picked>=l.assigned?"picked":"short"),
+          verification_method:l.vmethod||null,
+          ...(a&&a.length ? {bins:a.map(x=>({bin_id:x.bin_id, qty_base:x.qty}))} : {}),
+        };
+      }),
       p_mistakes: plain.map(l=>({
         order_id: wave? l._orderId : docId(task),   // tf-2a — 창구는 문서 id 로 짝을 맞춘다(coalesce(order_id, transfer_id) · tr-1b2)
         pick_task_id: wave? (l._taskId||null) : task.id,   // wave 는 라인별 멤버 task (규칙 18)
@@ -1558,6 +1748,7 @@ document.getElementById("holdBtn").onclick=async ()=>{
   if(!await ensureMine()) return;   // 규칙 28 — 값싼 선확인(조기 프리즈). 최종 관문은 RPC 안의 CAS (2026-08-07)
   const btn=document.getElementById("holdBtn"); btn.disabled=true;
   scanBusy=true;   // RPC 비행 중 스캔 차단 — saveLine 이 Hold 뒤에 끼어들지 않게 (finish 와 동일)
+  await waitSaves();   // pick-bin — 실제 칸은 줄 저장이 적는다(보류 창구는 칸을 모른다)
   stopHeartbeat(); presenceLeave();
   try{
     /* ── Hold 쓰기 전부 = wms_hold_pick RPC 한 트랜잭션 (2026-08-07 · 규칙 9/18/28 · ⑤-2a2) ──
