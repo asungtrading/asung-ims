@@ -1516,7 +1516,7 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 판매 한 바퀴 먼저(wms-round-verify OK 11 · 화면 판매 표시 어제와 같다)
 [ ] 7-w 의 TRF 가 Working 일 때 — Status 표 · Batch activity · Rollback 행에 보인다 · Trace 에 TRF 번호로 찾힌다
 [ ] Rollback ↩ Undo Split → transfers.html 에 at warehouse(Released to WMS) · 다시 Split & Waves 에 뜬다
-[ ] Fulfillment 에서 판매 + TRF 섞기 → 화면이 막는다 · (옛 화면이면) DB 가 막는다
+[ ] Fulfillment 에서 판매 + TRF 섞기 → 화면이 막는다 · (옛 화면이면) DB 가 막는다  → ✅ 닫힘(2026-09-30 Caleb 화면 시험 · 판정 84 · fu v1.2 · SO-25012 · TRF-00003 · 함께 고르기 · 스캔 · 작업 중 다시 고르기 세 길 모두 막힘 · 재료 둘은 Working 으로 남음)
 [ ] 떠난 TRF(in transit) — Rollback 목록에 없다 · Trace 머리 「In transit」 · Finalized 탭에 있다(검토 칸 없음 · 🖨 · PDF · CSV 「Ship to warehouse」) · 에드먼튼 Complete 뒤 Finalized 에서 빠진다
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
@@ -1544,6 +1544,22 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 트랜스퍼 도착(7-x)이 어제와 같다 — 기대 = 보낸 EA · off-PO 스캔 거부 · ㉒ ± 대화 상자에도 「Only what was sent is taken in — the office decides the rest」 · 스캔 칸 안내에 off-PO 문장이 없다(「items not on this transfer are refused — the office settles them on the Transfers screen」)
 [ ] 지우기 — 창고가 스캔한 off-invoice 가 있는 초안을 Purchase Receipts 에서 Delete → 「… off-PO / off-invoice item(s) recorded by the warehouse — it cannot be deleted here; if none of them was accepted into the books, a manager deletes it from WMS Admin (Receiving > Delete) …」(㉔) · WMS Admin Delete 는 지운다(아카이브) · 받아들인 것이 있으면 「… accepted into the books (stock and cost layers exist) … correct it with a stock adjustment instead」(㉕)
 [ ] 콘솔 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl 요청 0 · rpc/po_list · wms_recv_off_po(반환 kind off_invoice) · po_receipt_diff_settle_off_invoice 200
+```
+
+---
+
+## 7-za. ⑫ 다른 칸에서 뽑기 — pk v1.2 · wa v1.15 (2026-09-30 · 판정 121 ~ 124 · asung-wms 275820d 마이그레이션 20260930172829_pick_bin_1_line_save · asung-ims 6cd5ec3 · 4f07ecb · so-module §30 · 미룬 ㊱)
+
+⭐ 0-a eslint 전역(dim · imsPage · imsParam · imsQ · imsTs)은 이 차수에서 무변 · 두 화면의 eslint 결과는 원본과 같은 수(피커 7 · Admin 10)
+```
+[ ] 판매 한 바퀴 먼저(wms-round-verify OK 11 · 계획 칸 그대로 뽑으면 칸을 스캔할 일이 없다 · 인쇄 · 완료가 어제와 같다)
+[ ] 빌드 표시 「2026-09-30 · pk v1.2」 · 「2026-09-30 · wa v1.15」
+[ ] 두 칸 나눠 뽑기 — 계획 칸에서 일부 스캔 → Different bin → 목록(계획 칸 먼저 · 장부 수량)에서 다른 칸 → 나머지 스캔 · 줄에 칸별 수량이 보인다 · 목록에 없는 칸은 타자 · 칸 이름 스캔도 그 칸으로
+[ ] 장부 0 칸 · 비활성 칸을 고르면 받고 경고만(막지 않는다 · 판정 123)
+[ ] 보류 뒤 칸 보존 — 두 칸으로 나눠 저장한 뒤 Hold → 다시 열기(다른 기기 · 다른 탭도) · 칸별 수량이 그대로
+[ ] 「Planned bin was empty」 체크 → WMS Admin Reports 의 wrong_location 에 「계획 칸 → 찾은 칸 · 수량」 · 체크 안 하면 보고 없음
+[ ] 출고 원장 두 칸 — 그 오더를 팩 · 마무리 · Finalize → inv_ledger sale_out 이 두 칸에서 빠진다(트랜스퍼는 출발 transfer_out 두 칸)
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
 ---
