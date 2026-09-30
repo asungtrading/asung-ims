@@ -192,7 +192,7 @@
       <div class="sect-h">Putaway <span style="font-weight:400;color:var(--mut);font-size:12.5px">— rows counted in this period</span></div>
       <div class="grid" id="putawayStatGrid"></div>
 
-      <div class="sect-h">Receiving differences <span style="font-weight:400;color:var(--mut);font-size:12.5px">— over / short recorded by the office at confirmation · off-PO recorded at the dock</span></div>
+      <div class="sect-h">Receiving differences <span style="font-weight:400;color:var(--mut);font-size:12.5px">— short recorded by the office at confirmation · off-invoice = more than the invoice (at confirmation) or not on the PO (at the dock) · over / off-PO are the old names</span></div>
       <div class="grid" id="recvDiscGrid"></div>
     </div>
 
@@ -215,9 +215,9 @@
 
     <!-- Receiving (⑤-6b · 운영 admin 239~252 의 자리 · Apply 절은 「Completed — awaiting office confirmation」 으로) -->
     <div class="view" id="v-recv">
-      <div class="sect-h">Off-PO items waiting for a decision <span style="font-weight:400;color:var(--mut);font-size:12.5px">— items scanned at the dock that are not on the PO · the warehouse puts them away · the office accepts (free or billed) or rejects them in Purchase Receipts</span></div>
+      <div class="sect-h">Off-PO / off-invoice items waiting for a decision <span style="font-weight:400;color:var(--mut);font-size:12.5px">— more than the confirmed invoice, or not on the PO at all · the warehouse puts them away · the office accepts them (free or billed) in Purchase Receipts · a return to the supplier is a separate job</span></div>
       <div class="card"><div id="recvApprovals"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
-      <div class="sect-h">Rejected — still on a shelf <span style="font-weight:400;color:var(--mut);font-size:12.5px">— the office rejected these · the warehouse takes them off the shelf and presses Removed in the receiving screen</span></div>
+      <div class="sect-h">Rejected — still on a shelf <span style="font-weight:400;color:var(--mut);font-size:12.5px">— old-rule off-PO items the office rejected · the warehouse takes them off the shelf and presses Removed in the receiving screen · an off-invoice item is never rejected</span></div>
       <div class="card"><div id="recvRejected"></div></div>
       <div class="sect-h">Awaiting putaway <span style="font-weight:400;color:var(--mut);font-size:12.5px">— counted and given a bin, but nobody has confirmed placing it there · stock the pickers cannot find</span></div>
       <div class="card"><div id="recvBacklog"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
@@ -295,7 +295,10 @@
 /* adj-b (2026-09-28 · wa v1.9) — Reports 탭: 열린 「Not enough stock」 줄에 「Adjust stock」(stock-adjustments.html?report=<id> · 같은 창 · 판정 20 · 44 모양) · 보이기는 ims_can_adjust() 한 번(판정 49 · 50 · fail-closed) · 「Mark resolved」 는 그대로(묶음 9) */
 /* ⑤-6c2 (2026-09-27 · wa v1.8) — Receiving 탭: 「Off-PO items waiting for a decision」(읽기 · 줄 = Purchase Receipts 딥링크 receiving.html?receipt=<uuid>&diff=<uuid> · 판정 44) ·
    「Rejected — still on a shelf」(rejected · 칸 있음 · removed_at null · Health 160 과 같은 모집단) · Stats 차이 카드에 off-PO 결정 어휘(accepted_free · accepted_billed · rejected) */
-const WK_BUILD="2026-09-29 · wa v1.13";   // tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+/* inv-basis-4 (2026-09-29 · wa v1.14) — 판정 88 ⑧ · 93 · 98 (inv_basis_2 20260929195458): Receiving 탭(배지 · 「waiting for a decision」 · 「Rejected — still on a shelf」) · Review 모달 · Stats 차이 카드가 off_invoice 를 off_po 옆에 본다(글자 「Off-invoice」 · 옛 off_po 행은 옛 이름) ·
+   수량 = received − expected(줄 있는 off_invoice = 오피스 확정이 만든 인보이스 초과 · 줄 없는 행 = PO 밖 품목 · expected 0) · Health 151 off_invoice_undecided 는 RPC 반환(title · hint)을 그대로 그린다 — 화면 글자 없음 · 판매 · 트랜스퍼 · PO 옛 행 표시는 그대로
+   ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · Health 161 없음 ⇒ 「Rejected — still on a shelf」 · Review 의 rejected 글자 · Stats 의 rejected 카드는 옛 off_po 행에만 */
+const WK_BUILD="2026-09-29 · wa v1.14";   // inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -2112,7 +2115,7 @@ function countNotPlaced(rows){
 }
 async function refreshRecvBadge(){
   try{
-    const {count}=await sb.from("po_receipt_diff").select("id",{count:"exact",head:true}).eq("kind","off_po").is("resolved_at",null);
+    const {count}=await sb.from("po_receipt_diff").select("id",{count:"exact",head:true}).in("kind",["off_po","off_invoice"]).is("resolved_at",null);   // inv-basis-4: 두 어휘
     const b=document.getElementById("recvBadge");
     if(count>0){ b.textContent=count; b.style.display=""; } else b.style.display="none";
   }catch(e){}
@@ -2136,29 +2139,33 @@ async function loadRecv(){
   ap.innerHTML=`<div class="loading"><div class="spin"></div>Loading…</div>`;
   // 작업 대상 전량 + 표시용 최근 N(운영 2026-08-14 재편 그대로): work = draft 전량(sbAll) · recent = 최근 60(history 표시 전용 · 총수는 캡션) · pend = 열린 off-PO 차이 행
   // 창고 경계 = me.access.warehouses(inWhId · 클라이언트 필터 — 임베드 서버 필터는 !inner 없이는 조용히 틀린다)
-  const DIFF_SEL="id,receipt_id,product_id,received_qty,note,created_at,bin_id,placed_by,placed_at,resolution,resolved_by,resolved_at,removed_at,bin:ref_bin(name),receipt:po_receipt(receipt_number,warehouse_id,po:po!po_receipt_po_id_fkey(po_number,supplier:supplier!po_supplier_id_fkey(name))),product(sku,name)";   // ⑤-6c2 칸(bin · placed · resolution · removed)
+  const DIFF_SEL="id,receipt_id,product_id,kind,po_line_id,expected_qty,received_qty,note,created_at,bin_id,placed_by,placed_at,resolution,resolved_by,resolved_at,removed_at,bin:ref_bin(name),receipt:po_receipt(receipt_number,warehouse_id,po:po!po_receipt_po_id_fkey(po_number,supplier:supplier!po_supplier_id_fkey(name))),product(sku,name)";   // ⑤-6c2 칸(bin · placed · resolution · removed)
   const [pend,workQ,recentQ,rTotalQ,rejQ]=await Promise.all([
-    sb.from("po_receipt_diff").select(DIFF_SEL).eq("kind","off_po").is("resolved_at",null).order("created_at",{ascending:false}),   // caps-ok: 열린 off-PO 행만 — 결정으로 소진되는 소수
+    sb.from("po_receipt_diff").select(DIFF_SEL).in("kind",["off_po","off_invoice"]).is("resolved_at",null).order("created_at",{ascending:false}),   // caps-ok: 열린 off-PO · off-invoice 행만 — 결정으로 소진되는 소수(inv-basis-4)
     sbAll(()=>sb.from("po_receipt").select(RCV_SEL).eq("status","draft").order("updated_at",{ascending:false}).order("id",{ascending:false})),   // caps-ok: sbAll 페이지 누적 — 열린 초안 전량(작업 대상 · 확정으로 소진)
     sb.from("po_receipt").select(RCV_SEL).order("updated_at",{ascending:false}).limit(60),   // caps-ok: 최근 60 사양 — history 표시 전용(집계 모수 아님), 총수는 캡션
     sb.from("po_receipt").select("id",{count:"exact",head:true}),
-    sb.from("po_receipt_diff").select(DIFF_SEL).eq("kind","off_po").eq("resolution","rejected").not("bin_id","is",null).is("removed_at",null).order("resolved_at",{ascending:false}),   // caps-ok: 거절됐는데 아직 선반에 있는 것 — Removed 로 소진되는 소수
+    sb.from("po_receipt_diff").select(DIFF_SEL).eq("kind","off_po").eq("resolution","rejected").not("bin_id","is",null).is("removed_at",null).order("resolved_at",{ascending:false}),   // caps-ok: 거절됐는데 아직 선반에 있는 것 — Removed 로 소진되는 소수(옛 off_po 만 · off_invoice 는 거절이 없다 · 판정 99)
   ]);
   const rerr=pend.error||workQ.error||recentQ.error||rejQ.error;
   if(rerr){ ap.innerHTML=`<div class="empty" style="font-size:12px">Receiving could not be loaded.<br><span style="color:var(--mut-2);font-size:11px">(${esc(rerr.message||"")})</span></div>`;
     document.getElementById("recvExports").innerHTML=""; document.getElementById("recvHistory").innerHTML="";
     document.getElementById("recvBacklog").innerHTML=""; return; }
 
-  // ── off-PO waiting for a decision (읽기만 · 판정 44 — 정하는 단추는 Purchase Receipts 에만 · 줄 = 그 입고 · 그 차이 줄 딥링크 · 같은 창) ──
+  // ── off-PO · off-invoice waiting for a decision (읽기만 · 판정 44 — 정하는 단추는 Purchase Receipts 에만 · 줄 = 그 입고 · 그 차이 줄 딥링크 · 같은 창) ──
+  //    inv-basis-4: Kind = 「Off-invoice」(새 어휘) · 「Off-PO」(옛 행) · Qty = 초과분 received − expected(PO 밖 품목은 expected 0 이라 그대로)
   const decideHref=d=>`receiving.html?receipt=${encodeURIComponent(d.receipt_id)}&diff=${encodeURIComponent(d.id)}`;
+  const offKindLbl=d=>d.kind==="off_invoice"?(d.po_line_id?"Off-invoice · over the invoice":"Off-invoice · not on the PO"):"Off-PO";
+  const offExtra=d=>Number(d.received_qty||0)-Number(d.expected_qty||0);
   const pd=(pend.data||[]).filter(d=>d.receipt&&inWhId(d.receipt.warehouse_id));
-  const aphead=`<thead><tr><th>Receipt</th><th>PO</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Bin</th><th>Put away by</th><th>Waiting</th><th></th></tr></thead>`;
+  const aphead=`<thead><tr><th>Receipt</th><th>PO</th><th>Kind</th><th>SKU</th><th>Product</th><th class="num">Extra qty</th><th>Bin</th><th>Put away by</th><th>Waiting</th><th></th></tr></thead>`;
   const aprow=d=>{ const r=d.receipt||{}, p=r.po||{}; return `<tr style="cursor:pointer" data-href="${esc(decideHref(d))}">
     <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number||"")}</td>
     <td style="font-family:var(--mono)">${esc(p.po_number||"")}</td>
+    <td style="font-size:12px">${esc(offKindLbl(d))}</td>
     <td style="font-family:var(--mono)">${esc(d.product&&d.product.sku||"")}</td>
     <td style="font-size:12px;color:var(--mut)">${esc(d.product&&d.product.name||"")}</td>
-    <td class="num" style="font-family:var(--mono);font-weight:700">${Number(d.received_qty||0)}</td>
+    <td class="num" style="font-family:var(--mono);font-weight:700">${offExtra(d)}</td>
     <td style="font-family:var(--mono)">${d.bin&&d.bin.name?esc(d.bin.name)+(d.placed_at?"":' <span class="tag" style="color:var(--warn);background:var(--warn-bg)">not placed</span>'):'<span class="tag" style="color:var(--warn);background:var(--warn-bg)">no bin yet</span>'}</td>
     <td style="font-size:12px">${d.placed_by?esc(nameOf(d.placed_by)):'<span style="color:var(--mut-2)">—</span>'}</td>
     <td style="color:var(--mut);font-size:12px">${fmtAge(d.created_at)}${ageBadge(d.created_at)}</td>
@@ -2166,17 +2173,18 @@ async function loadRecv(){
   </tr>`; };
   ap.innerHTML=pd.length
     ? `<table>${aphead}<tbody>${pd.map(aprow).join("")}</tbody></table>`
-    : `<div style="color:var(--mut);padding:14px;font-size:13px">No off-PO items waiting for a decision.</div>`;
+    : `<div style="color:var(--mut);padding:14px;font-size:13px">No off-PO / off-invoice items waiting for a decision.</div>`;
   ap.querySelectorAll("tr[data-href]").forEach(tr=>tr.onclick=e=>{ if(e.target.closest("a")) return; location.href=tr.dataset.href; });
-  // ── rejected · still on a shelf (Health off_po_rejected_on_shelf 와 같은 모집단) ──
+  // ── rejected · still on a shelf (옛 off_po 만 · Health off_po_rejected_on_shelf 160 과 같은 모집단 · 판정 99: off_invoice 는 거절이 없어 161 도 없다) ──
   const rj=(rejQ.data||[]).filter(d=>d.receipt&&inWhId(d.receipt.warehouse_id));
   document.getElementById("recvRejected").innerHTML=rj.length
-    ? `<table><thead><tr><th>Receipt</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Bin</th><th>Rejected</th></tr></thead><tbody>${
+    ? `<table><thead><tr><th>Receipt</th><th>Kind</th><th>SKU</th><th>Product</th><th class="num">Extra qty</th><th>Bin</th><th>Rejected</th></tr></thead><tbody>${
         rj.map(d=>{ const r=d.receipt||{}; return `<tr>
           <td style="font-family:var(--mono);font-weight:700">${esc(r.receipt_number||"")}</td>
+          <td style="font-size:12px">${esc(offKindLbl(d))}</td>
           <td style="font-family:var(--mono)">${esc(d.product&&d.product.sku||"")}</td>
           <td style="font-size:12px;color:var(--mut)">${esc(d.product&&d.product.name||"")}</td>
-          <td class="num" style="font-family:var(--mono);font-weight:700">${Number(d.received_qty||0)}</td>
+          <td class="num" style="font-family:var(--mono);font-weight:700">${offExtra(d)}</td>
           <td style="font-family:var(--mono);font-weight:700;color:var(--danger)">${esc(d.bin&&d.bin.name||"")}</td>
           <td style="font-size:12px;color:var(--mut)">${esc(nameOf(d.resolved_by)||"—")} · ${d.resolved_at?new Date(d.resolved_at).toLocaleString():""}${ageBadge(d.resolved_at)}</td>
         </tr>`;}).join("")}</tbody></table>`
@@ -2281,7 +2289,7 @@ async function loadRecv(){
 function canConfirmRcv(){ return !!(me&&me.access&&me.access.screens&&me.access.screens.wms_receiving_confirm&&(me.role==="admin"||(Array.isArray(me.perms)&&me.perms.includes("wms_receiving_confirm")))); }
 /* 삭제 = 창구 wms_recv_delete(아카이브 → 삭제 · draft 만 · 한 트랜잭션) — 운영 deleteReceipt 의 아카이브 → 삭제를 창구가 한다 */
 async function deleteReceipt(rid,rcv,wkline){
-  const typed=prompt(`Delete receipt ${rcv}?\n${wkline?wkline+"\n":""}All counting and putaway progress for this receipt is removed (a copy is archived first). Off-PO items waiting on it are removed with it.\n\nType the receipt number to confirm:`,"");
+  const typed=prompt(`Delete receipt ${rcv}?\n${wkline?wkline+"\n":""}All counting and putaway progress for this receipt is removed (a copy is archived first). Off-PO / off-invoice items waiting on it are removed with it — one already accepted into the books stops the delete.\n\nType the receipt number to confirm:`,"");
   if(typed===null) return;
   if(typed.trim().toUpperCase()!==String(rcv).toUpperCase()){ toast("Receipt number mismatch — cancelled",true); return; }
   const {data,error}=await sb.rpc("wms_recv_delete",{p_receipt_id:rid});
@@ -2350,10 +2358,11 @@ async function reviewReceipt(rid){
     });
     if(noBin.length) body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px;color:var(--warn,#d9820a)">⚠ No bin assigned</div>
       <table style="width:100%"><tbody>${noBin.map(lineRow).join("")}</tbody></table>`;
-    const offs=(d.diffs||[]).filter(x=>x.kind==="off_po"&&!(x.resolution==="rejected"&&x.removed_at));   // ⑤-6c2 결정된 것도 보인다(뺀 거절만 빠진다)
+    const offs=(d.diffs||[]).filter(x=>(x.kind==="off_po"||x.kind==="off_invoice")&&!(x.resolution==="rejected"&&x.removed_at));   // ⑤-6c2 결정된 것도 보인다(뺀 거절만 빠진다 — 옛 off_po 만 · 판정 99) · inv-basis-4: 두 어휘
     const offSt=x=>!x.resolved_at?"waiting for a decision":x.resolution==="rejected"?(x.bin?"rejected — still on "+x.bin:"rejected"):(x.resolution==="accepted_billed"?"accepted · billed":"accepted · free");
-    if(offs.length) body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px;color:#7c3aed">Off-PO — not on the PO</div>
-      <table style="width:100%"><tbody>${offs.map(x=>`<tr><td style="font-family:var(--mono);font-weight:700">${esc(x.sku||"")}</td><td style="font-family:var(--mono)">${esc(x.bin||"")}${x.bin&&!x.placed_at?' <span class="tag" style="color:var(--warn);background:var(--warn-bg)">not placed</span>':""}</td><td class="num" style="font-family:var(--mono);font-weight:700">${Number(x.received_qty||0)}</td><td style="font-size:12px;color:var(--mut)">${esc(offSt(x))}</td></tr>`).join("")}</tbody></table>`;
+    const offKind=x=>x.kind==="off_invoice"?(x.po_line_id?"off-invoice · over the invoice":"off-invoice · not on the PO"):"off-PO";
+    if(offs.length) body+=`<div style="margin:10px 0 4px;font-family:var(--mono);font-weight:800;font-size:13px;color:#7c3aed">Off-PO / off-invoice — more than the invoice, or not on the PO <span style="color:var(--mut);font-weight:400;font-size:12px">· extra qty = received − expected</span></div>
+      <table style="width:100%"><tbody>${offs.map(x=>`<tr><td style="font-family:var(--mono);font-weight:700">${esc(x.sku||"")}</td><td style="font-size:12px">${esc(offKind(x))}</td><td style="font-family:var(--mono)">${esc(x.bin||"")}${x.bin&&!x.placed_at?' <span class="tag" style="color:var(--warn);background:var(--warn-bg)">not placed</span>':""}</td><td class="num" style="font-family:var(--mono);font-weight:700">${Number(x.received_qty||0)-Number(x.expected_qty||0)}</td><td style="font-size:12px;color:var(--mut)">${esc(offSt(x))}</td></tr>`).join("")}</tbody></table>`;
     const notCounted=(d.lines||[]).filter(l=>Number(l.counted||0)===0).length;
     if(notCounted) body+=`<div style="margin:10px 0 2px;font-size:12px;color:var(--mut)">${notCounted} PO line(s) not counted yet.</div>`;
     if(!body) body=`<div style="color:var(--mut);padding:12px">No counted rows.</div>`;
@@ -2908,17 +2917,20 @@ async function loadRecvStats(r){
     ["Backlog units (base)",nf(backUnits),backLines>0?"warn":""],
   ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 
-  let dOver=0,dShort=0,dOff=0,dOpen=0,dOffAcc=0,dOffRej=0;
+  let dOver=0,dShort=0,dOff=0,dOpen=0,dOffAcc=0,dOffRej=0,dInv=0,dInvAcc=0;
   (disc.data||[]).forEach(d=>{
     if(d.kind==="over")dOver++; else if(d.kind==="short")dShort++; else if(d.kind==="off_po"){ dOff++; if(d.resolution==="rejected")dOffRej++; else if(d.resolution==="accepted_free"||d.resolution==="accepted_billed")dOffAcc++; }   // ⑤-6c2 결정 어휘
+    else if(d.kind==="off_invoice"){ dInv++; if(d.resolution==="accepted_free"||d.resolution==="accepted_billed")dInvAcc++; }   // inv-basis-4 · 판정 88 ⑧ — 옛 카드 옆에 · 판정 99: 거절 없음
     if(!d.resolved_at)dOpen++;
   });
   document.getElementById("recvDiscGrid").innerHTML=[
-    ["Over (got more)",dOver,dOver>0?"warn":""],
+    ["Over (got more · old rule)",dOver,dOver>0?"warn":""],
     ["Short (got less)",dShort,dShort>0?"warn":""],
-    ["Off-PO",dOff,dOff>0?"warn":""],
+    ["Off-PO (old rule)",dOff,dOff>0?"warn":""],
     ["Off-PO accepted (free / billed)",dOffAcc,""],
     ["Off-PO rejected",dOffRej,dOffRej>0?"warn":""],
+    ["Off-invoice (more than the invoice · not on the PO)",dInv,dInv>0?"warn":""],
+    ["Off-invoice accepted (free / billed)",dInvAcc,""],
     ["Still open",dOpen,dOpen>0?"bad":"ok"],
   ].map(([k,v,c])=>`<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
 }

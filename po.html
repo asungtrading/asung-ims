@@ -173,7 +173,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-23 · Toronto date";
+const PO_BUILD = "2026-09-29 · invoice basis";   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -1321,7 +1321,7 @@ async function loadDetail(id){
     ${tbl("Lines", (data.lines||[]).length,
       [["#","num"],["Product",""],["Supplier SKU",""],["Qty","num"],["Unit price","num"],
        ["Amount","num"],["Received","num"],["Remaining","num"]].concat(ed ? [["",""]] : []), lines,
-      "⚠️ A negative Remaining (red) means more arrived than was ordered — the excess never reaches stock." +
+      "⚠️ A negative Remaining (red) means more arrived than was ordered. Since 2026-09-29 the extra is an off-invoice item on the receipt: it is already in a bin and goes into stock when the office decides it (free or billed) in Purchase Receipts. The warehouse receives an order only after its supplier invoice is confirmed — confirming the invoice keeps this number for what was billed and moves the rest to a sibling order." +
       (ed ? " Edit quantity and unit price right in the cell. Going below what was received is refused by the database." : ""))}
 
     ${tbl("Discounts", (data.discounts||[]).length,

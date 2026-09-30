@@ -232,7 +232,7 @@
 
 ---
 
-## 7-a. `po.html` — 발주 (⑤ 넓은 목록 · 국면 · 할인 편집 · 인보이스 만들기 · 2026-09-16 저녁 다시 씀)
+## 7-a. `po.html` — 발주 (⑤ 넓은 목록 · 국면 · 할인 편집 · 인보이스 만들기 · 2026-09-16 저녁 다시 씀 → ⑱-3 대화 Claude 「2026-09-29 · invoice basis」 = 판정 88 · 99 · Lines 표 안내 한 문장(Remaining 음수 = 더 온 것 · off-invoice 결정으로 재고에 든다) · 7-z)
 
 뒷단: 뷰 `po_list`(목록 · 국면 다섯 · doc_numbers) · RPC `po_detail`(상세 · 캐럿) · 쓰기 RPC `po_create` · `po_lines_paste` · `po_line_update/delete` · `po_discount_save/delete` · `po_invoice_create`
 — asung-wms `20260916190000`(목록·상세·po_create) · `20260916181719`(라인 쓰기) · `20260916200000`(할인 줄 · 인보이스 만들기). ⭐ 계산(할인 체인 · 미지급 · 국면)은 뷰·RPC 값을 그리기만 한다.
@@ -308,7 +308,7 @@
 
 ---
 
-## 7-b. `invoices.html` — 인보이스 · 크레딧 (2026-09-16 저녁 신설 · 대화 Claude)
+## 7-b. `invoices.html` — 인보이스 · 크레딧 (2026-09-16 저녁 신설 · 대화 Claude → ⑱-3 「2026-09-29 · invoice splits the PO」 = 판정 88 · 92 · 96 · 97 · 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 · 7-z)
 
 뒷단: 뷰 `po_invoice_list`(목록) · RPC `po_invoice_detail`(상세) · 쓰기 RPC `po_invoice_line_add/update/delete` · `po_invoice_add_po_lines` · `po_invoice_confirm` · `po_discount_save/delete`(p_target invoice) — asung-wms `20260916200000`.
 ⭐ 돈(계산값 · 차이 · 갚을 돈 · 미지급 · 크레딧 잔액)은 `po_invoice_money` 뷰의 값을 그리기만 한다. 화면은 계산하지 않는다.
@@ -453,7 +453,7 @@
 
 ---
 
-## 7-e. `receiving.html` — Purchase Receipts(오피스 입고 · 판정 40 으로 메뉴 이름이 「Receiving」 → 「Purchase Receipts」 · 2026-09-18 신설 · 대화 Claude)
+## 7-e. `receiving.html` — Purchase Receipts(오피스 입고 · 판정 40 으로 메뉴 이름이 「Receiving」 → 「Purchase Receipts」 · 2026-09-18 신설 · 대화 Claude → ⑱-3 「2026-09-29 · invoice basis」 = 판정 88 · 92 · 99 · 100 · 101 · 기준 = 확정 인보이스 · Off-invoice 결정 둘 · 절 끝 ⑱-3 항목 · 7-z)
 
 뒷단: 뷰 `po_receipt_list`·`po_receipt_diff_list`(목록) · RPC `po_receipt_detail`(상세) ·
 쓰기 RPC `po_receipt_create` · `po_receipt_work_save/delete/split/putaway/putaway_all/unassign` ·
@@ -462,7 +462,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 
 ⭐⭐ **일이 두 단계다** — ① 검수(인보이스대로 왔는지 센다 · 빈을 모른다) → ② 풋어웨이(자리에 갖다 놓는다).
    사람도 시점도 다르다. 그래서 표도 둘로 갈려 있다(작업 줄 → 확정하면 입고 줄).
-⭐ **기준은 PO 확정 수량 하나.** 인보이스 합은 옆에 보이기만 하고 아무것도 결정하지 않는다.
+~~⭐ **기준은 PO 확정 수량 하나.** 인보이스 합은 옆에 보이기만 하고 아무것도 결정하지 않는다.~~ → ⭐ [2026-09-29 · 판정 88 ②] **기준은 확정 인보이스 − 앞선 입고**(po_receipt_detail lines[].expected · 세기 표 Expected 열) · 머리 over/short 줄 수(totals · 판정 101)도 이 기준 · PO 수량(Ordered)은 옆에 보이기만 한다 · 확정 인보이스가 없는 PO 는 받지 않는다(판정 92)
 ⭐ 이 화면에서는 **빈을 고르는 순간 놓인 것**이다(「자리를 정했다」와 「갖다 놨다」를 안 가른다).
 ⭐⭐ [2026-09-19] **확정이 원장에 닿는다.** 확정하면 `inv_post_receipt` 가 `po_in` 사건을 쓰고 재고가 는다 —
    Cin7 을 한 번도 거치지 않는다. ⚠️ **초과는 기준까지만** 원장에 간다 ⇒ **원장 합 ≠ 입고 줄 합이 정상**이다.
@@ -548,6 +548,17 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 [ ] ⭐ WMS Admin Receiving 에서 Reopen 한 입고를 여기서 Confirm → 확인 창에 「The warehouse has not marked this receipt complete — the count may still change.」(보류면 「… ON HOLD …」) — 취소하면 아무것도 안 바뀐다 · 막지는 않는다(판정 30)
 [ ] 그대로 확정하면 확정 뒤 안내에 「The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing.」 · Complete 뒤 확정이면 이 줄이 없다
 [ ] Caleb(admin) 시험 2026-09-28 — RCV-00028 Reopen 뒤 빨간 줄 · 확정 창 경고를 보고 취소 ✅ (그 뒤 창고에서 다시 Complete · 미확정 그대로)
+```
+
+⭐ [2026-09-29 · ⑱-3 대화 Claude · 「2026-09-29 · invoice basis」 · 판정 88 · 92 · 99 · 100 · 101] **인보이스 기준 · Off-invoice** — 한 바퀴 순서는 7-z(여기는 이 화면에서 볼 것만)
+```
+[ ] 빌드 표시 「2026-09-29 · invoice basis」 · 옛 입고(확정 · off_po · over 행)의 표시 · 결정이 어제와 같다(RCV-00029 ABE12006 · RCV-00026 over)
+[ ] New receipt — 확정 인보이스가 있는 PO 만 뜬다(po_list has_confirmed_invoice · 줄에 「invoiced N」) · 인보이스 없는 PO 는 없다
+[ ] 세기 표 Expected 열 = 확정 인보이스 − 앞선 입고 · 머리 「Lines over · short of the invoice」 = 창구 totals(판정 101)
+[ ] Confirm 창 — 줄 수 문장(over · short) · 「closes on confirm」 · 확정 뒤 알림에 「N went into stock」 · off-invoice 행 수 · charges{posted, errors}(운임 · 관세 얹힘 / 오류는 오피스가 본다)
+[ ] Off-invoice 결정 창 — 결정은 둘(무상 · 청구) · 거절 없음(판정 99) · 줄 있는 행은 단가 비우면 기본값(마지막 확정 인보이스 단가) · 알림에 단가 출처 · 줄 없는 행(PO 밖 품목)은 단가 필수 · 선반에 놓기 전엔 저장 잠김 · 결정 뒤 Reopen 없음
+[ ] WMS Admin 딥링크 receiving.html?receipt=&diff= 가 off_invoice 행도 짚어 결정 창을 연다 · 옛 off_po 행은 옛 결정 창(셋)
+[ ] 인보이스 분할 · Reopen 되붙음 알림은 7-b(invoices.html) · 두 칸 거부는 창고 Complete 가 먼저(7-z · 판정 100)
 ```
 
 ---
@@ -1201,7 +1212,7 @@ Parked and open at this store
 
 ---
 
-## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (→ Claude Code tf-2b **wa v1.11** 「2026-09-29 · wa v1.11」 = 판정 83 트랜스퍼 갈래(Status · Rollback · Trace · 재출력 라벨 85-1) + 판정 86 ③-2 A(Finalized 탭에 운송 중 트랜스퍼 · 같은 🖨 · PDF · CSV) → tf-2c **wa v1.12** = 판정 87 훑기(Stats 입고 줄 수 · Receiving 탭 트랜스퍼 입고 번호) → tf-2d **wa v1.13** = Finalized 탭 트랜스퍼 줄의 마무리 기록 칸(TRF-00002 「no finalize record」 결함) — 절 끝 tf-2b 항목 · 2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
+## 7-q. `wms-admin.html` — WMS Admin · 아홉 탭 (→ Claude Code tf-2b **wa v1.11** 「2026-09-29 · wa v1.11」 = 판정 83 트랜스퍼 갈래(Status · Rollback · Trace · 재출력 라벨 85-1) + 판정 86 ③-2 A(Finalized 탭에 운송 중 트랜스퍼 · 같은 🖨 · PDF · CSV) → tf-2c **wa v1.12** = 판정 87 훑기(Stats 입고 줄 수 · Receiving 탭 트랜스퍼 입고 번호) → tf-2d **wa v1.13** = Finalized 탭 트랜스퍼 줄의 마무리 기록 칸(TRF-00002 「no finalize record」 결함) → Claude Code inv-basis-4 **wa v1.14** = off_invoice 를 off_po 옆에(Receiving 탭 · Review · Stats · 배지 · Health 151 · 161 은 RPC 글자 · 7-z) — 절 끝 tf-2b 항목 · 2026-09-27 신설 · Claude Code ⑤-5b 1판 「wa v1」 세 탭 · 대화 Claude v1.1(renderFulfillStats 복구) · ⑤-5c1 v1.2(manager_resolved 한 줄) · ⑤-5c2 v1.3 = Discrepancy · Reports · Stats · Health · Trace 를 운영 구간에서 다시 옮김 · 대화 Claude **v1.4** 「2026-09-27 · wa v1.4」 = ⑤-5c2 Stats 고침(줄 가운데 주석이 `v.pick++; const m` 을 삼킨 것 · 822408d) · 운영 `asung-wms/admin.html` 의 복사본 · 마이그레이션 없음 · Receiving 탭만 입고가 IMS 로 올 때 → ⑤-6b **v1.5** 「2026-09-27 · wa v1.5」 = Receiving 탭 · Stats 입고 구간 · Health 15 행 — 아래 ⑤-6b 절 → 대화 Claude v1.6 · **v1.7**(판정 42 · 42 A — 창고 Confirm 단추는 admin + wms_receiving_confirm 을 직접 켠 사람 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **v1.8** 「2026-09-27 · wa v1.8」 = 「Off-PO items waiting for a decision」(딥링크 · 판정 44) · 「Rejected — still on a shelf」 · Stats off-PO 결정 어휘 — 아래 ⑤-6c2 절)
 
 뒷단(⑤-2b · 정본 `asung-wms/docs/design/so-module.md` §24-h 판정 18 · 21 · 22 · 24-k 판정 26 · 24-o): 
 Status = `so`(at_wms · picking) + `customer!so_customer_id_fkey(name)` + `so_line`(주문 lines · units 합) · 과제 count-head 넷 · packed count-head · 뷰 `wms_order_pack_progress`(Packing · Ready to finalize 유도 · 판정 18) · 배치 활동 = `wms_pick_tasks` · `wms_pack_tasks` + 줄 합(읽기 그대로 · 사람 칸 nameOf) · 자리 비운 과제 풀기 = 표 직접 update(status pending · assigned_to · heartbeat_at · **session_id** null · CAS in_progress · 판정 6) · presence 「wms-presence」 채널(열쇠 admin|이름 · 표시).
@@ -1305,7 +1316,7 @@ Finalized = `so`(packed = 오피스 마무리 대기 풀 · sbAll) + `wms_order_
 
 ---
 
-## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → … rc v1.4 → Claude Code tf-3 **rc v1.5** 「2026-09-29 · rc v1.5」 = 판정 83 트랜스퍼 도착 갈래(아래 tf-3 절) → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
+## 7-r. `wms-receiver.html` — Receiving (2026-09-27 밤 신설 · Claude Code ⑤-6a · 1판 「2026-09-27 · rc v1」 → … rc v1.4 → Claude Code tf-3 **rc v1.5** 「2026-09-29 · rc v1.5」 = 판정 83 트랜스퍼 도착 갈래(아래 tf-3 절) → Claude Code inv-basis-4 **rc v1.6** 「2026-09-29 · rc v1.6」 = 판정 88 · 92 · 93 · 98 인보이스 기준 · Off-invoice · ㉒ 트랜스퍼 글자 둘(7-z) → 대화 Claude **rc v1.1** = 판정 41(+ · − 스테퍼로 수량이 차도 다음 줄로 안 넘어간다 — 계속 누르면 다른 제품을 세던 사고 · 스캔 · Enter quantity 는 그대로 넘어간다) · 운영 `asung-wms/receiver.html` 의 복사본을 IMS 표 · 창구 위에 옮겼다 · 마이그레이션 없음 · 판정 38 「세 번 나누는 A」의 첫 차수 → 대화 Claude rc v1.2 · **rc v1.3**(판정 42 · 42 A — Confirm into stock 단추 표시 규칙 · d4ab33e · b4ab1ab) → Claude Code ⑤-6c2 **rc v1.4** 「2026-09-27 · rc v1.4」 = off-PO 를 바로 놓는다(판정 43) — 아래 ⑤-6c2 절)
 
 뒷단(⑤-3a `20260926213035` · ⑤-3b `20260926232330` · 정본 `asung-wms/docs/design/so-module.md` §24-l · m · n · 판정 5 · 25 · 27 · 28 · 29 · 30 · 33):
 시작 = **`wms_recv_start(p_po_id)`**(PO 당 열린 초안 하나 · 있으면 그것(existing · held) · 없으면 새 RCV 번호 — ⚠️ 24-m 「안 돌린 가지」가 여기서 처음 돈다) · 줄 · 작업 줄 · 헤더 = rpc `po_receipt_detail`(lines[] = PO 라인 전부 · work[] = 빈별 작업 줄 · diffs[] off_po) · 상태 = rpc `wms_recv_state`(completed · held) ·
@@ -1508,6 +1519,31 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] Fulfillment 에서 판매 + TRF 섞기 → 화면이 막는다 · (옛 화면이면) DB 가 막는다
 [ ] 떠난 TRF(in transit) — Rollback 목록에 없다 · Trace 머리 「In transit」 · Finalized 탭에 있다(검토 칸 없음 · 🖨 · PDF · CSV 「Ship to warehouse」) · 에드먼튼 Complete 뒤 Finalized 에서 빠진다
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
+## 7-z. ⑱ 새 PO 한 바퀴 — 인보이스 기준 · Off-invoice (2026-09-29 · Claude Code inv-basis-4 · inv-basis-5 판정 99(결정은 둘 · 거절 없음) · 판정 84 · 88 · 91 · 92 · 93 · 96 · 97 · 98 · rc v1.6 · wa v1.14 · 마이그레이션 20260929190928_inv_basis_1 · 20260929195458_inv_basis_2 · 오피스 화면 ⑱-3(receiving · invoices · po)은 대화 Claude)
+
+⚠️ 순서대로 — 앞 절이 남긴 상태가 다음 절의 재료다 · 테스트 DB(Asung-IMS) · Network 에 운영 주소 0 · 옛 행(09-29 이전 off_po · over)은 옛 이름으로 계속 보인다
+```
+[ ] 준비 — 새 PO(예 PO-020nn)를 만들어 Confirm(공급처에 감) · 인보이스는 아직 없음
+[ ] 창고 Receiving ↻ POs → 그 PO 가 **Ready to receive 에 없다**(판정 92 · po_list.has_confirmed_invoice false) · 검색 칸에 번호 → 「No PO with a confirmed invoice for …」 · 오피스 Purchase Receipts New receipt 에도 없다 · 초안 인보이스만 있어도 여전히 없다
+[ ] 오피스 Purchase Invoices — 그 PO 로 인보이스(한 줄은 PO 수량보다 적게 · 한 줄은 아예 빼고) → Confirm → PO 가 갈라진다: 원래 번호 = 청구 몫 · 형제(다음 글자 · PO-020nna)에 덜 청구된 수량과 빠진 줄 · 반환 split[] · warnings po_split · po.html 형제 칩 · **입고 확정은 더 가르지 않는다**(split null · 판정 88 ⑤ ⑥)
+[ ] 창고 ↻ POs → 원래 번호만 보인다 · **형제는 안 보인다**(인보이스 없음) · Start → 줄의 기대 = 확정 인보이스 수량(PO 수량이 아니다 · 빠진 줄은 줄 목록에 없다 · 머리에 인보이스 번호는 아직 없다 ⓘ)
+[ ] 판정 96 — 인보이스 한 줄을 PO 남은 수량보다 크게 → Confirm 거부 「Line n (SKU) of PO …: this invoice bills N EA but only M EA are left on the order line — raise the PO line first (Purchase Orders), then confirm the invoice」 · 저장 쪽(Add lines from a PO · po_invoice_create)은 「requested N EA but only M EA remain uninvoiced」
+[ ] Reopen(손대기 전) — 창고가 Start 하기 전 인보이스 Reopen → 형제가 되붙는다(반환 reattached[] · 형제 번호가 사라진다 · 판정 88 ⑦) · 다시 Confirm → 다음 글자(빈 번호는 안 쓴다 · 판정 55)
+[ ] Reopen(손댄 뒤) — 창고가 Start 한 뒤 인보이스 Reopen → 거부 「The warehouse has started on PO … — Reopen is not possible; correct it with a credit note or an Off-invoice decision」
+[ ] 판정 84 섞기(판정 91) — 두 PO 의 줄을 한 인보이스에 담아 Confirm → 발주마다 각각 가른다(split[] 두 항목) · 그중 한 PO 에 입고(초안이든)가 있으면 전체 거부 「PO … already has a receipt — the warehouse has started on this order, so this invoice cannot be confirmed onto it; …」 · 아무것도 안 갈라진다
+[ ] 창고 세기 — 한 줄을 인보이스보다 많이(± · 스캔 · Enter quantity 세 길) → 대화 상자에 「More than the invoice — the extra is put away and the office decides it (off-invoice)」 · 초과분을 **한 칸**에 놓는다 · PO 에 없는 바코드 → 「Add as OFF-INVOICE (not on this PO)?」 → 줄 「OFF-INVOICE · put it away — the manager decides later」 · 스캔 칸 안내 「… item not on this PO → off-invoice …」
+[ ] 두 칸(판정 100) — 초과분이 놓인 줄을 두 칸에 나눠 놓고 **Complete → 창고 화면이 거부**(alert + 토스트) 「Line n (SKU) on RCV-…: N EA more than the confirmed invoice (… counted · … invoiced) sit in more than one bin (…) — move the extra into one bin before Complete, or lower the count — nothing was saved」 · 입고는 열려 있다(Completed 배너 없음) → 초과분을 한 칸으로 옮기고(Change) 다시 Complete → 통과 · 초과분이 칸 없는 줄에만 있으면 Complete 는 어제처럼(경고 「… still have no bin」 · 오피스 확정이 막는다) · 오피스 확정의 같은 문장(「… so the office can decide it as one off-invoice item」)은 안전띠 — 보통은 안 닿는다(닿으면 WMS Admin Reopen → 옮기기 → Complete → 확정)
+[ ] Complete → 요약에 「Over n: … — more than the invoice: the extra becomes an off-invoice item the office decides」 · 「Off-PO / off-invoice waiting for a decision: …」 · 오피스 Confirm → 반환 diffs.rows kind off_invoice(줄 있음 · 놓인 칸 · 놓은 사람 · note 「off-invoice (receipt confirm) …」) · 덜 받은 줄은 short · PO 는 closed · 창고 Confirm into stock 이면 alert 에 「n line(s) more than the invoice — off-invoice, the office decides」 · 「Freight/duty added to cost (n charge)」 는 입고 전 확정한 비용이 있을 때만(⑯) · charges.errors 면 「Freight/duty could not be added — the office will check」
+[ ] WMS Admin Receiving — 「Off-PO / off-invoice items waiting for a decision」 에 Kind 「Off-invoice · over the invoice / · not on the PO」 · Extra qty = received − expected · 줄 → receiving.html?receipt=&diff=(같은 창) · Review 모달 「Off-PO / off-invoice — …」 표 · Stats 「Off-invoice …」 카드 셋(옛 Over · Off-PO 카드는 그대로) · Health 「Off-invoice item waiting for a decision for 24h」(151 · 24h 안 ✓) · 배지 수에 든다
+[ ] 오피스 결정 둘(⑱-3 화면 · po_receipt_diff_settle_off_invoice · 판정 99 — 거절 없음 · 더 온 것은 이미 창고에 있다 · 돌려보내기(선반에서 빼기 · 공급처 크레딧)는 입고와 따로) — accepted_free → 원장 po_in(<diff>:offpo · 수량 = 초과분) · 레이어 0 free · accepted_billed(단가 비우면 그 줄 마지막 확정 인보이스 단가 · 없으면 PO 단가 · PO 밖 품목은 입력 필수) → 레이어 manual × 환율 · rejected 를 주면 「Decision "rejected" is not one of accepted_free, accepted_billed — an extra that arrived is already in the warehouse; a return to the supplier is done separately, not here」 · 창고 Removed 를 off-invoice 행에 → 「Off-invoice … is never rejected …」 · Health 161 없음(옛 off_po 의 160 · 「Rejected — still on a shelf」 · Removed 는 그대로) · 받아들인 뒤 Reopen 거부
+[ ] 옛 행 무변 — 09-29 이전 off_po · over 행은 옛 이름(「OFF-PO」 · Kind 「Off-PO」 · Stats 「… (old rule)」)으로 계속 보이고 옛 창구(settle_over · settle_off_po)로 닫힌다 · 새 창구에 옛 행을 주면 「… only off-invoice items are decided here. A short difference is settled with po_receipt_diff_resolve, an old over difference with po_receipt_diff_settle_over, an old off-PO item with po_receipt_diff_settle_off_po」
+[ ] 트랜스퍼 도착(7-x)이 어제와 같다 — 기대 = 보낸 EA · off-PO 스캔 거부 · ㉒ ± 대화 상자에도 「Only what was sent is taken in — the office decides the rest」 · 스캔 칸 안내에 off-PO 문장이 없다(「items not on this transfer are refused — the office settles them on the Transfers screen」)
+[ ] 지우기 — 창고가 스캔한 off-invoice 가 있는 초안을 Purchase Receipts 에서 Delete → 「… off-PO / off-invoice item(s) recorded by the warehouse — it cannot be deleted here; if none of them was accepted into the books, a manager deletes it from WMS Admin (Receiving > Delete) …」(㉔) · WMS Admin Delete 는 지운다(아카이브) · 받아들인 것이 있으면 「… accepted into the books (stock and cost layers exist) … correct it with a stock adjustment instead」(㉕)
+[ ] 콘솔 빨간 오류 없음 · Network 에 gftpcnkxbdjzzfvzwcfl 요청 0 · rpc/po_list · wms_recv_off_po(반환 kind off_invoice) · po_receipt_diff_settle_off_invoice 200
 ```
 
 ---

@@ -97,9 +97,15 @@
                 a row can be split. Splitting never changes the total; it moves part
                 of it to a second row.
 
-   ⭐ The number that decides anything is the PO's confirmed quantity. The invoiced
-      figure sits beside it so the person can see WHY a count is short — the supplier
-      billed less — but it decides nothing. No automatic adjustment (§11-i).
+   ⭐⭐ [2026-09-29 · rulings 88 · 92 · 99 · 100 · 101] The number that decides anything is the
+      CONFIRMED INVOICE: expected = confirmed invoice − what earlier receipts took in
+      (po_receipt_detail lines[].expected). A PO with no confirmed invoice cannot be received —
+      the office confirms the supplier invoice first, and confirming it splits the order
+      (the original number keeps the billed share). More than the invoice arrived = an
+      off-invoice item: the warehouse has already put it in ONE bin, and the office decides it
+      once — free or billed. There is no «reject»: the goods are already in the building, and a
+      return to the supplier is separate work (ruling 99). Old rows (over · off-PO) keep their
+      old decisions.
 
    ⭐ Every calculation lives in the database. This screen never adds quantities up
       on its own: po_receipt_detail is the one place that knows what "counted",
@@ -111,7 +117,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-28 · warehouse state";   // ⑤-6c3(대화 Claude) — off-PO 결정 UI · 딥링크 ?receipt=&diff= (판정 43 · 44 · 45) · 판정 40 이름은 그대로
+const RCV_BUILD = "2026-09-29 · invoice basis";   // ⑱-3(대화 Claude) — 판정 88 · 92 · 99 · 100 · 101: 기준 = 확정 인보이스 · Off-invoice 결정 둘(거절 없음) · 확정 반환 charges · 새 입고 = 확정 인보이스 있는 PO 만 ← ⑤-6c3 「warehouse state」(off-PO 결정 UI · 딥링크 ?receipt=&diff= · 판정 43 · 44 · 45)
 console.log("receiving.html build:", RCV_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -148,8 +154,8 @@ function stChip(s){
   return `<span class="chip">${esc(s)}</span>`;
 }
 
-/* A short count is normal — the rest of the order lives on in the split document.
-   An over-count is not: the extra is in the building but not in the books. */
+/* Measured against what is EXPECTED on this receipt (confirmed invoice − earlier receipts ·
+   ruling 88). Short is kept as a difference to settle; over becomes an off-invoice item. */
 function diffCell(counted, ordered){
   const c = Number(counted || 0), o = Number(ordered || 0);
   if(c === 0) return '<span class="dim">—</span>';
@@ -165,12 +171,17 @@ const WARN = {
   open_diffs:      "A difference from this receipt is still waiting for someone to settle it.",
   po_split:        "The order was split — the rest carries on in its own document.",
   po_closed:       "The purchase order is closed.",
-  short_receipt:   "Less arrived than the order asks for.",
-  over_receipt:    "More arrived than the order asks for.",
+  short_receipt:   "Less arrived than the confirmed invoice.",
+  over_receipt:    "More arrived than the confirmed invoice — the extra becomes an off-invoice item for the office to decide.",
+  off_invoice:     "An off-invoice item was recorded — decide it below (free or billed).",
+  ledger_trimmed_to_basis: "Only the invoiced quantity went into stock — the extra waits as an off-invoice item.",
+  charge_errors:   "A confirmed charge (freight · duty) could not be added to cost — check it on the Charges screen.",
+  received_on_before_baseline: "The received date is before the stock baseline.",
+  received_on_in_future: "The received date is in the future.",
   receipt_lines_differ_from_work: "The confirmed lines and the counted rows disagree — tell someone.",
   unassigned_rows: "Some of what was counted has no bin yet — put it away before confirming.",
-  over_counted:    "More was counted than the order asks for. The extra will not enter stock on its own.",
-  short_counted:   "Less was counted than the order asks for. The rest stays on the order.",
+  over_counted:    "More was counted than the confirmed invoice. The extra must sit in one bin — it is decided as an off-invoice item.",
+  short_counted:   "Less was counted than the confirmed invoice. The short line is kept for someone to settle.",
   /* 오피스 판 1(2026-09-28) · 판정 30 — 창고 Complete 전의 확정은 막지 않고 알린다 */
   wms_not_completed: "The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing."
 };
@@ -329,6 +340,7 @@ async function loadDetail(id){
         <div class="g"><b>${qty(t.counted)}</b><span>Counted</span></div>
         <div class="g ${toPlace > 0 ? "bad" : "ok"}"><b>${qty(toPlace)}</b><span>To place</span></div>
         <div class="g"><b>${esc(t.counted_lines)} / ${esc(t.lines)}</b><span>Lines counted</span></div>
+        <div class="g ${Number(t.over_lines) > 0 ? "bad" : ""}"><b>${esc(t.over_lines ?? 0)} / ${esc(t.short_lines ?? 0)}</b><span>Lines over · short of the invoice</span></div>
       </div>
       <div class="invsub"><div class="invgrid">${kvTbl([
         ["SUPPLIER", esc(h.supplier_name || "")],
@@ -377,6 +389,9 @@ async function loadDetail(id){
   box.querySelectorAll("[data-offpo]").forEach(b => {
     b.onclick = () => openOffPo(diffById(b.dataset.offpo));
   });
+  box.querySelectorAll("[data-offinv]").forEach(b => {
+    b.onclick = () => openOffInv(diffById(b.dataset.offinv));
+  });
   /* ⑤-6c3 · 판정 44 — WMS Admin 의 「Decide in Purchase Receipts」 가 ?diff= 로 가리킨 줄을 한 번 짚는다 */
   if(focusDiff){
     const row = box.querySelector(`tr[data-diff="${CSS.escape(focusDiff)}"]`);
@@ -386,6 +401,7 @@ async function loadDetail(id){
       row.style.outline = "2px solid #f59e0b"; row.style.background = "#fffbeb";
       const hit = diffById(row.dataset.diff);
       if(hit && hit.kind === "off_po" && !hit.resolved_at && canWrite) openOffPo(hit);
+      if(hit && hit.kind === "off_invoice" && !hit.resolved_at && canWrite) openOffInv(hit);   // ⑱-3 판정 88 ⑧
     }
   }
 
@@ -432,11 +448,14 @@ async function confirmRcv(h, t, toPlace){
       `${qtyPlain(toPlace)} still has no bin. Put it away, or lower the count to what you actually placed.`);
     stage = "putaway"; reload(); return;
   }
-  const short = Number(t.ordered || 0) - Number(t.counted || 0);
+  /* ⑱-3 · rulings 88 · 101 — measured against the confirmed invoice. The database counts the lines
+     (totals.over_lines · short_lines); this screen does not add quantities up. Confirming no longer
+     splits the order — the invoice already did — and the order closes. */
   const lines = [`Confirm ${h.receipt_number}?`, ""];
-  lines.push(`${qtyPlain(t.counted)} of ${qtyPlain(t.ordered)} ordered will be received into stock.`);
-  if(short > 0) lines.push(`${qtyPlain(short)} is short — the order will split and the rest carries on in a new document.`);
-  if(short < 0) lines.push(`${qtyPlain(-short)} more than ordered arrived — it will be recorded and left as a difference to settle.`);
+  lines.push(`${qtyPlain(t.counted)} counted will be received into stock, up to what the confirmed invoice expects.`);
+  if(Number(t.short_lines) > 0) lines.push(`${t.short_lines} line(s) short of the invoice — kept as a difference for someone to settle.`);
+  if(Number(t.over_lines) > 0) lines.push(`${t.over_lines} line(s) over the invoice — the extra becomes an off-invoice item (it must sit in one bin) for the office to decide.`);
+  lines.push(`${h.po_number || "The order"} closes on confirm.`);
   /* 오피스 판 1 · 판정 30 — 막지 않는다 · 말한다 */
   if(curWms && !curWms.completed)
     lines.push("", curWms.held ? "The warehouse has this receipt ON HOLD — the count may still change."
@@ -458,13 +477,20 @@ async function confirmRcv(h, t, toPlace){
      the difference queue is the only other place it appears. */
   if(Number(lg.qty_posted) > 0) done.push(`${qtyPlain(lg.qty_posted)} went into stock.`);
   if(Number(lg.qty_excess) > 0)
-    done.push(`${qtyPlain(lg.qty_excess)} more than ordered arrived — it is in the bin but not in the books until the difference is settled.`);
+    done.push(`${qtyPlain(lg.qty_excess)} more than the invoice arrived — it is in the bin as an off-invoice item, not in the books until it is decided below.`);
   if(po.number_before && po.number_after && po.number_before !== po.number_after)
     done.push(`${po.number_before} is now ${po.number_after}.`);
-  if(sp) done.push(`${qtyPlain(sp.remainder_qty)} still owed — carried on as ${sp.remainder_number}.`);
+  if(sp && sp.remainder_number) done.push(`${qtyPlain(sp.remainder_qty)} still owed — carried on as ${sp.remainder_number}.`);   // 새 규칙에서는 늘 null(분할은 인보이스 확정) · 옛 모양이 오면 그대로 말한다
   else if(po.status === "closed") done.push(`${po.number_after || ""} is closed.`);
-  if(data.diffs && (data.diffs.short || data.diffs.over))
+  const offInvRows = ((data.diffs && data.diffs.rows) || []).filter(x => x.kind === "off_invoice").length;
+  if(offInvRows) done.push(`${offInvRows} off-invoice item(s) are waiting for a decision below.`);
+  else if(data.diffs && (data.diffs.short || data.diffs.over))
     done.push("A difference was queued for someone to settle.");
+  /* ⑯ · ruling 94 — confirmed charges (freight · duty) go onto cost at this moment. An error does not undo the receipt. */
+  const ch = data.charges || {};
+  if((ch.posted || []).length) done.push(`${ch.posted.length} confirmed charge(s) added to cost.`);
+  if((ch.errors || []).length) done.push(`${ch.errors.length} charge(s) could not be added to cost — check the Charges screen: `
+    + ch.errors.map(e => typeof e === "string" ? e : [e.charge_number, e.error || e.message].filter(Boolean).join(" ") || JSON.stringify(e)).join(" · "));
   if((data.warnings || []).includes("wms_not_completed")) done.push(warnText("wms_not_completed"));
   if(done.length) alert(done.join("\n"));
   reload();
@@ -533,7 +559,16 @@ const OFFPO_REASONS = [
   ["accepted_billed", "Accepted \u2014 billed, into stock at the invoice price"],
   ["rejected",        "Rejected \u2014 set aside and returned to the supplier"]
 ];
-const reasonsFor  = (kind) => kind === "over" ? OVER_REASONS : (kind === "off_po" ? OFFPO_REASONS : SHORT_REASONS);
+/* ⭐⭐ ⑱-3 · rulings 88 ⑧ · 99 — an off-invoice item (more than the confirmed invoice, or not on the order)
+   has TWO decisions, not three: the goods are already on a shelf, so the only question is what they are
+   worth. A return to the supplier is separate work (ruling 99). The list is the database's
+   (po_receipt_diff_resolution_kind_ck); the function is po_receipt_diff_settle_off_invoice.
+   ⚠️ The same words as the old off-PO pair, on purpose — the office reads one vocabulary. */
+const OFFINV_REASONS = [
+  ["accepted_free",   "Accepted \u2014 free, into stock at no cost"],
+  ["accepted_billed", "Accepted \u2014 billed, into stock at the invoice price"]
+];
+const reasonsFor  = (kind) => kind === "over" ? OVER_REASONS : (kind === "off_po" ? OFFPO_REASONS : (kind === "off_invoice" ? OFFINV_REASONS : SHORT_REASONS));
 const reasonLabel = (v) =>
   ([...SHORT_REASONS, ...OVER_REASONS, ...OFFPO_REASONS].find(r => r[0] === v) || [v, v])[1];
 
@@ -566,21 +601,23 @@ function diffsCard(rows, ed){
           ((f.fragments || []).length > 1
             ? ` <button class="pobtn" data-frag="${r.id}">pieces</button>` : "");
       const offpo = r.kind === "off_po";
+      const offinv = r.kind === "off_invoice";          // ⑱-3 판정 88 ⑧ — 줄 있음 = 인보이스 초과 · 줄 없음 = 주문에 없는 품목
       /* ⑤-6c3 — an off-PO row says where it sits, because «accepted» puts it into stock in that bin */
-      const shelf = !offpo ? "" : (r.placed_at
+      const shelf = !(offpo || offinv) ? "" : (r.placed_at
           ? `<div class="dim" style="font-size:11.5px">on ${esc(r.bin || "?")} · put away by ${esc(r.placed_by_name || "—")} · ${imsTs(r.placed_at)}</div>`
           : `<div class="dim" style="font-size:11.5px">not on a shelf yet \u2014 the warehouse puts it away first</div>`);
       return `<tr data-diff="${esc(r.id)}">
       <td class="num dim">${esc(r.line_no ?? "")}</td>
       <td><span class="mono">${esc(r.sku || "")}</span>${shelf}</td>
-      <td><span class="tag">${offpo ? "off-PO" : esc(r.kind)}</span></td>
+      <td><span class="tag">${offpo ? "off-PO" : (offinv ? "off-invoice" : esc(r.kind))}</span></td>
       <td class="num">${qty(r.expected_qty)}</td>
       <td class="num">${qty(r.received_qty)}</td>
       <td class="num">${Number(r.diff_qty) > 0
           ? `<span class="bad">+${qty(r.diff_qty)}</span>`
           : `<span class="neutral">${qty(r.diff_qty)}</span>`}</td>
-      <td style="font-size:12.5px">${offpo ? '<span class="dim">not on the order</span>' : whole}</td>
-      <td>${offpo ? offPoSettledCell(r, ed) : r.resolved_at
+      <td style="font-size:12.5px">${offpo || (offinv && !r.po_line_id) ? '<span class="dim">not on the order</span>'
+          : (offinv ? `<span class="dim">more than the invoice ·</span> ${whole}` : whole)}</td>
+      <td>${offpo ? offPoSettledCell(r, ed) : offinv ? offInvSettledCell(r, ed) : r.resolved_at
           ? `${esc(reasonLabel(r.resolution))}
              <div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>
              ${r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : ""}
@@ -599,7 +636,11 @@ function diffsCard(rows, ed){
       only ever adds, so undoing it needs an offsetting entry, which does not exist yet.
       An off-PO line was not on the order at all: the warehouse has already put it on a shelf, and
       deciding it either takes it into stock in that bin (free, or at the invoice price) or rejects it,
-      in which case the warehouse takes it back off and sets it aside for the supplier.</div>
+      in which case the warehouse takes it back off and sets it aside for the supplier.
+      ⭐ Since 2026-09-29 an extra is an <b>off-invoice</b> line: more than the confirmed invoice, or not
+      on the order at all. It already sits in one bin, and it is decided once — free or billed. There is
+      no reject: the goods are in the building, and sending them back is separate work. Off-PO and over
+      lines above this date keep their old decisions.</div>
   </div>`;
 }
 
@@ -700,6 +741,97 @@ async function openOffPo(r){
   };
 }
 
+/* ⑱-3 · ruling 99 — the «Settled» cell of an off-invoice row. Two decisions, both into stock, and
+   neither can be reopened (the ledger only adds) — so there is no Reopen button at all. */
+function offInvSettledCell(r, ed){
+  if(!r.resolved_at){
+    return ed ? `<button class="pobtn go" data-offinv="${esc(r.id)}">Decide</button>` : '<span class="dim">waiting for a decision</span>';
+  }
+  const who = `<div class="dim" style="font-size:11.5px">${esc(r.resolved_by_name || "—")} · ${imsTs(r.resolved_at)}</div>`;
+  const note = r.resolution_note ? `<div class="dim" style="font-size:11.5px">${esc(r.resolution_note)}</div>` : "";
+  const price = r.resolution === "accepted_billed" && r.unit_price != null ? ` <span class="dim">@ ${esc(Number(r.unit_price))} order currency</span>` : "";
+  return `${esc(reasonLabel(r.resolution))}${price}${who}${note}
+    <div class="dim" style="font-size:11.5px">in stock \u2014 cannot be reopened</div>`;
+}
+
+/* ⭐⭐ ⑱-3 · rulings 88 ⑧ · 93 ⓓ · 99 — deciding an off-invoice item (po_receipt_diff_settle_off_invoice).
+   Quantity = the extra (received − expected). Billed: the unit price may be left empty on a line that is
+   on the order — the database takes the last confirmed invoice price of that line, then the order price
+   (the answer says which: unit_price_source). An item not on the order has no line, so it needs a price.
+   Accepting needs the bin (the stock goes into the bin it sits in) — the database refuses otherwise. */
+async function openOffInv(r){
+  if(!r) return;
+  const placed = !!r.placed_at, onLine = !!r.po_line_id;
+  const extra = Number(r.diff_qty != null ? r.diff_qty : (Number(r.received_qty) - Number(r.expected_qty)));
+  let cur = null, rate = null;
+  if(curHeader && curHeader.po_id){
+    const po = await sb.from("po").select("currency_id,exchange_rate").eq("id", curHeader.po_id).maybeSingle();
+    if(po.data){
+      rate = po.data.exchange_rate;
+      if(po.data.currency_id){
+        const c = await sb.from("ref_currency").select("code").eq("id", po.data.currency_id).maybeSingle();
+        cur = c.data ? c.data.code : null;
+      }
+    }
+  }
+  modalOpen(`
+    <h3 style="margin:0 0 4px">Decide an off-invoice item</h3>
+    <div class="dim" style="font-size:12.5px;margin-bottom:10px">
+      ${esc(r.sku || "")} · ${onLine
+        ? `${qtyPlain(extra)} more than the confirmed invoice (${qtyPlain(r.received_qty)} received · ${qtyPlain(r.expected_qty)} invoiced)`
+        : `${qtyPlain(extra)} not on the order`}${
+        placed ? ` · on <b>${esc(r.bin || "?")}</b> (put away by ${esc(r.placed_by_name || "—")})`
+               : " · <b>not on a shelf yet</b>"}</div>
+    ${placed ? "" : `<div class="msg err" style="margin-bottom:10px">It can be decided once it is on a shelf \u2014
+      the stock goes into the bin it sits in. The warehouse puts it away first.</div>`}
+    <div class="frow"><label>Decision</label>
+      <select id="oiRes">
+        <option value="accepted_billed">${esc(OFFINV_REASONS[1][1])}</option>
+        <option value="accepted_free">${esc(OFFINV_REASONS[0][1])}</option>
+      </select></div>
+    <div class="frow" id="oiPriceRow"><label>Unit price${cur ? ` (${esc(cur)})` : ""}</label>
+      <input id="oiPrice" type="number" step="any" min="0" placeholder="${onLine ? "empty = last confirmed invoice price" : "from the supplier invoice"}"></div>
+    <div id="oiPreview" class="dim" style="font-size:12px;margin:-2px 0 6px"></div>
+    <div class="frow"><label>Note</label><input id="oiNote" placeholder="optional"></div>
+    <div id="oiWarn" class="msg" style="margin-top:8px"></div>
+    <div id="oiMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="oiGo" ${placed ? "" : "disabled"}>Save decision</button></div>`);
+
+  const sel = document.getElementById("oiRes"), pr = document.getElementById("oiPrice");
+  const sync = () => {
+    const v = sel.value, billed = v === "accepted_billed";
+    document.getElementById("oiPriceRow").style.display = billed ? "" : "none";
+    const p = Number(pr.value);
+    document.getElementById("oiPreview").textContent = (billed && p > 0 && rate && Number(rate) !== 1)
+      ? `≈ ${p} × ${rate} = ${(p * Number(rate)).toFixed(4)} per unit in the base currency (the database computes the real figure)` : "";
+    document.getElementById("oiWarn").innerHTML =
+      `${qtyPlain(extra)} go into stock in <b>${esc(r.bin || "?")}</b>${v === "accepted_free" ? " at no cost" : " at the invoice price"}. <b>This cannot be undone here.</b>
+       <div class="dim" style="font-size:11.5px;margin-top:4px">Sending it back to the supplier is separate work \u2014 not a decision here.</div>`;
+  };
+  sel.onchange = sync; pr.oninput = sync; sync();
+
+  document.getElementById("oiGo").onclick = async () => {
+    const v = sel.value;
+    const raw = pr.value.trim();
+    const price = v === "accepted_billed" && raw !== "" ? Number(raw) : null;
+    if(v === "accepted_billed" && raw !== "" && !(price > 0)){ say("oiMsg", "err", "The unit price must be more than 0 — or leave it empty to use the invoice price."); return; }
+    if(v === "accepted_billed" && price === null && !onLine){ say("oiMsg", "err", "This item is not on the order — enter the unit price from the supplier invoice (more than 0)."); return; }
+    say("oiMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("po_receipt_diff_settle_off_invoice", {
+      p_diff_id: r.id, p_resolution: v, p_unit_price: price, p_note: document.getElementById("oiNote").value || null });
+    if(error){ say("oiMsg", "err", error.message); return; }
+    modalClose();
+    /* ⭐ Stock moved — say so, and say where the price came from when the database chose it. */
+    const src = { entered:"the price entered", last_confirmed_invoice:"the last confirmed invoice price", po_line:"the order line price" };
+    alert(`${qtyPlain(data && data.qty_added != null ? data.qty_added : extra)} of ${r.sku || "this item"} went into stock in ${(data && data.bin) || r.bin || "the bin"}`
+      + (data && data.cost_source === "free" ? " at no cost."
+         : `, costed at ${data ? data.unit_cost : "?"} per unit${data && data.unit_price_source ? ` (from ${src[data.unit_price_source] || data.unit_price_source})` : ""}.`));
+    reload();
+  };
+}
+
 /* The pieces behind «12 of 12» — which document brought what. Read-only. */
 function openFragments(r){
   const f = r.family || {}, frags = f.fragments || [];
@@ -786,7 +918,7 @@ async function reopenDiff(r){
 function countTable(lines, ed){
   return `<table><thead><tr>
       <th class="num">#</th><th>Item</th><th class="num">Ordered</th><th class="num">Invoiced</th>
-      <th class="num">Received before</th><th class="num">Counted</th><th class="num">Diff</th><th>Rows</th>
+      <th class="num">Received before</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Diff</th><th>Rows</th>
     </tr></thead><tbody>${lines.map(l => `<tr>
       <td class="num dim">${esc(l.line_no)}</td>
       <td><span class="mono">${esc(l.sku || "")}</span>
@@ -795,17 +927,19 @@ function countTable(lines, ed){
       <td class="num">${qty(l.ordered)}</td>
       <td class="num">${Number(l.invoiced) ? qty(l.invoiced) : '<span class="dim">—</span>'}</td>
       <td class="num">${Number(l.received_before) ? qty(l.received_before) : '<span class="dim">—</span>'}</td>
+      <td class="num"><b>${qty(l.expected)}</b></td>
       <td class="num">${ed
           ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.counted)}"
                data-prev="${esc(l.counted)}" data-line="${l.po_line_id}">`
           : qty(l.counted)}</td>
-      <td class="num">${diffCell(l.counted, l.ordered)}</td>
+      <td class="num">${diffCell(l.counted, l.expected)}</td>
       <td class="dim" style="font-size:11.5px">${(l.work || []).length
           ? `${(l.work || []).length} row(s) · ${qty(l.allocated)} in bins` : "—"}</td>
     </tr>`).join("")}</tbody></table>
-    <div class="invsub">Invoiced is what the supplier billed. It explains a short count — it does not
-      decide anything. The order quantity is what a receipt is measured against. Setting a count below
-      what is already sitting in bins is refused: take it out of the bins first.</div>`;
+    <div class="invsub">Expected is what this receipt is measured against: the confirmed invoice, less what
+      earlier receipts took in. Counting more than expected makes the extra an off-invoice item \u2014 it must
+      sit in one bin, and the office decides it free or billed. Setting a count below what is already
+      sitting in bins is refused: take it out of the bins first.</div>`;
 }
 
 function wireCount(h, ed){
@@ -1050,7 +1184,7 @@ async function openCreate(preselectPoId){
     <h3 style="margin:0 0 10px">New receipt</h3>
     <div class="frow"><label>Purchase order</label>
       <input id="npq" placeholder="PO number or supplier" autofocus></div>
-    <div id="npHits" class="binlist"><div class="msg">Type to find a confirmed order.</div></div>
+    <div id="npHits" class="binlist"><div class="msg">Type to find a confirmed order with a confirmed invoice.</div></div>
     <div class="frow" style="margin-top:10px"><label>Received on</label>
       <input id="npd" type="date" value="${torontoToday()}"></div>
     <div id="npMsg" style="font-size:12.5px;margin-top:8px"></div>
@@ -1062,15 +1196,18 @@ async function openCreate(preselectPoId){
   const hits = document.getElementById("npHits");
 
   const draw = async (term) => {
-    let qy = sb.from("po_list").select("id,po_number,supplier_name,status").eq("status", "confirmed");
+    /* ⑱-3 · ruling 92 — an order is received only after the office confirmed its supplier invoice.
+       The database refuses the rest too (po_receipt_create) — this list simply does not offer them. */
+    let qy = sb.from("po_list").select("id,po_number,supplier_name,status,confirmed_invoiced_qty").eq("status", "confirmed").eq("has_confirmed_invoice", true);
     if(term) qy = qy.or(`po_number.ilike.%${term}%,supplier_name.ilike.%${term}%`);
     const { data, error } = await qy.order("po_number", { ascending:false }).limit(50);
     if(error){ hits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-    if(!data.length){ hits.innerHTML = '<div class="msg">No confirmed order matches.</div>'; return; }
+    if(!data.length){ hits.innerHTML = '<div class="msg">No confirmed order with a confirmed invoice matches. An order without one is received after its invoice is confirmed (Purchase Invoices).</div>'; return; }
     hits.innerHTML = data.map(p => `<div class="prow ${p.id === picked ? "on" : ""}"
         data-pick="${p.id}" data-name="${esc(p.po_number)}">
         <span class="mono">${esc(p.po_number)}</span>
-        <span style="margin-left:8px">${esc(p.supplier_name || "")}</span></div>`).join("");
+        <span style="margin-left:8px">${esc(p.supplier_name || "")}</span>
+        <span class="dim" style="margin-left:8px">invoiced ${qty(p.confirmed_invoiced_qty)}</span></div>`).join("");
     hits.querySelectorAll("[data-pick]").forEach(el => {
       el.onclick = () => {
         picked = el.dataset.pick;

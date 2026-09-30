@@ -259,20 +259,20 @@
 
   <!-- ── PO / receipt list ── -->
   <div id="listView">
-    <div class="lead">Scan a PO barcode or load the confirmed POs to start receiving.</div>
+    <div class="lead">Scan a PO barcode or load the POs with a confirmed invoice to start receiving.</div>
     <div class="scanbar" style="position:static;padding:0 0 12px">
       <input class="scanin" id="poScan" inputmode="none" autocomplete="off" placeholder="Scan a PO barcode…">
       <div class="scanhint"><span class="live"></span><span>Scan the PO barcode to find and open it</span></div>
     </div>
     <div id="myList" class="blist"></div>
     <div class="sect" style="display:flex;align-items:center;gap:10px">Ready to receive
-      <span style="font-weight:400;text-transform:none;letter-spacing:0">— confirmed POs for your warehouse</span>
+      <span style="font-weight:400;text-transform:none;letter-spacing:0">— POs with a confirmed invoice · your warehouse</span>
       <span id="poHidden" style="font-weight:400;text-transform:none;letter-spacing:0;display:none"></span>
       <button class="btn ghost" id="loadPosBtn" style="margin-left:auto;padding:6px 12px;font-size:12px">↻ POs</button>
     </div>
     <div id="poList" class="blist"></div>
     <div class="loading" id="lLoading" style="display:none"><div class="spin"></div>Loading…</div>
-    <div class="empty" id="lEmpty" style="display:none">No confirmed POs to receive..</div>
+    <div class="empty" id="lEmpty" style="display:none">No POs with a confirmed invoice to receive — the office confirms the supplier invoice first.</div>
   </div>
 
   <!-- ── Receiving (scan verify) ── -->
@@ -296,7 +296,7 @@
     <div class="recv-controls">
       <div class="scanbar">
         <input class="scanin" id="scan" inputmode="none" autocomplete="off" placeholder="Scan a barcode…">
-        <div class="scanhint"><span class="live"></span><span>Waiting for scan · box scan = ×factor units · item not on this PO → off-PO (put it away · the office decides later)</span></div>
+        <div class="scanhint"><span class="live"></span><span id="scanHint">Waiting for scan · box scan = ×factor units · item not on this PO → off-invoice (put it away · the office decides later)</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin:0 2px 8px">
         <span style="font-family:var(--mono);font-size:11px;font-weight:700;text-transform:uppercase;color:var(--mut-2)">Sort</span>
@@ -366,7 +366,13 @@
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
 /* ⑤-6c2 (2026-09-27 · rc v1.4) — 판정 43: off-PO 는 스캔하고 **바로 놓는다**(승인 전 차단 없음) · 놓기 = wms_recv_off_po_putaway(diff · bin · done) · 결정은 오피스 Purchase Receipts(판정 44) ·
    결정 뒤 = po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at: accepted_* → 「Accepted — in stock」 읽기 전용 · rejected → 빨간 그룹 「Rejected — take it off <bin>」 + Removed(wms_recv_off_po_removed) · 한 제품 한 칸 */
-const RC_BUILD="2026-09-29 · rc v1.5";   // tf-3(판정 83) — 트랜스퍼 도착 갈래
+/* inv-basis-4 (2026-09-29 · rc v1.6) — 판정 88 · 92 · 93 ⓘ · 98 (inv_basis_1 20260929190928 · inv_basis_2 20260929195458): 창고는 확정 인보이스가 있는 PO 만 본다(po_list.has_confirmed_invoice · 오피스 New receipt 와 같은 집합) ·
+   기대 = 확정 인보이스 − 앞선 입고(po_receipt_detail lines[].expected · 트랜스퍼는 옛 셈 그대로) · 더 온 것 = off-invoice 한 길(창구 wms_recv_off_po 가 kind off_invoice 를 만든다 · 옛 off_po 행은 옛 이름 그대로 · 결정 · 놓기 · Removed 창구는 두 어휘) ·
+   두 칸에 걸친 초과의 거부 문장은 확정 창구(po_receipt_confirm_by)가 낸다 — 화면은 그대로 띄운다 · Confirm into stock 뒤 charges{posted, errors}(⑯ · 판정 94) · off_invoice 줄 수 한 줄 ·
+   ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
+   ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
+   ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
+const RC_BUILD="2026-09-29 · rc v1.6";   // inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -400,6 +406,8 @@ function tfDetailAsPo(t){
            diffs:[], wms:t.wms };
 }
 function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms it into stock; anything not received stays on the order."; }
+/* inv-basis-4 · 판정 88 ⑧ · ㉒ — 기준보다 많이 셀 때의 한 문장(± · 스캔 · Enter quantity 세 길 · PO 는 off-invoice · 트랜스퍼는 판정 74) */
+function overNote(){ return (receipt&&receipt.is_transfer) ? "Only what was sent is taken in — the office decides the rest" : "More than the invoice — the extra is put away and the office decides it (off-invoice)"; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
 let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (HAS_IMAGES 가 서면 쓴다)
 let sortMode="po";   // 검수 리스트/싱글 표시 순서: po|zone|product|sku
@@ -657,7 +665,7 @@ function renderList(){
   }
 }
 
-/* ---------- 확정된 PO 목록 (온디맨드 · 오피스 receiving.html 의 New receipt 와 같은 집합) ---------- */
+/* ---------- 확정 인보이스가 있는 PO 목록 (온디맨드 · 오피스 receiving.html 의 New receipt 와 같은 집합 · inv-basis-4 판정 92) ---------- */
 document.getElementById("loadPosBtn").onclick=()=>loadOpenPos("");
 async function loadOpenPos(search){
   document.getElementById("lLoading").style.display="block";
@@ -666,15 +674,20 @@ async function loadOpenPos(search){
     let q=sb.from("po").select("id,po_number,status,order_date,ship_to_warehouse_id,supplier:supplier!po_supplier_id_fkey(name)")   // caps-ok: confirmed 발주 — 받으면 closed 로 빠지는 활성 풀
       .eq("status","confirmed").order("po_number");
     if(search) q=q.ilike("po_number","%"+search+"%");
-    const {data,error}=await q;
+    // inv-basis-4 · 판정 92: 확정 인보이스가 있는 PO 만(po_list.has_confirmed_invoice · inv_basis_1 뷰 · 오피스 New receipt 와 같은 집합) — po_list 에는 ship_to 창고 칸이 없어 po 조회 옆에 하나 더 · 창구 wms_recv_start 도 같은 문(po_receipt_create_by)
+    let qi=sb.from("po_list").select("id,confirmed_invoiced_qty").eq("status","confirmed").eq("has_confirmed_invoice",true);   // caps-ok: confirmed 발주 — 받으면 closed 로 빠지는 활성 풀
+    if(search) qi=qi.ilike("po_number","%"+search+"%");
+    const [{data,error},inv]=await Promise.all([q,qi]);
     if(error) throw error;
-    openPos=(data||[]).filter(p=>!p.ship_to_warehouse_id||inWhId(p.ship_to_warehouse_id))
+    if(inv.error) throw inv.error;
+    const invQty={}; (inv.data||[]).forEach(x=>{ invQty[x.id]=Number(x.confirmed_invoiced_qty||0); });
+    openPos=(data||[]).filter(p=>(p.id in invQty)&&(!p.ship_to_warehouse_id||inWhId(p.ship_to_warehouse_id)))
       .map(p=>({ id:p.id, po_number:p.po_number, status:p.status, order_date:p.order_date, warehouse_id:p.ship_to_warehouse_id,
-                 wh:whOf(p.ship_to_warehouse_id).key, supplier_name:p.supplier&&p.supplier.name||"" }));
+                 wh:whOf(p.ship_to_warehouse_id).key, supplier_name:p.supplier&&p.supplier.name||"", invoiced_qty:invQty[p.id] }));
     openPos=openPos.concat(await loadArrivingTransfers(search));   // tf-3 — 도착 예정 트랜스퍼(도착 창고 = 내 창고 · 떠난 날 · from <출발 창고>)
     renderList();
     if(search&&!openPos.length&&!myReceipts.some(r=>r.po_number.toUpperCase()===search.toUpperCase()))
-      toast("No confirmed PO for "+search,true);
+      toast("No PO with a confirmed invoice for "+search,true);
   }catch(e){ toast("PO load failed: "+rpcMsg(e),true); }
   finally{ document.getElementById("lLoading").style.display="none"; }
 }
@@ -716,7 +729,7 @@ async function resumeReceipt(rid){
 
 /* ---------- receipt 열기 (po_receipt_detail + wms_recv_state → 즉시 렌더 → enrich) ---------- */
 function applyDetail(d){
-  // 줄 = PO 라인 전부(po_receipt_detail 이 그린다 · 껍데기 없음) · expected = 이 문서에서 받을 남은 수량(ordered − received_before · 판정 5) · received = 센 합 · work = 작업 줄(빈별)
+  // 줄 = PO 라인 전부(po_receipt_detail 이 그린다 · 껍데기 없음) · expected = 이 문서에서 받을 기준 = lines[].expected(확정 인보이스 − 앞선 입고 · inv-basis-4 판정 88 ②) · 키가 없으면(트랜스퍼 tfDetailAsPo) ordered − received_before(판정 5 · 74) · received = 센 합 · work = 작업 줄(빈별)
   const keep={}; lines.forEach(l=>{ keep[l.id]=l; });
   const out=(d.lines||[]).map(x=>{
     const k=keep[x.po_line_id]||{};
@@ -724,18 +737,20 @@ function applyDetail(d){
       id:x.po_line_id, kind:"po", product_id:x.product_id, order_sku:x.sku, product_name:x.product_name,
       base_sku:k.base_sku||x.sku, stock_pid:k.stock_pid||x.product_id,
       ordered:Number(x.ordered||0), received_before:Number(x.received_before||0),
-      expected:Math.max(0,Number(x.ordered||0)-Number(x.received_before||0)),
+      expected:Math.max(0, x.expected!=null ? Number(x.expected) : Number(x.ordered||0)-Number(x.received_before||0)),   // inv-basis-4 · 판정 88 ②: PO 는 po_receipt_detail lines[].expected · 트랜스퍼(키 없음)는 옛 셈 그대로
+      invoiced:Number(x.invoiced||0),
       received:unconfirmed.has(x.po_line_id)&&k.received!=null?k.received:Number(x.counted||0),   // 미확인 쓰기가 걸린 줄은 내 값이 더 최신
       is_off_po:false, needs_approval:false, image_url:null,
       work:(x.work||[]).map(w=>({id:w.id, qty:Number(w.qty_ea||0), bin_id:w.bin_id, bin:w.bin||null, done:!!w.putaway_done})),
     });
   });
-  // PO 에 없는 물건 = 차이 큐 off_po — 열린 것은 줄처럼 놓고(판정 43) · 결정된 것도 상태를 보인다(accepted · rejected/removed) · 창고가 놓은 칸 · 사람은 diff 의 칸(⑤-6c1)
-  (d.diffs||[]).filter(x=>x.kind==="off_po").forEach(x=>{
+  // PO 에 없는 물건 = 차이 큐 off_po(옛 행 · 옛 이름 그대로) · off_invoice(inv-basis-4 · 판정 88 ⑧ — 줄 없는 행 = PO 밖 품목 · 줄 있는 행은 오피스 확정이 만드는 인보이스 초과라 초안에는 없고 PO 줄과 겹치므로 줄로 안 그린다)
+  //   열린 것은 줄처럼 놓고(판정 43) · 결정된 것도 상태를 보인다(accepted · 옛 off_po 만 rejected/removed — 판정 99) · 창고가 놓은 칸 · 사람은 diff 의 칸(⑤-6c1)
+  (d.diffs||[]).filter(x=>x.kind==="off_po"||(x.kind==="off_invoice"&&!x.po_line_id)).forEach(x=>{
     const id="d:"+x.id, k=keep[id]||{};
     const decided=x.resolved_at?x.resolution:null;
-    if(decided==="rejected"&&x.removed_at) return;   // 거절 · 뺀 것은 끝난 물건 — 줄로 안 보인다
-    out.push(Object.assign({}, k, { id, kind:"offpo", diff_id:x.id, product_id:x.product_id||k.product_id||null, stock_pid:k.stock_pid||x.product_id||null, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"",
+    if(decided==="rejected"&&x.removed_at) return;   // 거절 · 뺀 것은 끝난 물건 — 줄로 안 보인다(옛 off_po 만 · off_invoice 는 거절이 없다 · 판정 99)
+    out.push(Object.assign({}, k, { id, kind:"offpo", diff_kind:x.kind, diff_id:x.id, product_id:x.product_id||k.product_id||null, stock_pid:k.stock_pid||x.product_id||null, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"",
       expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:!decided, decided, image_url:null,
       offBin:x.bin||null, offBinId:x.bin_id||null, offPlaced:!!x.placed_at, offPlacedBy:x.placed_by||null, offPlacedAt:x.placed_at||null, offRemovedBy:x.removed_by||null, offRemovedAt:x.removed_at||null, work:[] }));
   });
@@ -783,6 +798,9 @@ async function openReceipt(rid){
   document.getElementById("rTitle").textContent=receipt.po_number+" · "+receipt.receipt_number;
   document.getElementById("rMeta").textContent=whLabel(receipt.wh)+" · "+(receipt.supplier_name||"");
   if(receipt.is_transfer) document.getElementById("rMeta").textContent=whLabel(receipt.wh)+" · from "+(receipt.from_name||"—")+" · Transfer — expected = sent";   // tf-3
+  document.getElementById("scanHint").textContent=receipt.is_transfer   // inv-basis-4 · ㉒: 트랜스퍼 안내에는 off-PO 문장이 없다(창구도 거부 · tr-3a:869)
+    ? "Waiting for scan · box scan = ×factor units · items not on this transfer are refused — the office settles them on the Transfers screen"
+    : "Waiting for scan · box scan = ×factor units · item not on this PO → off-invoice (put it away · the office decides later)";
   renderClosed();
   renderRecv(); focusScan();
   if(HAS_IMAGES) loadImageFlags();   // ⚑ Image differs 눌린 상태 복원 (독립 — 실패해도 리시빙 뷰는 뜬다)
@@ -906,6 +924,8 @@ async function buildBcMap(){
 function lineById(id){ return lines.find(x=>x.id===id); }
 /* "주문 수량을 정확히 채웠다" — 부족도 초과도 아닌 상태. 정렬·색·비프가 같은 기준을 쓴다. */
 function isFilled(l){ return l.expected>0 && l.received===l.expected; }
+/* inv-basis-4 — 새 행(kind off_invoice)은 OFF-INVOICE · 옛 off_po 행은 옛 이름 그대로 */
+function offLabel(l){ return (l&&l.diff_kind==="off_invoice")?"OFF-INVOICE":"OFF-PO"; }
 /* 인보이스에 없는 오더 라인 — IMS 의 기준은 PO 확정 수량 하나(판정 5)라 이 갈래는 없다. 렌더가 부르는 이름만 남긴다(늘 false). */
 function notInvoiced(l){ return false; }
 
@@ -948,7 +968,7 @@ function renderRecv(){
     "doc nodes="+document.querySelectorAll("*").length);
 }
 function lineChips(l){
-  return (l.is_off_po?`<span class="chip appr">${!l.decided?"OFF-PO · put it away — the manager decides later":l.decided==="rejected"?"OFF-PO · rejected — take it off the shelf":"OFF-PO · accepted — in stock"}</span>`:"")+
+  return (l.is_off_po?`<span class="chip appr">${!l.decided?offLabel(l)+" · put it away — the manager decides later":l.decided==="rejected"?offLabel(l)+" · rejected — take it off the shelf":offLabel(l)+" · accepted — in stock"}</span>`:"")+
          (notInvoiced(l)?`<span class="chip noinv">NOT INVOICED</span>`:"")+
          (!l.is_off_po&&l.barcodeRows&&!l.barcodeRows.length?`<span class="chip newsku">NO BARCODE</span>`:"");
 }
@@ -1147,14 +1167,14 @@ function askQtyConflict(l,theirs,mine){
 }
 async function manualSet(id){
   const l=lineById(id); if(!l){ focusScan(); return; }
-  if(l.is_off_po){ toast("Off-PO quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); focusScan(); return; }
+  if(l.is_off_po){ toast("Off-PO / off-invoice quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); focusScan(); return; }
   if(!await ensureReceiptOpen()){ focusScan(); return; }
   const before=l.received;                       // 프롬프트를 열 때 내가 알고 있던 값 = 창구에 넘기는 seen
   const v=prompt(`${l.order_sku} Enter quantity received:`, l.received);
   if(v===null){focusScan();return;}
   let n=parseInt(v,10); if(isNaN(n)||n<0)n=0;
-  if(n>l.expected&&!confirm(`${l.order_sku} — exceeds expected quantity (${n} > ${l.expected}). Continue?`)){focusScan();return;}
-  if(receipt.is_transfer&&n>l.expected) toast("Only what was sent is taken in — the office decides the rest",true);   // tf-3 판정 74
+  if(n>l.expected&&!confirm(`${l.order_sku} — exceeds expected quantity (${n} > ${l.expected}).\n${overNote()}\nContinue?`)){focusScan();return;}
+  if(n>l.expected) toast(overNote(),true);   // tf-3 판정 74 · inv-basis-4: PO 도(off-invoice)
   await setCount(l, n, before);
   if(l.expected>0&&l.received>=l.expected) autoAdvance();
   renderRecv(); focusScan();
@@ -1201,7 +1221,7 @@ async function processScan(code){
     hit=cands.find(c=>c.l.is_off_po)||cands[0];
     const l=hit.l;
     if(!l.is_off_po){
-      const msg=`${l.order_sku} — expected quantity already met (${l.received}/${l.expected}).\nReceive ${hit.factor} more anyway? (over-receipt is flagged)`;
+      const msg=`${l.order_sku} — expected quantity already met (${l.received}/${l.expected}).\n${overNote()}\nReceive ${hit.factor} more anyway?`;
       if(!confirm(msg)){ focusScan(); return; }
     }
   }
@@ -1212,14 +1232,14 @@ async function processScan(code){
   const lineDone=isFilled(l);
   const over=!l.is_off_po&&l.received>l.expected;
   flash(lineDone?"done":(over?"bad":(f>1?"okbox":"ok")),
-    over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ OFF-PO ${l.order_sku}  +${f} — put it away`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
-  if(over&&receipt.is_transfer) setTimeout(()=>toast("Only what was sent is taken in — the office decides the rest",true),700);   // tf-3 판정 74
+    over?`⚠ OVER ${l.order_sku}  ${l.received}/${l.expected}`:(l.is_off_po?`✓ ${offLabel(l)} ${l.order_sku}  +${f} — put it away`:`✓ ${l.order_sku}  +${f}  (${l.received}/${l.expected})${lineDone?" · DONE":""}`));
+  if(over) setTimeout(()=>toast(overNote(),true),700);   // tf-3 판정 74 · inv-basis-4: PO 도(off-invoice)
   if(l.is_off_po) saveOffPo(l,f); else saveLine(l,f,"scanned");
   if(lineDone) autoAdvance();
   renderRecv(); focusScan();
 }
 
-/* ---------- 오프-PO 스캔 → 창구 wms_recv_off_po (차이 큐 한 행 · 매니저 승인 대기) ---------- */
+/* ---------- PO 에 없는 바코드 스캔 → 창구 wms_recv_off_po (차이 큐 한 행 · inv-basis-4: kind off_invoice · 판정 88 ⑧ 「더 온 것 한 길」 · 오피스가 정한다) ---------- */
 async function offPoScan(code){
   try{
     if(!await ensureReceiptOpen()){ focusScan(); return; }
@@ -1231,19 +1251,19 @@ async function offPoScan(code){
     if(!p){ flash("bad","✕ Unknown barcode"); toast("Unknown barcode — ask the office to register the product",true); focusScan(); return; }
     const f=p.parent_product_id?(Number(p.pack_factor)||1):1;   // 세트를 스캔했으면 낱개 ×factor 로 적는다(창구는 낱개 제품에 적는다)
     const stockPid=p.parent_product_id||p.id;
-    if(!confirm(`${p.sku} — not on this PO.\nAdd as OFF-PO?\nPut it away as usual — the office accepts or rejects it later.\n+${f} unit(s) will be recorded.`)){ focusScan(); return; }
+    if(!confirm(`${p.sku} — not on this PO.\nAdd as OFF-INVOICE (not on this PO)?\nPut it away as usual — the office accepts or rejects it later.\n+${f} unit(s) will be recorded.`)){ focusScan(); return; }
     const {data,error}=await sb.rpc("wms_recv_off_po",{p_receipt_id:receipt.id,p_product_id:stockPid,p_qty_ea:f});
     if(error) throw error;
     const id="d:"+data.diff_id;
     let l=lineById(id);
     if(!l){
-      l={ id, kind:"offpo", diff_id:data.diff_id, product_id:stockPid, stock_pid:stockPid, order_sku:data.sku||p.sku, base_sku:data.sku||p.sku, product_name:p.parent_product_id?"":(p.name||""),
+      l={ id, kind:"offpo", diff_kind:data.kind||"off_invoice", diff_id:data.diff_id, product_id:stockPid, stock_pid:stockPid, order_sku:data.sku||p.sku, base_sku:data.sku||p.sku, product_name:p.parent_product_id?"":(p.name||""),
           expected:0, received:0, is_off_po:true, needs_approval:true, decided:null, offBin:null, offBinId:null, offPlaced:false, vmethod:"scanned", image_url:null, work:[], barcodeRows:[], altCodes:[] };
       lines.push(l);
     }
     l.received=Number(data.received_qty||0);
     await buildBcMap();  // 새 라인 바코드 · 이름 반영
-    flash("okbox",`✓ OFF-PO ${l.order_sku} +${f} — put it away, the manager decides later`);
+    flash("okbox",`✓ ${offLabel(l)} ${l.order_sku} +${f} — put it away, the manager decides later`);
     renderRecv(); focusScan();
   }catch(e){ toast("Off-PO add failed: "+rpcMsg(e),true); focusScan(); }
 }
@@ -1340,11 +1360,11 @@ async function toggleImageReport(id){
 /* ---------- 수동 조정 (스테퍼 ±1 = 델타 · 창구 wms_recv_scan 이 동시 조정을 합친다) ---------- */
 async function manualAdjust(id,delta){
   const l=lineById(id); if(!l) return;
-  if(l.is_off_po){ toast("Off-PO quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); return; }
+  if(l.is_off_po){ toast("Off-PO / off-invoice quantity can only be added by scanning — ask a manager to reject the item if it is wrong",true); return; }
   if(!await ensureReceiptOpen()) return;
   const nv=Math.max(0,l.received+delta);
-  if(nv>l.expected&&delta>0&&!confirm(`${l.order_sku} — exceeds expected quantity (${nv} > ${l.expected}). Continue?`)) return;
-  if(receipt.is_transfer&&delta>0&&nv>l.expected) toast("Only what was sent is taken in — the office decides the rest",true);   // tf-3 판정 74
+  if(nv>l.expected&&delta>0&&!confirm(`${l.order_sku} — exceeds expected quantity (${nv} > ${l.expected}).\n${overNote()}\nContinue?`)) return;
+  if(delta>0&&nv>l.expected) toast(overNote(),true);   // tf-3 판정 74 · inv-basis-4: PO 도(off-invoice)
   if(nv===l.received)return;
   const old=l.received;
   l.received=nv; l.vmethod="manual"; saveLine(l,nv-old,"manual");   // 0 에서 잘린 만큼만 델타로
@@ -1577,7 +1597,7 @@ function renderPutaway(){
   const pt0=PERF?performance.now():0;
   const rows=putRows();
   const ro=receiptClosed;
-  // 그룹: bin 있는 것 (zone 동선순) / Last bin 제안(칸 없는 줄 · 놓으면 그 칸으로) / 거절된 off-PO(선반에서 뺀다) / 빈 지정 필요 — off-PO 줄도 같은 그룹을 탄다(판정 43)
+  // 그룹: bin 있는 것 (zone 동선순) / Last bin 제안(칸 없는 줄 · 놓으면 그 칸으로) / 거절된 옛 off-PO(선반에서 뺀다 · off_invoice 는 거절이 없다 · 판정 99) / 빈 지정 필요 — off-PO 줄도 같은 그룹을 탄다(판정 43)
   const withBin={}, sugg={}, needBin=[], rejected=[];
   rows.forEach(w=>{
     if(w.offpo&&w.decided==="rejected"){ rejected.push(w); return; }
@@ -1589,7 +1609,7 @@ function renderPutaway(){
   const binKeys=Object.keys(withBin).sort(byZone), suggKeys=Object.keys(sugg).sort(byZone);
   const rowHtml=(w,suggested)=>{
     const lock=ro||(w.offpo&&!!w.decided);   // 결정된 off-PO 는 창고가 못 옮긴다(오피스가 정했다)
-    const offChip=w.offpo?`<span class="chip appr" style="flex:none">${w.decided?"Accepted — in stock":"OFF-PO"}</span>`:"";
+    const offChip=w.offpo?`<span class="chip appr" style="flex:none">${w.decided?"Accepted — in stock":offLabel(w.line)}</span>`:"";
     return `
       <div class="prow ${w.done?"pdone":""} ${putawayFailed.has(w.id)?"unsaved":""}">
         <div class="thumb" ${imgStyle(w.line)}></div>
@@ -1628,7 +1648,7 @@ function renderPutaway(){
         <span class="bmeta">new product here — scan or type a bin</span></div>${rws}</div>`;
   }
   if(rejected.length){
-    // ⑤-6c2 거절된 off-PO — 선반에서 빼서 반품 쪽에 둔다 · 「Removed」 = wms_recv_off_po_removed(한 번 · Health off_po_rejected_on_shelf 가 닫힌다)
+    // ⑤-6c2 거절된 off-PO(옛 off_po 행만 · 판정 99) — 선반에서 빼서 반품 쪽에 둔다 · 「Removed」 = wms_recv_off_po_removed(한 번 · Health off_po_rejected_on_shelf 160 이 닫힌다)
     const rws=rejected.map(w=>`
       <div class="prow">
         <div class="thumb" ${imgStyle(w.line)}></div>
@@ -1638,7 +1658,7 @@ function renderPutaway(){
       </div>`).join("");
     html+=`<div class="bin-group needbin" style="border-color:#f1c4c4">
       <div class="bh" style="background:var(--danger-bg)"><span class="zn" style="background:var(--danger)">✕</span><span class="binbig">Rejected — take it off the shelf</span>
-        <span class="bmeta">the office rejected these off-PO items</span></div>${rws}</div>`;
+        <span class="bmeta">the office rejected these off-PO items (old rule — an off-invoice item is never rejected)</span></div>${rws}</div>`;
   }
   if(!html) html=`<div class="empty">Nothing to put away yet..</div>`;
   const pg=document.getElementById("putGroups");
@@ -1820,7 +1840,7 @@ async function commitBin(raw){
   if(ok){ await refreshLines(); renderPutaway(); }
 }
 
-/* 거절된 off-PO 를 선반에서 뺐다 — 창구 wms_recv_off_po_removed(rejected 만 · 한 번) */
+/* 거절된 옛 off-PO 를 선반에서 뺐다 — 창구 wms_recv_off_po_removed(rejected 만 · 한 번 · off_invoice 행은 창구가 문장으로 거부 · 판정 99) */
 async function markRemoved(w){
   if(!w||!w.offpo) return;
   if(!confirm(`Took ${w.line.order_sku} (${w.qty}) off ${w.bin||"the shelf"} and set it aside for return?`)) return;
@@ -1850,9 +1870,9 @@ async function serverChecks(){
 function summaryText(c){
   const parts=[];
   if(c.shorts.length) parts.push("Short "+c.shorts.length+":\n"+c.shorts.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
-  if(c.overs.length) parts.push("Over "+c.overs.length+":\n"+c.overs.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n"));
-  if(c.pendingAppr.length) parts.push("Off-PO waiting for a decision: "+c.pendingAppr.length+" ("+c.pendingAppr.map(l=>l.order_sku).join(", ")+") — the office decides in Purchase Receipts");
-  if(c.rejectedOnShelf.length) parts.push("Rejected off-PO still on a shelf: "+c.rejectedOnShelf.map(l=>l.order_sku+" @ "+l.offBin).join(", "));
+  if(c.overs.length) parts.push("Over "+c.overs.length+":\n"+c.overs.map(l=>`· ${l.order_sku}: ${l.received}/${l.expected}`).join("\n")+(receipt.is_transfer?"":"\n— more than the invoice: the extra becomes an off-invoice item the office decides"));   // inv-basis-4 · 판정 88 ⑧
+  if(c.pendingAppr.length) parts.push("Off-PO / off-invoice waiting for a decision: "+c.pendingAppr.length+" ("+c.pendingAppr.map(l=>l.order_sku).join(", ")+") — the office decides in Purchase Receipts");
+  if(c.rejectedOnShelf.length) parts.push("Rejected off-PO still on a shelf: "+c.rejectedOnShelf.map(l=>l.order_sku+" @ "+l.offBin).join(", "));   // 옛 off_po 만(판정 99)
   // ⚠️ SKU 를 나열하지 않는다 — 85라인 PO 에서는 목록이 화면을 넘겨 아무도 안 읽는다. bin 수로 압축한다.
   if(c.notPlaced.length){
     const bins=new Set(c.notPlaced.filter(w=>w.bin).map(w=>w.bin));
@@ -1900,7 +1920,7 @@ async function finishReceipt(){
       if(note) alert(note.trim());
     }
     exitToList();
-  }catch(e){ toast("Completion failed: "+rpcMsg(e),true); bD.disabled=false; }
+  }catch(e){ if(/more than one bin/i.test(rpcMsg(e))) alert(rpcMsg(e)); toast("Completion failed: "+rpcMsg(e),true); bD.disabled=false; }   // 판정 100(inv-basis-6): 두 칸 거부 문장은 길어 토스트(2.2초)로는 못 읽는다 — 그 문장만 alert 로도
 }
 /* 확정 스위치(판정 27 B) — 화면 값 wms_receiving_confirm 이 있는 사람에게만 단추가 보인다(지금은 아무에게도 없다). 창고 Complete 뒤에만. */
 document.getElementById("confirmBtn").onclick=async ()=>{
@@ -1909,7 +1929,13 @@ document.getElementById("confirmBtn").onclick=async ()=>{
   try{
     const {data,error}=await sb.rpc("wms_recv_confirm",{p_receipt_id:receipt.id});
     if(error) throw error;
-    alert(receipt.receipt_number+" confirmed."+(data&&data.warnings&&data.warnings.length?"\n\nNotes: "+data.warnings.join(", "):""));
+    // inv-basis-4 · 판정 94(⑯) · 88 ⑧ — 확정 창구(po_receipt_confirm_by) 반환 charges{posted, errors} · diffs.rows[].kind off_invoice 를 한 줄씩(운임 오류는 확정을 막지 않는다 · 트랜스퍼 Complete 의 freight 와 같은 모양)
+    const ch=(data&&data.charges)||{}, offN=((data&&data.diffs&&data.diffs.rows)||[]).filter(r=>r.kind==="off_invoice").length;
+    let note="";
+    if(Array.isArray(ch.posted)&&ch.posted.length) note+="\nFreight/duty added to cost ("+ch.posted.length+" charge"+(ch.posted.length>1?"s":"")+")";
+    if(Array.isArray(ch.errors)&&ch.errors.length) note+="\nFreight/duty could not be added — the office will check";
+    if(offN) note+="\n"+offN+" line(s) more than the invoice — off-invoice, the office decides";
+    alert(receipt.receipt_number+" confirmed."+note+(data&&data.warnings&&data.warnings.length?"\n\nNotes: "+data.warnings.join(", "):""));
     exitToList();
   }catch(e){ toast("Confirm failed: "+rpcMsg(e),true); }
 };

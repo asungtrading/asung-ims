@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-09-23 · Toronto date";
+const INV_BUILD = "2026-09-29 · invoice splits the PO";   // ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -563,14 +563,41 @@ async function saveHead(id, inp){
   reload();
 }
 
+/* ⭐⭐ ⑱-3 · rulings 88 · 92 · 96 — confirming an invoice is also what lets the warehouse start.
+   Each order on the invoice keeps its number for what was BILLED; anything not billed moves to a
+   sibling with the next letter (PO-02030 → PO-02030a) and waits for its own invoice. The warehouse
+   receives only orders with a confirmed invoice. An invoice that bills more than the order line holds
+   is refused — the office raises the PO line first (Purchase Orders), then confirms (ruling 96).
+   Reopen puts the split-off quantities back — only while the warehouse has not started on them.
+   ⚠️ The refusals arrive as sentences written for a person; they are shown whole. */
+const INV_WARN = {
+  po_split:                 "The order was split — see above.",
+  po_reattached:            "The split-off quantities went back onto the order — see above.",
+  total_amount_zero:        "The document total is 0.",
+  total_differs_from_lines: "The document total differs from the sum of its lines.",
+  has_attached_credits:     "Credit notes are attached to this invoice."
+};
 async function confirmInv(id, on){
   const msg = on
-    ? "Confirm this document?\n\nIt is then taken into the books: the amount owed appears and the discount reaches cost. Lines can no longer be edited."
-    : "Reopen this document for editing?";
+    ? "Confirm this document?\n\nIt is then taken into the books: the amount owed appears and the discount reaches cost. Lines can no longer be edited.\n\n"
+      + "It also releases the order to the warehouse: each purchase order keeps its number for what this invoice bills, and anything not billed moves to a new sibling order (next letter) that waits for its own invoice."
+    : "Reopen this document for editing?\n\nQuantities that confirming split off go back onto their original order — this is refused once the warehouse has started on it.";
   if(!confirm(msg)) return;
   const { data, error } = await sb.rpc("po_invoice_confirm", { p_invoice_id: id, p_confirm: on });
   if(error){ alert(error.message); return; }
-  if(data && (data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+  const out = [];
+  ((data && data.split) || []).forEach(sp => {
+    out.push(`${sp.po_number} keeps what this invoice bills. Not billed → ${sp.new_number}:`);
+    (sp.lines || []).forEach(l => out.push(`   line ${l.line_no}${l.sku ? " " + l.sku : ""} — ${Number(l.qty_ea)} EA ${l.kind === "moved" ? "(whole line moved)" : "moved"}`));
+  });
+  ((data && data.reattached) || []).forEach(ra => {
+    out.push(`${ra.removed_number} went back onto ${ra.po_number}:`);
+    (ra.lines || []).forEach(l => out.push(`   line ${l.line_no} — ${Number(l.qty_ea)} EA ${l.kind === "moved_back" ? "(whole line back)" : "back"}`));
+  });
+  const warns = ((data && data.warnings) || []).filter(w => w !== "po_split" && w !== "po_reattached");
+  if(warns.length) out.push("", ...warns.map(w => "⚠ " + (INV_WARN[w] || w)));
+  if(on && data && !(data.split || []).length && data.doc_kind !== "credit") out.push("The whole order is billed — nothing was split off. The warehouse can receive it now.");
+  if(out.length) alert(out.join("\n"));
   reload();
 }
 
