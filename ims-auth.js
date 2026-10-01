@@ -19,19 +19,110 @@
      · RPC 가 실패하거나 null 이면 로그인을 막는다 — 조용히 전부 열지 않는다.
      · 화면이 쓰는 법: me.access (콜백의 me 에 실려 온다) 또는 imsAuth.access · imsAuth.canWrite('purchasing') · imsAuth.canView('master')
        ⚠️ me 의 기존 칸(role·perms·name …)은 그대로다 — 화면들의 me.role === 'admin' 은 깨지지 않는다.
-     · 모드(IMS · WMS)는 탭 줄 왼쪽에 선다 — 아래 setupTabs 주석.
+
+   ⭐⭐ 레이아웃 (2026-09-30 · lay-1 · 판정 149 ~ 167) — 이 파일이 모든 화면의 <header> 에 그려 넣는다. 화면 파일은 안 고쳤다.
+     · 헤더 왼쪽 = 로고(asung-logo-dark.png · .brand 자리) + 모드 셋(IMS · WMS · POS · 고를 것이 둘 이상일 때만 · 판정 149 · 160)
+     · IMS 화면 = 윗줄 펼침 메뉴 Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ (판정 153) · ☰ Menu 는 감춘다 · 탭 줄 없음
+     · WMS 화면 = 로고 + 모드만 더하고 나머지는 그대로(탭 줄 · ☰ Menu · 판정 160) · ☰ 의 내용은 WMS 화면만(IMS 로 가는 길은 모드 단추 하나)
+     · POS 화면 = 로고 + 모드 + 이름 + Sign Out (판정 159) · ☰ 감춤 · 펼침 · 탭 없음
+     · 110% 는 IMS · POS 만(판정 154 · 157) — 이 파일이 읽히는 즉시 <html data-ims-mode="ims|wms|pos"> 를 달고 ims-ui.css 가 zoom 을 건다
+       ⚠️ 화면 파일이 <html data-ims-mode="…"> 를 미리 달아 두면 그대로 둔다(첫 그림부터 110% — 번쩍임이 없다 · 화면 차수에서)
+     · 문(index.html) 도우미: imsAuth.firstScreen() · imsAuth.inRecovery (판정 163 · 비밀번호 복구 흐름을 깨지 않는다)
+     · 모양은 전부 ims-ui.css 「헤더 — 로고 · 모드 · 윗줄 펼침」 구역 — 펼침 자리는 CSS(position:absolute) · 좌표 계산 없음(zoom 아래 어긋나지 않게)
 
    쓰는 법 (각 화면 스크립트 맨 위에서):
      imsAuth.start({ changePw:true }, (sb, me) => { ... });
      선택: { requireScreen:'purchasing' } — 그 화면 값이 null 인 사람은 들어오지 못한다(문장 후 signOut).
-           { requireManager:true } — worker 는 들어오지 못한다(manager·supervisor·admin 통과). ⚠️ 2026-09-17 현재 어느 화면도 두 옵션을 쓰지 않는다(grep 0).
+           ✅ [2026-09-30 실측] 열한 화면이 쓴다 — receiving · transfers · stock-moves · stock-adjustments · wms-* 일곱 (grep 11)
+           { requireManager:true } — worker 는 들어오지 못한다(manager·supervisor·admin 통과). 2026-09-30 현재 어느 화면도 쓰지 않는다(grep 0).
    - 세션은 Supabase 가 브라우저에 유지한다 → 한 번 로그인하면 계속 유지.
    - 로그아웃: imsAuth.signOut()
-   - "Change Password" 버튼은 {changePw:true} 를 준 화면에만 붙는다.
+   - "Change Password" 버튼은 {changePw:true} 를 준 화면에만 붙는다. ✅ [2026-09-30 실측] IMS 화면 22 가 준다(WMS 일곱만 안 준다) — index 하나가 아니다.
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
+  const IMS_AUTH_BUILD = "nav v1";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
+
+  /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
+     문이 곧바로 다른 화면으로 보내면 PASSWORD_RECOVERY 대화상자가 사라진다 ⇒ 주소의 type=recovery 를 **동기로 먼저** 읽어 둔다
+     (supabase-js 가 해시를 처리해 지우기 전 · 이벤트는 비동기라 문의 콜백보다 늦을 수 있다). 문은 imsAuth.inRecovery 로 묻는다. */
+  let recovery = /(^|[#&?])type=recovery(&|$)/.test(location.hash) || /(^|[&?])type=recovery(&|$)/.test(location.search);
+
+  /* ---- 화면 표 — 메뉴 · 모드 · 탭이 **이 배열 하나**에서 나온다 (2026-09-17 · 2026-09-30 lay-1 재배치) ----
+     [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms'|'pos'), WMS 탭에 서나(wms 만 뜻이 있다 · ims 는 전부 false), 갈래]
+     ⭐ 화면 값은 ims_perm_catalog() 의 어휘 — purchasing · master · receiving · staff · sales · stock_adjust · transfer · stock_move · picking · packing · fulfillment · wms_receiving · wms_manage.
+        노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다). ⚠️ 이 차수(lay-1)는 열쇠 칸을 하나도 바꾸지 않았다.
+     ⭐ 갈래(여섯째) — IMS 윗줄 펼침의 자리: 'purchasing' · 'sales' · 'inventory' · 'action' · 'settings' (판정 150 · 151 · 152 · 164 · 165 · 166) · null = 펼침에 안 선다(Dashboard) · WMS 는 'warehouse' 하나.
+        갈래는 그 사람에게 보이는 화면이 하나라도 있을 때만 선다 · 줄 순서 = 펼침 안 순서.
+     ⭐ 모드 — 'pos' 는 DB 모드가 아니다(ims_perm_catalog modes = wms · ims 둘뿐 · 20260928201753). POS 모드는 **화면 쪽에서만**: access.modes 에 'ims' 가 있고 pos.html 이 보이면(sales 열쇠) 선다 — 아래 canEnter · ⬜ 판정 거리(lay-1 보고 ①).
+     ⚠️ 빈 링크를 메뉴에 두지 않는다(판정 162) — 아직 없는 화면은 **주석 줄로 순서 자리만**. ⚠️ dashboard.html · system-check.html 은 lay-2 가 짓는다(같이 push).
+     ⚠️ [2026-09-30] 이름은 보이는 글자만(파일 · 열쇠 무변): Manager List → 「Action Center」(판정 165) · Purchase Invoices(invoices.html) · Supplier Payments(payments.html) · Purchase Receipts(receiving.html · 판정 40).
+     ⚠️ Supplier Products 는 상품 화면이 설 때까지 Inventory 의 Products 바로 뒤(판정 151 임시) — 그 뒤 메뉴에서 빠진다.
+     ✅ Home(index.html) 줄은 없앴다 — index 는 문이다(판정 163). */
+  const items=[
+    // IMS 첫 화면 — 펼침에 안 선다(갈래 null) · 로고 · IMS 모드 단추 · firstScreen() 이 여기로 보낸다 (판정 158 · 163 · lay-2)
+    ["Dashboard","dashboard.html",null,"ims",false,null],
+    // Purchasing (판정 150)
+    ["Purchase Orders","po.html","purchasing","ims",false,"purchasing"],
+    ["Purchase Invoices","invoices.html","purchasing","ims",false,"purchasing"],
+    ["Charges","charges.html","purchasing","ims",false,"purchasing"],
+    ["Supplier Payments","payments.html","purchasing","ims",false,"purchasing"],
+    ["Purchase Receipts","receiving.html","receiving","ims",false,"purchasing"],
+    ["Suppliers","suppliers.html","master","ims",false,"purchasing"],
+    // Sales (판정 150 · POS 는 모드로 갈라 여기 없다 · 판정 159)
+    ["Sales Orders","so.html","sales","ims",false,"sales"],
+    ["Sales Invoices","so-invoices.html","sales","ims",false,"sales"],
+    ["Customer Payments","so-payments.html","sales","ims",false,"sales"],
+    ["Credit Notes","so-credits.html","sales","ims",false,"sales"],
+    ["Backorders","so-backorders.html","sales","ims",false,"sales"],
+    // ⬜ ["Customers","customers.html","sales","ims",false,"sales"],   — 손님 화면이 서면 (판정 150 · 162)
+    // Inventory (판정 150 · 151)
+    ["Products","products.html","master","ims",false,"inventory"],
+    ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],
+    ["Families","families.html","master","ims",false,"inventory"],
+    ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,"inventory"],
+    ["Transfers","transfers.html","transfer","ims",false,"inventory"],
+    ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,"inventory"],
+    // ⬜ 상품 만들기 · 사진 화면 — 판정 147 ⑤ ~ ⑧ 뒤 (판정 162)
+    // Action Center — 펼침 없이 링크 하나 (판정 152 · 165 · 파일 manager-list.html · 열쇠 sales 그대로)
+    ["Action Center","manager-list.html","sales","ims",false,"action"],
+    // Settings (판정 150 · 151 · 166)
+    ["Settings","settings.html","master","ims",false,"settings"],
+    ["Staff","staff.html","staff","ims",false,"settings"],
+    // ⬜ ["Discount Rules","…","…","ims",false,"settings"],   — 할인 규칙 화면이 서면 (판정 150 · 162)
+    ["System Check","system-check.html",null,"ims",false,"settings"],
+    // POS 모드 — pos.html 하나 · 펼침 · ☰ 없음 (판정 159)
+    ["POS","pos.html","sales","pos",false,null],
+    // WMS 모드 — 지금 줄 그대로 · 탭 줄 · ☰ Menu 유지 (판정 160)
+    ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
+    ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
+    ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
+    ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
+    ["Bin Moves","wms-mover.html","stock_move","wms",true,"warehouse"],
+    ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
+    ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
+  ];
+  const modeDefs=[["ims","IMS"],["wms","WMS"],["pos","POS"]];     // 순서 = 모드 단추 순서 = firstScreen() 의 우선순위 (판정 163)
+  const groupDefs=[                                                  // [갈래, 보이는 이름, 펼침 없이 링크 하나인가]
+    ["purchasing","Purchasing",false],
+    ["sales","Sales",false],
+    ["inventory","Inventory",false],
+    ["action","Action Center",true],
+    ["settings","Settings",false],
+  ];
+
+  // 현재 화면 = 경로의 마지막 조각(소문자) · 「/」로 끝나면 index.html · 쿼리(?id=)·해시는 pathname 에 없다
+  const here=(location.pathname.split("/").pop()||"index.html").toLowerCase();
+  const hereItem=items.find(it=>it[1].toLowerCase()===here)||null;
+  // 파일 이름으로 모드를 정한다 — 표에 있으면 그 줄 · 없으면 wms-*.html 은 wms · 나머지(index · dashboard · 모르는 것)는 ims
+  function modeOfFile(f){ const it=items.find(x=>x[1].toLowerCase()===f); if(it&&it[3]) return it[3]; return /^wms-/.test(f)?"wms":"ims"; }
+  const hereMode=modeOfFile(here);
+  // ⭐ 110% — 로그인을 기다리지 않고 **읽히는 즉시**(동기) 단다 · ims-ui.css: html[data-ims-mode="ims"],html[data-ims-mode="pos"]{zoom:1.1}
+  //    화면 파일이 미리 달아 둔 값은 그대로 둔다(첫 그림부터 맞는 크기 · 번쩍임 0 — 화면 차수가 <html data-ims-mode="…"> 를 넣을 수 있게).
+  if(!document.documentElement.getAttribute("data-ims-mode")) document.documentElement.setAttribute("data-ims-mode", hereMode);
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
   function injectStyles(){
     if(document.getElementById("imsAuthStyle")) return;
@@ -77,7 +168,7 @@
     if(!el){
       el=document.createElement("div"); el.id="imsLogin";
       el.innerHTML=`<div class="wcard">
-        <div class="brand">ASUNG IMS</div>   <!-- ⬜ 로고 파일을 이 레포로 옮기면 img 로 바꾼다 -->
+        <div class="brand"><img src="asung-logo-dark.png" alt="ASUNG"></div>   <!-- ✅ [2026-09-30 lay-1] 로고 파일을 이 레포로 옮겼다(asung-wms 에서 바이트 복사 · 판정 149) -->
         <h2>Sign In</h2>
         <p class="sub">Sign in with your company email and password.</p>
         <label>Email</label>
@@ -166,12 +257,14 @@
       const {error}=await sb.auth.updateUser({password:p1});
       if(error){ msg.className="msg err"; msg.textContent="Change failed: "+error.message; btn.disabled=false; btn.textContent="Change"; return; }
       msg.className="msg ok"; msg.textContent="Password changed successfully.";
-      setTimeout(()=>{ const mm=document.getElementById("imsPwModal"); if(mm)mm.classList.remove("show"); btn.disabled=false; btn.textContent="Change"; },1200);
+      recovery=false;     // 복구가 끝났다 — 문이 이제 보내도 된다(아래 이벤트로 알린다)
+      setTimeout(()=>{ const mm=document.getElementById("imsPwModal"); if(mm)mm.classList.remove("show"); btn.disabled=false; btn.textContent="Change";
+        try{ document.dispatchEvent(new CustomEvent("ims:password-changed")); }catch(e){} },1200);
     }catch(e){ msg.className="msg err"; msg.textContent="Error: "+(e.message||e); btn.disabled=false; btn.textContent="Change"; }
   }
 
   /* after login: insert "Change Password" next to #logoutBtn — ONLY when the page
-     opts in with {changePw:true} (index launcher). Module screens stay clean. */
+     opts in with {changePw:true}. ✅ [2026-09-30] IMS 화면 22 가 준다 · WMS 일곱은 안 준다(창고 화면은 깨끗하게). */
   function attachAccountControls(){
     if(!opts.changePw) return;
     const lo=document.getElementById("logoutBtn");
@@ -205,7 +298,7 @@
     if(opts.requireManager && !["manager","supervisor","admin"].includes(data.role)){
       loginErr("This screen is for managers and admins only."); await sb.auth.signOut(); return false;
     }
-    // 화면 값 게이트 — requireScreen:'purchasing' 등(옛 이름 requirePerm 도 같은 뜻으로 받는다 · 값 어휘는 새 것: purchasing · master · receiving · staff)
+    // 화면 값 게이트 — requireScreen:'purchasing' 등(옛 이름 requirePerm 도 같은 뜻으로 받는다 · 값 어휘는 ims_perm_catalog 의 것)
     const need=opts.requireScreen||opts.requirePerm;
     if(need && !access.screens[need]){
       loginErr("You don't have access to this screen. Please contact your administrator.");
@@ -221,129 +314,148 @@
      in-flight requests (spinners hang forever). Force a clean reload on restore. ---- */
   window.addEventListener("pageshow", function(e){ if(e.persisted) location.reload(); });
 
-  /* ---- 탭 줄 = 모드 + 묶음 + 그 묶음의 탭 (헤더 바로 아래 한 줄 · 2026-09-17 · 묶음은 2026-09-25) ----
-     ⭐ [Caleb] 탭 줄 왼쪽 끝에 모드(IMS · WMS) · 구분선 · 그 뒤에 그 모드의 화면 탭 — 줄이 늘지 않고 「지금 어디 있나」가 한 줄에 보인다.
-        (기각: 헤더 안에 작게 · 헤더와 탭 사이 한 줄 더)
-     · 모드 부분은 **고를 것이 있을 때만** 그린다 — 들어갈 수 있고(access.modes) 보이는 화면이 하나라도 있는 모드가 둘 이상일 때.
-       화면이 없는 모드는 안 그린다(WMS 는 리시빙 화면이 서기 전까지 안 보인다) · 모드가 하나뿐인 사람(창고 직원)에게도 안 그린다.
-     · 모드를 누르면 그 모드의 **첫 보이는 화면**으로 간다(마지막 화면 기억 없음 — 저장할 곳이 필요해진다).
-     · 탭은 메뉴를 대신하지 않는다 — 자주 오가는 화면(items 다섯째 칸 true · 지금은 구매 넷)만 선다. 마스터는 어쩌다 열어 메뉴에만.
-     · 탭은 지금 화면의 모드에 속한 것만 · 지금 화면은 .cur 로 눌리지 않는다(.ims-nav a.cur 선례). 그냥 링크다(화면이 통째로 다시 뜬다).
-     ⭐ [Caleb 2026-09-25] 모드 뒤에 **묶음**(items 여섯째 칸 · 'purchasing' | 'sales' | null) — [모드 IMS·WMS] | [묶음 Purchasing · Sales] | [지금 화면 묶음의 탭들].
-        · 묶음 부분은 모드 부분과 같은 규칙 — 지금 화면이 묶음에 속하고, 이 사람이 「탭 화면이 보이는 묶음」을 둘 이상 볼 때만 그린다.
-          지금 화면이 묶음 밖(Settings 등)이면 안 그린다 · 묶음이 하나뿐인 사람(구매만 · 판매만)에게도 안 그린다.
-        · ⚠️ 묶음을 누르면 그 묶음의 **첫 보이는 탭 화면**으로 간다 — 모드는 「첫 보이는 화면」(탭 여부 무관)이라 규칙이 다르다.
-          지금은 묶음 화면이 전부 탭이라 결과가 같지만, 탭 아닌 묶음 화면이 생기면 갈린다(묶음 = 탭 줄의 자리라 탭으로 간다).
-        · 탭은 지금 화면의 **묶음**에 속한 것만(모드가 같아도 다른 묶음의 탭은 안 선다) · 모양은 .mode · .sep 을 그대로 쓴다(ims-ui.css 무접촉).
-     ⚠️ 줄을 그리는 조건: 모드 부분이 있거나, 묶음 부분이 있거나, 지금 화면이 탭 묶음에 있을 때. 전부 아니면(Settings 등 · 모드 하나) 종전처럼 줄 없음.
-     ⚠️ <header> 가 없으면 조용히 아무것도 안 한다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs · .mode · .sep).
-     ⚠️ --ims-tabs-h 는 그대로 :root 에 적는다 — po.html 의 .list .rows max-height 가 빼 쓴다. */
-  function setupTabs(items, vis, here){
+  /* ═══════════════════════════════════════════════════════════════
+     헤더 — 로고 · 모드 · 윗줄 펼침 · WMS 탭 줄 · ☰ (2026-09-30 lay-1)
+     ⭐ 판정은 ims_access() 가 했다 — 여기서는 그 결과만 읽는다(role·perms 를 다시 가르지 않는다)
+     ═══════════════════════════════════════════════════════════════ */
+  function visibleItems(){ const scr=(access&&access.screens)||{}; return items.filter(it=>!it[2] || !!scr[it[2]]); }
+  // 모드에 들어갈 수 있나 — 'pos' 는 DB 모드가 아니라 ims 모드로 들어간다(위 items 주석 · 판정 거리 ①)
+  function canEnter(m){ const ms=(access&&access.modes)||[]; return m==="pos" ? ms.includes("ims") : ms.includes(m); }
+  // 모드 후보 = 들어갈 수 있고 + 보이는 화면이 하나 이상 (2026-09-17 규칙 그대로 · 모드 셋으로)
+  function modeCandidates(vis){ return modeDefs.filter(([m])=>canEnter(m) && vis.some(it=>it[3]===m)); }
+  // 그 모드의 첫 보이는 화면 — items 순서라 IMS 는 Dashboard · WMS 는 Picking 부터 · POS 는 pos.html (판정 163)
+  function firstOfMode(vis,m){ return vis.find(it=>it[3]===m)||null; }
+  // 문이 쓴다 — 로그인 뒤 그 사람의 첫 모드 첫 화면 주소 · 하나도 없으면 null (판정 163 · R8)
+  function firstScreen(){ if(!access) return null; const vis=visibleItems(); for(const [m] of modeCandidates(vis)){ const f=firstOfMode(vis,m); if(f) return f[1]; } return null; }
+
+  /* 헤더 왼쪽 — .brand 자리에 로고 · 그 뒤 모드 셋(둘 이상일 때만) · IMS 면 윗줄 펼침 · 빌드 표시 뒤에 공통 js 판
+     ⚠️ 화면 파일은 안 고친다 — 기존 <header> 안에 그려 넣는다. <header> 가 없으면 조용히 아무것도 안 한다.
+     ⚠️ ☰ Menu(button[title="Main menu"])는 IMS · POS 에서 **감춘다**(지우지 않는다 · 화면 파일 무접촉). WMS 는 그대로(판정 160). */
+  function setupHeader(vis){
     const header=document.querySelector("header");
-    if(!header || document.getElementById("imsTabs")) return;
-    const cur=vis.find(it=>it[1].toLowerCase()===here)||items.find(it=>it[1].toLowerCase()===here);
-    const curMode=cur?cur[3]:null;
-    const curGroup=cur?(cur[5]||null):null;
-    // 모드 후보 = 들어갈 수 있고 + 보이는 화면이 하나 이상
-    const modeDefs=[["ims","IMS"],["wms","WMS"]];
-    const modes=modeDefs.filter(([m])=>access.modes.includes(m) && vis.some(it=>it[3]===m));
-    // 묶음 후보 = 지금 화면의 모드 안에서, 보이는 **탭** 화면이 하나 이상인 묶음(2026-09-25)
-    const groupDefs=[["purchasing","Purchasing"],["sales","Sales"]];
-    const groups=groupDefs.filter(([g])=>vis.some(it=>it[4]===true && it[3]===curMode && it[5]===g));
-    const tabs=vis.filter(it=>it[4]===true && it[3]===curMode && (it[5]||null)===curGroup);
-    const showModes=modes.length>1;
-    const showGroups=!!curGroup && groups.length>1;
-    const showTabs=!!curMode && tabs.some(it=>it[1].toLowerCase()===here);
-    if(!showModes && !showGroups && !showTabs) return;
-    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Mode and screens");
-    let html="";
-    if(showModes){
-      html+=modes.map(([m,label])=>{
-        const first=vis.find(it=>it[3]===m);                 // 그 모드의 첫 보이는 화면
-        const on=(m===curMode);
-        return `<a href="${first[1]}" class="mode ${on?"cur":""}"${on?' aria-current="true"':""} title="Switch to ${label}">${label}</a>`;
+    if(!header || header.querySelector(".ims-logo")) return;
+    header.classList.add("ims-hdr","ims-hdr-"+hereMode);
+    const modes=modeCandidates(vis);
+    // 로고 → 지금 모드의 첫 화면(IMS 면 Dashboard) · 지금 모드에 못 들어가는 사람(WMS 직원이 IMS 주소를 친 경우)은 그 사람의 첫 화면
+    const homeOf=canEnter(hereMode)?firstOfMode(vis,hereMode):null;
+    const logoHref=(homeOf&&homeOf[1])||firstScreen()||"index.html";
+    const logo=document.createElement("a"); logo.className="ims-logo"; logo.href=logoHref; logo.title="Home";
+    logo.innerHTML='<img src="asung-logo-dark.png" alt="ASUNG">';
+    const brand=header.querySelector(".brand");
+    if(brand){ brand.textContent=""; brand.classList.add("ims-brand"); brand.appendChild(logo); }
+    else header.insertAdjacentElement("afterbegin", logo);
+    let anchor=brand||logo;
+    if(modes.length>1){
+      const mn=document.createElement("nav"); mn.className="ims-modes"; mn.setAttribute("aria-label","Mode");
+      mn.innerHTML=modes.map(([m,label])=>{
+        const first=firstOfMode(vis,m); const on=(m===hereMode);
+        return `<a href="${esc(first[1])}" class="mode${on?" cur":""}"${on?' aria-current="true"':""} title="Switch to ${label}">${label}</a>`;
       }).join("");
-      if(showGroups || showTabs) html+='<span class="sep" aria-hidden="true"></span>';
+      anchor.insertAdjacentElement("afterend", mn); anchor=mn;
     }
-    if(showGroups){
-      html+=groups.map(([g,label])=>{
-        const first=vis.find(it=>it[4]===true && it[3]===curMode && it[5]===g);   // 그 묶음의 첫 보이는 탭 화면(모드와 다르다 — 위 주석)
-        const on=(g===curGroup);
-        return `<a href="${first[1]}" class="mode ${on?"cur":""}"${on?' aria-current="true"':""} title="Go to ${label}">${label}</a>`;
-      }).join("");
-      if(showTabs) html+='<span class="sep" aria-hidden="true"></span>';
+    // 빌드 표시 — 화면의 #buildTag(화면 판) 바로 뒤에 공통 js 판을 작게 (화면이 뒤에 textContent 를 써도 안 지워진다 · 별 요소)
+    const tag=document.createElement("span"); tag.className="dim ims-authtag"; tag.title="ims-auth.js build"; tag.textContent=IMS_AUTH_BUILD;
+    const bt=document.getElementById("buildTag");
+    if(bt && bt.parentNode===header) bt.insertAdjacentElement("afterend", tag); else anchor.insertAdjacentElement("afterend", tag);
+    // ☰ — IMS · POS 는 감춘다(내용이 윗줄 펼침 · POS 는 화면 하나) · WMS 는 setupNavMenu 가 그대로 쓴다
+    const menuBtn=header.querySelector('button[title="Main menu"]');
+    if(menuBtn && hereMode!=="wms") menuBtn.style.display="none";
+    if(hereMode==="ims"){
+      const nav=renderTopNav(vis);
+      if(nav){
+        const sp=header.querySelector(".sp");
+        if(sp) sp.insertAdjacentElement("beforebegin", nav); else header.appendChild(nav);
+        wireDropdowns(nav);
+      }
     }
-    if(showTabs){
-      html+=tabs.map(it=>{
-        const on=it[1].toLowerCase()===here;
-        return `<a href="${it[1]}" class="${on?"cur":""}"${on?' aria-current="page"':""}>${it[0]}</a>`;
-      }).join("");
-    }
-    nav.innerHTML=html;
-    header.insertAdjacentElement("afterend", nav);
-    document.documentElement.style.setProperty("--ims-tabs-h", nav.offsetHeight+"px");
   }
 
-  /* ---- shared nav dropdown (☰ Menu on every screen) ---- */
-  function setupNavMenu(meData){
+  /* IMS 윗줄 펼침 — 갈래마다 <div class="ims-grp"><button> + <div class="ims-drop"> · 'action' 처럼 flat 인 갈래는 링크 하나 (판정 153 · 152)
+     · 갈래는 보이는 화면이 하나라도 있을 때만 · 지금 화면이 든 갈래는 .cur · 펼침 안 지금 화면 줄도 .cur
+     · 자리는 CSS(.ims-grp{position:relative} · .ims-drop{position:absolute}) — getBoundingClientRect 를 안 쓴다(zoom 아래 좌표가 1.1 배 어긋난다) */
+  function renderTopNav(vis){
+    const curGroup=hereItem?(hereItem[5]||null):null;
+    let html="";
+    for(const [g,label,flat] of groupDefs){
+      const list=vis.filter(it=>it[3]==="ims" && it[5]===g);
+      if(!list.length) continue;
+      const on=(g===curGroup);
+      if(flat){   // 링크 하나 — 갈래에 줄이 둘 이상 생기면 flat 을 false 로 바꾼다(첫 줄만 쓴다)
+        const it=list[0]; const c=it[1].toLowerCase()===here;
+        html+=`<a class="ims-grpbtn flat${c?" cur":""}" href="${esc(it[1])}"${c?' aria-current="page"':""}>${esc(label)}</a>`;
+        continue;
+      }
+      html+=`<div class="ims-grp${on?" cur":""}" data-grp="${g}"><button type="button" class="ims-grpbtn" aria-haspopup="true" aria-expanded="false">${esc(label)}<span class="car" aria-hidden="true">▾</span></button><div class="ims-drop" role="menu">`
+        + list.map(it=>{ const c=it[1].toLowerCase()===here; return `<a role="menuitem" href="${esc(it[1])}" class="${c?"cur":""}"${c?' aria-current="page"':""}>${esc(it[0])}</a>`; }).join("")
+        + '</div></div>';
+    }
+    if(!html) return null;
+    const nav=document.createElement("nav"); nav.className="ims-top"; nav.setAttribute("aria-label","Screens");
+    nav.innerHTML=html;
+    return nav;
+  }
+  // 눌러서 열고 닫는다(태블릿 — hover 가 없다) · 한 번에 하나 · 밖을 누르거나 Esc 면 닫힌다 · hover 로도 열리는 것은 CSS(@media (hover:hover))
+  function wireDropdowns(nav){
+    const grps=Array.from(nav.querySelectorAll(".ims-grp"));
+    const setOpen=(g,on)=>{ g.classList.toggle("open",on); const b=g.querySelector(".ims-grpbtn"); if(b) b.setAttribute("aria-expanded",on?"true":"false"); };
+    const closeAll=()=>grps.forEach(g=>setOpen(g,false));
+    grps.forEach(g=>{
+      const b=g.querySelector(".ims-grpbtn");
+      b.addEventListener("click",(e)=>{ e.stopPropagation(); const was=g.classList.contains("open"); closeAll(); if(!was) setOpen(g,true); });
+    });
+    document.addEventListener("click",(e)=>{ if(!nav.contains(e.target)) closeAll(); });
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeAll(); });
+  }
+
+  /* 헤더 높이 변수 — 화면이 빼 쓴다
+     --ims-hdr-h     헤더 전체 높이(sticky)
+     --ims-hdr-extra 헤더가 두 줄로 꺾였을 때 늘어난 만큼(윗줄 펼침이 둘째 줄로 내려간 높이) · 한 줄이면 0px — ims-ui.css 의 .list{top} 이 더한다
+     --ims-tabs-h    「헤더 아래에서 내용이 밀린 만큼」 = extra + WMS 탭 줄 높이 — po · so · so-invoices · so-payments · so-credits 의 .list .rows max-height 가 빼 쓴다(옛 뜻 그대로 · 탭 줄이 없는 IMS 화면에서는 extra 뿐)
+     ⚠️ 좁은 폭: 윗줄 펼침이 로고와 같은 줄에 못 서면(nav.offsetTop 이 로고 아래) header.ims-wrap 을 달아 둘째 줄 **전체**로 내린다(가로 스크롤이 아니다) — 이름 · Sign Out 은 첫 줄 오른쪽에 남는다 */
+  let hdrTimer=null;
+  function setHeaderVars(){
+    const header=document.querySelector("header"); if(!header) return;
+    const root=document.documentElement.style;
+    const nav=header.querySelector(".ims-top");
+    let extra=0;
+    if(nav){
+      header.classList.remove("ims-wrap");
+      const brand=header.querySelector(".ims-brand")||header.querySelector(".ims-logo");
+      if(brand && nav.offsetTop>=brand.offsetTop+brand.offsetHeight) header.classList.add("ims-wrap");
+      const d=nav.style.display; nav.style.display="none"; const h1=header.offsetHeight; nav.style.display=d; const h2=header.offsetHeight;
+      extra=Math.max(0,h2-h1);
+    }
+    root.setProperty("--ims-hdr-extra", extra+"px");
+    const tabs=document.getElementById("imsTabs");
+    root.setProperty("--ims-tabs-h", (extra+(tabs?tabs.offsetHeight:0))+"px");
+    root.setProperty("--ims-hdr-h", header.offsetHeight+"px");
+  }
+
+  /* ---- WMS 탭 줄 = 그 모드의 탭 (헤더 바로 아래 한 줄 · 2026-09-17 · 모드 부분은 2026-09-30 헤더로 올라갔다 — 판정 160) ----
+     · WMS 화면에서만 · 탭은 items 다섯째 칸 true 인 WMS 화면 · 지금 화면은 .cur 로 눌리지 않는다 · 그냥 링크다(화면이 통째로 다시 뜬다)
+     · IMS 화면은 탭 줄을 그리지 않는다(윗줄 펼침이 대신한다 · 판정 153) · POS 도 없다(판정 159)
+     ⚠️ sticky 가 아니다 — 헤더(sticky)만 남고 이 줄은 함께 스크롤된다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs). */
+  function setupTabs(vis){
+    const header=document.querySelector("header");
+    if(!header || document.getElementById("imsTabs") || hereMode!=="wms") return;
+    const tabs=vis.filter(it=>it[4]===true && it[3]==="wms");
+    if(!tabs.some(it=>it[1].toLowerCase()===here)) return;
+    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Screens");
+    nav.innerHTML=tabs.map(it=>{
+      const on=it[1].toLowerCase()===here;
+      return `<a href="${esc(it[1])}" class="${on?"cur":""}"${on?' aria-current="page"':""}>${esc(it[0])}</a>`;
+    }).join("");
+    header.insertAdjacentElement("afterend", nav);
+  }
+
+  /* ---- ☰ Menu — WMS 화면만 (판정 160 · 내용은 WMS 화면만 · IMS 로 가는 길은 모드 단추 하나) ----
+     IMS · POS 에서는 setupHeader 가 단추를 감췄다 — 여기서는 그리지 않는다.
+     ⚠️ 자리를 getBoundingClientRect + scrollY 로 잡는다 — WMS 는 zoom 밖(100%)이라 어긋나지 않는다. IMS · POS(110%)에서 이 코드를 되살리려면 CSS 자리로 바꿔야 한다. */
+  function setupNavMenu(vis){
     const btn=document.querySelector('button[title="Main menu"]');
-    if(!btn || btn._imsNav) return;
+    if(!btn || btn._imsNav || hereMode!=="wms") return;
     btn._imsNav=true;
-    // ⬜ IMS 화면이 늘면 여기에 더한다 — 메뉴와 탭이 **이 배열 하나**에서 나온다(2026-09-17).
-    //    [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms' · null 이면 두 모드 다), 탭에 서나(true 면 그 묶음의 탭 줄에), 묶음('purchasing'|'sales'|null · 2026-09-25)]
-    //    ⭐ 화면 값은 ims_perm_catalog() 의 다섯 — purchasing · master · receiving · staff · sales(20260923224900). 노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다).
-    //    ⭐ 탭은 자주 오가는 화면만(구매 다섯 · 판매 · Caleb). 마스터·Staff·Home 은 메뉴에만 · 묶음 null.
-    //    ✅ [2026-09-25 밤] POS(pos.html) — sales 열쇠 · 계산대는 탭으로 오가는 화면이 아니라 **메뉴에만**(탭 false · 묶음 null · Caleb).
-    //    ✅ [2026-09-25 밤] Manager List(manager-list.html) — manager 이상이 쓰는 화면이지만 **읽기는 sales 열쇠로 연다** · 확인 단추만 manager(진짜 문은 DB) · 메뉴에만(탭 false · 묶음 null · Caleb).
-    //    ⭐ [2026-09-25 Caleb] 이름은 보이는 글자만 바꿨다(파일 이름 그대로) — Purchase Invoices(invoices.html) · Supplier Payments(payments.html). ✅ [2026-09-25] 판매 묶음 전부 섰다 — Sales Invoices(so-invoices.html) · Customer Payments(so-payments.html) · Credit Notes(so-credits.html) · Backorders(so-backorders.html).
-    //       ☰ Menu 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home.
-    //    ✅ [2026-09-18] Receiving 이 섰다 — PO 문서의 한 갈래(인보이스·비용·결제와 같은 층)라 모드는 'ims' · 구매 넷 뒤(Caleb). 카탈로그 receiving.room 도 'ims'(마이그레이션 같은 날).
-    //    ⬜ WMS 모드의 창고 작업 화면은 나중에 ["…","…","receiving","wms",true] 로 따로 선다 — 그 순간 WMS 모드가 탭 줄에 나타난다(같은 표 · 화면은 둘).  → ✅ [2026-09-26] 첫 WMS 화면 Split & Waves 가 섰다(아래 · ⑤-4a)
-    //    ✅ [2026-09-26] Split & Waves(wms-manager.html · ⑤-4a · 운영 manager.html 의 자리) — 열쇠 wms_manage(카탈로그 min_role manager · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse'.
-    //       이 줄로 WMS 모드가 탭 줄에 선다(모드 둘 · WMS 안 탭 하나). picker · packer 줄은 그 파일이 설 때(⑤-4b · 4c — 빈 링크를 메뉴에 두지 않는다). 묶음 'warehouse' 는 groupDefs 에 없다 — WMS 안 묶음이 둘이 될 때 더한다.
-    //    ✅ [2026-09-26 밤] Picking(wms-picker.html · ⑤-4b · 운영 picker.html 의 자리) — 열쇠 picking(WMS 방 · worker 기본 · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Split & Waves 앞(작업 화면 먼저 · 매니저 화면 뒤). packer 줄은 ⑤-4c.
-    //    ✅ [2026-09-26 밤] Packing(wms-packer.html · ⑤-4c · 운영 packer.html 의 자리) — 열쇠 packing(WMS 방 · worker 기본) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Picking 뒤 · Split & Waves 앞. WMS 탭 셋 = Picking · Packing · Split & Waves.
-    //    ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · ⑤-5a · 운영 fulfillment.html 의 자리) — 열쇠 fulfillment(WMS 방 · worker 기본 · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Packing 뒤 · Split & Waves 앞. WMS 탭 넷 = Picking · Packing · Fulfillment · Split & Waves.
-    //    ✅ [2026-09-27] WMS Admin(wms-admin.html · ⑤-5b · 운영 admin.html 의 자리 · Status · Rollback · Finalized 세 탭 · 나머지 탭은 ⑤-5c · ⑤-6) — 열쇠 wms_manage(min_role manager · 판정 25) · 모드 'wms' · 탭 true · 묶음 'warehouse' · Split & Waves 뒤(맨 끝). WMS 탭 다섯 = Picking · Packing · Fulfillment · Split & Waves · WMS Admin.
-    const items=[
-      ["Settings","settings.html","master","ims",false,null],
-      ["Suppliers","suppliers.html","master","ims",false,null],
-      ["Products","products.html","master","ims",false,null],
-      ["Families","families.html","master","ims",false,null],
-      ["Supplier Products","supplier-products.html","master","ims",false,null],
-      ["Purchase Orders","po.html","purchasing","ims",true,"purchasing"],
-      ["Purchase Invoices","invoices.html","purchasing","ims",true,"purchasing"],
-      ["Charges","charges.html","purchasing","ims",true,"purchasing"],
-      ["Supplier Payments","payments.html","purchasing","ims",true,"purchasing"],
-      // ✅ [2026-09-27] 판정 40 — 오피스 입고 화면의 메뉴 이름 「Receiving」 → 「Purchase Receipts」(창고 입고 wms-receiver.html 의 「Receiving」 과 겹쳐서 · 구매 줄 이름 모양에 맞춤) · 화면 값 · 파일 이름 무변
-      ["Purchase Receipts","receiving.html","receiving","ims",true,"purchasing"],
-      ["Sales Orders","so.html","sales","ims",true,"sales"],
-      ["Sales Invoices","so-invoices.html","sales","ims",true,"sales"],
-      ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
-      ["Credit Notes","so-credits.html","sales","ims",true,"sales"],
-      ["Backorders","so-backorders.html","sales","ims",true,"sales"],
-      ["POS","pos.html","sales","ims",false,null],
-      ["Manager List","manager-list.html","sales","ims",false,null],
-      // ✅ [2026-09-28] Stock Adjustments(stock-adjustments.html · 판정 48 ③ · adj-c) — 열쇠 stock_adjust(카탈로그 min_role manager · 20260928142722) · 모드 'ims' · 메뉴에만(탭 false · 묶음 null) · 노출은 screens 가 null 이 아닌 사람(열쇠 없는 supervisor 도 보인다 — 읽기 전용 · 단추는 화면이 ims_can_adjust 로 가린다 · 판정 49 · 50)
-      ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,null],
-      // ✅ [2026-09-28] Bin Moves (office)(stock-moves.html · 판정 61 · 대화 Claude · sm v1) — 열쇠 stock_move(카탈로그 room 은 wms 지만 메뉴 필터는 screens 만 본다 — ims-auth.js vis=items.filter(!it[2] || scr[it[2]]) · 확인 2026-09-28) · 모드 ims · 메뉴에만.
-      ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,null],
-      // ✅ [2026-09-29] Transfers(transfers.html · ⑥-1 · 대화 Claude · tf v1) — 열쇠 transfer(카탈로그 · tr-1a 20260928201753) · 모드 ims · 메뉴에만(탭 false · 묶음 null) · 자리는 임시(판정 82 메뉴 정리)
-      ["Transfers","transfers.html","transfer","ims",false,null],
-      ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
-      ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
-      ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
-      ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
-      // ✅ [2026-09-28] Bin Moves(wms-mover.html · 판정 61 · 대화 Claude · mv v1) — 열쇠 stock_move(wms 방 · 사람마다 · 판정 63) · 모드 wms · 탭 true · 묶음 warehouse.
-      ["Bin Moves","wms-mover.html","stock_move","wms",true,"warehouse"],
-      ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
-      ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
-      ["Staff","staff.html","staff","ims",false,null],
-      ["Home","index.html",null,null,false,null],
-    ];
-    // ⭐ 판정은 ims_access() 가 했다 — 여기서는 그 결과만 읽는다(role·perms 를 다시 가르지 않는다)
-    const scr=(access&&access.screens)||{};
-    const vis=items.filter(it=>!it[2] || !!scr[it[2]]);
+    const list=vis.filter(it=>it[3]==="wms");
     if(!document.getElementById("imsNavCss")){
       const st=document.createElement("style"); st.id="imsNavCss";
       st.textContent='.ims-nav{position:absolute;z-index:2000;background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px;min-width:180px;display:none}'
@@ -352,11 +464,8 @@
         +'.ims-nav a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}';
       document.head.appendChild(st);
     }
-    // 현재 화면 = 경로의 마지막 조각(소문자) · 「/」로 끝나면 index.html · 쿼리(?id=)·해시는 pathname 에 없다
-    const here=(location.pathname.split("/").pop()||"index.html").toLowerCase();
-    try{ setupTabs(items, vis, here); }catch(e){ console.warn("tabs failed", e); }   // 탭 줄이 죽어도 메뉴는 산다
     const dd=document.createElement("div"); dd.className="ims-nav";
-    dd.innerHTML=vis.map(it=>`<a href="${it[1]}" class="${it[1]===here?"cur":""}">${it[0]}</a>`).join("");
+    dd.innerHTML=list.map(it=>`<a href="${esc(it[1])}" class="${it[1].toLowerCase()===here?"cur":""}">${esc(it[0])}</a>`).join("");
     document.body.appendChild(dd);
     btn.onclick=(e)=>{
       e.stopPropagation();
@@ -369,6 +478,17 @@
     };
     document.addEventListener("click",(e)=>{ if(dd.style.display==="block" && !dd.contains(e.target) && e.target!==btn) dd.style.display="none"; });
   }
+
+  // 로그인 뒤 한 번 — 헤더 · WMS 탭 · ☰ · 높이 변수 (각각 try — 하나가 죽어도 화면 콜백은 돈다)
+  function setupNav(){
+    const vis=visibleItems();
+    try{ setupHeader(vis); }catch(e){ console.warn("header failed", e); }
+    try{ setupTabs(vis); }catch(e){ console.warn("tabs failed", e); }
+    try{ setupNavMenu(vis); }catch(e){ console.warn("menu failed", e); }
+    try{ setHeaderVars(); }catch(e){ console.warn("header vars failed", e); }
+    if(!window._imsHdrResize){ window._imsHdrResize=true; window.addEventListener("resize",()=>{ clearTimeout(hdrTimer); hdrTimer=setTimeout(()=>{ try{ setHeaderVars(); }catch(e){} },80); }); }
+  }
+
   /* ---- 화면(탭) 세션 ID ----
      원본(WMS)에서 그대로 가져왔다. WMS 는 같은 사람의 다른 탭을 가르는 데 쓴다(규칙 28).
      ⬜ IMS 에는 아직 쓰는 곳이 없다 — 쓸 곳이 생길 때까지 그대로 둔다.
@@ -390,14 +510,14 @@
   const imsAuth={
     async start(options, cb){
       if(typeof options==="function"){ cb=options; options={}; }
-      opts=options||{}; onReady=(a,b)=>{ try{setupNavMenu(b);}catch(e){} cb(a,b); };
+      opts=options||{}; onReady=(a,b)=>{ try{setupNav();}catch(e){} cb(a,b); };
       if(!cfg.SUPABASE_ANON_KEY || cfg.SUPABASE_ANON_KEY.includes("PASTE_")){
         injectStyles(); showLogin(""); loginErr("Setup needed: add the anon key to ims-config.js.");
         return;
       }
       sb=supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
       window.sb=sb;
-      sb.auth.onAuthStateChange((event)=>{ if(event==="PASSWORD_RECOVERY"){ showChangePw(); } });
+      sb.auth.onAuthStateChange((event)=>{ if(event==="PASSWORD_RECOVERY"){ recovery=true; showChangePw(); } });
       const {data:{session}}=await sb.auth.getSession();
       if(session){
         const ok=await resolveIdentity();
@@ -415,6 +535,15 @@
     get access(){ return access; },
     canView(screen){ return !!(access&&access.screens&&access.screens[screen]); },
     canWrite(screen){ return !!(access&&access.screens&&access.screens[screen]==="write"); },
+    // ⭐ 문(index.html) 도우미 (2026-09-30 lay-1 · 판정 163)
+    //    firstScreen() — 로그인 뒤 그 사람의 첫 모드 첫 화면 주소(IMS → dashboard.html · WMS 만 → 첫 보이는 WMS 화면 · POS 만 → pos.html · 없으면 null) · 로그인 전(access 없음)엔 null
+    //    inRecovery   — 비밀번호 재설정 링크로 돌아온 상태(주소의 type=recovery 또는 PASSWORD_RECOVERY 이벤트) · true 면 문은 보내지 말고 머문다 ·
+    //                   새 비밀번호가 저장되면 false 가 되고 document 에 "ims:password-changed" 이벤트가 난다 — 문은 그때 firstScreen() 으로
+    firstScreen,
+    get inRecovery(){ return recovery; },
+    get mode(){ return hereMode; },                       // 이 화면의 모드('ims'|'wms'|'pos') — 파일 이름으로 정했다
+    visibleScreens(){ return visibleItems().map(it=>({name:it[0],href:it[1],key:it[2],mode:it[3],group:it[5]})); },   // 대시보드 등이 바로가기를 그릴 때
+    build:IMS_AUTH_BUILD,
   };
   window.imsAuth=imsAuth;
 })();

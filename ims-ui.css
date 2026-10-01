@@ -8,8 +8,16 @@
   --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6;
   --warn:#92640a; --bad:#b42318; --good:#16794a;
   --mono:ui-monospace,Menlo,monospace;
+  --ims-logo-h:22px;          /* 헤더 로고 높이(IMS · POS) · WMS 는 아래에서 28px(운영 picker.html 실측 · frontend.md 의 15px 는 낡은 값) */
 }
 *{box-sizing:border-box}
+
+/* ── 110% — IMS · POS 화면만 (2026-09-30 lay-1 · 판정 154 · 157) ──
+   ims-auth.js 가 읽히는 즉시 <html data-ims-mode="ims|wms|pos"> 를 단다(파일 이름으로) · WMS 일곱은 그대로 100%(창고 태블릿 · Caleb 이 필요할 때 요청).
+   ⚠️ zoom 이다(transform 아님) — 화면들이 px 를 직접 써서 루트 font-size 로는 안 커진다 · 표준 zoom(Chrome 128+ · Firefox 126+ · Safari)에서
+      vh 단위는 zoom 의 영향을 받지 않고 px 는 1.1 배가 된다 ⇒ calc(100vh - 230px) 류가 그대로 맞는다(lay-1 보고 ②).
+   ⚠️ 번쩍임: script 가 body 끝이라 첫 그림이 100% 로 한 번 그려질 수 있다 — 화면 파일이 <html data-ims-mode="ims"> 를 미리 달면 첫 그림부터 110%(화면 차수). */
+html[data-ims-mode="ims"],html[data-ims-mode="pos"]{zoom:1.1}
 body{
   margin:0;background:var(--bg);color:var(--ink);
   font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
@@ -30,6 +38,51 @@ header button{
 }
 header button:hover{background:#f2f4f8}
 
+/* ── 헤더 — 로고 · 모드 · 윗줄 펼침 (2026-09-30 lay-1 · 판정 149 ~ 167 · ims-auth.js setupHeader 가 그린다 · 마크업은 화면에 없다) ──
+   [로고] [IMS · WMS · POS] Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ … 이름 · Sign Out
+   · 로고는 .brand 자리(a.ims-logo) · 모드는 둘 이상일 때만(.ims-modes) · 윗줄 펼침은 IMS 화면만(.ims-top) · WMS 는 로고 + 모드만 더하고 탭 줄 · ☰ 그대로
+   · 펼침 자리는 CSS — .ims-grp{position:relative} 안의 .ims-drop{position:absolute} · 좌표 계산 없음(zoom 아래에서 getBoundingClientRect 가 1.1 배 어긋난다)
+   · 눌러서 열린다(.open · 태블릿) · hover 가 있는 기기에서는 hover 로도(@media (hover:hover)) · 한 번에 하나 · 밖 클릭 · Esc 로 닫힘(ims-auth.js wireDropdowns)
+   · 좁은 폭: 윗줄 펼침이 한 줄에 못 서면 JS 가 header.ims-wrap 을 달아 둘째 줄 전체로 내린다 · 늘어난 높이는 --ims-hdr-extra(.list 의 top 이 더한다) */
+header .ims-brand{display:flex;align-items:center;font:inherit}
+header .ims-logo{display:flex;align-items:center;text-decoration:none}
+header .ims-logo img{height:var(--ims-logo-h);width:auto;display:block}
+html[data-ims-mode="wms"] header .ims-logo img{height:28px}
+header .ims-modes{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:10px;border-left:1px solid var(--line)}
+header .ims-modes a.mode{
+  font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  padding:6px 8px;border-radius:7px;color:var(--muted);text-decoration:none;white-space:nowrap;
+}
+header .ims-modes a.mode:hover{background:#f2f4f8;color:var(--ink)}
+header .ims-modes a.mode.cur{color:#fff;background:var(--ink)}
+header .ims-authtag{font-size:10px;white-space:nowrap}
+header.ims-hdr-ims{flex-wrap:wrap;row-gap:6px}
+header .ims-top{display:flex;align-items:center;gap:2px;margin-left:10px;flex-wrap:wrap}
+header .ims-grp{position:relative}
+header .ims-grpbtn{
+  border:0;background:transparent;border-radius:8px;padding:7px 11px;font:inherit;font-size:13.5px;font-weight:700;color:#1e2430;
+  cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;line-height:1.2;
+}
+header .ims-grpbtn .car{font-size:10px;color:var(--muted)}
+header .ims-grpbtn:hover,header .ims-grp.open>.ims-grpbtn{background:#f2f4f8;color:var(--ink)}
+header .ims-grp.cur>.ims-grpbtn,header .ims-grpbtn.flat.cur{color:#3b5bdb;background:#eef3ff}
+header .ims-grpbtn.flat.cur{pointer-events:none}
+header .ims-drop{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:30;min-width:220px;
+  background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px;
+}
+header .ims-grp.open>.ims-drop{display:block}
+header .ims-grp:last-child>.ims-drop{left:auto;right:0}
+header .ims-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430;text-decoration:none;white-space:nowrap}
+header .ims-drop a:hover{background:#f2f4f8}
+header .ims-drop a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}
+@media (hover:hover){
+  header .ims-grp:hover>.ims-drop{display:block}
+  header .ims-grp:hover::after{content:"";position:absolute;left:0;right:0;top:100%;height:6px}   /* 단추와 펼침 사이 4px 틈을 건너는 다리 — 없으면 틈에서 hover 가 끊겨 닫힌다 */
+}
+/* 둘째 줄로 내려간 윗줄 펼침(JS 가 .ims-wrap 을 단다) — 이름 · Sign Out 은 첫 줄 오른쪽에 남는다 */
+header.ims-wrap .ims-top{order:10;flex-basis:100%;margin-left:0;padding-top:4px;border-top:1px solid #f1f3f7}
+
 /* ── 배치 ───────────────────────────────────── */
 .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
 main{flex:1;min-width:0}
@@ -39,7 +92,7 @@ main.stack{display:flex;flex-direction:column;gap:14px}
    폭은 화면마다 다르다 — 각 html 에서 .list{width:…;flex:0 0 …} 로 덮는다 */
 .list{
   background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
-  position:sticky;top:70px;
+  position:sticky;top:calc(70px + var(--ims-hdr-extra,0px));   /* 헤더(sticky) 아래 12px · 헤더가 두 줄로 꺾이면 그만큼 더(2026-09-30 lay-1 · --ims-hdr-extra 는 ims-auth.js setHeaderVars 가 적는다) */
 }
 .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .list input[type=search]{
@@ -208,10 +261,13 @@ tbody tr:hover{background:#fafbfd}
 [hidden]{display:none !important}
 
 /* ═══════════════════════════════════════════════════════════════
-   탭 줄 — 모드(IMS·WMS) + 그 모드의 탭 · 헤더 바로 아래 한 줄 (2026-09-17 · ims-auth.js setupTabs 가 그린다(전 setupPurchaseTabs) · 마크업은 화면에 없다)
+   탭 줄 — WMS 화면의 탭 · 헤더 바로 아래 한 줄 (2026-09-17 · ims-auth.js setupTabs 가 그린다 · 마크업은 화면에 없다)
+   ✅ [2026-09-30 lay-1] 모드(IMS · WMS)와 묶음(Purchasing · Sales)은 이 줄에서 **헤더로 올라갔다**(위 「헤더 — 로고 · 모드 · 윗줄 펼침」 · 판정 153 · 160) —
+      IMS 화면은 이 줄을 그리지 않는다(윗줄 펼침이 대신한다) · WMS 일곱만 탭 줄(Picking · Packing · Fulfillment · Receiving · Bin Moves · Split & Waves · WMS Admin).
+      .ims-tabs a.mode · .sep 규칙은 쓰는 곳이 없어 지웠다(모드 모양은 header .ims-modes).
    [Caleb] 「payments·charges·invoices 로 넘어가면 PO 로 돌아갈 길이 메뉴 클릭뿐이라 불편하다 — 탭으로」
-   ⚠️ sticky 가 아니다 — 헤더(sticky · top:0)만 남고 이 줄은 함께 스크롤된다. 그래서 .list 의 top:70px 은 그대로 맞는다.
-      다만 스크롤 0 에서 내용이 이 줄 높이(--ims-tabs-h · JS 가 잰다)만큼 내려온다 — po.html .list .rows 의 max-height 가 그 값을 빼 쓰면 맞는다(화면 파일 · 대화 Claude).
+   ⚠️ sticky 가 아니다 — 헤더(sticky · top:0)만 남고 이 줄은 함께 스크롤된다.
+      스크롤 0 에서 내용이 이 줄 높이만큼 내려온다 — --ims-tabs-h(JS 가 잰다 · 헤더 둘째 줄 높이 + 이 줄 높이)를 .list .rows 의 max-height 가 빼 쓴다(po · so · so-invoices · so-payments · so-credits).
    ⚠️ 이름은 ims- 접두어(ims-nav 선례) · 충돌 없음(2026-09-17 grep). */
 .ims-tabs{display:flex;gap:2px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line)}
 .ims-tabs a{
@@ -220,10 +276,25 @@ tbody tr:hover{background:#fafbfd}
 }
 .ims-tabs a:hover{color:var(--ink);background:#fafbfd}
 .ims-tabs a.cur{color:#3b5bdb;border-bottom-color:#3b5bdb;pointer-events:none}
-/* 모드(IMS · WMS) — 줄 왼쪽 끝 · 구분선 뒤에 그 모드의 탭 (2026-09-17 · ims-auth.js setupTabs). 고를 것이 있을 때만 그려진다 — 지금은 WMS 화면이 없어 아무에게도 안 보인다 */
-.ims-tabs a.mode{
-  font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
-  padding:9px 10px;color:var(--muted);border-bottom-color:transparent;
+
+/* ═══════════════════════════════════════════════════════════════
+   구역 제목 띠 — PO · SO 상세의 Lines · Discounts · Receipts … (2026-09-30 lay-1 · 판정 156 · 167 · 화면에 붙이는 것은 lay-3)
+   · 왼쪽 색 막대 + 그 색의 굵은 제목 글씨 · 구역마다 다른 색 · 같은 구역은 PO · SO 같은 색 · 색은 **여기 한 번만**
+   · 쓰는 법: <h3 class="ims-sec" data-sec="invoices">Invoices <span class="n">3</span></h3>  (po.html · so.html 의 tbl() 이 내는 .card h3 에 class · data-sec 만 더한다)
+   · data-sec 값 = 구역 이름의 소문자 복수형 — 같은 뜻은 같은 값(SO 의 「Invoice」 도 invoices)
+   · 다크 모드 변수 체계는 아직 없다(ims-ui.css 전부 밝은 색) — 생기면 --sec · --sec-bg 만 바꾼다 */
+.ims-sec{--sec:#6b7686;--sec-bg:#f7f8fa}                                  /* 모르는 구역 — 회색 */
+.ims-sec[data-sec="lines"]{--sec:#2f6df6;--sec-bg:#eef3ff}                /* Lines — 파랑 */
+.ims-sec[data-sec="discounts"]{--sec:#7c3aed;--sec-bg:#f3eefe}            /* Discounts — 보라 */
+.ims-sec[data-sec="receipts"]{--sec:#16794a;--sec-bg:#e9f6ee}             /* Receipts — 초록 */
+.ims-sec[data-sec="invoices"]{--sec:#d97706;--sec-bg:#fdf3e4}             /* Invoices · Invoice — 주황 */
+.ims-sec[data-sec="payments"]{--sec:#0f766e;--sec-bg:#e6f5f3}             /* Payments — 청록 */
+.ims-sec[data-sec="credits"]{--sec:#b42318;--sec-bg:#fdecea}              /* Credits — 빨강 */
+.ims-sec[data-sec="charges"]{--sec:#be185d;--sec-bg:#fce9f1}              /* Charges — 자홍 */
+.ims-sec[data-sec="family"]{--sec:#4f46e5;--sec-bg:#eeedfc}               /* Order family(SO) — 남보라 */
+.ims-sec[data-sec="balance"]{--sec:#475569;--sec-bg:#eef1f5}              /* Customer balance(SO) — 청회색 */
+.card h3.ims-sec{
+  border-left:4px solid var(--sec);background:var(--sec-bg);color:var(--sec);
+  font-weight:800;font-size:12.5px;letter-spacing:.05em;padding-left:12px;
 }
-.ims-tabs a.mode.cur{color:var(--ink);background:#f2f4f8;border-bottom-color:var(--ink);pointer-events:auto}
-.ims-tabs .sep{width:1px;background:var(--line);margin:8px 8px}
+.card h3.ims-sec .n{color:var(--sec);font-weight:800}
