@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v3";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v4";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -95,13 +95,14 @@
     ["System Check","system-check.html",null,"ims",false,"settings"],
     // POS 모드 — pos.html 하나 · 펼침 · ☰ 없음 (판정 159)
     ["POS","pos.html","sales","pos",false,null],
-    // WMS 모드 — 지금 줄 그대로 · 탭 줄 · ☰ Menu 유지 (판정 160)
+    // WMS 모드 — 탭 줄 · ☰ Menu 유지 (판정 160) · ⭐ Split & Waves 맨 앞(판정 173) — 탭 · ☰ · WMS 모드 단추 · 로고 · firstScreen() 이 이 순서를 따른다:
+    //   wms_manage 가 있는 사람(매니저 이상)의 WMS 첫 화면 = Split & Waves · 없는 창고 직원 = Picking
+    ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
     ["Picking","wms-picker.html","picking","wms",true,"warehouse"],
     ["Packing","wms-packer.html","packing","wms",true,"warehouse"],
     ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
     ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
     ["Bin Moves","wms-mover.html","stock_move","wms",true,"warehouse"],
-    ["Split & Waves","wms-manager.html","wms_manage","wms",true,"warehouse"],
     ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
   ];
   const modeDefs=[["ims","IMS"],["wms","WMS"],["pos","POS"]];     // 순서 = 모드 단추 순서 = firstScreen() 의 우선순위 (판정 163)
@@ -324,7 +325,7 @@
   function canEnter(m){ const ms=(access&&access.modes)||[]; return m==="pos" ? ms.includes("ims") : ms.includes(m); }
   // 모드 후보 = 들어갈 수 있고 + 보이는 화면이 하나 이상 (2026-09-17 규칙 그대로 · 모드 셋으로)
   function modeCandidates(vis){ return modeDefs.filter(([m])=>canEnter(m) && vis.some(it=>it[3]===m)); }
-  // 그 모드의 첫 보이는 화면 — items 순서라 IMS 는 Dashboard · WMS 는 Picking 부터 · POS 는 pos.html (판정 163)
+  // 그 모드의 첫 보이는 화면 — items 순서라 IMS 는 Dashboard · WMS 는 Split & Waves 부터(wms_manage 없으면 Picking · 판정 173) · POS 는 pos.html (판정 163)
   function firstOfMode(vis,m){ return vis.find(it=>it[3]===m)||null; }
   // 문이 쓴다 — 로그인 뒤 그 사람의 첫 모드 첫 화면 주소 · 하나도 없으면 null (판정 163 · R8)
   function firstScreen(){ if(!access) return null; const vis=visibleItems(); for(const [m] of modeCandidates(vis)){ const f=firstOfMode(vis,m); if(f) return f[1]; } return null; }
@@ -565,7 +566,7 @@
     canView(screen){ return !!(access&&access.screens&&access.screens[screen]); },
     canWrite(screen){ return !!(access&&access.screens&&access.screens[screen]==="write"); },
     // ⭐ 문(index.html) 도우미 (2026-09-30 lay-1 · 판정 163)
-    //    firstScreen() — 로그인 뒤 그 사람의 첫 모드 첫 화면 주소(IMS → dashboard.html · WMS 만 → 첫 보이는 WMS 화면 · POS 만 → pos.html · 없으면 null) · 로그인 전(access 없음)엔 null
+    //    firstScreen() — 로그인 뒤 그 사람의 첫 모드 첫 화면 주소(IMS → dashboard.html · WMS 만 → 첫 보이는 WMS 화면(매니저 이상 Split & Waves · 창고 직원 Picking · 판정 173) · POS 만 → pos.html · 없으면 null) · 로그인 전(access 없음)엔 null
     //    inRecovery   — 비밀번호 재설정 링크로 돌아온 상태(주소의 type=recovery 또는 PASSWORD_RECOVERY 이벤트) · true 면 문은 보내지 말고 머문다 ·
     //                   새 비밀번호가 저장되면 false 가 되고 document 에 "ims:password-changed" 이벤트가 난다 — 문은 그때 firstScreen() 으로
     firstScreen,
