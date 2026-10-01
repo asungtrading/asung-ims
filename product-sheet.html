@@ -28,16 +28,19 @@
   table.sh tr.inact td{color:#a1a9b6}
   table.sh tr.blk td{background:#fdf1ef}
   table.sh tr.blk td.sku{color:var(--bad)}
-  .ci{border:1px solid transparent;border-radius:6px;padding:3px 6px;font:inherit;font-size:12.5px;background:transparent;width:100%;min-width:60px}
-  .ci:hover{border-color:var(--line)}
+  .ci{border:1px solid #e3e8ef;border-radius:6px;padding:3px 6px;font:inherit;font-size:12.5px;background:#fff;width:100%;min-width:60px}
+  .ci:hover{border-color:#c7cfdb}
   .ci:focus{background:#fff}
   .ci.mono{font-family:var(--mono)}
-  .ci.w-name{min-width:280px} .ci.w-ref{min-width:150px} .ci.w-num{min-width:72px;width:80px;text-align:right;font-family:var(--mono)}
+  .ci.w-name{min-width:280px} .ci.w-ref{min-width:150px} .ci.w-cat{min-width:230px} .ci.w-sku{min-width:120px;font-family:var(--mono);font-weight:600} .ci.w-num{min-width:72px;width:80px;text-align:right;font-family:var(--mono)}
   .ci.w-ssku{min-width:110px}
   .ci.chg{background:#fff6d6;border-color:#e8cf7a}
   .ci.bad{background:#fdf1ef;border-color:#e7a29b}
   .cb{display:flex;justify-content:center}
   .cb input.chg{outline:2px solid #e8cf7a;outline-offset:1px}
+  .colpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 14px;font-size:12.5px}
+  .colpick label{display:flex;gap:6px;align-items:center;cursor:pointer}
+  .presets{display:flex;gap:8px;margin-bottom:12px}
   .res h5{margin:6px 0 6px;font-size:12.5px}
   .res ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.55}
   .res .blk li{color:var(--bad)}
@@ -61,7 +64,7 @@
     <div class="bar">
       <div class="mode">
         <button class="on" id="modeEdit">Edit products</button>
-        <button id="modeNew" disabled title="Coming in the next build — use New product on the Products screen for now">New products</button>
+        <button id="modeNew">New products</button>
       </div>
       <input type="search" id="q" placeholder="Search SKU or name" style="width:190px">
       <input list="brandList" id="fBrand" placeholder="Brand" class="flt">
@@ -70,6 +73,9 @@
       <select id="fKind"><option value="single">Singles</option><option value="set">Sets only</option><option value="">All</option></select>
       <label><input type="checkbox" id="fActive" checked> Active only</label>
       <button id="loadBtn">Load</button>
+      <button id="nextBtn" hidden>Next 300</button>
+      <button id="addRowsBtn" hidden>+ 20 rows</button>
+      <button id="colsBtn">Columns</button>
       <span class="cnt" id="cnt"></span>
       <span class="sp"></span>
       <span class="cnt" id="chgCount"></span>
@@ -93,7 +99,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Product Sheet — 여러 상품을 표로 펼쳐 한꺼번에 고치기 (sheet v1a · 2026-10-01 · Edit 모드)
+   Product Sheet — 여러 상품을 표로 펼쳐 한꺼번에 고치기 · 만들기 (sheet v1b · 2026-10-01 · v1a 위에 New 모드 · Next 300 · 분류 칸 넓힘 · 열 고르기(판정 206) · 고칠 칸 테두리)
    판정: 145(여러 SKU 한꺼번에 · 표 · 붙여 넣기) · 187(고치기 = 창구 하나 · 목록) · 200(두 화면) · 204(한 줄 = 상품 하나)
          205(모드 둘 · v1a 는 Edit · New 는 v1b) · 176(검사 → 경고 확인 → 저장)
    창구: product_update(p_changes, p_commit, p_ack) — 마지막 정의 20261001152712(img-1) · 칸마다 한 줄 · old 필수
@@ -102,7 +108,7 @@
    ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
    ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
    ───────────────────────────────────────────────────────────── */
-const SH_BUILD = "sheet v1a";
+const SH_BUILD = "sheet v1b";
 const MAX_ROWS = 300, MAX_LINES = 1000;
 
 let sb = null, canEdit = false;
@@ -110,7 +116,15 @@ let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], byName:{ bran
 let rows = [];          // 불러온 상품 — { p, prices:{tierId:{price}}, sup:{…기본 공급처}|null, bc, fam, parent }
 let cols = [];          // 보이는 열 — { key, label, kind, edit, cls }
 let blocked = new Set();
-let cellMap = new Map();   // "줄|열" → 칸 — 칸마다 querySelector 하면 300 줄 × 20 열에서 느리다
+let cellMap = new Map();
+let mode = "edit";       // 판정 205 — "edit" | "new"
+let page = 0, total = 0;
+/* 열 고르기(판정 206) — 모드마다 따로 · 이 브라우저에 기억(localStorage · 사람마다 다른 화면 취향이라 DB 에 두지 않는다) · SKU 는 늘 보인다 */
+const COLS_KEY = "ims.sheet.hidden.v1";
+let hidden = { edit:new Set(), new:new Set() };
+try { const s = JSON.parse(localStorage.getItem(COLS_KEY) || "{}"); hidden.edit = new Set(s.edit || []); hidden.new = new Set(s.new || []); } catch(e) {}
+function saveHidden(){ try { localStorage.setItem(COLS_KEY, JSON.stringify({ edit:[...hidden.edit], new:[...hidden.new] })); } catch(e) {} }
+const visIdx = (list, m) => list.map((c, i) => i).filter(i => list[i].key === "sku" || !hidden[m].has(list[i].key));   // "줄|열" → 칸 — 칸마다 querySelector 하면 300 줄 × 20 열에서 느리다
 
 async function fetchAll(table, select, build){
   const out = [];
@@ -134,7 +148,7 @@ function buildCols(){
     { key:"sku", label:"SKU", kind:"ro", cls:"sku" },
     { key:"name", label:"Name", kind:"text", edit:true, w:"w-name" },
     { key:"brand", label:"Brand", kind:"ref", ref:"brand", edit:true, w:"w-ref" },
-    { key:"cat", label:"Category", kind:"ref", ref:"cat", edit:true, w:"w-ref" },
+    { key:"cat", label:"Category", kind:"ref", ref:"cat", edit:true, w:"w-cat" },
     { key:"unit", label:"Unit", kind:"ref", ref:"unit", edit:true, w:"w-num" },
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", edit:true, w:"w-num" })),
     { key:"supname", label:"Default supplier", kind:"ro" },
@@ -177,9 +191,10 @@ function origVal(r, c){
 const editableHere = (r, c) => canEdit && c.edit && !(c.needSup && !r.sup) && !(c.needSet && !r.p.parent_product_id);
 
 /* ── 불러오기 ── */
-async function load(){
+async function load(next){
   const grid = document.getElementById("grid");
   if(changesCount() && !confirm("You have unsaved changes. Discard them and load again?")) return;
+  page = next ? page + 1 : 0;
   grid.innerHTML = '<div class="msg">Loading…</div>';
   blocked = new Set();
   const q = document.getElementById("q").value.trim();
@@ -200,7 +215,7 @@ async function load(){
   if(bn) qy = qy.eq("brand_name", bn);
   if(cn) qy = qy.eq("category_name", cn);
   if(q) qy = qy.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
-  const { data, error, count } = await qy.order("sku").range(0, MAX_ROWS - 1);
+  const { data, error, count } = await qy.order("sku").range(page * MAX_ROWS, page * MAX_ROWS + MAX_ROWS - 1);
   if(error){ grid.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const ps = data || [];
   const ids = ps.map(x => x.id);
@@ -230,7 +245,10 @@ async function load(){
       bc: b0 ? b0.barcode + (bcs.length > 1 ? ` +${bcs.length - 1}` : "") : "",
       fam: p.family_id ? (famMap[p.family_id] || "?") : "", parent: p.parent_product_id ? (parMap[p.parent_product_id] || "?") : "" };
   });
-  document.getElementById("cnt").textContent = `${rows.length}${count > rows.length ? ` of ${count} — narrow the filters to see the rest` : ""} product${rows.length === 1 ? "" : "s"}`;
+  total = count || 0;
+  const a = page * MAX_ROWS + 1, z = page * MAX_ROWS + rows.length;
+  document.getElementById("cnt").textContent = rows.length ? `${a}–${z} of ${total} products` : "0 products";
+  document.getElementById("nextBtn").hidden = !(z < total);
   draw();
 }
 
@@ -248,9 +266,10 @@ function cellHtml(r, ri, c, ci){
 function draw(){
   const grid = document.getElementById("grid");
   if(!rows.length){ cellMap = new Map(); grid.innerHTML = '<div class="msg">No products match.</div>'; refreshCount(); return; }
-  grid.innerHTML = `<table class="sh"><thead><tr>${cols.map(c => `<th class="${c.kind === "ro" && c.key !== "sku" ? "ro" : ""} ${c.cls || ""}">${esc(c.label)}</th>`).join("")}</tr></thead>
+  const vis = visIdx(cols, "edit");
+  grid.innerHTML = `<table class="sh"><thead><tr>${vis.map(ci => { const c = cols[ci]; return `<th class="${c.kind === "ro" && c.key !== "sku" ? "ro" : ""} ${c.cls || ""}">${esc(c.label)}</th>`; }).join("")}</tr></thead>
     <tbody>${rows.map((r, ri) => `<tr class="${r.p.parent_product_id ? "set" : ""} ${r.p.is_active ? "" : "inact"} ${blocked.has(r.p.sku) ? "blk" : ""}" data-row="${ri}">
-      ${cols.map((c, ci) => cellHtml(r, ri, c, ci)).join("")}</tr>`).join("")}</tbody></table>`;
+      ${vis.map(ci => cellHtml(r, ri, cols[ci], ci)).join("")}</tr>`).join("")}</tbody></table>`;
   cellMap = new Map();
   grid.querySelectorAll("[data-r]").forEach(el => cellMap.set(el.dataset.r + "|" + el.dataset.c, el));
   grid.querySelectorAll("[data-r]").forEach(el => {
@@ -331,6 +350,7 @@ function refreshCount(){
   document.getElementById("chgCount").textContent =
     (n ? `${n} change${n>1?"s":""} on ${skus} product${skus>1?"s":""}` : "") + (bad.length ? ` · ${bad.length} cell${bad.length>1?"s":""} to fix` : "");
   document.getElementById("saveBtn").disabled = !canEdit || !n || bad.length > 0;
+  document.getElementById("saveBtn").textContent = "Save";
   document.getElementById("discardBtn").disabled = !n && !bad.length;
 }
 
@@ -340,12 +360,14 @@ function onPaste(e){
   if(!/[\t\n]/.test(txt.replace(/\r?\n$/, ""))) return;      // 한 칸짜리는 보통대로
   e.preventDefault();
   const r0 = Number(e.target.dataset.r), c0 = Number(e.target.dataset.c);
+  const vis = visIdx(cols, "edit"), v0 = vis.indexOf(c0);
   const lines = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map(l => l.split("\t"));
   let put = 0, skipped = 0;
   lines.forEach((cells, i) => {
     cells.forEach((val, j) => {
-      const el = cellEl(r0 + i, c0 + j);
-      if(!el){ if(r0 + i < rows.length && c0 + j < cols.length) skipped++; return; }
+      const ci = vis[v0 + j];
+      const el = ci === undefined ? null : cellEl(r0 + i, ci);
+      if(!el){ if(r0 + i < rows.length && ci !== undefined) skipped++; return; }
       if(el.type === "checkbox"){
         const t = val.trim().toLowerCase();
         if(["true","yes","y","1","active","✓","x"].includes(t)) el.checked = true;
@@ -386,6 +408,10 @@ function markBlocked(list){
     const r = rows[Number(tr.dataset.row)];
     tr.classList.toggle("blk", !!r && blocked.has(r.p.sku));
   });
+  document.querySelectorAll("#grid tr[data-nrow]").forEach(tr => {
+    const r = newRows[Number(tr.dataset.nrow)];
+    tr.classList.toggle("blk", !!r && blocked.has((r.sku || "").trim()));
+  });
 }
 function showModal(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
 function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
@@ -413,8 +439,169 @@ async function save(){
   if(out.length > MAX_LINES){ alert(`That is ${out.length} changes — at most ${MAX_LINES} can be saved at once. Save part of them first.`); return; }
   await runWindow("product_update", { p_changes: out }, async () => {
     document.getElementById("hint").textContent = `Saved ${out.length} change(s). Reloaded.`;
-    rows = []; await load();
+    rows = []; page = Math.max(0, page); await load(false);
   });
+}
+
+
+/* ═══ New 모드(판정 205 · v1b) — 빈 표 · 붙여 넣기 · product_create 한 번(최대 200 줄) ═══════════════
+   ⭐ 한 줄 = 낱개 하나(+ 세트 계수) · family 는 Products 화면의 New family
+   ⭐ 막기 · 알리기는 창구가 정한다(판정 176 · 177 · 178 · 179) — 화면은 이름 → id · 숫자 모양 · SKU 빈칸만 미리 본다
+   ⭐ 붙여 넣기가 표 아래로 넘치면 줄을 늘린다(200 까지) */
+const NEW_MAX = 200;
+let newRows = Array.from({ length: 20 }, () => ({}));
+let newCols = [];
+let newVis = [];
+function buildNewCols(){
+  newCols = [
+    { key:"sku", label:"SKU", kind:"text", w:"w-sku" },
+    { key:"name", label:"Name", kind:"text", w:"w-name" },
+    { key:"brand", label:"Brand", kind:"ref", ref:"brand", w:"w-ref" },
+    { key:"cat", label:"Category", kind:"ref", ref:"cat", w:"w-cat" },
+    { key:"unit", label:"Unit", kind:"ref", ref:"unit", w:"w-num" },
+    ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", w:"w-num" })),
+    { key:"sup", label:"Supplier", kind:"ref", ref:"sup", w:"w-ref" },
+    { key:"ssku", label:"Supplier SKU", kind:"text", w:"w-ssku" },
+    { key:"cost", label:"Cost", kind:"num", w:"w-num" },
+    { key:"bc", label:"Barcode(s)", kind:"text", w:"w-ssku" },
+    { key:"sets", label:"Sets (6, 12)", kind:"text", w:"w-num" },
+  ];
+}
+function setMode(m){
+  if(m === mode) return;
+  if(mode === "edit" && changesCount() && !confirm("You have unsaved changes. Discard them?")) return;
+  if(mode === "new" && filledNew().length && !confirm("Leave the new rows? They are kept until you load or clear them.")) return;
+  mode = m; blocked = new Set();
+  document.getElementById("modeEdit").classList.toggle("on", m === "edit");
+  document.getElementById("modeNew").classList.toggle("on", m === "new");
+  ["q","fBrand","fCat","fSup","fKind","loadBtn"].forEach(id => document.getElementById(id).hidden = (m === "new"));
+  document.getElementById("fActive").parentElement.hidden = (m === "new");
+  document.getElementById("nextBtn").hidden = m === "new" || !(page * MAX_ROWS + rows.length < total);
+  document.getElementById("addRowsBtn").hidden = (m !== "new");
+  document.getElementById("cnt").textContent = "";
+  document.getElementById("hint").textContent = m === "new"
+    ? "Type or paste new products, one per row — paste from Excel into the first SKU cell. Brand, category, unit and supplier by name. Sets: pack factors like 6, 12. Up to 200 rows."
+    : "Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down.";
+  if(m === "new") drawNew(); else if(rows.length) draw(); else { document.getElementById("grid").innerHTML = ""; cellMap = new Map(); refreshCount(); }
+}
+function newCellEl(ri, ci){ return cellMap.get("n" + ri + "|" + ci) || null; }
+function snapNew(){
+  newRows.forEach((r, ri) => newCols.forEach((c, ci) => { const el = newCellEl(ri, ci); if(el) r[c.key] = el.value; }));
+}
+function drawNew(){
+  const grid = document.getElementById("grid");
+  const vis = visIdx(newCols, "new");
+  grid.innerHTML = `<table class="sh"><thead><tr><th class="sku">#</th>${vis.map(ci => `<th>${esc(newCols[ci].label)}</th>`).join("")}</tr></thead>
+    <tbody>${newRows.map((r, ri) => `<tr data-nrow="${ri}" class="${r.sku && blocked.has(r.sku.trim()) ? "blk" : ""}"><td class="sku ro">${ri + 1}</td>
+      ${vis.map(ci => { const c = newCols[ci];
+        const list = c.kind === "ref" ? ` list="${({ brand:"brandList", cat:"catList", unit:"unitList", sup:"supList" })[c.ref]}"` : "";
+        return `<td><input class="ci ${c.w || ""} ${c.kind === "num" ? "mono" : ""}" data-nr="${ri}" data-nc="${ci}" value="${esc(r[c.key] || "")}"${list}></td>`;
+      }).join("")}</tr>`).join("")}</tbody></table>`;
+  cellMap = new Map();
+  grid.querySelectorAll("[data-nr]").forEach(el => cellMap.set("n" + el.dataset.nr + "|" + el.dataset.nc, el));
+  newVis = vis;
+  grid.querySelectorAll("[data-nr]").forEach(el => {
+    el.addEventListener("input", () => { markNew(el); refreshNew(); });
+    el.addEventListener("paste", onPasteNew);
+    el.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); const n = newCellEl(Number(el.dataset.nr) + (e.shiftKey ? -1 : 1), Number(el.dataset.nc)); if(n){ n.focus(); n.select(); } } });
+    markNew(el);
+  });
+  refreshNew();
+}
+function newBad(el){
+  const c = newCols[Number(el.dataset.nc)], v = el.value.trim();
+  if(!v) return false;
+  if(c.kind === "num") return !/^[0-9]+(\.[0-9]+)?$/.test(v);
+  if(c.kind === "ref") return !refs.byName[c.ref][v.toLowerCase()];
+  if(c.key === "sets") return !splitList(v).every(x => /^[0-9]+$/.test(x) && Number(x) >= 2);
+  return false;
+}
+function markNew(el){ el.classList.toggle("bad", newBad(el)); }
+const splitList = v => (v || "").split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+function filledNew(){ snapNew(); return newRows.filter(r => newCols.some(c => (r[c.key] || "").trim())); }
+function refreshNew(){
+  const filled = filledNew();
+  const bad = Array.from(cellMap.values()).filter(el => el.classList.contains("bad")).length;
+  const noSku = filled.filter(r => !(r.sku || "").trim()).length;
+  document.getElementById("chgCount").textContent =
+    (filled.length ? `${filled.length} new product${filled.length > 1 ? "s" : ""}` : "") +
+    (bad ? ` · ${bad} cell${bad > 1 ? "s" : ""} to fix` : "") + (noSku ? ` · ${noSku} row${noSku > 1 ? "s" : ""} without SKU` : "");
+  document.getElementById("saveBtn").disabled = !canEdit || !filled.length || bad > 0 || noSku > 0;
+  document.getElementById("discardBtn").disabled = !filled.length;
+  document.getElementById("saveBtn").textContent = "Check & create";
+}
+function onPasteNew(e){
+  const txt = (e.clipboardData || window.clipboardData).getData("text");
+  if(!/[\t\n]/.test(txt.replace(/\r?\n$/, ""))) return;
+  e.preventDefault();
+  snapNew();
+  const r0 = Number(e.target.dataset.nr), c0 = Number(e.target.dataset.nc);
+  const lines = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map(l => l.split("\t"));
+  const need = Math.min(NEW_MAX, r0 + lines.length);
+  while(newRows.length < need) newRows.push({});
+  let cut = 0;
+  lines.forEach((cells, i) => {
+    if(r0 + i >= NEW_MAX){ cut++; return; }
+    cells.forEach((val, j) => { const ci = newVis[newVis.indexOf(c0) + j]; const c = ci === undefined ? null : newCols[ci]; if(c) newRows[r0 + i][c.key] = val.trim(); });
+  });
+  drawNew();
+  document.getElementById("hint").textContent = `Pasted ${lines.length - cut} row(s)${cut ? ` · ${cut} row(s) over the 200 limit were dropped` : ""}.`;
+}
+async function saveNew(){
+  const filled = filledNew();
+  if(!filled.length) return;
+  const byName = (ref, v) => { const t = (v || "").trim(); return t ? (refs.byName[ref][t.toLowerCase()] || null) : null; };
+  const ea = refs.byName.unit["ea"];
+  const items = filled.map(r => {
+    const sup = byName("sup", r.sup), unit = byName("unit", r.unit) || ea;
+    return {
+      sku: r.sku.trim(), name: blankNull(r.name),
+      brand_id: (byName("brand", r.brand) || {}).id || null, category_id: (byName("cat", r.cat) || {}).id || null, unit_id: unit ? unit.id : null,
+      barcodes: splitList(r.bc),
+      prices: saleTiers().filter(t => blankNull(r["pr_" + t.id]) !== null).map(t => ({ tier_id: t.id, price: blankNull(r["pr_" + t.id]) })),
+      suppliers: sup ? [{ supplier_id: sup.id, supplier_sku: blankNull(r.ssku), cost: blankNull(r.cost), is_default: true }] : [],
+      sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
+    };
+  });
+  await runWindow("product_create", { p_items: items }, async (d) => {
+    const made = (d.items || []).map(x => x.sku);
+    newRows = Array.from({ length: 20 }, () => ({})); blocked = new Set();
+    drawNew();
+    document.getElementById("hint").innerHTML = `Created ${made.length} product(s): ${made.slice(0, 12).map(s => `<a class="lnk mono" href="products.html?sku=${encodeURIComponent(s)}">${esc(s)}</a>`).join(", ")}${made.length > 12 ? " …" : ""}`;
+  });
+}
+
+
+/* ── 열 고르기(판정 206) — 묶음 단추 + 체크 ── */
+const PRESETS = {
+  edit: { "Prices": k => k === "name" || k.startsWith("pr_"),
+          "Supplier": k => ["name","supname","ssku","cost"].includes(k),
+          "All": () => true },
+  new:  { "Basic": k => ["name","brand","cat","unit","bc","sets"].includes(k) || k.startsWith("pr_"),
+          "With supplier": k => ["name","brand","cat","unit","bc","sets","sup","ssku","cost"].includes(k) || k.startsWith("pr_"),
+          "All": () => true },
+};
+function openCols(){
+  if(mode === "edit" && changesCount()){ alert("Save or discard your changes first — hidden columns cannot hold unsaved edits."); return; }
+  if(mode === "new") snapNew();
+  const list = mode === "edit" ? cols : newCols, h = hidden[mode];
+  const box = document.getElementById("modalBox");
+  showModal(`<h4>Columns</h4><div class="pbody">
+      <div class="presets">${Object.keys(PRESETS[mode]).map(n => `<button class="pobtn" data-pre="${esc(n)}">${esc(n)}</button>`).join("")}</div>
+      <div class="colpick">${list.filter(c => c.key !== "sku").map(c => `<label><input type="checkbox" data-col="${esc(c.key)}" ${h.has(c.key) ? "" : "checked"}> ${esc(c.label)}${c.kind === "ro" ? ' <span class="dim">(read only)</span>' : ""}</label>`).join("")}</div>
+      <div class="note" style="margin-top:12px">Paste follows the visible columns from left to right — line up your Excel columns with what you see. SKU always stays.</div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-m="go">Apply</button></div>`);
+  box.querySelectorAll("[data-pre]").forEach(b => b.onclick = () => {
+    const f = PRESETS[mode][b.dataset.pre];
+    box.querySelectorAll("[data-col]").forEach(cb => { cb.checked = f(cb.dataset.col); });
+  });
+  box.querySelector('[data-m="close"]').onclick = closeModal;
+  box.querySelector('[data-m="go"]').onclick = () => {
+    hidden[mode] = new Set(Array.from(box.querySelectorAll("[data-col]")).filter(cb => !cb.checked).map(cb => cb.dataset.col));
+    saveHidden(); closeModal();
+    if(mode === "new") drawNew(); else if(rows.length) draw();
+  };
 }
 
 /* ── 시작 ── */
@@ -442,19 +629,33 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   }
   const dl = (id, list) => { document.getElementById(id).innerHTML = list.map(x => `<option value="${esc(x.name)}">`).join(""); };
   dl("brandList", refs.brands); dl("catList", refs.cats); dl("unitList", refs.units); dl("supList", refs.suppliers);
-  buildCols();
+  buildCols(); buildNewCols();
 
-  document.getElementById("loadBtn").onclick = load;
-  document.getElementById("q").addEventListener("keydown", e => { if(e.key === "Enter") load(); });
-  document.getElementById("saveBtn").onclick = save;
-  document.getElementById("discardBtn").onclick = () => { if(confirm("Discard all changes?")){ blocked = new Set(); draw(); } };
-  window.addEventListener("beforeunload", e => { if(changesCount()){ e.preventDefault(); e.returnValue = ""; } });
+  document.getElementById("loadBtn").onclick = () => load(false);
+  document.getElementById("nextBtn").onclick = () => load(true);
+  document.getElementById("q").addEventListener("keydown", e => { if(e.key === "Enter") load(false); });
+  document.getElementById("colsBtn").onclick = openCols;
+  document.getElementById("modeEdit").onclick = () => setMode("edit");
+  document.getElementById("modeNew").onclick = () => setMode("new");
+  document.getElementById("addRowsBtn").onclick = () => { snapNew(); for(let i = 0; i < 20 && newRows.length < NEW_MAX; i++) newRows.push({}); drawNew(); };
+  if(!canEdit) document.getElementById("modeNew").disabled = true;
+  document.getElementById("saveBtn").onclick = () => mode === "new" ? saveNew() : save();
+  document.getElementById("discardBtn").onclick = () => {
+    if(!confirm(mode === "new" ? "Clear the new rows?" : "Discard all changes?")) return;
+    blocked = new Set();
+    if(mode === "new"){ newRows = Array.from({ length: 20 }, () => ({})); drawNew(); } else draw();
+  };
+  document.getElementById("modal").onclick = e => {
+    if(e.target.id !== "modal") return;
+    if(!document.querySelector('#modalBox [data-m="go"]')) { const c = document.querySelector('#modalBox [data-m="close"]'); if(c) c.click(); }
+  };
+  window.addEventListener("beforeunload", e => { if((mode === "edit" && changesCount()) || (mode === "new" && filledNew().length)){ e.preventDefault(); e.returnValue = ""; } });
 
   /* products.html?… 에서 넘어오면 같은 거르기로 바로 불러온다 */
   const p = new URLSearchParams(location.search);
   if(p.get("q")) document.getElementById("q").value = p.get("q");
   if(p.get("brand")) document.getElementById("fBrand").value = p.get("brand");
-  if(p.get("q") || p.get("brand")) load();
+  if(p.get("q") || p.get("brand")) load(false);
 });
 </script>
 </body>

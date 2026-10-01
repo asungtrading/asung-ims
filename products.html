@@ -114,6 +114,8 @@
       <div class="opts">
         <input list="brandList" id="brand" placeholder="Brand" class="flt">
         <datalist id="brandList"></datalist>
+        <datalist id="catList"></datalist>
+        <datalist id="unitList"></datalist>
         <select id="cat" style="flex:1;min-width:0">
           <option value="">All categories</option>
         </select>
@@ -142,7 +144,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2d · 2026-10-01 · v2c 위에 「Open sheet」 링크 — 지금 검색어 · 브랜드를 실어 Product Sheet 로)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2e · 2026-10-01 · 브랜드 · 분류 · 단위를 글자로 좁혀지는 칸으로 — 고치기 · New product · New family)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -154,7 +156,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2d";
+const PR_BUILD = "pr v2e";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -472,12 +474,13 @@ function photoCard(){
 }
 
 /* ── 고치기 그리기(판정 202) ────────────────────────────── */
-function opt(list, val, blank, curName){
-  const missing = val && !list.some(x => x.id === val)
-    ? `<option value="${esc(val)}" selected>${esc(curName || "(current)")} — inactive</option>` : "";
-  return (blank ? `<option value="" ${val?"":"selected"}>—</option>` : "") + missing +
-    list.map(x => `<option value="${esc(x.id)}" ${x.id===val?"selected":""}>${esc(x.name)}</option>`).join("");
-}
+/* 브랜드 · 분류 · 단위 — 글자로 좁혀지는 칸(datalist) · 이름 ↔ id(대소문자 무시)
+   ⭐ 목록에 없는 글자는 "?글자" 로 들고 있다가 저장 전에 막는다(칸 빨강) */
+const REFS = { brand:["brands","brandList"], cat:["cats","catList"], unit:["units","unitList"] };
+function refName(kind, id){ if(!id) return ""; if(String(id).startsWith("?")) return String(id).slice(1); const x = refs[REFS[kind][0]].find(y => y.id === id); return x ? x.name : ""; }
+function refId(kind, text){ const v = (text || "").trim(); if(!v) return null; const x = refs[REFS[kind][0]].find(y => y.name.toLowerCase() === v.toLowerCase()); return x ? x.id : "?" + v; }
+function refIn(kind, attrs, id, fallbackName){ const nm = refName(kind, id) || (id && !String(id).startsWith("?") ? (fallbackName || "") : ""); return `<input class="ein" ${attrs} list="${REFS[kind][1]}" value="${esc(nm)}" autocomplete="off">`; }
+const badRef = id => !!id && String(id).startsWith("?");
 function renderEdit(){
   const { r } = cur;
   const isSet = !!r.parent_product_id;
@@ -487,9 +490,9 @@ function renderEdit(){
         ? `<span class="mono">${esc(r.sku)}</span> <span class="dim">— built from the single and the pack factor</span>`
         : `<input class="ein mono" data-f="sku" value="${esc(r.sku)}">`),
     f("Name", `<input class="ein" data-f="name" value="${esc(r.name)}">`),
-    f("Brand", `<select class="ein" data-f="brand_id">${opt(refs.brands, r.brand_id, true, r.brand_name)}</select>`),
-    f("Category", `<select class="ein" data-f="category_id">${opt(refs.cats, r.category_id, true, r.category_name)}</select>`),
-    f("Unit", `<select class="ein" data-f="unit_id">${opt(refs.units, r.unit_id, true, r.uom_name)}</select>`),
+    f("Brand", refIn("brand", 'data-f="brand_id" data-ref="brand"', r.brand_id, r.brand_name)),
+    f("Category", refIn("cat", 'data-f="category_id" data-ref="cat"', r.category_id, r.category_name)),
+    f("Unit", refIn("unit", 'data-f="unit_id" data-ref="unit"', r.unit_id, r.uom_name)),
     f("Weight", `<input class="ein sm mono" data-f="weight" value="${esc(r.weight==null?"":r.weight)}">
                  <input class="ein sm" data-f="weight_unit" value="${esc(r.weight_unit||"")}" placeholder="kg · g · lb · oz">`),
     ...(isSet ? [
@@ -583,6 +586,14 @@ function buildChanges(){
     const o = scalarOrig(r, k);
     let v, same;
     if(el.type === "checkbox"){ v = el.checked; same = (v === o); }
+    else if(el.dataset.ref){
+      const nowName = el.value.trim(), oldName = refName(el.dataset.ref, o) || (k === "brand_id" ? r.brand_name : k === "category_id" ? r.category_name : r.uom_name) || "";
+      if(nowName.toLowerCase() === oldName.toLowerCase()){ el.classList.remove("bcbad","chg"); return; }   // 글자가 같으면 안 바뀐 것(목록에 없는 옛 값 포함)
+      v = refId(el.dataset.ref, nowName);
+      el.classList.toggle("bcbad", badRef(v));
+      if(badRef(v)){ el.classList.remove("chg"); out.push({ __bad: k }); return; }
+      same = (v === (o === null ? null : String(o)));
+    }
     else {
       v = blankNull(el.value);
       if(["weight","pack_factor","set_discount_pct"].includes(k)) same = (v === null && o === null) || (v !== null && o !== null && Number(v) === Number(o));
@@ -645,9 +656,11 @@ function buildChanges(){
   }
   box.querySelectorAll("[data-bcoff]").forEach(el => { if(el.checked) out.push({ op:"barcode_off", sku, barcode: el.dataset.bcoff }); });
 
+  const bad = out.filter(x => x.__bad).length, lines = out.filter(x => !x.__bad);
   const c = document.getElementById("chgCount");
-  if(c) c.textContent = out.length ? `${out.length} change${out.length>1?"s":""} — Save checks them first.` : "No changes yet.";
-  return out;
+  if(c) c.textContent = (lines.length ? `${lines.length} change${lines.length>1?"s":""} — Save checks them first.` : "No changes yet.") + (bad ? ` · ${bad} field${bad>1?"s":""} not in the list` : "");
+  if(bad) lines.__bad = bad;
+  return lines;
 }
 
 /* ── 저장 흐름 한 곳(판정 176) — 검사 → 막기면 보이고 끝 · 경고면 보이고 확인 → 저장 ──
@@ -754,6 +767,7 @@ function wireDetail(box){
       if(a === "cancel"){ edit = null; render(); return; }
       if(a === "save"){
         const ch = buildChanges();
+        if(ch.__bad){ alert("Pick the brand, category or unit from the list (red field)."); return; }
         if(!ch.length){ edit = null; render(); return; }
         const skuLine = ch.find(x => x.op === "set" && x.field === "sku");
         await runWindow("product_update", { p_changes: ch }, async () => afterSave(skuLine ? skuLine.value : null));
@@ -906,11 +920,11 @@ function openProductDialog(st){
     <div class="pbody">
       <div class="fg">
         <label>Barcode(s)</label><div class="full"><input class="ein mono" id="npBc" value="${esc(st.barcodes)}" placeholder="one or more — the first is primary"><div class="bchint" id="npBcHint"></div></div>
-        <label>Brand</label><select class="ein" id="npBrand">${opt(refs.brands, st.brand_id, true)}</select>
+        <label>Brand</label>${refIn("brand", 'id="npBrand"', st.brand_id)}
         <label>SKU</label><div style="display:flex;gap:6px"><input class="ein mono" id="npSku" value="${esc(st.sku)}" placeholder="e.g. CON19912"><button class="pobtn" data-np="suggest" title="Brand prefix + barcode digits">Suggest</button></div>
         <label>Name</label><input class="ein full" id="npName" value="${esc(st.name)}">
-        <label>Category</label><select class="ein" id="npCat">${opt(refs.cats, st.category_id, true)}</select>
-        <label>Unit</label><select class="ein" id="npUnit">${opt(refs.units, st.unit_id, true)}</select>
+        <label>Category</label>${refIn("cat", 'id="npCat"', st.category_id)}
+        <label>Unit</label>${refIn("unit", 'id="npUnit"', st.unit_id)}
         <label>Weight</label><div style="display:flex;gap:6px"><input class="ein sm mono" id="npW" value="${esc(st.weight)}"><input class="ein sm" id="npWu" value="${esc(st.weight_unit)}" placeholder="kg · g · lb · oz"></div>
         <label>Note</label><input class="ein" id="npNote" value="${esc(st.note)}">
       </div>
@@ -931,8 +945,8 @@ function openProductDialog(st){
       <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-np="go">Check &amp; create</button></div>`);
 
   const read = () => {
-    st.barcodes = b.querySelector("#npBc").value; st.brand_id = b.querySelector("#npBrand").value; st.sku = b.querySelector("#npSku").value.trim();
-    st.name = b.querySelector("#npName").value; st.category_id = b.querySelector("#npCat").value; st.unit_id = b.querySelector("#npUnit").value;
+    st.barcodes = b.querySelector("#npBc").value; st.brand_id = refId("brand", b.querySelector("#npBrand").value); st.sku = b.querySelector("#npSku").value.trim();
+    st.name = b.querySelector("#npName").value; st.category_id = refId("cat", b.querySelector("#npCat").value); st.unit_id = refId("unit", b.querySelector("#npUnit").value);
     st.weight = b.querySelector("#npW").value; st.weight_unit = b.querySelector("#npWu").value; st.note = b.querySelector("#npNote").value;
     b.querySelectorAll("[data-npprice]").forEach(el => { st.prices[el.dataset.npprice] = el.value.trim(); });
     st.sup = b.querySelector("#npSup").value; st.sup_sku = b.querySelector("#npSupSku").value; st.cost = b.querySelector("#npCost").value; st.fixed = b.querySelector("#npFixed").value;
@@ -958,7 +972,7 @@ function openProductDialog(st){
       if(a === "setDrop"){ read(); st.sets.splice(Number(el.dataset.i), 1); openProductDialog(st); return; }
       if(a === "suggest"){
         read();
-        const v = await suggestSku(st.brand_id, splitList(st.barcodes)[0]);
+        const v = badRef(st.brand_id) ? null : await suggestSku(st.brand_id, splitList(st.barcodes)[0]);
         if(v){ b.querySelector("#npSku").value = v; st.sku = v; }
         else alert("Pick the brand and enter a 12 or 13 digit barcode first (or the brand has no products yet).");
         return;
@@ -966,6 +980,7 @@ function openProductDialog(st){
       if(a === "go"){
         read();
         if(!st.sku){ alert("Enter a SKU first (Suggest can make one from the brand and barcode)."); b.querySelector("#npSku").focus(); return; }
+        if([st.brand_id, st.category_id, st.unit_id].some(badRef)){ alert("Pick the brand, category and unit from the list."); return; }
         const sp = supPick(st.sup);
         if(st.sup.trim() && !sp){ alert("Pick the supplier from the list."); return; }
         const item = {
@@ -1014,9 +1029,9 @@ function openFamilyDialog(st){
     : `<div class="fg">
         <label>Family name</label><input class="ein full" id="nfName" value="${esc(st.name)}">
         <label>Family SKU</label><input class="ein mono" id="nfSku" value="${esc(st.sku)}" placeholder="blank = first variant SKU + FAM">
-        <label>Brand</label><select class="ein" id="nfBrand">${opt(refs.brands, st.brand_id, true)}</select>
-        <label>Category</label><select class="ein" id="nfCat">${opt(refs.cats, st.category_id, true)}</select>
-        <label>Unit</label><select class="ein" id="nfUnit">${opt(refs.units, st.unit_id, true)}</select>
+        <label>Brand</label>${refIn("brand", 'id="nfBrand"', st.brand_id)}
+        <label>Category</label>${refIn("cat", 'id="nfCat"', st.category_id)}
+        <label>Unit</label>${refIn("unit", 'id="nfUnit"', st.unit_id)}
         <label>Option axis 1</label><input class="ein" id="nfAx1" list="axisList" value="${esc(st.ax1)}" placeholder="e.g. Color">
         <label>Option axis 2</label><input class="ein" id="nfAx2" list="axisList" value="${esc(st.ax2)}" placeholder="optional">
         <label>Option axis 3</label><input class="ein" id="nfAx3" list="axisList" value="${esc(st.ax3)}" placeholder="optional">
@@ -1046,7 +1061,7 @@ function openFamilyDialog(st){
   const read = () => {
     if(!adding){
       st.name = b.querySelector("#nfName").value; st.sku = b.querySelector("#nfSku").value.trim();
-      st.brand_id = b.querySelector("#nfBrand").value; st.category_id = b.querySelector("#nfCat").value; st.unit_id = b.querySelector("#nfUnit").value;
+      st.brand_id = refId("brand", b.querySelector("#nfBrand").value); st.category_id = refId("cat", b.querySelector("#nfCat").value); st.unit_id = refId("unit", b.querySelector("#nfUnit").value);
       st.ax1 = b.querySelector("#nfAx1").value; st.ax2 = b.querySelector("#nfAx2").value; st.ax3 = b.querySelector("#nfAx3").value;
       st.note = b.querySelector("#nfNote").value;
     }
@@ -1076,6 +1091,7 @@ function openFamilyDialog(st){
         const rows = st.rows.filter(r => Object.values(r).some(v => (v||"").toString().trim() !== ""));
         if(!rows.length){ alert("Add at least one variant."); return; }
         if(rows.some(r => !(r.sku||"").trim())){ alert("Every variant needs a SKU."); return; }
+        if(!adding && [st.brand_id, st.category_id, st.unit_id].some(badRef)){ alert("Pick the brand, category and unit from the list."); return; }
         const items = rows.map(r => {
           const sku = (r.sku||"").trim();
           return {
@@ -1168,6 +1184,8 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("cat").innerHTML = '<option value="">All categories</option>' +
     refs.cats.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
   document.getElementById("supList").innerHTML = refs.suppliers.map(x => `<option value="${esc(x.name)}">`).join("");
+  document.getElementById("catList").innerHTML = refs.cats.map(x => `<option value="${esc(x.name)}">`).join("");
+  document.getElementById("unitList").innerHTML = refs.units.map(x => `<option value="${esc(x.name)}">`).join("");
 
   /* ⭐ 다른 화면에서 넘어올 수 있게 — products.html?id=… 또는 ?sku=…
      ⚠️⚠️ [실사고 2026-09-15] 목록을 먼저 그리고, 그 뒤에 상세를 연다. */
