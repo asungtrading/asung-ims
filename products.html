@@ -40,6 +40,16 @@
   .newtag{font-size:11px;color:var(--good);font-weight:600}
   tr.offrow td{text-decoration:line-through;color:var(--muted)}
 
+  /* 상세 머리 — 대표 사진을 오른쪽 위에 크게(v2g · Caleb 요청) */
+  .topgrid{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:0 16px;align-items:start}
+  .hero{width:220px;height:220px;margin:16px 16px 16px 0;border:1px solid var(--line);border-radius:12px;background:#fff;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .hero img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+  .hero .none{color:var(--muted);font-size:12.5px}
+  .hero .from{position:absolute;left:8px;bottom:8px;font-size:11px;background:#fff8e6;color:var(--warn);
+    border:1px solid #ecdcb4;border-radius:6px;padding:1px 6px}
+  @media (max-width:1180px){ .topgrid{grid-template-columns:minmax(0,1fr) 160px} .hero{width:160px;height:160px} }
+
   /* 사진 — 판정 193 · 194 */
   .ph{display:flex;gap:14px;padding:14px;align-items:flex-start;flex-wrap:wrap}
   .ph .big{width:240px;height:240px;border:1px solid var(--line);border-radius:12px;background:#fff;
@@ -144,7 +154,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2f · 2026-10-01 · v2e 위에 새 공급처 줄에 공급처 통화 · 단가 옆 통화 표시)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2g · 2026-10-01 · v2f 위에 대표 사진을 상세 오른쪽 위에 크게 · Photos 칸을 맨 아래로 — Caleb 요청)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -156,7 +166,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2f";
+const PR_BUILD = "pr v2g";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -415,7 +425,7 @@ function renderRead(){
       <td>${esc(k.name)}</td><td class="num">${dim(k.pack_factor)}</td><td>${yn(k.is_active)}</td></tr>`);
 
   return `
-    <div class="card">
+    <div class="card"><div class="topgrid"><div>
       <div class="head">
         <div class="sk">${esc(r.sku)}</div>
         <div class="nm">${esc(r.name)}</div>
@@ -423,8 +433,7 @@ function renderRead(){
         ${acts}
       </div>
       <div class="cols">${kvT(left)}${kvT(right)}</div>
-    </div>
-    ${photoCard()}
+    </div>${heroImg()}</div></div>
     ${tbl("Sale prices", priceRows.length, ["Tier","Price","Source"], priceRows, "No sale tiers.")}
     ${tbl("Suppliers" + (supDead && isAdmin
             ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
@@ -444,7 +453,17 @@ function renderRead(){
           <td class="mono"><span class="lnk" data-go="${x.id}">${esc(x.sku)}</span></td>
           <td>${esc(x.name)}</td><td>${yn(x.is_active)}</td></tr>`), "No other variants yet.", "",
         canEdit ? `<button class="pobtn" data-act="addVariant" style="margin-left:auto">Add variant</button>` : "") : ""}
+    ${photoCard()}
   `;
+}
+
+/* 상세 오른쪽 위 대표 사진 — 켜진 대표(없으면 첫 장) · 세트는 낱개 대표(판정 194) · 누르면 확대 */
+function heroImg(){
+  const { imgs, fallback } = cur;
+  const p0 = imgs.length ? (imgs.find(x => x.is_primary) || imgs[0]) : null;
+  if(p0) return `<div class="hero"><img src="${esc(photoUrl(p0.storage_path))}" alt="" data-zoom="${esc(p0.storage_path)}"></div>`;
+  if(fallback) return `<div class="hero"><img src="${esc(photoUrl(fallback.storage_path))}" alt="" data-zoom="${esc(fallback.storage_path)}"><span class="from">Single's photo</span></div>`;
+  return `<div class="hero"><span class="none">No photo</span></div>`;
 }
 
 function photoCard(){
@@ -545,7 +564,7 @@ function renderEdit(){
       <button class="pobtn" data-act="supAdd">Add</button></div>`;
 
   return `
-    <div class="card editing">
+    <div class="card editing"><div class="topgrid"><div>
       <div class="head">
         <div class="sk">${esc(r.sku)} · editing</div>
         <div class="nm">${esc(r.name)}</div>
@@ -557,7 +576,7 @@ function renderEdit(){
         </div>
       </div>
       ${kvT(rows)}
-    </div>
+    </div>${heroImg()}</div></div>
     ${tbl("Sale prices", priceRows.length, ["Tier","Price"], priceRows, "No sale tiers.",
           `<div class="note">Clear a price to turn it off${isSet ? " — the set then goes back to the calculated price" : ""}.</div>`)}
     ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU","Fixed","Latest","Default","Off"], supRows, "None.", supAdd)}
