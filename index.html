@@ -1,71 +1,78 @@
 <!doctype html>
-<html lang="ko">
+<html lang="en" data-ims-mode="ims">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
 <style>
-  body{margin:0;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;background:#f7f8fa;color:#12161c}
-  header{display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fff;border-bottom:1px solid #e5e9ef}
-  header .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:14px}
-  header .sp{flex:1}
-  header button{border:1px solid #e5e9ef;background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  main{max-width:820px;margin:28px auto;padding:0 18px}
-  .card{background:#fff;border:1px solid #e5e9ef;border-radius:14px;padding:22px 24px;margin-bottom:16px}
-  h2{margin:0 0 14px;font-size:16px}
-  table{border-collapse:collapse;width:100%;font-size:13.5px}
-  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid #eef1f5}
-  th{width:150px;color:#6b7686;font-weight:600;font-size:12px;text-transform:uppercase;font-family:ui-monospace,Menlo,monospace}
-  code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
-  .ok{color:#16a34a;font-weight:700} .no{color:#dc2626;font-weight:700}
+  /* 문 — 헤더 없음(로그인 카드가 로고를 그린다) · 보내기 전 잠깐 보이는 한 줄 · 보낼 곳이 없거나 비밀번호 복구 중일 때의 카드 */
+  .door{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .door .card{max-width:420px;width:100%;padding:28px 26px;text-align:center}
+  .door img{height:36px;width:auto;display:block;margin:0 auto 18px}
+  .door p{margin:0 0 16px;font-size:13.5px;color:var(--muted);line-height:1.5}
+  .door .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .door button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .door button.main{background:#12161c;color:#fff;border-color:#12161c}
 </style>
 </head>
 <body>
 
-<header>
-  <button title="Main menu">☰ Menu</button>
-  <span class="brand">ASUNG IMS</span>
-  <span class="sp"></span>
-  <span id="who" style="font-size:13px;color:#6b7686"></span>
-  <button id="logoutBtn">Sign Out</button>
-</header>
-
-<main>
-  <div class="card">
-    <h2>Signed in as</h2>
-    <table id="meTbl"></table>
+<div class="door">
+  <div class="card" id="doorCard">
+    <img src="asung-logo-dark.png" alt="ASUNG">
+    <p id="doorMsg">Opening…</p>
+    <div class="row" id="doorBtns"></div>
   </div>
-  <div class="card">
-    <h2>Database connection</h2>
-    <table id="dbTbl"></table>
-  </div>
-</main>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
-imsAuth.start({ changePw:true }, async (sb, me) => {
-  document.getElementById("logoutBtn").onclick = () => imsAuth.signOut();
-  document.getElementById("who").textContent = me.name + " · " + me.role;
+/* ─────────────────────────────────────────────────────────────
+   index.html — 문 1판 (2026-09-30 · 대화 Claude · lay-2)
+   판정 163: index 는 문만 한다 — 로그인 카드(로고 · ims-auth.js 가 그린다)를 보여 주고, 로그인하면 그 사람의 첫 모드 첫 화면으로 보낸다
+     모드 순서 IMS · WMS · POS — IMS → dashboard.html · WMS 만 → 첫 보이는 WMS 화면 · POS 만 → pos.html (imsAuth.firstScreen() 이 정한다)
+   ⚠️ 옛 내용(Signed in as · Database connection)은 system-check.html 로 옮겼다(판정 158 · 166)
+   ⚠️ 비밀번호 복구 — 재설정 메일 링크는 이 주소로 돌아온다(doForgot 의 redirectTo). 복구 중(imsAuth.inRecovery)이면 보내지 말고 머문다.
+      새 비밀번호가 저장되면 ims-auth.js 가 "ims:password-changed" 를 내고 그때 보낸다.
+      복구 이벤트(PASSWORD_RECOVERY)가 콜백보다 늦게 올 수 있다(짐작) — 주소에 인증 링크 흔적이 있으면 잠깐 기다렸다 다시 묻는다.
+   ⚠️ location.replace — 뒤로 가기가 문으로 돌아와 다시 튕기는 고리를 만들지 않는다
+   ───────────────────────────────────────────────────────────── */
+const DOOR_BUILD = "2026-09-30 · door v1";
+console.log("index.html build:", DOOR_BUILD, "· ims-auth", imsAuth.build);
 
-  const rows = [
-    ["name", me.name], ["email", me.email], ["role", me.role],
-    ["perms", JSON.stringify(me.perms).replace(/[<>&]/g, c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))], ["is_active", String(me.is_active)],
-    ["auth_user_id", me.auth_user_id]
-  ];
-  document.getElementById("meTbl").innerHTML =
-    rows.map(r => `<tr><th>${r[0]}</th><td><code>${r[1]}</code></td></tr>`).join("");
+const AUTH_LINK = /access_token|type=|[?&]code=/.test(location.hash + location.search);
 
-  // 마스터 표가 실제로 읽히는지 — 행 수만 센다
-  const out = [];
-  for (const t of ["supplier","product","product_supplier","ref_brand","ims_staff"]) {
-    const { count, error } = await sb.from(t).select("*", { count:"exact", head:true });
-    out.push([t, error ? `<span class="no">${error.message}</span>`
-                       : `<span class="ok">${count.toLocaleString()}</span> rows`]);
-  }
-  document.getElementById("dbTbl").innerHTML =
-    out.map(r => `<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join("");
+function say(msg, btns){
+  document.getElementById("doorMsg").textContent = msg;
+  const row = document.getElementById("doorBtns");
+  row.innerHTML = "";
+  (btns || []).forEach(([label, fn, main]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = label; if (main) b.className = "main";
+    b.onclick = fn; row.appendChild(b);
+  });
+}
+function go(){
+  const to = imsAuth.firstScreen();
+  if (to) { location.replace(to); return; }
+  say("No screens are open to your account yet. Please contact your administrator.",
+      [["Sign Out", () => imsAuth.signOut()]]);
+}
+function waitForPassword(){
+  say("Set your new password to continue.",
+      [["Set password", () => imsAuth.changePassword(), true], ["Sign Out", () => imsAuth.signOut()]]);
+  document.addEventListener("ims:password-changed", () => { say("Password changed. Opening…"); go(); }, { once: true });
+}
+
+imsAuth.start({ changePw: true }, () => {
+  if (imsAuth.inRecovery) { waitForPassword(); return; }
+  if (!AUTH_LINK) { go(); return; }
+  // 인증 링크로 들어왔다 — 복구 이벤트가 늦게 올 수 있으니 잠깐 기다렸다 다시 묻는다
+  setTimeout(() => { if (imsAuth.inRecovery) waitForPassword(); else go(); }, 500);
 });
 </script>
 </body>

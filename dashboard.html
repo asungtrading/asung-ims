@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Overview 자리 — 판정 158: 이번에는 자리만 · 숫자 카드(셈 기준 판정 포함)는 상품 마스터 뒤 따로 한 차수 */
+  .dbwrap{max-width:1100px;margin:0 auto;padding:22px 18px;display:flex;flex-direction:column;gap:16px}
+  .dbwrap h1{margin:0;font-size:22px;font-weight:800;color:var(--ink)}
+  .dbsoon{padding:34px 24px;text-align:center}
+  .dbsoon b{display:block;font-size:15px;margin-bottom:6px;color:var(--ink)}
+  .dbsoon span{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="dbwrap">
+  <h1>Overview</h1>
+  <div class="card dbsoon">
+    <b>Overview — coming soon</b>
+    <span>Key performance cards for sales, purchasing and payments will appear here.</span>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   dashboard.html — Overview 자리 1판 (2026-09-30 · 대화 Claude · lay-2)
+   판정 149: IMS 첫 화면은 Cin7 처럼 key performance 를 보는 Overview Dashboard (Settings 가 첫 화면이 아니다)
+   판정 158: 이번 레이아웃 차수에는 자리만 — 헤더 · 모드 · 윗줄 메뉴는 공통 js(ims-auth.js lay-1)가 그린다 · 몸통은 coming soon
+   ⬜ 숫자 카드는 뒤 차수 — 카드마다 셈 기준 판정(예: Revenue 를 인보이스 기준으로 셀지 결제 기준으로 셀지) · 열쇠도 그때 정한다(지금은 로그인만 · items 열쇠 null)
+   ⚠️ 펼침에는 안 선다(갈래 null) — 로고 · IMS 모드 단추 · 문(index)이 여기로 보낸다
+   ───────────────────────────────────────────────────────────── */
+const DB_BUILD = "2026-09-30 · db v1";
+console.log("dashboard.html build:", DB_BUILD);
+
+imsAuth.start({ changePw: true }, (sb, me) => {
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = DB_BUILD;
+});
+</script>
+</body>
+</html>

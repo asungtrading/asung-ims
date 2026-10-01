@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Check · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 점검 — 옛 index.html 의 두 카드(Signed in as · Database connection) + 권한 · 열린 화면 · 빌드 */
+  .scwrap{max-width:900px;margin:0 auto;padding:22px 18px;display:flex;flex-direction:column;gap:14px}
+  .scwrap h1{margin:0;font-size:22px;font-weight:800;color:var(--ink)}
+  .sctbl{border-collapse:collapse;width:100%;font-size:13.5px}
+  .sctbl th,.sctbl td{text-align:left;padding:8px 14px;border-bottom:1px solid #eef1f5;vertical-align:top}
+  .sctbl tr:last-child th,.sctbl tr:last-child td{border-bottom:0}
+  .sctbl th{width:170px;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;font-family:var(--mono)}
+  .sctbl code{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+  .ok{color:#16a34a;font-weight:700} .no{color:#dc2626;font-weight:700}
+  .pill{display:inline-block;margin:0 6px 4px 0;padding:2px 8px;border-radius:999px;font-size:12px;font-family:var(--mono);border:1px solid var(--line);background:#fafbfd}
+  .pill.w{border-color:#b7e1c6;background:#e9f6ee;color:#16794a}
+  .pill.r{border-color:#c7d2fe;background:#eef2ff;color:#3b5bdb}
+  .sclinks a{display:inline-block;margin:0 10px 4px 0;font-size:13px;color:#2f6df6;text-decoration:none}
+  .sclinks a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="scwrap">
+  <h1>System Check</h1>
+  <div class="card"><h3>Signed in as</h3><table class="sctbl" id="meTbl"></table></div>
+  <div class="card"><h3>Access</h3><table class="sctbl" id="accTbl"></table></div>
+  <div class="card"><h3>Screens open to you</h3><table class="sctbl" id="scrTbl"></table></div>
+  <div class="card"><h3>Database connection</h3><table class="sctbl" id="dbTbl"><tr><td class="dim">Checking…</td></tr></table></div>
+  <div class="card"><h3>Build</h3><table class="sctbl" id="bldTbl"></table></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   system-check.html — 점검 1판 (2026-09-30 · 대화 Claude · lay-2)
+   판정 158: 옛 index.html 의 점검 내용을 Settings 안으로 · 판정 166: 보이는 이름 System Check · Settings 맨 끝
+   쓸모: 직원이 「안 열린다」 할 때 이 화면 하나로 로그인 · 권한 · DB 연결을 본다
+   ⚠️ 열쇠 null(로그인만) — WMS 만 가진 사람도 연다(lay-1 보고 이견 7 · 대화 Claude 동의)
+   ⚠️ 권한은 ims_access() 의 결과(imsAuth.access)를 보여 주기만 한다 — 화면이 다시 판정하지 않는다
+   ⚠️ DB 칸은 옛 index 와 같은 다섯 표의 행 수(head count) — RLS 로 0 이 나오면 「표가 비었다」가 아니라 「이 사람에게 안 보인다」일 수 있다
+   ───────────────────────────────────────────────────────────── */
+const SC_BUILD = "2026-09-30 · sc v1";
+console.log("system-check.html build:", SC_BUILD);
+
+const row = (k, v) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
+const code = (v) => `<code>${esc(v == null ? "—" : String(v))}</code>`;
+const MODE_NAME = { ims: "IMS", wms: "WMS", pos: "POS" };
+const GROUP_NAME = { purchasing: "Purchasing", sales: "Sales", inventory: "Inventory", action: "Action Center", settings: "Settings", warehouse: "Warehouse" };
+
+imsAuth.start({ changePw: true }, async (sb, me) => {
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = SC_BUILD;
+
+  // Signed in as — 옛 index 와 같은 칸
+  document.getElementById("meTbl").innerHTML =
+      row("name", code(me.name)) + row("email", code(me.email)) + row("role", code(me.role))
+    + row("perms", code(JSON.stringify(me.perms))) + row("is_active", code(me.is_active))
+    + row("auth_user_id", code(me.auth_user_id));
+
+  // Access — ims_access() 그대로
+  const acc = imsAuth.access || {};
+  const scr = acc.screens || {};
+  const keys = Object.keys(scr).sort();
+  const pills = keys.filter(k => scr[k]).map(k => `<span class="pill ${scr[k] === "write" ? "w" : "r"}">${esc(k)} · ${esc(scr[k])}</span>`).join("")
+             || '<span class="dim">none</span>';
+  const off = keys.filter(k => !scr[k]);
+  document.getElementById("accTbl").innerHTML =
+      row("modes", (acc.modes || []).length ? acc.modes.map(m => `<span class="pill">${esc(m)}</span>`).join("") : '<span class="dim">none</span>')
+    + row("screens", pills)
+    + row("not open", off.length ? off.map(k => `<span class="pill">${esc(k)}</span>`).join("") : '<span class="dim">—</span>')
+    + row("warehouses", acc.warehouses === null || acc.warehouses === undefined ? code("all") : code(JSON.stringify(acc.warehouses)));
+
+  // Screens open to you — 공통 js 의 표(imsAuth.visibleScreens) · 모드 · 갈래별
+  const vis = imsAuth.visibleScreens();
+  const order = [];
+  vis.forEach(s => { const k = (MODE_NAME[s.mode] || s.mode) + (s.group ? " · " + (GROUP_NAME[s.group] || s.group) : ""); if (!order.includes(k)) order.push(k); });
+  document.getElementById("scrTbl").innerHTML = order.length
+    ? order.map(k => row(k, '<span class="sclinks">' + vis.filter(s => ((MODE_NAME[s.mode] || s.mode) + (s.group ? " · " + (GROUP_NAME[s.group] || s.group) : "")) === k)
+        .map(s => `<a href="${esc(s.href)}">${esc(s.name)}</a>`).join("") + "</span>")).join("")
+    : row("—", '<span class="dim">none</span>');
+
+  // Build
+  document.getElementById("bldTbl").innerHTML =
+      row("this page", code(SC_BUILD)) + row("ims-auth.js", code(imsAuth.build))
+    + row("first screen", code(imsAuth.firstScreen())) + row("loaded at", code(new Date().toString()));
+
+  // Database connection — 옛 index 와 같은 다섯 표 · 행 수만 센다
+  const out = [];
+  for (const t of ["supplier", "product", "product_supplier", "ref_brand", "ims_staff"]) {
+    const { count, error } = await sb.from(t).select("*", { count: "exact", head: true });
+    out.push(row(t, error ? `<span class="no">${esc(error.message)}</span>`
+                          : `<span class="ok">${Number(count || 0).toLocaleString()}</span> rows`));
+  }
+  document.getElementById("dbTbl").innerHTML = out.join("");
+});
+</script>
+</body>
+</html>
