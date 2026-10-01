@@ -82,7 +82,7 @@
       <button id="discardBtn" disabled>Discard</button>
       <button class="pobtn go" id="saveBtn" disabled>Save</button>
     </div>
-    <div class="note" id="hint">Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down.</div>
+    <div class="note" id="hint">Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down. Costs are in the supplier's currency (Cur) — not converted.</div>
     <div class="grid" id="grid"></div>
   </div>
 </div>
@@ -99,7 +99,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Product Sheet — 여러 상품을 표로 펼쳐 한꺼번에 고치기 · 만들기 (sheet v1b · 2026-10-01 · v1a 위에 New 모드 · Next 300 · 분류 칸 넓힘 · 열 고르기(판정 206) · 고칠 칸 테두리)
+   Product Sheet — 여러 상품을 표로 펼쳐 한꺼번에 고치기 · 만들기 (sheet v1b · 2026-10-01 · v1a 위에 New 모드 · Next 300 · 분류 칸 넓힘 · 열 고르기(판정 206) · 고칠 칸 테두리 · v1c: Latest cost 이름 · 통화 열 · Fixed cost 열 · 새 공급처 줄에 공급처 통화)
    판정: 145(여러 SKU 한꺼번에 · 표 · 붙여 넣기) · 187(고치기 = 창구 하나 · 목록) · 200(두 화면) · 204(한 줄 = 상품 하나)
          205(모드 둘 · v1a 는 Edit · New 는 v1b) · 176(검사 → 경고 확인 → 저장)
    창구: product_update(p_changes, p_commit, p_ack) — 마지막 정의 20261001152712(img-1) · 칸마다 한 줄 · old 필수
@@ -108,11 +108,11 @@
    ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
    ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
    ───────────────────────────────────────────────────────────── */
-const SH_BUILD = "sheet v1b";
+const SH_BUILD = "sheet v1c";
 const MAX_ROWS = 300, MAX_LINES = 1000;
 
 let sb = null, canEdit = false;
-let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], byName:{ brand:{}, cat:{}, unit:{}, sup:{} } };
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], cur:{}, byName:{ brand:{}, cat:{}, unit:{}, sup:{} } };
 let rows = [];          // 불러온 상품 — { p, prices:{tierId:{price}}, sup:{…기본 공급처}|null, bc, fam, parent }
 let cols = [];          // 보이는 열 — { key, label, kind, edit, cls }
 let blocked = new Set();
@@ -152,8 +152,10 @@ function buildCols(){
     { key:"unit", label:"Unit", kind:"ref", ref:"unit", edit:true, w:"w-num" },
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", edit:true, w:"w-num" })),
     { key:"supname", label:"Default supplier", kind:"ro" },
+    { key:"cur", label:"Cur", kind:"ro" },
     { key:"ssku", label:"Supplier SKU", kind:"text", edit:true, w:"w-ssku", needSup:true },
-    { key:"cost", label:"Cost", kind:"num", edit:true, w:"w-num", needSup:true },
+    { key:"fixed", label:"Fixed cost", kind:"num", edit:true, w:"w-num", needSup:true },
+    { key:"cost", label:"Latest cost", kind:"num", edit:true, w:"w-num", needSup:true },
     { key:"active", label:"Active", kind:"bool", edit:true },
     { key:"disc", label:"Discontinued", kind:"bool", edit:true },
     { key:"setdisc", label:"Set disc %", kind:"num", edit:true, w:"w-num", needSet:true },
@@ -176,6 +178,8 @@ function origVal(r, c){
     case "supname": return r.sup ? r.sup.name : "";
     case "ssku": return r.sup ? (r.sup.supplier_sku || "") : "";
     case "cost": return r.sup && r.sup.cost != null ? String(r.sup.cost) : "";
+    case "fixed": return r.sup && r.sup.fixed_cost != null ? String(r.sup.fixed_cost) : "";
+    case "cur": return r.sup ? (refs.cur[r.sup.currency_id] || "") : "";
     case "active": return !!p.is_active;
     case "disc": return !!p.is_discontinued;
     case "setdisc": return p.set_discount_pct == null ? "" : String(p.set_discount_pct);
@@ -222,7 +226,7 @@ async function load(next){
 
   const [pr, sp, bc] = await Promise.all([
     inChunks(ids, async c => (await sb.from("product_price").select("product_id,tier_id,price").in("product_id", c).eq("is_active", true)).data),
-    inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,cost,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),
+    inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,cost,fixed_cost,currency_id,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),
     inChunks(ids, async c => (await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", c).eq("is_active", true)).data),
   ]);
   const famIds = Array.from(new Set(ps.map(x => x.family_id).filter(Boolean)));
@@ -241,7 +245,7 @@ async function load(next){
     const bcs = bc.filter(x => x.product_id === p.id);
     const b0 = bcs.find(x => x.is_primary) || bcs[0];
     return { p, prices,
-      sup: d ? { supplier_id: d.supplier_id, name: d.supplier ? d.supplier.name : "", supplier_sku: d.supplier_sku, cost: d.cost, count: sups.length } : null,
+      sup: d ? { supplier_id: d.supplier_id, name: d.supplier ? d.supplier.name : "", supplier_sku: d.supplier_sku, cost: d.cost, fixed_cost: d.fixed_cost, currency_id: d.currency_id, count: sups.length } : null,
       bc: b0 ? b0.barcode + (bcs.length > 1 ? ` +${bcs.length - 1}` : "") : "",
       fam: p.family_id ? (famMap[p.family_id] || "?") : "", parent: p.parent_product_id ? (parMap[p.parent_product_id] || "?") : "" };
   });
@@ -330,6 +334,7 @@ function buildChanges(){
         case "setdisc": setLine("set_discount_pct", v, p.set_discount_pct == null ? null : String(p.set_discount_pct)); break;
         case "ssku": supLine.supplier_sku = v; supOld.supplier_sku = r.sup.supplier_sku ?? null; supAny = true; break;
         case "cost": supLine.cost = v; supOld.cost = r.sup.cost == null ? null : String(r.sup.cost); supAny = true; break;
+        case "fixed": supLine.fixed_cost = v; supOld.fixed_cost = r.sup.fixed_cost == null ? null : String(r.sup.fixed_cost); supAny = true; break;
         default:
           if(c.tier){
             const x = r.prices[c.tier];
@@ -462,7 +467,8 @@ function buildNewCols(){
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", w:"w-num" })),
     { key:"sup", label:"Supplier", kind:"ref", ref:"sup", w:"w-ref" },
     { key:"ssku", label:"Supplier SKU", kind:"text", w:"w-ssku" },
-    { key:"cost", label:"Cost", kind:"num", w:"w-num" },
+    { key:"fixed", label:"Fixed cost", kind:"num", w:"w-num" },
+    { key:"cost", label:"Latest cost", kind:"num", w:"w-num" },
     { key:"bc", label:"Barcode(s)", kind:"text", w:"w-ssku" },
     { key:"sets", label:"Sets (6, 12)", kind:"text", w:"w-num" },
   ];
@@ -559,7 +565,7 @@ async function saveNew(){
       brand_id: (byName("brand", r.brand) || {}).id || null, category_id: (byName("cat", r.cat) || {}).id || null, unit_id: unit ? unit.id : null,
       barcodes: splitList(r.bc),
       prices: saleTiers().filter(t => blankNull(r["pr_" + t.id]) !== null).map(t => ({ tier_id: t.id, price: blankNull(r["pr_" + t.id]) })),
-      suppliers: sup ? [{ supplier_id: sup.id, supplier_sku: blankNull(r.ssku), cost: blankNull(r.cost), is_default: true }] : [],
+      suppliers: sup ? [{ supplier_id: sup.id, supplier_sku: blankNull(r.ssku), fixed_cost: blankNull(r.fixed), cost: blankNull(r.cost), currency_id: sup.currency_id || null, is_default: true }] : [],
       sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
     };
   });
@@ -575,10 +581,10 @@ async function saveNew(){
 /* ── 열 고르기(판정 206) — 묶음 단추 + 체크 ── */
 const PRESETS = {
   edit: { "Prices": k => k === "name" || k.startsWith("pr_"),
-          "Supplier": k => ["name","supname","ssku","cost"].includes(k),
+          "Supplier": k => ["name","supname","cur","ssku","fixed","cost"].includes(k),
           "All": () => true },
   new:  { "Basic": k => ["name","brand","cat","unit","bc","sets"].includes(k) || k.startsWith("pr_"),
-          "With supplier": k => ["name","brand","cat","unit","bc","sets","sup","ssku","cost"].includes(k) || k.startsWith("pr_"),
+          "With supplier": k => ["name","brand","cat","unit","bc","sets","sup","ssku","fixed","cost"].includes(k) || k.startsWith("pr_"),
           "All": () => true },
 };
 function openCols(){
@@ -618,8 +624,9 @@ imsAuth.start({ changePw:true }, async (client, me) => {
       fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
-      fetchAll("supplier", "id,name", x => x.eq("is_active", true).order("name")),
-    ]);
+      fetchAll("supplier", "id,name,currency_id", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_currency", "id,code"),
+    ]).then(a => { a[5].forEach(c => { refs.cur[c.id] = c.code; }); return a; });
     Object.assign(refs, { brands:bl, cats:cl, units:ul, tiers:tl, suppliers:sl });
     const idx = (list, m) => list.forEach(x => { m[x.name.toLowerCase()] = x; });
     idx(bl, refs.byName.brand); idx(cl, refs.byName.cat); idx(ul, refs.byName.unit); idx(sl, refs.byName.sup);

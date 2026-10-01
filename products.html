@@ -144,7 +144,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2e · 2026-10-01 · 브랜드 · 분류 · 단위를 글자로 좁혀지는 칸으로 — 고치기 · New product · New family)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2f · 2026-10-01 · v2e 위에 새 공급처 줄에 공급처 통화 · 단가 옆 통화 표시)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -156,7 +156,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2e";
+const PR_BUILD = "pr v2f";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -166,7 +166,7 @@ let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
 const pg = imsPage(100);
 let openSets = {};
-let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[] };
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{} };
 let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
 let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[] } — 입력값은 DOM 에서 읽는다
 
@@ -399,6 +399,7 @@ function renderRead(){
       <td class="mono">${dim(x.supplier_sku)}</td>
       <td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
       <td class="num">${x.cost==null?'<span class="dim">—</span>':esc(x.cost)}</td>
+      <td class="mono">${dim(refs.cur[x.currency_id])}</td>
       <td class="mono">${dim(x.last_supplied)}</td>
       <td>${yn(x.is_default, false)}</td><td>${yn(x.is_active)}</td></tr>`);
 
@@ -428,7 +429,7 @@ function renderRead(){
     ${tbl("Suppliers" + (supDead && isAdmin
             ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
                  <input type="checkbox" id="showDead" ${showDead?"checked":""}> show ${supDead} inactive</label>` : ""),
-          supShow.length, ["Supplier","Supplier SKU","Fixed","Latest","Last supplied","Default","Active"], supRows,
+          supShow.length, ["Supplier","Supplier SKU","Fixed","Latest","Cur","Last supplied","Default","Active"], supRows,
           r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
@@ -635,6 +636,7 @@ function buildChanges(){
   });
   edit.addSup.forEach(n => {
     const line = { op:"supplier_set", sku, supplier_id:n.id };
+    { const sp0 = refs.suppliers.find(x => x.id === n.id); if(sp0 && sp0.currency_id) line.currency_id = sp0.currency_id; }
     ["supplier_sku","fixed_cost","cost"].forEach(k => { if(n[k] !== null) line[k] = n[k]; });
     out.push(line);
   });
@@ -988,7 +990,7 @@ function openProductDialog(st){
           weight: blankNull(st.weight), weight_unit: blankNull(st.weight_unit), note: blankNull(st.note),
           barcodes: splitList(st.barcodes),
           prices: Object.entries(st.prices).filter(([, v]) => v).map(([tier_id, price]) => ({ tier_id, price })),
-          suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku), cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), is_default: true }] : [],
+          suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku), cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), currency_id: sp.currency_id || null, is_default: true }] : [],
           sets: st.sets.map(x => {
             const o = { pack_factor: blankNull(x.pack_factor), barcodes: splitList(x.barcodes) };
             if(blankNull(x.set_discount_pct) !== null) o.set_discount_pct = blankNull(x.set_discount_pct);
@@ -1099,7 +1101,7 @@ function openFamilyDialog(st){
             options: Array.from({ length: nAx }, (_, j) => (r["o"+j]||"").trim()),
             barcodes: splitList(r.bc),
             prices: tiers.filter(t => blankNull(r["p_"+t.id]) !== null).map(t => ({ tier_id: t.id, price: blankNull(r["p_"+t.id]) })),
-            suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku) ?? sku, cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), is_default: true }] : [],
+            suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku) ?? sku, cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), currency_id: sp.currency_id || null, is_default: true }] : [],
             sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
           };
         });
@@ -1164,14 +1166,16 @@ imsAuth.start({ changePw:true }, async (client, me) => {
 
   /* 기준표 — 고치기 칸이 id 로 쓴다(이름 칸은 창구가 복사한다 · 판정 143) */
   try {
-    const [bl, cl, ul, tl, sl, fl] = await Promise.all([
+    const [bl, cl, ul, tl, sl, fl, cu] = await Promise.all([
       fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
-      fetchAll("supplier", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("supplier", "id,name,currency_id", x => x.eq("is_active", true).order("name")),
       fetchAll("product_family", "option1_name,option2_name,option3_name", x => x.eq("is_active", true)),
+      fetchAll("ref_currency", "id,code"),
     ]);
+    refs.cur = {}; cu.forEach(c => { refs.cur[c.id] = c.code; });
     /* 축 이름 — 활성 family 가 쓰는 것을 많이 쓰는 순으로(판정 190 · 흔한 철자를 먼저 보이게) */
     const ac = {}; fl.forEach(f => [f.option1_name, f.option2_name, f.option3_name].forEach(a => { if(a) ac[a] = (ac[a]||0) + 1; }));
     refs.axes = Object.entries(ac).sort((a,b) => b[1] - a[1]).map(x => x[0]);
