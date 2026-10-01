@@ -22,7 +22,8 @@
 
    ⭐⭐ 레이아웃 (2026-09-30 · lay-1 · 판정 149 ~ 167) — 이 파일이 모든 화면의 <header> 에 그려 넣는다. 화면 파일은 안 고쳤다.
      · 헤더 왼쪽 = 로고(asung-logo-dark.png · .brand 자리) + 모드 셋(IMS · WMS · POS · 고를 것이 둘 이상일 때만 · 판정 149 · 160)
-     · IMS 화면 = 윗줄 펼침 메뉴 Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ (판정 153) · ☰ Menu 는 감춘다 · 탭 줄 없음
+     · IMS 화면 = 윗줄 펼침 메뉴 Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ (판정 153) · ☰ Menu 는 감춘다
+       ✅ [2026-09-30 밤 lay-1c · 판정 169] Purchasing · Sales 의 **문서 화면**에서는 헤더 아래 탭 줄이 다시 선다(lay-1 전 모양) — 펼침 = 다른 갈래로 건너가는 길 · 탭 = 같은 갈래 안 옆 화면
      · WMS 화면 = 로고 + 모드만 더하고 나머지는 그대로(탭 줄 · ☰ Menu · 판정 160) · ☰ 의 내용은 WMS 화면만(IMS 로 가는 길은 모드 단추 하나)
      · POS 화면 = 로고 + 모드 + 이름 + Sign Out (판정 159) · ☰ 감춤 · 펼침 · 탭 없음
      · 110% 는 IMS · POS 만(판정 154 · 157) — 이 파일이 읽히는 즉시 <html data-ims-mode="ims|wms|pos"> 를 달고 ims-ui.css 가 zoom 을 건다
@@ -41,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v2";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v3";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -50,32 +51,32 @@
   let recovery = /(^|[#&?])type=recovery(&|$)/.test(location.hash) || /(^|[&?])type=recovery(&|$)/.test(location.search);
 
   /* ---- 화면 표 — 메뉴 · 모드 · 탭이 **이 배열 하나**에서 나온다 (2026-09-17 · 2026-09-30 lay-1 재배치) ----
-     [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms'|'pos'), WMS 탭에 서나(wms 만 뜻이 있다 · ims 는 전부 false), 갈래]
+     [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms'|'pos'), 탭에 서나(true 면 그 갈래의 탭 줄에 · 판정 169: IMS 는 Purchasing · Sales 의 문서 화면 열 줄 · WMS 는 일곱 전부 · 마스터 · Inventory · Action Center · Settings 는 false = 펼침에만), 갈래]
      ⭐ 화면 값은 ims_perm_catalog() 의 어휘 — purchasing · master · receiving · staff · sales · stock_adjust · transfer · stock_move · picking · packing · fulfillment · wms_receiving · wms_manage.
         노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다). ⚠️ 이 차수(lay-1)는 열쇠 칸을 하나도 바꾸지 않았다.
      ⭐ 갈래(여섯째) — IMS 윗줄 펼침의 자리: 'purchasing' · 'sales' · 'inventory' · 'action' · 'settings' (판정 150 · 151 · 152 · 164 · 165 · 166) · null = 펼침에 안 선다(Dashboard) · WMS 는 'warehouse' 하나.
         갈래는 그 사람에게 보이는 화면이 하나라도 있을 때만 선다 · 줄 순서 = 펼침 안 순서.
      ⭐ 모드 — 'pos' 는 DB 모드가 아니다(ims_perm_catalog modes = wms · ims 둘뿐 · 20260928201753). POS 모드는 **화면 쪽에서만**: access.modes 에 'ims' 가 있고 pos.html 이 보이면(sales 열쇠) 선다 — 아래 canEnter · ⬜ 판정 거리(lay-1 보고 ①).
      ⚠️ 빈 링크를 메뉴에 두지 않는다(판정 162) — 아직 없는 화면은 **주석 줄로 순서 자리만**. ⚠️ dashboard.html · system-check.html 은 lay-2 가 짓는다(같이 push).
-     ⚠️ [2026-09-30] 이름은 보이는 글자만(파일 · 열쇠 무변): Manager List → 「Action Center」(판정 165) · Purchase Invoices(invoices.html) · Supplier Payments(payments.html) · Purchase Receipts(receiving.html · 판정 40).
+     ⚠️ [2026-09-30] 이름은 보이는 글자만(파일 · 열쇠 무변): Manager List → 「Action Center」(판정 165) · Purchase Invoices → 「Purchase Invoices & Credits」(invoices.html · 판정 170 · 화면 <title> 과 같다 · 이 화면이 크레딧도 다룬다 · & 는 네 출력 경로 전부 esc() 를 지난다) · Supplier Payments(payments.html) · Purchase Receipts(receiving.html · 판정 40).
      ⚠️ Supplier Products 는 상품 화면이 설 때까지 Inventory 의 Products 바로 뒤(판정 151 임시) — 그 뒤 메뉴에서 빠진다.
      ✅ Home(index.html) 줄은 없앴다 — index 는 문이다(판정 163). */
   const items=[
     // IMS 첫 화면 — 펼침에 안 선다(갈래 null) · 로고 · IMS 모드 단추 · firstScreen() 이 여기로 보낸다 (판정 158 · 163 · lay-2)
     ["Dashboard","dashboard.html",null,"ims",false,null],
-    // Purchasing (판정 150)
-    ["Purchase Orders","po.html","purchasing","ims",false,"purchasing"],
-    ["Purchase Invoices","invoices.html","purchasing","ims",false,"purchasing"],
-    ["Charges","charges.html","purchasing","ims",false,"purchasing"],
-    ["Supplier Payments","payments.html","purchasing","ims",false,"purchasing"],
-    ["Purchase Receipts","receiving.html","receiving","ims",false,"purchasing"],
+    // Purchasing (판정 150 · 탭 다섯 = 문서 화면 · 판정 169)
+    ["Purchase Orders","po.html","purchasing","ims",true,"purchasing"],
+    ["Purchase Invoices & Credits","invoices.html","purchasing","ims",true,"purchasing"],
+    ["Charges","charges.html","purchasing","ims",true,"purchasing"],
+    ["Supplier Payments","payments.html","purchasing","ims",true,"purchasing"],
+    ["Purchase Receipts","receiving.html","receiving","ims",true,"purchasing"],
     ["Suppliers","suppliers.html","master","ims",false,"purchasing"],
-    // Sales (판정 150 · POS 는 모드로 갈라 여기 없다 · 판정 159)
-    ["Sales Orders","so.html","sales","ims",false,"sales"],
-    ["Sales Invoices","so-invoices.html","sales","ims",false,"sales"],
-    ["Customer Payments","so-payments.html","sales","ims",false,"sales"],
-    ["Credit Notes","so-credits.html","sales","ims",false,"sales"],
-    ["Backorders","so-backorders.html","sales","ims",false,"sales"],
+    // Sales (판정 150 · 탭 다섯 = 문서 화면 · 판정 169 · POS 는 모드로 갈라 여기 없다 · 판정 159)
+    ["Sales Orders","so.html","sales","ims",true,"sales"],
+    ["Sales Invoices","so-invoices.html","sales","ims",true,"sales"],
+    ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
+    ["Credit Notes","so-credits.html","sales","ims",true,"sales"],
+    ["Backorders","so-backorders.html","sales","ims",true,"sales"],
     // ⬜ ["Customers","customers.html","sales","ims",false,"sales"],   — 손님 화면이 서면 (판정 150 · 162)
     // Inventory (판정 150 · 151)
     ["Products","products.html","master","ims",false,"inventory"],
@@ -433,7 +434,7 @@
   /* 헤더 높이 변수 — 화면이 빼 쓴다
      --ims-hdr-h     헤더 전체 높이(sticky)
      --ims-hdr-extra 헤더가 두 줄로 꺾였을 때 늘어난 만큼(윗줄 펼침이 둘째 줄로 내려간 높이) · 한 줄이면 0px — ims-ui.css 의 .list{top} 이 더한다
-     --ims-tabs-h    「헤더 아래에서 내용이 밀린 만큼」 = extra + WMS 탭 줄 높이 — po · so · so-invoices · so-payments · so-credits 의 .list .rows max-height 가 빼 쓴다(옛 뜻 그대로 · 탭 줄이 없는 IMS 화면에서는 extra 뿐)
+     --ims-tabs-h    「헤더 아래에서 내용이 밀린 만큼」 = extra + 탭 줄 높이(IMS Purchasing · Sales 문서 화면 · WMS) — po · so · so-invoices · so-payments · so-credits 의 .list .rows max-height 가 빼 쓴다(옛 뜻 그대로 · 탭 줄이 없는 화면에서는 extra 뿐)
      ⚠️ 좁은 폭: 윗줄 펼침이 로고와 같은 줄에 못 서면(nav.offsetTop 이 로고 아래) header.ims-wrap 을 달아 둘째 줄 **전체**로 내린다(가로 스크롤이 아니다) — 이름 · Sign Out 은 첫 줄 오른쪽에 남는다 */
   let hdrTimer=null;
   function setHeaderVars(){
@@ -454,16 +455,21 @@
     root.setProperty("--ims-hdr-h", header.offsetHeight+"px");
   }
 
-  /* ---- WMS 탭 줄 = 그 모드의 탭 (헤더 바로 아래 한 줄 · 2026-09-17 · 모드 부분은 2026-09-30 헤더로 올라갔다 — 판정 160) ----
-     · WMS 화면에서만 · 탭은 items 다섯째 칸 true 인 WMS 화면 · 지금 화면은 .cur 로 눌리지 않는다 · 그냥 링크다(화면이 통째로 다시 뜬다)
-     · IMS 화면은 탭 줄을 그리지 않는다(윗줄 펼침이 대신한다 · 판정 153) · POS 도 없다(판정 159)
-     ⚠️ sticky 가 아니다 — 헤더(sticky)만 남고 이 줄은 함께 스크롤된다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs). */
+  /* ---- 탭 줄 = 지금 화면 갈래의 탭 (헤더 바로 아래 한 줄 · 2026-09-17 · 모드 부분은 2026-09-30 헤더로 올라갔다 — 판정 160) ----
+     · 탭 = items 다섯째 칸 true 이고 **지금 화면과 같은 모드 · 같은 갈래**인 보이는 화면 · 지금 화면이 그중 하나일 때만 그린다(lay-1 전 규칙 — Suppliers 처럼 같은 갈래라도 탭 아닌 화면에서는 줄이 서지 않는다)
+     · IMS: Purchasing · Sales 의 문서 화면 열 줄(판정 169 · lay-1c) · WMS: 일곱 · POS: 없음(판정 159) · 갈래 없는 화면(Dashboard): 없음
+     · 지금 화면은 .cur 로 눌리지 않는다 · 그냥 링크다(화면이 통째로 다시 뜬다)
+     ⚠️ sticky 가 아니다 — 헤더(sticky)만 남고 이 줄은 함께 스크롤된다(lay-1 전과 같다). 높이는 setHeaderVars 가 --ims-tabs-h 에 더한다. 모양은 ims-ui.css 「탭 줄」 구역(.ims-tabs). */
   function setupTabs(vis){
     const header=document.querySelector("header");
-    if(!header || document.getElementById("imsTabs") || hereMode!=="wms") return;
-    const tabs=vis.filter(it=>it[4]===true && it[3]==="wms");
+    if(!header || document.getElementById("imsTabs") || hereMode==="pos") return;
+    const curGroup=hereItem?(hereItem[5]||null):null;
+    if(!curGroup) return;
+    const tabs=vis.filter(it=>it[4]===true && it[3]===hereMode && (it[5]||null)===curGroup);
     if(!tabs.some(it=>it[1].toLowerCase()===here)) return;
-    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label","Screens");
+    const gdef=groupDefs.find(([g])=>g===curGroup);
+    const glabel=gdef?gdef[1]:(curGroup==="warehouse"?"Warehouse":curGroup);
+    const nav=document.createElement("nav"); nav.id="imsTabs"; nav.className="ims-tabs"; nav.setAttribute("aria-label",glabel+" screens");
     nav.innerHTML=tabs.map(it=>{
       const on=it[1].toLowerCase()===here;
       return `<a href="${esc(it[1])}" class="${on?"cur":""}"${on?' aria-current="page"':""}>${esc(it[0])}</a>`;
