@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-ims-mode="ims">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,7 +8,7 @@
 <style>
   /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
   .list{width:360px;flex:0 0 360px}
-  .list .rows{max-height:calc(100vh - 235px)}
+  .list .rows{max-height:calc(100vh - 270px)}
   main{display:flex;flex-direction:column;gap:14px}
   /* 목록 한 줄: 캐럿 + 본문 */
   .list .row{display:flex;gap:7px;align-items:flex-start;padding:8px 12px}
@@ -22,12 +22,54 @@
   .list .row .nm{font-size:12.5px;color:var(--muted);margin-top:2px;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
   .list .kid{padding-left:33px;background:#fcfdfe}
+  .flt{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
+
+  /* 머리의 동작 단추 자리 */
+  .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .head .acts .hint{font-size:12px;color:var(--muted)}
+  .editing{outline:2px solid #3b5bdb22;border-radius:12px}
+
+  /* 고치기 칸 — 판정 202 · 바꾼 칸은 노랗게 */
+  .ein{width:100%;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:#fff}
+  .ein.mono{font-family:var(--mono)}
+  .ein.sm{width:110px}
+  textarea.ein{min-height:52px;resize:vertical}
+  .chg{background:#fff6d6 !important;border-color:#e8cf7a !important}
+  .addrow{display:flex;gap:6px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .addrow .ein{width:auto;flex:1;min-width:120px}
+  .newtag{font-size:11px;color:var(--good);font-weight:600}
+  tr.offrow td{text-decoration:line-through;color:var(--muted)}
+
+  /* 사진 — 판정 193 · 194 */
+  .ph{display:flex;gap:14px;padding:14px;align-items:flex-start;flex-wrap:wrap}
+  .ph .big{width:240px;height:240px;border:1px solid var(--line);border-radius:12px;background:#fff;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .ph .big img{max-width:100%;max-height:100%;object-fit:contain}
+  .ph .big .from{position:absolute;left:8px;bottom:8px;font-size:11px;background:#fff8e6;color:var(--warn);
+    border:1px solid #ecdcb4;border-radius:6px;padding:1px 6px}
+  .ph .thumbs{display:flex;gap:10px;flex-wrap:wrap;flex:1;min-width:0}
+  .ph .th{width:104px;border:1px solid var(--line);border-radius:10px;background:#fff;overflow:hidden}
+  .ph .th .im{height:96px;display:flex;align-items:center;justify-content:center;cursor:zoom-in}
+  .ph .th .im img{max-width:100%;max-height:100%;object-fit:contain}
+  .ph .th .ops{display:flex;gap:3px;justify-content:center;padding:4px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .ph .th.pri{border-color:#3b5bdb}
+  .ph .th .ops .xbtn{padding:1px 5px;font-size:11px}
+  .ph .none{color:var(--muted);font-size:12.5px}
+
+  /* 경고 대화상자 — 판정 176 · 202 */
+  .res h5{margin:6px 0 6px;font-size:12.5px}
+  .res ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.55}
+  .res .blk li{color:var(--bad)}
+  .res .wrn li{color:var(--warn)}
+  .res .sk{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  .zoom{max-width:100%;max-height:70vh;display:block;margin:0 auto}
 </style>
 </head>
 <body>
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
@@ -49,11 +91,15 @@
         </label>
       </div>
       <div class="opts">
-        <input list="brandList" id="brand" placeholder="Brand" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px">
+        <input list="brandList" id="brand" placeholder="Brand" class="flt">
         <datalist id="brandList"></datalist>
         <select id="cat" style="flex:1;min-width:0">
           <option value="">All categories</option>
         </select>
+      </div>
+      <div class="opts">
+        <input list="supList" id="sup" placeholder="Supplier" class="flt">
+        <datalist id="supList"></datalist>
       </div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
@@ -66,47 +112,78 @@
   <main id="detail"><div class="card"><div class="msg">Search for a product.</div></div></main>
 </div>
 
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+<input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" multiple hidden>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — product 18,714 + family · barcode · bom · supplier (읽기 전용)
-   정본: docs/design/po-module.md §3-d · §3-e · §3-g
-
-   ⚠️⚠️ 18,714행이다. 목록을 훑는 화면이 아니라 검색해서 들어가는 화면이다.
+   Products — 한 상품 보기 · 고치기 · 사진 (pr v2a · 2026-10-01)
+   정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
+   판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
+         188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
+   창구: product_update(p_changes, p_commit, p_ack) — 마지막 정의 20261001152712(img-1) · 열일곱 op
+         product_image_primary(text[]) — 세트 → 낱개 사진(from_parent)
+   ⚠️ 쓰기는 창구로만 — 상품 계열 표는 authenticated 에게 select 만(prod-2)
+   ⚠️ 모든 줄은 「화면이 처음 본 SKU」로 가리킨다 — 같은 저장에서 SKU 를 바꿔도 서버가 검사 때 푼 id 로 저장(4a 이견 3)
+   ⚠️ 18,714행이다. 목록을 훑는 화면이 아니라 검색해서 들어가는 화면이다.
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
-      토글은 두되 매니저에게도 보인다.
-   ⚠️ product_bom 의 구성품은 FK 이름을 추측하지 않고 두 번 나눠 읽는다
-      (조인 이름을 틀리면 조용히 빈 배열이 온다).
-   ⭐ 세트·콤보는 다른 것이다:
-        세트  parent_product_id 가 있다 · pack_factor 로 부모에서 환산해 발주
-        콤보  product_bom 의 부모다 · 구성품이 서로 다른 제품
+   ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
+const PR_BUILD = "pr v2a";
+const BUCKET = "product-images";
+const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
+const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-let sb=null, isAdmin=false, showDead=false;
-/* ⚠️ loadDetail 은 조회 여럿을 기다린 뒤 화면에 쓴다. 그 사이에 필터가 바뀌면
-   loadList 가 상세를 비우는데, 나중에 도착한 loadDetail 이 다시 써서 목록에 없는 것이 남는다.
-   ⇒ 요청마다 번호를 붙여 최신이 아니면 쓰지 않는다. */
+let sb=null, isAdmin=false, canEdit=false, showDead=false;
 let detailSeq = 0;
+let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
+const pg = imsPage(100);
+let openSets = {};
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, currencies:{} };
+let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
+let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[] } — 입력값은 DOM 에서 읽는다
 
-/* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb). */
+function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
+
+/* ⚠️ PostgREST 는 한 번에 1,000 행까지 — 그 너머는 쪽을 넘긴다 */
+async function fetchAll(table, select, build){
+  const out = [];
+  for(let from = 0; ; from += 1000){
+    let qy = sb.from(table).select(select).range(from, from + 999);
+    if(build) qy = build(qy);
+    const { data, error } = await qy;
+    if(error) throw error;
+    out.push(...(data||[]));
+    if(!data || data.length < 1000) break;
+  }
+  return out;
+}
+
 function clearDetail(){
-  curId = null;
+  curId = null; cur = null; edit = null;
   detailSeq++;
   document.getElementById("detail").innerHTML =
     '<div class="card"><div class="msg">Search for a product.</div></div>';
 }
-let q="", onlyActive=true, kind="single", brand="", cat="", curId=null;
-const pg = imsPage(100);
-let openSets = {};   // 펼친 낱개 id → 그 세트들 (캐럿)
-
+function leaveEditOk(){
+  if(!edit) return true;
+  if(!buildChanges().length) { edit = null; return true; }
+  if(confirm("You have unsaved changes. Discard them?")) { edit = null; return true; }
+  return false;
+}
 
 /* ── 목록 ─────────────────────────────────────────────── */
 async function loadList(){
-  let qry = sb.from("product")
-    .select("id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name", { count:"exact" });
+  const cols = "id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name";
+  /* ⭐ 공급처로 거르기(판정 151) — product_supplier 를 !inner 로 묶어 그 공급처의 켜진 줄이 있는 상품만 */
+  let qry = supId
+    ? sb.from("product").select(cols + ",product_supplier!inner(supplier_id,is_active)", { count:"exact" })
+        .eq("product_supplier.supplier_id", supId).eq("product_supplier.is_active", true)
+    : sb.from("product").select(cols, { count:"exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
   if(kind==="single") qry = qry.is("parent_product_id", null);
   if(kind==="set")    qry = qry.not("parent_product_id", "is", null);
@@ -117,8 +194,6 @@ async function loadList(){
   const { data, error } = await pg.run(qry.order("sku"));
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
 
-  /* ⭐ 캐럿 — 이 페이지의 낱개 중 세트가 딸린 것을 한 번에 묻는다.
-     ⚠️ 낱개 100개의 자식을 각각 물으면 요청이 100번이다. .in() 으로 한 번에 받는다. */
   let hasKids = {};
   if(kind !== "set" && data.length){
     const ids = data.filter(r => !r.parent_product_id).map(r => r.id);
@@ -148,14 +223,9 @@ async function loadList(){
     </div>`;
   };
 
-  /* ⚠️ [실사고 2026-09-15] 같은 세트가 두 번 그려졌다.
-        검색어가 낱개 SKU 면 그 세트도 ilike 에 걸려 목록 본체에 들어오는데,
-        펼친 부모의 자식으로도 그려져서 둘이 겹쳤다(BNAT57623 → BNAT57623-12).
-     ⇒ 펼쳐서 이미 보인 것은 본체에서 건너뛴다. */
+  /* ⚠️ [실사고 2026-09-15] 같은 세트가 두 번 그려졌다 — 펼쳐서 이미 보인 것은 본체에서 건너뛴다 */
   const shownAsKid = new Set();
-  data.forEach(r => {
-    if(openSets[r.id]) (hasKids[r.id]||[]).forEach(k => shownAsKid.add(k.id));
-  });
+  data.forEach(r => { if(openSets[r.id]) (hasKids[r.id]||[]).forEach(k => shownAsKid.add(k.id)); });
 
   let html = "";
   data.forEach(r => {
@@ -167,39 +237,37 @@ async function loadList(){
 
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = (ev) => {
-      if(ev.target.dataset.toggle) return;      // 캐럿은 따로
+      if(ev.target.dataset.toggle) return;
+      if(el.dataset.id === curId) return;
+      if(!leaveEditOk()) return;
       curId = el.dataset.id; loadList(); loadDetail(curId);
     };
   });
   document.querySelectorAll("[data-toggle]").forEach(el => {
-    el.onclick = (ev) => {
-      ev.stopPropagation();
-      const k = el.dataset.toggle;
-      openSets[k] = !openSets[k];
-      loadList();
-    };
+    el.onclick = (ev) => { ev.stopPropagation(); const k = el.dataset.toggle; openSets[k] = !openSets[k]; loadList(); };
   });
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
 }
 
-/* ── 상세 ─────────────────────────────────────────────── */
+/* ── 상세 읽기 ─────────────────────────────────────────── */
 async function loadDetail(id){
   const seq = ++detailSeq;
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
-  const [p, bar, sup, bom, kids] = await Promise.all([
+  const [p, bar, sup, bom, kids, pri, img] = await Promise.all([
     sb.from("product").select("*").eq("id", id).maybeSingle(),
     sb.from("product_barcode").select("*").eq("product_id", id).order("is_primary", {ascending:false}),
     sb.from("product_supplier").select("*, supplier(name)").eq("product_id", id).order("is_default", {ascending:false}),
     sb.from("product_bom").select("*").eq("parent_product_id", id),
     sb.from("product").select("id,sku,name,pack_factor,is_active").eq("parent_product_id", id).order("sku"),
+    sb.from("product_price").select("id,tier_id,price,is_active,source").eq("product_id", id),
+    sb.from("product_image").select("*").eq("product_id", id).order("sort_order").order("created_at"),
   ]);
-  if(p.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error.message)}</div></div>`; return; }
+  if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Product not found.")}</div></div>`; return; }
   const r = p.data;
 
-  /* 구성품 이름 — ⚠️ FK 조인 이름을 추측하지 않고 따로 읽는다 */
   let comps = [];
   if((bom.data||[]).length){
     const ids = bom.data.map(b => b.component_product_id).filter(Boolean);
@@ -207,43 +275,73 @@ async function loadDetail(id){
     const map = {}; (cp||[]).forEach(x => map[x.id] = x);
     comps = bom.data.map(b => Object.assign({}, b, { c: map[b.component_product_id] || null }));
   }
-  /* 부모 · 패밀리 */
-  let parent = null, family = null;
+  let parent = null, family = null, sibs = [];
   if(r.parent_product_id){
     const { data } = await sb.from("product").select("id,sku,name").eq("id", r.parent_product_id).maybeSingle();
     parent = data;
   }
-  let sibs = [];
   if(r.family_id){
     const { data } = await sb.from("product_family").select("id,sku,name,option1_name,option2_name,option3_name").eq("id", r.family_id).maybeSingle();
     family = data;
-    /* ⭐ 같은 패밀리의 형제들 — 「이거 다른 용량도 있나」가 여기서 풀린다.
-       ⚠️ 패밀리는 느슨한 묶음이다(Caleb 2026-09-15) — 안 묶여도 재고·발주가 안 깨진다.
-          Shopify 에서 한 상품의 변형으로 보일지를 정하는 축이라 묶고 푸는 것이 판매 쪽 판단이다.
-          product_bom(디스플레이↔낱개)과 다르다 — 그쪽은 재고가 실제로 흐르는 단단한 묶음. */
     const { data: sb2 } = await sb.from("product")
       .select("id,sku,name,is_active,option1_value,option2_value,option3_value")
       .eq("family_id", r.family_id).is("parent_product_id", null).order("sku").range(0, 199);
     sibs = (sb2||[]).filter(x => x.id !== id);
   }
+  /* 사진 — 켜진 것만 쓴다 · 세트에 켜진 사진이 없으면 낱개의 대표(판정 194 · 저장엔 복사 안 함) */
+  const imgs = (img.data||[]).filter(x => x.is_active)
+    .sort((a,b) => (b.is_primary - a.is_primary) || (a.sort_order - b.sort_order));
+  const imgsOff = (img.data||[]).length - imgs.length;
+  let fallback = null;
+  if(!imgs.length && r.parent_product_id){
+    const { data: fp } = await sb.rpc("product_image_primary", { p_skus: [r.sku] });
+    const f = (fp||[])[0];
+    if(f && f.storage_path && f.from_parent) fallback = f;
+  }
 
+  if(seq !== detailSeq) return;
+  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, parent, family, sibs, imgs, imgsOff, fallback };
+  render();
+}
+
+/* ── 그리기 ───────────────────────────────────────────── */
+const kvT = rows => `<table class="kv"><tbody>${rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+const tbl = (title, n, head, rows, empty, extra) => `
+  <div class="card"><h3>${title} <span class="n">${n}</span></h3>
+    ${rows.length ? `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
+                  : `<div class="msg">${empty||"None."}</div>`}${extra||""}</div>`;
+
+function render(){
+  if(!cur) return;
+  const box = document.getElementById("detail");
+  box.innerHTML = (edit && edit.id === cur.r.id) ? renderEdit() : renderRead();
+  wireDetail(box);
+}
+
+function headChips(r){
   const chips = [];
   chips.push(`<span class="chip ${r.is_active?"good":"bad"}">${r.is_active?"active":"inactive"}</span>`);
   chips.push(`<span class="chip">${r.parent_product_id ? "set ×"+esc(r.pack_factor) : "single"}</span>`);
-  if(comps.length) chips.push(`<span class="chip warn">combo · ${comps.length} components</span>`);
+  if(cur.comps.length) chips.push(`<span class="chip warn">combo · ${cur.comps.length} components</span>`);
   if(r.is_discontinued) chips.push('<span class="chip bad">discontinued</span>');
   if(r.sellable===false) chips.push('<span class="chip">not sellable</span>');
   if(r.cin7_type) chips.push(`<span class="chip">${esc(r.cin7_type)}</span>`);
   chips.push(`<span class="chip">${esc(r.source)}</span>`);
+  return chips.join("");
+}
 
+function renderRead(){
+  const { r, comps, parent, family, sibs } = cur;
   const left = [
     ["Brand", dim(r.brand_name)], ["Category", dim(r.category_name)],
     ["UOM", `<span class="mono">${dim(r.uom_name)}</span>`],
     ["Pack factor", `<span class="mono">${dim(r.pack_factor)}</span>`],
+    ...(r.parent_product_id ? [["Set discount", r.set_discount_pct==null ? '<span class="dim">—</span>' : `<span class="mono">${esc(r.set_discount_pct)}%</span>`]] : []),
     ["Parent", parent ? `<span class="mono lnk" data-go="${parent.id}">${esc(parent.sku)}</span>` : '<span class="dim">—</span>'],
     ["Family", family ? `<a class="lnk mono" href="families.html?id=${esc(family.id)}">${esc(family.sku)}</a> ${esc(family.name)}` : '<span class="dim">—</span>'],
     ["Options", [r.option1_value,r.option2_value,r.option3_value].filter(Boolean).map(esc).join(" · ") || '<span class="dim">—</span>'],
     ["Weight", r.weight ? `${esc(r.weight)} ${esc(r.weight_unit||"")}` : '<span class="dim">—</span>'],
+    ["Note", r.note ? esc(r.note) : '<span class="dim">—</span>'],
   ];
   const right = [
     ["Inventory acct", `<span class="mono">${dim(r.inventory_account_code)}</span>`],
@@ -255,26 +353,24 @@ async function loadDetail(id){
     ["Origin", dim(r.country_of_origin)],
     ["Cin7 modified", `<span class="mono">${dim(r.cin7_modified_on ? String(r.cin7_modified_on).slice(0,10) : null)}</span>`],
   ];
-  const kvT = rows => `<table class="kv"><tbody>${rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
 
-  const tbl = (title, n, head, rows, empty) => `
-    <div class="card"><h3>${title} <span class="n">${n}</span></h3>
-      ${rows.length ? `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
-                    : `<div class="msg">${empty||"None."}</div>`}</div>`;
+  const acts = canEdit
+    ? `<div class="acts"><button class="pobtn go" data-act="edit">Edit</button>
+         <span class="hint">Change several fields, then save once.</span></div>` : "";
 
-  const barRows = (bar.data||[]).map(b => `<tr>
-      <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary, false)}</td>
-      <td class="mono">${dim(b.valid_from)}</td><td>${yn(b.is_active)}</td></tr>`);
+  /* 판매가 — 판매용 티어만(판정 138 · 비교 · 참고 티어는 여기 안 보인다) · 세트는 비어 있으면 계산 가격 */
+  const saleTiers = refs.tiers.filter(t => t.purpose === "sale");
+  const priceRows = saleTiers.map(t => {
+    const x = cur.prices.find(pp => pp.tier_id === t.id && pp.is_active);
+    return `<tr><td>${esc(t.name)}</td>
+      <td class="num">${x ? esc(x.price) : (r.parent_product_id ? '<span class="dim">calculated</span>' : '<span class="dim">—</span>')}</td>
+      <td>${x ? esc(x.source) : ""}</td></tr>`;
+  });
 
-  // ⚠️⚠️ [2026-09-15 실사고] AS92082-6(세트)에 공급처가 붙어 보였다. 데이터는 맞았다 —
-  //    어제 Cin7 에서 지우고 is_active=false 로 내린 줄인데 화면이 그대로 띄웠다.
-  //    §3-f 는 「읽는 쪽이 is_active 를 건다」이고 suppliers.html 은 걸었는데 여기서 빠뜨렸다.
-  //    ⇒ 기본은 감춘다. admin 은 토글로 꺼내 본다(지운 것이 실제로 내려갔는지 확인할 자리).
-  const supAll  = sup.data || [];
+  const supAll  = cur.sup;
   const supLive = supAll.filter(x => x.is_active);
   const supShow = showDead ? supAll : supLive;
   const supDead = supAll.length - supLive.length;
-
   const supRows = supShow.map(x => `<tr${x.is_active ? "" : ' style="opacity:.5"'}>
       <td>${esc(x.supplier ? x.supplier.name : "")}</td>
       <td class="mono">${dim(x.supplier_sku)}</td>
@@ -283,32 +379,35 @@ async function loadDetail(id){
       <td class="mono">${dim(x.last_supplied)}</td>
       <td>${yn(x.is_default, false)}</td><td>${yn(x.is_active)}</td></tr>`);
 
+  const barRows = cur.bar.map(b => `<tr${b.is_active ? "" : ' style="opacity:.5"'}>
+      <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary, false)}</td>
+      <td class="mono">${dim(b.valid_from)}</td><td>${yn(b.is_active)}</td></tr>`);
+
   const bomRows = comps.map(x => `<tr>
       <td class="mono">${x.c ? `<span class="lnk" data-go="${x.c.id}">${esc(x.c.sku)}</span>` : '<span class="dim">?</span>'}</td>
-      <td>${esc(x.c ? x.c.name : "")}</td>
-      <td class="num">${dim(x.quantity)}</td></tr>`);
-
-  const kidRows = (kids.data||[]).map(k => `<tr>
+      <td>${esc(x.c ? x.c.name : "")}</td><td class="num">${dim(x.quantity)}</td></tr>`);
+  const kidRows = cur.kids.map(k => `<tr>
       <td class="mono"><span class="lnk" data-go="${k.id}">${esc(k.sku)}</span></td>
       <td>${esc(k.name)}</td><td class="num">${dim(k.pack_factor)}</td><td>${yn(k.is_active)}</td></tr>`);
 
-  if(seq !== detailSeq) return;   // 그 사이에 다른 요청이 들어왔다
-  box.innerHTML = `
+  return `
     <div class="card">
       <div class="head">
         <div class="sk">${esc(r.sku)}</div>
         <div class="nm">${esc(r.name)}</div>
-        <div class="chips">${chips.join("")}</div>
+        <div class="chips">${headChips(r)}</div>
+        ${acts}
       </div>
       <div class="cols">${kvT(left)}${kvT(right)}</div>
     </div>
+    ${photoCard()}
+    ${tbl("Sale prices", priceRows.length, ["Tier","Price","Source"], priceRows, "No sale tiers.")}
     ${tbl("Suppliers" + (supDead && isAdmin
             ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
                  <input type="checkbox" id="showDead" ${showDead?"checked":""}> show ${supDead} inactive</label>` : ""),
           supShow.length, ["Supplier","Supplier SKU","Fixed","Latest","Last supplied","Default","Active"], supRows,
-          r.parent_product_id ? "None — sets are bought through the parent."
-                              : (supDead ? "None active." : "None."))}
-    ${tbl("Barcodes", (bar.data||[]).length, ["Barcode","Primary","Valid from","Active"], barRows)}
+          r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
+    ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
     ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name","Pack factor","Active"], kidRows) : ""}
     ${sibs.length ? tbl(
@@ -321,84 +420,461 @@ async function loadDetail(id){
           <td class="mono"><span class="lnk" data-go="${x.id}">${esc(x.sku)}</span></td>
           <td>${esc(x.name)}</td><td>${yn(x.is_active)}</td></tr>`)) : ""}
   `;
+}
 
+function photoCard(){
+  const { imgs, imgsOff, fallback } = cur;
+  const up = canEdit ? `<button class="pobtn" data-act="photoAdd" style="margin-left:auto">Upload photos</button>` : "";
+  const offNote = imgsOff ? ` <span class="dim" style="font-weight:400;text-transform:none;font-size:11px">${imgsOff} turned off</span>` : "";
+  let big, thumbs = "";
+  if(imgs.length){
+    const p0 = imgs.find(x => x.is_primary) || imgs[0];
+    big = `<div class="big"><img src="${esc(photoUrl(p0.storage_path))}" alt="" data-zoom="${esc(p0.storage_path)}" style="cursor:zoom-in"></div>`;
+    thumbs = imgs.map((x, i) => `<div class="th ${x.is_primary?"pri":""}">
+        <div class="im" data-zoom="${esc(x.storage_path)}"><img src="${esc(photoUrl(x.storage_path))}" alt="" loading="lazy"></div>
+        ${canEdit ? `<div class="ops">
+          ${x.is_primary ? '<span class="tag">primary</span>' : `<button class="xbtn" data-act="photoPrimary" data-img="${x.id}" title="Make primary">★</button>`}
+          <button class="xbtn" data-act="photoLeft" data-i="${i}" title="Move left" ${i===0?"disabled":""}>◀</button>
+          <button class="xbtn" data-act="photoRight" data-i="${i}" title="Move right" ${i===imgs.length-1?"disabled":""}>▶</button>
+          <button class="xbtn" data-act="photoOff" data-img="${x.id}" title="Turn off">✕</button>
+        </div>` : (x.is_primary ? '<div class="ops"><span class="tag">primary</span></div>' : "")}
+      </div>`).join("");
+  } else if(fallback){
+    big = `<div class="big"><img src="${esc(photoUrl(fallback.storage_path))}" alt="" data-zoom="${esc(fallback.storage_path)}" style="cursor:zoom-in"><span class="from">Single's photo</span></div>`;
+    thumbs = `<div class="none">This set has no photo of its own — the single's primary photo is shown. Upload one if the set looks different.</div>`;
+  } else {
+    big = `<div class="big"><span class="none">No photo</span></div>`;
+  }
+  return `<div class="card"><h3>Photos <span class="n">${imgs.length}</span>${offNote}${up}</h3>
+    <div class="ph">${big}<div class="thumbs">${thumbs}</div></div></div>`;
+}
+
+/* ── 고치기 그리기(판정 202) ────────────────────────────── */
+function opt(list, val, blank, curName){
+  const missing = val && !list.some(x => x.id === val)
+    ? `<option value="${esc(val)}" selected>${esc(curName || "(current)")} — inactive</option>` : "";
+  return (blank ? `<option value="" ${val?"":"selected"}>—</option>` : "") + missing +
+    list.map(x => `<option value="${esc(x.id)}" ${x.id===val?"selected":""}>${esc(x.name)}</option>`).join("");
+}
+function renderEdit(){
+  const { r } = cur;
+  const isSet = !!r.parent_product_id;
+  const f = (k, html) => [k, html];
+  const rows = [
+    f("SKU", isSet
+        ? `<span class="mono">${esc(r.sku)}</span> <span class="dim">— built from the single and the pack factor</span>`
+        : `<input class="ein mono" data-f="sku" value="${esc(r.sku)}">`),
+    f("Name", `<input class="ein" data-f="name" value="${esc(r.name)}">`),
+    f("Brand", `<select class="ein" data-f="brand_id">${opt(refs.brands, r.brand_id, true, r.brand_name)}</select>`),
+    f("Category", `<select class="ein" data-f="category_id">${opt(refs.cats, r.category_id, true, r.category_name)}</select>`),
+    f("Unit", `<select class="ein" data-f="unit_id">${opt(refs.units, r.unit_id, true, r.uom_name)}</select>`),
+    f("Weight", `<input class="ein sm mono" data-f="weight" value="${esc(r.weight==null?"":r.weight)}">
+                 <input class="ein sm" data-f="weight_unit" value="${esc(r.weight_unit||"")}" placeholder="kg · g · lb · oz">`),
+    ...(isSet ? [
+      f("Pack factor", `<input class="ein sm mono" data-f="pack_factor" value="${esc(r.pack_factor==null?"":r.pack_factor)}"> <span class="dim">— locked once the set has stock or order history</span>`),
+      f("Set discount %", `<input class="ein sm mono" data-f="set_discount_pct" value="${esc(r.set_discount_pct==null?"":r.set_discount_pct)}">`),
+    ] : []),
+    f("Note", `<textarea class="ein" data-f="note">${esc(r.note||"")}</textarea>`),
+    f("Discontinued", `<label><input type="checkbox" data-f="is_discontinued" ${r.is_discontinued?"checked":""}> discontinued</label>`),
+    f("Active", `<label><input type="checkbox" data-f="is_active" ${r.is_active?"checked":""}> active</label>`),
+  ];
+
+  /* 판매가 — 비우면 끄기(판정 188) · 세트는 비우면 계산 가격으로 */
+  const saleTiers = refs.tiers.filter(t => t.purpose === "sale");
+  const priceRows = saleTiers.map(t => {
+    const x = cur.prices.find(pp => pp.tier_id === t.id && pp.is_active);
+    return `<tr><td>${esc(t.name)}</td>
+      <td><input class="ein sm mono" data-price="${t.id}" value="${x ? esc(x.price) : ""}" placeholder="${isSet ? "calculated" : "no price"}"></td></tr>`;
+  });
+
+  /* 바코드 — 켜진 것만 고친다 · 대표는 켜진 것 중에서 · 새로 더한 것은 저장한 뒤 대표로 */
+  const live = cur.bar.filter(b => b.is_active);
+  const barRows = live.map(b => `<tr>
+      <td class="mono">${esc(b.barcode)}</td>
+      <td><input type="radio" name="bcPri" data-bcpri="${esc(b.barcode)}" ${b.is_primary?"checked":""}></td>
+      <td><label><input type="checkbox" data-bcoff="${esc(b.barcode)}"> turn off</label></td></tr>`)
+    .concat(edit.addBc.map((bc, i) => `<tr><td class="mono">${esc(bc)} <span class="newtag">new</span></td><td class="dim">—</td>
+      <td><button class="xbtn" data-act="bcDrop" data-i="${i}">remove</button></td></tr>`));
+  const bcAdd = `<div class="addrow"><input class="ein mono" id="bcNew" placeholder="Add a barcode">
+      <button class="pobtn" data-act="bcAdd">Add</button>
+      <span class="dim" style="font-size:11.5px">A new barcode can be made primary after saving.</span></div>`;
+
+  /* 공급처 */
+  const supLive = cur.sup.filter(x => x.is_active);
+  const supRows = supLive.map(x => `<tr>
+      <td>${esc(x.supplier ? x.supplier.name : "")}</td>
+      <td><input class="ein mono" data-sup="${x.supplier_id}" data-k="supplier_sku" value="${esc(x.supplier_sku||"")}"></td>
+      <td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="fixed_cost" value="${x.fixed_cost==null?"":esc(x.fixed_cost)}"></td>
+      <td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="cost" value="${x.cost==null?"":esc(x.cost)}"></td>
+      <td><input type="radio" name="supDef" data-supdef="${x.supplier_id}" ${x.is_default?"checked":""}></td>
+      <td><label><input type="checkbox" data-supoff="${x.supplier_id}"> turn off</label></td></tr>`)
+    .concat(edit.addSup.map((s, i) => `<tr><td>${esc(s.name)} <span class="newtag">new</span></td>
+      <td class="mono">${dim(s.supplier_sku)}</td><td class="num">${dim(s.fixed_cost)}</td><td class="num">${dim(s.cost)}</td>
+      <td class="dim">—</td><td><button class="xbtn" data-act="supDrop" data-i="${i}">remove</button></td></tr>`));
+  const supAdd = `<div class="addrow">
+      <input class="ein" id="supNewName" list="supList" placeholder="Supplier">
+      <input class="ein mono" id="supNewSku" placeholder="Supplier SKU">
+      <input class="ein sm mono" id="supNewFixed" placeholder="Fixed cost">
+      <input class="ein sm mono" id="supNewCost" placeholder="Cost">
+      <button class="pobtn" data-act="supAdd">Add</button></div>`;
+
+  return `
+    <div class="card editing">
+      <div class="head">
+        <div class="sk">${esc(r.sku)} · editing</div>
+        <div class="nm">${esc(r.name)}</div>
+        <div class="chips">${headChips(r)}</div>
+        <div class="acts">
+          <button class="pobtn go" data-act="save">Save</button>
+          <button class="pobtn" data-act="cancel">Cancel</button>
+          <span class="hint" id="chgCount">No changes yet.</span>
+        </div>
+      </div>
+      ${kvT(rows)}
+    </div>
+    ${tbl("Sale prices", priceRows.length, ["Tier","Price"], priceRows, "No sale tiers.",
+          `<div class="note">Clear a price to turn it off${isSet ? " — the set then goes back to the calculated price" : ""}.</div>`)}
+    ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU","Fixed","Latest","Default","Off"], supRows, "None.", supAdd)}
+    ${tbl("Barcodes", live.length + edit.addBc.length, ["Barcode","Primary","Off"], barRows, "None.", bcAdd)}
+    <div class="card"><div class="msg">Photos are changed outside Edit — Cancel, then use Upload photos.</div></div>
+  `;
+}
+
+/* ── 바꾼 것 → product_update 줄 목록(판정 187 · 칸마다 old) ──────── */
+const s = v => (v === null || v === undefined) ? null : String(v);
+const blankNull = v => { const t = (v ?? "").toString().trim(); return t === "" ? null : t; };
+function scalarOrig(r, k){
+  switch(k){
+    case "is_discontinued": return !!r.is_discontinued;
+    case "is_active": return !!r.is_active;
+    default: return r[k] === undefined ? null : r[k];
+  }
+}
+function buildChanges(){
+  if(!cur || !edit) return [];
+  const r = cur.r, sku = r.sku, box = document.getElementById("detail");
+  const out = [];
+
+  /* 칸 — 한 줄에 칸 하나 */
+  box.querySelectorAll("[data-f]").forEach(el => {
+    const k = el.dataset.f;
+    const o = scalarOrig(r, k);
+    let v, same;
+    if(el.type === "checkbox"){ v = el.checked; same = (v === o); }
+    else {
+      v = blankNull(el.value);
+      if(["weight","pack_factor","set_discount_pct"].includes(k)) same = (v === null && o === null) || (v !== null && o !== null && Number(v) === Number(o));
+      else same = (v === (o === null ? null : String(o)));
+    }
+    el.classList.toggle("chg", !same);
+    if(!same) out.push({ op:"set", sku, field:k, value: v, old: s(o) });
+  });
+
+  /* 판매가 */
+  box.querySelectorAll("[data-price]").forEach(el => {
+    const t = el.dataset.price;
+    const x = cur.prices.find(pp => pp.tier_id === t && pp.is_active);
+    const v = blankNull(el.value);
+    let changed = false;
+    if(x && v === null){ out.push({ op:"price_off", sku, tier_id:t, old: String(x.price) }); changed = true; }
+    else if(v !== null && (!x || Number(v) !== Number(x.price))){
+      const line = { op:"price_set", sku, tier_id:t, price: v };
+      if(x) line.old = String(x.price);
+      out.push(line); changed = true;
+    }
+    el.classList.toggle("chg", changed);
+  });
+
+  /* 공급처 — 바꾼 칸만 · 그 칸의 old 를 함께 */
+  const supLive = cur.sup.filter(x => x.is_active);
+  supLive.forEach(x => {
+    const off = box.querySelector(`[data-supoff="${x.supplier_id}"]`);
+    if(off && off.checked) return;                          // 끄는 줄은 아래에서
+    const line = { op:"supplier_set", sku, supplier_id:x.supplier_id }, old = {};
+    let any = false;
+    box.querySelectorAll(`[data-sup="${x.supplier_id}"]`).forEach(el => {
+      const k = el.dataset.k, v = blankNull(el.value), o = x[k];
+      const same = (k === "supplier_sku") ? (v === (o ?? null)) : ((v === null && o == null) || (v !== null && o != null && Number(v) === Number(o)));
+      el.classList.toggle("chg", !same);
+      if(!same){ line[k] = v; old[k] = o == null ? null : String(o); any = true; }
+    });
+    if(any){ line.old = old; out.push(line); }
+  });
+  edit.addSup.forEach(n => {
+    const line = { op:"supplier_set", sku, supplier_id:n.id };
+    ["supplier_sku","fixed_cost","cost"].forEach(k => { if(n[k] !== null) line[k] = n[k]; });
+    out.push(line);
+  });
+  const defNow = box.querySelector('[name="supDef"]:checked');
+  const defOld = supLive.find(x => x.is_default);
+  if(defNow && (!defOld || defNow.dataset.supdef !== defOld.supplier_id)){
+    const tgtOff = box.querySelector(`[data-supoff="${defNow.dataset.supdef}"]`);
+    if(!(tgtOff && tgtOff.checked)) out.push({ op:"supplier_default", sku, supplier_id: defNow.dataset.supdef });
+  }
+  box.querySelectorAll("[data-supoff]").forEach(el => { if(el.checked) out.push({ op:"supplier_off", sku, supplier_id: el.dataset.supoff }); });
+
+  /* 바코드 — 더하기 · 대표 · 끄기 */
+  edit.addBc.forEach(bc => out.push({ op:"barcode_add", sku, barcode: bc }));
+  const priNow = box.querySelector('[name="bcPri"]:checked');
+  const priOld = cur.bar.find(b => b.is_active && b.is_primary);
+  if(priNow && (!priOld || priNow.dataset.bcpri !== priOld.barcode)){
+    const tgtOff = box.querySelector(`[data-bcoff="${CSS.escape(priNow.dataset.bcpri)}"]`);
+    if(!(tgtOff && tgtOff.checked)) out.push({ op:"barcode_primary", sku, barcode: priNow.dataset.bcpri });
+  }
+  box.querySelectorAll("[data-bcoff]").forEach(el => { if(el.checked) out.push({ op:"barcode_off", sku, barcode: el.dataset.bcoff }); });
+
+  const c = document.getElementById("chgCount");
+  if(c) c.textContent = out.length ? `${out.length} change${out.length>1?"s":""} — Save checks them first.` : "No changes yet.";
+  return out;
+}
+
+/* ── 저장 흐름 한 곳(판정 176) — 검사 → 막기면 보이고 끝 · 경고면 보이고 확인 → 저장 ──
+   ⭐ v2b 의 product_create · product_family_create 도 이 함수를 쓴다(창구 이름 · 인자만 다르다) */
+async function runWindow(fn, args, onCommitted){
+  showModal(`<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>`);
+  const r1 = await sb.rpc(fn, Object.assign({}, args, { p_commit:false, p_ack:[] }));
+  if(r1.error){ showResult({ error: r1.error.message }); return false; }
+  const d1 = r1.data || {};
+  if((d1.blocks||[]).length){ showResult(d1); return false; }
+  if(!(d1.warnings||[]).length) return await commit([]);
+  return await new Promise(res => showResult(d1, async () => res(await commit(d1.warnings.map(w => w.key))), () => res(false)));
+
+  async function commit(ack){
+    showModal(`<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>`);
+    const r2 = await sb.rpc(fn, Object.assign({}, args, { p_commit:true, p_ack:ack }));
+    if(r2.error){ showResult({ error: r2.error.message }); return false; }
+    const d2 = r2.data || {};
+    if(d2.committed){ closeModal(); await onCommitted(d2); return true; }
+    /* 그 사이 다른 사람이 바꿨다 — 새 막기 · 확인 안 된 경고를 다시 보인다 */
+    if((d2.blocks||[]).length){ showResult(d2); return false; }
+    return await new Promise(res => showResult(d2, async () => res(await commit((d2.warnings||[]).map(w => w.key))), () => res(false)));
+  }
+}
+function showModal(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+let modalCancelHook = null;
+function showResult(d, onGo, onCancel){
+  modalCancelHook = onCancel || null;
+  const li = x => `<li>${x.sku ? `<span class="sk">${esc(x.sku)}</span> — ` : ""}${esc(x.message)}</li>`;
+  const blocks = d.blocks || [], warns = d.warnings || [];
+  const body = d.error
+    ? `<div class="msg err">${esc(d.error)}</div>`
+    : `${blocks.length ? `<h5>Not saved — fix these first</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
+       ${warns.length ? `<h5>${blocks.length ? "Also" : "Please confirm"}</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
+       ${(d.unacked||[]).length && !blocks.length ? `<div class="note">Something changed since the check — please confirm again.</div>` : ""}`;
+  const go = (!d.error && !blocks.length && onGo) ? `<button class="pobtn go" data-m="go">Save anyway</button>` : "";
+  showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4>
+    <div class="pbody res">${body}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : "Close"}</button>${go}</div>`);
+  const box = document.getElementById("modalBox");
+  box.querySelector('[data-m="close"]').onclick = () => { closeModal(); if(modalCancelHook){ const h = modalCancelHook; modalCancelHook = null; h(); } };
+  const g = box.querySelector('[data-m="go"]');
+  if(g) g.onclick = () => { modalCancelHook = null; onGo(); };
+}
+
+async function afterSave(newSku){
+  edit = null;
+  if(newSku){ q = newSku; document.getElementById("q").value = newSku; pg.reset(); }
+  await loadList();
+  await loadDetail(curId);
+}
+
+/* ── 사진(판정 193 · 188 · 판정 197 의 5 MB) ─────────────────── */
+async function uploadPhotos(files){
+  const r = cur.r, ok = [], skipped = [];
+  for(const fl of files){
+    if(!PHOTO_TYPES.includes(fl.type)){ skipped.push(`${fl.name}: only JPEG, PNG or WebP`); continue; }
+    if(fl.size > MAX_PHOTO){ skipped.push(`${fl.name}: larger than 5 MB`); continue; }
+    ok.push(fl);
+  }
+  if(!ok.length){ showResult({ error: skipped.join(" · ") || "No file chosen." }); return; }
+  showModal(`<h4>Uploading…</h4><div class="pbody"><div class="msg" id="upMsg">Uploading ${ok.length} photo(s)…</div></div>`);
+  const lines = [], paths = [];
+  const hasPrimary = cur.imgs.some(x => x.is_primary);
+  for(const fl of ok){
+    const ext = fl.type === "image/png" ? "png" : fl.type === "image/webp" ? "webp" : "jpg";
+    const path = `${r.id}/${crypto.randomUUID()}.${ext}`;
+    const up = await sb.storage.from(BUCKET).upload(path, fl, { contentType: fl.type, upsert:false });
+    if(up.error){ skipped.push(`${fl.name}: ${up.error.message}`); continue; }
+    paths.push(path);
+    let w = null, h = null;
+    try { const bm = await createImageBitmap(fl); w = bm.width; h = bm.height; bm.close && bm.close(); } catch(e) {}
+    lines.push({ op:"image_add", sku:r.sku, storage_path:path, content_type:fl.type, byte_size:fl.size,
+                 file_name:fl.name, width:w, height:h, primary: (!hasPrimary && lines.length === 0) });
+  }
+  if(!lines.length){ showResult({ error: skipped.join(" · ") }); return; }
+  const saved = await runWindow("product_update", { p_changes: lines }, async () => {
+    await loadDetail(curId);
+    if(skipped.length) showResult({ error: "Saved the others. Skipped: " + skipped.join(" · ") });
+  });
+  /* 저장 안 됐으면 방금 올린 파일을 지운다(고아 파일 · §34-e ㊿) — 실패해도 조용히 둔다 */
+  if(!saved && paths.length){ try { await sb.storage.from(BUCKET).remove(paths); } catch(e) {} }
+}
+async function photoOp(lines){
+  await runWindow("product_update", { p_changes: lines }, async () => { await loadDetail(curId); });
+}
+
+/* ── 연결 ─────────────────────────────────────────────── */
+function wireDetail(box){
   const sd = box.querySelector("#showDead");
-  if(sd) sd.onchange = e => { showDead = e.target.checked; loadDetail(id); };
+  if(sd) sd.onchange = e => { showDead = e.target.checked; render(); };
 
-  /* ⚠️⚠️ [실사고 2026-09-15] 구성품·부모·형제 SKU 를 눌러도 안 넘어갔다.
-        검색어가 앞 제품의 SKU 로 남아 있어 새로 고른 것이 목록에 없었고,
-        loadList 의 「고른 것이 목록에 없으면 상세를 비운다」가 방금 연 상세를 지웠다.
-        ?id= 진입에서 고친 것과 같은 뿌리인데 화면 안 이동은 손대지 않았다.
-     ⇒ 이동할 때도 그 제품의 SKU 로 검색어를 바꿔 목록에 들어오게 한다. */
+  box.querySelectorAll("[data-zoom]").forEach(el => { el.onclick = () => zoomOpen(el.dataset.zoom); });
+
+  box.querySelectorAll("[data-act]").forEach(el => {
+    const a = el.dataset.act;
+    el.onclick = async () => {
+      if(a === "edit"){ edit = { id: cur.r.id, addBc: [], addSup: [] }; render(); return; }
+      if(a === "cancel"){ edit = null; render(); return; }
+      if(a === "save"){
+        const ch = buildChanges();
+        if(!ch.length){ edit = null; render(); return; }
+        const skuLine = ch.find(x => x.op === "set" && x.field === "sku");
+        await runWindow("product_update", { p_changes: ch }, async () => afterSave(skuLine ? skuLine.value : null));
+        return;
+      }
+      if(a === "bcAdd"){
+        const inp = document.getElementById("bcNew"); const v = blankNull(inp.value);
+        if(!v) return;
+        if(cur.bar.some(b => b.is_active && b.barcode === v) || edit.addBc.includes(v)){ alert("That barcode is already on this product."); return; }
+        keepInputs(() => edit.addBc.push(v)); return;
+      }
+      if(a === "bcDrop"){ keepInputs(() => edit.addBc.splice(Number(el.dataset.i), 1)); return; }
+      if(a === "supAdd"){
+        const nm = blankNull(document.getElementById("supNewName").value);
+        const hit = nm && refs.supByName[nm.toLowerCase()];
+        if(!hit){ alert("Pick a supplier from the list."); return; }
+        if(cur.sup.some(x => x.is_active && x.supplier_id === hit.id) || edit.addSup.some(x => x.id === hit.id)){ alert("That supplier is already on this product."); return; }
+        const n = { id: hit.id, name: hit.name,
+          supplier_sku: blankNull(document.getElementById("supNewSku").value),
+          fixed_cost: blankNull(document.getElementById("supNewFixed").value),
+          cost: blankNull(document.getElementById("supNewCost").value) };
+        keepInputs(() => edit.addSup.push(n)); return;
+      }
+      if(a === "supDrop"){ keepInputs(() => edit.addSup.splice(Number(el.dataset.i), 1)); return; }
+
+      if(a === "photoAdd"){ const f = document.getElementById("photoFile"); f.value = ""; f.click(); return; }
+      if(a === "photoPrimary"){ await photoOp([{ op:"image_primary", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
+      if(a === "photoOff"){ await photoOp([{ op:"image_off", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
+      if(a === "photoLeft" || a === "photoRight"){
+        const ids = cur.imgs.map(x => x.id), i = Number(el.dataset.i), j = a === "photoLeft" ? i - 1 : i + 1;
+        if(j < 0 || j >= ids.length) return;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        await photoOp([{ op:"image_order", sku:cur.r.sku, image_ids: ids }]); return;
+      }
+    };
+  });
+
+  /* 고치는 중 — 칸을 바꿀 때마다 노란 표시 · 바꾼 수 */
+  if(edit) box.querySelectorAll("input,select,textarea").forEach(el => {
+    el.addEventListener(el.type === "checkbox" || el.type === "radio" || el.tagName === "SELECT" ? "change" : "input", () => buildChanges());
+  });
+  if(edit) buildChanges();
+
+  /* ⚠️⚠️ [실사고 2026-09-15] 구성품·부모·형제 SKU 를 눌러도 안 넘어갔다 — 이동할 때도 그 SKU 로 검색어를 바꾼다 */
   box.querySelectorAll("[data-go]").forEach(el => {
     el.onclick = async () => {
+      if(!leaveEditOk()) return;
       const goId = el.dataset.go;
       const { data } = await sb.from("product").select("sku,parent_product_id").eq("id", goId).maybeSingle();
       if(data){
-        q = data.sku;
-        document.getElementById("q").value = data.sku;
-        // 넘어간 것이 세트면 Kind 를 푼다(Singles 로는 목록에 안 나온다)
+        q = data.sku; document.getElementById("q").value = data.sku;
         if(data.parent_product_id){ kind = ""; document.getElementById("kind").value = ""; }
       }
-      curId = goId;
-      pg.reset();
-      await loadList();
-      await loadDetail(goId);
+      curId = goId; pg.reset();
+      await loadList(); await loadDetail(goId);
     };
   });
+}
+function zoomOpen(path){
+  const u = esc(photoUrl(path));
+  showModal(`<h4>Photo</h4><div class="pbody"><img class="zoom" src="${u}" alt=""></div>
+    <div class="pfoot"><a class="lnk" href="${u}" target="_blank" rel="noopener">Open original</a><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = closeModal;
+}
+/* 고치는 중에 줄을 더하거나 빼면 다시 그린다 — 이미 친 값을 잃지 않게 옮겨 담는다 */
+function keepInputs(mutate){
+  const box = document.getElementById("detail");
+  const saved = [];
+  box.querySelectorAll("input,select,textarea").forEach(el => {
+    if(el.id === "bcNew" || el.id.startsWith("supNew")) return;
+    saved.push([el, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
+  });
+  const keyOf = el => ["f","price","sup","k","supdef","supoff","bcpri","bcoff"].map(k => el.dataset[k] || "").join("|") + "|" + el.name;
+  const map = new Map(saved.map(([el, v]) => [keyOf(el), v]));
+  mutate();
+  render();
+  document.getElementById("detail").querySelectorAll("input,select,textarea").forEach(el => {
+    const k = keyOf(el);
+    if(!map.has(k) || el.id === "bcNew" || el.id.startsWith("supNew")) return;
+    if(el.type === "checkbox" || el.type === "radio") el.checked = map.get(k); else el.value = map.get(k);
+  });
+  buildChanges();
 }
 
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
+  canEdit = imsAuth.canWrite("master");
   imsHeader(me);
+  document.getElementById("buildTag").textContent = PR_BUILD;
 
-  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("modal").onclick = e => {
+    if(e.target.id !== "modal") return;
+    const c = document.querySelector('#modalBox [data-m="close"]');
+    if(c && !document.querySelector('#modalBox [data-m="go"]')) c.click();    // 닫기 단추와 같은 길(취소 고리까지)
+  };
+  document.getElementById("photoFile").onchange = e => { const fs = Array.from(e.target.files || []); if(fs.length) uploadPhotos(fs); };
+
+  const resetAnd = fn => e => { if(!leaveEditOk()){ return; } fn(e); pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("onlyActive").onchange = resetAnd(e => { onlyActive = e.target.checked; });
   document.getElementById("kind").value = kind;
-  document.getElementById("kind").onchange = e => { kind = e.target.value; pg.reset(); openSets={}; clearDetail(); loadList(); };
-  document.getElementById("cat").onchange  = e => { cat  = e.target.value; pg.reset(); clearDetail(); loadList(); };
-  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); clearDetail(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+  document.getElementById("kind").onchange = resetAnd(e => { kind = e.target.value; openSets = {}; });
+  document.getElementById("cat").onchange  = resetAnd(e => { cat = e.target.value; });
+  document.getElementById("brand").onchange = resetAnd(e => { brand = e.target.value.trim(); });
+  document.getElementById("sup").onchange = resetAnd(e => {
+    const v = e.target.value.trim(); const hit = v && refs.supByName[v.toLowerCase()];
+    supId = hit ? hit.id : "";
+    if(v && !hit) e.target.value = "";
+  });
+  imsQ("#q", v => { if(!leaveEditOk()) return; q = v; pg.reset(); clearDetail(); loadList(); });
 
-  /* 브랜드·카테고리 — ref_ 표에서 받는다. ⚠️ 브랜드 중에는 제품이 없는 것도 있다(고르면 빈 목록) */
-  const [bl, cl] = await Promise.all([
-    sb.from("ref_brand").select("name").eq("is_active", true).order("name").range(0, 999),
-    sb.from("ref_category").select("name").eq("is_active", true).order("name").range(0, 999),
-  ]);
-  document.getElementById("brandList").innerHTML =
-    (bl.data||[]).map(x => `<option value="${esc(x.name)}">`).join("");
-  document.getElementById("cat").innerHTML =
-    '<option value="">All categories</option>' +
-    (cl.data||[]).map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
+  /* 기준표 — 고치기 칸이 id 로 쓴다(이름 칸은 창구가 복사한다 · 판정 143) */
+  try {
+    const [bl, cl, ul, tl, sl] = await Promise.all([
+      fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
+      fetchAll("supplier", "id,name", x => x.eq("is_active", true).order("name")),
+    ]);
+    refs.brands = bl; refs.cats = cl; refs.units = ul; refs.tiers = tl; refs.suppliers = sl;
+    refs.supByName = {}; sl.forEach(x => { refs.supByName[x.name.toLowerCase()] = x; });
+  } catch(err){
+    document.getElementById("rows").innerHTML = `<div class="msg err">Reference lists failed: ${esc(err.message)}</div>`;
+  }
+  document.getElementById("brandList").innerHTML = refs.brands.map(x => `<option value="${esc(x.name)}">`).join("");
+  document.getElementById("cat").innerHTML = '<option value="">All categories</option>' +
+    refs.cats.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
+  document.getElementById("supList").innerHTML = refs.suppliers.map(x => `<option value="${esc(x.name)}">`).join("");
 
   /* ⭐ 다른 화면에서 넘어올 수 있게 — products.html?id=… 또는 ?sku=…
-     (supplier-products.html 이 제품을 눌렀을 때 이리로 보낸다)
-     ⚠️⚠️ [실사고 2026-09-15] loadDetail 을 loadList 보다 먼저 불렀더니 상세가 곧바로 지워졌다.
-        loadList 안에 「고른 제품이 목록에 없으면 상세를 비운다」가 있기 때문이다(어제 넣은 장치).
-        ⇒ 목록을 먼저 그리고, 그 뒤에 상세를 연다. */
+     ⚠️⚠️ [실사고 2026-09-15] 목록을 먼저 그리고, 그 뒤에 상세를 연다. */
   const p = new URLSearchParams(location.search);
   const wantId = p.get("id"), wantSku = p.get("sku");
-  if(wantId || wantSku){
-    // 넘어온 제품은 비활성일 수 있다 — Active only 는 푼다
-    onlyActive = false; document.getElementById("onlyActive").checked = false;
-  }
-  if(wantSku){
-    q = wantSku;
-    document.getElementById("q").value = wantSku;
-  }
+  if(wantId || wantSku){ onlyActive = false; document.getElementById("onlyActive").checked = false; }
+  if(wantSku){ q = wantSku; document.getElementById("q").value = wantSku; }
   if(wantId){
-    // 목록이 「고른 것」으로 알아보게 먼저 세운다 — 그래야 loadList 가 상세를 지우지 않는다
     curId = wantId;
     const { data } = await sb.from("product").select("sku,parent_product_id").eq("id", wantId).maybeSingle();
     if(data){
-      q = data.sku;
-      document.getElementById("q").value = data.sku;
-      /* ⚠️ Kind 를 무조건 풀면 낱개로 넘어와도 세트가 목록에 따라 나온다(2026-09-15).
-         넘어온 것이 세트일 때만 푼다 — 낱개면 Singles 그대로 두고 세트는 캐럿으로 본다. */
+      q = data.sku; document.getElementById("q").value = data.sku;
       if(data.parent_product_id){ kind = ""; document.getElementById("kind").value = ""; }
     }
   }
-
   await loadList();
   if(curId) await loadDetail(curId);
 });
