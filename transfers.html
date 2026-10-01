@@ -120,7 +120,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-09-29 · tf v1";   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-09-30 · tf v1.1";   // 대화 Claude — New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 
 let sb = null, me = null, canWrite = false, canAdj = false;
@@ -1018,8 +1018,12 @@ function openCreate(){
   const allow = Array.isArray(acc.warehouses) && acc.warehouses.length ? acc.warehouses : null;   // null = every warehouse
   const opts = (sel) => allWhs.map(w => `<option value="${esc(w.id)}" ${w.id === sel ? "selected" : ""}>${esc(w.name)}</option>`).join("");
   const mine = allow ? allWhs.filter(w => allow.includes(w.id)) : allWhs;
-  const fromDef = mine.length ? mine[0].id : (allWhs[0] ? allWhs[0].id : "");
-  const toDef = (allWhs.find(w => w.id !== fromDef) || {}).id || "";
+  // 기본값(Caleb 2026-09-30 밤): From = Asung Trading Inc. · To = Asung - Edmonton — 주간 에드먼튼 보충이 기본 길이다.
+  //   옛 기본은 이름 순 첫 줄이었다(「Asung - Edmonton」 의 " -" 가 「Asung Trading」 의 "T" 보다 앞서 정렬돼 Edmonton 이 From 이 됐다).
+  //   이름을 못 찾으면(창고 이름이 바뀌면) 옛 규칙으로 물러선다 · 권한은 그대로 DB 가 가른다(from 이나 to 하나에 걸려 있으면 된다).
+  const byName = (n) => (allWhs.find(w => w.name === n) || {}).id || "";
+  const fromDef = byName("Asung Trading Inc.") || (mine.length ? mine[0].id : (allWhs[0] ? allWhs[0].id : ""));
+  const toDef = (byName("Asung - Edmonton") !== fromDef && byName("Asung - Edmonton")) || (allWhs.find(w => w.id !== fromDef) || {}).id || "";
   modalOpen(`
     <h4>New transfer</h4>
     <div class="pbody">
