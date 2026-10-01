@@ -41,7 +41,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v1";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v2";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -394,15 +394,38 @@
     nav.innerHTML=html;
     return nav;
   }
-  // 눌러서 열고 닫는다(태블릿 — hover 가 없다) · 한 번에 하나 · 밖을 누르거나 Esc 면 닫힌다 · hover 로도 열리는 것은 CSS(@media (hover:hover))
+  /* 펼침 열고 닫기 — 여는 일은 **여기 한 곳**(판정 168 · 2026-09-30 밤 · lay-1b) · 상태는 .ims-grp.open 하나(aria-expanded 함께)
+     · 마우스(pointerType mouse): 올리면 열린다 · 다른 갈래에 올리면 먼저 것이 **즉시** 닫힌다(겹침 0) · 갈래 밖으로 나가면 CLOSE_MS 뒤 닫힌다 ·
+       그 사이 같은 갈래(단추 · 펼침)로 다시 들어오면 예약 취소(단추와 펼침 사이 4px 틈 — 옛 CSS 「다리」의 몫) · 단추를 눌러도 닫지 않는다(올려서 이미 열려 있다 · 깜빡임 방지 · R2)
+     · 터치 · 펜: 올리기 없음 · 단추 클릭으로 열고 닫는다(토글) · 키보드(Enter · Space) 도 클릭과 같다
+       ⚠️ 어느 손가락인지는 click 의 pointerType 이 아니라 **pointerdown 에서 기억**한다 — click 이 PointerEvent 가 아닌 브라우저가 있다(짐작 · Firefox · Safari 옛 판) · pointerdown 이 없었으면(키보드) 토글
+       ⚠️ mouseenter · mouseover 는 쓰지 않는다 — 터치가 흉내 내 보낸다 · pointerenter 는 버블링하지 않아 .ims-grp 마다 단다(펼침은 자식이라 들어가도 leave 가 안 난다)
+     · Action Center(flat 링크)에 마우스를 올리면 열린 것이 닫힌다(옆으로 지나가며 겹쳐 남지 않게 · R4)
+     · 바깥 클릭 · Esc → 전부 닫힘 · nav 마다 한 번만 단다(_imsWired)
+     ⚠️ [실사고 2026-09-30 밤 · Caleb 화면 po.html 크롬] lay-1 은 CSS :hover 로도 열리던 길이 있어 클릭으로 연 Sales 와 올려서 연 Inventory 가 **겹쳤다** — CSS 여는 규칙(hover 미디어 블록)은 지웠다(ims-ui.css) */
+  const CLOSE_MS=200;
   function wireDropdowns(nav){
+    if(nav._imsWired) return; nav._imsWired=true;
     const grps=Array.from(nav.querySelectorAll(".ims-grp"));
+    let closeTimer=null, pendingGrp=null, lastPointer=null;
+    const cancelClose=()=>{ if(closeTimer){ clearTimeout(closeTimer); } closeTimer=null; pendingGrp=null; };
     const setOpen=(g,on)=>{ g.classList.toggle("open",on); const b=g.querySelector(".ims-grpbtn"); if(b) b.setAttribute("aria-expanded",on?"true":"false"); };
-    const closeAll=()=>grps.forEach(g=>setOpen(g,false));
+    const closeAll=()=>{ cancelClose(); grps.forEach(g=>setOpen(g,false)); };
+    const openOnly=(g)=>{ cancelClose(); grps.forEach(x=>{ if(x!==g) setOpen(x,false); }); setOpen(g,true); };
+    const scheduleClose=(g)=>{ cancelClose(); pendingGrp=g; closeTimer=setTimeout(()=>{ closeTimer=null; if(pendingGrp===g) setOpen(g,false); pendingGrp=null; },CLOSE_MS); };
     grps.forEach(g=>{
       const b=g.querySelector(".ims-grpbtn");
-      b.addEventListener("click",(e)=>{ e.stopPropagation(); const was=g.classList.contains("open"); closeAll(); if(!was) setOpen(g,true); });
+      g.addEventListener("pointerenter",(e)=>{ if(e.pointerType!=="mouse") return; openOnly(g); });
+      g.addEventListener("pointerleave",(e)=>{ if(e.pointerType!=="mouse") return; if(g.classList.contains("open")) scheduleClose(g); });
+      b.addEventListener("pointerdown",(e)=>{ lastPointer=e.pointerType||null; });
+      b.addEventListener("click",(e)=>{
+        e.stopPropagation();
+        const pt=lastPointer; lastPointer=null;
+        if(pt==="mouse"){ openOnly(g); return; }                                     // 올려서 이미 열려 있다 — 눌러도 그대로
+        const was=g.classList.contains("open"); closeAll(); if(!was) setOpen(g,true); // 터치 · 펜 · 키보드 — 토글 · 한 번에 하나
+      });
     });
+    nav.querySelectorAll(".ims-grpbtn.flat").forEach(a=>a.addEventListener("pointerenter",(e)=>{ if(e.pointerType==="mouse") closeAll(); }));
     document.addEventListener("click",(e)=>{ if(!nav.contains(e.target)) closeAll(); });
     document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") closeAll(); });
   }

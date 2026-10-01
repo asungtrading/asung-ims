@@ -42,7 +42,8 @@ header button:hover{background:#f2f4f8}
    [로고] [IMS · WMS · POS] Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ … 이름 · Sign Out
    · 로고는 .brand 자리(a.ims-logo) · 모드는 둘 이상일 때만(.ims-modes) · 윗줄 펼침은 IMS 화면만(.ims-top) · WMS 는 로고 + 모드만 더하고 탭 줄 · ☰ 그대로
    · 펼침 자리는 CSS — .ims-grp{position:relative} 안의 .ims-drop{position:absolute} · 좌표 계산 없음(zoom 아래에서 getBoundingClientRect 가 1.1 배 어긋난다)
-   · 눌러서 열린다(.open · 태블릿) · hover 가 있는 기기에서는 hover 로도(@media (hover:hover)) · 한 번에 하나 · 밖 클릭 · Esc 로 닫힘(ims-auth.js wireDropdowns)
+   · 보이는 조건은 .ims-grp.open>.ims-drop **하나뿐** — 여는 일은 js 한 곳(ims-auth.js wireDropdowns · 판정 168): 마우스는 올리기 · 터치는 클릭 · 한 번에 하나 · 밖 클릭 · Esc 로 닫힘
+   ⚠️ [2026-09-30 밤 lay-1b] CSS :hover 로 여는 규칙(hover 미디어 블록 · 다리 ::after)은 지웠다 — 클릭으로 연 것과 겹쳤다(Caleb 화면 실사고) · 단추의 hover 배경만 남겼다
    · 좁은 폭: 윗줄 펼침이 한 줄에 못 서면 JS 가 header.ims-wrap 을 달아 둘째 줄 전체로 내린다 · 늘어난 높이는 --ims-hdr-extra(.list 의 top 이 더한다) */
 header .ims-brand{display:flex;align-items:center;font:inherit}
 header .ims-logo{display:flex;align-items:center;text-decoration:none}
@@ -76,10 +77,6 @@ header .ims-grp:last-child>.ims-drop{left:auto;right:0}
 header .ims-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430;text-decoration:none;white-space:nowrap}
 header .ims-drop a:hover{background:#f2f4f8}
 header .ims-drop a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}
-@media (hover:hover){
-  header .ims-grp:hover>.ims-drop{display:block}
-  header .ims-grp:hover::after{content:"";position:absolute;left:0;right:0;top:100%;height:6px}   /* 단추와 펼침 사이 4px 틈을 건너는 다리 — 없으면 틈에서 hover 가 끊겨 닫힌다 */
-}
 /* 둘째 줄로 내려간 윗줄 펼침(JS 가 .ims-wrap 을 단다) — 이름 · Sign Out 은 첫 줄 오른쪽에 남는다 */
 header.ims-wrap .ims-top{order:10;flex-basis:100%;margin-left:0;padding-top:4px;border-top:1px solid #f1f3f7}
 
