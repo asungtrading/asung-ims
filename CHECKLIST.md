@@ -15,27 +15,29 @@
 ## 0. 공통 — 모든 화면
 
 ```
-[ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다
+[ ] 로그인하지 않은 상태로 열면 로그인 화면이 뜬다 — 카드 위에 ASUNG 로고(asung-logo-dark.png · 판정 149)
 [ ] 로그인하면 오른쪽 위에 이름·역할이 뜬다 (예: Caleb · admin)
-[ ] ☰ Menu 를 누르면 열아홉이 보인다 (2026-09-17 Charges · Payments · 2026-09-18 Receiving · 2026-09-25 Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List 추가 · 이름 둘 바뀜)  → ✅ [2026-09-26] wms_manage 열쇠가 있는 사람(admin · supervisor · 켜 준 manager)에게는 Split & Waves 가 Manager List 뒤에 더 보여 **스물**(⑤-4a · 7-m) · worker 는 그대로 열아홉 이하  → ✅ [2026-09-26 밤] Picking(wms-picker.html · 7-n)이 Manager List 뒤 · Split & Waves 앞에 더 보인다 — picking 열쇠는 worker 기본이라 **worker 도 WMS 모드에 Picking 하나** · admin 은 스물하나(⑤-4b)  → ✅ [2026-09-26 밤] Packing(wms-packer.html · 7-o)이 Picking 뒤에 더 — worker 는 Picking · Packing 둘 · admin 은 스물둘(⑤-4c)  → ✅ [2026-09-27] Fulfillment(wms-fulfillment.html · 7-p)가 Packing 뒤 · Split & Waves 앞에 더 — fulfillment 열쇠는 worker 기본이라 worker 는 Picking · Packing · Fulfillment 셋 · admin 은 스물셋(⑤-5a)  → ✅ [2026-09-27] WMS Admin(wms-admin.html · 7-q)이 Split & Waves 뒤에 더 — wms_manage 열쇠(manager 는 켜 준 사람만) · worker 는 그대로 셋 · admin 은 스물넷(⑤-5b)  → ✅ [2026-09-27 밤] Receiving(wms-receiver.html · 7-r)이 Fulfillment 뒤 · Split & Waves 앞에 더 — wms_receiving 열쇠(WMS 방 · min_role 없음 — ⑤-6a2 판정 39 부터 worker 도 **사람마다 켠다**(staff.html) · Caleb 이 worker 7 에게 넷을 켰다) · worker 는 넷 · admin 은 스물다섯(⑤-6a)  → ✅ [2026-09-27] 판정 40 — 오피스 입고 메뉴 이름 「Receiving」 → **「Purchase Receipts」**(receiving.html · 화면 값 · 파일 이름 무변) · 창고 화면이 「Receiving」
-    Settings · Suppliers · Products · Families · Supplier Products ·
-    Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders · POS · Manager List · Staff · Home
-    ⭐ [2026-09-25 밤] POS · Manager List 는 ☰ Menu 에만 있다 — 탭 줄에는 안 선다(items 다섯째 false · 묶음 null) · 판매 탭은 그대로 다섯
-    ⭐ Manager List 는 manager 이상이 쓰는 화면이지만 **읽기는 sales 열쇠로 열린다**(메뉴에 sales 화면 값) — worker 도 열 수는 있고 확인 단추만 안 보인다(진짜 문은 DB)
-    ⭐ [2026-09-25] 순서 = 마스터들 · 구매 묶음 · 판매 묶음 · Staff · Home · 이름은 보이는 글자만 바꿨다(파일은 invoices.html · payments.html 그대로)
-[ ] 머리 아래 탭 줄 = [모드] | [묶음] | [지금 화면 묶음의 탭들] (2026-09-25 묶음 칸 신설 · ims-auth.js items 여섯째 칸)
-    구매 화면에서 다섯 — Purchase Orders · Purchase Invoices · Charges · Supplier Payments · Receiving · 판매 화면에서 다섯 — Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders(2026-09-25 밤)
-    ⭐ 탭은 자주 오가는 화면만이다(Caleb). 마스터·Staff·Home 은 ☰ Menu 에만 있다
-    ⚠️ 탭·메뉴는 **권한으로 갈린다** — receiving 권한이 없으면 Receiving 이 아예 안 보이고, sales 권한이 없으면 Sales Orders 가 안 보인다(빈 탭이 아니다)
-[ ] 묶음 칸(PURCHASING · SALES · 모드 칸과 같은 모양)은 **구매·판매 둘 다 보는 사람에게만**, 그리고 지금 화면이 묶음 안일 때만 뜬다
-    · 구매·판매 둘 다: po.html 에서 「PURCHASING(눌림) · SALES | 구매 탭 다섯」 · so.html 에서 「PURCHASING · SALES(눌림) | Sales Orders(눌림) · Sales Invoices · Customer Payments · Credit Notes · Backorders」
-    · 구매만 · 판매만: 묶음 칸 없이 탭만(지금까지와 같다) · Settings 등 묶음 밖 화면: 묶음 칸 없음
-    · SALES 를 누르면 판매 묶음의 첫 보이는 **탭** 화면(so.html)으로 간다 · 모드 칸(IMS·WMS)은 WMS 화면이 서기 전까지 여전히 안 보인다  → ✅ [2026-09-26] Split & Waves(7-m)로 WMS 화면이 섰다 — wms 모드 + wms_manage 가 있는 사람에게 모드 칸 「IMS · WMS」가 뜬다 · WMS 를 누르면 wms-manager.html
-[ ] 지금 보고 있는 화면은 메뉴에서 눌리지 않는다(현재 표시)
+[ ] ⭐ [2026-09-30 레이아웃 · 판정 147 ~ 173 · so-module §32] 헤더 왼쪽 = 로고 + 모드(IMS · WMS · POS — 고를 것이 둘 이상일 때만 · 지금 모드는 검게 눌림)
+    헤더 끝 오른쪽 · 빌드 표시 뒤에 공통 js 판 「nav v4」(93da13c)
+[ ] IMS 화면 — 헤더 한 줄 윗줄 펼침: Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ (판정 153 · 164 · 165) · ☰ Menu 는 없다(감춤)
+    Purchasing   Purchase Orders · Purchase Invoices & Credits · Charges · Supplier Payments · Purchase Receipts · Suppliers
+    Sales        Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders
+    Inventory    Products · Supplier Products(판정 151 임시) · Families · Stock Adjustments · Transfers · Bin Moves (office)
+    Action Center manager-list.html 하나 · 펼침 없음(판정 152 · 165 · 보이는 이름만 바뀜 · 열쇠 sales)
+    Settings     Settings · Staff · System Check
+    ⭐ 메뉴 자리는 ims-auth.js items 한 곳 · 아직 없는 화면(Customers · 할인 규칙 · 상품 만들기 · 사진)은 주석 자리만(판정 162 · 빈 링크 없음)
+    ⚠️ 갈래 · 줄은 **권한으로 갈린다** — 열쇠가 없으면 그 줄이 아예 안 보이고, 보이는 줄이 없는 갈래는 서지 않는다(빈 펼침이 아니다)
+[ ] 탭 줄(헤더 아래) — IMS 는 **Purchasing · Sales 의 문서 화면**에서만(판정 169): Purchasing 다섯 · Sales 다섯 · 지금 화면이 탭 화면일 때만 선다
+    Suppliers · Inventory · Action Center · Settings · Dashboard · POS 에는 탭 줄이 없다
+[ ] WMS 화면 — 헤더에 로고 + 모드만 더해진다 · 탭 줄 · ☰ Menu 는 그대로(판정 160) · 탭 = Split & Waves · Picking · Packing · Fulfillment · Receiving · Bin Moves · WMS Admin(판정 173 · 열쇠대로)
+    ☰ Menu 내용 = WMS 화면만 · ☰ 는 이름·역할 바로 옆 · 🗺 Map 앞
+[ ] POS 화면 — 로고 · 모드 · 이름 · Sign Out 만(판정 159)
+[ ] 110% — IMS · POS 화면은 브라우저 100% 에서도 커 보인다 · WMS 일곱은 그대로(판정 154 · 157)
+[ ] 지금 보고 있는 화면은 펼침 · 탭에서 눌린 모양(파랑)이고 다시 눌리지 않는다
 [ ] Sign Out 이 되고, 다시 열면 로그인 화면이다
 [ ] 화면 글자가 전부 영문이다
-[ ] ☰ Menu 가 이름·역할 바로 옆에 있다 (다른 버튼보다 앞)
 ```
+📌 [2026-09-30] 옛 구조(☰ Menu 열아홉 ~ 스물아홉 · 탭 줄 [모드] | [묶음] | [탭] · Home · Manager List)는 lay-1(159e58f) 로 끝났다 — 옛 문장의 경위는 git 기록(681aee1 판)에 있다
 
 ⚠️ 콘솔(F12)에 빨간 오류가 없어야 한다. 화면이 떠도 오류가 나면 일부만 도는 것일 수 있다.
 
@@ -62,14 +64,17 @@
 📌 [2026-09-28 · adj-b 0c96926] 메뉴 항목 **스물다섯 → 스물여섯** — Stock Adjustments(stock-adjustments.html · 열쇠 stock_adjust · ims · Manager List 뒤 · 메뉴에만 · 탭 아님 · 열쇠 없는 supervisor 도 메뉴는 보이고 읽기만) · 화면을 여는 공통 셋 사용 화면은 스물다섯(stock-adjustments.html 더함)
 📌 [2026-09-28 · 칸 옮기기 7fca511 · c9b2ed0] 메뉴 항목 **스물여섯 → 스물여덟** — Bin Moves(wms-mover.html · 열쇠 stock_move · wms · Receiving 뒤 · Split & Waves 앞 · 탭) · Bin Moves (office)(stock-moves.html · 같은 열쇠 · ims · Stock Adjustments 뒤 · 메뉴에만 · 탭 아님 · 메뉴 필터는 screens 만 본다 — ims-auth.js:344) · 화면을 여는 공통 셋 사용 화면은 스물일곱(wms-mover.html · stock-moves.html 더함)
 📌 [2026-09-29 · ⑥-1 tf-scr-1] 메뉴 항목 **스물여덟 → 스물아홉** — Transfers(transfers.html · 열쇠 transfer · ims · Bin Moves (office) 뒤 · 메뉴에만 · 탭 아님 · 자리는 임시 — 판정 82 메뉴 정리 때 다시) · 화면을 여는 공통 셋 사용 화면은 스물여덟(transfers.html 더함) · ⚠️ 아래 「스물네 화면」 목록 줄은 낡았다(「스물네」 세 줄 65 · 69 · 70 + 스물넷 이름 목록 줄 66 = 네 곳) — 판정 82 메뉴 정리 때 한 번에 고친다
-[ ] 스물네 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
-    settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-admin · staff
+📌 [2026-09-30 · 레이아웃 lay-1 ~ 1d · 93da13c] **화면 서른하나 · 메뉴 줄 서른**(ims-auth.js items · Home 없앰 · Dashboard · System Check 더함 · Manager List → Action Center 보이는 이름) · 위 「스물네」 · 「스물아홉」 · 「스물여덟」 줄은 그때의 수다 — 아래 목록이 지금이다
+   ⚠️ index.html 도 이제 공통을 부른다(문 · ims-ui.css · ims-auth.js) — 위 「index.html 은 공통을 안 부른다」 는 낡았다
+[ ] 서른한 화면을 각각 열어 0절이 전부 통과한다 (특히 「글자만 나온다」 = CSS 링크 · 「아예 안 뜬다」 = ims-ui.js 순서)
+    index(문) · dashboard · system-check · settings · suppliers · products · families · supplier-products · po · invoices · charges · payments · receiving · so · so-invoices · so-payments · so-credits · so-backorders · pos · manager-list · stock-adjustments · stock-moves · transfers · staff · wms-manager · wms-picker · wms-packer · wms-fulfillment · wms-receiver · wms-mover · wms-admin
 [ ] 그 다음 2~7-e 절을 처음부터 훑는다 — 숫자까지
 [ ] 함수를 더하기만 했으면 그 함수를 쓰는 화면만 본다 (예: imsTs → staff.html)
-[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 스물네 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html · wms-packer.html · wms-fulfillment.html · wms-receiver.html · wms-admin.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
-[ ] 메뉴 항목(ims-auth.js items)을 더했으면 스물네 화면 전부에서 ☰ Menu 의 수·순서와 탭 줄을 본다
-    ⚠️ 항목의 다섯째 값이 탭 노출이다 — true 면 탭에도, false 면 ☰ Menu 에만 선다
-    ⚠️ 여섯째 값이 묶음이다('purchasing' · 'sales' · null) — 탭은 같은 묶음끼리만 한 줄에 선다 · null 이면 탭 줄에 묶음 칸이 안 뜬다(2026-09-25)
+[ ] 공통에 새 이름(.클래스 · 함수)을 더했으면 서른한 html 에서 같은 이름을 grep 한다 — .note 가 겹쳤던 실사고(2026-09-15) · wms-manager.html · wms-picker.html · wms-packer.html · wms-fulfillment.html · wms-receiver.html · wms-admin.html 은 제 <style> 에 .tag · .panel · .hint · .list 같은 이름을 따로 갖는다(원본 그대로 · 나중에 선언돼 이긴다)
+[ ] 메뉴 항목(ims-auth.js items)을 더했으면 IMS 화면의 윗줄 펼침 · 탭 줄 · WMS 화면의 탭 줄 · ☰ Menu · 모드 단추 · 문(firstScreen) 을 본다
+    ⚠️ [2026-09-30] 항목 = [이름, 주소, 열쇠, 모드('ims'|'wms'|'pos'), 탭(true 면 그 갈래의 탭 줄에), 갈래('purchasing'|'sales'|'inventory'|'action'|'settings'|'warehouse'|null)]
+    ⚠️ 줄 순서 = 펼침 · 탭 순서 = 모드의 첫 화면(IMS = Dashboard · WMS = 보이는 첫 줄 · 판정 163 · 173)
+    ⚠️ 아직 없는 화면은 주석 줄로 자리만(판정 162) · 마우스 · 터치 동작은 jsdom 으로 증명되지 않는다 — 7-zb 화면 시험
 [ ] ⭐ PostgREST 로 바로 쓰는 자리를 건드렸으면 `imsSaved()` 의 계약을 본다 —
     둘째 인자 seenAt 을 주면 낡은 값 저장을 막고, **안 주면 예전과 똑같이 돈다**(2026-09-18).
     ⚠️ 지금 이 인자를 넘기는 화면은 **하나도 없다**(한 번 붙였다가 되돌렸다 · 정본 §13-f)
@@ -87,14 +92,26 @@
 
 ---
 
-## 1. `index.html` — 배선 확인
+## 1. `index.html` — 문 (2026-09-30 lay-2 · 판정 163 · door v1 · 옛 「배선 확인」 은 System Check 로)
 
 ```
-[ ] Signed in as 에 name · email · role · perms · is_active · auth_user_id 가 나온다
-[ ] Database connection 의 다섯 줄이 초록 숫자다
-    supplier 257 · product 18,714 · product_supplier 12,728 · ref_brand 415 · ims_staff 2
+[ ] 로그인하지 않았으면 로고 있는 로그인 카드가 뜬다
+[ ] 로그인하면 그 사람의 첫 모드 첫 화면으로 간다 — IMS 가 있으면 dashboard.html · WMS 만이면 첫 보이는 WMS 화면(매니저 이상 Split & Waves · 직원 Picking · 판정 173) · POS 만이면 pos.html
+[ ] 비밀번호 재설정 메일 링크로 열리면 **머문다** — 새 비밀번호 창이 뜨고, 저장한 뒤에 첫 화면으로 간다(imsAuth.inRecovery · ims:password-changed)
+```
+
+### 1-b. `system-check.html` — System Check (2026-09-30 lay-2 · 판정 166 · sc v1 · Settings 맨 끝 · 열쇠 없음 = 로그인만)
+```
+[ ] Signed in as · 열쇠(screens) · 열린 화면 목록(imsAuth.visibleScreens) · 빌드(이 화면 · ims-auth.js · first screen)가 나온다
+[ ] Database connection 의 다섯 줄이 초록 숫자다(옛 index 와 같은 다섯 표)
+    supplier 257 · product 18,714 · product_supplier 12,728 · ref_brand 415 · ims_staff 2 (2026-09-15 실측 · 적재가 다시 돌면 달라진다)
 ```
 ⚠️ 어느 줄이라도 빨간 오류면 그 표의 RLS 나 이름이 어긋난 것이다.
+
+### 1-c. `dashboard.html` — Dashboard (2026-09-30 lay-2 · 판정 158 · db v1 · IMS 첫 화면 · 펼침에는 없다)
+```
+[ ] 헤더 · 모드 · 윗줄 펼침이 다 서고 몸통은 「Overview — coming soon」 · 숫자 카드는 상품 마스터 뒤 따로 한 차수
+```
 
 ---
 
@@ -1559,6 +1576,29 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 보류 뒤 칸 보존 — 두 칸으로 나눠 저장한 뒤 Hold → 다시 열기(다른 기기 · 다른 탭도) · 칸별 수량이 그대로
 [ ] 「Planned bin was empty」 체크 → WMS Admin Reports 의 wrong_location 에 「계획 칸 → 찾은 칸 · 수량」 · 체크 안 하면 보고 없음
 [ ] 출고 원장 두 칸 — 그 오더를 팩 · 마무리 · Finalize → inv_ledger sale_out 이 두 칸에서 빠진다(트랜스퍼는 출발 transfer_out 두 칸)
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
+## 7-zb. 레이아웃 — lay-1 ~ 1d · lay-2 · lay-3 (2026-09-30 밤 · 판정 147 ~ 173 · asung-ims 159e58f · 8c4d869 · 12453fb · c8ffca0 · b303fda · 99e4da8 · 93da13c · so-module §32)
+
+⭐ 마우스 · 터치 · 높이는 Claude Code 렌더 시험(jsdom)이 증명하지 못한다(:hover · 레이아웃 없음 · so-module §32-d 3) — 이 절은 눈으로만 닫힌다
+```
+[ ] Ctrl+F5 · 헤더 오른쪽 빌드 표시 뒤 「nav v4」
+[ ] 열쇠가 다른 둘(admin + 창고 직원)로 로그인 — 메뉴 · 모드가 열쇠대로(직원은 모드 없이 로고 · WMS 탭 Picking · Packing 류만)
+[ ] 110% — IMS · POS 화면이 크고 WMS 화면은 그대로
+[ ] ⭐ 마우스로 갈래 사이를 옮겨 다니면 펼침이 하나만 열린다 · Sales 를 **눌러** 연 뒤 Inventory 로 옮겨도 겹치지 않는다(실사고 길 · 판정 168)
+[ ] 펼침 안으로 마우스를 내릴 때 닫히지 않는다 · 갈래 밖으로 나가면 잠깐 뒤 닫힌다 · Action Center 를 지나면 닫힌다
+[ ] 태블릿 — 눌러 열기 · 다른 갈래 누르기(앞 것 닫힘) · 바깥 누르기(닫힘)
+[ ] PO · SO — 헤더 아래 탭 다섯(둘째 탭 「Purchase Invoices & Credits」) · 탭으로 옮겨 가고 돌아오기 · Suppliers 에는 탭 줄 없음
+[ ] PO · SO 의 왼쪽 목록이 화면 아래로 넘치지 않는다(탭 줄 높이 · --ims-tabs-h)
+[ ] 브라우저 폭을 줄이면 윗줄 펼침이 둘째 줄로 내려가고, 목록 패널이 헤더 밑으로 들어가지 않는다
+    ⚠️ families · products · suppliers · staff · supplier-products 는 헤더가 두 줄이면 목록이 넘칠 수 있다(미룬 ① · so-module §32-e)
+[ ] WMS 탭 맨 왼쪽이 Split & Waves · IMS 에서 WMS 를 누르면 매니저 이상은 Split & Waves · 창고 직원은 Picking(판정 173)
+[ ] 비밀번호 복구 — 로그인 카드 「Forgot your password?」 → 메일 링크 → 문이 머물고 새 비밀번호 창 → 저장 뒤 첫 화면
+[ ] 트랜스퍼 New transfer 기본값 — From Asung Trading Inc. · To Asung - Edmonton(tf v1.1)
+[ ] PO · SO 상세의 구역 제목이 구역마다 다른 색 띠 · 굵은 글씨 · 같은 구역은 PO · SO 같은 색(판정 167 · ✅ 2026-09-30 스크린샷)
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
