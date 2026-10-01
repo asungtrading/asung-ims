@@ -154,7 +154,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2h · 2026-10-01 · v2f 위에 대표 사진을 상세 오른쪽 위에 크게(300px) · Photos 칸을 맨 아래로 — Caleb 요청)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2i · 2026-10-01 · v2f 위에 대표 사진을 상세 오른쪽 위에 크게(300px) · Photos 칸을 맨 아래로 · 숫자 열 머리 오른쪽 정렬 — Caleb 요청)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -166,7 +166,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2h";
+const PR_BUILD = "pr v2i";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -341,7 +341,7 @@ async function loadDetail(id){
 const kvT = rows => `<table class="kv"><tbody>${rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
 const tbl = (title, n, head, rows, empty, extra, btn) => `
   <div class="card"><h3>${title} <span class="n">${n}</span>${btn||""}</h3>
-    ${rows.length ? `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
+    ${rows.length ? `<table><thead><tr>${head.map(h=> Array.isArray(h) ? `<th${h[1]?' class="'+h[1]+'"':''}>${h[0]}</th>` : `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
                   : `<div class="msg">${empty||"None."}</div>`}${extra||""}</div>`;
 
 function render(){
@@ -434,15 +434,15 @@ function renderRead(){
       </div>
       <div class="cols">${kvT(left)}${kvT(right)}</div>
     </div>${heroImg()}</div></div>
-    ${tbl("Sale prices", priceRows.length, ["Tier","Price","Source"], priceRows, "No sale tiers.")}
+    ${tbl("Sale prices", priceRows.length, ["Tier",["Price","num"],"Source"], priceRows, "No sale tiers.")}
     ${tbl("Suppliers" + (supDead && isAdmin
             ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
                  <input type="checkbox" id="showDead" ${showDead?"checked":""}> show ${supDead} inactive</label>` : ""),
-          supShow.length, ["Supplier","Supplier SKU","Fixed","Latest","Cur","Last supplied","Default","Active"], supRows,
+          supShow.length, ["Supplier","Supplier SKU",["Fixed","num"],["Latest","num"],"Cur","Last supplied","Default","Active"], supRows,
           r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
-    ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
-    ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name","Pack factor","Active"], kidRows) : ""}
+    ${comps.length ? tbl("Components", comps.length, ["SKU","Name",["Qty","num"]], bomRows) : ""}
+    ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name",["Pack factor","num"],"Active"], kidRows) : ""}
     ${family ? tbl(
         `Same family <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted)">${esc(family.name)}</span>`,
         sibs.length,
