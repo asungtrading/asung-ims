@@ -136,7 +136,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-28 · so v3";   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-09-30 · so v3.1";   // lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 
 function torontoToday() {
@@ -1595,9 +1595,12 @@ async function loadDetail(id){
       ${ed ? `<td style="white-space:nowrap"><button class="xbtn" data-cedit="${c.id}" title="Edit">✎</button> <button class="xbtn" data-cdel="${c.id}" data-cname="${esc(c.name)}" title="Remove">&#10005;</button></td>` : ""}
     </tr>`);
 
+  /* 구역 제목 색(판정 156 · 167 · lay-3) — 제목 → ims-ui.css 「구역 제목 띠」의 data-sec · 모르는 제목은 회색 띠 */
+  const SEC = { "Lines":"lines", "Discounts":"discounts", "Receipts":"receipts", "Invoices":"invoices", "Invoice":"invoices",
+                "Credits":"credits", "Charges":"charges", "Payments":"payments", "Order family":"family", "Customer balance":"balance" };
   const tbl = (title, n, head, rows, sub) => `
     <div class="card">
-      <h3>${title} <span class="n">${n}</span></h3>
+      <h3 class="ims-sec" data-sec="${SEC[title] || ""}">${title} <span class="n">${n}</span></h3>
       ${rows.length ? `<table><thead><tr>${head.map(x => `<th${x[1] ? ' class="' + x[1] + '"' : ""}>${x[0]}</th>`).join("")}</tr></thead>
         <tbody>${rows.join("")}</tbody></table>${sub ? `<div class="sosub">${sub}</div>` : ""}` : '<div class="msg">None.</div>'}
     </div>`;

@@ -173,7 +173,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-29 · invoice basis";   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-09-30 · po sec v1";   // lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -1291,9 +1291,12 @@ async function loadDetail(id){
       <td>${dim(p.paid_by_name)}</td>
     </tr>`);
 
+  /* 구역 제목 색(판정 156 · 167 · lay-3) — 제목 → ims-ui.css 「구역 제목 띠」의 data-sec · 모르는 제목은 회색 띠 */
+  const SEC = { "Lines":"lines", "Discounts":"discounts", "Receipts":"receipts", "Invoices":"invoices", "Invoice":"invoices",
+                "Credits":"credits", "Charges":"charges", "Payments":"payments", "Order family":"family", "Customer balance":"balance" };
   const tbl = (title, n, head, rows, sub) => `
     <div class="card">
-      <h3>${title} <span class="n">${n}</span></h3>
+      <h3 class="ims-sec" data-sec="${SEC[title] || ""}">${title} <span class="n">${n}</span></h3>
       ${rows.length ? `<table><thead><tr>${head.map(x=>`<th${x[1]?' class="'+x[1]+'"':''}>${x[0]}</th>`).join("")}</tr></thead>
         <tbody>${rows.join("")}</tbody></table>${sub?`<div class="posub">${sub}</div>`:""}`
       : `<div class="msg">None.</div>`}
