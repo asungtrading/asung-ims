@@ -24,6 +24,12 @@
   .list .kid{padding-left:33px;background:#fcfdfe}
   .flt{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
 
+  /* 넓은 목록 — 이 화면 몫만(공통 #wide · .wfilt 는 ims-ui.css · 판정 209) */
+  #wide td.sk{font-family:var(--mono);font-weight:600;white-space:nowrap}
+  #wide td.thc{width:48px;padding-top:4px;padding-bottom:4px}
+  #wide tr.off td{color:var(--muted)}
+  #wide .wfilt .flt{flex:0 1 170px;min-width:120px}
+
   /* 머리의 동작 단추 자리 */
   .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
   .head .acts .hint{font-size:12px;color:var(--muted)}
@@ -102,8 +108,37 @@
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search SKU or name">
+      <input list="brandList" id="wbrand" placeholder="Brand" class="flt">
+      <select id="wcat"><option value="">All categories</option></select>
+      <input list="supList" id="wsup" placeholder="Supplier" class="flt">
+      <select id="wkind">
+        <option value="single">Singles</option>
+        <option value="set">Sets only</option>
+        <option value="">All</option>
+      </select>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <a class="lnk" id="wsheet" href="product-sheet.html" style="font-size:12.5px">Open sheet</a>
+      <span id="wnewBar" hidden style="display:flex;gap:8px">
+        <button class="pobtn" id="wnewFamily">New family</button>
+        <button class="pobtn go" id="wnewProduct">+ New product</button>
+      </span>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
     <div class="top">
       <div class="newbar" id="newBar" hidden>
         <button class="pobtn go" id="newProductBtn">New product</button>
@@ -154,7 +189,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2i · 2026-10-01 · v2f 위에 대표 사진을 상세 오른쪽 위에 크게(300px) · Photos 칸을 맨 아래로 · 숫자 열 머리 오른쪽 정렬 — Caleb 요청)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v3a · 2026-10-01 · 판정 209: 처음은 넓은 목록(#wide · PO 와 같은 두 모드) · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All products ← v2i: 대표 사진 300px · Photos 맨 아래 · 숫자 열 머리 오른쪽)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -166,7 +201,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2i";
+const PR_BUILD = "pr v3a";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -210,7 +245,9 @@ function leaveEditOk(){
 }
 
 /* ── 목록 ─────────────────────────────────────────────── */
-async function loadList(){
+/* ⭐ 목록 질의 한 곳 — 넓은 목록(loadWide) · 좁은 목록(loadList)이 같은 필터 · 같은 쪽 pg 를 쓴다
+   (둘 다 100 줄 · 넓은 목록 3 쪽에서 고르면 좁은 목록도 3 쪽 — 고른 줄이 왼쪽에 보인다) */
+function listQuery(){
   const cols = "id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name";
   /* ⭐ 공급처로 거르기(판정 151) — product_supplier 를 !inner 로 묶어 그 공급처의 켜진 줄이 있는 상품만 */
   let qry = supId
@@ -223,8 +260,87 @@ async function loadList(){
   if(brand) qry = qry.eq("brand_name", brand);
   if(cat)   qry = qry.eq("category_name", cat);
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
+  return qry.order("sku");
+}
 
-  const { data, error } = await pg.run(qry.order("sku"));
+/* ── 두 모드(판정 209 · po.html 과 같은 모양) ───────────────
+   아무것도 안 골랐으면 넓은 목록이 화면 전체 · 고르면 좁은 목록 + 상세 · 상세의 ☰ List 로 좁은 목록을 접는다 */
+function showWide(){
+  curId = null; cur = null; edit = null; detailSeq++;
+  syncCtl();
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadWide();
+}
+async function openProduct(id){
+  curId = id;
+  syncCtl();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  loadList(); await loadDetail(id);
+}
+/* 필터 값은 한 벌(q · brand · cat · supId · kind · onlyActive) — 칸 두 벌에 같은 값을 쓴다 */
+function syncCtl(){
+  const supName = supId ? ((refs.suppliers.find(x => x.id === supId) || {}).name || "") : "";
+  [["q","wq"]].forEach(([a,b]) => { document.getElementById(a).value = q; document.getElementById(b).value = q; });
+  document.getElementById("brand").value = brand; document.getElementById("wbrand").value = brand;
+  document.getElementById("cat").value = cat;     document.getElementById("wcat").value = cat;
+  document.getElementById("sup").value = supName; document.getElementById("wsup").value = supName;
+  document.getElementById("kind").value = kind;   document.getElementById("wkind").value = kind;
+  document.getElementById("onlyActive").checked = onlyActive; document.getElementById("wactive").checked = onlyActive;
+}
+
+/* ── 넓은 목록 ─────────────────────────────────────────
+   열: (사진) · SKU · Name · Brand · Category · Kind · Default supplier · Wholesale · Active
+   ⭐ 사진 열은 공통 도우미(imsThumb · thumb-1)가 있을 때만 — 없으면 열이 안 선다 */
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq;
+  const box = document.getElementById("wrows");
+  const { data, error } = await pg.run(listQuery());
+  if(seq !== wideSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [];
+  const ids = rows.map(r => r.id);
+  const wsTier = refs.tiers.find(t => t.purpose === "sale" && t.name.toLowerCase() === "wholesale");
+  let supOf = {}, priceOf = {}, kidsOf = {};
+  if(ids.length){
+    const single = rows.filter(r => !r.parent_product_id).map(r => r.id);
+    const [sp, pp, kd] = await Promise.all([
+      sb.from("product_supplier").select("product_id, supplier(name)").in("product_id", ids).eq("is_default", true).eq("is_active", true),
+      wsTier ? sb.from("product_price").select("product_id,price").in("product_id", ids).eq("tier_id", wsTier.id).eq("is_active", true) : Promise.resolve({ data: [] }),
+      single.length ? sb.from("product").select("id,parent_product_id").in("parent_product_id", single) : Promise.resolve({ data: [] }),
+    ]);
+    if(seq !== wideSeq) return;
+    (sp.data||[]).forEach(x => { supOf[x.product_id] = x.supplier ? x.supplier.name : ""; });
+    (pp.data||[]).forEach(x => { priceOf[x.product_id] = x.price; });
+    (kd.data||[]).forEach(x => { kidsOf[x.parent_product_id] = (kidsOf[x.parent_product_id] || 0) + 1; });
+  }
+  const th = typeof window.imsThumb === "function";
+  const kindTxt = r => r.parent_product_id ? `×${esc(r.pack_factor)}`
+    : (kidsOf[r.id] ? `${kidsOf[r.id]} set${kidsOf[r.id] > 1 ? "s" : ""}` : '<span class="dim">single</span>');
+  const priceTxt = r => priceOf[r.id] != null ? esc(priceOf[r.id])
+    : (r.parent_product_id ? '<span class="dim">calculated</span>' : '<span class="dim">—</span>');
+  box.innerHTML = rows.length ? `<table><thead><tr>
+      ${th ? "<th></th>" : ""}<th>SKU</th><th>Name</th><th>Brand</th><th>Category</th><th>Kind</th>
+      <th>Default supplier</th><th class="num">${esc(wsTier ? wsTier.name : "Wholesale")}</th><th>Active</th></tr></thead>
+    <tbody>${rows.map(r => `<tr data-id="${r.id}" class="${r.is_active ? "" : "off"}">
+      ${th ? `<td class="thc">${window.imsThumb(r.sku)}</td>` : ""}
+      <td class="sk">${esc(r.sku)}</td><td>${esc(r.name)}</td>
+      <td>${dim(r.brand_name)}</td><td>${dim(r.category_name)}</td><td>${kindTxt(r)}</td>
+      <td>${dim(supOf[r.id])}</td><td class="num">${priceTxt(r)}</td><td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No products match.</div>';
+  box.querySelectorAll("tbody tr").forEach(tr => {
+    tr.onclick = ev => { if(ev.target.closest(".ims-thumb img")) return; openProduct(tr.dataset.id); };
+  });
+  if(th && typeof window.imsThumbFill === "function") window.imsThumbFill(box);
+  pg.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── 좁은 목록 ───────────────────────────────────────── */
+async function loadList(){
+  const { data, error } = await pg.run(listQuery());
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
 
   let hasKids = {};
@@ -363,6 +479,9 @@ function headChips(r){
   return chips.join("");
 }
 
+const navBtns = () => `<button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
+  <button class="pobtn" data-act="wide">&lsaquo; All products</button>`;
+
 function renderRead(){
   const { r, comps, parent, family, sibs } = cur;
   const left = [
@@ -387,9 +506,9 @@ function renderRead(){
     ["Cin7 modified", `<span class="mono">${dim(r.cin7_modified_on ? String(r.cin7_modified_on).slice(0,10) : null)}</span>`],
   ];
 
-  const acts = canEdit
-    ? `<div class="acts"><button class="pobtn go" data-act="edit">Edit</button>
-         <span class="hint">Change several fields, then save once.</span></div>` : "";
+  const acts = `<div class="acts">${navBtns()}${canEdit
+    ? `<button class="pobtn go" data-act="edit">Edit</button>
+         <span class="hint">Change several fields, then save once.</span>` : ""}</div>`;
 
   /* 판매가 — 판매용 티어만(판정 138 · 비교 · 참고 티어는 여기 안 보인다) · 세트는 비어 있으면 계산 가격 */
   const saleTiers = refs.tiers.filter(t => t.purpose === "sale");
@@ -569,7 +688,7 @@ function renderEdit(){
         <div class="sk">${esc(r.sku)} · editing</div>
         <div class="nm">${esc(r.name)}</div>
         <div class="chips">${headChips(r)}</div>
-        <div class="acts">
+        <div class="acts">${navBtns()}
           <button class="pobtn go" data-act="save">Save</button>
           <button class="pobtn" data-act="cancel">Cancel</button>
           <span class="hint" id="chgCount">No changes yet.</span>
@@ -784,6 +903,8 @@ function wireDetail(box){
   box.querySelectorAll("[data-act]").forEach(el => {
     const a = el.dataset.act;
     el.onclick = async () => {
+      if(a === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; return; }
+      if(a === "wide"){ if(leaveEditOk()) showWide(); return; }
       if(a === "edit"){ edit = { id: cur.r.id, addBc: [], addSup: [] }; render(); return; }
       if(a === "cancel"){ edit = null; render(); return; }
       if(a === "save"){
@@ -1143,8 +1264,8 @@ async function openCreated(pid, sku){
   q = sku || ""; document.getElementById("q").value = q;
   onlyActive = true; document.getElementById("onlyActive").checked = true;
   kind = "single"; document.getElementById("kind").value = "single";
-  curId = pid; pg.reset(); openSets = {};
-  await loadList(); await loadDetail(pid);
+  pg.reset(); openSets = {};
+  await openProduct(pid);
 }
 
 /* ── 시작 ─────────────────────────────────────────────── */
@@ -1158,6 +1279,32 @@ imsAuth.start({ changePw:true }, async (client, me) => {
     document.getElementById("newProductBtn").onclick = () => { if(leaveEditOk()) openProductDialog(null); };
     document.getElementById("newFamilyBtn").onclick = () => { if(leaveEditOk()) openFamilyDialog({}); };
   }
+
+  if(canEdit){
+    document.getElementById("wnewBar").hidden = false;
+    document.getElementById("wnewProduct").onclick = () => openProductDialog(null);
+    document.getElementById("wnewFamily").onclick = () => openFamilyDialog({});
+  }
+  const wideAnd = fn => e => { fn(e); pg.reset(); loadWide(); };
+  document.getElementById("wactive").onchange = wideAnd(e => { onlyActive = e.target.checked; });
+  document.getElementById("wkind").value = kind;
+  document.getElementById("wkind").onchange = wideAnd(e => { kind = e.target.value; openSets = {}; });
+  document.getElementById("wcat").onchange = wideAnd(e => { cat = e.target.value; });
+  document.getElementById("wbrand").onchange = wideAnd(e => { brand = e.target.value.trim(); });
+  document.getElementById("wsup").onchange = wideAnd(e => {
+    const v = e.target.value.trim(); const hit = v && refs.supByName[v.toLowerCase()];
+    supId = hit ? hit.id : "";
+    if(v && !hit) e.target.value = "";
+  });
+  imsQ("#wq", v => { q = v; pg.reset(); loadWide(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; brand = ""; cat = ""; supId = ""; kind = "single"; onlyActive = true; openSets = {};
+    syncCtl(); pg.reset(); loadWide();
+  };
+  document.getElementById("wsheet").onclick = e => {
+    const u = new URLSearchParams(); if(q) u.set("q", q); if(brand) u.set("brand", brand);
+    e.currentTarget.href = "product-sheet.html" + (u.toString() ? "?" + u.toString() : "");
+  };
 
   document.getElementById("modal").onclick = e => {
     if(e.target.id !== "modal") return;
@@ -1206,6 +1353,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("brandList").innerHTML = refs.brands.map(x => `<option value="${esc(x.name)}">`).join("");
   document.getElementById("cat").innerHTML = '<option value="">All categories</option>' +
     refs.cats.map(x => `<option value="${esc(x.name)}">${esc(x.name)}</option>`).join("");
+  document.getElementById("wcat").innerHTML = document.getElementById("cat").innerHTML;
   document.getElementById("supList").innerHTML = refs.suppliers.map(x => `<option value="${esc(x.name)}">`).join("");
   document.getElementById("catList").innerHTML = refs.cats.map(x => `<option value="${esc(x.name)}">`).join("");
   document.getElementById("unitList").innerHTML = refs.units.map(x => `<option value="${esc(x.name)}">`).join("");
@@ -1224,8 +1372,9 @@ imsAuth.start({ changePw:true }, async (client, me) => {
       if(data.parent_product_id){ kind = ""; document.getElementById("kind").value = ""; }
     }
   }
-  await loadList();
-  if(curId) await loadDetail(curId);
+  /* ?id= 는 바로 상세(좁은 모드) · 그 밖은 넓은 목록(?sku= 는 그 글자로 거른 넓은 목록) */
+  if(curId) await openProduct(curId);
+  else showWide();
 });
 </script>
 </body>
