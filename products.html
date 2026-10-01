@@ -102,6 +102,7 @@
       <input type="search" id="q" placeholder="Search SKU or name">
       <div class="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
+        <a class="lnk" id="sheetLink" href="product-sheet.html" style="margin-left:auto;font-size:12px">Open sheet</a>
         <label>Kind
           <select id="kind">
             <option value="single">Singles</option>
@@ -141,7 +142,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2c · 2026-10-01 · v2b b8efcb3 위에 SKU 빈칸 미리 멈춤 · 바코드 즉석 확인 · Same family 머리 수 자리)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2d · 2026-10-01 · v2c 위에 「Open sheet」 링크 — 지금 검색어 · 브랜드를 실어 Product Sheet 로)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -153,7 +154,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2c";
+const PR_BUILD = "pr v2d";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -1140,6 +1141,10 @@ imsAuth.start({ changePw:true }, async (client, me) => {
     if(v && !hit) e.target.value = "";
   });
   imsQ("#q", v => { if(!leaveEditOk()) return; q = v; pg.reset(); clearDetail(); loadList(); });
+  document.getElementById("sheetLink").onclick = e => {
+    const u = new URLSearchParams(); if(q) u.set("q", q); if(brand) u.set("brand", brand);
+    e.currentTarget.href = "product-sheet.html" + (u.toString() ? "?" + u.toString() : "");
+  };
 
   /* 기준표 — 고치기 칸이 id 로 쓴다(이름 칸은 창구가 복사한다 · 판정 143) */
   try {

@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product Sheet · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .sheetwrap{padding:14px;display:flex;flex-direction:column;gap:12px}
+  .bar .flt{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px;width:160px}
+  .bar select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
+  .bar .mode{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .bar .mode button{border:0;border-radius:0;padding:6px 12px;background:#fff;color:var(--muted)}
+  .bar .mode button.on{background:#3b5bdb;color:#fff}
+  .bar .mode button:disabled{opacity:1;color:#b8c0cc;cursor:not-allowed}
+  .bar .cnt{font-size:12.5px;color:var(--muted)}
+  .grid{overflow:auto;max-height:calc(100vh - 240px)}
+  table.sh{border-collapse:separate;border-spacing:0;font-size:12.5px;min-width:100%}
+  table.sh th{position:sticky;top:0;z-index:2;background:#f7f8fa;text-align:left;font-weight:600;color:var(--muted);
+    padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:11.5px}
+  table.sh th.ro{color:#9aa3b0;font-weight:500}
+  table.sh td{padding:2px 3px;border-bottom:1px solid #f0f2f6;white-space:nowrap;vertical-align:middle;background:#fff}
+  table.sh td.ro{color:var(--muted);padding:2px 6px}
+  table.sh td.sku{position:sticky;left:0;z-index:1;font-family:var(--mono);font-weight:600;padding:2px 8px;border-right:1px solid var(--line)}
+  table.sh th.sku{position:sticky;left:0;z-index:3;border-right:1px solid var(--line)}
+  table.sh tr.set td.sku{padding-left:20px;font-weight:500}
+  table.sh tr.inact td{color:#a1a9b6}
+  table.sh tr.blk td{background:#fdf1ef}
+  table.sh tr.blk td.sku{color:var(--bad)}
+  .ci{border:1px solid transparent;border-radius:6px;padding:3px 6px;font:inherit;font-size:12.5px;background:transparent;width:100%;min-width:60px}
+  .ci:hover{border-color:var(--line)}
+  .ci:focus{background:#fff}
+  .ci.mono{font-family:var(--mono)}
+  .ci.w-name{min-width:280px} .ci.w-ref{min-width:150px} .ci.w-num{min-width:72px;width:80px;text-align:right;font-family:var(--mono)}
+  .ci.w-ssku{min-width:110px}
+  .ci.chg{background:#fff6d6;border-color:#e8cf7a}
+  .ci.bad{background:#fdf1ef;border-color:#e7a29b}
+  .cb{display:flex;justify-content:center}
+  .cb input.chg{outline:2px solid #e8cf7a;outline-offset:1px}
+  .res h5{margin:6px 0 6px;font-size:12.5px}
+  .res ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.55}
+  .res .blk li{color:var(--bad)}
+  .res .wrn li{color:var(--warn)}
+  .res .sk{font-family:var(--mono);font-weight:600;color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="sheetwrap">
+  <div class="card">
+    <div class="bar">
+      <div class="mode">
+        <button class="on" id="modeEdit">Edit products</button>
+        <button id="modeNew" disabled title="Coming in the next build — use New product on the Products screen for now">New products</button>
+      </div>
+      <input type="search" id="q" placeholder="Search SKU or name" style="width:190px">
+      <input list="brandList" id="fBrand" placeholder="Brand" class="flt">
+      <input list="catList" id="fCat" placeholder="Category" class="flt">
+      <input list="supList" id="fSup" placeholder="Supplier" class="flt">
+      <select id="fKind"><option value="single">Singles</option><option value="set">Sets only</option><option value="">All</option></select>
+      <label><input type="checkbox" id="fActive" checked> Active only</label>
+      <button id="loadBtn">Load</button>
+      <span class="cnt" id="cnt"></span>
+      <span class="sp"></span>
+      <span class="cnt" id="chgCount"></span>
+      <button id="discardBtn" disabled>Discard</button>
+      <button class="pobtn go" id="saveBtn" disabled>Save</button>
+    </div>
+    <div class="note" id="hint">Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down.</div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<datalist id="brandList"></datalist>
+<datalist id="catList"></datalist>
+<datalist id="unitList"></datalist>
+<datalist id="supList"></datalist>
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Product Sheet — 여러 상품을 표로 펼쳐 한꺼번에 고치기 (sheet v1a · 2026-10-01 · Edit 모드)
+   판정: 145(여러 SKU 한꺼번에 · 표 · 붙여 넣기) · 187(고치기 = 창구 하나 · 목록) · 200(두 화면) · 204(한 줄 = 상품 하나)
+         205(모드 둘 · v1a 는 Edit · New 는 v1b) · 176(검사 → 경고 확인 → 저장)
+   창구: product_update(p_changes, p_commit, p_ack) — 마지막 정의 20261001152712(img-1) · 칸마다 한 줄 · old 필수
+   ⭐ 고칠 수 있는 열: 이름 · 브랜드 · 분류 · 단위 · 판매가(티어별) · 기본 공급처의 공급처 SKU · 단가 · 활성 · 단종 · 세트 할인%
+      읽기만: SKU · 대표 바코드 · family · 옵션 값 · 부모 · 계수 — 한 상품씩 따질 일이라 Products 화면에서
+   ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
+   ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
+   ───────────────────────────────────────────────────────────── */
+const SH_BUILD = "sheet v1a";
+const MAX_ROWS = 300, MAX_LINES = 1000;
+
+let sb = null, canEdit = false;
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], byName:{ brand:{}, cat:{}, unit:{}, sup:{} } };
+let rows = [];          // 불러온 상품 — { p, prices:{tierId:{price}}, sup:{…기본 공급처}|null, bc, fam, parent }
+let cols = [];          // 보이는 열 — { key, label, kind, edit, cls }
+let blocked = new Set();
+let cellMap = new Map();   // "줄|열" → 칸 — 칸마다 querySelector 하면 300 줄 × 20 열에서 느리다
+
+async function fetchAll(table, select, build){
+  const out = [];
+  for(let from = 0; ; from += 1000){
+    let qy = sb.from(table).select(select).range(from, from + 999);
+    if(build) qy = build(qy);
+    const { data, error } = await qy;
+    if(error) throw error;
+    out.push(...(data||[]));
+    if(!data || data.length < 1000) break;
+  }
+  return out;
+}
+async function inChunks(ids, fn){ const out = []; for(let i = 0; i < ids.length; i += 100){ const r = await fn(ids.slice(i, i + 100)); out.push(...(r||[])); } return out; }
+const blankNull = v => { const t = (v ?? "").toString().trim(); return t === "" ? null : t; };
+const saleTiers = () => refs.tiers.filter(t => t.purpose === "sale");
+
+/* ── 열 정의(판정 204 · 묶음 3) ── */
+function buildCols(){
+  cols = [
+    { key:"sku", label:"SKU", kind:"ro", cls:"sku" },
+    { key:"name", label:"Name", kind:"text", edit:true, w:"w-name" },
+    { key:"brand", label:"Brand", kind:"ref", ref:"brand", edit:true, w:"w-ref" },
+    { key:"cat", label:"Category", kind:"ref", ref:"cat", edit:true, w:"w-ref" },
+    { key:"unit", label:"Unit", kind:"ref", ref:"unit", edit:true, w:"w-num" },
+    ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", edit:true, w:"w-num" })),
+    { key:"supname", label:"Default supplier", kind:"ro" },
+    { key:"ssku", label:"Supplier SKU", kind:"text", edit:true, w:"w-ssku", needSup:true },
+    { key:"cost", label:"Cost", kind:"num", edit:true, w:"w-num", needSup:true },
+    { key:"active", label:"Active", kind:"bool", edit:true },
+    { key:"disc", label:"Discontinued", kind:"bool", edit:true },
+    { key:"setdisc", label:"Set disc %", kind:"num", edit:true, w:"w-num", needSet:true },
+    { key:"bc", label:"Primary barcode", kind:"ro" },
+    { key:"fam", label:"Family", kind:"ro" },
+    { key:"opts", label:"Options", kind:"ro" },
+    { key:"parent", label:"Parent", kind:"ro" },
+    { key:"pf", label:"×", kind:"ro" },
+  ];
+}
+/* 줄의 원래 값(화면에 보이는 글자) */
+function origVal(r, c){
+  const p = r.p;
+  switch(c.key){
+    case "sku": return p.sku;
+    case "name": return p.name || "";
+    case "brand": return p.brand_name || "";
+    case "cat": return p.category_name || "";
+    case "unit": return p.uom_name || "";
+    case "supname": return r.sup ? r.sup.name : "";
+    case "ssku": return r.sup ? (r.sup.supplier_sku || "") : "";
+    case "cost": return r.sup && r.sup.cost != null ? String(r.sup.cost) : "";
+    case "active": return !!p.is_active;
+    case "disc": return !!p.is_discontinued;
+    case "setdisc": return p.set_discount_pct == null ? "" : String(p.set_discount_pct);
+    case "bc": return r.bc || "";
+    case "fam": return r.fam || "";
+    case "opts": return [p.option1_value, p.option2_value, p.option3_value].filter(Boolean).join(" / ");
+    case "parent": return r.parent || "";
+    case "pf": return p.pack_factor == null ? "" : String(p.pack_factor);
+  }
+  if(c.tier){ const x = r.prices[c.tier]; return x ? String(x.price) : ""; }
+  return "";
+}
+const editableHere = (r, c) => canEdit && c.edit && !(c.needSup && !r.sup) && !(c.needSet && !r.p.parent_product_id);
+
+/* ── 불러오기 ── */
+async function load(){
+  const grid = document.getElementById("grid");
+  if(changesCount() && !confirm("You have unsaved changes. Discard them and load again?")) return;
+  grid.innerHTML = '<div class="msg">Loading…</div>';
+  blocked = new Set();
+  const q = document.getElementById("q").value.trim();
+  const bn = document.getElementById("fBrand").value.trim(), cn = document.getElementById("fCat").value.trim();
+  const sn = document.getElementById("fSup").value.trim(), kind = document.getElementById("fKind").value;
+  const onlyActive = document.getElementById("fActive").checked;
+  const sup = sn ? refs.byName.sup[sn.toLowerCase()] : null;
+  if(sn && !sup){ grid.innerHTML = '<div class="msg err">Pick the supplier from the list.</div>'; return; }
+
+  const colsSel = "id,sku,name,brand_id,brand_name,category_id,category_name,unit_id,uom_name,is_active,is_discontinued,set_discount_pct,parent_product_id,pack_factor,family_id,option1_value,option2_value,option3_value";
+  let qy = sup
+    ? sb.from("product").select(colsSel + ",product_supplier!inner(supplier_id,is_active)", { count:"exact" })
+        .eq("product_supplier.supplier_id", sup.id).eq("product_supplier.is_active", true)
+    : sb.from("product").select(colsSel, { count:"exact" });
+  if(onlyActive) qy = qy.eq("is_active", true);
+  if(kind === "single") qy = qy.is("parent_product_id", null);
+  if(kind === "set") qy = qy.not("parent_product_id", "is", null);
+  if(bn) qy = qy.eq("brand_name", bn);
+  if(cn) qy = qy.eq("category_name", cn);
+  if(q) qy = qy.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
+  const { data, error, count } = await qy.order("sku").range(0, MAX_ROWS - 1);
+  if(error){ grid.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const ps = data || [];
+  const ids = ps.map(x => x.id);
+
+  const [pr, sp, bc] = await Promise.all([
+    inChunks(ids, async c => (await sb.from("product_price").select("product_id,tier_id,price").in("product_id", c).eq("is_active", true)).data),
+    inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,cost,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),
+    inChunks(ids, async c => (await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", c).eq("is_active", true)).data),
+  ]);
+  const famIds = Array.from(new Set(ps.map(x => x.family_id).filter(Boolean)));
+  const parIds = Array.from(new Set(ps.map(x => x.parent_product_id).filter(Boolean)));
+  const [fm, pa] = await Promise.all([
+    inChunks(famIds, async c => (await sb.from("product_family").select("id,sku").in("id", c)).data),
+    inChunks(parIds, async c => (await sb.from("product").select("id,sku").in("id", c)).data),
+  ]);
+  const famMap = {}; fm.forEach(f => famMap[f.id] = f.sku);
+  const parMap = {}; pa.forEach(f => parMap[f.id] = f.sku);
+
+  rows = ps.map(p => {
+    const prices = {}; pr.filter(x => x.product_id === p.id).forEach(x => prices[x.tier_id] = x);
+    const sups = sp.filter(x => x.product_id === p.id);
+    const d = sups.find(x => x.is_default) || (sups.length === 1 ? sups[0] : null);   // 기본이 없고 하나뿐이면 그것
+    const bcs = bc.filter(x => x.product_id === p.id);
+    const b0 = bcs.find(x => x.is_primary) || bcs[0];
+    return { p, prices,
+      sup: d ? { supplier_id: d.supplier_id, name: d.supplier ? d.supplier.name : "", supplier_sku: d.supplier_sku, cost: d.cost, count: sups.length } : null,
+      bc: b0 ? b0.barcode + (bcs.length > 1 ? ` +${bcs.length - 1}` : "") : "",
+      fam: p.family_id ? (famMap[p.family_id] || "?") : "", parent: p.parent_product_id ? (parMap[p.parent_product_id] || "?") : "" };
+  });
+  document.getElementById("cnt").textContent = `${rows.length}${count > rows.length ? ` of ${count} — narrow the filters to see the rest` : ""} product${rows.length === 1 ? "" : "s"}`;
+  draw();
+}
+
+/* ── 그리기 ── */
+function cellHtml(r, ri, c, ci){
+  const v = origVal(r, c);
+  if(c.kind === "ro" || !editableHere(r, c)){
+    const txt = c.kind === "bool" ? (v ? "✓" : "—") : esc(v);
+    return `<td class="${c.cls || "ro"}">${txt}</td>`;
+  }
+  if(c.kind === "bool") return `<td><div class="cb"><input type="checkbox" data-r="${ri}" data-c="${ci}" ${v ? "checked" : ""}></div></td>`;
+  const list = c.kind === "ref" ? ` list="${c.ref === "brand" ? "brandList" : c.ref === "cat" ? "catList" : "unitList"}"` : "";
+  return `<td><input class="ci ${c.w || ""} ${c.kind === "num" ? "mono" : ""}" data-r="${ri}" data-c="${ci}" value="${esc(v)}"${list}></td>`;
+}
+function draw(){
+  const grid = document.getElementById("grid");
+  if(!rows.length){ cellMap = new Map(); grid.innerHTML = '<div class="msg">No products match.</div>'; refreshCount(); return; }
+  grid.innerHTML = `<table class="sh"><thead><tr>${cols.map(c => `<th class="${c.kind === "ro" && c.key !== "sku" ? "ro" : ""} ${c.cls || ""}">${esc(c.label)}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map((r, ri) => `<tr class="${r.p.parent_product_id ? "set" : ""} ${r.p.is_active ? "" : "inact"} ${blocked.has(r.p.sku) ? "blk" : ""}" data-row="${ri}">
+      ${cols.map((c, ci) => cellHtml(r, ri, c, ci)).join("")}</tr>`).join("")}</tbody></table>`;
+  cellMap = new Map();
+  grid.querySelectorAll("[data-r]").forEach(el => cellMap.set(el.dataset.r + "|" + el.dataset.c, el));
+  grid.querySelectorAll("[data-r]").forEach(el => {
+    el.addEventListener(el.type === "checkbox" ? "change" : "input", () => { markCell(el); refreshCount(); });
+    if(el.type !== "checkbox"){
+      el.addEventListener("paste", onPaste);
+      el.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); moveTo(Number(el.dataset.r) + (e.shiftKey ? -1 : 1), Number(el.dataset.c)); } });
+    }
+  });
+  grid.querySelectorAll("[data-r]").forEach(markCell);
+  refreshCount();
+}
+function cellEl(ri, ci){ return cellMap.get(ri + "|" + ci) || null; }
+function moveTo(ri, ci){ const el = cellEl(ri, ci); if(el){ el.focus(); if(el.select) el.select(); } }
+
+/* 칸 하나 — 바뀌었나 · 이름이 맞나 */
+function cellState(el){
+  const r = rows[Number(el.dataset.r)], c = cols[Number(el.dataset.c)];
+  const o = origVal(r, c);
+  if(c.kind === "bool") return { changed: el.checked !== o, bad: false };
+  const v = el.value.trim();
+  let changed, bad = false;
+  if(c.kind === "num"){
+    changed = !((v === "" && o === "") || (v !== "" && o !== "" && Number(v) === Number(o)));
+    bad = v !== "" && !/^[0-9]+(\.[0-9]+)?$/.test(v);
+  } else if(c.kind === "ref"){
+    changed = v.toLowerCase() !== o.toLowerCase();
+    bad = changed && v !== "" && !refs.byName[c.ref][v.toLowerCase()];
+  } else changed = v !== o;
+  return { changed, bad };
+}
+function markCell(el){
+  const s = cellState(el);
+  el.classList.toggle("chg", s.changed && !s.bad);
+  el.classList.toggle("bad", s.bad);
+}
+
+/* ── 바꾼 칸 → product_update 줄(판정 187 · 칸마다 old) ── */
+function buildChanges(){
+  const out = [], bad = [];
+  rows.forEach((r, ri) => {
+    const p = r.p, sku = p.sku;
+    const supLine = { op:"supplier_set", sku, supplier_id: r.sup ? r.sup.supplier_id : null }, supOld = {};
+    let supAny = false;
+    cols.forEach((c, ci) => {
+      const el = cellEl(ri, ci); if(!el) return;
+      const s = cellState(el); if(!s.changed) return;
+      if(s.bad){ bad.push(`${sku} ${c.label}`); return; }
+      const v = c.kind === "bool" ? el.checked : blankNull(el.value);
+      const setLine = (field, value, old) => out.push({ op:"set", sku, field, value, old });
+      switch(c.key){
+        case "name": setLine("name", v, p.name); break;
+        case "brand": setLine("brand_id", v ? refs.byName.brand[v.toLowerCase()].id : null, p.brand_id); break;
+        case "cat": setLine("category_id", v ? refs.byName.cat[v.toLowerCase()].id : null, p.category_id); break;
+        case "unit": setLine("unit_id", v ? refs.byName.unit[v.toLowerCase()].id : null, p.unit_id); break;
+        case "active": setLine("is_active", v, String(!!p.is_active)); break;
+        case "disc": setLine("is_discontinued", v, String(!!p.is_discontinued)); break;
+        case "setdisc": setLine("set_discount_pct", v, p.set_discount_pct == null ? null : String(p.set_discount_pct)); break;
+        case "ssku": supLine.supplier_sku = v; supOld.supplier_sku = r.sup.supplier_sku ?? null; supAny = true; break;
+        case "cost": supLine.cost = v; supOld.cost = r.sup.cost == null ? null : String(r.sup.cost); supAny = true; break;
+        default:
+          if(c.tier){
+            const x = r.prices[c.tier];
+            if(x && v === null) out.push({ op:"price_off", sku, tier_id:c.tier, old:String(x.price) });
+            else if(v !== null){ const l = { op:"price_set", sku, tier_id:c.tier, price:v }; if(x) l.old = String(x.price); out.push(l); }
+          }
+      }
+    });
+    if(supAny){ supLine.old = supOld; out.push(supLine); }
+  });
+  return { out, bad };
+}
+function changesCount(){ return rows.length ? buildChanges().out.length : 0; }
+function refreshCount(){
+  const { out, bad } = rows.length ? buildChanges() : { out:[], bad:[] };
+  const n = out.length;
+  const skus = new Set(out.map(x => x.sku)).size;
+  document.getElementById("chgCount").textContent =
+    (n ? `${n} change${n>1?"s":""} on ${skus} product${skus>1?"s":""}` : "") + (bad.length ? ` · ${bad.length} cell${bad.length>1?"s":""} to fix` : "");
+  document.getElementById("saveBtn").disabled = !canEdit || !n || bad.length > 0;
+  document.getElementById("discardBtn").disabled = !n && !bad.length;
+}
+
+/* ── 붙여 넣기 — 엑셀 덩어리를 고른 칸부터(보이는 열 순서 · 읽기만 칸은 건너뜀) ── */
+function onPaste(e){
+  const txt = (e.clipboardData || window.clipboardData).getData("text");
+  if(!/[\t\n]/.test(txt.replace(/\r?\n$/, ""))) return;      // 한 칸짜리는 보통대로
+  e.preventDefault();
+  const r0 = Number(e.target.dataset.r), c0 = Number(e.target.dataset.c);
+  const lines = txt.replace(/\r/g, "").replace(/\n$/, "").split("\n").map(l => l.split("\t"));
+  let put = 0, skipped = 0;
+  lines.forEach((cells, i) => {
+    cells.forEach((val, j) => {
+      const el = cellEl(r0 + i, c0 + j);
+      if(!el){ if(r0 + i < rows.length && c0 + j < cols.length) skipped++; return; }
+      if(el.type === "checkbox"){
+        const t = val.trim().toLowerCase();
+        if(["true","yes","y","1","active","✓","x"].includes(t)) el.checked = true;
+        else if(["false","no","n","0","inactive","—","-",""].includes(t)) el.checked = false;
+      } else el.value = val.trim();
+      markCell(el); put++;
+    });
+  });
+  refreshCount();
+  const over = r0 + lines.length > rows.length ? ` · ${r0 + lines.length - rows.length} line(s) below the table were ignored` : "";
+  document.getElementById("hint").textContent = `Pasted ${put} cell(s)${skipped ? ` · ${skipped} read-only cell(s) skipped` : ""}${over}.`;
+}
+
+/* ── 저장 흐름 — Products 화면과 같은 모양(판정 176) · 막힌 SKU 는 표에서 빨갛게 ── */
+async function runWindow(fn, args, onCommitted){
+  showModal(`<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>`);
+  const r1 = await sb.rpc(fn, Object.assign({}, args, { p_commit:false, p_ack:[] }));
+  if(r1.error){ showResult({ error: r1.error.message }); return false; }
+  const d1 = r1.data || {};
+  markBlocked(d1.blocks);
+  if((d1.blocks||[]).length){ showResult(d1); return false; }
+  if(!(d1.warnings||[]).length) return await commit([]);
+  return await new Promise(res => showResult(d1, async () => res(await commit(d1.warnings.map(w => w.key))), () => res(false)));
+  async function commit(ack){
+    showModal(`<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>`);
+    const r2 = await sb.rpc(fn, Object.assign({}, args, { p_commit:true, p_ack:ack }));
+    if(r2.error){ showResult({ error: r2.error.message }); return false; }
+    const d2 = r2.data || {};
+    if(d2.committed){ closeModal(); await onCommitted(d2); return true; }
+    markBlocked(d2.blocks);
+    if((d2.blocks||[]).length){ showResult(d2); return false; }
+    return await new Promise(res => showResult(d2, async () => res(await commit((d2.warnings||[]).map(w => w.key))), () => res(false)));
+  }
+}
+function markBlocked(list){
+  blocked = new Set((list||[]).map(b => b.sku).filter(Boolean));
+  document.querySelectorAll("#grid tr[data-row]").forEach(tr => {
+    const r = rows[Number(tr.dataset.row)];
+    tr.classList.toggle("blk", !!r && blocked.has(r.p.sku));
+  });
+}
+function showModal(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+function showResult(d, onGo, onCancel){
+  const li = x => `<li>${x.sku ? `<span class="sk">${esc(x.sku)}</span> — ` : ""}${esc(x.message)}</li>`;
+  const blocks = d.blocks || [], warns = d.warnings || [];
+  const body = d.error ? `<div class="msg err">${esc(d.error)}</div>`
+    : `${blocks.length ? `<h5>Not saved — fix these first (rows in red)</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
+       ${warns.length ? `<h5>${blocks.length ? "Also" : "Please confirm"}</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
+       ${(d.unacked||[]).length && !blocks.length ? `<div class="note">Something changed since the check — please confirm again.</div>` : ""}`;
+  const go = (!d.error && !blocks.length && onGo) ? `<button class="pobtn go" data-m="go">Save anyway</button>` : "";
+  showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4>
+    <div class="pbody res">${body}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : "Close"}</button>${go}</div>`);
+  const box = document.getElementById("modalBox");
+  box.querySelector('[data-m="close"]').onclick = () => { closeModal(); if(onCancel) onCancel(); };
+  const g = box.querySelector('[data-m="go"]');
+  if(g) g.onclick = () => onGo();
+}
+
+async function save(){
+  const { out, bad } = buildChanges();
+  if(bad.length){ alert("Fix the red cells first: " + bad.slice(0, 6).join(", ") + (bad.length > 6 ? " …" : "")); return; }
+  if(!out.length) return;
+  if(out.length > MAX_LINES){ alert(`That is ${out.length} changes — at most ${MAX_LINES} can be saved at once. Save part of them first.`); return; }
+  await runWindow("product_update", { p_changes: out }, async () => {
+    document.getElementById("hint").textContent = `Saved ${out.length} change(s). Reloaded.`;
+    rows = []; await load();
+  });
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw:true }, async (client, me) => {
+  sb = client;
+  canEdit = imsAuth.canWrite("master");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = SH_BUILD;
+  if(!canEdit) document.getElementById("hint").textContent = "Read only — your account cannot change master data.";
+
+  try {
+    const [bl, cl, ul, tl, sl] = await Promise.all([
+      fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
+      fetchAll("supplier", "id,name", x => x.eq("is_active", true).order("name")),
+    ]);
+    Object.assign(refs, { brands:bl, cats:cl, units:ul, tiers:tl, suppliers:sl });
+    const idx = (list, m) => list.forEach(x => { m[x.name.toLowerCase()] = x; });
+    idx(bl, refs.byName.brand); idx(cl, refs.byName.cat); idx(ul, refs.byName.unit); idx(sl, refs.byName.sup);
+  } catch(err){
+    document.getElementById("grid").innerHTML = `<div class="msg err">Reference lists failed: ${esc(err.message)}</div>`;
+    return;
+  }
+  const dl = (id, list) => { document.getElementById(id).innerHTML = list.map(x => `<option value="${esc(x.name)}">`).join(""); };
+  dl("brandList", refs.brands); dl("catList", refs.cats); dl("unitList", refs.units); dl("supList", refs.suppliers);
+  buildCols();
+
+  document.getElementById("loadBtn").onclick = load;
+  document.getElementById("q").addEventListener("keydown", e => { if(e.key === "Enter") load(); });
+  document.getElementById("saveBtn").onclick = save;
+  document.getElementById("discardBtn").onclick = () => { if(confirm("Discard all changes?")){ blocked = new Set(); draw(); } };
+  window.addEventListener("beforeunload", e => { if(changesCount()){ e.preventDefault(); e.returnValue = ""; } });
+
+  /* products.html?… 에서 넘어오면 같은 거르기로 바로 불러온다 */
+  const p = new URLSearchParams(location.search);
+  if(p.get("q")) document.getElementById("q").value = p.get("q");
+  if(p.get("brand")) document.getElementById("fBrand").value = p.get("brand");
+  if(p.get("q") || p.get("brand")) load();
+});
+</script>
+</body>
+</html>
