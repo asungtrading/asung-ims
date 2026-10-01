@@ -15,23 +15,53 @@
   .list .row.cur .sk{color:#3b5bdb}
   .list .row .nm{font-size:13px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   main{display:flex;flex-direction:column;gap:14px}
+  /* 넓은 목록 — 이 화면 몫만(공통 #wide · .wfilt 는 ims-ui.css · 판정 209) */
+  #wide td.sk{font-family:var(--mono);font-weight:600;white-space:nowrap}
+  #wide tr.off td{color:var(--muted)}
+  #wide .wfilt .flt{flex:0 1 170px;min-width:120px}
+  .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
 </style>
 </head>
 <body>
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search family SKU or name">
+      <input list="brandList" id="wbrand" placeholder="Brand" class="flt">
+      <select id="waxis"><option value="">All option axes</option></select>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <a class="lnk" href="products.html" style="font-size:12.5px">Products</a>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+<datalist id="brandList"></datalist>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
     <div class="top">
       <input type="search" id="q" placeholder="Search family SKU or name">
       <select id="axis"><option value="">All option axes</option></select>
+      <div class="opts">
+        <input list="brandList" id="brand" placeholder="Brand" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px">
+        <label><input type="checkbox" id="onlyActive" checked> Active only</label>
+      </div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
     <div class="foot">
@@ -49,7 +79,9 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Families — product_family 1,141 (읽기 전용)
+   Families — product_family 1,141 (읽기 전용) · fam v2a(2026-10-01)
+   ⭐ 판정 209: 처음은 넓은 목록(#wide · PO · Products 와 같은 두 모드) · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All families
+   ⭐ 판정 210: 이 화면은 메뉴에 남는다(판정 203 고침) — family 를 family SKU · 이름으로 찾고 훑는 곳 · family 머리 고치기는 뒤에 여기로
    정본: docs/design/po-module.md §3-d
 
    ⭐ 패밀리는 느슨한 묶음이다(Caleb 2026-09-15).
@@ -65,7 +97,8 @@
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-let sb=null, q="", axis="", curId=null;
+const FAM_BUILD = "fam v2a";
+let sb=null, q="", axis="", brand="", onlyActive=true, curId=null;
 const pg = imsPage(100);
 
 /* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb). */
@@ -93,9 +126,12 @@ const axisVariants = canon =>
   [canon].concat(Object.keys(AXIS_ALIAS).filter(k => AXIS_ALIAS[k] === canon && k !== canon));
 
 
-async function loadList(){
+/* ⭐ 목록 질의 한 곳 — 넓은 목록 · 좁은 목록이 같은 필터 · 같은 쪽 pg(100 줄) */
+function listQuery(){
   let qry = sb.from("product_family")
-    .select("id,sku,name,brand_name,option1_name,option2_name", { count:"exact" });
+    .select("id,sku,name,brand_name,category_name,option1_name,option2_name,option3_name,is_active", { count:"exact" });
+  if(onlyActive) qry = qry.eq("is_active", true);
+  if(brand) qry = qry.eq("brand_name", brand);
   if(axis){
     const vs = axisVariants(axis);
     qry = vs.length > 1
@@ -103,8 +139,69 @@ async function loadList(){
       : qry.eq("option1_name", axis);
   }
   if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
+  return qry.order("sku");
+}
 
-  const { data, error } = await pg.run(qry.order("sku"));
+/* ── 두 모드(판정 209) ───────────────────────────────── */
+function syncCtl(){
+  document.getElementById("q").value = q;        document.getElementById("wq").value = q;
+  document.getElementById("axis").value = axis;  document.getElementById("waxis").value = axis;
+  document.getElementById("brand").value = brand; document.getElementById("wbrand").value = brand;
+  document.getElementById("onlyActive").checked = onlyActive; document.getElementById("wactive").checked = onlyActive;
+}
+function showWide(){
+  curId = null; syncCtl();
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadWide();
+}
+async function openFamily(id){
+  curId = id; syncCtl();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  loadList(); await loadDetail(id);
+}
+
+/* ── 넓은 목록 — 열: Family SKU · Name · Brand · Category · Options · Variants · Sets · Active ── */
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq;
+  const box = document.getElementById("wrows");
+  const { data, error } = await pg.run(listQuery());
+  if(seq !== wideSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [];
+  /* 변형 · 세트 수 — 이 쪽의 family 들만 · ⚠️ 1,000 행 캡 — 쪽을 넘겨 다 읽는다 */
+  const nV = {}, nS = {};
+  if(rows.length){
+    const ids = rows.map(r => r.id);
+    for(let from = 0; ; from += 1000){
+      const { data: m, error: me } = await sb.from("product").select("family_id,parent_product_id")
+        .in("family_id", ids).order("id").range(from, from + 999);
+      if(me || !m) break;
+      m.forEach(x => { const t = x.parent_product_id ? nS : nV; t[x.family_id] = (t[x.family_id] || 0) + 1; });
+      if(m.length < 1000) break;
+    }
+    if(seq !== wideSeq) return;
+  }
+  const axes = r => [r.option1_name, r.option2_name, r.option3_name].filter(Boolean).map(esc).join(" × ");
+  box.innerHTML = rows.length ? `<table><thead><tr>
+      <th>Family SKU</th><th>Name</th><th>Brand</th><th>Category</th><th>Options</th>
+      <th class="num">Variants</th><th class="num">Sets</th><th>Active</th></tr></thead>
+    <tbody>${rows.map(r => `<tr data-id="${r.id}" class="${r.is_active ? "" : "off"}">
+      <td class="sk">${esc(r.sku)}</td><td>${esc(r.name)}</td>
+      <td>${dim(r.brand_name)}</td><td>${dim(r.category_name)}</td><td>${axes(r) || '<span class="dim">—</span>'}</td>
+      <td class="num">${nV[r.id] || 0}</td><td class="num">${nS[r.id] ? nS[r.id] : '<span class="dim">—</span>'}</td>
+      <td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No families match.</div>';
+  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openFamily(tr.dataset.id); });
+  pg.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── 좁은 목록 ───────────────────────────────────────── */
+async function loadList(){
+  const { data, error } = await pg.run(listQuery());
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
 
   document.getElementById("rows").innerHTML = data.length ? data.map(r => `
@@ -154,7 +251,7 @@ async function loadDetail(id){
 
   const head = [r.option1_name || "Option", r.option2_name, "SKU", "Name", "UOM", "Active"].filter(Boolean);
   const tbl = (title, rows) => rows.length ? `
-    <div class="card"><h3>${title} <span class="n">${rows.length}</span></h3>
+    <div class="card"><h3 class="ims-sec" data-sec="${title === "Members" ? "variants" : "sets"}">${title} <span class="n">${rows.length}</span></h3>
       <table><thead><tr>${head.map(h=>`<th>${esc(h)}</th>`).join("")}</tr></thead>
       <tbody>${rows.map(row).join("")}</tbody></table></div>` : "";
 
@@ -164,6 +261,10 @@ async function loadDetail(id){
         <div class="sk">${esc(r.sku)}</div>
         <div class="nm">${esc(r.name)}</div>
         <div class="chips">${chips.join("")}</div>
+        <div class="acts">
+          <button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
+          <button class="pobtn" data-act="wide">&lsaquo; All families</button>
+        </div>
       </div>
       <div class="note">Family is a loose grouping — it decides how variants appear in Shopify.
         It does not affect stock or purchasing.</div>
@@ -171,13 +272,33 @@ async function loadDetail(id){
     ${tbl("Members", singles)}
     ${tbl("Sets in this family", sets)}
   `;
+  box.querySelector('[data-act="toglist"]').onclick = () => { const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; };
+  box.querySelector('[data-act="wide"]').onclick = showWide;
 }
 
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   imsHeader(me);
+  document.getElementById("buildTag").textContent = FAM_BUILD;
   document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); clearDetail(); loadList(); };
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
   imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+  document.getElementById("waxis").onchange = e => { axis = e.target.value; pg.reset(); loadWide(); };
+  document.getElementById("wbrand").onchange = e => { brand = e.target.value.trim(); pg.reset(); loadWide(); };
+  document.getElementById("wactive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadWide(); };
+  imsQ("#wq", v => { q = v; pg.reset(); loadWide(); });
+  document.getElementById("wclear").onclick = () => { q = ""; axis = ""; brand = ""; onlyActive = true; syncCtl(); pg.reset(); loadWide(); };
+  /* 브랜드 목록 — family 가 쓰는 브랜드(이름 칸 · 판정 143 의 복사 이름) */
+  try {
+    const bs = new Set();
+    for(let from = 0; ; from += 1000){
+      const { data } = await sb.from("ref_brand").select("name").eq("is_active", true).order("name").range(from, from + 999);
+      (data||[]).forEach(x => bs.add(x.name));
+      if(!data || data.length < 1000) break;
+    }
+    document.getElementById("brandList").innerHTML = [...bs].map(n => `<option value="${esc(n)}">`).join("");
+  } catch(e) {}
 
   /* 옵션 축 목록 — 1,141행을 다 읽어 고유값을 뽑는다(캡 아래라 두 번이면 된다) */
   const seen = {};
@@ -193,10 +314,12 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("axis").innerHTML = '<option value="">All option axes</option>' +
     Object.keys(seen).sort((a,b)=> seen[b]-seen[a])
       .map(k => `<option value="${esc(k)}">${esc(k)} (${seen[k]})</option>`).join("");
+  document.getElementById("waxis").innerHTML = document.getElementById("axis").innerHTML;
 
+  /* ?id= 는 바로 상세(Products 의 Family 링크) · 그 밖은 넓은 목록 */
   const wantId = new URLSearchParams(location.search).get("id");
-  await loadList();
-  if(wantId){ curId = wantId; await loadDetail(wantId); }
+  if(wantId) await openFamily(wantId);
+  else showWide();
 });
 </script>
 </body>
