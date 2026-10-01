@@ -63,6 +63,18 @@
   .res .wrn li{color:var(--warn)}
   .res .sk{font-family:var(--mono);font-weight:600;color:var(--ink)}
   .zoom{max-width:100%;max-height:70vh;display:block;margin:0 auto}
+  /* 만들기 대화상자 — v2b · 판정 177 · 180 ~ 184 */
+  .newbar{display:flex;gap:8px}
+  .newbar .pobtn{flex:1}
+  .pobox.wide{max-width:1180px}
+  .fg{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .fg .full{grid-column:2 / span 3}
+  .sub{font-size:12.5px;font-weight:700;color:var(--ink);margin:14px 0 6px}
+  .vt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .vt th{text-align:left;font-weight:600;color:var(--muted);padding:4px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .vt td{padding:4px 4px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
+  .vt .ein{min-width:70px}
+  .ghost{color:var(--muted);font-size:11.5px}
 </style>
 </head>
 <body>
@@ -79,6 +91,10 @@
 <div class="wrap">
   <section class="list">
     <div class="top">
+      <div class="newbar" id="newBar" hidden>
+        <button class="pobtn go" id="newProductBtn">New product</button>
+        <button class="pobtn" id="newFamilyBtn">New family</button>
+      </div>
       <input type="search" id="q" placeholder="Search SKU or name">
       <div class="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
@@ -121,7 +137,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 (pr v2a · 2026-10-01)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v2b · 2026-10-01 · v2a 3a24cc4 위에 New product · New family · Add variant)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -133,7 +149,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v2a";
+const PR_BUILD = "pr v2b";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -143,7 +159,7 @@ let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
 const pg = imsPage(100);
 let openSets = {};
-let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, currencies:{} };
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[] };
 let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
 let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[] } — 입력값은 DOM 에서 읽는다
 
@@ -410,15 +426,16 @@ function renderRead(){
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name","Qty"], bomRows) : ""}
     ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name","Pack factor","Active"], kidRows) : ""}
-    ${sibs.length ? tbl(
-        `Same family <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted)">${esc(family.name)}</span>`,
+    ${family ? tbl(
+        `Same family <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted)">${esc(family.name)}</span>` +
+          (canEdit ? ` <button class="pobtn" data-act="addVariant" style="margin-left:auto">Add variant</button>` : ""),
         sibs.length,
         [family.option1_name || "Option 1", family.option2_name || "", "SKU", "Name", "Active"].filter((h,i)=> i!==1 || family.option2_name),
         sibs.map(x => `<tr>
           <td>${dim(x.option1_value)}</td>
           ${family.option2_name ? `<td>${dim(x.option2_value)}</td>` : ""}
           <td class="mono"><span class="lnk" data-go="${x.id}">${esc(x.sku)}</span></td>
-          <td>${esc(x.name)}</td><td>${yn(x.is_active)}</td></tr>`)) : ""}
+          <td>${esc(x.name)}</td><td>${yn(x.is_active)}</td></tr>`), "No other variants yet.") : ""}
   `;
 }
 
@@ -630,24 +647,25 @@ function buildChanges(){
 
 /* ── 저장 흐름 한 곳(판정 176) — 검사 → 막기면 보이고 끝 · 경고면 보이고 확인 → 저장 ──
    ⭐ v2b 의 product_create · product_family_create 도 이 함수를 쓴다(창구 이름 · 인자만 다르다) */
-async function runWindow(fn, args, onCommitted){
+async function runWindow(fn, args, onCommitted, onBack){
+  document.getElementById("modalBox").classList.remove("wide");
   showModal(`<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>`);
   const r1 = await sb.rpc(fn, Object.assign({}, args, { p_commit:false, p_ack:[] }));
-  if(r1.error){ showResult({ error: r1.error.message }); return false; }
+  if(r1.error){ showResult({ error: r1.error.message }, null, onBack); return false; }
   const d1 = r1.data || {};
-  if((d1.blocks||[]).length){ showResult(d1); return false; }
+  if((d1.blocks||[]).length){ showResult(d1, null, onBack); return false; }
   if(!(d1.warnings||[]).length) return await commit([]);
-  return await new Promise(res => showResult(d1, async () => res(await commit(d1.warnings.map(w => w.key))), () => res(false)));
+  return await new Promise(res => showResult(d1, async () => res(await commit(d1.warnings.map(w => w.key))), () => { res(false); if(onBack) onBack(); }));
 
   async function commit(ack){
     showModal(`<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>`);
     const r2 = await sb.rpc(fn, Object.assign({}, args, { p_commit:true, p_ack:ack }));
-    if(r2.error){ showResult({ error: r2.error.message }); return false; }
+    if(r2.error){ showResult({ error: r2.error.message }, null, onBack); return false; }
     const d2 = r2.data || {};
     if(d2.committed){ closeModal(); await onCommitted(d2); return true; }
     /* 그 사이 다른 사람이 바꿨다 — 새 막기 · 확인 안 된 경고를 다시 보인다 */
-    if((d2.blocks||[]).length){ showResult(d2); return false; }
-    return await new Promise(res => showResult(d2, async () => res(await commit((d2.warnings||[]).map(w => w.key))), () => res(false)));
+    if((d2.blocks||[]).length){ showResult(d2, null, onBack); return false; }
+    return await new Promise(res => showResult(d2, async () => res(await commit((d2.warnings||[]).map(w => w.key))), () => { res(false); if(onBack) onBack(); }));
   }
 }
 function showModal(html){
@@ -668,7 +686,7 @@ function showResult(d, onGo, onCancel){
   const go = (!d.error && !blocks.length && onGo) ? `<button class="pobtn go" data-m="go">Save anyway</button>` : "";
   showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4>
     <div class="pbody res">${body}</div>
-    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : "Close"}</button>${go}</div>`);
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : (modalCancelHook ? "Back" : "Close")}</button>${go}</div>`);
   const box = document.getElementById("modalBox");
   box.querySelector('[data-m="close"]').onclick = () => { closeModal(); if(modalCancelHook){ const h = modalCancelHook; modalCancelHook = null; h(); } };
   const g = box.querySelector('[data-m="go"]');
@@ -756,6 +774,7 @@ function wireDetail(box){
       }
       if(a === "supDrop"){ keepInputs(() => edit.addSup.splice(Number(el.dataset.i), 1)); return; }
 
+      if(a === "addVariant"){ openFamilyDialog({ familyId: cur.family.id, family: cur.family }); return; }
       if(a === "photoAdd"){ const f = document.getElementById("photoFile"); f.value = ""; f.click(); return; }
       if(a === "photoPrimary"){ await photoOp([{ op:"image_primary", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
       if(a === "photoOff"){ await photoOp([{ op:"image_off", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
@@ -815,12 +834,243 @@ function keepInputs(mutate){
   buildChanges();
 }
 
+
+/* ═══ v2b — 만들기 대화상자(판정 177 · 180 ~ 184 · 200 · 묶음 3 · 4) ═══════════════════════
+   ⭐ 창구: product_create(p_items) · product_family_create(p_family, p_items) — 둘 다 runWindow(검사 → 확인 → 저장)
+   ⭐ 막기 · 오류로 돌아오면 친 값 그대로 대화상자를 다시 연다(onBack)
+   ⭐ 세트는 계수만(판정 177 · SKU · 단위 · 이름은 창구가) · 세트 고정가는 Edit 에서(비우면 계산 가격)
+   ⭐ 이름을 비우면 창구가 짓는다 — 세트 <낱개 이름>-<계수>(180) · 변형 <family 이름> - <값>( - <값>)(183 · 184) · family SKU <첫 변형 SKU>FAM(182)
+   ⭐ SKU 제안 = 브랜드가 쓰는 앞글자 + 12 · 13 자리 바코드의 끝 6 자리 − 체크 디짓(R1 · R2 와 같은 규칙) — 제안일 뿐 · 사람이 고친다 */
+const prefixCache = {};
+async function brandPrefix(brandId){
+  if(!brandId) return null;
+  if(prefixCache[brandId] !== undefined) return prefixCache[brandId];
+  const { data } = await sb.from("product").select("sku").eq("brand_id", brandId).eq("is_active", true)
+    .is("parent_product_id", null).range(0, 299);
+  const cnt = {};
+  (data||[]).forEach(x => { const m = /^[A-Z]+/.exec(x.sku || ""); if(m) cnt[m[0]] = (cnt[m[0]]||0) + 1; });
+  const best = Object.entries(cnt).sort((a,b) => b[1] - a[1])[0];
+  return (prefixCache[brandId] = best ? best[0] : null);
+}
+async function suggestSku(brandId, barcode){
+  const bc = (barcode || "").trim();
+  if(!/^\d{12,13}$/.test(bc)) return null;
+  const pre = await brandPrefix(brandId);
+  return pre ? pre + bc.substr(bc.length - 6, 5) : null;
+}
+const saleTiers = () => refs.tiers.filter(t => t.purpose === "sale");
+const splitList = v => (v || "").split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+function supPick(name){ const n = (name||"").trim().toLowerCase(); return n ? (refs.supByName[n] || null) : null; }
+function openForm(html){ const b = document.getElementById("modalBox"); b.classList.add("wide"); showModal(html); return b; }
+
+/* ── New product — 낱개 한 벌 + 세트(판정 134 · 146) ── */
+function openProductDialog(st){
+  st = st || { sku:"", name:"", brand_id:"", category_id:"", unit_id:(refs.units.find(u => u.name === "EA")||{}).id || "", weight:"", weight_unit:"", note:"",
+               barcodes:"", prices:{}, sup:"", sup_sku:"", cost:"", fixed:"", sets:[] };
+  const tiers = saleTiers();
+  const setRows = st.sets.map((x, i) => `<tr>
+      <td><input class="ein sm mono" data-set="${i}" data-k="pack_factor" value="${esc(x.pack_factor)}" placeholder="6"></td>
+      <td><input class="ein mono" data-set="${i}" data-k="barcodes" value="${esc(x.barcodes)}" placeholder="case barcode (optional)"></td>
+      <td><input class="ein sm mono" data-set="${i}" data-k="set_discount_pct" value="${esc(x.set_discount_pct)}" placeholder="%"></td>
+      <td><input class="ein" data-set="${i}" data-k="name" value="${esc(x.name)}" placeholder="name-${esc(x.pack_factor||"N")} (auto)"></td>
+      <td><button class="xbtn" data-np="setDrop" data-i="${i}">remove</button></td></tr>`).join("");
+  const b = openForm(`<h4>New product</h4>
+    <div class="pbody">
+      <div class="fg">
+        <label>Barcode(s)</label><input class="ein mono full" id="npBc" value="${esc(st.barcodes)}" placeholder="one or more — the first is primary">
+        <label>Brand</label><select class="ein" id="npBrand">${opt(refs.brands, st.brand_id, true)}</select>
+        <label>SKU</label><div style="display:flex;gap:6px"><input class="ein mono" id="npSku" value="${esc(st.sku)}" placeholder="e.g. CON19912"><button class="pobtn" data-np="suggest" title="Brand prefix + barcode digits">Suggest</button></div>
+        <label>Name</label><input class="ein full" id="npName" value="${esc(st.name)}">
+        <label>Category</label><select class="ein" id="npCat">${opt(refs.cats, st.category_id, true)}</select>
+        <label>Unit</label><select class="ein" id="npUnit">${opt(refs.units, st.unit_id, true)}</select>
+        <label>Weight</label><div style="display:flex;gap:6px"><input class="ein sm mono" id="npW" value="${esc(st.weight)}"><input class="ein sm" id="npWu" value="${esc(st.weight_unit)}" placeholder="kg · g · lb · oz"></div>
+        <label>Note</label><input class="ein" id="npNote" value="${esc(st.note)}">
+      </div>
+      <div class="sub">Sale prices</div>
+      <div class="fg">${tiers.map(t => `<label>${esc(t.name)}</label><input class="ein sm mono" data-npprice="${t.id}" value="${esc(st.prices[t.id]||"")}">`).join("")}</div>
+      <div class="sub">Supplier</div>
+      <div class="fg">
+        <label>Supplier</label><input class="ein" id="npSup" list="supList" value="${esc(st.sup)}">
+        <label>Supplier SKU</label><input class="ein mono" id="npSupSku" value="${esc(st.sup_sku)}">
+        <label>Cost</label><input class="ein sm mono" id="npCost" value="${esc(st.cost)}">
+        <label>Fixed cost</label><input class="ein sm mono" id="npFixed" value="${esc(st.fixed)}">
+      </div>
+      <div class="sub">Sets <span class="ghost">— only the pack factor is needed · SKU becomes ${esc(st.sku || "SKU")}-N · set prices are calculated unless you fix them later in Edit</span></div>
+      ${st.sets.length ? `<table class="vt"><thead><tr><th>Pack factor</th><th>Barcodes</th><th>Set discount</th><th>Name</th><th></th></tr></thead><tbody>${setRows}</tbody></table>` : ""}
+      <div style="display:flex;gap:6px;margin-top:6px">${[2,3,6,12,24].map(n => `<button class="xbtn" data-np="setAdd" data-n="${n}">+ ×${n}</button>`).join("")}<button class="xbtn" data-np="setAdd" data-n="">+ other</button></div>
+    </div>
+    <div class="pfoot"><span class="ghost">Leave the name of a set blank to get the usual name.</span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-np="go">Check &amp; create</button></div>`);
+
+  const read = () => {
+    st.barcodes = b.querySelector("#npBc").value; st.brand_id = b.querySelector("#npBrand").value; st.sku = b.querySelector("#npSku").value.trim();
+    st.name = b.querySelector("#npName").value; st.category_id = b.querySelector("#npCat").value; st.unit_id = b.querySelector("#npUnit").value;
+    st.weight = b.querySelector("#npW").value; st.weight_unit = b.querySelector("#npWu").value; st.note = b.querySelector("#npNote").value;
+    b.querySelectorAll("[data-npprice]").forEach(el => { st.prices[el.dataset.npprice] = el.value.trim(); });
+    st.sup = b.querySelector("#npSup").value; st.sup_sku = b.querySelector("#npSupSku").value; st.cost = b.querySelector("#npCost").value; st.fixed = b.querySelector("#npFixed").value;
+    b.querySelectorAll("[data-set]").forEach(el => { st.sets[Number(el.dataset.set)][el.dataset.k] = el.value; });
+  };
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  b.querySelectorAll("[data-np]").forEach(el => {
+    el.onclick = async () => {
+      const a = el.dataset.np;
+      if(a === "setAdd"){ read(); st.sets.push({ pack_factor: el.dataset.n, barcodes:"", set_discount_pct:"", name:"" }); openProductDialog(st); return; }
+      if(a === "setDrop"){ read(); st.sets.splice(Number(el.dataset.i), 1); openProductDialog(st); return; }
+      if(a === "suggest"){
+        read();
+        const v = await suggestSku(st.brand_id, splitList(st.barcodes)[0]);
+        if(v){ b.querySelector("#npSku").value = v; st.sku = v; }
+        else alert("Pick the brand and enter a 12 or 13 digit barcode first (or the brand has no products yet).");
+        return;
+      }
+      if(a === "go"){
+        read();
+        const sp = supPick(st.sup);
+        if(st.sup.trim() && !sp){ alert("Pick the supplier from the list."); return; }
+        const item = {
+          sku: st.sku, name: st.name.trim() || null, brand_id: st.brand_id || null, category_id: st.category_id || null, unit_id: st.unit_id || null,
+          weight: blankNull(st.weight), weight_unit: blankNull(st.weight_unit), note: blankNull(st.note),
+          barcodes: splitList(st.barcodes),
+          prices: Object.entries(st.prices).filter(([, v]) => v).map(([tier_id, price]) => ({ tier_id, price })),
+          suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku), cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), is_default: true }] : [],
+          sets: st.sets.map(x => {
+            const o = { pack_factor: blankNull(x.pack_factor), barcodes: splitList(x.barcodes) };
+            if(blankNull(x.set_discount_pct) !== null) o.set_discount_pct = blankNull(x.set_discount_pct);
+            if(blankNull(x.name) !== null) o.name = blankNull(x.name);
+            return o;
+          }),
+        };
+        await runWindow("product_create", { p_items: [item] }, async (d) => {
+          const it = (d.items || [])[0];
+          await openCreated(it && it.product_id, st.sku);
+        }, () => openProductDialog(st));
+      }
+    };
+  });
+}
+
+/* ── New family · Add variant(판정 181 ~ 185) — 머리 + 변형 표 · 한 번에 ── */
+function openFamilyDialog(st){
+  if(!st.rows) {
+    const fam = st.family || null;
+    Object.assign(st, { sku:"", name:"", brand_id:"", category_id:"", unit_id:(refs.units.find(u => u.name === "EA")||{}).id || "",
+                        ax1: fam ? (fam.option1_name||"") : "", ax2: fam ? (fam.option2_name||"") : "", ax3: fam ? (fam.option3_name||"") : "",
+                        note:"", sup:"", sup_sku:"", cost:"", fixed:"", rows:[{}, {}] });
+  }
+  const adding = !!st.familyId;
+  const axes = [st.ax1, st.ax2, st.ax3].map(x => (x||"").trim()).filter(Boolean);
+  const tiers = saleTiers();
+  const rowHtml = (r, i) => `<tr>
+      <td><input class="ein mono" data-vr="${i}" data-k="sku" value="${esc(r.sku||"")}" style="min-width:110px"></td>
+      ${(axes.length ? axes : ["Option"]).map((a, j) => `<td><input class="ein" data-vr="${i}" data-k="o${j}" value="${esc(r["o"+j]||"")}" placeholder="${esc(a)}"></td>`).join("")}
+      <td><input class="ein mono" data-vr="${i}" data-k="bc" value="${esc(r.bc||"")}" placeholder="barcode" style="min-width:120px"></td>
+      ${tiers.map(t => `<td><input class="ein mono" data-vr="${i}" data-k="p_${t.id}" value="${esc(r["p_"+t.id]||"")}" style="width:72px;min-width:72px"></td>`).join("")}
+      <td><input class="ein mono" data-vr="${i}" data-k="sets" value="${esc(r.sets||"")}" placeholder="6, 12" style="width:72px;min-width:72px"></td>
+      <td><input class="ein" data-vr="${i}" data-k="name" value="${esc(r.name||"")}" placeholder="(auto)"></td>
+      <td><button class="xbtn" data-nf="rowDrop" data-i="${i}">✕</button></td></tr>`;
+  const head = adding
+    ? `<div class="fg"><label>Family</label><div class="full mono">${esc(st.family.sku)} <span class="ghost">${esc(st.family.name)} · axes ${esc(axes.join(" / ") || "—")}</span></div></div>`
+    : `<div class="fg">
+        <label>Family name</label><input class="ein full" id="nfName" value="${esc(st.name)}">
+        <label>Family SKU</label><input class="ein mono" id="nfSku" value="${esc(st.sku)}" placeholder="blank = first variant SKU + FAM">
+        <label>Brand</label><select class="ein" id="nfBrand">${opt(refs.brands, st.brand_id, true)}</select>
+        <label>Category</label><select class="ein" id="nfCat">${opt(refs.cats, st.category_id, true)}</select>
+        <label>Unit</label><select class="ein" id="nfUnit">${opt(refs.units, st.unit_id, true)}</select>
+        <label>Option axis 1</label><input class="ein" id="nfAx1" list="axisList" value="${esc(st.ax1)}" placeholder="e.g. Color">
+        <label>Option axis 2</label><input class="ein" id="nfAx2" list="axisList" value="${esc(st.ax2)}" placeholder="optional">
+        <label>Option axis 3</label><input class="ein" id="nfAx3" list="axisList" value="${esc(st.ax3)}" placeholder="optional">
+        <label>Note</label><input class="ein" id="nfNote" value="${esc(st.note)}">
+      </div>`;
+  const b = openForm(`<h4>${adding ? "Add variants" : "New family"}</h4>
+    <div class="pbody">
+      ${head}
+      <datalist id="axisList">${refs.axes.map(a => `<option value="${esc(a)}">`).join("")}</datalist>
+      <div class="sub">Supplier for every variant <span class="ghost">— optional</span></div>
+      <div class="fg">
+        <label>Supplier</label><input class="ein" id="nfSup" list="supList" value="${esc(st.sup)}">
+        <label>Supplier SKU</label><input class="ein mono" id="nfSupSku" value="${esc(st.sup_sku)}" placeholder="leave blank to use each variant SKU">
+        <label>Cost</label><input class="ein sm mono" id="nfCost" value="${esc(st.cost)}">
+        <label>Fixed cost</label><input class="ein sm mono" id="nfFixed" value="${esc(st.fixed)}">
+      </div>
+      <div class="sub">Variants <span class="ghost">— name blank = ${adding ? esc(st.family.name) : "family name"} - value · sets = pack factors</span></div>
+      <div style="overflow:auto"><table class="vt"><thead><tr><th>SKU</th>${(axes.length ? axes : ["Option"]).map(a => `<th>${esc(a)}</th>`).join("")}<th>Barcode</th>
+        ${tiers.map(t => `<th>${esc(t.name)}</th>`).join("")}<th>Sets</th><th>Name</th><th></th></tr></thead>
+        <tbody>${st.rows.map(rowHtml).join("")}</tbody></table></div>
+      <div style="margin-top:6px"><button class="xbtn" data-nf="rowAdd">+ variant</button>
+        ${adding ? "" : `<button class="xbtn" data-nf="axes" title="Redraw the table after changing the axes">Apply axes</button>`}</div>
+    </div>
+    <div class="pfoot"><span class="ghost">Empty rows are ignored.</span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-nf="go">Check &amp; create</button></div>`);
+
+  const read = () => {
+    if(!adding){
+      st.name = b.querySelector("#nfName").value; st.sku = b.querySelector("#nfSku").value.trim();
+      st.brand_id = b.querySelector("#nfBrand").value; st.category_id = b.querySelector("#nfCat").value; st.unit_id = b.querySelector("#nfUnit").value;
+      st.ax1 = b.querySelector("#nfAx1").value; st.ax2 = b.querySelector("#nfAx2").value; st.ax3 = b.querySelector("#nfAx3").value;
+      st.note = b.querySelector("#nfNote").value;
+    }
+    st.sup = b.querySelector("#nfSup").value; st.sup_sku = b.querySelector("#nfSupSku").value; st.cost = b.querySelector("#nfCost").value; st.fixed = b.querySelector("#nfFixed").value;
+    b.querySelectorAll("[data-vr]").forEach(el => { st.rows[Number(el.dataset.vr)][el.dataset.k] = el.value; });
+  };
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  b.querySelectorAll("[data-nf]").forEach(el => {
+    el.onclick = async () => {
+      const a = el.dataset.nf;
+      if(a === "rowAdd"){ read(); st.rows.push({}); openFamilyDialog(st); return; }
+      if(a === "rowDrop"){ read(); st.rows.splice(Number(el.dataset.i), 1); if(!st.rows.length) st.rows.push({}); openFamilyDialog(st); return; }
+      if(a === "axes"){ read(); openFamilyDialog(st); return; }
+      if(a === "go"){
+        read();
+        const sp = supPick(st.sup);
+        if(st.sup.trim() && !sp){ alert("Pick the supplier from the list."); return; }
+        const nAx = Math.max(1, [st.ax1, st.ax2, st.ax3].map(x => (x||"").trim()).filter(Boolean).length);
+        const rows = st.rows.filter(r => Object.values(r).some(v => (v||"").toString().trim() !== ""));
+        if(!rows.length){ alert("Add at least one variant."); return; }
+        const items = rows.map(r => {
+          const sku = (r.sku||"").trim();
+          return {
+            sku, name: blankNull(r.name),
+            options: Array.from({ length: nAx }, (_, j) => (r["o"+j]||"").trim()),
+            barcodes: splitList(r.bc),
+            prices: tiers.filter(t => blankNull(r["p_"+t.id]) !== null).map(t => ({ tier_id: t.id, price: blankNull(r["p_"+t.id]) })),
+            suppliers: sp ? [{ supplier_id: sp.id, supplier_sku: blankNull(st.sup_sku) ?? sku, cost: blankNull(st.cost), fixed_cost: blankNull(st.fixed), is_default: true }] : [],
+            sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
+          };
+        });
+        const fam = adding ? { id: st.familyId } : {
+          sku: blankNull(st.sku), name: blankNull(st.name), brand_id: st.brand_id || null, category_id: st.category_id || null, unit_id: st.unit_id || null,
+          option1_name: blankNull(st.ax1), option2_name: blankNull(st.ax2), option3_name: blankNull(st.ax3), note: blankNull(st.note) };
+        Object.keys(fam).forEach(k => { if(fam[k] === null) delete fam[k]; });
+        await runWindow("product_family_create", { p_family: fam, p_items: items }, async (d) => {
+          const it = (d.items || [])[0];
+          await openCreated(it && it.product_id, it && it.sku);
+        }, () => openFamilyDialog(st));
+      }
+    };
+  });
+}
+
+/* 만든 뒤 — 그 상품으로 연다(목록이 고른 것을 알아보게 먼저 검색어를 그 SKU 로) */
+async function openCreated(pid, sku){
+  if(!pid) { await loadList(); return; }
+  q = sku || ""; document.getElementById("q").value = q;
+  onlyActive = true; document.getElementById("onlyActive").checked = true;
+  kind = "single"; document.getElementById("kind").value = "single";
+  curId = pid; pg.reset(); openSets = {};
+  await loadList(); await loadDetail(pid);
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
   canEdit = imsAuth.canWrite("master");
   imsHeader(me);
   document.getElementById("buildTag").textContent = PR_BUILD;
+  if(canEdit){
+    document.getElementById("newBar").hidden = false;
+    document.getElementById("newProductBtn").onclick = () => { if(leaveEditOk()) openProductDialog(null); };
+    document.getElementById("newFamilyBtn").onclick = () => { if(leaveEditOk()) openFamilyDialog({}); };
+  }
 
   document.getElementById("modal").onclick = e => {
     if(e.target.id !== "modal") return;
@@ -844,13 +1094,17 @@ imsAuth.start({ changePw:true }, async (client, me) => {
 
   /* 기준표 — 고치기 칸이 id 로 쓴다(이름 칸은 창구가 복사한다 · 판정 143) */
   try {
-    const [bl, cl, ul, tl, sl] = await Promise.all([
+    const [bl, cl, ul, tl, sl, fl] = await Promise.all([
       fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
       fetchAll("supplier", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("product_family", "option1_name,option2_name,option3_name", x => x.eq("is_active", true)),
     ]);
+    /* 축 이름 — 활성 family 가 쓰는 것을 많이 쓰는 순으로(판정 190 · 흔한 철자를 먼저 보이게) */
+    const ac = {}; fl.forEach(f => [f.option1_name, f.option2_name, f.option3_name].forEach(a => { if(a) ac[a] = (ac[a]||0) + 1; }));
+    refs.axes = Object.entries(ac).sort((a,b) => b[1] - a[1]).map(x => x[0]);
     refs.brands = bl; refs.cats = cl; refs.units = ul; refs.tiers = tl; refs.suppliers = sl;
     refs.supByName = {}; sl.forEach(x => { refs.supByName[x.name.toLowerCase()] = x; });
   } catch(err){
