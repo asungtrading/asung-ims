@@ -36,6 +36,8 @@
   .sobig{font-family:var(--mono);font-size:16px;font-weight:700}
   .socols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
   .socols .stat b{font-size:15px}
+  /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -136,8 +138,11 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-09-30 · so v3.1";   // lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-01 · so thumb v1";   // 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
+/* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
+const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
 
 function torontoToday() {
   const p = {};
@@ -510,9 +515,9 @@ async function drawAlHits(term){
     return ` <span class="${cls}" style="font-size:11.5px">available ${esc(ea.toLocaleString("en-CA"))} EA${pf > 1 ? ` = ${esc(Math.floor(ea / pf))} × ${esc(pf)}` : ""}</span>`
       + (Number(a.allocated_ea) ? ` <span class="dim" style="font-size:11px">(on hand ${esc(Number(a.qty_ea).toLocaleString("en-CA"))} · reserved ${esc(Number(a.allocated_ea).toLocaleString("en-CA"))})</span>` : "");
   };
-  box.innerHTML = rows.map(p => `<div class="prow" data-pid="${p.id}" data-sku="${esc(p.sku)}" data-name="${esc(p.name || "")}" data-av="${esc(avTxt(p))}">
+  box.innerHTML = rows.map(p => `<div class="prow" data-pid="${p.id}" data-sku="${esc(p.sku)}" data-name="${esc(p.name || "")}" data-av="${esc(avTxt(p))}"><div class="lnth">${thumbOf(p.sku)}<div>
       <span class="mono">${esc(p.sku)}</span>${p.barcode ? ` <span class="dim" style="font-size:11.5px">barcode ${esc(p.barcode)}</span>` : ""}${avTxt(p)}
-      <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+      <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div></div></div>`).join("")
     + (rows.length >= 50 ? '<div class="msg dim">Showing the first matches — type more to narrow.</div>' : "");
   box.querySelectorAll("[data-pid]").forEach(el => {
     el.onclick = () => {
@@ -521,6 +526,7 @@ async function drawAlHits(term){
       drawChosen();
     };
   });
+  thumbFill(box);   // 판정 213 — 후보 SKU 를 한 번에 · 사진 클릭은 크게 보기만(담기로 안 번진다)
 }
 function drawChosen(){
   const box = document.getElementById("alChosen");
@@ -1576,8 +1582,8 @@ async function loadDetail(id){
     const manual = l.price_override || l.discount_source === "manual";
     return `<tr>
       <td class="num">${esc(l.line_no)}</td>
-      <td><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
-        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</div></div></td>
       <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` : qty(l.qty_ordered)}</td>
       ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => resLabel(x)).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
       <td class="num">${price(l.list_price)}</td>
@@ -1661,6 +1667,7 @@ async function loadDetail(id){
     ${balHtml.length ? tbl("Customer balance", balHtml.length, [["Currency",""],["Money on account","num"],["Credit owed","num"],["Held for orders","num"],["Available","num"],["Open invoices due","num"]], balHtml,
       "Available = money on account + credit owed − deposits held for open orders. It is used automatically when an invoice is issued.") : ""}
   `;
+  thumbFill(box);   // 판정 208 — 이 오더의 SKU 를 한 번에(기다리지 않는다)
 
   box.querySelectorAll("[data-goto]").forEach(a => { a.onclick = () => gotoSo(a.dataset.goto, a.dataset.gid || null); });
   box.querySelectorAll("[data-head]").forEach(el => { el.onchange = () => { if(el.value !== el.dataset.prev) saveHead(el); }; });
