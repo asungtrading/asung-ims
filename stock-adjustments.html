@@ -40,6 +40,8 @@
   .mtabs button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
   td .pobtn{padding:3px 9px;font-size:12px}
   .pos{color:var(--good, #2b8a3e)}
+  /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -108,8 +110,11 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-09-28 · adj v1.2";   // adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
+const ADJ_BUILD = "2026-10-01 · adj thumb v1";   // 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
 console.log("stock-adjustments.html build:", ADJ_BUILD);
+/* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
+const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
 
 let sb = null, me = null, canAdj = false, canRead = false;
 let q = "", stFilter = "", whFilter = "", dateFrom = "", dateTo = "", curId = null;
@@ -294,6 +299,7 @@ async function loadDetail(id){
         but still in the book — it leaves the book when the order ships. Shelf should be = book − picked, not shipped.
         "Set to N" changes the book by N − shelf should be. All quantities are single units (EA).</div>
     </div>`;
+  thumbFill(box);   // 판정 208 — 이 조정의 SKU 를 한 번에(기다리지 않는다)
 
   box.querySelectorAll("[data-act]").forEach(el => {
     const a = el.dataset.act;
@@ -338,7 +344,7 @@ function linesTable(lines, h, ed){
                                                           : '<div class="dim" style="font-size:11.5px">no change — nothing posted</div>') : "";
       return `<tr>
         <td class="num">${esc(l.line_no)}</td>
-        <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
         <td><span class="mono">${esc(l.bin)}</span></td>
         <td>${input}</td>
         <td>${esc(reasonText(l.reason))}${l.reason_note ? `<div class="dim" style="font-size:11.5px">${esc(l.reason_note)}</div>` : ""}</td>
@@ -483,11 +489,12 @@ function openLine(h, line, pre){
     const { data, error } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor")
       .eq("is_active", true).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
     if(error){ pHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}">
+    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}"><div class="lnth">${thumbOf(p.sku)}<div>
         <span class="mono">${esc(p.sku)}</span>${p.parent_product_id ? ` <span class="chip">pack × ${esc(p.pack_factor)}</span>` : ""}
-        <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+        <div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div></div></div>`).join("")
       : '<div class="msg">No active product matches.</div>';
     pHits.querySelectorAll("[data-pid]").forEach(el => { el.onclick = () => pickProduct(data.find(x => x.id === el.dataset.pid)); });
+    thumbFill(pHits);   // 판정 213 — 사진 클릭은 크게 보기만(고르기로 안 번진다)
   };
   const lpq = document.getElementById("lpq");
   imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
