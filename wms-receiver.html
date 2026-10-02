@@ -362,7 +362,7 @@
    놓기 = wms_recv_putaway(작업 줄 id · 칸 id · 놓았다) · Place all = wms_recv_place_all · 보류 = wms_recv_hold · 재개 = wms_recv_resume · 끝 = wms_recv_complete(판정 28 · Partial 없음) ·
    PO 에 없는 물건 = wms_recv_off_po(차이 큐 한 행 · 다시 스캔 = 더함) · 놓기 = wms_recv_off_po_putaway · 뺐다 = wms_recv_off_po_removed(⑤-6c2 · 아래 머리 주석) · 리포트는 wms_reports 에 직접(운영 그대로 · reported_by = ims_staff.id) ·
    읽기 = po(confirmed) · po_receipt(draft) · po_receipt_work · wms_task_holds · wms_receipt_complete · product · product_barcode(낱개 + 세트 ×factor) · ref_bin · wms_zone_sequence · ims_last_bin(판정 29 — 미리 보여만 · 자동 배정 쓰기 없음).
-   사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진(판정 33 · HAS_IMAGES false) · 옛 wms_ 입고 표 전부.
+   사라진 것: Cin7 목록 · Apply · applied 배지 · 트랜스퍼(운영 WMS 로만) · Partial · 자동 배정 · 단계 이력 표 · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1) · 옛 wms_ 입고 표 전부.
    Complete 뒤(판정 30) = 읽기 전용 「Completed — ask a manager to reopen」 · 확정은 오피스(판정 27 B) — Confirm 단추는 화면 값 wms_receiving_confirm 이 있을 때만. */
 /* ⑤-6c2 (2026-09-27 · rc v1.4) — 판정 43: off-PO 는 스캔하고 **바로 놓는다**(승인 전 차단 없음) · 놓기 = wms_recv_off_po_putaway(diff · bin · done) · 결정은 오피스 Purchase Receipts(판정 44) ·
    결정 뒤 = po_receipt_detail diffs[] 의 resolution · bin · placed_by/at · removed_by/at: accepted_* → 「Accepted — in stock」 읽기 전용 · rejected → 빨간 그룹 「Rejected — take it off <bin>」 + Removed(wms_recv_off_po_removed) · 한 제품 한 칸 */
@@ -372,8 +372,8 @@
    ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
    ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
-const RC_BUILD="2026-09-29 · rc v1.6";   // inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
-const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 켠다)
+const RC_BUILD="2026-10-01 · rc v1.7";   // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
+const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
 /* ---------- tf-3(판정 83) 트랜스퍼 도착 갈래 — PO 입고 줄은 그대로 · 트랜스퍼 입고는 같은 모양으로 채워 옆에 둔다 ----------
@@ -409,7 +409,7 @@ function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arr
 /* inv-basis-4 · 판정 88 ⑧ · ㉒ — 기준보다 많이 셀 때의 한 문장(± · 스캔 · Enter quantity 세 길 · PO 는 off-invoice · 트랜스퍼는 판정 74) */
 function overNote(){ return (receipt&&receipt.is_transfer) ? "Only what was sent is taken in — the office decides the rest" : "More than the invoice — the extra is put away and the office decides it (off-invoice)"; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
-let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (HAS_IMAGES 가 서면 쓴다)
+let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (판정 224 — HAS_IMAGES 가 켜져 쓴다)
 let sortMode="po";   // 검수 리스트/싱글 표시 순서: po|zone|product|sku
 
 /* ?debug=perf — 진입/렌더 소요와 DOM 노드 수를 콘솔에 남긴다 (평상시 no-op) */
@@ -740,7 +740,7 @@ function applyDetail(d){
       expected:Math.max(0, x.expected!=null ? Number(x.expected) : Number(x.ordered||0)-Number(x.received_before||0)),   // inv-basis-4 · 판정 88 ②: PO 는 po_receipt_detail lines[].expected · 트랜스퍼(키 없음)는 옛 셈 그대로
       invoiced:Number(x.invoiced||0),
       received:unconfirmed.has(x.po_line_id)&&k.received!=null?k.received:Number(x.counted||0),   // 미확인 쓰기가 걸린 줄은 내 값이 더 최신
-      is_off_po:false, needs_approval:false, image_url:null,
+      is_off_po:false, needs_approval:false, image_url:k.image_url||null, image_parent:!!k.image_parent,   // 판정 224 — 새로 고침마다 줄을 다시 만들어도 사진은 보존(fillPhotos 가 채운 값)
       work:(x.work||[]).map(w=>({id:w.id, qty:Number(w.qty_ea||0), bin_id:w.bin_id, bin:w.bin||null, done:!!w.putaway_done})),
     });
   });
@@ -751,7 +751,7 @@ function applyDetail(d){
     const decided=x.resolved_at?x.resolution:null;
     if(decided==="rejected"&&x.removed_at) return;   // 거절 · 뺀 것은 끝난 물건 — 줄로 안 보인다(옛 off_po 만 · off_invoice 는 거절이 없다 · 판정 99)
     out.push(Object.assign({}, k, { id, kind:"offpo", diff_kind:x.kind, diff_id:x.id, product_id:x.product_id||k.product_id||null, stock_pid:k.stock_pid||x.product_id||null, order_sku:x.sku, base_sku:k.base_sku||x.sku, product_name:k.product_name||"",
-      expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:!decided, decided, image_url:null,
+      expected:0, received:Number(x.received_qty||0), is_off_po:true, needs_approval:!decided, decided, image_url:k.image_url||null, image_parent:!!k.image_parent,
       offBin:x.bin||null, offBinId:x.bin_id||null, offPlaced:!!x.placed_at, offPlacedBy:x.placed_by||null, offPlacedAt:x.placed_at||null, offRemovedBy:x.removed_by||null, offRemovedAt:x.removed_at||null, work:[] }));
   });
   lines=out;
@@ -804,6 +804,7 @@ async function openReceipt(rid){
   renderClosed();
   renderRecv(); focusScan();
   if(HAS_IMAGES) loadImageFlags();   // ⚑ Image differs 눌린 상태 복원 (독립 — 실패해도 리시빙 뷰는 뜬다)
+  if(HAS_IMAGES) fillPhotos();       // 판정 224 — 사진은 늦게 와도 된다(그려진 칸만 채운다 · 다시 그리지 않는다 · 독립)
   await buildBcMap();   // 바코드 맵 + Last bin enrich (독립)
   renderRecv(); focusScan();
   presenceJoin();       // 같은 PO 를 함께 받는 사람 표시 (독립)
@@ -958,7 +959,23 @@ function sortedIdx(groupFilled){
 }
 function totalExp(){return lines.reduce((s,l)=>s+l.expected,0);}
 function totalRecv(){return lines.reduce((s,l)=>s+Math.min(l.received,l.expected||l.received),0);}
-function imgStyle(l){ return (HAS_IMAGES&&l.image_url)?`style="background-image:url('${esc(l.image_url)}')"`:"style=\"display:none\""; }   // 판정 33 — 사진 칸을 안 그린다
+function imgStyle(l){ return (HAS_IMAGES&&l.image_url)?`style="background-image:url('${esc(l.image_url)}')"${l.image_parent?' title="Single\'s photo"':""}`:"style=\"display:none\""; }   // 판정 224 — 사진이 오기 전엔 칸을 숨긴다 · paintPhotos 가 켠다
+/* 판정 224(wms-img-1) — 줄을 그린 뒤 이 화면 SKU 를 모아 공통 imsPhotoPrimary 한 번(문서 하나에 한 번 · 세트는 창구가 낱개 사진을 빌린다 · 판정 194 · 캐시라 두 번째부터는 요청 없음).
+   ⚠️ 다시 그리지 않는다 — 스캔 · 포커스 · 스크롤을 잃지 않게 이미 그려진 사진 칸([data-psku])의 안만 채운다 · 뒤의 renderRecv · renderPutaway 는 l.image_url 로 그린다 · 도우미가 throw 하지 않아 실패해도 조용(사진 없이 일한다). */
+async function fillPhotos(){
+  if(!HAS_IMAGES||!lines.length) return;
+  const m=await window.imsPhotoPrimary(lines.map(l=>l.order_sku));
+  lines.forEach(l=>{ const h=m.get(l.order_sku); if(h===undefined) return; l.image_url=h?h.url:null; l.image_parent=!!(h&&h.from_parent); });
+  paintPhotos();
+}
+function paintPhotos(){
+  document.querySelectorAll("[data-psku]").forEach(el=>{
+    if(el.style.backgroundImage) return;
+    const l=lines.find(x=>x.order_sku===el.dataset.psku);
+    if(l&&l.image_url){ el.style.display=""; el.style.backgroundImage="url('"+l.image_url+"')"; if(l.image_parent) el.title="Single's photo"; }
+  });
+}
+
 function renderRecv(){
   const rt0=PERF?performance.now():0;
   const tot=totalExp(), rc=totalRecv();
@@ -999,7 +1016,7 @@ function renderSingle(){
   document.getElementById("rSingle").innerHTML=`
     <div class="body">
       <div class="head">
-        <div class="img" ${imgStyle(l)}></div>
+        <div class="img" data-psku="${esc(l.order_sku)}" ${imgStyle(l)}></div>
         <div class="info">
           <div class="nm">${esc(l.product_name)}</div>
           <div class="sku">${esc(l.order_sku)}${l.base_sku&&l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${lastBinChip(l)}</div>
@@ -1075,7 +1092,7 @@ function renderRList(){
     const cls=(l.is_off_po?"offpo":(over?"over":(done?"done":"")))+(idx===curIdx?" cur":"")
       +((notInvoiced(l)&&l.received===0)?" noinv":"");
     html+=`<div class="lrow ${cls}" data-id="${l.id}" data-bay="${l.lastBin?esc(bayOfBin(l.lastBin)):"__none"}">
-      <div class="thumb" ${imgStyle(l)}></div>
+      <div class="thumb" data-psku="${esc(l.order_sku)}" ${imgStyle(l)}></div>
       <div class="li"><div class="s">${esc(l.order_sku)}${lineChips(l)}</div>
         <div class="n">${esc(l.product_name)}</div>
         <div class="b">${lastBinChip(l)}</div></div>
@@ -1258,11 +1275,12 @@ async function offPoScan(code){
     let l=lineById(id);
     if(!l){
       l={ id, kind:"offpo", diff_kind:data.kind||"off_invoice", diff_id:data.diff_id, product_id:stockPid, stock_pid:stockPid, order_sku:data.sku||p.sku, base_sku:data.sku||p.sku, product_name:p.parent_product_id?"":(p.name||""),
-          expected:0, received:0, is_off_po:true, needs_approval:true, decided:null, offBin:null, offBinId:null, offPlaced:false, vmethod:"scanned", image_url:null, work:[], barcodeRows:[], altCodes:[] };
+          expected:0, received:0, is_off_po:true, needs_approval:true, decided:null, offBin:null, offBinId:null, offPlaced:false, vmethod:"scanned", image_url:null, image_parent:false, work:[], barcodeRows:[], altCodes:[] };
       lines.push(l);
     }
     l.received=Number(data.received_qty||0);
     await buildBcMap();  // 새 라인 바코드 · 이름 반영
+    if(HAS_IMAGES) fillPhotos();   // 판정 224 — 새 줄의 사진(캐시에 있으면 요청 없음)
     flash("okbox",`✓ ${offLabel(l)} ${l.order_sku} +${f} — put it away, the manager decides later`);
     renderRecv(); focusScan();
   }catch(e){ toast("Off-PO add failed: "+rpcMsg(e),true); focusScan(); }
@@ -1333,7 +1351,7 @@ async function loadImageFlags(){
   }catch(e){ /* pressed state is cosmetic — never block the receiving view */ }
 }
 async function toggleImageReport(id){
-  const l=lineById(id); if(!l||imgBusy||!HAS_IMAGES) return;   // 판정 33 — 사진이 서기 전에는 부르지 않는다
+  const l=lineById(id); if(!l||imgBusy||!HAS_IMAGES) return;   // 판정 224 — 사진(HAS_IMAGES)이 켜져 있을 때만
   const rid=receipt?receipt.id:null;
   if(!rid){ toast("Cannot report — receipt unknown",true); focusScan(); return; }
   const key=rid+"|"+(l.order_sku||""), on=imgFlags.has(key);
@@ -1612,7 +1630,7 @@ function renderPutaway(){
     const offChip=w.offpo?`<span class="chip appr" style="flex:none">${w.decided?"Accepted — in stock":offLabel(w.line)}</span>`:"";
     return `
       <div class="prow ${w.done?"pdone":""} ${putawayFailed.has(w.id)?"unsaved":""}">
-        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="thumb" data-psku="${esc(w.line.order_sku)}" ${imgStyle(w.line)}></div>
         <div class="li"><div class="s">${esc(w.line.order_sku)}${offChip}</div><div class="n">${esc(w.line.product_name)}${suggested?" · last kept here":""}${w.offpo&&!w.decided?" · not on the PO — put it away, the manager decides later":""}</div></div>
         ${putawayFailed.has(w.id)?`<span class="unsv" title="Not saved yet — retried when you finish">NOT SAVED</span>`:""}
         <div class="q">${w.qty}</div>
@@ -1638,7 +1656,7 @@ function renderPutaway(){
   if(needBin.length){
     const rws=needBin.map(w=>`
       <div class="prow">
-        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="thumb" data-psku="${esc(w.line.order_sku)}" ${imgStyle(w.line)}></div>
         <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)} · no last location</div></div>
         <div class="q">${w.qty}</div>
         <button class="assign" data-assign="${esc(w.id)}"${ro?" disabled":""}>Assign bin</button>
@@ -1651,7 +1669,7 @@ function renderPutaway(){
     // ⑤-6c2 거절된 off-PO(옛 off_po 행만 · 판정 99) — 선반에서 빼서 반품 쪽에 둔다 · 「Removed」 = wms_recv_off_po_removed(한 번 · Health off_po_rejected_on_shelf 160 이 닫힌다)
     const rws=rejected.map(w=>`
       <div class="prow">
-        <div class="thumb" ${imgStyle(w.line)}></div>
+        <div class="thumb" data-psku="${esc(w.line.order_sku)}" ${imgStyle(w.line)}></div>
         <div class="li"><div class="s">${esc(w.line.order_sku)}</div><div class="n">${esc(w.line.product_name)} · ${w.bin?`take it off <b>${esc(w.bin)}</b>`:"never put on a shelf"} and set it aside for return</div></div>
         <div class="q">${w.qty}</div>
         ${w.bin?`<button class="pk" data-removed="${esc(w.id)}"${ro?" disabled":""}>Removed</button>`:`<span class="chip appr" style="flex:none">rejected</span>`}
