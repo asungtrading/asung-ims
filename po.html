@@ -60,6 +60,8 @@
   .cflip:hover{color:var(--ink)}
   tr.sub td{background:#fafbfd;font-size:12px;color:var(--muted)}
   tr.sub td .mono{color:var(--ink)}
+  /* 줄 사진 — 판정 208 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -173,7 +175,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-09-30 · po sec v1";   // lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-01 · po thumb v1";   // 대화 Claude — 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -1182,7 +1184,9 @@ async function loadDetail(id){
       <div class="stat ${shortQty ? "warn" : ""}">Received<b>${qty(t.received_qty)} / ${qty(t.ordered_qty)}</b></div>
     </div>`;
 
-  /* 라인 — ⭐ 표 안에서 바로 고친다(수량 · 단가) */
+  /* 라인 — ⭐ 표 안에서 바로 고친다(수량 · 단가)
+     ⭐ 판정 208 — SKU 왼쪽에 대표 사진(공통 imsThumb) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
+  const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
   const lines = (data.lines || []).map(l => {
     const over = Number(l.remaining_qty) < 0;
     const unit = l.entered_unit_sku
@@ -1190,7 +1194,7 @@ async function loadDetail(id){
       : "";
     return `<tr>
       <td class="num">${esc(l.line_no)}</td>
-      <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>${unit}</td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>${unit}</div></div></td>
       <td class="mono">${dim(l.supplier_sku)}</td>
       <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ea)}" data-prev="${esc(l.qty_ea)}" data-line="${l.id}" data-f="qty_ea">` : qty(l.qty_ea)}</td>
       <td class="num">${ed ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(l.unit_price)}" data-prev="${esc(l.unit_price)}" data-line="${l.id}" data-f="unit_price">` : money(l.unit_price)}</td>
@@ -1356,6 +1360,9 @@ async function loadDetail(id){
       [["Reference",""],["Date",""],["Target",""],["Paid","num"],["Discount","num"],["Applied","num"],["Account",""],["By",""]], pays,
       "Paid + Discount = Applied. Both invoices and charge documents are paid here.")}
   `;
+
+  /* 사진 채우기 — 이 상세의 SKU 를 한 번에 읽는다(판정 208 · 기다리지 않는다) */
+  if(typeof window.imsThumbFill === "function") window.imsThumbFill(box);
 
   // 갈라진 문서로 이동 — 모체 번호를 검색칸에 넣는다
   document.querySelectorAll("[data-goto]").forEach(a => {
