@@ -35,6 +35,8 @@
   .socols .stat b{font-size:15px}
   tr.voided td{color:#9aa4b2;text-decoration:line-through}
   h5.sec{margin:14px 0 6px;font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  /* 줄 사진 — 판정 214 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -117,8 +119,13 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-09-25 · cr v1.1";
+const CR_BUILD = "2026-10-01 · cr thumb v1";   // 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
+/* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
+   ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
+const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
+(() => { let t = null; const go = () => { t = null; if(typeof window.imsThumbFill === "function") window.imsThumbFill(document); };
+  new MutationObserver(() => { if(!t) t = setTimeout(go, 60); }).observe(document.documentElement, { childList:true, subtree:true }); })();
 
 function torontoToday() {
   const p = {};
@@ -338,7 +345,7 @@ function drawForm(){
       <th class="num">Unit</th><th class="num">Return</th><th>Back to stock</th></tr></thead>
     <tbody>${prods.map(l => `<tr data-pl="${l.so_invoice_line_id}">
       <td class="num">${esc(l.line_no)}</td>
-      <td><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
       <td class="num">${qty(l.qty_sold)}</td><td class="num">${Number(l.qty_credited) ? qty(l.qty_credited) : '<span class="dim">0</span>'}</td>
       <td class="num">${qty(l.qty_returnable)}</td>
       <td class="num">${price(l.unit_price)}<div class="dim" style="font-size:11px">${esc(l.rate_pct !== null && l.rate_pct !== undefined ? Number(l.rate_pct) + "% tax" : "")}</div></td>
@@ -573,7 +580,7 @@ async function loadDetail(id){
 
   const lines = (data.lines || []).map(l => `<tr>
       <td class="num">${esc(l.line_no)}</td><td>${esc(l.kind || "")}</td>
-      <td><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
       <td class="num">${l.kind === "product" ? qty(l.qty_returned) : ""}</td>
       <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
       <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td>
