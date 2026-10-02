@@ -189,7 +189,7 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v3a · 2026-10-01 · 판정 209: 처음은 넓은 목록(#wide · PO 와 같은 두 모드) · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All products ← v2i: 대표 사진 300px · Photos 맨 아래 · 숫자 열 머리 오른쪽)
+   Products — 한 상품 보기 · 고치기 · 사진 · 만들기 (pr v3b · 2026-10-01 · 구역 제목 색 띠(.ims-sec · thumb-1 의 일곱 값) ← v3a 판정 209: 처음은 넓은 목록(#wide · PO 와 같은 두 모드) · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All products ← v2i: 대표 사진 300px · Photos 맨 아래 · 숫자 열 머리 오른쪽)
    정본: docs/design/po-module.md §3-h(창구 — 실물 · 사진 — 실물) · so-module §31 · §33 · §34
    판정: 145(쉽고 빠르게) · 176(검사 → 경고 확인 → 저장 · 서버가 지킨다) · 187(고치기 = 창구 하나 · 목록)
          188(빼기 = 끄기) · 189(세트 SKU 따라감) · 193 · 194(사진) · 200 · 201 · 202(Edit 한 번 → Save 한 번)
@@ -201,7 +201,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v3a";
+const PR_BUILD = "pr v3b";
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -455,8 +455,12 @@ async function loadDetail(id){
 
 /* ── 그리기 ───────────────────────────────────────────── */
 const kvT = rows => `<table class="kv"><tbody>${rows.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
+/* 구역 제목 색 — 값은 ims-ui.css 한 곳(thumb-1 · 판정 156 · 167) · 제목 앞글자로 고른다(제목에 체크 · 이름 span 이 붙는 것이 있다) */
+const SEC_OF = [["Sale prices","prices"],["Suppliers","suppliers"],["Barcodes","barcodes"],["Components","components"],
+                ["Sets of this product","sets"],["Same family","variants"],["Photos","photos"]];
+const secOf = t => { const k = String(t).replace(/<[^>]*>/g, "").trim(); const h = SEC_OF.find(x => k.startsWith(x[0])); return h ? h[1] : ""; };
 const tbl = (title, n, head, rows, empty, extra, btn) => `
-  <div class="card"><h3>${title} <span class="n">${n}</span>${btn||""}</h3>
+  <div class="card"><h3 class="ims-sec" data-sec="${secOf(title)}">${title} <span class="n">${n}</span>${btn||""}</h3>
     ${rows.length ? `<table><thead><tr>${head.map(h=> Array.isArray(h) ? `<th${h[1]?' class="'+h[1]+'"':''}>${h[0]}</th>` : `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`
                   : `<div class="msg">${empty||"None."}</div>`}${extra||""}</div>`;
 
@@ -608,7 +612,7 @@ function photoCard(){
   } else {
     big = `<div class="big"><span class="none">No photo</span></div>`;
   }
-  return `<div class="card"><h3>Photos <span class="n">${imgs.length}</span>${offNote}${up}</h3>
+  return `<div class="card"><h3 class="ims-sec" data-sec="photos">Photos <span class="n">${imgs.length}</span>${offNote}${up}</h3>
     <div class="ph">${big}<div class="thumbs">${thumbs}</div></div></div>`;
 }
 
