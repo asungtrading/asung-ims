@@ -38,6 +38,9 @@
   .socols .stat b{font-size:15px}
   /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
   .lnth{display:flex;gap:8px;align-items:flex-start}
+  /* surcharge-3 — 줄의 관세 부가 요금 칸(판정 227 · 묶음 1) */
+  .scc{font-size:12px;line-height:1.35;white-space:nowrap}
+  .scc .u{color:var(--muted);font-size:11.5px}
 </style>
 </head>
 <body>
@@ -138,7 +141,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-01 · so thumb v1";   // 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-02 · so sc v1";   // 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -229,6 +232,7 @@ const WARN = {
   price_tier_not_for_sale: "The customer's price tier is not a sales tier.",
   price_tier_inactive: "The customer's price tier is inactive.",
   customer_inactive: "This customer is inactive.",
+  surcharge_pct_over_100: "The surcharge is over 100% — check it is not a typo.",   /* surcharge-2a · 묶음 4 */
   /* v2 — 병합 경고 */
   charges_not_merged: "Freight was not carried over — add it again on the new draft.",
   head_differs: "The merged orders differ in the header — the oldest order's values were kept.",
@@ -630,6 +634,87 @@ async function runLines(rows, commit, ids, keepOpen){
     if(!keepOpen){ await reloadHere(); }
   }
   return data;
+}
+
+/* ══ surcharge-3(2026-10-02 · 판정 227 ~ 229 · surcharge-3 묶음 1 ~ 4) — 관세 부가 요금 ══════════════════
+   ⭐ 값(개당 · 줄 합 · 머리 합)은 so_detail 이 준다(surcharge-2a · 계산 한 곳) — 화면은 다시 계산하지 않는다
+   ⭐ 넣기 = 고른 줄마다 so_line_update 한 번(DB 일 없음 · 묶음 3) · 막기 문장은 서버(so_surcharge_check) 그대로 보인다
+   ⭐ 무상 줄은 고를 수 없다(판정 228) · 이름 기본값 비움 · 이 오더에서 쓴 이름은 목록(묶음 2) · 100% 넘으면 먼저 묻는다(묶음 4) */
+function scBrief(o){
+  if(!o || !o.surcharge_label) return "none";
+  return esc(o.surcharge_label) + " " + (o.surcharge_pct !== null && o.surcharge_pct !== undefined ? esc(Number(o.surcharge_pct)) + "%" : price(o.surcharge_amount) + "/ea");
+}
+function scText(l, basis){
+  if(!l.surcharge_label) return "";
+  const tot = basis === "shipped" ? l.shipped_surcharge_total : l.surcharge_total;
+  return `<div class="scc">${scBrief(l)}<div class="u">${price(l.surcharge_unit)}/ea · ${money(tot)}</div></div>`;
+}
+function scLabels(){ return [...new Set(((cur && cur.lines) || []).map(l => l.surcharge_label).filter(Boolean))]; }
+function scBad(lbl, kind, raw){
+  if(lbl === "" && raw === "") return null;
+  if(lbl === "") return "Give the surcharge a name — e.g. US Tariff.";
+  if(raw === "") return "Enter the surcharge value.";
+  const v = Number(raw);
+  if(!isFinite(v) || v <= 0) return "The surcharge must be a number above 0.";
+  if(kind === "amt" && !/^\d+(\.\d{1,2})?$/.test(raw)) return "A per-unit amount has at most two decimals (cents).";
+  return null;
+}
+function openSurcharge(oneId){
+  const all = ((cur && cur.lines) || []).filter(l => !l.free_reason);
+  const ticked = new Set(oneId ? [oneId] : Array.from(document.querySelectorAll("[data-scpick]:checked")).map(c => c.dataset.scpick));
+  const first = all.find(l => ticked.has(l.id) && l.surcharge_label);
+  const isPct = first ? first.surcharge_pct !== null && first.surcharge_pct !== undefined : true;
+  const basis = cur.totals && cur.totals.basis;
+  modalOpen(`
+    <h4>Surcharge — ${esc(cur.so.so_number)}</h4>
+    <div class="pbody">
+      <div class="sohint" style="margin-bottom:10px">A surcharge (for example a US tariff) is charged per unit on top of the price and shows as its own line on the invoice. It is not part of the order discount. Free lines cannot carry one.</div>
+      <div class="frow"><label>Name</label><input id="scLbl" class="sofield" list="scLblList" placeholder="e.g. US Tariff" value="${esc(first ? first.surcharge_label : "")}"><datalist id="scLblList">${scLabels().map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
+      <div class="frow"><label>Charge as</label><select id="scKind" class="sofield"><option value="pct" ${isPct ? "selected" : ""}>% of the unit price</option><option value="amt" ${isPct ? "" : "selected"}>$ per unit</option></select>
+        <input id="scVal" class="qin" type="number" step="any" min="0" value="${esc(first ? (isPct ? Number(first.surcharge_pct) : Number(first.surcharge_amount)) : "")}"></div>
+      <div class="sosub" style="margin:10px 0 6px">Lines <span class="dim">(${all.length})</span> — <a class="lnk" id="scAllM">pick all</a> · <a class="lnk" id="scNoneM">pick none</a></div>
+      <div class="binlist"><table><tbody>${all.map(l => `<tr><td><input type="checkbox" data-scm="${l.id}" ${ticked.has(l.id) ? "checked" : ""}></td>
+        <td class="num">${esc(l.line_no)}</td><td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td class="num">${price(l.unit_price)}</td><td>${scText(l, basis) || '<span class="dim">—</span>'}</td></tr>`).join("") || '<tr><td class="dim">No lines that can carry a surcharge.</td></tr>'}</tbody></table></div>
+      <div id="scMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="scClear">Clear on picked lines</button>
+      <button class="pobtn go" id="scSave">Save on picked lines</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("scAllM").onclick = () => document.querySelectorAll("[data-scm]").forEach(c => { c.checked = true; });
+  document.getElementById("scNoneM").onclick = () => document.querySelectorAll("[data-scm]").forEach(c => { c.checked = false; });
+  document.getElementById("scSave").onclick = () => scRun(false);
+  document.getElementById("scClear").onclick = () => scRun(true);
+}
+async function scRun(clear){
+  const ids = Array.from(document.querySelectorAll("[data-scm]:checked")).map(c => c.dataset.scm);
+  if(!ids.length){ say("scMsg", "err", "Pick at least one line."); return; }
+  let patch;
+  if(clear){
+    if(!confirm(`Clear the surcharge on ${ids.length} line(s)?`)) return;
+    patch = { surcharge_label: "", surcharge_pct: "", surcharge_amount: "" };
+  } else {
+    const lbl = document.getElementById("scLbl").value.trim(), kind = document.getElementById("scKind").value, raw = document.getElementById("scVal").value.trim();
+    const bad = (lbl === "" && raw === "") ? "Give the surcharge a name and a value — or use Clear." : scBad(lbl, kind, raw);
+    if(bad){ say("scMsg", "err", bad); return; }
+    if(kind === "pct" && Number(raw) > 100 && !confirm(`${raw}% is over 100% — is that right?`)) return;
+    patch = kind === "pct" ? { surcharge_label: lbl, surcharge_pct: raw, surcharge_amount: "" } : { surcharge_label: lbl, surcharge_amount: raw, surcharge_pct: "" };
+  }
+  ["scSave", "scClear"].forEach(id => { document.getElementById(id).disabled = true; });
+  const fails = []; let ok = 0;
+  for(const id of ids){
+    say("scMsg", "", `Saving ${ok + fails.length + 1} of ${ids.length}…`);
+    const { error } = await sb.rpc("so_line_update", { p_line_id: id, p_patch: patch });
+    if(error){ const l = (cur.lines || []).find(x => x.id === id) || {}; fails.push(`line ${l.line_no} ${l.sku}: ${error.message}`); } else ok++;
+  }
+  const box = document.getElementById("scMsg");
+  box.className = fails.length ? "err" : "on";
+  box.innerHTML = `${clear ? "Cleared" : "Saved"} on ${ok} of ${ids.length} line(s).` + (fails.length ? `<div style="margin-top:6px">Not saved:<br>${fails.map(esc).join("<br>")}</div>` : "");
+  const cl = document.querySelector('#modalBox [data-m="close"]');
+  cl.textContent = "Close"; cl.onclick = async () => { modalClose(); await reloadHere(); };
 }
 
 /* ── 줄 고치기 — 표 안에서 바로(po.html 과 같은 결) ────────
@@ -1045,10 +1130,28 @@ function finInput(){
   if(v("fnCar")) o.carrier = v("fnCar");
   if(v("fnTrk")) o.tracking_number = v("fnTrk");
   if(v("fnNote")) o.shipping_notes = v("fnNote");
+  /* surcharge-3(판정 230) — 바뀐 줄만 보낸다 · 빈 이름 + 빈 값 = 지우기 · _no · _k 는 화면 표지(finSend 가 뺀다) */
+  const sc = [];
+  document.querySelectorAll("#modalBox tr[data-fsc]").forEach(tr => {
+    const [ol, ok, ov] = JSON.parse(tr.dataset.o);
+    const l = tr.querySelector("[data-fl]").value.trim(), k = tr.querySelector("[data-fk]").value, x = tr.querySelector("[data-fv]").value.trim();
+    if(l === ol && x === ov && (k === ok || x === "")) return;
+    sc.push(l === "" && x === "" ? { line_id: tr.dataset.fsc, surcharge_label: "", surcharge_pct: "", surcharge_amount: "", _no: tr.dataset.no, _k: "" }
+      : { line_id: tr.dataset.fsc, surcharge_label: l, surcharge_pct: k === "pct" ? x : "", surcharge_amount: k === "amt" ? x : "", _no: tr.dataset.no, _k: k });
+  });
+  if(sc.length) o.surcharges = sc;
   return o;
+}
+function finSend(o){   // surcharge-3 — 화면 표지 칸(_no · _k)은 서버에 보내지 않는다
+  if(!o.surcharges) return o;
+  return Object.assign({}, o, { surcharges: o.surcharges.map(x => ({ line_id: x.line_id, surcharge_label: x.surcharge_label, surcharge_pct: x.surcharge_pct, surcharge_amount: x.surcharge_amount })) });
 }
 function finCheck(o){
   if(o.charges && !(Number.isFinite(o.charges[0].amount) && o.charges[0].amount >= 0)) return "Freight must be a number, 0 or more — leave it empty for no freight line.";
+  for(const x of (o.surcharges || [])){
+    const bad = scBad(x.surcharge_label, x._k || "pct", x._k === "amt" ? x.surcharge_amount : x.surcharge_pct);
+    if(bad) return `Line ${x._no}: ${bad}`;
+  }
   return null;
 }
 async function openFinalize(){
@@ -1063,6 +1166,7 @@ async function openFinalize(){
       <div class="frow"><label>Carrier</label><input id="fnCar" class="sofield" value="${esc(s.carrier || "")}"></div>
       <div class="frow"><label>Tracking number</label><input id="fnTrk" class="sofield" value="${esc(s.tracking_number || "")}"></div>
       <div class="frow"><label>Shipping notes</label><input id="fnNote" class="sofield" value="${esc(s.shipping_notes || "")}"></div>
+      <div id="fnScBox"></div>
       <div id="fnOut"></div>
       <div id="fnMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
@@ -1072,6 +1176,19 @@ async function openFinalize(){
       <button class="pobtn go" id="fnGo" disabled>Finalize — ship and invoice</button>
     </div>`);
   wireModalClose();
+  /* surcharge-3(판정 230) — packed 에서 surcharge 를 고친다(운임과 같은 창) · 무상 줄은 빼고 */
+  { const scl = (cur.lines || []).filter(l => !l.free_reason), nSet = scl.filter(l => l.surcharge_label).length;
+    const old = (l) => { const p = l.surcharge_pct !== null && l.surcharge_pct !== undefined, a = l.surcharge_amount !== null && l.surcharge_amount !== undefined;
+                         return [l.surcharge_label || "", a && !p ? "amt" : "pct", p ? String(Number(l.surcharge_pct)) : (a ? String(Number(l.surcharge_amount)) : "")]; };
+    document.getElementById("fnScBox").innerHTML = scl.length ? `<details ${nSet ? "open" : ""} style="margin:4px 0 10px"><summary class="sohint" style="cursor:pointer">Surcharges — ${nSet} line(s) have one · change them here before the invoice is issued</summary>
+      <table><thead><tr><th class="num">#</th><th>SKU</th><th>Name</th><th>As</th><th class="num">Value</th></tr></thead><tbody>
+      ${scl.map(l => { const o = old(l); return `<tr data-fsc="${l.id}" data-no="${esc(l.line_no)}" data-o="${esc(JSON.stringify(o))}">
+        <td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td>
+        <td><input class="tin" data-fl list="fnScList" value="${esc(o[0])}" placeholder="e.g. US Tariff" style="width:130px"></td>
+        <td><select class="sofield" data-fk><option value="pct" ${o[1] === "pct" ? "selected" : ""}>%</option><option value="amt" ${o[1] === "amt" ? "selected" : ""}>$ per unit</option></select></td>
+        <td class="num"><input class="qin" type="number" step="any" min="0" data-fv value="${esc(o[2])}"></td></tr>`; }).join("")}
+      </tbody></table><datalist id="fnScList">${scLabels().map(x => `<option value="${esc(x)}">`).join("")}</datalist>
+      <div class="sohint">Empty the name and the value to take a surcharge off. Changes are saved only when you finalize.</div></details>` : ""; }
   const hd = await sb.rpc("wms_so_handoff", { p_so_id: curId });
   const box = document.getElementById("fnUnits");
   if(!box) return;
@@ -1094,6 +1211,7 @@ async function openFinalize(){
   }
   const stale = () => { const g = document.getElementById("fnGo"); if(g) g.disabled = true; say("fnMsg", "", finPlan ? "Changed — preview again before finalizing." : ""); };
   ["fnChName","fnAmt","fnCar","fnTrk","fnNote"].forEach(id => { const el = document.getElementById(id); if(el) el.oninput = stale; });
+  document.querySelectorAll("#fnScBox input, #fnScBox select").forEach(el => { el.oninput = stale; el.onchange = stale; });   // surcharge-3
   document.getElementById("fnPrev").onclick = previewFinalize;
   document.getElementById("fnGo").onclick = runFinalize;
   previewFinalize();
@@ -1102,7 +1220,7 @@ async function previewFinalize(){
   const o = finInput(), bad = finCheck(o);
   if(bad){ say("fnMsg", "err", bad); return; }
   say("fnMsg", "", "Checking…");
-  const { data, error } = await sb.rpc("so_finalize", { p_orders: [o], p_commit: false });
+  const { data, error } = await sb.rpc("so_finalize", { p_orders: [finSend(o)], p_commit: false });
   if(!document.getElementById("fnOut")) return;
   if(error){ say("fnMsg", "err", error.message); document.getElementById("fnGo").disabled = true; return; }
   finPlan = data; finKey = JSON.stringify(o);
@@ -1115,6 +1233,7 @@ async function previewFinalize(){
         <td class="num">${qty(l.picked != null ? l.picked : l.to_ship)}</td><td class="num">${Number(l.short) ? `<span class="bad">${qty(l.short)}</span>` : "—"}</td></tr>`).join("")}
     </tbody></table>
     ${Number(sh.backorder_lines) ? `<div class="sohint">${qty(sh.backorder_lines)} line(s) short — a backorder order is created for the rest.</div>` : ""}
+    ${(od.surcharges || []).length ? `<div class="sohint">Surcharge changes: ${(od.surcharges || []).map(x => `line ${esc(x.line_no)} <span class="mono">${esc(x.sku)}</span> ${scBrief(x.old)} → ${scBrief(x.new)}`).join(" · ")}</div>` : ""}
     ${(od.charges || []).length ? `<div class="sohint">Freight line: ${(od.charges || []).map(c => `${esc(c.name || "")} ${money(c.amount)}`).join(" · ")}</div>` : '<div class="sohint">No freight line.</div>'}
     ${(od.repriced || []).some(r => r.changed) ? `<div class="sowarn">⚠ Some prices change because of what actually ships: ${(od.repriced || []).filter(r => r.changed).map(r => `${price(r.old_unit_price)} → ${price(r.new_unit_price)}`).join(" · ")}</div>` : ""}
     <div class="sohint">Finalizing ships it — the stock leaves the books — and issues the invoice. <b>This cannot be undone here.</b> Payments already taken for this order attach themselves to the invoice.</div>
@@ -1128,7 +1247,7 @@ async function runFinalize(){
   if(!confirm(`Finalize ${cur.so.so_number}?\n\nThe goods ship (stock leaves the books) and the invoice is issued.\nThis cannot be undone.`)) return;
   say("fnMsg", "", "Shipping and invoicing…");
   document.getElementById("fnGo").disabled = true; document.getElementById("fnPrev").disabled = true;
-  const { data, error } = await sb.rpc("so_finalize", { p_orders: [o], p_commit: true });
+  const { data, error } = await sb.rpc("so_finalize", { p_orders: [finSend(o)], p_commit: true });
   if(error){ say("fnMsg", "err", error.message); document.getElementById("fnPrev").disabled = false; return; }
   const inv = (data.invoices || [])[0] || {}, tt = inv.totals || {};
   const od = (data.orders || [])[0] || {}, bo = od.ship && od.ship.backorder;
@@ -1452,6 +1571,7 @@ async function loadDetail(id){
     acts.push('<button class="pobtn" data-act="addline">Add lines</button>');
     acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
     acts.push('<button class="pobtn" data-act="addcharge">Add a charge</button>');
+    acts.push('<button class="pobtn" data-act="surcharge" title="Give the ticked lines a surcharge — for example a US tariff">Set surcharge…</button>');   // surcharge-3 묶음 3
     acts.push('<button class="pobtn" data-act="shipto">Ship to…</button>');
     acts.push('<button class="pobtn" data-act="reprice" title="Requote system lines with today\'s rules">Reprice</button>');
     if(isMgr() && ch === "warehouse") acts.push('<button class="pobtn go" data-act="confirm">Confirm…</button>');
@@ -1564,6 +1684,7 @@ async function loadDetail(id){
       <div class="stat">Lines<b>${money(t.lines_total)}</b></div>
       <div class="stat">Order discount<b>${Number(t.order_discount_amount) ? "−" + money(t.order_discount_amount) : money(0)}</b></div>
       <div class="stat">Charges<b>${money(t.charges_total)}</b></div>
+      ${Number(t.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(t.surcharge_amount)}</b></div>` : ""}
       <div class="stat ${t.tax === null || t.tax === undefined ? "warn" : ""}">Tax${t.tax_rule ? ` <span class="dim">${esc(t.tax_rule)}</span>` : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : money(t.tax)}</b></div>
       <div class="stat">Total<b>${money(t.order_total_with_tax)}</b></div>
     </div>`;
@@ -1581,6 +1702,7 @@ async function loadDetail(id){
                    Number(l.qty_credited) > 0 ? `<span class="neutral" style="font-size:11.5px">credited ${qty(l.qty_credited)}</span>` : ""].filter(Boolean).join(" ");
     const manual = l.price_override || l.discount_source === "manual";
     return `<tr>
+      ${ed ? `<td>${l.free_reason ? "" : `<input type="checkbox" data-scpick="${l.id}" title="Pick for Set surcharge…">`}</td>` : ""}
       <td class="num">${esc(l.line_no)}</td>
       <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
         <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</div></div></td>
@@ -1589,6 +1711,8 @@ async function loadDetail(id){
       <td class="num">${price(l.list_price)}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(l.discount_pct ?? "")}" data-prev="${esc(l.discount_pct ?? "")}" data-line="${l.id}" data-f="discount_pct" title="Type a discount to set it by hand · empty it to go back to the system discount">` : (l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%")}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.unit_price ?? "")}" data-prev="${esc(l.unit_price ?? "")}" data-line="${l.id}" data-f="unit_price" title="Type a price to override">` : price(l.unit_price)}</td>
+      <td>${l.free_reason ? '<span class="dim" title="A free line cannot carry a surcharge">—</span>'
+        : (scText(l, t.basis) || (ed ? "" : '<span class="dim">—</span>')) + (ed ? `<button class="xbtn" data-sc="${l.id}" title="Set or change this line's surcharge">${l.surcharge_label ? "✎" : "+"}</button>` : "")}</td>
       <td class="num">${money(t.basis === "shipped" ? l.shipped_total : l.total)}</td>
       <td>${src} ${flags}</td>
       ${ed ? `<td style="white-space:nowrap">${manual ? `<button class="xbtn" data-reset="${l.id}" data-sku="${esc(l.sku)}" title="Back to the system price">↺</button> ` : ""}<button class="xbtn" data-del="${l.id}" data-sku="${esc(l.sku)}" title="Remove line">&#10005;</button></td>` : ""}
@@ -1649,11 +1773,12 @@ async function loadDetail(id){
     </div>
 
     ${tbl("Lines", (data.lines || []).length,
-      [["#","num"],["Product",""],["Qty","num"]].concat(shownQty ? [["Qty out","num"],["Stock",""]] : [])
-        .concat([["List","num"],["Disc %","num"],["Unit","num"],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
+      (ed ? [['<input type="checkbox" id="scAll" title="Pick every line that can carry a surcharge">', ""]] : []).concat([["#","num"],["Product",""],["Qty","num"]]).concat(shownQty ? [["Qty out","num"],["Stock",""]] : [])
+        .concat([["List","num"],["Disc %","num"],["Unit","num"],["Surcharge",""],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
       lines,
       `Totals use ${basisNote}. Each line's tax is rounded on its own and added up (as Cin7 does).` +
-      (ed ? " Edit quantity, discount or unit price in the cell — a price you type overrides the system price; ↺ puts it back." : ""))}
+      (ed ? " Edit quantity, discount or unit price in the cell — a price you type overrides the system price; ↺ puts it back. Surcharge: + on a line, or tick lines and press Set surcharge… to give them all the same one." : "") +
+      (Number(t.surcharge_amount) ? " The surcharge is charged per unit, is not part of the order discount and shows as its own line on the invoice." : ""))}
 
     ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"],["Tax rule",""]].concat(ed ? [["",""]] : []), charges,
       "Freight and similar. Tax follows the order's rule.")}
@@ -1679,6 +1804,7 @@ async function loadDetail(id){
       if(a === "addline")   openAddLine();
       if(a === "paste")     openPaste();
       if(a === "addcharge") openCharge(null);
+      if(a === "surcharge") openSurcharge(null);
       if(a === "shipto")    openShipTo();
       if(a === "reprice")   repriceSo();
       if(a === "confirm")   openConfirm();
@@ -1704,6 +1830,8 @@ async function loadDetail(id){
     box.querySelectorAll("input[data-line]").forEach(inp => { inp.onchange = () => saveLine(inp); });
     box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del, b.dataset.sku); });
     box.querySelectorAll("[data-reset]").forEach(b => { b.onclick = () => resetLine(b.dataset.reset, b.dataset.sku); });
+    box.querySelectorAll("[data-sc]").forEach(b => { b.onclick = () => openSurcharge(b.dataset.sc); });   // surcharge-3
+    { const all = document.getElementById("scAll"); if(all) all.onchange = () => box.querySelectorAll("[data-scpick]").forEach(c => { c.checked = all.checked; }); }
     box.querySelectorAll("[data-cedit]").forEach(b => { b.onclick = () => openCharge((data.charges || []).find(c => c.id === b.dataset.cedit)); });
     box.querySelectorAll("[data-cdel]").forEach(b => { b.onclick = () => removeCharge(b.dataset.cdel, b.dataset.cname); });
   }
