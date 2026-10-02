@@ -48,6 +48,7 @@
   .sec{padding:12px 14px 4px;font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
   /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
   .lnth{display:flex;gap:8px;align-items:flex-start}
+  .tfw{color:var(--warn);font-weight:600}   /* tf-paste-2 — 모자람 · 중복 판정 색 */
 </style>
 </head>
 <body>
@@ -122,7 +123,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-10-01 · tf thumb v1";   // 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-10-02 · tf paste v1";   // 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -290,6 +291,7 @@ async function loadDetail(id){
 
   const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All transfers</button>'];
   if(ed) acts.push('<button class="pobtn" data-act="add">Add line</button>');
+  if(ed) acts.push('<button class="pobtn" data-act="paste" title="Paste SKU and quantity rows from a spreadsheet">Paste lines</button>');   // tf-paste-2
   if(ed) acts.push(`<button class="pobtn go" data-act="confirm" ${lines.length && !short.length ? "" : "disabled"}>Confirm</button>`);
   if(canWrite && s === "confirmed") acts.push('<button class="pobtn go" data-act="release">Release to WMS</button>');
   if(canWrite && s === "confirmed") acts.push('<button class="pobtn" data-act="unconfirm">Back to draft</button>');
@@ -372,6 +374,7 @@ async function loadDetail(id){
     const a = el.dataset.act;
     if(a === "wide") el.onclick = showWide;
     if(a === "add") el.onclick = () => openLine(h, null);
+    if(a === "paste") el.onclick = () => openPasteTf(h);
     if(a === "confirm") el.onclick = () => openConfirm(h, lines);
     if(a === "unconfirm") el.onclick = () => simpleAct(h, "inv_transfer_unconfirm", `Put ${h.transfer_number} back to draft? The held stock is let go.`);
     if(a === "release") el.onclick = () => openRelease(h, lines);
@@ -576,6 +579,87 @@ function openLine(h, line){
     if(error){ say("lMsg", "err", error.message); return; }
     modalClose(); reload();
   };
+}
+
+/* ══ tf-paste-2(2026-10-02 · 판정 233 = 판정 171 의 실행 · tf-paste 묶음 1 ~ 8) — 붙여 넣기 ══════════════
+   ⭐ 판정 · 재고 · 넣기는 전부 DB 창구 inv_transfer_lines_paste(asung-wms 20261002174937 · ab4cd74) — 화면은 그리기만
+   ⭐ 미리 보기(p_commit false) → 같은 p_lines 로 넣기(p_commit true) · 넣기는 전부 또는 하나도(한 줄이 raise 하면 되돌아간다)
+   ⭐ 중복 · 이미 있는 줄은 합치지 않는다(PO 와 같다 — 원본을 고쳐 다시 붙인다 · 있는 줄은 그 줄을 고친다)
+   ⭐ 수량은 그 상품의 단위(세트 SKU 는 세트 수) · EA 는 qty_ea 로 옆에 · 모자람은 알리기만(확정이 막는다)
+   붙여 넣기 읽기(탭 · 쉼표 · 공백)는 so.html 의 parsePaste 와 같은 식 */
+const TFP_VERDICT = {
+  ok: ["on", "ok"], not_found: ["err", "not found"], inactive: ["err", "inactive"], bad_qty: ["err", "bad qty"],
+  duplicate: ["tfw", "duplicate in paste"], exists: ["dim", "already on this transfer"]
+};
+function parsePasteTf(text){
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const p = l.split(/\t|,|\s{2,}|\s+/);
+    const qv = p.length > 1 ? p[p.length - 1] : "";
+    const sku = p.slice(0, Math.max(1, p.length - 1)).join(" ");
+    return { sku: sku, qty: String(qv).replace(/[, ]/g, "") };
+  });
+}
+function openPasteTf(h){
+  modalOpen(`
+    <h4>Paste lines — ${esc(h.transfer_number)} · ${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")}</h4>
+    <div class="pbody">
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.5">One row per product: SKU then quantity (copy two columns from a spreadsheet). Quantity is in the product's own unit — a pack SKU counts packs. Up to 500 rows. A SKU already on this transfer is not added — change that line instead.</div>
+      <textarea id="tfpBox" style="min-height:150px;font-family:var(--mono)" placeholder="ABE50205&#9;10&#10;HBE00245&#9;24&#10;…&#10;&#10;Tab, comma or spaces — any of them works."></textarea>
+      <div id="tfpOut" style="margin-top:12px"></div>
+    </div>
+    <div class="pfoot">
+      <span id="tfpMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" id="tfpClose">Cancel</button>
+      <button class="pobtn" id="tfpChk">Check</button>
+      <button class="pobtn go" id="tfpGo" disabled>Add lines</button>
+    </div>`, true);
+  let seen = null;
+  document.getElementById("tfpClose").onclick = modalClose;
+  document.getElementById("tfpBox").oninput = () => { seen = null; document.getElementById("tfpGo").disabled = true; };
+  document.getElementById("tfpChk").onclick = async () => {
+    const rows = parsePasteTf(document.getElementById("tfpBox").value);
+    const d = await runPasteTf(h, rows, false);
+    seen = d ? JSON.stringify(rows) : null;
+  };
+  document.getElementById("tfpGo").onclick = async () => {
+    const rows = parsePasteTf(document.getElementById("tfpBox").value);
+    if(seen !== JSON.stringify(rows)){ say("tfpMsg", "err", "The rows changed — press Check again."); document.getElementById("tfpGo").disabled = true; return; }
+    document.getElementById("tfpGo").disabled = true;
+    const d = await runPasteTf(h, rows, true);
+    if(d && d.committed){
+      const c = document.getElementById("tfpClose");
+      c.textContent = "Close"; c.onclick = () => { modalClose(); reload(); };
+    }
+  };
+}
+async function runPasteTf(h, rows, commit){
+  const msg = document.getElementById("tfpMsg");
+  if(!rows.length){ say("tfpMsg", "err", "Nothing to read."); return null; }
+  say("tfpMsg", "", commit ? "Adding…" : "Checking…");
+  const { data, error } = await sb.rpc("inv_transfer_lines_paste", { p_transfer_id: h.id, p_lines: rows, p_commit: commit });
+  if(error){ say("tfpMsg", "err", error.message + (/already has a line/.test(error.message) ? " — press Check again." : "")); document.getElementById("tfpGo").disabled = true; return null; }
+  const s = data.summary || {};
+  if(s.too_many){ say("tfpMsg", "err", s.message || "Too many lines."); document.getElementById("tfpOut").innerHTML = ""; document.getElementById("tfpGo").disabled = true; return data; }
+  const part = (n, t) => Number(n) ? ` · ${t} ${n}` : "";
+  msg.className = commit && data.committed ? "on" : "";
+  msg.textContent = `${s.total} rows · ok ${s.ok}` + part(s.short, "short") + part(s.not_found, "not found") + part(s.inactive, "inactive")
+    + part(s.duplicate, "duplicate") + part(s.exists, "already on") + part(s.bad_qty, "bad qty") + (commit ? ` · added ${s.inserted}` : "");
+  document.getElementById("tfpOut").innerHTML = `
+    <table><thead><tr><th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th class="num">EA</th><th class="num">Available EA</th><th>Verdict</th><th>Note</th></tr></thead>
+    <tbody>${(data.lines || []).map(l => {
+      const short = l.verdict === "ok" && Number(l.short_by) > 0;
+      const v = short ? ["tfw", `ok · short ${qty(l.short_by)} EA`] : (TFP_VERDICT[l.verdict] || ["dim", l.verdict || ""]);
+      return `<tr><td class="num">${esc(l.n)}</td><td class="mono">${esc(l.input_sku)}${l.sku && l.sku !== l.input_sku ? ` <span class="dim">→ ${esc(l.sku)}</span>` : ""}</td>
+        <td>${l.product_name ? esc(l.product_name) : '<span class="dim">—</span>'}</td>
+        <td class="num">${esc(l.input_qty === null || l.input_qty === undefined ? "" : l.input_qty)}</td>
+        <td class="num">${l.qty_ea === null || l.qty_ea === undefined ? "" : qty(l.qty_ea)}${Number(l.pack_factor) > 1 ? ` <span class="dim">(×${esc(l.pack_factor)})</span>` : ""}</td>
+        <td class="num">${l.available_ea === null || l.available_ea === undefined ? "" : qty(l.available_ea)}</td>
+        <td><span class="${v[0]}">${esc(v[1])}</span>${l.inserted ? ' <span class="on">added</span>' : ""}</td>
+        <td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
+    }).join("")}</tbody></table>
+    ${Number(s.short) ? '<div style="margin-top:8px;font-size:12.5px;color:var(--warn)">Short lines can be added, but Confirm will refuse until the quantity fits what is available at the from warehouse.</div>' : ""}`;
+  document.getElementById("tfpGo").disabled = commit || !Number(s.ok);
+  return data;
 }
 
 async function removeLine(h, lineId){
