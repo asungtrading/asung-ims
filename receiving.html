@@ -37,6 +37,8 @@
   .lastbin{font-size:11.5px;color:var(--muted)}
   .lastbin b{font-family:var(--mono);font-weight:600;color:var(--fg, #222)}
   .binlist{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  /* 줄 사진 — 판정 214 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -117,8 +119,13 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-09-29 · invoice basis";   // ⑱-3(대화 Claude) — 판정 88 · 92 · 99 · 100 · 101: 기준 = 확정 인보이스 · Off-invoice 결정 둘(거절 없음) · 확정 반환 charges · 새 입고 = 확정 인보이스 있는 PO 만 ← ⑤-6c3 「warehouse state」(off-PO 결정 UI · 딥링크 ?receipt=&diff= · 판정 43 · 44 · 45)
+const RCV_BUILD = "2026-10-01 · rcv thumb v1";   // 대화 Claude — 판정 214: Received · 차이 · Count · Put away 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice basis」 ⑱-3(대화 Claude) — 판정 88 · 92 · 99 · 100 · 101: 기준 = 확정 인보이스 · Off-invoice 결정 둘(거절 없음) · 확정 반환 charges · 새 입고 = 확정 인보이스 있는 PO 만 ← ⑤-6c3 「warehouse state」(off-PO 결정 UI · 딥링크 ?receipt=&diff= · 판정 43 · 44 · 45)
 console.log("receiving.html build:", RCV_BUILD);
+/* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
+   ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
+const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
+(() => { let t = null; const go = () => { t = null; if(typeof window.imsThumbFill === "function") window.imsThumbFill(document); };
+  new MutationObserver(() => { if(!t) t = setTimeout(go, 60); }).observe(document.documentElement, { childList:true, subtree:true }); })();
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
    회사의 「오늘」은 토론토다(so-module §13-h · 서버 ims_today()) — 에드먼튼 PC 에서도 토론토 날짜를 쓴다.
@@ -510,7 +517,7 @@ function receivedTable(rows){
       <th class="num">#</th><th>Item</th><th>Bin</th><th class="num">Quantity</th><th>Received</th><th>By</th>
     </tr></thead><tbody>${rows.map(r => `<tr>
       <td class="num dim">${esc(r.line_no)}</td>
-      <td><span class="mono">${esc(r.sku || "")}</span></td>
+      <td><div class="lnth">${thumbOf(r.sku)}<div><span class="mono">${esc(r.sku || "")}</span></div></div></td>
       <td><span class="mono">${esc(r.bin || "")}</span>${
         r.zone ? `<span class="dim" style="margin-left:6px">${esc(r.zone)}</span>` : ""}</td>
       <td class="num">${qty(r.qty_ea)}</td>
@@ -608,7 +615,7 @@ function diffsCard(rows, ed){
           : `<div class="dim" style="font-size:11.5px">not on a shelf yet \u2014 the warehouse puts it away first</div>`);
       return `<tr data-diff="${esc(r.id)}">
       <td class="num dim">${esc(r.line_no ?? "")}</td>
-      <td><span class="mono">${esc(r.sku || "")}</span>${shelf}</td>
+      <td><div class="lnth">${thumbOf(r.sku)}<div><span class="mono">${esc(r.sku || "")}</span>${shelf}</div></div></td>
       <td><span class="tag">${offpo ? "off-PO" : (offinv ? "off-invoice" : esc(r.kind))}</span></td>
       <td class="num">${qty(r.expected_qty)}</td>
       <td class="num">${qty(r.received_qty)}</td>
@@ -921,9 +928,9 @@ function countTable(lines, ed){
       <th class="num">Received before</th><th class="num">Expected</th><th class="num">Counted</th><th class="num">Diff</th><th>Rows</th>
     </tr></thead><tbody>${lines.map(l => `<tr>
       <td class="num dim">${esc(l.line_no)}</td>
-      <td><span class="mono">${esc(l.sku || "")}</span>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>
         ${l.supplier_sku ? `<span class="dim" style="font-size:11.5px"> · ${esc(l.supplier_sku)}</span>` : ""}
-        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
       <td class="num">${qty(l.ordered)}</td>
       <td class="num">${Number(l.invoiced) ? qty(l.invoiced) : '<span class="dim">—</span>'}</td>
       <td class="num">${Number(l.received_before) ? qty(l.received_before) : '<span class="dim">—</span>'}</td>
@@ -981,10 +988,10 @@ function putawayTable(lines, ed){
       const left = Number(l.counted || 0) - Number(l.allocated || 0);
       return `<tr>
       <td class="num dim">${esc(l.line_no)}</td>
-      <td><span class="mono">${esc(l.sku || "")}</span>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>
         <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
         ${lb ? `<div class="lastbin">Last time: <b>${esc(lb.bin)}</b>
-                 <span class="dim">· ${esc(lb.received_on)}</span></div>` : ""}</td>
+                 <span class="dim">· ${esc(lb.received_on)}</span></div>` : ""}</div></div></td>
       <td class="num">${qty(l.counted)}</td>
       <td>${(l.work || []).map(w => `<div class="wrow">
             <span class="mono">${qty(w.qty_ea)}</span>
