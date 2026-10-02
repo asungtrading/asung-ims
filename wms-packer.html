@@ -301,10 +301,10 @@
    완료 = wms_complete_pack(p_mistakes · reason 셋 · 반환 ready 는 뷰 all_packed — SO 상태는 안 바뀐다 · 판정 18) · 보류 = wms_hold_pack · 보류 닫기 = wms_resume_hold ·
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
-   「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 비움(판정 33 · HAS_IMAGES false) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-09-29 · pa v1.3";   // tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+   「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
+const WK_BUILD="2026-10-01 · pa v1.4";   // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
-const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
+const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, whById={}, staffName={};
 let pool=[], mine=[], stalePacks=[], packTask=null, order=null, lines=[], bcMap={}, curIdx=0, view="list";
 let actx=null;
@@ -718,7 +718,7 @@ function lineFromRpc(r, isPack){
   return {
     packline_id: isPack ? r.pack_line_id : null, order_line_id:r.order_line_id,
     order_sku:r.sku, base_sku:r.base_sku, product_name:r.product_name, is_set:!!r.is_set, pack_factor:Number(r.pack_factor||1),
-    image_url:null,                                            // 판정 33 — 사진 없음
+    image_url:null, image_parent:false,                        // 판정 224 — 줄을 그린 뒤 fillPhotos() 가 채운다(공통 imsPhotoPrimary · 열쇠 = order_sku = 창구 sku)
     bin:first.bin||"", zone:first.zone||"",
     bins:pb.map(b=>(b.bin||"?")+(pb.length>1?" ×"+b.qty_base:"")).join(", "),
     barcodes:r.barcodes||[],                                   // [{barcode, factor, sku}] — 낱개(1) + 세트(pack_factor)
@@ -850,6 +850,7 @@ async function enterPack(){
   // 오더 상태 배너(판정 21) — 진행 중 팩은 숨기지 않고 알린다(실물이 있다). 부가 정보 — 실패해도 진입 유지.
   checkOrderBanner([packTask.order_id]);
   if(HAS_IMAGES) loadImageFlags();   // independent — restores the pressed state of ⚑ Image differs
+  if(HAS_IMAGES) fillPhotos();       // 판정 224 — 사진은 늦게 와도 된다(그려진 칸의 안만 채운다 · 다시 그리지 않는다)
   loadStockFlags();   // independent — shows picker's stock-short declarations + restores ⚠ Not enough stock
   // picker attribution (over-pick confirm 문구) — ims_staff.id → 이름
   try{ const {data:ptk}=await sb.from("wms_pick_tasks").select("assigned_to").eq("id",packTask.pick_task_id).single(); packTask.picker=(ptk&&ptk.assigned_to)||null; }catch(e){ packTask.picker=null; }
@@ -938,8 +939,24 @@ async function reprintPickList(win){
 function totTarget(){return lines.reduce((s,l)=>s+l.required,0);}
 function totVer(){return lines.reduce((s,l)=>s+Math.min(l.verified,l.required),0);}
 /* 이미지는 background-image 가 아니라 <img loading="lazy"> — (운영 주석) 고정 크기 컨테이너 div 는 유지해 레이아웃 불변.
-   ⑤-4c: 사진이 없다(판정 33) — HAS_IMAGES 가 서기 전까지 칸 자체를 안 그린다. */
-function imgTag(l){return (HAS_IMAGES&&l.image_url)?`<img src="${esc(l.image_url)}" loading="lazy" decoding="async" alt="">`:"";}
+   판정 224(wms-img-1): 사진 = 공통 imsPhotoPrimary(product_image_primary) — HAS_IMAGES 는 도우미가 있을 때만 켜진다 · 세트가 낱개 사진을 빌리면 title 만. */
+function imgTag(l){return (HAS_IMAGES&&l.image_url)?`<img src="${esc(l.image_url)}" loading="lazy" decoding="async" alt=""${l.image_parent?' title="Single\'s photo"':""}>`:"";}
+/* 판정 224(wms-img-1) — 줄을 그린 뒤 이 화면 SKU 를 모아 공통 imsPhotoPrimary 한 번(문서 하나에 한 번 · 세트는 창구가 낱개 사진을 빌린다 · 판정 194 · 캐시라 두 번째부터는 요청 없음).
+   ⚠️ 다시 그리지 않는다 — 스캔 · 포커스 · 스크롤을 잃지 않게 이미 그려진 사진 칸([data-psku])의 안만 채운다 · 뒤의 renderPack 는 l.image_url 로 그린다 · 도우미가 throw 하지 않아 실패해도 조용(사진 없이 일한다). */
+async function fillPhotos(){
+  if(!HAS_IMAGES||!lines.length) return;
+  const m=await window.imsPhotoPrimary(lines.map(l=>l.order_sku));
+  lines.forEach(l=>{ const h=m.get(l.order_sku); if(h===undefined) return; l.image_url=h?h.url:null; l.image_parent=!!(h&&h.from_parent); });
+  paintPhotos();
+}
+function paintPhotos(){
+  document.querySelectorAll("[data-psku]").forEach(el=>{
+    if(el.firstElementChild) return;
+    const l=lines.find(x=>x.order_sku===el.dataset.psku);
+    if(l&&l.image_url) el.innerHTML=imgTag(l);
+  });
+}
+
 // base barcodes (factor 1 · 첫째 = Barcode · 나머지 = ALT) + set barcodes (factor>1, e.g. ×6 · ×12) — 전부 창구 barcodes[] 에서
 function barcodeBlock(l){
   const rows=l.barcodes||[];
@@ -996,7 +1013,7 @@ function renderSingle(){
     <div class="body">
       ${viewOverride?`<button class="backlist" data-backlist>← Back to list</button>`:""}
       <div class="head">
-        ${HAS_IMAGES?`<div class="img">${imgTag(l)}</div>`:""}
+        ${HAS_IMAGES?`<div class="img" data-psku="${esc(l.order_sku)}">${imgTag(l)}</div>`:""}
         <div class="info">
           <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.bins||l.bin||"—")}</span></div>
           <div class="nm">${esc(l.product_name)}</div>
@@ -1057,7 +1074,7 @@ async function reportIssuePack(kind, idx){
 
 /* ---------- image mismatch report (toggle, no detail prompt) → wms_reports ----------
    One open report per order+sku+kind: press to report, press again to cancel.
-   ⑤-4c: HAS_IMAGES 가 false 라 단추가 안 그려진다 — 사진이 서면 그대로 산다.        */
+   ⑤-4c → wms-img-1(판정 224): HAS_IMAGES 가 켜져 단추가 산다(테스트 DB wms_reports.kind CHECK 에 image_mismatch 있음 · 20260926192314).        */
 const IMG_NOTE="Image does not match the physical product";
 function imgFlagged(l){
   const oid=packTask?packTask.order_id:null;
@@ -1250,7 +1267,7 @@ function renderList(){
     const pickNote=l.expected<l.required?`<span class="picknote">Pick ${l.expected}</span>`:"";
     const overBtn=(l.overScans||0)>0?`<button class="rmover" data-rmover="${idx}" ${frozen?"disabled":""}>Clear over</button>`:"";
     return `<div class="lrow ${cls}" data-idx="${idx}">
-      ${HAS_IMAGES?`<div class="thumb">${imgTag(l)}</div>`:""}
+      ${HAS_IMAGES?`<div class="thumb" data-psku="${esc(l.order_sku)}">${imgTag(l)}</div>`:""}
       <div class="li"><div class="s">${esc(l.order_sku)}${chip}</div><div class="n">${esc(l.product_name)}</div><div class="b">${esc(l.bins||l.bin||"—")}${availChip(l)} ${pickNote}${overBtn}</div></div>
       <div>
         <div class="q">${l.verified} / ${l.required}</div>
