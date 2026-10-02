@@ -43,6 +43,11 @@
   #hero .hnone{height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12.5px;
     border:1px dashed var(--line);border-radius:12px}
   td.itm{cursor:pointer}
+  /* 할인 표시 — 판정 225 */
+  .sale{display:inline-block;background:#d92d20;color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em;border-radius:5px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .was{text-decoration:line-through;color:var(--muted);font-family:var(--mono);font-size:11.5px;margin-right:4px}
+  .dsc{font-size:11px;color:var(--muted)}
+  .dsc.deal{color:#b42318;font-weight:600}
 </style>
 </head>
 <body>
@@ -106,13 +111,23 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-01 · pos v1.1";   // 대화 Claude — 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-01 · pos v1.2";   // 대화 Claude — 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
 const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
 const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
 let heroSku = null, lastPid = null;
+/* 판정 225 — 줄의 할인이 어디서 왔나(SO 화면과 같은 뜻 · 서버가 준 칸만 읽는다 · 다시 계산하지 않는다) */
+function discNote(l){
+  const pct = Number(l.discount_pct);
+  if(l.free_reason) return `<div class="dsc">free · ${esc(l.free_reason)}</div>`;
+  if(l.price_override) return '<div class="dsc">price set by hand</div>';
+  if(!pct) return "";
+  const src = l.discount_source === "deal" ? ["deal", "Sale"] : l.discount_source === "manual" ? ["", "Discount by hand"] : ["", "Customer discount"];
+  return `<div class="dsc ${src[0]}">${src[1]} −${esc(pct)}% · list ${plain(l.list_price)}</div>`;
+}
+const isSale = l => l.discount_source === "deal" && Number(l.discount_pct) > 0 && !l.free_reason;
 function drawHero(sku, name){
   const box = document.getElementById("hero"); if(!box) return;
   heroSku = sku || null;
@@ -396,10 +411,10 @@ async function openSale(id){
   const ls = data.lines || [];
   document.getElementById("lines").innerHTML = ls.length ? `<table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th>${draft ? "<th></th>" : ""}</tr></thead>
     <tbody>${ls.slice().reverse().map(l => `<tr>
-      <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
-        ${Number(l.discount_pct) ? `<div class="dim" style="font-size:11px">list ${plain(l.list_price)} · −${esc(Number(l.discount_pct))}%</div>` : ""}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}</div></div></td>
+      <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${isSale(l) ? '<span class="sale">SALE</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
+        ${discNote(l)}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}</div></div></td>
       <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <b class="mono">${qty(l.qty_ordered)}</b> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
-      <td class="num">${money(l.unit_price)}</td><td class="num">${money(l.total)}</td>
+      <td class="num">${Number(l.discount_pct) > 0 && !l.free_reason && l.list_price !== null && l.list_price !== undefined && Number(l.list_price) !== Number(l.unit_price) ? `<span class="was">${plain(l.list_price)}</span>` : ""}${money(l.unit_price)}</td><td class="num">${money(l.total)}</td>
       ${draft ? `<td><button class="xbtn" data-rm="${l.id}" title="Remove">&#10005;</button></td>` : ""}
     </tr>`).join("")}</tbody></table>` : `<div class="msg">${draft ? "Scan the first item." : "No items."}</div>`;
   document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1); });
@@ -418,6 +433,8 @@ async function openSale(id){
   document.getElementById("bigTot").textContent = plain(t.order_total_with_tax);
   document.getElementById("totRows").innerHTML = `
     <div class="row2">Items<b>${plain(t.lines_total)}</b></div>
+    ${Number(t.order_discount_amount) ? `<div class="row2" style="color:#b42318">Order discount${s.order_discount_pct ? " · " + esc(Number(s.order_discount_pct)) + "%" : ""}<b style="color:#b42318">−${plain(t.order_discount_amount)}</b></div>` : ""}
+    ${Number(t.charges_total) ? `<div class="row2">Charges<b>${plain(t.charges_total)}</b></div>` : ""}
     <div class="row2">Tax${t.tax_rule ? " · " + esc(t.tax_rule) : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : plain(t.tax)}</b></div>
     ${est ? `<div class="row2">Paid<b>${plain(est.deposit)}</b></div>
       ${Number(est.credit) || Number(est.balance) ? `<div class="row2">Credit / on account<b>${plain(Number(est.credit || 0) + Number(est.balance || 0))}</b></div>` : ""}
