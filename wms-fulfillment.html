@@ -342,10 +342,10 @@
    풀 줄(sku · base_sku · 이름 · 바코드 낱개+세트 · 팩 수량) = 읽기 창구 wms_pick_lines(null, pack_task_id) 팩 과제마다 한 번 · Finalize = wms_finalize(p_so_ids) 한 번(타입 packing_list|direct 는 창구가 판정 · 반환 warnings · shorts 를 보인다) ·
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
-   사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 없음(판정 33). */
-const WK_BUILD="2026-09-29 · fu v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+   사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
+const WK_BUILD="2026-10-01 · fu v1.3";   // wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
-const HAS_IMAGES=false;   // 판정 33 — 제품 사진은 비워 둔다(마스터에 사진 칸이 서면 wms_pick_lines 에 한 칸 · 여기를 켠다)
+const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
 const uCode=u=>wmsPacking.unitCode(u), uTitle=u=>wmsPacking.unitTitle(u), uIcon=u=>wmsPacking.unitIcon(u);
 const uOn=(u,p)=>wmsPacking.unitOn(u,p);
@@ -734,7 +734,7 @@ async function loadWorkspace(){
         const packed=Number(l.verified_base||0); if(packed<=0) return;   // 원본 .gt("verified_base",0)
         lineInfo[l.order_line_id]={sku:l.sku, name:l.product_name};
         poolLines.push({ order_line_id:l.order_line_id, order_id:oid, order_number:onum,
-          sku:l.sku, base_sku:l.base_sku, name:l.product_name, image:null,   // 사진 없음(판정 33)
+          sku:l.sku, base_sku:l.base_sku, name:l.product_name, image:null, image_parent:false,   // 판정 224 — fillPhotos() 가 채운다(열쇠 = sku = 창구 sku)
           barcodes:l.barcodes||[],   // [{barcode, factor, sku}] — 세트 바코드까지 창구가 준다
           packed, batch:pt?.batch_label||l.batch_label||"?", pack_task_id:r.id });
       });
@@ -748,8 +748,25 @@ async function loadWorkspace(){
   poolLines.forEach(p=>{ if(bcBySku[p.sku]) return; const b=(p.barcodes||[]).find(x=>x.sku===p.sku)||(p.barcodes||[]).find(x=>Number(x.factor)===1); if(b) bcBySku[p.sku]=String(b.barcode||"").trim(); });
   renderStoreBar();
   await refresh();
+  if(HAS_IMAGES) fillPhotos();   // 판정 224 — 풀 카드 사진(그려진 칸만 채운다 · 다시 그리지 않는다 · 뒤의 renderPool 은 pl.image 로)
   focusProdScan(true);   // orders are in — product scanning is now the default job
 }
+/* 판정 224(wms-img-1) — 줄을 그린 뒤 이 화면 SKU 를 모아 공통 imsPhotoPrimary 한 번(문서 하나에 한 번 · 세트는 창구가 낱개 사진을 빌린다 · 판정 194 · 캐시라 두 번째부터는 요청 없음).
+   ⚠️ 다시 그리지 않는다 — 스캔 · 포커스 · 스크롤을 잃지 않게 이미 그려진 사진 칸([data-psku])의 안만 채운다 · 뒤의 renderPool 는 l.image_url 로 그린다 · 도우미가 throw 하지 않아 실패해도 조용(사진 없이 일한다). */
+async function fillPhotos(){
+  if(!HAS_IMAGES||!poolLines.length) return;
+  const m=await window.imsPhotoPrimary(poolLines.map(l=>l.sku));
+  poolLines.forEach(l=>{ const h=m.get(l.sku); if(h===undefined) return; l.image=h?h.url:null; l.image_parent=!!(h&&h.from_parent); });
+  paintPhotos();
+}
+function paintPhotos(){
+  document.querySelectorAll("[data-psku]").forEach(el=>{
+    if(el.style.backgroundImage) return;
+    const l=poolLines.find(x=>x.sku===el.dataset.psku);
+    if(l&&l.image){ el.style.display=""; el.style.backgroundImage="url('"+l.image+"')"; if(l.image_parent) el.title="Single's photo"; }
+  });
+}
+
 
 /* ---------- refresh units/items (all units related to selected orders) ---------- */
 async function refresh(){
@@ -828,7 +845,7 @@ function renderPool(){
       const bTotQ=lines.reduce((s,l)=>s+l.rem,0);
       const bOlids=lines.map(l=>l.order_line_id).join(",");
       const cards=lines.map(l=>`<div class="pcard" draggable="true" data-pl="${l.order_line_id}">
-          <div class="th" ${l.image?`style="background-image:url('${esc(l.image)}')"`:""}></div>
+          <div class="th" data-psku="${esc(l.sku)}" ${l.image?`style="background-image:url('${esc(l.image)}')"${l.image_parent?' title="Single\'s photo"':""}`:""}></div>
           <div class="m"><div class="s">${esc(l.sku)}</div><div class="n">${esc(l.name)}</div></div>
           <span class="q">${l.rem}</span>
         </div>`).join("");
