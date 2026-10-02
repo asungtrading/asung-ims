@@ -13,6 +13,8 @@
   main{display:flex;flex-direction:column;gap:14px;padding:14px}
   /* ⚠️ 올리지 않았다 — po.html 모달 안의 .qin 이 이 규칙에 덮인다(.pobox input 이 .qin 보다 세다 · 2026-09-17 이견) */
   .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  /* 줄 사진 — 판정 214 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -95,8 +97,13 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-09-29 · invoice splits the PO";   // ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-10-01 · inv thumb v1";   // 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
+/* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
+   ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
+const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
+(() => { let t = null; const go = () => { t = null; if(typeof window.imsThumbFill === "function") window.imsThumbFill(document); };
+  new MutationObserver(() => { if(!t) t = setTimeout(go, 60); }).observe(document.documentElement, { childList:true, subtree:true }); })();
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
    회사의 「오늘」은 토론토다(so-module §13-h · 서버 ims_today()) — 에드먼튼 PC 에서도 토론토 날짜를 쓴다.
@@ -324,7 +331,7 @@ async function loadDetail(id){
       <td class="num">${esc(l.line_no)}</td>
       <td><span class="tag">${esc(l.line_kind)}</span></td>
       <td>${l.po_line_id
-            ? `<span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div>`
+            ? `<div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name)}</div></div></div>`
             : `${esc(l.description || "")}`}</td>
       <td class="mono" style="font-size:11.5px">${dim(l.po_number)}${
             l.po_line_no ? ` <span class="dim">#${esc(l.po_line_no)}</span>` : ""}</td>
