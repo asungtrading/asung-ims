@@ -108,6 +108,7 @@
 <datalist id="catList"></datalist>
 <datalist id="unitList"></datalist>
 <datalist id="supList"></datalist>
+<datalist id="sgList"></datalist>
 <div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -125,7 +126,7 @@
    ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
    ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
    ───────────────────────────────────────────────────────────── */
-const SH_BUILD = "sheet v2a";
+const SH_BUILD = "sheet v2b";   // 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 2 · 8): Edit 모드에 Surcharge group 열(이름으로 고르기 · 붙여 넣기 · 세트 줄은 못 고침) · 묶음 단추 Surcharge ← sheet v2a
 /* sheet v2a(2026-10-01 · price-2 · 판정 215 ~ 223 · 묶음 1 ~ 8) — Edit 모드에서 공급처로 걸러 불러오면 표 위에 「Price formula」 줄
    · 식 = 그 공급처의 저장된 식(기본이 맨 앞) 또는 숫자를 바꾼 「이번만」 식 · 칸 넷(통화 · 운임·기타 · 관세 % · 마진) + 끝자리 체크 열(판정 217)
    · 줄 고르기 = SKU 칸 앞 체크 · 처음: manual 가격이 있는 줄은 꺼짐 · 세트는 못 고름(판정 220 · 222)
@@ -136,7 +137,7 @@ const SH_BUILD = "sheet v2a";
 const MAX_ROWS = 300, MAX_LINES = 1000;
 
 let sb = null, canEdit = false;
-let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], cur:{}, byName:{ brand:{}, cat:{}, unit:{}, sup:{} } };
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], cur:{}, sgroups:[], sgById:{}, byName:{ brand:{}, cat:{}, unit:{}, sup:{}, sg:{} } };
 let rows = [];          // 불러온 상품 — { p, prices:{tierId:{price}}, sup:{…기본 공급처}|null, bc, fam, parent }
 let cols = [];          // 보이는 열 — { key, label, kind, edit, cls }
 let blocked = new Set();
@@ -187,6 +188,7 @@ function buildCols(){
     { key:"active", label:"Active", kind:"bool", edit:true },
     { key:"disc", label:"Discontinued", kind:"bool", edit:true },
     { key:"setdisc", label:"Set disc %", kind:"num", edit:true, w:"w-num", needSet:true },
+    { key:"sgroup", label:"Surcharge group", kind:"ref", ref:"sg", edit:true, w:"w-ref", needSingle:true },   // surcharge-4b
     { key:"bc", label:"Primary barcode", kind:"ro" },
     { key:"fam", label:"Family", kind:"ro" },
     { key:"opts", label:"Options", kind:"ro" },
@@ -211,6 +213,7 @@ function origVal(r, c){
     case "active": return !!p.is_active;
     case "disc": return !!p.is_discontinued;
     case "setdisc": return p.set_discount_pct == null ? "" : String(p.set_discount_pct);
+    case "sgroup": { const g = p.surcharge_group_id ? refs.sgById[p.surcharge_group_id] : null; return g ? g.name : ""; }
     case "bc": return r.bc || "";
     case "fam": return r.fam || "";
     case "opts": return [p.option1_value, p.option2_value, p.option3_value].filter(Boolean).join(" / ");
@@ -220,7 +223,7 @@ function origVal(r, c){
   if(c.tier){ const x = r.prices[c.tier]; return x ? String(x.price) : ""; }
   return "";
 }
-const editableHere = (r, c) => canEdit && c.edit && !(c.needSup && !r.sup) && !(c.needSet && !r.p.parent_product_id);
+const editableHere = (r, c) => canEdit && c.edit && !(c.needSup && !r.sup) && !(c.needSet && !r.p.parent_product_id) && !(c.needSingle && r.p.parent_product_id);
 
 /* ── 불러오기 ── */
 async function load(next){
@@ -236,7 +239,7 @@ async function load(next){
   const sup = sn ? refs.byName.sup[sn.toLowerCase()] : null;
   if(sn && !sup){ grid.innerHTML = '<div class="msg err">Pick the supplier from the list.</div>'; return; }
 
-  const colsSel = "id,sku,name,brand_id,brand_name,category_id,category_name,unit_id,uom_name,is_active,is_discontinued,set_discount_pct,parent_product_id,pack_factor,family_id,option1_value,option2_value,option3_value";
+  const colsSel = "id,sku,name,brand_id,brand_name,category_id,category_name,unit_id,uom_name,is_active,is_discontinued,set_discount_pct,parent_product_id,pack_factor,family_id,option1_value,option2_value,option3_value,surcharge_group_id";
   let qy = sup
     ? sb.from("product").select(colsSel + ",product_supplier!inner(supplier_id,is_active)", { count:"exact" })
         .eq("product_supplier.supplier_id", sup.id).eq("product_supplier.is_active", true)
@@ -302,7 +305,7 @@ function cellHtml(r, ri, c, ci){
     return `<td class="${c.cls || "ro"}">${txt}</td>`;
   }
   if(c.kind === "bool") return `<td><div class="cb"><input type="checkbox" data-r="${ri}" data-c="${ci}" ${v ? "checked" : ""}></div></td>`;
-  const list = c.kind === "ref" ? ` list="${c.ref === "brand" ? "brandList" : c.ref === "cat" ? "catList" : "unitList"}"` : "";
+  const list = c.kind === "ref" ? ` list="${c.ref === "brand" ? "brandList" : c.ref === "cat" ? "catList" : c.ref === "sg" ? "sgList" : "unitList"}"` : "";
   return `<td><input class="ci ${c.w || ""} ${c.kind === "num" ? "mono" : ""}" data-r="${ri}" data-c="${ci}" value="${esc(v)}"${list}></td>`;
 }
 function draw(){
@@ -383,6 +386,7 @@ function buildChanges(){
         case "active": setLine("is_active", v, String(!!p.is_active)); break;
         case "disc": setLine("is_discontinued", v, String(!!p.is_discontinued)); break;
         case "setdisc": setLine("set_discount_pct", v, p.set_discount_pct == null ? null : String(p.set_discount_pct)); break;
+        case "sgroup": out.push({ op:"surcharge_group_set", sku, group_id: v ? refs.byName.sg[v.toLowerCase()].id : null, old: p.surcharge_group_id || "" }); break;   // surcharge-4b
         case "ssku": supLine.supplier_sku = v; supOld.supplier_sku = r.sup.supplier_sku ?? null; supAny = true; break;
         case "cost": supLine.cost = v; supOld.cost = r.sup.cost == null ? null : String(r.sup.cost); supAny = true; break;
         case "fixed": supLine.fixed_cost = v; supOld.fixed_cost = r.sup.fixed_cost == null ? null : String(r.sup.fixed_cost); supAny = true; break;
@@ -805,6 +809,7 @@ function openInEdit(skus, supName){
 const PRESETS = {
   edit: { "Prices": k => k === "name" || k.startsWith("pr_"),
           "Supplier": k => ["name","supname","cur","ssku","fixed","cost"].includes(k),
+          "Surcharge": k => ["name","brand","supname","sgroup"].includes(k),   // surcharge-4b 묶음 8
           "All": () => true },
   new:  { "Basic": k => ["name","brand","cat","unit","bc","sets"].includes(k) || k.startsWith("pr_"),
           "With supplier": k => ["name","brand","cat","unit","bc","sets","sup","ssku","fixed","cost"].includes(k) || k.startsWith("pr_"),
@@ -860,6 +865,10 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   }
   const dl = (id, list) => { document.getElementById(id).innerHTML = list.map(x => `<option value="${esc(x.name)}">`).join(""); };
   dl("brandList", refs.brands); dl("catList", refs.cats); dl("unitList", refs.units); dl("supList", refs.suppliers);
+  /* surcharge-4b — 그룹(이름 ↔ id · 고르기는 켜진 것만 · 꺼진 것은 지금 달린 이름을 보이려고만) */
+  try { const { data: sg } = await sb.from("so_surcharge_group").select("id,name,is_active").order("name");
+        refs.sgroups = sg || []; refs.sgroups.forEach(g => { refs.sgById[g.id] = g; if(g.is_active) refs.byName.sg[g.name.toLowerCase()] = g; }); } catch(e){}
+  dl("sgList", refs.sgroups.filter(g => g.is_active));
   buildCols(); buildNewCols();
   try { const { data } = await sb.from("price_fx").select("currency_id,rate"); (data || []).forEach(x => { fx[x.currency_id] = x.rate; }); } catch(e) {}
   drawFbar();
