@@ -46,6 +46,8 @@
   .arrow{color:var(--muted);padding:0 4px}
   .sub{font-size:11.5px;color:var(--muted)}
   .sec{padding:12px 14px 4px;font-size:12px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-top:1px solid var(--line)}
+  /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
 </style>
 </head>
 <body>
@@ -120,8 +122,11 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-09-30 · tf v1.1";   // 대화 Claude — New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-10-01 · tf thumb v1";   // 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
+/* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
+const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
 
 let sb = null, me = null, canWrite = false, canAdj = false;
 let q = "", stFilter = "", fwFilter = "", twFilter = "", dateFrom = "", dateTo = "", curId = null;
@@ -361,6 +366,7 @@ async function loadDetail(id){
         units at the from warehouse and moved with them.</div>
     </div>
     ${freightCard(fr, h)}`;
+  thumbFill(box);   // 판정 208 — 이 트랜스퍼의 SKU 를 한 번에(기다리지 않는다)
 
   box.querySelectorAll("[data-act]").forEach(el => {
     const a = el.dataset.act;
@@ -396,7 +402,7 @@ function linesTable(lines, ed, s){
         : '<span class="dim">—</span>';
       return `<tr>
         <td class="num">${esc(l.line_no)}</td>
-        <td><span class="mono">${esc(l.sku)}</span>${n0(l.pack_factor) > 1 ? ` <span class="chip">pack × ${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+        <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${n0(l.pack_factor) > 1 ? ` <span class="chip">pack × ${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
         <td class="num"><b>${uq(l.qty, l.pack_factor)}</b></td>
         <td class="num">${uq(l.qty_sent, l.pack_factor)}${n0(l.short_sent) > 0 ? `<div class="sub bad">short ${qty(l.short_sent)}</div>` : ""}</td>
         <td class="num">${uq(l.qty_received, l.pack_factor)}</td>
@@ -543,9 +549,10 @@ function openLine(h, line){
     const { data, error } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor")
       .eq("is_active", true).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
     if(error){ pHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}"><span class="mono">${esc(p.sku)}</span>${p.parent_product_id ? ` <span class="chip">pack × ${esc(p.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("")
+    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}"><div class="lnth">${thumbOf(p.sku)}<div><span class="mono">${esc(p.sku)}</span>${p.parent_product_id ? ` <span class="chip">pack × ${esc(p.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div></div></div>`).join("")
       : '<div class="msg">No active product matches.</div>';
     pHits.querySelectorAll("[data-pid]").forEach(el => { el.onclick = () => pickProduct(data.find(x => x.id === el.dataset.pid)); });
+    thumbFill(pHits);   // 판정 213 — 사진 클릭은 크게 보기만(고르기로 안 번진다)
   };
   const lpq = document.getElementById("lpq");
   imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
