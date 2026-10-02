@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Surcharge Groups · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .pobtn · .pomodal/.pobox/.frow · .qin · .xbtn) */
+  .sgwrap{max-width:1100px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .sgbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 14px}
+  .sgbar h2{margin:0;font-size:19px}
+  .sgsub{padding:8px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line);line-height:1.5}
+  .sgval{font-family:var(--mono);font-weight:700}
+  .pobox input[type=text],.pobox select,.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pobox textarea{width:100%;min-height:60px}
+  .sgmsg{margin-top:10px;font-size:12.5px;line-height:1.5}
+  .sgmsg .chip{display:inline-block;margin:2px 4px 2px 0}
+  tr.off td{color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="sgwrap">
+  <div class="card">
+    <div class="sgbar">
+      <h2>Surcharge groups</h2>
+      <span class="dim" style="font-size:12.5px" id="sgCount"></span>
+      <span class="sp"></span>
+      <label style="font-size:12.5px"><input type="checkbox" id="onlyActive"> Active only</label>
+      <button class="pobtn go" id="newBtn" hidden>New group</button>
+    </div>
+    <div id="body"><div class="msg">Loading…</div></div>
+    <div class="sgsub">
+      A group is a surcharge (for example a US tariff) that new sales order and POS lines pick up by themselves when their product is in the group.
+      Put products into a group on Products (Edit) or on Product Sheet (the Surcharge group column — filter by brand or supplier and paste).
+      Changing a group's value or turning it off only affects lines added from now on — lines already on draft orders keep what they have; clear those by hand on the order.
+      Sets cannot be in a group (sales order lines are singles). Only an admin can change groups.
+    </div>
+  </div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Surcharge Groups — 관세 부가 요금 그룹(surcharge-4b · 판정 231 · 232 · surcharge-4 묶음 1 · 5 · 7)
+   읽기: 뷰 so_surcharge_group_list(asung-wms 20261002155201 ⑧ · 그룹 + 상품 수 + 켜진 상품 수 + 열린 초안 줄 수)
+   쓰기: so_surcharge_group_save(p_changes, p_commit, p_ack)(같은 파일 ④ · admin · 두 번 부르기)
+         create {name, surcharge_pct | surcharge_amount, note} · update {id, set{…}, old{…}} · off {id} · on {id}
+         ⚠️ 종류를 바꿀 때(% ↔ $)는 두 칸을 다 보낸다 — set {surcharge_pct: 3, surcharge_amount: ""} · old 도 둘 다(4a 보고 §7)
+   ⭐ 미리 보기(p_commit false)로 막기 · 알리기를 보이고, 알리기를 본 뒤 그 열쇠를 p_ack 로 실어 저장한다
+   ⭐ 화면은 다시 계산하지 않는다 · 수(상품 · 열린 초안 줄)는 뷰가 준다
+   ───────────────────────────────────────────────────────────── */
+const SG_BUILD = "2026-10-02 · sg v1";   // 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 1 · 5 · 7): 그룹 목록 · 만들기 · 고치기 · 끄기 · 켜기(admin)
+console.log("surcharge-groups.html build:", SG_BUILD);
+
+let sb = null, isAdmin = false, onlyActive = false, groups = [];
+const amt2 = (v) => Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const valText = (g) => g.surcharge_pct !== null && g.surcharge_pct !== undefined ? `${esc(Number(g.surcharge_pct))}%` : `$${amt2(g.surcharge_amount)} per unit`;
+
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ── 목록 ─────────────────────────────────────────── */
+async function load(){
+  const body = document.getElementById("body");
+  let q = sb.from("so_surcharge_group_list").select("*").order("name");
+  if(onlyActive) q = q.eq("is_active", true);
+  const { data, error } = await q;
+  if(error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(error.message)}</div>`; return; }
+  groups = data || [];
+  document.getElementById("sgCount").textContent = `${groups.length} group(s)`;
+  if(!groups.length){ body.innerHTML = '<div class="msg">No surcharge groups yet.' + (isAdmin ? " Press New group to add one." : "") + "</div>"; return; }
+  body.innerHTML = `<table><thead><tr><th>Name</th><th class="num">Surcharge</th><th>Active</th><th class="num">Products</th><th class="num">Open draft lines</th><th>Note</th><th>Updated</th>${isAdmin ? "<th></th>" : ""}</tr></thead><tbody>
+    ${groups.map(g => `<tr class="${g.is_active ? "" : "off"}">
+      <td><b>${esc(g.name)}</b></td>
+      <td class="num"><span class="sgval">${valText(g)}</span></td>
+      <td>${yn(g.is_active)}</td>
+      <td class="num" title="Products pointing at this group (active products)">${esc(g.product_count)}${Number(g.product_count) !== Number(g.active_product_count) ? ` <span class="dim">(${esc(g.active_product_count)} active)</span>` : ""}</td>
+      <td class="num" title="Lines on draft orders with this name and this value">${Number(g.open_draft_line_count) ? esc(g.open_draft_line_count) : '<span class="dim">0</span>'}</td>
+      <td class="dim" style="font-size:12px">${esc(g.note || "")}</td>
+      <td class="dim" style="font-size:12px">${imsTs(g.updated_at)}${g.updated_by_name ? " · " + esc(g.updated_by_name) : ""}</td>
+      ${isAdmin ? `<td style="white-space:nowrap"><button class="xbtn" data-ed="${g.id}" title="Change">✎</button> <button class="xbtn" data-tg="${g.id}">${g.is_active ? "Turn off" : "Turn on"}</button></td>` : ""}
+    </tr>`).join("")}</tbody></table>`;
+  body.querySelectorAll("[data-ed]").forEach(b => { b.onclick = () => openEdit(groups.find(g => g.id === b.dataset.ed)); });
+  body.querySelectorAll("[data-tg]").forEach(b => { b.onclick = () => { const g = groups.find(x => x.id === b.dataset.tg); openToggle(g); }; });
+}
+
+/* ── 저장 — 두 번 부르기 ───────────────────────────── */
+async function callSave(changes, commit, ack){
+  return sb.rpc("so_surcharge_group_save", { p_changes: changes, p_commit: commit, p_ack: ack || [] });
+}
+function showResult(data){
+  const blocks = data.blocks || [], warns = data.warnings || [];
+  return (blocks.length ? `<div class="err">${blocks.map(b => esc(b.message || b.code)).join("<br>")}</div>` : "")
+       + (warns.length ? `<div style="margin-top:6px">${warns.map(w => `<span class="chip warn">⚠ ${esc(w.message || w.code)}</span>`).join("")}</div>` : "");
+}
+/* 미리 보기 → (막기 없으면) 저장 단추를 켠다 · 저장은 같은 입력 + 본 알리기 열쇠 */
+function wireTwoStep(build, onDone){
+  let seen = null, seenKey = null;
+  const msg = () => document.getElementById("sgMsg");
+  const goBtn = () => document.getElementById("sgGo");
+  document.querySelectorAll("#modalBox input, #modalBox select, #modalBox textarea").forEach(el => { el.oninput = el.onchange = () => { seen = null; goBtn().disabled = true; }; });
+  document.getElementById("sgCheck").onclick = async () => {
+    const ch = build(); if(!ch) return;
+    msg().className = "sgmsg"; msg().textContent = "Checking…";
+    const { data, error } = await callSave(ch, false, []);
+    if(error){ msg().className = "sgmsg err"; msg().textContent = error.message; return; }
+    msg().innerHTML = showResult(data) || '<span class="on">No problems — press Save.</span>';
+    if((data.blocks || []).length){ goBtn().disabled = true; return; }
+    seen = (data.warnings || []).map(w => w.key); seenKey = JSON.stringify(ch); goBtn().disabled = false;
+  };
+  goBtn().onclick = async () => {
+    const ch = build(); if(!ch) return;
+    if(seen === null || JSON.stringify(ch) !== seenKey){ msg().className = "sgmsg err"; msg().textContent = "Check again first — the inputs changed."; goBtn().disabled = true; return; }
+    goBtn().disabled = true; msg().textContent = "Saving…";
+    const { data, error } = await callSave(ch, true, seen);
+    if(error){ msg().className = "sgmsg err"; msg().textContent = error.message; return; }
+    if(!data.committed){ msg().innerHTML = showResult(data) + ((data.unacked || []).length ? '<div class="err">Something new came up — check again.</div>' : ""); return; }
+    modalClose(); await onDone();
+  };
+}
+
+/* ── 만들기 · 고치기 ─────────────────────────────── */
+function formHtml(title, g){
+  const isPct = !g || g.surcharge_pct !== null && g.surcharge_pct !== undefined;
+  const val = g ? (isPct ? Number(g.surcharge_pct) : Number(g.surcharge_amount)) : "";
+  return `<h4>${esc(title)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Name</label><input type="text" id="sgName" value="${esc(g ? g.name : "")}" placeholder="e.g. US Tariff"></div>
+      <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">This name is printed on the order line and the invoice.</div>
+      <div class="frow"><label>Charge as</label><select id="sgKind"><option value="pct" ${isPct ? "selected" : ""}>% of the unit price</option><option value="amt" ${isPct ? "" : "selected"}>$ per unit</option></select>
+        <input class="qin" id="sgVal" type="number" step="any" min="0" value="${esc(val)}"></div>
+      <div class="frow"><label>Note</label><textarea id="sgNote" placeholder="optional — e.g. Canada counter-tariff on US goods, from 2026-03">${esc(g && g.note ? g.note : "")}</textarea></div>
+      <div id="sgMsg" class="sgmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="sgCheck">Check</button>
+      <button class="pobtn go" id="sgGo" disabled>Save</button>
+    </div>`;
+}
+function readForm(){
+  const name = document.getElementById("sgName").value.trim(), kind = document.getElementById("sgKind").value;
+  const raw = document.getElementById("sgVal").value.trim(), note = document.getElementById("sgNote").value.trim();
+  const m = document.getElementById("sgMsg");
+  if(!name){ m.className = "sgmsg err"; m.textContent = "Give the group a name — e.g. US Tariff."; return null; }
+  const v = Number(raw);
+  if(raw === "" || !isFinite(v) || v <= 0){ m.className = "sgmsg err"; m.textContent = "The surcharge must be a number above 0."; return null; }
+  if(kind === "amt" && !/^\d+(\.\d{1,2})?$/.test(raw)){ m.className = "sgmsg err"; m.textContent = "A per-unit amount has at most two decimals (cents)."; return null; }
+  if(kind === "pct" && v > 100 && !confirm(`${raw}% is over 100% — is that right?`)) return null;
+  return { name, kind, raw, note };
+}
+function openNew(){
+  modalOpen(formHtml("New surcharge group", null));
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  wireTwoStep(() => {
+    const f = readForm(); if(!f) return null;
+    const c = { op: "create", name: f.name, note: f.note || null };
+    if(f.kind === "pct") c.surcharge_pct = f.raw; else c.surcharge_amount = f.raw;
+    return [c];
+  }, load);
+}
+function openEdit(g){
+  modalOpen(formHtml("Change " + g.name, g));
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  const s = (v) => v === null || v === undefined ? "" : String(v);
+  wireTwoStep(() => {
+    const f = readForm(); if(!f) return null;
+    const set = {}, old = {};
+    if(f.name !== g.name){ set.name = f.name; old.name = g.name; }
+    if((f.note || "") !== (g.note || "")){ set.note = f.note; old.note = s(g.note); }
+    const wasPct = g.surcharge_pct !== null && g.surcharge_pct !== undefined;
+    const newPct = f.kind === "pct" ? f.raw : "", newAmt = f.kind === "amt" ? f.raw : "";
+    const oldPair = JSON.stringify([wasPct ? Number(g.surcharge_pct) : "", wasPct ? "" : Number(g.surcharge_amount)]);
+    const newPair = JSON.stringify([newPct === "" ? "" : Number(newPct), newAmt === "" ? "" : Number(newAmt)]);
+    if(oldPair !== newPair){   // 값 · 종류 — 두 칸을 함께(종류를 바꿀 때 「둘 다」 막기를 피한다 · 4a 보고 §7)
+      set.surcharge_pct = newPct; set.surcharge_amount = newAmt;
+      old.surcharge_pct = s(g.surcharge_pct); old.surcharge_amount = s(g.surcharge_amount);
+    }
+    if(!Object.keys(set).length){ const m = document.getElementById("sgMsg"); m.className = "sgmsg"; m.textContent = "Nothing changed."; return null; }
+    return [{ op: "update", id: g.id, set, old }];
+  }, load);
+}
+function openToggle(g){
+  const op = g.is_active ? "off" : "on";
+  modalOpen(`<h4>${g.is_active ? "Turn off" : "Turn on"} ${esc(g.name)}</h4>
+    <div class="pbody">
+      <div style="font-size:12.5px;line-height:1.5;color:var(--muted)">${g.is_active
+        ? "New sales order and POS lines stop picking this surcharge up. Products stay in the group, so turning it back on brings it back. Lines already on draft orders keep what they have."
+        : "New sales order and POS lines for the products in this group pick the surcharge up again from now on."}</div>
+      <div id="sgMsg" class="sgmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="sgCheck">Check</button>
+      <button class="pobtn go" id="sgGo" disabled>${g.is_active ? "Turn off" : "Turn on"}</button>
+    </div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  wireTwoStep(() => [{ op, id: g.id }], load);
+  document.getElementById("sgCheck").click();
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, me) => {
+  sb = client;
+  isAdmin = !!(me && me.role === "admin");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = SG_BUILD;
+  const nb = document.getElementById("newBtn");
+  nb.hidden = !isAdmin; nb.onclick = openNew;
+  document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; load(); };
+  await load();
+});
+</script>
+</body>
+</html>
