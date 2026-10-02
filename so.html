@@ -141,7 +141,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-02 · so sc v1";   // 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-02 · so sc v1.1";   // 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -1133,7 +1133,7 @@ function finInput(){
   /* surcharge-3(판정 230) — 바뀐 줄만 보낸다 · 빈 이름 + 빈 값 = 지우기 · _no · _k 는 화면 표지(finSend 가 뺀다) */
   const sc = [];
   document.querySelectorAll("#modalBox tr[data-fsc]").forEach(tr => {
-    const [ol, ok, ov] = JSON.parse(tr.dataset.o);
+    const [ol, ok, ov] = JSON.parse(decodeURIComponent(tr.dataset.o));   // so sc v1.1 — esc 는 큰따옴표를 막지 않아 속성이 잘렸다(Finalize 미리 보기가 멈춤)
     const l = tr.querySelector("[data-fl]").value.trim(), k = tr.querySelector("[data-fk]").value, x = tr.querySelector("[data-fv]").value.trim();
     if(l === ol && x === ov && (k === ok || x === "")) return;
     sc.push(l === "" && x === "" ? { line_id: tr.dataset.fsc, surcharge_label: "", surcharge_pct: "", surcharge_amount: "", _no: tr.dataset.no, _k: "" }
@@ -1182,7 +1182,7 @@ async function openFinalize(){
                          return [l.surcharge_label || "", a && !p ? "amt" : "pct", p ? String(Number(l.surcharge_pct)) : (a ? String(Number(l.surcharge_amount)) : "")]; };
     document.getElementById("fnScBox").innerHTML = scl.length ? `<details ${nSet ? "open" : ""} style="margin:4px 0 10px"><summary class="sohint" style="cursor:pointer">Surcharges — ${nSet} line(s) have one · change them here before the invoice is issued</summary>
       <table><thead><tr><th class="num">#</th><th>SKU</th><th>Name</th><th>As</th><th class="num">Value</th></tr></thead><tbody>
-      ${scl.map(l => { const o = old(l); return `<tr data-fsc="${l.id}" data-no="${esc(l.line_no)}" data-o="${esc(JSON.stringify(o))}">
+      ${scl.map(l => { const o = old(l); return `<tr data-fsc="${l.id}" data-no="${esc(l.line_no)}" data-o="${encodeURIComponent(JSON.stringify(o))}">
         <td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td>
         <td><input class="tin" data-fl list="fnScList" value="${esc(o[0])}" placeholder="e.g. US Tariff" style="width:130px"></td>
         <td><select class="sofield" data-fk><option value="pct" ${o[1] === "pct" ? "selected" : ""}>%</option><option value="amt" ${o[1] === "amt" ? "selected" : ""}>$ per unit</option></select></td>
