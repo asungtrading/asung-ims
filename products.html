@@ -201,7 +201,7 @@
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v3b";
+const PR_BUILD = "pr v3c";   // 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 2): Surcharge group 칸(보기 · Edit 에서 고르기 · product_update op surcharge_group_set · 세트는 없음) ← pr v3b
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -211,7 +211,7 @@ let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
 const pg = imsPage(100);
 let openSets = {};
-let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{} };
+let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{}, sgroups:[] };
 let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
 let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[] } — 입력값은 DOM 에서 읽는다
 
@@ -486,6 +486,15 @@ function headChips(r){
 const navBtns = () => `<button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
   <button class="pobtn" data-act="wide">&lsaquo; All products</button>`;
 
+/* surcharge-4b — 상품의 관세 부가 요금 그룹(판정 231 · 묶음 2) · 고치기 = product_update op surcharge_group_set {sku, group_id | null, old} */
+const sgOf = id => refs.sgroups.find(g => g.id === id) || null;
+const sgText = g => g ? esc(g.name) + " " + (g.surcharge_pct !== null && g.surcharge_pct !== undefined ? esc(Number(g.surcharge_pct)) + "%" : "$" + esc(Number(g.surcharge_amount).toFixed(2)) + "/ea") + (g.is_active ? "" : ' <span class="off" style="font-size:11.5px">off</span>') : '<span class="dim">—</span>';
+function sgSelect(r){
+  const curG = sgOf(r.surcharge_group_id);
+  const opts = refs.sgroups.filter(g => g.is_active || g.id === r.surcharge_group_id);
+  return `<select class="ein" data-sg style="max-width:260px"><option value="">— none —</option>${opts.map(g => `<option value="${esc(g.id)}" ${g.id === r.surcharge_group_id ? "selected" : ""}>${esc(g.name)}${g.is_active ? "" : " (off)"}</option>`).join("")}</select>
+    <span class="dim" style="font-size:11.5px">— new order and POS lines pick it up · groups are on Settings → Surcharge Groups</span>`;
+}
 function renderRead(){
   const { r, comps, parent, family, sibs } = cur;
   const left = [
@@ -497,6 +506,7 @@ function renderRead(){
     ["Family", family ? `<a class="lnk mono" href="families.html?id=${esc(family.id)}">${esc(family.sku)}</a> ${esc(family.name)}` : '<span class="dim">—</span>'],
     ["Options", [r.option1_value,r.option2_value,r.option3_value].filter(Boolean).map(esc).join(" · ") || '<span class="dim">—</span>'],
     ["Weight", r.weight ? `${esc(r.weight)} ${esc(r.weight_unit||"")}` : '<span class="dim">—</span>'],
+    ...(r.parent_product_id ? [] : [["Surcharge group", sgText(sgOf(r.surcharge_group_id))]]),
     ["Note", r.note ? esc(r.note) : '<span class="dim">—</span>'],
   ];
   const right = [
@@ -641,7 +651,7 @@ function renderEdit(){
     ...(isSet ? [
       f("Pack factor", `<input class="ein sm mono" data-f="pack_factor" value="${esc(r.pack_factor==null?"":r.pack_factor)}"> <span class="dim">— locked once the set has stock or order history</span>`),
       f("Set discount %", `<input class="ein sm mono" data-f="set_discount_pct" value="${esc(r.set_discount_pct==null?"":r.set_discount_pct)}">`),
-    ] : []),
+    ] : [f("Surcharge group", sgSelect(r))]),
     f("Note", `<textarea class="ein" data-f="note">${esc(r.note||"")}</textarea>`),
     f("Discontinued", `<label><input type="checkbox" data-f="is_discontinued" ${r.is_discontinued?"checked":""}> discontinued</label>`),
     f("Active", `<label><input type="checkbox" data-f="is_active" ${r.is_active?"checked":""}> active</label>`),
@@ -745,6 +755,12 @@ function buildChanges(){
     el.classList.toggle("chg", !same);
     if(!same) out.push({ op:"set", sku, field:k, value: v, old: s(o) });
   });
+
+  /* surcharge-4b — 그룹(세트에는 칸이 없다) */
+  { const el = box.querySelector("[data-sg]");
+    if(el){ const v = el.value || null, o = r.surcharge_group_id || null;
+      el.classList.toggle("chg", v !== o);
+      if(v !== o) out.push({ op:"surcharge_group_set", sku, group_id: v, old: o || "" }); } }
 
   /* 판매가 */
   box.querySelectorAll("[data-price]").forEach(el => {
@@ -1351,6 +1367,8 @@ imsAuth.start({ changePw:true }, async (client, me) => {
     refs.axes = Object.entries(ac).sort((a,b) => b[1] - a[1]).map(x => x[0]);
     refs.brands = bl; refs.cats = cl; refs.units = ul; refs.tiers = tl; refs.suppliers = sl;
     refs.supByName = {}; sl.forEach(x => { refs.supByName[x.name.toLowerCase()] = x; });
+    /* surcharge-4b — 관세 부가 요금 그룹(꺼진 것도 읽는다 · 지금 달린 이름을 보이려고 · 고르기는 켜진 것만) */
+    try { const { data: sg } = await sb.from("so_surcharge_group").select("id,name,surcharge_pct,surcharge_amount,is_active").order("name"); refs.sgroups = sg || []; } catch(e){ refs.sgroups = []; }
   } catch(err){
     document.getElementById("rows").innerHTML = `<div class="msg err">Reference lists failed: ${esc(err.message)}</div>`;
   }
