@@ -12,6 +12,7 @@
      imsQ                       검색창 지연 입력
      imsParam                   화면 사이 이동(?id= · ?sku=)
      imsThumb / imsThumbFill    줄 표의 SKU 썸네일(40px · 누르면 크게 · 판정 208 · 2026-10-01 thumb-1) · ⚠️ 실패해도 던지지 않는다
+     imsPhotoUrl / imsPhotoPrimary  창고 화면용 대표 사진 읽기(판정 224 · wms-img-1) — 같은 캐시 · 같은 창구 · Map(sku → {url, from_parent} | null) · ⚠️ 실패해도 던지지 않는다
 */
 (function () {
   "use strict";
@@ -271,6 +272,16 @@
     }, true);
   }
 
+  async function thumbLoad(skus) {           // 캐시 · 읽는 중을 뺀 SKU 를 500 씩 product_image_primary · 전부 끝날 때까지(거절하지 않는다 · thumbQuery 가 warn) · imsThumbFill 과 imsPhotoPrimary 가 같이 쓴다
+    const fresh = skus.filter((s) => !thumbCache.has(s) && !thumbPending.has(s));
+    for (let i = 0; i < fresh.length; i += THUMB_CHUNK) {
+      const part = fresh.slice(i, i + THUMB_CHUNK);
+      const p = thumbQuery(part);
+      for (const s of part) thumbPending.set(s, p);
+    }
+    await Promise.all([...new Set(skus.map((s) => thumbPending.get(s)).filter(Boolean))]);
+  }
+
   async function imsThumbFill(root) {
     try {
       const base = typeof root === "string" ? document.querySelector(root) : (root || document);
@@ -279,17 +290,30 @@
       if (!cells.length) return;
       thumbWire();
       const skus = [...new Set(cells.map((c) => c.getAttribute("data-thumb")).filter(Boolean))];
-      const fresh = skus.filter((s) => !thumbCache.has(s) && !thumbPending.has(s));
-      for (let i = 0; i < fresh.length; i += THUMB_CHUNK) {
-        const part = fresh.slice(i, i + THUMB_CHUNK);
-        const p = thumbQuery(part);              // 거절하지 않는다(안에서 warn)
-        for (const s of part) thumbPending.set(s, p);
-      }
-      await Promise.all([...new Set(skus.map((s) => thumbPending.get(s)).filter(Boolean))]);
+      await thumbLoad(skus);
       for (const c of cells) thumbPaint(c);
     } catch (e) {
       console.warn("imsThumbFill:", (e && e.message) || e);
     }
+  }
+
+  /* ── 창고 화면용 대표 사진 읽기(wms-img-1 · 판정 224 · 2026-10-01) ─────
+     픽 · 팩 · 리시빙 · Fulfillment 가 줄을 그린 뒤 그 화면 SKU 를 모아 한 번 부른다 · thumb-1 과 같은 캐시(thumbCache · thumbPending) · 같은 창구 · 같은 주소 짓기(thumbUrl)
+       imsPhotoUrl(storage_path)     → 공개 주소 문자열(없으면 "")
+       await imsPhotoPrimary(skus[]) → Map(sku → { url, from_parent } | null(사진 없음 · 없는 SKU)) · 중복 SKU 는 하나로 · 못 읽은 SKU 는 Map 에 없다(캐시에도 안 남아 다음 호출이 다시 묻는다)
+     · ⚠️⚠️ throw 하지 않는다 — rpc 오류 · window.sb 없음 · 권한 없음이면 warn 한 줄(thumbQuery) · 빈 Map */
+  const imsPhotoUrl = (path) => (path ? thumbUrl(path) : "");
+  async function imsPhotoPrimary(skus) {
+    const out = new Map();
+    try {
+      const list = [...new Set((Array.isArray(skus) ? skus : []).map((s) => (s === null || s === undefined ? "" : String(s))).filter(Boolean))];
+      if (!list.length) return out;
+      await thumbLoad(list);
+      for (const s of list) if (thumbCache.has(s)) out.set(s, thumbCache.get(s));
+    } catch (e) {
+      console.warn("imsPhotoPrimary:", (e && e.message) || e);
+    }
+    return out;
   }
 
   window.esc = esc;
@@ -304,4 +328,6 @@
   window.imsHeader = imsHeader;
   window.imsThumb = imsThumb;
   window.imsThumbFill = imsThumbFill;
+  window.imsPhotoUrl = imsPhotoUrl;
+  window.imsPhotoPrimary = imsPhotoPrimary;
 })();
