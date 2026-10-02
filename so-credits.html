@@ -119,7 +119,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-01 · cr thumb v1";   // 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-02 · cr sc v1";   // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -324,6 +324,7 @@ function drawForm(){
   const v = prep.invoice, wh = prep.warehouse || {}, fee = prep.restock_fee || {};
   const prods = (prep.lines || []).filter(l => l.kind === "product");
   const chgs  = (prep.lines || []).filter(l => l.kind === "charge");
+  const scs   = (prep.lines || []).filter(l => l.kind === "surcharge");   // surcharge-3 — 보이기만 · 보내지 않는다(서버가 만든다)
   document.getElementById("nwBody").innerHTML = `
     <div class="socols">
       <div class="stat">Invoice<b class="mono">${esc(v.invoice_number)}</b></div>
@@ -357,6 +358,7 @@ function drawForm(){
       </td>
     </tr>`).join("") || '<tr><td colspan="8" class="dim">No product lines on this invoice.</td></tr>'}</tbody></table>
     <div class="sohint">Back to stock uses the bin the product sits in now (usual bin first). Not restocked keeps the goods out of stock and records why. Unit price and tax come from the invoice.</div>
+    ${scs.length ? `<div class="sohint">Surcharge on this invoice comes back by itself with the quantity you return — added automatically, it cannot be typed: ${scs.map(l => `<span class="mono">${esc(l.sku || "")}</span> ${esc(l.description || "")} ${price(l.unit_price)}/ea${Number(l.amount_credited) ? ` <span class="dim">(${money(l.amount_credited)} already credited)</span>` : ""}`).join(" · ")}</div>` : ""}
 
     ${chgs.length ? `<h5 class="sec">Freight and charges</h5>
     <table><thead><tr><th>Charge</th><th class="num">On invoice</th><th class="num">Already credited</th><th class="num">Credit</th></tr></thead>
@@ -449,11 +451,12 @@ async function runIssue(commit){
       <tbody>${(data.lines || []).map(l => `<tr>
         <td>${esc(l.kind)}</td><td><span class="mono">${esc(l.sku || "")}</span> <span class="dim">${esc(l.description || "")}</span></td>
         <td class="num">${qty(l.qty_returned)}</td>
-        <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : ""}</td>
+        <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : l.kind === "surcharge" ? '<span class="dim">added automatically</span>' : ""}</td>
         <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td><td class="num">${money(l.tax_amount)}</td></tr>`).join("")}</tbody></table>
       <div class="socols">
         <div class="stat">Products<b>${money(t.lines_amount)}</b></div>
         <div class="stat">Fee<b>${money(t.fee_amount)}</b></div>
+        ${Number(t.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(t.surcharge_amount)}</b></div>` : ""}
         <div class="stat">Tax<b>${money(t.tax_amount)}</b></div>
         <div class="stat">Credit total<b>${money(t.total)}</b></div>
       </div>
@@ -571,6 +574,7 @@ async function loadDetail(id){
     <div class="stats">
       <div class="stat">Products<b>${money(v.lines_amount)}</b></div>
       <div class="stat">Fee<b>${money(v.fee_amount)}</b></div>
+      ${Number(v.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(v.surcharge_amount)}</b></div>` : ""}
       <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
       <div class="stat">Total<b>${money(v.total)}</b></div>
       <div class="stat">Applied to invoices<b>${money(v.applied_to_invoices)}</b></div>
@@ -581,7 +585,7 @@ async function loadDetail(id){
   const lines = (data.lines || []).map(l => `<tr>
       <td class="num">${esc(l.line_no)}</td><td>${esc(l.kind || "")}</td>
       <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
-      <td class="num">${l.kind === "product" ? qty(l.qty_returned) : ""}</td>
+      <td class="num">${l.kind === "product" || l.kind === "surcharge" ? qty(l.qty_returned) : ""}</td>
       <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
       <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
