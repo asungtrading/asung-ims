@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manager List · Asung IMS</title>
+<title>Action Centre · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
   /* 매니저 목록 — 운영 WMS admin 의 모양(탭 · 배지 · 미해결 전량 · 해결은 기간) · ④a 판정 7·8 */
@@ -60,7 +60,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-09-25 · ml v1";
+const ML_BUILD = "2026-10-01 · ml v1.1";   // 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];

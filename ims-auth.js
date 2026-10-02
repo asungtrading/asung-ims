@@ -88,7 +88,7 @@
     ["Transfers","transfers.html","transfer","ims",false,"inventory"],
     ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,"inventory"],
     // Action Center — 펼침 없이 링크 하나 (판정 152 · 165 · 파일 manager-list.html · 열쇠 sales 그대로)
-    ["Action Center","manager-list.html","sales","ims",false,"action"],
+    ["Action Centre","manager-list.html","sales","ims",false,"action"],
     // Settings (판정 150 · 151 · 166)
     ["Settings","settings.html","master","ims",false,"settings"],
     ["Staff","staff.html","staff","ims",false,"settings"],
@@ -111,7 +111,7 @@
     ["purchasing","Purchasing",false],
     ["sales","Sales",false],
     ["inventory","Inventory",false],
-    ["action","Action Center",true],
+    ["action","Action Centre",true],
     ["settings","Settings",false],
   ];
 

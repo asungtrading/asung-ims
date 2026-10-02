@@ -55,13 +55,13 @@
    ⚠️ 권한은 ims_access() 의 결과(imsAuth.access)를 보여 주기만 한다 — 화면이 다시 판정하지 않는다
    ⚠️ DB 칸은 옛 index 와 같은 다섯 표의 행 수(head count) — RLS 로 0 이 나오면 「표가 비었다」가 아니라 「이 사람에게 안 보인다」일 수 있다
    ───────────────────────────────────────────────────────────── */
-const SC_BUILD = "2026-09-30 · sc v1";
+const SC_BUILD = "2026-10-01 · sc v1.1";   // 대화 Claude — 갈래 이름 Action Centre(Caleb 2026-10-01) ← sc v1
 console.log("system-check.html build:", SC_BUILD);
 
 const row = (k, v) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
 const code = (v) => `<code>${esc(v == null ? "—" : String(v))}</code>`;
 const MODE_NAME = { ims: "IMS", wms: "WMS", pos: "POS" };
-const GROUP_NAME = { purchasing: "Purchasing", sales: "Sales", inventory: "Inventory", action: "Action Center", settings: "Settings", warehouse: "Warehouse" };
+const GROUP_NAME = { purchasing: "Purchasing", sales: "Sales", inventory: "Inventory", action: "Action Centre", settings: "Settings", warehouse: "Warehouse" };
 
 imsAuth.start({ changePw: true }, async (sb, me) => {
   imsHeader(me);
