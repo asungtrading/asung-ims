@@ -280,7 +280,8 @@ tbody tr:hover{background:#fafbfd}
    · 왼쪽 색 막대 + 그 색의 굵은 제목 글씨 · 구역마다 다른 색 · 같은 구역은 PO · SO 같은 색 · 색은 **여기 한 번만**
    · 쓰는 법: <h3 class="ims-sec" data-sec="invoices">Invoices <span class="n">3</span></h3>  (po.html · so.html 의 tbl() 이 내는 .card h3 에 class · data-sec 만 더한다)
    · data-sec 값 = 구역 이름의 소문자 복수형 — 같은 뜻은 같은 값(SO 의 「Invoice」 도 invoices)
-   · 다크 모드 변수 체계는 아직 없다(ims-ui.css 전부 밝은 색) — 생기면 --sec · --sec-bg 만 바꾼다 */
+   · 다크 모드 변수 체계는 아직 없다(ims-ui.css 전부 밝은 색) — 생기면 --sec · --sec-bg 만 바꾼다
+   · [2026-10-01 thumb-1] 상품 구역 일곱(prices … photos) — products.html · Same family 는 variants(SO 의 family 와 뜻이 다르다) */
 .ims-sec{--sec:#6b7686;--sec-bg:#f7f8fa}                                  /* 모르는 구역 — 회색 */
 .ims-sec[data-sec="lines"]{--sec:#2f6df6;--sec-bg:#eef3ff}                /* Lines — 파랑 */
 .ims-sec[data-sec="discounts"]{--sec:#7c3aed;--sec-bg:#f3eefe}            /* Discounts — 보라 */
@@ -291,8 +292,32 @@ tbody tr:hover{background:#fafbfd}
 .ims-sec[data-sec="charges"]{--sec:#be185d;--sec-bg:#fce9f1}              /* Charges — 자홍 */
 .ims-sec[data-sec="family"]{--sec:#4f46e5;--sec-bg:#eeedfc}               /* Order family(SO) — 남보라 */
 .ims-sec[data-sec="balance"]{--sec:#475569;--sec-bg:#eef1f5}              /* Customer balance(SO) — 청회색 */
+.ims-sec[data-sec="prices"]{--sec:#a16207;--sec-bg:#fdf7e3}               /* Sale prices(products) — 금색 */
+.ims-sec[data-sec="suppliers"]{--sec:#0369a1;--sec-bg:#e8f4fb}            /* Suppliers(products) — 하늘 */
+.ims-sec[data-sec="barcodes"]{--sec:#57534e;--sec-bg:#f3f1ef}             /* Barcodes(products) — 돌색 */
+.ims-sec[data-sec="components"]{--sec:#4d7c0f;--sec-bg:#f1f8e6}           /* Components(products) — 연두(제안 #65a30d 는 대비 2.84 → 4.59) */
+.ims-sec[data-sec="sets"]{--sec:#c2410c;--sec-bg:#fdeee6}                 /* Sets of this product(products) — 주황 갈색 */
+.ims-sec[data-sec="variants"]{--sec:#0e7490;--sec-bg:#e0f7fa}             /* Same family(products) — 청록 하늘(제안 #0891b2/#e6f6fa 는 대비 3.32 · 배경이 suppliers 와 같아 보여 → 4.81) */
+.ims-sec[data-sec="photos"]{--sec:#db2777;--sec-bg:#fdebf3}               /* Photos(products) — 분홍 */
 .card h3.ims-sec{
   border-left:4px solid var(--sec);background:var(--sec-bg);color:var(--sec);
   font-weight:800;font-size:12.5px;letter-spacing:.05em;padding-left:12px;
 }
 .card h3.ims-sec .n{color:var(--sec);font-weight:800}
+
+/* ═══════════════════════════════════════════════════════════════
+   썸네일 — 줄 표의 SKU 왼쪽 작은 사진(40px) · 누르면 크게 (2026-10-01 thumb-1 · 판정 208 · 도우미는 ims-ui.js 의 imsThumb · imsThumbFill)
+   · 쓰는 법: imsThumb(sku) → '<span class="ims-thumb" data-thumb="SKU"></span>' 를 줄 표 SKU 칸 왼쪽에 (빈 SKU 는 data-thumb 없는 빈 칸)
+   ·          표를 innerHTML 로 그린 뒤 imsThumbFill(그 상자) — await 안 해도 된다 · 안 채운 [data-thumb] 만 모아 한 번에 읽는다
+   · 상태: .done = 채웠다(다시 안 채운다) · .none = 사진 없음 · 없는 SKU(점선 빈 칸) · .parent = 세트가 낱개 사진을 빌림(모서리 점 · title "Single's photo" · 판정 194)
+   · #imsThumbZoom 은 도우미의 자기 덮개 — 화면의 #modal · .pomodal(5000) 위 · #imsLogin(9999) 아래 · 배경 클릭 · Esc 로 닫기 · Open original 새 탭 */
+.ims-thumb{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 40px;
+  border:1px solid var(--line);border-radius:6px;background:#fff;overflow:hidden;vertical-align:middle;position:relative;box-sizing:border-box}
+.ims-thumb img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;display:block}
+.ims-thumb.none{border-style:dashed;background:#fafbfd;opacity:.55}
+.ims-thumb.parent i.p{position:absolute;right:2px;bottom:2px;width:9px;height:9px;border-radius:50%;background:#0e7490;border:1.5px solid #fff;pointer-events:none}
+#imsThumbZoom{display:none;position:fixed;inset:0;z-index:9000;background:rgba(16,22,30,.72);align-items:center;justify-content:center;cursor:zoom-out}
+#imsThumbZoom.open{display:flex}
+#imsThumbZoom .box{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:default}
+#imsThumbZoom .box img{max-width:90vw;max-height:80vh;object-fit:contain;background:#fff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+#imsThumbZoom .box a{color:#fff;font-size:13px;font-weight:600;text-decoration:underline}

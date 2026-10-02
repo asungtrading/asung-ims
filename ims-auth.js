@@ -60,6 +60,7 @@
      ⚠️ 빈 링크를 메뉴에 두지 않는다(판정 162) — 아직 없는 화면은 **주석 줄로 순서 자리만**. ⚠️ dashboard.html · system-check.html 은 lay-2 가 짓는다(같이 push).
      ⚠️ [2026-09-30] 이름은 보이는 글자만(파일 · 열쇠 무변): Manager List → 「Action Center」(판정 165) · Purchase Invoices → 「Purchase Invoices & Credits」(invoices.html · 판정 170 · 화면 <title> 과 같다 · 이 화면이 크레딧도 다룬다 · & 는 네 출력 경로 전부 esc() 를 지난다) · Supplier Payments(payments.html) · Purchase Receipts(receiving.html · 판정 40).
      ⚠️ Supplier Products 는 상품 화면이 설 때까지 Inventory 의 Products 바로 뒤(판정 151 임시) — 그 뒤 메뉴에서 빠진다.
+     ⚠️ [2026-10-01 thumb-1] Product Sheet(product-sheet.html) 를 Products 뒤에 더했다(판정 200) · Supplier Products 빼기는 Sheet 가 선 뒤 · Families 는 메뉴에 남는다(판정 210 · 203 고침) · 상품 만들기 · 사진 ⬜ 자리는 Products 가 맡아 지웠다
      ✅ Home(index.html) 줄은 없앴다 — index 는 문이다(판정 163). */
   const items=[
     // IMS 첫 화면 — 펼침에 안 선다(갈래 null) · 로고 · IMS 모드 단추 · firstScreen() 이 여기로 보낸다 (판정 158 · 163 · lay-2)
@@ -80,12 +81,12 @@
     // ⬜ ["Customers","customers.html","sales","ims",false,"sales"],   — 손님 화면이 서면 (판정 150 · 162)
     // Inventory (판정 150 · 151)
     ["Products","products.html","master","ims",false,"inventory"],
+    ["Product Sheet","product-sheet.html","master","ims",false,"inventory"],
     ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],
     ["Families","families.html","master","ims",false,"inventory"],
     ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,"inventory"],
     ["Transfers","transfers.html","transfer","ims",false,"inventory"],
     ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,"inventory"],
-    // ⬜ 상품 만들기 · 사진 화면 — 판정 147 ⑤ ~ ⑧ 뒤 (판정 162)
     // Action Center — 펼침 없이 링크 하나 (판정 152 · 165 · 파일 manager-list.html · 열쇠 sales 그대로)
     ["Action Center","manager-list.html","sales","ims",false,"action"],
     // Settings (판정 150 · 151 · 166)

@@ -11,6 +11,7 @@
      imsSaved                   ⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다 · ⭐ [2026-09-18] seenAt 을 주면 덮어쓰기를 막고 누가·언제 바꿨는지 돌려준다
      imsQ                       검색창 지연 입력
      imsParam                   화면 사이 이동(?id= · ?sku=)
+     imsThumb / imsThumbFill    줄 표의 SKU 썸네일(40px · 누르면 크게 · 판정 208 · 2026-10-01 thumb-1) · ⚠️ 실패해도 던지지 않는다
 */
 (function () {
   "use strict";
@@ -175,6 +176,122 @@
     if (b) b.onclick = () => window.imsAuth.signOut();
   }
 
+  /* ── 썸네일 ───────────────────────────────────
+     판정 208 (2026-10-01 thumb-1) — PO · SO · 트랜스퍼 · Stock adjustment 의 줄 표에서 SKU 왼쪽 작은 사진(40px) · 누르면 크게.
+     쓰는 법 (이것이 약속이다 — 네 화면이 이대로 부른다):
+       imsThumb(sku)            → '<span class="ims-thumb" data-thumb="SKU"></span>'  (SKU 는 esc + " 도 막는다 · 빈 SKU 는 data-thumb 없는 빈 칸)
+       await imsThumbFill(root) → root(요소 · 선택자 · 없으면 document) 안의 아직 안 채운 [data-thumb] 를 모아 채운다 · await 안 해도 된다
+     · 한 번에 읽기 — 서로 다른 SKU 를 모아 product_image_primary(p_skus) 한 번(500 개씩 · 반환은 입력 SKU 마다 한 행이라 1,000 캡 아래)
+     · 캐시 — 이 페이지에서 한 번 읽은 SKU 는 다시 묻지 않는다(사진 없음 · 없는 SKU 도) · 읽는 중인 SKU 는 그 약속을 같이 기다린다
+     · 공개 주소 — <SUPABASE_URL>/storage/v1/object/public/product-images/<storage_path> (products.html 의 photoUrl 과 같은 모양 · 조각마다 encodeURIComponent)
+     · from_parent(세트가 낱개 사진을 빌림 · 판정 194) → .parent + 모서리 점 + title "Single's photo"
+     · ⚠️⚠️ 실패해도 화면은 산다 — rpc 오류 · window.sb 없음 · 권한 없음 → console.warn 한 줄 · 칸은 빈 칸 · throw 하지 않는다.
+       못 읽은 SKU 는 캐시에도 .done 에도 안 남겨 다음 imsThumbFill 이 다시 묻는다(일시 오류가 페이지 내내 굳지 않게).
+     · 크게 보기 — 자기 덮개 #imsThumbZoom(화면의 #modal · .pomodal 은 건드리지 않는다 · z-index 9000) · 배경 클릭 · Esc · Open original(새 탭)
+       이벤트는 첫 imsThumbFill 때 document 에 한 번(capture) — 썸네일 클릭은 줄의 클릭 처리기로 안 번지고 · Esc 는 열린 고치기 대화상자까지 닫지 않는다 */
+  const THUMB_BUCKET = "product-images";
+  const THUMB_CHUNK = 500;
+  const thumbCache = new Map();    // sku → { url, from_parent } | null(사진 없음 · 없는 SKU)
+  const thumbPending = new Map();  // sku → Promise(읽는 중)
+  let thumbWired = false;
+
+  const thumbUrl = (path) => {
+    const cfg = window.IMS_CONFIG || {};
+    return `${cfg.SUPABASE_URL || ""}/storage/v1/object/public/${THUMB_BUCKET}/${String(path).split("/").map(encodeURIComponent).join("/")}`;
+  };
+
+  const imsThumb = (sku) => {
+    const s = sku === null || sku === undefined ? "" : String(sku);
+    if (!s) return '<span class="ims-thumb"></span>';
+    return `<span class="ims-thumb" data-thumb="${esc(s).replace(/"/g, "&quot;")}"></span>`;
+  };
+
+  async function thumbQuery(part) {
+    try {
+      const sb = window.sb;
+      if (!sb || typeof sb.rpc !== "function") throw new Error("window.sb not ready");
+      const { data, error } = await sb.rpc("product_image_primary", { p_skus: part });
+      if (error) throw error;
+      const got = new Map((data || []).map((r) => [r.sku, r]));
+      for (const s of part) {
+        const r = got.get(s);
+        thumbCache.set(s, r && r.storage_path ? { url: thumbUrl(r.storage_path), from_parent: !!r.from_parent } : null);
+      }
+    } catch (e) {
+      console.warn("imsThumb: product_image_primary failed —", (e && e.message) || e);
+    } finally {
+      for (const s of part) thumbPending.delete(s);
+    }
+  }
+
+  function thumbPaint(cell) {
+    if (cell.classList.contains("done")) return;
+    const sku = cell.getAttribute("data-thumb");
+    if (!thumbCache.has(sku)) return;            // 못 읽었다 — 빈 칸 그대로 · 다음 fill 이 다시 묻는다
+    const hit = thumbCache.get(sku);
+    cell.classList.add("done");
+    if (!hit) { cell.classList.add("none"); cell.innerHTML = ""; return; }
+    cell.innerHTML = `<img loading="lazy" alt="" src="${esc(hit.url)}">` + (hit.from_parent ? '<i class="p"></i>' : "");
+    if (hit.from_parent) { cell.classList.add("parent"); cell.title = "Single's photo"; }
+  }
+
+  function thumbZoomOpen(src) {
+    let z = document.getElementById("imsThumbZoom");
+    if (!z) {
+      z = document.createElement("div");
+      z.id = "imsThumbZoom";
+      z.innerHTML = '<div class="box"><img alt=""><a class="orig" target="_blank" rel="noopener">Open original</a></div>';
+      document.body.appendChild(z);
+    }
+    z.querySelector("img").setAttribute("src", src);
+    z.querySelector("a.orig").setAttribute("href", src);
+    z.classList.add("open");
+  }
+  function thumbZoomClose() {
+    const z = document.getElementById("imsThumbZoom");
+    if (z) z.classList.remove("open");
+  }
+  function thumbWire() {
+    if (thumbWired) return;
+    thumbWired = true;
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!t || typeof t.closest !== "function") return;
+      const img = t.closest(".ims-thumb img");
+      if (img) { e.preventDefault(); e.stopPropagation(); thumbZoomOpen(img.getAttribute("src")); return; }
+      if (t.closest("#imsThumbZoom")) {
+        e.stopPropagation();
+        if (!t.closest("#imsThumbZoom img, #imsThumbZoom a")) thumbZoomClose();
+      }
+    }, true);
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const z = document.getElementById("imsThumbZoom");
+      if (z && z.classList.contains("open")) { e.preventDefault(); e.stopImmediatePropagation(); thumbZoomClose(); }
+    }, true);
+  }
+
+  async function imsThumbFill(root) {
+    try {
+      const base = typeof root === "string" ? document.querySelector(root) : (root || document);
+      if (!base || typeof base.querySelectorAll !== "function") return;
+      const cells = Array.from(base.querySelectorAll(".ims-thumb[data-thumb]:not(.done)"));
+      if (!cells.length) return;
+      thumbWire();
+      const skus = [...new Set(cells.map((c) => c.getAttribute("data-thumb")).filter(Boolean))];
+      const fresh = skus.filter((s) => !thumbCache.has(s) && !thumbPending.has(s));
+      for (let i = 0; i < fresh.length; i += THUMB_CHUNK) {
+        const part = fresh.slice(i, i + THUMB_CHUNK);
+        const p = thumbQuery(part);              // 거절하지 않는다(안에서 warn)
+        for (const s of part) thumbPending.set(s, p);
+      }
+      await Promise.all([...new Set(skus.map((s) => thumbPending.get(s)).filter(Boolean))]);
+      for (const c of cells) thumbPaint(c);
+    } catch (e) {
+      console.warn("imsThumbFill:", (e && e.message) || e);
+    }
+  }
+
   window.esc = esc;
   window.dim = dim;
   window.yn = yn;
@@ -185,4 +302,6 @@
   window.imsQ = imsQ;
   window.imsParam = imsParam;
   window.imsHeader = imsHeader;
+  window.imsThumb = imsThumb;
+  window.imsThumbFill = imsThumbFill;
 })();
