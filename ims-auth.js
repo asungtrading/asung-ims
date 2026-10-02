@@ -91,6 +91,7 @@
     ["Action Centre","manager-list.html","sales","ims",false,"action"],
     // Settings (판정 150 · 151 · 166)
     ["Settings","settings.html","master","ims",false,"settings"],
+    ["Surcharge Groups","surcharge-groups.html","master","ims",false,"settings"],   // surcharge-4b(판정 231) — 보기는 master · 고치기는 admin(창구)
     ["Staff","staff.html","staff","ims",false,"settings"],
     // ⬜ ["Discount Rules","…","…","ims",false,"settings"],   — 할인 규칙 화면이 서면 (판정 150 · 162)
     ["System Check","system-check.html",null,"ims",false,"settings"],
