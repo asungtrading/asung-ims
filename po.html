@@ -175,8 +175,11 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-01 · po thumb v1";   // 대화 Claude — 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-01 · po thumb v2";   // 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
+/* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
+const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
    회사의 「오늘」은 토론토다(so-module §13-h · 서버 ims_today()) — 에드먼튼 PC 에서도 토론토 날짜를 쓴다.
@@ -716,7 +719,7 @@ async function drawAlHits(h, term){
   box.innerHTML = rows.map(r => {
     const f = r.fixed_cost, l = r.cost;
     const differ = f !== null && l !== null && Number(f) !== Number(l);
-    return `<div class="prow" data-sku="${esc(r.product.sku)}" data-name="${esc(r.product.name || "")}">
+    return `<div class="prow" data-sku="${esc(r.product.sku)}" data-name="${esc(r.product.name || "")}"><div class="lnth">${thumbOf(r.product.sku)}<div>
       <span class="mono">${esc(r.product.sku)}</span>
       ${r.supplier_sku ? `<span class="dim" style="margin-left:6px;font-size:11.5px">${esc(r.supplier_sku)}</span>` : ""}
       <div class="dim" style="font-size:11.5px">${esc(r.product.name || "")}</div>
@@ -725,7 +728,7 @@ async function drawAlHits(h, term){
         <span class="dim">·</span>
         <span class="${differ ? "neutral" : "dim"}">latest ${l === null ? "—" : money(l)}</span>
         ${r.last_supplied ? `<span class="dim"> (${esc(r.last_supplied)})</span>` : ""}
-      </div></div>`;
+      </div></div></div></div>`;
   }).join("") + (rows.length >= 300
     ? '<div class="msg dim">Showing the first matches — type more to narrow.</div>' : "");
 
@@ -736,6 +739,7 @@ async function drawAlHits(h, term){
       drawChosen();
     };
   });
+  thumbFill(box);   // 판정 212 — 후보 SKU 를 한 번에(같은 SKU 는 다시 안 묻는다 · 사진 클릭은 크게 보기만 · 담기로 안 번진다)
 }
 
 /* 고른 것과 수량. ⚠️ 여기서 지우는 것은 담기 전이라 아무 일도 아니다 —
@@ -1186,7 +1190,6 @@ async function loadDetail(id){
 
   /* 라인 — ⭐ 표 안에서 바로 고친다(수량 · 단가)
      ⭐ 판정 208 — SKU 왼쪽에 대표 사진(공통 imsThumb) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
-  const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
   const lines = (data.lines || []).map(l => {
     const over = Number(l.remaining_qty) < 0;
     const unit = l.entered_unit_sku
@@ -1362,7 +1365,7 @@ async function loadDetail(id){
   `;
 
   /* 사진 채우기 — 이 상세의 SKU 를 한 번에 읽는다(판정 208 · 기다리지 않는다) */
-  if(typeof window.imsThumbFill === "function") window.imsThumbFill(box);
+  thumbFill(box);
 
   // 갈라진 문서로 이동 — 모체 번호를 검색칸에 넣는다
   document.querySelectorAll("[data-goto]").forEach(a => {
