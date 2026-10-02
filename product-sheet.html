@@ -46,6 +46,22 @@
   .res .blk li{color:var(--bad)}
   .res .wrn li{color:var(--warn)}
   .res .sk{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  /* 가격식 줄 — price-2 · 판정 215 ~ 223 */
+  #fbar{border-top:1px solid var(--line);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px;background:#fbfcfe}
+  #fbar[hidden]{display:none}
+  #fbar .ttl{font-weight:700;color:#a16207;letter-spacing:.03em;text-transform:uppercase;font-size:11.5px}
+  #fbar select,#fbar input.fn{border:1px solid var(--line);border-radius:7px;padding:4px 6px;font:inherit;font-size:12.5px}
+  #fbar input.fn{width:66px;text-align:right;font-family:var(--mono)}
+  #fbar .ends{display:flex;gap:3px;align-items:center}
+  #fbar .ends label{display:flex;align-items:center;gap:1px;font-family:var(--mono);font-size:11.5px;cursor:pointer}
+  #fbar .expr{font-family:var(--mono);color:var(--muted);font-size:11.5px}
+  #fbar .st{font-size:11.5px} #fbar .st.dirty{color:var(--warn);font-weight:600}
+  #fbar .pobtn{padding:4px 10px}
+  table.sh td.sku input.pk{margin:0 6px 0 0;vertical-align:middle}
+  table.sh th.sku input.pk{margin:0 6px 0 0;vertical-align:middle}
+  table.sh td.fres{font-size:11.5px;color:var(--muted);white-space:nowrap}
+  table.sh td.fres .big{color:var(--warn);font-weight:700}
+  table.sh td.fres .no{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -82,6 +98,7 @@
       <button id="discardBtn" disabled>Discard</button>
       <button class="pobtn go" id="saveBtn" disabled>Save</button>
     </div>
+    <div id="fbar" hidden></div>
     <div class="note" id="hint">Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down. Costs are in the supplier's currency (Cur) — not converted.</div>
     <div class="grid" id="grid"></div>
   </div>
@@ -108,7 +125,14 @@
    ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
    ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
    ───────────────────────────────────────────────────────────── */
-const SH_BUILD = "sheet v1c";
+const SH_BUILD = "sheet v2a";
+/* sheet v2a(2026-10-01 · price-2 · 판정 215 ~ 223 · 묶음 1 ~ 8) — Edit 모드에서 공급처로 걸러 불러오면 표 위에 「Price formula」 줄
+   · 식 = 그 공급처의 저장된 식(기본이 맨 앞) 또는 숫자를 바꾼 「이번만」 식 · 칸 넷(통화 · 운임·기타 · 관세 % · 마진) + 끝자리 체크 열(판정 217)
+   · 줄 고르기 = SKU 칸 앞 체크 · 처음: manual 가격이 있는 줄은 꺼짐 · 세트는 못 고름(판정 220 · 222)
+   · Preview = price_formula_preview 한 번 → 판매가 칸에 새 값(노랑) · Landed · GP 열 · 저장은 Save(product_update price_set + formula)
+   · ⭐ 계산은 서버 한 곳(price_formula_calc) — 화면은 다시 계산하지 않는다 · Preview 뒤 손으로 바꾼 칸은 formula 표시가 빠져 manual 로
+   · admin: Save as new · Update this formula · Make default(price_formula_save 두 번 부르기)
+   · New 모드는 식을 안 쓴다(product_create 에 formula 칸 없음 · 묶음 6) — 만든 뒤 「Open these in Edit」 */
 const MAX_ROWS = 300, MAX_LINES = 1000;
 
 let sb = null, canEdit = false;
@@ -119,6 +143,9 @@ let blocked = new Set();
 let cellMap = new Map();
 let mode = "edit";       // 판정 205 — "edit" | "new"
 let page = 0, total = 0;
+/* 가격식 상태(price-2) */
+let isAdmin = false, fx = {}, curSup = null, formulas = [], fsel = "", fdraft = null, picks = new Set(), onlySkus = null;
+const ENDS = [9, 19, 29, 39, 49, 59, 69, 79, 89, 99];
 /* 열 고르기(판정 206) — 모드마다 따로 · 이 브라우저에 기억(localStorage · 사람마다 다른 화면 취향이라 DB 에 두지 않는다) · SKU 는 늘 보인다 */
 const COLS_KEY = "ims.sheet.hidden.v1";
 let hidden = { edit:new Set(), new:new Set() };
@@ -151,6 +178,7 @@ function buildCols(){
     { key:"cat", label:"Category", kind:"ref", ref:"cat", edit:true, w:"w-cat" },
     { key:"unit", label:"Unit", kind:"ref", ref:"unit", edit:true, w:"w-num" },
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", edit:true, w:"w-num" })),
+    { key:"fres", label:"Landed · GP", kind:"ro" },
     { key:"supname", label:"Default supplier", kind:"ro" },
     { key:"cur", label:"Cur", kind:"ro" },
     { key:"ssku", label:"Supplier SKU", kind:"text", edit:true, w:"w-ssku", needSup:true },
@@ -219,13 +247,14 @@ async function load(next){
   if(bn) qy = qy.eq("brand_name", bn);
   if(cn) qy = qy.eq("category_name", cn);
   if(q) qy = qy.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
+  if(onlySkus && onlySkus.length) qy = qy.in("sku", onlySkus);   // New 모드 「Open these in Edit」
   const { data, error, count } = await qy.order("sku").range(page * MAX_ROWS, page * MAX_ROWS + MAX_ROWS - 1);
   if(error){ grid.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const ps = data || [];
   const ids = ps.map(x => x.id);
 
   const [pr, sp, bc] = await Promise.all([
-    inChunks(ids, async c => (await sb.from("product_price").select("product_id,tier_id,price").in("product_id", c).eq("is_active", true)).data),
+    inChunks(ids, async c => (await sb.from("product_price").select("product_id,tier_id,price,source").in("product_id", c).eq("is_active", true)).data),
     inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,cost,fixed_cost,currency_id,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),
     inChunks(ids, async c => (await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", c).eq("is_active", true)).data),
   ]);
@@ -250,6 +279,10 @@ async function load(next){
       fam: p.family_id ? (famMap[p.family_id] || "?") : "", parent: p.parent_product_id ? (parMap[p.parent_product_id] || "?") : "" };
   });
   total = count || 0;
+  /* 가격식(price-2) — 공급처로 걸렀을 때만 · 처음 체크: 세트 아님 · manual 가격 없음(판정 220) */
+  curSup = sup || null; picks = new Set();
+  rows.forEach((r, ri) => { r.fml = {}; r.fres = ""; if(!r.p.parent_product_id && !Object.values(r.prices).some(x => x.source === "manual")) picks.add(ri); });
+  if(curSup) await loadFormulas(); else drawFbar();
   const a = page * MAX_ROWS + 1, z = page * MAX_ROWS + rows.length;
   document.getElementById("cnt").textContent = rows.length ? `${a}–${z} of ${total} products` : "0 products";
   document.getElementById("nextBtn").hidden = !(z < total);
@@ -258,6 +291,11 @@ async function load(next){
 
 /* ── 그리기 ── */
 function cellHtml(r, ri, c, ci){
+  if(c.key === "fres") return `<td class="fres" id="fres${ri}">${r.fres || ""}</td>`;
+  if(c.key === "sku" && fOn()){
+    const dis = !!r.p.parent_product_id;
+    return `<td class="sku"><input type="checkbox" class="pk" data-pk="${ri}" ${picks.has(ri) && !dis ? "checked" : ""} ${dis ? 'disabled title="Sets are not priced by a formula"' : ""}>${esc(r.p.sku)}</td>`;
+  }
   const v = origVal(r, c);
   if(c.kind === "ro" || !editableHere(r, c)){
     const txt = c.kind === "bool" ? (v ? "✓" : "—") : esc(v);
@@ -271,7 +309,9 @@ function draw(){
   const grid = document.getElementById("grid");
   if(!rows.length){ cellMap = new Map(); grid.innerHTML = '<div class="msg">No products match.</div>'; refreshCount(); return; }
   const vis = visIdx(cols, "edit");
-  grid.innerHTML = `<table class="sh"><thead><tr>${vis.map(ci => { const c = cols[ci]; return `<th class="${c.kind === "ro" && c.key !== "sku" ? "ro" : ""} ${c.cls || ""}">${esc(c.label)}</th>`; }).join("")}</tr></thead>
+  grid.innerHTML = `<table class="sh"><thead><tr>${vis.map(ci => { const c = cols[ci];
+      const all = c.key === "sku" && fOn() ? `<input type="checkbox" class="pk" id="pkAll" title="Pick all rows for the formula">` : "";
+      return `<th class="${c.kind === "ro" && c.key !== "sku" ? "ro" : ""} ${c.cls || ""}">${all}${esc(c.label)}</th>`; }).join("")}</tr></thead>
     <tbody>${rows.map((r, ri) => `<tr class="${r.p.parent_product_id ? "set" : ""} ${r.p.is_active ? "" : "inact"} ${blocked.has(r.p.sku) ? "blk" : ""}" data-row="${ri}">
       ${vis.map(ci => cellHtml(r, ri, cols[ci], ci)).join("")}</tr>`).join("")}</tbody></table>`;
   cellMap = new Map();
@@ -284,7 +324,18 @@ function draw(){
     }
   });
   grid.querySelectorAll("[data-r]").forEach(markCell);
+  /* 줄 고르기(판정 222) */
+  grid.querySelectorAll("[data-pk]").forEach(cb => { cb.onchange = () => { const i = Number(cb.dataset.pk); if(cb.checked) picks.add(i); else picks.delete(i); syncAll(); fStatus(); }; });
+  const pa = document.getElementById("pkAll");
+  if(pa) pa.onchange = () => { grid.querySelectorAll("[data-pk]:not(:disabled)").forEach(cb => { cb.checked = pa.checked; const i = Number(cb.dataset.pk); if(pa.checked) picks.add(i); else picks.delete(i); }); fStatus(); };
+  syncAll();
   refreshCount();
+}
+function syncAll(){
+  const pa = document.getElementById("pkAll"); if(!pa) return;
+  const els = Array.from(document.querySelectorAll("#grid [data-pk]:not(:disabled)"));
+  pa.checked = els.length > 0 && els.every(x => x.checked);
+  pa.indeterminate = !pa.checked && els.some(x => x.checked);
 }
 function cellEl(ri, ci){ return cellMap.get(ri + "|" + ci) || null; }
 function moveTo(ri, ci){ const el = cellEl(ri, ci); if(el){ el.focus(); if(el.select) el.select(); } }
@@ -339,7 +390,10 @@ function buildChanges(){
           if(c.tier){
             const x = r.prices[c.tier];
             if(x && v === null) out.push({ op:"price_off", sku, tier_id:c.tier, old:String(x.price) });
-            else if(v !== null){ const l = { op:"price_set", sku, tier_id:c.tier, price:v }; if(x) l.old = String(x.price); out.push(l); }
+            else if(v !== null){ const l = { op:"price_set", sku, tier_id:c.tier, price:v }; if(x) l.old = String(x.price);
+              const fm = r.fml && r.fml[c.tier];   // price-2 — Preview 가 넣은 값 그대로면 식 표시(서버가 다시 계산해 같을 때만 formula)
+              if(fm && Number(v) === Number(fm.price)) l.formula = fm.formula;
+              out.push(l); }
           }
       }
     });
@@ -489,6 +543,7 @@ function setMode(m){
     ? "Type or paste new products, one per row — paste from Excel into the first SKU cell. Brand, category, unit and supplier by name. Sets: pack factors like 6, 12. Up to 200 rows."
     : "Pick filters and press Load. Click a cell to change it · paste a block copied from Excel into the first cell · Enter goes down.";
   if(m === "new") drawNew(); else if(rows.length) draw(); else { document.getElementById("grid").innerHTML = ""; cellMap = new Map(); refreshCount(); }
+  drawFbar();
 }
 function newCellEl(ri, ci){ return cellMap.get("n" + ri + "|" + ci) || null; }
 function snapNew(){
@@ -569,14 +624,182 @@ async function saveNew(){
       sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
     };
   });
+  const supCount = {}; filled.forEach(r => { const t = (r.sup || "").trim(); if(t) supCount[t] = (supCount[t] || 0) + 1; });
+  const topSup = Object.keys(supCount).sort((a, b) => supCount[b] - supCount[a])[0] || "";
   await runWindow("product_create", { p_items: items }, async (d) => {
     const made = (d.items || []).map(x => x.sku);
     newRows = Array.from({ length: 20 }, () => ({})); blocked = new Set();
     drawNew();
-    document.getElementById("hint").innerHTML = `Created ${made.length} product(s): ${made.slice(0, 12).map(s => `<a class="lnk mono" href="products.html?sku=${encodeURIComponent(s)}">${esc(s)}</a>`).join(", ")}${made.length > 12 ? " …" : ""}`;
+    document.getElementById("hint").innerHTML = `Created ${made.length} product(s): ${made.slice(0, 12).map(s => `<a class="lnk mono" href="products.html?sku=${encodeURIComponent(s)}">${esc(s)}</a>`).join(", ")}${made.length > 12 ? " …" : ""}
+      ${made.length ? ` · <button class="pobtn" id="openMade">Open these in Edit${topSup ? " — " + esc(topSup) : ""}</button>` : ""}`;
+    const om = document.getElementById("openMade");
+    if(om) om.onclick = () => openInEdit(made, topSup);
   });
 }
 
+
+/* ═══ 가격식(price-2 · 판정 215 ~ 223) ═══════════════════════════════════════════════════════
+   ⭐ 계산 · 끝자리 올림 · 티어는 서버 한 곳(price_formula_calc · preview) — 화면은 보여 주고 고르기만 한다 */
+const fOn = () => mode === "edit" && !!curSup;
+const curId = code => Object.keys(refs.cur).find(id => refs.cur[id] === code) || null;
+async function loadFormulas(){
+  formulas = [];
+  try {
+    const { data, error } = await sb.from("price_formula").select("id,name,is_default,is_active,currency_id,freight,duty_pct,margin,endings")
+      .eq("supplier_id", curSup.id).eq("is_active", true).order("is_default", { ascending:false }).order("name");
+    if(error) throw error;
+    formulas = data || [];
+  } catch(e){ formulas = []; console.warn("price formulas:", e.message || e); }
+  const keep = formulas.find(f => f.id === fsel);
+  pickFormula(keep ? keep.id : (formulas[0] ? formulas[0].id : ""));
+}
+function pickFormula(id){
+  fsel = id;
+  const f = formulas.find(x => x.id === id);
+  fdraft = f ? { currency_id: f.currency_id, freight: String(f.freight), duty_pct: String(f.duty_pct), margin: String(f.margin), endings: new Set((f.endings || []).map(Number)) }
+             : { currency_id: curSup.currency_id || curId("CAD"), freight: "1.1", duty_pct: "0", margin: "0.65", endings: new Set([49, 99]) };
+  drawFbar();
+}
+function fDirty(){
+  const f = formulas.find(x => x.id === fsel); if(!f) return true;
+  const same = (a, b) => Number(a) === Number(b);
+  const e1 = [...fdraft.endings].sort((a, b) => a - b).join(","), e0 = [...(f.endings || [])].map(Number).sort((a, b) => a - b).join(",");
+  return !(fdraft.currency_id === f.currency_id && same(fdraft.freight, f.freight) && same(fdraft.duty_pct, f.duty_pct) && same(fdraft.margin, f.margin) && e1 === e0);
+}
+function fBad(){
+  const n = v => /^[0-9]+(\.[0-9]+)?$/.test(String(v).trim());
+  if(!n(fdraft.freight) || Number(fdraft.freight) <= 0) return "Freight · other must be more than 0.";
+  if(!n(fdraft.duty_pct) || Number(fdraft.duty_pct) >= 100) return "Duty % must be 0 or more and under 100.";
+  if(!n(fdraft.margin) || Number(fdraft.margin) <= 0 || Number(fdraft.margin) > 1) return "Margin must be more than 0 and at most 1 (0.65 = 35% margin).";
+  if(!fdraft.endings.size) return "Pick at least one cents ending.";
+  return null;
+}
+/* 창구에 보낼 식 — 저장된 그대로면 {id} · 바꿨으면 통째(「이번만」 · 판정 218 · 알리기 formula_unsaved) */
+function fPayload(){
+  if(fsel && !fDirty()) return { id: fsel };
+  return { supplier_id: curSup.id, currency_id: fdraft.currency_id, freight: fdraft.freight.trim(), duty_pct: fdraft.duty_pct.trim() || "0",
+           margin: fdraft.margin.trim(), endings: [...fdraft.endings].sort((a, b) => a - b) };
+}
+function fExpr(){
+  const code = refs.cur[fdraft.currency_id] || "?", rate = fx[fdraft.currency_id];
+  const d = Number(fdraft.duty_pct) || 0;
+  return `Latest (${esc(code)}) × ${rate == null ? "?" : esc(rate)} × ${esc(fdraft.freight)}${d ? ` × (1 + ${esc(d)}%)` : ""} ÷ ${esc(fdraft.margin)} → ${[...fdraft.endings].sort((a, b) => a - b).map(e => "." + String(e).padStart(2, "0")).join(" ")}`;
+}
+function fStatus(){
+  const el = document.getElementById("fSt"); if(!el) return;
+  const dirty = fsel ? fDirty() : true;
+  el.className = "st" + (dirty ? " dirty" : "");
+  el.textContent = (fsel ? (dirty ? "Changed — one-off (not saved)" : "Saved formula") : "New formula — not saved") + ` · ${picks.size} row${picks.size === 1 ? "" : "s"} picked`;
+  const ex = document.getElementById("fExpr"); if(ex) ex.innerHTML = fExpr();
+}
+function drawFbar(){
+  const bar = document.getElementById("fbar");
+  if(mode !== "edit"){ bar.hidden = true; return; }
+  bar.hidden = false;
+  if(!curSup){ bar.innerHTML = `<span class="ttl">Price formula</span><span class="dim">Filter by a supplier and press Load to use a price formula.</span>`; return; }
+  const cads = [curId("CAD"), curId("USD")].filter(Boolean);
+  bar.innerHTML = `<span class="ttl">Price formula</span>
+    <select id="fSel">${formulas.map(f => `<option value="${esc(f.id)}" ${f.id === fsel ? "selected" : ""}>${f.is_default ? "★ " : ""}${esc(f.name)}</option>`).join("")}
+      <option value="" ${fsel ? "" : "selected"}>— new formula —</option></select>
+    <label>Cur <select id="fCur">${cads.map(id => `<option value="${esc(id)}" ${id === fdraft.currency_id ? "selected" : ""}>${esc(refs.cur[id])}</option>`).join("")}</select></label>
+    <label>Freight · other × <input class="fn" id="fFr" value="${esc(fdraft.freight)}"></label>
+    <label>Duty % <input class="fn" id="fDu" value="${esc(fdraft.duty_pct)}"></label>
+    <label>Margin ÷ <input class="fn" id="fMg" value="${esc(fdraft.margin)}"></label>
+    <span class="ends">${ENDS.map(e => `<label><input type="checkbox" data-end="${e}" ${fdraft.endings.has(e) ? "checked" : ""}>.${String(e).padStart(2, "0")}</label>`).join("")}
+      <button class="pobtn" data-ep="49,99">.49 · .99</button><button class="pobtn" data-ep="all">.x9 all</button></span>
+    <button class="pobtn go" id="fPrev">Preview</button>
+    ${isAdmin ? `<button class="pobtn" id="fNew">Save as new</button>
+      <button class="pobtn" id="fUpd" ${fsel ? "" : "disabled"}>Update this formula</button>
+      <button class="pobtn" id="fDef" ${fsel && !(formulas.find(f => f.id === fsel) || {}).is_default ? "" : "disabled"}>Make default</button>` : ""}
+    <span class="st" id="fSt"></span>
+    <div style="flex-basis:100%"></div>
+    <span class="expr" id="fExpr"></span>
+    <span class="dim" style="font-size:11.5px">Prices come from the server — Preview fills the sale price cells (yellow); change any cell by hand before Save. ${formulas.length ? "" : "No saved formula for this supplier yet."}</span>`;
+  const $ = id => document.getElementById(id);
+  $("fSel").onchange = e => pickFormula(e.target.value);
+  $("fCur").onchange = e => { fdraft.currency_id = e.target.value; fStatus(); };
+  [["fFr","freight"],["fDu","duty_pct"],["fMg","margin"]].forEach(([id, k]) => { $(id).oninput = e => { fdraft[k] = e.target.value; fStatus(); }; });
+  bar.querySelectorAll("[data-end]").forEach(cb => { cb.onchange = () => { const e = Number(cb.dataset.end); if(cb.checked) fdraft.endings.add(e); else fdraft.endings.delete(e); fStatus(); }; });
+  bar.querySelectorAll("[data-ep]").forEach(b => { b.onclick = () => { fdraft.endings = new Set(b.dataset.ep === "all" ? ENDS : [49, 99]); drawFbar(); }; });
+  $("fPrev").onclick = runPreview;
+  if(isAdmin){ $("fNew").onclick = saveAsNew; $("fUpd").onclick = updateFormula; $("fDef").onclick = makeDefault; }
+  fStatus();
+}
+async function runPreview(){
+  const bad = fBad(); if(bad){ alert(bad); return; }
+  const tierCols = cols.map((c, ci) => ({ c, ci })).filter(x => x.c.tier);
+  if(tierCols.some(x => hidden.edit.has(x.c.key)) || hidden.edit.has("fres")){ alert("Show the sale price columns and Landed · GP first (Columns → Prices or All)."); return; }
+  const idx = [...picks].filter(i => rows[i] && !rows[i].p.parent_product_id).sort((a, b) => a - b);
+  if(!idx.length){ alert("Pick at least one row (tick the box before the SKU)."); return; }
+  const btn = document.getElementById("fPrev"); btn.disabled = true; btn.textContent = "Previewing…";
+  const payload = fPayload();
+  const { data, error } = await sb.rpc("price_formula_preview", { p_formula: payload, p_skus: idx.map(i => rows[i].p.sku) });
+  btn.disabled = false; btn.textContent = "Preview";
+  if(error){ alert(error.message); return; }
+  if((data.blocks || []).length){ alert(data.blocks.map(b => b.message).join("\n")); return; }
+  const flagTxt = { unknown_sku:"not found", set_skipped:"set — skipped", no_supplier_link:"no line for this supplier", no_cost:"no Latest cost",
+                    currency_differs:"line currency differs", manual_price:"had a hand-set price", big_change:"moves more than 10%" };
+  let filled = 0, skipped = 0;
+  (data.rows || []).forEach((x, k) => {
+    const ri = idx[k], r = rows[ri]; if(!r || r.p.sku !== x.sku) return;
+    const fl = x.flags || [];
+    const stop = fl.some(f => ["unknown_sku","set_skipped","no_supplier_link","no_cost"].includes(f)) || !x.calc || (x.calc.blocks || []).length;
+    if(stop){
+      skipped++;
+      r.fres = `<span class="no">${esc(fl.map(f => flagTxt[f] || f).join(" · ") || ((x.calc && x.calc.blocks[0]) ? x.calc.blocks[0].message : "skipped"))}</span>`;
+    } else {
+      filled++;
+      (x.calc.tiers || []).forEach(t => {
+        const tc = tierCols.find(y => y.c.tier === t.tier_id); if(!tc) return;
+        const el = cellEl(ri, tc.ci); if(!el) return;
+        el.value = String(t.price); r.fml[t.tier_id] = { price: String(t.price), formula: payload }; markCell(el);
+      });
+      const extra = fl.filter(f => f === "big_change" || f === "currency_differs" || f === "manual_price");
+      r.fres = `${esc(Number(x.calc.landed).toFixed(2))} · GP ${esc(Number(x.calc.gp_pct).toFixed(1))}%${extra.length ? ` · <span class="${fl.includes("big_change") ? "big" : ""}">${esc(extra.map(f => flagTxt[f]).join(" · "))}</span>` : ""}`;
+    }
+    const td = document.getElementById("fres" + ri); if(td) td.innerHTML = r.fres;
+  });
+  refreshCount();
+  document.getElementById("hint").textContent = `Preview: ${filled} row(s) filled${skipped ? ` · ${skipped} skipped (see Landed · GP)` : ""}. Check the yellow cells, change any by hand, then Save.`;
+}
+/* admin — 공급처 식 저장(price_formula_save · 두 번 부르기 · 막기 · 알리기는 같은 대화상자) */
+async function saveAsNew(){
+  const bad = fBad(); if(bad){ alert(bad); return; }
+  const name = (prompt(`Name for this ${curSup.name} formula (e.g. Hair 35%):`) || "").trim(); if(!name) return;
+  const p = fPayload(); const full = p.id ? Object.assign({}, fdraft, { endings:[...fdraft.endings].sort((a, b) => a - b) }) : p;
+  await runWindow("price_formula_save", { p_changes: [{ op:"create", supplier_id: curSup.id, name, currency_id: full.currency_id, freight: full.freight, duty_pct: full.duty_pct || "0", margin: full.margin, endings: full.endings }] },
+    async () => { await loadFormulasThen(f => f.name.toLowerCase() === name.toLowerCase()); document.getElementById("hint").textContent = `Saved formula "${name}".`; });
+}
+async function updateFormula(){
+  const f = formulas.find(x => x.id === fsel); if(!f) return;
+  const bad = fBad(); if(bad){ alert(bad); return; }
+  const set = {}, old = {};
+  if(fdraft.currency_id !== f.currency_id){ set.currency_id = fdraft.currency_id; old.currency_id = f.currency_id; }
+  [["freight","freight"],["duty_pct","duty_pct"],["margin","margin"]].forEach(([k]) => { if(Number(fdraft[k]) !== Number(f[k])){ set[k] = fdraft[k].trim(); old[k] = String(f[k]); } });
+  const e1 = [...fdraft.endings].sort((a, b) => a - b), e0 = [...(f.endings || [])].map(Number).sort((a, b) => a - b);
+  if(e1.join(",") !== e0.join(",")){ set.endings = e1; old.endings = e0; }
+  if(!Object.keys(set).length){ alert("Nothing changed in this formula."); return; }
+  await runWindow("price_formula_save", { p_changes: [{ op:"update", id: f.id, set, old }] },
+    async () => { await loadFormulasThen(x => x.id === f.id); document.getElementById("hint").textContent = `Updated formula "${f.name}".`; });
+}
+async function makeDefault(){
+  const f = formulas.find(x => x.id === fsel); if(!f) return;
+  await runWindow("price_formula_save", { p_changes: [{ op:"default", id: f.id }] },
+    async () => { await loadFormulasThen(x => x.id === f.id); document.getElementById("hint").textContent = `"${f.name}" is now the default for ${curSup.name}.`; });
+}
+async function loadFormulasThen(pick){
+  await loadFormulas();
+  const hit = formulas.find(pick); if(hit) pickFormula(hit.id);
+}
+/* New 모드에서 방금 만든 SKU 들을 Edit 모드로(묶음 6) */
+function openInEdit(skus, supName){
+  setMode("edit");
+  ["q","fBrand","fCat"].forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("fSup").value = supName || "";
+  document.getElementById("fKind").value = "single";
+  onlySkus = skus.slice();
+  load(false).then(() => { document.getElementById("hint").textContent = `Showing the ${skus.length} product(s) just created — press Load to go back to normal filters.`; });
+}
 
 /* ── 열 고르기(판정 206) — 묶음 단추 + 체크 ── */
 const PRESETS = {
@@ -614,6 +837,7 @@ function openCols(){
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   canEdit = imsAuth.canWrite("master");
+  isAdmin = me && me.role === "admin";
   imsHeader(me);
   document.getElementById("buildTag").textContent = SH_BUILD;
   if(!canEdit) document.getElementById("hint").textContent = "Read only — your account cannot change master data.";
@@ -637,8 +861,10 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   const dl = (id, list) => { document.getElementById(id).innerHTML = list.map(x => `<option value="${esc(x.name)}">`).join(""); };
   dl("brandList", refs.brands); dl("catList", refs.cats); dl("unitList", refs.units); dl("supList", refs.suppliers);
   buildCols(); buildNewCols();
+  try { const { data } = await sb.from("price_fx").select("currency_id,rate"); (data || []).forEach(x => { fx[x.currency_id] = x.rate; }); } catch(e) {}
+  drawFbar();
 
-  document.getElementById("loadBtn").onclick = () => load(false);
+  document.getElementById("loadBtn").onclick = () => { onlySkus = null; load(false); };
   document.getElementById("nextBtn").onclick = () => load(true);
   document.getElementById("q").addEventListener("keydown", e => { if(e.key === "Enter") load(false); });
   document.getElementById("colsBtn").onclick = openCols;
