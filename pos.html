@@ -35,6 +35,14 @@
   .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
   .done{padding:22px 16px;text-align:center}
   tr.parked{cursor:pointer} tr.parked:hover td{background:#fafbfd}
+  /* 사진 — 줄 · 찾기 목록은 40px(ims-ui.css .ims-thumb) · 오른쪽 위는 크게 */
+  .lnth{display:flex;gap:8px;align-items:flex-start}
+  #hero{padding:16px 16px 0}
+  #hero .ims-thumb{width:100%;height:260px;flex:none;border-radius:12px}
+  #hero .hcap{margin-top:8px;font-size:12.5px}
+  #hero .hnone{height:120px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12.5px;
+    border:1px dashed var(--line);border-radius:12px}
+  td.itm{cursor:pointer}
 </style>
 </head>
 <body>
@@ -75,6 +83,7 @@
   </div>
 
   <div class="card" id="side">
+    <div id="hero"><div class="hnone">Scan an item to see its photo.</div></div>
     <div class="tot"><div class="dim" style="font-size:12px">TOTAL</div><div class="big" id="bigTot">0.00</div><div id="totRows"></div></div>
     <div id="sideActs"></div>
   </div>
@@ -97,8 +106,21 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-09-25 · pos v1";
+const POS_BUILD = "2026-10-01 · pos v1.1";   // 대화 Claude — 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
+/* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
+   ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
+const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
+let heroSku = null, lastPid = null;
+function drawHero(sku, name){
+  const box = document.getElementById("hero"); if(!box) return;
+  heroSku = sku || null;
+  box.innerHTML = sku
+    ? `${thumbOf(sku)}<div class="hcap"><span class="mono">${esc(sku)}</span><div class="dim">${esc(name || "")}</div></div>`
+    : '<div class="hnone">Scan an item to see its photo.</div>';
+  thumbFill(box);
+}
 function torontoToday() {
   const p = {};
   new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
@@ -190,6 +212,7 @@ async function onScan(){
   await addOne(pid);
 }
 async function addOne(pid){
+  lastPid = pid;   // 오른쪽 위 사진 — 방금 담은 상품
   const { data, error } = await sb.rpc("so_line_add", { p_so_id: curId, p_product_id: pid, p_qty: 1 });
   if(error){ alert(error.message); focusScan(); return; }
   if(data && data.action === "ask"){ alert("This SKU is already on the sale at another price — change that line's quantity instead."); }
@@ -211,8 +234,9 @@ function openFind(prefill){
     const { data, error } = await sb.from("product").select("id,sku,name").eq("is_active", true).is("parent_product_id", null)
       .or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
     if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-    box.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${p.id}"><span class="mono">${esc(p.sku)}</span><div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div>`).join("") : '<div class="msg">No active product matches.</div>';
+    box.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${p.id}"><div class="lnth">${thumbOf(p.sku)}<div><span class="mono">${esc(p.sku)}</span><div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div></div></div>`).join("") : '<div class="msg">No active product matches.</div>';
     box.querySelectorAll("[data-pid]").forEach(el => { el.onclick = async () => { modalClose(); await addOne(el.dataset.pid); }; });
+    thumbFill(box);   // 판정 213 모양 — 사진 클릭은 크게 보기만(담기로 안 번진다)
   };
   imsQ("#fdQ", draw);
   if(prefill) draw(prefill);
@@ -341,6 +365,7 @@ function clearSale(){
   document.getElementById("totRows").innerHTML = "";
   document.getElementById("sideActs").innerHTML = "";
   document.getElementById("scanIn").disabled = true; document.getElementById("findBtn").disabled = true;
+  lastPid = null; drawHero(null);
 }
 async function openSale(id){
   curId = id;
@@ -371,8 +396,8 @@ async function openSale(id){
   const ls = data.lines || [];
   document.getElementById("lines").innerHTML = ls.length ? `<table><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th>${draft ? "<th></th>" : ""}</tr></thead>
     <tbody>${ls.slice().reverse().map(l => `<tr>
-      <td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
-        ${Number(l.discount_pct) ? `<div class="dim" style="font-size:11px">list ${plain(l.list_price)} · −${esc(Number(l.discount_pct))}%</div>` : ""}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}</td>
+      <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
+        ${Number(l.discount_pct) ? `<div class="dim" style="font-size:11px">list ${plain(l.list_price)} · −${esc(Number(l.discount_pct))}%</div>` : ""}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}</div></div></td>
       <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <b class="mono">${qty(l.qty_ordered)}</b> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
       <td class="num">${money(l.unit_price)}</td><td class="num">${money(l.total)}</td>
       ${draft ? `<td><button class="xbtn" data-rm="${l.id}" title="Remove">&#10005;</button></td>` : ""}
@@ -380,6 +405,14 @@ async function openSale(id){
   document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1); });
   document.querySelectorAll("[data-dec]").forEach(b => { b.onclick = () => setQty(b.dataset.dec, Number(b.dataset.q) - 1); });
   document.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => removeLine(b.dataset.rm); });
+  /* 사진 — 줄 칸 채우기 · 오른쪽 위 = 방금 담은 상품 → 없으면 지금 보이던 것 → 없으면 맨 위(가장 나중) 줄 */
+  thumbFill(document.getElementById("lines"));
+  document.querySelectorAll("td.itm").forEach(td => { td.onclick = (ev) => { if(ev.target.closest(".ims-thumb img")) return; drawHero(td.dataset.hsku, td.dataset.hname); }; });
+  { const byPid = lastPid && ls.find(l => l.product_id === lastPid);
+    const keep = !byPid && heroSku && ls.find(l => l.sku === heroSku);
+    const pick = byPid || keep || ls[ls.length - 1] || null;
+    lastPid = null;
+    if(pick) drawHero(pick.sku, pick.product_name); else drawHero(null); }
 
   /* 오른쪽 — 금액(DB) · 단추 */
   document.getElementById("bigTot").textContent = plain(t.order_total_with_tax);
