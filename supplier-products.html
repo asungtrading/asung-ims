@@ -13,20 +13,41 @@
   .list .row.cur{color:#3b5bdb;font-weight:600}
   .bar input[type=search]{width:200px}
   thead th{position:sticky;top:0}
+  /* 넓은 목록 — 이 화면 몫만(공통 #wide · .wfilt 는 ims-ui.css · 판정 209) */
+  #wide td.nm1{font-weight:600}
+  #wide tr.off td{color:var(--muted)}
+  .bar .navb{display:flex;gap:6px}
 </style>
 </head>
 <body>
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search supplier">
+      <label id="wallBox" hidden style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wall"> Show all suppliers</label>
+      <span class="sp"></span>
+      <span class="dim" id="wnote" style="font-size:12px"></span>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
     <div class="top">
       <input type="search" id="sq" placeholder="Search supplier">
       <div class="opts" id="opts" hidden>
@@ -58,8 +79,11 @@
    ⚠️ §3-f — 읽는 쪽이 is_active 를 건다. 줄도 공급처도 살아 있는 것만 센다.
    ⚠️ PostgREST 1,000행 캡 — 제품 쪽도 .range() 로 나눠 읽는다(한 공급처에 수백 줄이 붙는다).
    ⭐ 단가가 둘 다 없는 줄(전체 1,227)이 공급처별로 몇인지 보인다 — 채울 자리를 찾는 재료다.
+   ⭐ spp v2a(2026-10-01 · 판정 209): 처음은 공급처 넓은 목록(#wide) · 고르면 좁은 목록 + 그 공급처의 제품 · ☰ List · ‹ All suppliers
+      판정 210: Product Sheet 가 서면 이 화면은 메뉴에서 빠진다(그때까지 쓰는 판)
    ───────────────────────────────────────────────────────────── */
 
+const SPP_BUILD = "spp v2a";
 let sb=null, isAdmin=false, showAll=false;
 let sq="", curSup=null, curName="";
 let pq="", onlyDefault=false, noPrice=false;
@@ -74,15 +98,88 @@ function clearDetail(){
 }
 
 
-/* ── 공급처 목록 ──────────────────────────────────────── */
-async function loadSuppliers(){
-  let qry = sb.from("supplier").select("id,name", { count:"exact" });
-  // ⭐ 매니저는 정돈된 목록만 본다 (suppliers.html 과 같은 규칙)
+/* ── 두 모드(판정 209) ───────────────────────────────── */
+function syncCtl(){
+  document.getElementById("sq").value = sq; document.getElementById("wq").value = sq;
+  document.getElementById("showAll").checked = showAll; document.getElementById("wall").checked = showAll;
+}
+function showWide(){
+  clearDetail(); syncCtl();
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  loadWide();
+}
+function openSupplier(id, name){
+  curSup = id; curName = name;
+  pp.reset(); pq = ""; onlyDefault = false; noPrice = false;
+  syncCtl();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  loadSuppliers(); loadProducts();
+}
+/* 공급처 질의 한 곳 — 넓은 목록 · 좁은 목록이 같은 필터 · 같은 쪽 sp(100) */
+function supQuery(){
+  let qry = sb.from("supplier").select("id,name,currency_id,is_active", { count:"exact" });
   if(!isAdmin || !showAll){
     qry = qry.eq("is_active", true).eq("is_purchasable", true).eq("is_discontinued", false);
   }
   if(sq) qry = qry.ilike("name", `%${sq}%`);
-  const { data, error } = await sp.run(qry.order("name"));
+  return qry.order("name");
+}
+/* 공급처별 수 — 켜진 연결 줄을 한 번 다 읽어 센다(12,721 · 1,000 씩 · 페이지 동안 기억)
+   ⚠️ 쪽마다 공급처 100 곳에 셈 질의 셋씩(300)을 보내지 않으려고 한 번에 읽는다 */
+let statsP = null, curCode = {};
+function loadStats(){
+  if(statsP) return statsP;
+  statsP = (async () => {
+    const st = {};
+    for(let from = 0; ; from += 1000){
+      const { data, error } = await sb.from("product_supplier").select("supplier_id,is_default,cost,fixed_cost,last_supplied")
+        .eq("is_active", true).order("id").range(from, from + 999);
+      if(error) throw error;
+      (data||[]).forEach(x => {
+        const t = st[x.supplier_id] = st[x.supplier_id] || { n:0, d:0, np:0, last:null };
+        t.n++; if(x.is_default) t.d++;
+        if((x.cost == null && x.fixed_cost == null) || (Number(x.cost) === 0 && Number(x.fixed_cost) === 0)) t.np++;
+        if(x.last_supplied && (!t.last || x.last_supplied > t.last)) t.last = x.last_supplied;
+      });
+      if(!data || data.length < 1000) break;
+    }
+    return st;
+  })();
+  return statsP;
+}
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq;
+  const box = document.getElementById("wrows");
+  const [{ data, error }, st] = await Promise.all([sp.run(supQuery()), loadStats().catch(e => ({ __err: e }))]);
+  if(seq !== wideSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const bad = st && st.__err;
+  document.getElementById("wnote").textContent = bad ? "Counts failed: " + bad.message : "Counts are active links only.";
+  const S = bad ? {} : st;
+  const rows = data || [];
+  box.innerHTML = rows.length ? `<table><thead><tr>
+      <th>Supplier</th><th>Cur</th><th class="num">Products linked</th><th class="num">Default here</th>
+      <th class="num">No price</th><th>Last supplied</th><th>Active</th></tr></thead>
+    <tbody>${rows.map(r => { const t = S[r.id] || { n:0, d:0, np:0, last:null };
+      return `<tr data-id="${r.id}" data-name="${esc(r.name)}" class="${r.is_active ? "" : "off"}">
+      <td class="nm1">${esc(r.name)}</td><td class="mono">${dim(curCode[r.currency_id])}</td>
+      <td class="num">${t.n.toLocaleString()}</td><td class="num">${t.d.toLocaleString()}</td>
+      <td class="num">${t.np ? `<span style="color:var(--warn)">${t.np.toLocaleString()}</span>` : '<span class="dim">0</span>'}</td>
+      <td class="mono">${dim(t.last)}</td><td>${yn(r.is_active)}</td></tr>`; }).join("")}</tbody></table>`
+    : '<div class="msg">No suppliers match.</div>';
+  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openSupplier(tr.dataset.id, tr.dataset.name); });
+  sp.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+
+/* ── 공급처 목록(좁은) ─────────────────────────────────── */
+async function loadSuppliers(){
+  let qry = supQuery();
+  // ⭐ 매니저는 정돈된 목록만 본다 (suppliers.html 과 같은 규칙 · supQuery 안)
+  const { data, error } = await sp.run(qry);
   if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
 
   document.getElementById("rows").innerHTML = data.length
@@ -92,9 +189,7 @@ async function loadSuppliers(){
 
   document.querySelectorAll(".list .row").forEach(el => {
     el.onclick = () => {
-      curSup = el.dataset.id; curName = el.dataset.name;
-      pp.reset(); pq=""; onlyDefault=false; noPrice=false;
-      loadSuppliers(); loadProducts();
+      openSupplier(el.dataset.id, el.dataset.name);
     };
   });
 
@@ -138,6 +233,10 @@ async function loadProducts(){
   box.innerHTML = `
     <div class="card">
       <div class="bar">
+        <span class="navb">
+          <button class="pobtn" id="togList" title="Show or hide the list on the left">&#9776; List</button>
+          <button class="pobtn" id="toWide">&lsaquo; All suppliers</button>
+        </span>
         <span class="nm">${esc(curName)}</span>
         <span class="sp"></span>
         <label><input type="checkbox" id="onlyDefault" ${onlyDefault?"checked":""}> Default only</label>
@@ -159,6 +258,8 @@ async function loadProducts(){
     </div>`;
 
   const $ = id => document.getElementById(id);
+  $("togList").onclick = () => { const lp = $("listPanel"); lp.hidden = !lp.hidden; };
+  $("toWide").onclick = showWide;
   $("onlyDefault").onchange = e => { onlyDefault = e.target.checked; pp.reset(); loadProducts(); };
   $("noPrice").onchange     = e => { noPrice     = e.target.checked; pp.reset(); loadProducts(); };
   if($("prange")) pp.render({ range:"#prange", prev:"#pprev", next:"#pnext" }, loadProducts);
@@ -177,12 +278,25 @@ async function loadProducts(){
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
   imsHeader(me);
-  if(isAdmin) document.getElementById("opts").hidden = false;
+  document.getElementById("buildTag").textContent = SPP_BUILD;
+  if(isAdmin){ document.getElementById("opts").hidden = false; document.getElementById("wallBox").hidden = false; }
 
   document.getElementById("showAll").onchange = e => { showAll = e.target.checked; sp.reset(); clearDetail(); loadSuppliers(); };
   imsQ("#sq", v => { sq = v; sp.reset(); clearDetail(); loadSuppliers(); });
+  document.getElementById("wall").onchange = e => { showAll = e.target.checked; sp.reset(); loadWide(); };
+  imsQ("#wq", v => { sq = v; sp.reset(); loadWide(); });
+  try {
+    const { data } = await sb.from("ref_currency").select("id,code");
+    (data||[]).forEach(c => { curCode[c.id] = c.code; });
+  } catch(e) {}
 
-  await loadSuppliers();
+  /* ?id= 는 바로 그 공급처(좁은 모드) · 그 밖은 넓은 목록 */
+  const wantId = new URLSearchParams(location.search).get("id");
+  if(wantId){
+    const { data } = await sb.from("supplier").select("id,name").eq("id", wantId).maybeSingle();
+    if(data){ openSupplier(data.id, data.name); return; }
+  }
+  showWide();
 });
 </script>
 </body>
