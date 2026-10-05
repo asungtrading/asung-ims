@@ -47,6 +47,7 @@
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
@@ -91,7 +92,9 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-let sb=null, me=null, isAdmin=false, canEditStaff=false;
+const ST_BUILD = "2026-10-05 · st v2";   // 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
+console.log("staff.html build:", ST_BUILD);
+let sb=null, me=null, isAdmin=false, canEditStaff=false, WHS=[];
 let all=[], q="", curId=null, mode="view";   // mode: view | add
 
 const setVal = (id, v) => { const el=document.getElementById(id); if(el) el.value = (v==null ? "" : v); };
@@ -113,6 +116,8 @@ function renderList(){
     const tags = [];
     if(s.role==="admin") tags.push('<span class="tag adm">admin</span>');
     if(!s.is_active) tags.push('<span class="tag off">inactive</span>');
+    if((s.role === "manager" || s.role === "worker") && Array.isArray(s.warehouse_access) && s.warehouse_access.length)
+      tags.push(`<span class="tag">${esc(s.warehouse_access.map(id => (WHS.find(w => w.id === id) || {}).name || "?").join(" · "))}</span>`);
     return `<div class="row ${s.id===curId&&mode==="view"?"cur":""} ${s.is_active?"":"off"}" data-id="${s.id}">
       <span>${esc(s.name)}<span class="sub">${esc(s.email)}</span></span>
       <span style="display:flex;gap:4px">${tags.join("")}</span>
@@ -168,6 +173,7 @@ function renderDetail(){
           ${!isSelf?'<div class="hint">There is no delete — inactive people keep their row (history points at it).</div>':''}</td></tr>
         <tr><td>Note</td><td><textarea id="fNote"></textarea></td></tr>
         <tr><td>Access</td><td><div id="permBox"><span class="dim">Loading…</span></div></td></tr>
+        <tr><td>Location</td><td><div id="locBox"></div></td></tr>
         <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
         <tr><td>Updated</td><td class="mono">${imsTs(s.updated_at)}</td></tr>
       </tbody></table>
@@ -185,6 +191,7 @@ function renderDetail(){
         <tr><td>Active</td><td>${s.is_active?"yes":"no"}</td></tr>
         <tr><td>Note</td><td>${dim(s.note)}</td></tr>
         <tr><td>Access</td><td><span class="mono">${esc(JSON.stringify(s.perms||[]))}</span></td></tr>
+        <tr><td>Location</td><td>${esc(locText(s))}</td></tr>
         <tr><td>Created</td><td class="mono">${imsTs(s.created_at)}</td></tr>
       </tbody></table>
       <div class="actions"><span class="st">${
@@ -212,8 +219,40 @@ function renderDetail(){
     document.getElementById("saveBtn").onclick = () => save(s);
     document.getElementById("revertBtn").onclick = () => renderDetail();
     drawPerms(s);
+    drawLoc(s);
   }
 }
+
+/* ── Location — 창고 접근(ims_staff.warehouse_access · uuid[]) ──────────────
+   ⭐ 판정은 DB 한 곳(ims_can_warehouse · 2026-09-17): admin · supervisor 는 늘 모든 창고 · manager · worker 는 고른 창고만 ·
+      하나도 안 고르면 「모든 창고」(빈 배열 = 전부). 화면은 그 규칙을 그대로 글로 보인다 — 다르게 계산하지 않는다.
+   ⚠️ 자기 행은 못 바꾼다(role · perms 와 같은 까닭 — 스스로를 잠글 수 있다). */
+function locText(s){
+  if(s.role === "admin" || s.role === "supervisor") return "Every warehouse (" + s.role + ")";
+  const ids = Array.isArray(s.warehouse_access) ? s.warehouse_access : [];
+  if(!ids.length) return "Every warehouse (none chosen)";
+  return ids.map(id => (WHS.find(w => w.id === id) || {}).name || id).join(", ");
+}
+function drawLoc(s){
+  const box = document.getElementById("locBox"); if(!box) return;
+  const have = Array.isArray(s.warehouse_access) ? s.warehouse_access : [];
+  const dis = (s.id === me.id) ? " disabled" : "";
+  box.innerHTML = WHS.map(w => `<label class="ck" style="margin-right:14px"><input type="checkbox" data-wh="${esc(w.id)}"${have.includes(w.id) ? " checked" : ""}${dis}> ${esc(w.name)}</label>`).join("")
+    + `<div class="hint" id="locHint"></div>`;
+  const hint = () => {
+    if(!document.getElementById("locHint")) return;   // 다시 그려진 뒤의 옛 칸
+    const role = (document.getElementById("fRole") || {}).value || s.role;
+    const n = box.querySelectorAll("input[data-wh]:checked").length;
+    document.getElementById("locHint").textContent =
+      (role === "admin" || role === "supervisor") ? `A ${role} works in every warehouse — the boxes above apply only if the role is manager or worker.`
+      : n ? "Only the ticked warehouses: their orders, picks, receiving, transfers and bin moves." : "None ticked = every warehouse.";
+    if(s.id === me.id) document.getElementById("locHint").textContent += " You cannot change your own location.";
+  };
+  box.querySelectorAll("input[data-wh]").forEach(c => { c.onchange = hint; });
+  const rs = document.getElementById("fRole"); if(rs) rs.addEventListener("change", hint);
+  hint();
+}
+function readLoc(){ return [...document.querySelectorAll("#locBox input[data-wh]:checked")].map(c => c.dataset.wh); }
 
 /* ── Ranks ────────────────────────────────────────────────
    ⭐ Lowest to highest. The order is what decides who can create whom — the CHECK on the
@@ -344,6 +383,7 @@ async function save(s){
     /* ⚠️ Your own access is not editable either — the same reason as role: you could shut
        yourself out of the screen that undoes it. */
     patch.perms = readPerms();
+    patch.warehouse_access = readLoc();   // st v2 — 빈 배열 = 모든 창고(ims_can_warehouse)
   }
   if(!patch.name){ st.className="st bad"; st.textContent="Name is required."; return; }
 
@@ -451,6 +491,9 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
         and that includes yourself. This only decides whether the form is drawn at all. */
   canEditStaff = imsAuth.canWrite("staff");
   imsHeader(me);   // 이름·역할 + Sign Out
+  document.getElementById("buildTag").textContent = ST_BUILD;
+  const w = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  WHS = (w.data || []).filter(x => x.name !== "IN_TRANSIT");
 
   if(canEditStaff && pickableRoles().length){
     const b = document.getElementById("addBtn"); b.hidden = false;
