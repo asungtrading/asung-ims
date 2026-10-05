@@ -176,6 +176,11 @@
 
     <div class="err" id="err"></div>
 
+
+    <div class="acts">
+      <button class="btn ghost" id="resetBtn">Start over</button>
+      <button class="btn go" id="moveBtn" disabled>Move</button>
+    </div>
     <div class="lcard" id="listCard" style="display:none">
       <div class="lh"><span class="t" id="listTitle">To move</span><span class="sp"></span><button class="mini" id="clearList">Clear list</button></div>
       <div id="listRows"></div>
@@ -183,11 +188,6 @@
     <div class="lcard" id="binCard" style="display:none">
       <div class="lh"><span class="t" id="binTitle">In this bin</span><span class="sp"></span><button class="mini ok" id="addAllBtn">Add all in this bin</button></div>
       <details class="inbin" id="binDetails"><summary id="binSummary">Show what is here</summary><div id="binRows"></div></details>
-    </div>
-
-    <div class="acts">
-      <button class="btn ghost" id="resetBtn">Start over</button>
-      <button class="btn go" id="moveBtn" disabled>Move</button>
     </div>
   </div>
 
@@ -225,7 +225,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const MV_BUILD = "2026-10-05 · mv v2";   // mv-multi-2(대화 Claude) — 판정 234 · mv-multi 묶음 2 ~ 6: 목록에 담아 Move all · Add all in this bin · 최대는 inv_move_bin_contents 하나에서(asung-wms c79c50c · definer = 확정과 같은 눈 · mv v1 의 세 조각은 RLS 로 트랜스퍼 픽을 못 봐 최대가 커 보일 수 있었다) ← mv v1 trf-b · 판정 60 ~ 63 · 창구 1429943(inv_move_now)
+const MV_BUILD = "2026-10-05 · mv v2.1";   // 대화 Claude — Start over · Move 단추를 스캔 칸 바로 아래로(목록 · 이 칸 카드는 그 아래 · 긴 칸에서 단추가 밀려 내려가지 않게 · Caleb 화면 A010103) ← mv v2 mv-multi-2(대화 Claude) — 판정 234 · mv-multi 묶음 2 ~ 6: 목록에 담아 Move all · Add all in this bin · 최대는 inv_move_bin_contents 하나에서(asung-wms c79c50c · definer = 확정과 같은 눈 · mv v1 의 세 조각은 RLS 로 트랜스퍼 픽을 못 봐 최대가 커 보일 수 있었다) ← mv v1 trf-b · 판정 60 ~ 63 · 창구 1429943(inv_move_now)
 console.log("wms-mover.html build:", MV_BUILD);
 
 let sb = null, me = null, canMove = false, actx = null, busy = false;
