@@ -92,7 +92,7 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-const ST_BUILD = "2026-10-05 · st v2";   // 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
+const ST_BUILD = "2026-10-05 · st v3";   // 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
 console.log("staff.html build:", ST_BUILD);
 let sb=null, me=null, isAdmin=false, canEditStaff=false, WHS=[];
 let all=[], q="", curId=null, mode="view";   // mode: view | add
@@ -338,7 +338,7 @@ async function drawPerms(s){
       `<label class="ck" style="margin-right:12px">
          <input type="radio" name="perm_${esc(key)}" value="${v}" data-screen="${esc(key)}"${level === v ? " checked" : ""}${dis}>
          ${label}</label>`;
-    return `<tr>
+    return `<tr data-room="${esc(info.room || "")}">
       <td style="white-space:nowrap;padding-right:12px">
         <span class="mono">${esc(key)}</span>
         <div class="hint" style="margin:0">${esc(info.label || "")}</div>
@@ -350,9 +350,28 @@ async function drawPerms(s){
   box.innerHTML = `
     <div style="margin-bottom:8px">${modes}</div>
     <table style="font-size:12.5px"><tbody>${screens}</tbody></table>
-    <div class="hint">A room decides whether the switch at the top of the screen shows it.
-      Choosing a screen opens its room too, so most people need nothing ticked above.
+    <div class="hint" id="roomWarn" style="color:#a86400;font-weight:600"></div>
+    <div class="hint">Tick WMS, IMS or both to see that room's screens. With none ticked every screen shows.
       ${isSelf ? "You cannot change your own access." : ""}</div>`;
+  /* st v3 — 방(WMS · IMS) 체크가 그 방의 화면만 보이게 거른다(Caleb 2026-10-05) · 방 = ims_perm_catalog 의 room(화면에 박지 않는다)
+     ⭐ 숨긴 방의 화면은 저장할 때 none 으로 — 방을 뺀 사람이 그 방 화면을 여전히 갖는 일이 없게 · 저장 전에 몇 개가 빠지는지 노란 글로 보인다
+     ⭐ 둘 다 안 체크 = 모든 화면이 보이고 아무것도 빼지 않는다(옛 모양) */
+  const sync = () => {
+    const on = [...box.querySelectorAll("input[data-mode]:checked")].map(c => c.dataset.mode);
+    const show = r => !on.length || on.includes(r);
+    let lose = { wms: 0, ims: 0 };
+    box.querySelectorAll("tr[data-room]").forEach(tr => {
+      const r = tr.dataset.room, vis = show(r);
+      tr.hidden = !vis;
+      const level = (tr.querySelector("input[data-screen]:checked") || {}).value;
+      if(!vis && level && level !== "none") lose[r] = (lose[r] || 0) + 1;
+    });
+    const w = Object.entries(lose).filter(([, n]) => n).map(([r, n]) => `${n} ${r.toUpperCase()} screen${n === 1 ? "" : "s"}`);
+    document.getElementById("roomWarn").textContent = w.length ? `Saving will remove ${w.join(" and ")} — their room is not ticked.` : "";
+  };
+  box.querySelectorAll("input[data-mode]").forEach(c => { c.onchange = sync; });
+  box.querySelectorAll("input[data-screen]").forEach(c => { c.addEventListener("change", sync); });
+  sync();
 }
 
 /* ⚠️ Returns the array to store. Absent = no access, so 'none' writes nothing. */
@@ -363,6 +382,7 @@ function readPerms(){
   });
   document.querySelectorAll("#permBox input[data-screen]").forEach(r => {
     if(!r.checked) return;
+    const tr = r.closest("tr[data-room]"); if(tr && tr.hidden) return;   // st v3 — 숨긴 방의 화면은 none(노란 글로 미리 알렸다)
     if(r.value === "write") out.push(r.dataset.screen);
     if(r.value === "read")  out.push(r.dataset.screen + ":read");
   });
