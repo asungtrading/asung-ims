@@ -169,10 +169,20 @@ async function savePurchasable(id, raw, prev, seq){
 
   // ⚠️⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다 — imsSaved 가 .select() 로 되읽어 판정한다(§10-j 3-f).
   //    되읽은 값으로 칩과 Updated 를 갈아 끼운다. 보낸 값이 아니라 DB 가 돌려준 값을 쓴다.
-  const res = await imsSaved(
-    sb.from("supplier").update({ is_purchasable: val }).eq("id", id)
-      .select("id,is_purchasable,updated_at")
-  );
+  // master-cs-3(2026-10-05 · 판정 237) — 공급처 표는 직접 쓰기가 닫혔다 · 창구 supplier_update(op set · old 대조)로 쓰고 되읽는다
+  //   purchasing 열쇠로도 된다(구매 가능 여부는 일반 칸) · 거부는 blocks 의 문장(다른 사람이 먼저 바꿨으면 changed_elsewhere)
+  const res = await (async () => {
+    const { data, error } = await sb.rpc("supplier_update", { p_changes: [{ supplier_id: id, op: "set", field: "is_purchasable",
+      value: val === null ? null : String(val), old: prev === "null" ? null : prev }], p_commit: true });
+    if(error) return { ok:false, reason: error.message };
+    if(!data || !data.committed){
+      const b = ((data && data.blocks) || [])[0], w = ((data && data.unacked) || [])[0];
+      return { ok:false, reason: b ? (b.message || b.code) : w ? "Needs confirmation: " + w : "Not saved" };
+    }
+    const r2 = await sb.from("supplier").select("id,is_purchasable,updated_at").eq("id", id);
+    if(r2.error || !r2.data || !r2.data.length) return { ok:false, reason: r2.error ? r2.error.message : "Saved — but could not read it back" };
+    return { ok:true, data: r2.data };
+  })();
 
   // ⭐ seq 로 막는 것은 **오른쪽 상세에 쓰는 것뿐**이다 — 저장하는 사이 다른 공급처로 옮겼으면 그 화면에 쓰면 안 된다.
   //    ⚠️ 목록은 화면 공통이라 seq 의 보호 대상이 아니다. 여기서 건너뛰면 왼쪽 숫자가 한 번 안 줄고
