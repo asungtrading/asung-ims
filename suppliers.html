@@ -1,52 +1,83 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-ims-mode="ims">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Suppliers · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
-  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
-  .list{width:330px;flex:0 0 330px}
-  .list .rows{max-height:calc(100vh - 230px)}
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(#wide · .wfilt · .card · .chip · .tag · .kv · .pomodal/.pobox · .pobtn) */
+  .list{width:340px;flex:0 0 340px}
+  .list .rows{max-height:calc(100vh - 250px)}
   .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  main{display:flex;flex-direction:column;gap:14px}
   .list .row.cur{color:#3b5bdb;font-weight:600}
-  /* ⚠️ 이름은 공통과 겹치지 않는 것으로 골랐다 — 공통에 .note 를 두었다가 staff.html 과 부딪친 적이 있다(§10-j 3-g) */
-  .editrow{display:flex;align-items:center;gap:8px;margin-top:11px;font-size:12.5px;color:var(--muted)}
-  .editrow select{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
+  main{display:flex;flex-direction:column;gap:14px}
+  .cstop{display:flex;gap:8px;align-items:center;padding:8px 10px 0}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+  .xs{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font:inherit;font-size:12px;cursor:pointer}
+  .xs:hover{background:#f2f4f8}
+  .cf{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .cf > label{width:150px;flex:0 0 150px;font-size:12.5px;color:var(--muted)}
+  .cf input[type=text],.cf input[type=number],.cf input[type=email],.cf input[type=date],.cf select,.cf textarea{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;min-width:0}
+  .cf textarea{min-height:52px}
+  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .csect{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;border-top:1px solid var(--line);padding-top:10px}
+  .csect:first-child{border-top:0;margin-top:0;padding-top:0}
+  .cnote{font-size:12px;color:var(--muted);line-height:1.5;margin:4px 0 10px}
+  .cmsg{font-size:12.5px;line-height:1.55;margin-top:10px}
+  .cmsg .w{color:#a86400}
+  .cmsg .b{color:#dc2626;font-weight:600}
+  .cmsg .m{display:block;margin:2px 0 0 14px;color:var(--muted)}
   .editst{font-size:12px;color:var(--muted)}
   .editst.ok{color:#16a34a;font-weight:600}
-  /* ⚠️ 공통 .err 는 ims-ui.css 에 있어 이 파일보다 먼저 온다 — 특정도가 같으면 여기 .editst 가 이겨
-     실패 문구가 회색으로 나온다. 그래서 두 클래스로 다시 적는다. */
   .editst.err{color:#dc2626;font-weight:600}
+  .purch select{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
+  #wide td.nmc{font-weight:600}
+  #wide tr.off td{color:var(--muted)}
+  #wide .wfilt input[type=search]{width:320px}
 </style>
 </head>
 <body>
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search name">
+      <span class="wopts" style="display:flex;gap:10px;align-items:center;font-size:12.5px">
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="whide"> Hide discontinued</label>
+        <label style="display:flex;align-items:center;gap:5px">Purchasable <select id="wpurch"><option value="all">All</option><option value="yes">Yes</option><option value="no">No</option><option value="unset">Not set</option></select></label>
+      </span>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnewBtn" hidden>+ New supplier</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="cstop"><button class="pobtn go" id="newBtn" hidden>+ New supplier</button></div>
     <div class="top">
       <input type="search" id="q" placeholder="Search name">
-      <div class="opts" id="opts" hidden>
+      <div class="opts" id="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
         <label><input type="checkbox" id="hideDisc"> Hide discontinued</label>
-        <label>Purchasable
-          <select id="purchFilter">
-            <option value="all">All</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-            <option value="unset">Not set</option>
-          </select>
-        </label>
+        <label>Purchasable <select id="purchFilter"><option value="all">All</option><option value="yes">Yes</option><option value="no">No</option><option value="unset">Not set</option></select></label>
       </div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
@@ -59,274 +90,414 @@
   <main id="detail"><div class="card"><div class="msg">Select a supplier.</div></div></main>
 </div>
 
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Suppliers — supplier 257 + 주소 · 연락처 · 할인
-   정본: docs/design/po-module.md §3-b · §3-c · 쓰기는 §10-k
-
-   ⭐ 2026-09-15 — 읽기 전용이 아니다. is_purchasable 을 여기서 고친다(IMS 의 두 번째 쓰기 화면).
-      「Cin7 이 모르는 우리 칸」이라 고쳐도 아무것도 안 깨지고 재적재가 덮지도 않는다(§3-f).
-      ⚠️ 판정은 세 상태다 — true · false · null(아직 안 봤다). null 을 화면에서 만들 수 있어야
-         「판정 없음 N곳」이 남은 일의 눈금으로 남는다(수는 §10-k). 체크박스 두 상태로 두지 않은 이유다.
-      ⚠️ admin 만 고친다. 이것은 화면에서 감추는 것이지 막는 것이 아니다 — anon key 가 공개다.
-         진짜 막을 것이 생기면 RLS 로 간다(ims_is_admin() 이 선례 · §10-j 3-b).
-         ⭐ 그래도 저장은 imsSaved() 로 되읽는다 — 지금은 막힐 일이 없지만,
-            나중에 RLS 를 걸었을 때 0행이 조용히 성공으로 지나가는 것을 막는 자리다.
-
-   ⚠️ PostgREST 1,000행 캡 — 지금 257행이라 안 걸리지만 예외를 두지 않는다.
-      settings.html 과 같은 틀로 .range() + count:'exact'.
-   ⚠️ 딸림 표는 흩어져 있다(2026-09-15 실측):
-        주소   0개 174 · 1개 79 · 2개 이상 4
-        연락처 0개  75 · 1개 147 · 2개 이상 35
-      ⇒ 상세는 「없으면 없다고 적고」 여럿이면 목록으로 보여 준다.
-   ⚠️ supplier_discount 는 0행이다 — 사람이 채울 표인데 채울 자리가 아직 없다.
+   Suppliers — 공급처 목록 · 상세 · 만들기 · 고치기(sup v2 · cs-5 ③ · 판정 237 · 238 · 241 · 242 · 243 · 정본 so-module §41)
+   ⭐ 두 모드(판정 242 · 243 = products 판정 209): 처음엔 넓은 목록 · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All suppliers · ?id=
+   창구(asung-wms master-cs-3 · 공급처 표 넷은 직접 쓰기가 닫혔다): supplier_create(p_supplier, p_commit, p_ack) · supplier_update(p_changes, p_commit, p_ack)
+   ⭐ 열쇠: 만들기 · 일반 칸(이름 · 메모 · 구매 가능 · 거래 중단) · 주소 · 연락처 = purchasing 또는 master
+            돈 칸(통화 · 결제조건 · 매입채무 계정 · 세금 규칙) · 할인 · 끄기 · 켜기 = master 만 — purchasing 화면은 그 칸을 보내지 않는다
+            purchasing 이 만들면 돈 칸은 기본값(Due on receipt · _109_ · USD · Zero-rated (Purchase) — inv_config supplier_default_*)
+   ⭐ 구매 가능(세 상태 true · false · null)은 고르면 바로 저장(옛 화면 그대로 · 2026-09-15 Caleb) — 창구 op set + old · 쓰기 열쇠면 누구나(옛 화면은 admin 만)
+   ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
+   ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
+const SP_BUILD = "2026-10-05 · sup v2";   // 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+console.log("suppliers.html build:", SP_BUILD);
 
-let sb=null, me=null, isAdmin=false;
-/* ⚠️ loadDetail 이 조회를 기다리는 사이에 필터가 바뀌면 loadList 가 상세를 비우는데,
-   나중에 도착한 loadDetail 이 다시 쓴다 ⇒ 번호를 붙여 최신이 아니면 쓰지 않는다.
-   ⭐ 저장도 같은 번호를 쓴다 — 저장하는 사이 다른 공급처로 옮겼으면 그 화면에 쓰지 않는다. */
-let detailSeq = 0;
-
-/* ⭐ 검색·필터를 바꾸면 오른쪽을 비운다. 페이지를 넘길 때는 두지 않는다(2026-09-15 · Caleb).
-   ⚠️ 전에는 「고른 것이 이 페이지에 없으면 비운다」였는데, 알파벳 앞쪽이면 그대로 남고
-      2페이지로 넘기면 보던 상세가 사라져서 언제 비는지 알 수 없었다.
-   ⚠️ 저장 뒤에는 부르지 않는다 — 사람이 필터를 바꾼 것이 아니다. 목록만 다시 읽는다. */
-function clearDetail(){
-  curId = null;
-  detailSeq++;   // 날아오던 요청이 있으면 그것도 무효로
-  document.getElementById("detail").innerHTML =
-    '<div class="card"><div class="msg">Select a supplier.</div></div>';
-}
-let q="", onlyActive=true, hideDisc=false, purchF="all", curId=null;
-const pg = imsPage(100);
-
-/* ⭐ 세 상태를 한곳에서 그린다 — 상세를 통째로 다시 읽지 않고 저장 직후 이 칩만 갈아 끼운다.
-   ⚠️ 색은 is_active 에만 쓴다(§10-j 3-e) — not set 은 잘못된 상태가 아니라 아직 안 본 상태다. 회색. */
+let sb = null, me = null, canWrite = false, isMaster = false;
+let q = "", onlyActive = true, hideDisc = false, purchF = "all", curId = null, detailSeq = 0, cur = null;
+const pg = imsPage(100), wpg = imsPage(100);
+const refs = { terms: [], currencies: [], accounts: [] };
+const MONEY = ["currency_id", "payment_term_id", "account_payable_id", "tax_rule"];
+const $ = (id) => document.getElementById(id);
+const sv = (v) => v === null || v === undefined ? "" : String(v);
+const val = (id) => { const el = $(id); if(!el) return undefined; return el.type === "checkbox" ? el.checked : el.value.trim(); };
+function modalOpen(html){ $("modalBox").innerHTML = html; $("modal").hidden = false; }
+function modalClose(){ $("modal").hidden = true; $("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("modal").hidden) modalClose(); });
 function purchChip(v){
-  if(v===true)  return '<span class="chip good">purchasable</span>';
-  if(v===false) return '<span class="chip">not purchasable</span>';
+  if(v === true) return '<span class="chip good">purchasable</span>';
+  if(v === false) return '<span class="chip">not purchasable</span>';
   return '<span class="chip">purchasable: not set</span>';
 }
 
-/* ── 목록 ─────────────────────────────────────────────── */
-async function loadList(){
-  let qry = sb.from("supplier")
-    .select("id,name,is_active,is_purchasable,is_discontinued", { count:"exact" });
-  // ⭐ 매니저는 정돈된 목록만 본다 — 살아 있고 · 살 수 있고 · 지금도 거래하는 곳(2026-09-15 실측 138곳)
-  //    admin 만 토글로 그 바깥을 꺼내 본다(판정이 없는 곳 · 잘못 켜진 곳을 정리하는 자리 · 수는 §10-k).
-  // ⚠️ 이것은 화면에서 감추는 것이지 막는 것이 아니다 — anon key 가 공개라 PostgREST 를 직접 치면 다 보인다.
-  //    지금은 감추는 것으로 충분하다(공급처 목록은 비밀이 아니다). 진짜 막을 것이 생기면 RLS 로 간다.
-  if(!isAdmin){
-    qry = qry.eq("is_active", true).eq("is_purchasable", true).eq("is_discontinued", false);
-  } else {
+/* ── 목록 · 두 모드 ───────────────────────────────────── */
+function baseQuery(cols){
+  let qry = sb.from("supplier").select(cols, { count: "exact" });
+  if(!canWrite){ qry = qry.eq("is_active", true).eq("is_purchasable", true).eq("is_discontinued", false); }
+  else {
     if(onlyActive) qry = qry.eq("is_active", true);
-    if(hideDisc)   qry = qry.eq("is_discontinued", false);
-    // ⚠️ Not set 은 .eq 로 못 잡는다 — SQL 에서 null 은 = 로 비교되지 않는다. .is() 를 쓴다.
-    if(purchF==="yes")   qry = qry.eq("is_purchasable", true);
-    if(purchF==="no")    qry = qry.eq("is_purchasable", false);
-    if(purchF==="unset") qry = qry.is("is_purchasable", null);
+    if(hideDisc) qry = qry.eq("is_discontinued", false);
+    if(purchF === "yes") qry = qry.eq("is_purchasable", true);
+    if(purchF === "no") qry = qry.eq("is_purchasable", false);
+    if(purchF === "unset") qry = qry.is("is_purchasable", null);
   }
   if(q) qry = qry.ilike("name", `%${q}%`);
-  const { data, error } = await pg.run(qry.order("name"));
-  if(error){ document.getElementById("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  document.getElementById("rows").innerHTML = data.length ? data.map(r => {
-    const tags = [];
-    if(!r.is_active) tags.push(`<span class="tag off">inactive</span>`);   // 색은 is_active 에만(§10-j 3-e) — 상세 칩·products·staff 와 같게
-    // ⭐ 다른 필터로 보다가도 미판정이 눈에 걸리게 한다 — 상세를 열어야만 알 수 있으면 257곳을 훑을 수 없다.
-    if(r.is_purchasable===null) tags.push(`<span class="tag">not set</span>`);
-    if(r.is_discontinued) tags.push(`<span class="tag disc">discontinued</span>`);
-    return `<div class="row ${r.id===curId?"cur":""}" data-id="${r.id}">
-      <span>${esc(r.name)}</span>
-      <span style="display:flex;gap:4px">${tags.join("")}</span>
-    </div>`;
-  }).join("") : '<div class="msg">No suppliers match.</div>';
-
-  document.querySelectorAll(".list .row").forEach(el => {
-    el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
-  });
-
-  pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+  return qry.order("name");
 }
-
-/* ── 저장 ─────────────────────────────────────────────────
-   ⭐ 고르면 바로 저장한다. Save 버튼을 두지 않은 이유 — 값이 하나뿐인데 여러 곳을 훑는 동안 클릭이 두 배가 된다.
-   ⭐ 저장 뒤 목록을 다시 읽는다 — Not set 으로 걸러 놓고 일하면 방금 판정한 곳이 빠지고
-      아래 「1–N / N」이 하나씩 줄어든다. 그것이 남은 일의 눈금이다(2026-09-15 · Caleb).
-      상세는 그대로 두니 잘못 눌렀으면 바로 되돌릴 수 있다. */
-async function savePurchasable(id, raw, prev, seq){
-  const val = raw === "null" ? null : (raw === "true");
-  const sel = document.getElementById("purchSet");
-  const st  = document.getElementById("purchSt");
-  if(st){ st.className = "editst"; st.textContent = "Saving…"; }
-  // ⚠️ 저장하는 사이 또 바꾸면 update 둘이 경합한다 — DB 는 마지막 것, 화면은 늦게 돌아온 것을 보인다.
-  //    여러 곳을 빠르게 훑는 자리라 실제로 일어난다. 저장이 끝날 때까지 잠근다.
-  if(sel) sel.disabled = true;
-
-  // ⚠️⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다 — imsSaved 가 .select() 로 되읽어 판정한다(§10-j 3-f).
-  //    되읽은 값으로 칩과 Updated 를 갈아 끼운다. 보낸 값이 아니라 DB 가 돌려준 값을 쓴다.
-  // master-cs-3(2026-10-05 · 판정 237) — 공급처 표는 직접 쓰기가 닫혔다 · 창구 supplier_update(op set · old 대조)로 쓰고 되읽는다
-  //   purchasing 열쇠로도 된다(구매 가능 여부는 일반 칸) · 거부는 blocks 의 문장(다른 사람이 먼저 바꿨으면 changed_elsewhere)
-  const res = await (async () => {
-    const { data, error } = await sb.rpc("supplier_update", { p_changes: [{ supplier_id: id, op: "set", field: "is_purchasable",
-      value: val === null ? null : String(val), old: prev === "null" ? null : prev }], p_commit: true });
-    if(error) return { ok:false, reason: error.message };
-    if(!data || !data.committed){
-      const b = ((data && data.blocks) || [])[0], w = ((data && data.unacked) || [])[0];
-      return { ok:false, reason: b ? (b.message || b.code) : w ? "Needs confirmation: " + w : "Not saved" };
-    }
-    const r2 = await sb.from("supplier").select("id,is_purchasable,updated_at").eq("id", id);
-    if(r2.error || !r2.data || !r2.data.length) return { ok:false, reason: r2.error ? r2.error.message : "Saved — but could not read it back" };
-    return { ok:true, data: r2.data };
-  })();
-
-  // ⭐ seq 로 막는 것은 **오른쪽 상세에 쓰는 것뿐**이다 — 저장하는 사이 다른 공급처로 옮겼으면 그 화면에 쓰면 안 된다.
-  //    ⚠️ 목록은 화면 공통이라 seq 의 보호 대상이 아니다. 여기서 건너뛰면 왼쪽 숫자가 한 번 안 줄고
-  //       다음 새로 고침에야 맞는다 — 재현되지 않는 증상으로 남는다.
-  const stale = (seq !== detailSeq);
-
-  if(!stale){
-    if(sel) sel.disabled = false;
-    if(!res.ok){
-      if(st){ st.className = "editst err"; st.textContent = res.reason; }
-      // ⭐ 저장이 안 됐는데 드롭다운이 고른 값에 머물면 화면만 저장된 것처럼 보여 「Not saved」가 무력해진다.
-      if(sel) sel.value = prev;
-    } else {
-      const row = res.data[0];
-      if(st){ st.className = "editst ok"; st.textContent = "Saved"; }
-      if(sel) sel.dataset.prev = raw;
-      const chip = document.getElementById("purchChip");
-      if(chip) chip.innerHTML = purchChip(row.is_purchasable);
-      const upd = document.getElementById("rowUpd");
-      if(upd) upd.innerHTML = imsTs(row.updated_at);
-    }
-  }
-
-  if(res.ok) await loadList();
+function syncCtl(){
+  $("q").value = q; $("wq").value = q;
+  $("onlyActive").checked = onlyActive; $("wactive").checked = onlyActive;
+  $("hideDisc").checked = hideDisc; $("whide").checked = hideDisc;
+  $("purchFilter").value = purchF; $("wpurch").value = purchF;
+}
+function showWide(){
+  curId = null; cur = null; detailSeq++;
+  syncCtl();
+  $("wide").hidden = false; $("wrapBox").hidden = true;
+  history.replaceState(null, "", location.pathname);
+  loadWide();
+}
+async function openSupplier(id){
+  curId = id; syncCtl();
+  $("wide").hidden = true; $("wrapBox").hidden = false; $("listPanel").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id));
+  loadList(); await loadDetail(id);
+}
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq;
+  const { data, error } = await wpg.run(baseQuery("id,name,is_active,source,is_purchasable,is_discontinued,payment_term_name,account_payable_code,tax_rule,ref_currency(code)"));
+  if(seq !== wideSeq) return;
+  const box = $("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Currency</th><th>Payment term</th><th>Payable</th><th>Tax rule</th><th>Purchasable</th><th>Discontinued</th><th>Source</th><th>Active</th></tr></thead><tbody>
+    ${data.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active ? "" : "off"}">
+      <td class="nmc">${esc(r.name)}</td><td class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</td><td>${dim(r.payment_term_name)}</td>
+      <td class="mono">${dim(r.account_payable_code)}</td><td>${dim(r.tax_rule)}</td>
+      <td>${r.is_purchasable === null ? '<span class="tag">not set</span>' : yn(r.is_purchasable, false)}</td>
+      <td>${r.is_discontinued ? '<span class="tag disc">discontinued</span>' : ""}</td><td>${esc(r.source)}</td><td>${yn(r.is_active, true)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No suppliers match.</div>';
+  box.querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openSupplier(tr.dataset.id); });
+  wpg.render({ range: "#wrange", prev: "#wprev", next: "#wnext" }, loadWide);
+}
+async function loadList(){
+  const { data, error } = await pg.run(baseQuery("id,name,is_active,is_purchasable,is_discontinued"));
+  if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  $("rows").innerHTML = data.length ? data.map(r => {
+    const tags = [];
+    if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
+    if(r.is_purchasable === null) tags.push('<span class="tag">not set</span>');
+    if(r.is_discontinued) tags.push('<span class="tag disc">discontinued</span>');
+    return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
+  }).join("") : '<div class="msg">No suppliers match.</div>';
+  document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => openSupplier(el.dataset.id); });
+  pg.render({ range: "#range", prev: "#prev", next: "#next" }, loadList);
 }
 
 /* ── 상세 ─────────────────────────────────────────────── */
+const navBtns = () => `<button class="pobtn" id="togList" title="Show or hide the list on the left">&#9776; List</button> <button class="pobtn" id="toWide">&lsaquo; All suppliers</button>`;
 async function loadDetail(id){
   const seq = ++detailSeq;
-  const box = document.getElementById("detail");
+  const box = $("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
-
-  const [s, addr, cont, disc, prod, dflt] = await Promise.all([
+  const [s, addr, cont, disc, prod, dflt, po] = await Promise.all([
     sb.from("supplier").select("*, ref_currency(code)").eq("id", id).maybeSingle(),
-    sb.from("supplier_address").select("*").eq("supplier_id", id).order("type"),
-    sb.from("supplier_contact").select("*").eq("supplier_id", id).order("is_default", {ascending:false}),
-    sb.from("supplier_discount").select("*").eq("supplier_id", id).order("seq"),
-    sb.from("product_supplier").select("id", { count:"exact", head:true }).eq("supplier_id", id).eq("is_active", true),
-    sb.from("product_supplier").select("id", { count:"exact", head:true }).eq("supplier_id", id).eq("is_active", true).eq("is_default", true),
+    sb.from("supplier_address").select("*").eq("supplier_id", id).eq("is_active", true).order("type"),
+    sb.from("supplier_contact").select("*").eq("supplier_id", id).eq("is_active", true).order("is_default", { ascending: false }),
+    sb.from("supplier_discount").select("*").eq("supplier_id", id).eq("is_active", true).order("seq"),
+    sb.from("product_supplier").select("id", { count: "exact", head: true }).eq("supplier_id", id).eq("is_active", true),
+    sb.from("product_supplier").select("id", { count: "exact", head: true }).eq("supplier_id", id).eq("is_active", true).eq("is_default", true),
+    sb.from("po").select("id", { count: "exact", head: true }).eq("supplier_id", id).in("status", ["draft", "confirmed"]),
   ]);
-
-  if(s.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(s.error.message)}</div></div>`; return; }
+  if(seq !== detailSeq) return;
+  if(s.error || !s.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(s.error ? s.error.message : "Supplier not found")}</div></div>`; return; }
   const r = s.data;
-
-  const chips = [];
-  chips.push(`<span class="chip ${r.is_active?"good":"bad"}">${r.is_active?"active":"inactive"}</span>`);
-  chips.push(`<span id="purchChip">${purchChip(r.is_purchasable)}</span>`);
-  if(r.is_discontinued) chips.push(`<span class="chip bad">discontinued${r.discontinued_on?" "+r.discontinued_on:""}</span>`);
+  cur = { r, addr: addr.data || [], cont: cont.data || [], disc: disc.data || [] };
+  const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span id="purchChip">${purchChip(r.is_purchasable)}</span>`];
+  if(r.is_discontinued) chips.push(`<span class="chip bad">discontinued${r.discontinued_on ? " " + esc(r.discontinued_on) : ""}</span>`);
   chips.push(`<span class="chip">${esc(r.source)}</span>`);
-
-  // ⭐ admin 에게만 고르는 자리를 준다. 매니저는 위의 칩까지만 본다.
-  const editHtml = !isAdmin ? "" : `
-    <div class="editrow">
-      <span>Purchasable</span>
-      <select id="purchSet">
-        <option value="null">Not set</option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
-      </select>
-      <span class="editst" id="purchSt"></span>
-    </div>`;
-
   const kv = [
-    ["Payment term",  dim(r.payment_term_name)],
-    ["Account payable", `<span class="mono">${dim(r.account_payable_code)}</span>`],
-    ["Currency",      `<span class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</span>`],
-    ["Tax rule",      dim(r.tax_rule)],
-    ["Products linked", `<span class="mono">${(prod.count||0).toLocaleString()}</span>`],
-    ["— of which default", `<span class="mono">${(dflt.count||0).toLocaleString()}</span>`],
-    ["Cin7 comments", dim(r.cin7_comments)],
-    ["Note",          dim(r.note)],
-    // ⚠️ timestamptz 는 imsTs() 로 — 문자열을 자르면 UTC 로 보인다(§10-j 3-f 실사고).
-    //    📌 updated_at 은 UPDATE 때만 바뀐다. 적재만 되고 안 고친 행은 created_at 과 같다(정상).
-    ["Updated",       `<span class="mono" id="rowUpd">${imsTs(r.updated_at)}</span>`],
+    ["Payment term", dim(r.payment_term_name)], ["Account payable", `<span class="mono">${dim(r.account_payable_code)}</span>`],
+    ["Currency", `<span class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</span>`], ["Tax rule", dim(r.tax_rule)],
+    ["Products linked", `<span class="mono">${(prod.count || 0).toLocaleString()}</span>`], ["— of which default", `<span class="mono">${(dflt.count || 0).toLocaleString()}</span>`],
+    ["Open purchase orders", `<span class="mono">${po.count || 0}</span>`], ["Cin7 comments", dim(r.cin7_comments)], ["Note", dim(r.note)],
+    ["Updated", `<span class="mono" id="rowUpd">${imsTs(r.updated_at)}</span>`],
   ];
-
-  const tbl = (title, n, head, rows) => `
-    <div class="card">
-      <h3>${title} <span class="n">${n}</span></h3>
-      ${rows.length ? `<table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead>
-        <tbody>${rows.join("")}</tbody></table>`
-      : `<div class="msg">None.</div>`}
-    </div>`;
-
-  const aRows = (addr.data||[]).map(a => `<tr>
-      <td class="mono">${dim(a.type)}</td>
-      <td>${dim(a.line1)}${a.line2?"<br>"+esc(a.line2):""}</td>
-      <td>${dim(a.city)}</td><td>${dim(a.state_province)}</td>
-      <td class="mono">${dim(a.postal_code)}</td><td>${dim(a.country)}</td></tr>`);
-
-  const cRows = (cont.data||[]).map(c => `<tr>
-      <td>${dim(c.name)}</td><td class="mono">${dim(c.phone)}</td><td class="mono">${dim(c.mobile_phone)}</td>
-      <td>${dim(c.email)}</td><td>${yn(c.is_default, false)}</td></tr>`);
-
-  const dRows = (disc.data||[]).map(d => `<tr>
-      <td class="num">${dim(d.seq)}</td><td>${dim(d.name)}</td>
-      <td class="num">${d.percent==null?'<span class="dim">—</span>':esc(d.percent)+"%"}</td></tr>`);
-
-  if(seq !== detailSeq) return;   // 그 사이에 다른 요청이 들어왔다
+  const acts = [navBtns()];
+  if(canWrite) acts.push('<button class="pobtn" id="editBtn">Edit</button>');
+  if(isMaster) acts.push(`<button class="pobtn" id="actBtn">${r.is_active ? "Deactivate" : "Activate"}</button>`);
+  if(canWrite) acts.push(`<span class="purch">Purchasable <select id="purchSet"><option value="null">Not set</option><option value="true">Yes</option><option value="false">No</option></select> <span class="editst" id="purchSt"></span></span>`);
+  const aRows = cur.addr.map((a, i) => `<tr><td class="mono">${dim(a.type)}</td><td>${dim(a.line1)}${a.line2 ? "<br>" + esc(a.line2) : ""}</td><td>${dim(a.city)}</td><td>${dim(a.state_province)}</td>
+      <td class="mono">${dim(a.postal_code)}</td><td>${dim(a.country)}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ae="${i}">Edit</button> <button class="xs" data-ao="${i}">Remove</button>` : ""}</td></tr>`);
+  const cRows = cur.cont.map((t, i) => `<tr><td>${dim(t.name)}${t.is_default ? ' <span class="chip good">default</span>' : ""}</td><td class="mono">${dim(t.phone)}</td><td class="mono">${dim(t.mobile_phone)}</td><td>${dim(t.email)}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ce="${i}">Edit</button> ${t.is_default ? "" : `<button class="xs" data-cd="${i}">Make default</button> `}<button class="xs" data-co="${i}">Remove</button>` : ""}</td></tr>`);
+  const dRows = cur.disc.map((x, i) => `<tr><td class="num">${dim(x.seq)}</td><td>${dim(x.name)}</td><td class="num">${esc(x.percent)}%</td>
+      <td style="white-space:nowrap">${isMaster ? `<button class="xs" data-de="${i}">Edit</button> <button class="xs" data-do="${i}">Remove</button>` : ""}</td></tr>`);
+  const tbl = (title, n, head, rows, addId, can) => `<div class="card"><h3>${title} <span class="n">${n}</span>${can ? ` <button class="xs" id="${addId}" style="float:right">+ Add</button>` : ""}</h3>
+      ${rows.length ? `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : '<div class="msg">None.</div>'}</div>`;
   box.innerHTML = `
-    <div class="card">
-      <div class="head">
-        <div class="nm">${esc(r.name)}</div>
-        <div class="chips">${chips.join("")}</div>
-        ${editHtml}
-      </div>
-      <table class="kv"><tbody>
-        ${kv.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}
-      </tbody></table>
-    </div>
-    ${tbl("Addresses", addr.data ? addr.data.length : 0,
-          ["Type","Street","City","Province","Postal","Country"], aRows)}
-    ${tbl("Contacts", cont.data ? cont.data.length : 0,
-          ["Name","Phone","Mobile","Email","Default"], cRows)}
-    ${tbl("Discounts", disc.data ? disc.data.length : 0,
-          ["Seq","Name","Percent"], dRows)}
-  `;
+    <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div><div class="acts">${acts.join("")}</div></div>
+      <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    ${tbl("Addresses", cur.addr.length, ["Type", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr", canWrite)}
+    ${tbl("Contacts", cur.cont.length, ["Name", "Phone", "Mobile", "Email", ""], cRows, "addCont", canWrite)}
+    ${tbl("Discounts", cur.disc.length, ["Seq", "Name", "Percent", ""], dRows, "addDisc", isMaster)}`;
+  $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
+  $("toWide").onclick = showWide;
+  if($("editBtn")) $("editBtn").onclick = openEdit;
+  if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ supplier_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], (r.is_active ? "Deactivate " : "Activate ") + r.name);
+  if($("purchSet")){ const c = r.is_purchasable === null || r.is_purchasable === undefined ? "null" : String(r.is_purchasable); $("purchSet").value = c; $("purchSet").dataset.prev = c; $("purchSet").onchange = e => savePurchasable(r.id, e.target.value, e.target.dataset.prev, seq); }
+  if($("addAddr")) $("addAddr").onclick = () => openAddr(null);
+  if($("addCont")) $("addCont").onclick = () => openCont(null);
+  if($("addDisc")) $("addDisc").onclick = () => openDisc(null);
+  box.querySelectorAll("[data-ae]").forEach(b => { b.onclick = () => openAddr(cur.addr[+b.dataset.ae]); });
+  box.querySelectorAll("[data-ao]").forEach(b => { b.onclick = () => { const a = cur.addr[+b.dataset.ao]; runUpdate([{ supplier_id: r.id, op: "address_off", address_id: a.id }], `Remove the ${a.type || ""} address ${a.line1 || ""}`); }; });
+  box.querySelectorAll("[data-ce]").forEach(b => { b.onclick = () => openCont(cur.cont[+b.dataset.ce]); });
+  box.querySelectorAll("[data-cd]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.cd]; runUpdate([{ supplier_id: r.id, op: "contact_default", contact_id: t.id }], `Make ${t.name || "this contact"} the default contact`); }; });
+  box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ supplier_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
+  box.querySelectorAll("[data-de]").forEach(b => { b.onclick = () => openDisc(cur.disc[+b.dataset.de]); });
+  box.querySelectorAll("[data-do]").forEach(b => { b.onclick = () => { const x = cur.disc[+b.dataset.do]; runUpdate([{ supplier_id: r.id, op: "discount_off", discount_id: x.id }], `Remove the discount ${x.name || ""}`); }; });
+}
 
-  // ⚠️ 현재 값은 속성이 아니라 DOM 으로 넣는다(§10-j 3-g 의 esc 실사고와 같은 이유 · 여기 값은 고정이지만 관례를 따른다).
-  //    ⭐ 직전 값을 dataset 에 들고 있는다 — 저장이 실패하면 여기로 되돌린다.
-  if(isAdmin){
-    const sel = document.getElementById("purchSet");
-    if(sel){
-      const cur = (r.is_purchasable === null || r.is_purchasable === undefined)
-        ? "null" : String(r.is_purchasable);
-      sel.value = cur;
-      sel.dataset.prev = cur;
-      sel.onchange = e => savePurchasable(id, e.target.value, e.target.dataset.prev, seq);
-    }
+/* ── 구매 가능 — 고르면 바로 저장(master-cs-3 창구 · 되읽기) ── */
+async function savePurchasable(id, raw, prev, seq){
+  const v = raw === "null" ? null : (raw === "true");
+  const sel = $("purchSet"), st = $("purchSt");
+  if(st){ st.className = "editst"; st.textContent = "Saving…"; }
+  if(sel) sel.disabled = true;
+  const res = await (async () => {
+    const { data, error } = await sb.rpc("supplier_update", { p_changes: [{ supplier_id: id, op: "set", field: "is_purchasable", value: v === null ? null : String(v), old: prev === "null" ? null : prev }], p_commit: true });
+    if(error) return { ok: false, reason: error.message };
+    if(!data || !data.committed){ const b = ((data && data.blocks) || [])[0], w = ((data && data.unacked) || [])[0]; return { ok: false, reason: b ? (b.message || b.code) : w ? "Needs confirmation: " + w : "Not saved" }; }
+    const r2 = await sb.from("supplier").select("id,is_purchasable,updated_at").eq("id", id);
+    if(r2.error || !r2.data || !r2.data.length) return { ok: false, reason: r2.error ? r2.error.message : "Saved — but could not read it back" };
+    return { ok: true, data: r2.data };
+  })();
+  if(seq !== detailSeq) return;
+  if(sel) sel.disabled = false;
+  if(!res.ok){ if(st){ st.className = "editst err"; st.textContent = res.reason; } if(sel) sel.value = prev; return; }
+  const row = res.data[0];
+  if(st){ st.className = "editst ok"; st.textContent = "Saved"; }
+  if(sel) sel.dataset.prev = raw;
+  if($("purchChip")) $("purchChip").innerHTML = purchChip(row.is_purchasable);
+  if($("rowUpd")) $("rowUpd").innerHTML = imsTs(row.updated_at);
+  await loadList();
+}
+
+/* ── 창구 결과 · 두 번 부르기 ──────────────────────────── */
+function resultHtml(d){
+  const out = [];
+  (d.blocks || []).forEach(b => out.push(`<div class="b">✕ ${esc(b.message || b.code)}</div>`));
+  (d.warnings || []).forEach(w => { out.push(`<div class="w">⚠ ${esc(w.message || w.code)}</div>`); (w.matches || []).forEach(m => out.push(`<span class="m">${esc(m.name || "")}</span>`)); });
+  return out.join("");
+}
+async function saveTwoStep(call, msgEl, goBtn, onDone){
+  const go = async (ack) => {
+    goBtn.disabled = true; msgEl.className = "cmsg"; msgEl.textContent = "Saving…";
+    const { data, error } = await call(ack);
+    if(error){ msgEl.innerHTML = `<div class="b">✕ ${esc(error.message)}</div>`; goBtn.disabled = false; return; }
+    if(data.committed){ await onDone(data); return; }
+    msgEl.innerHTML = resultHtml(data);
+    if((data.blocks || []).length){ goBtn.disabled = false; goBtn.textContent = "Save"; goBtn.onclick = () => go([]); return; }
+    const keys = data.unacked || [];
+    goBtn.disabled = false; goBtn.textContent = "Confirm and save"; goBtn.onclick = () => go(keys);
+  };
+  goBtn.onclick = () => go([]);
+}
+const nothing = () => Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } });
+const upd = (ch) => (ack) => ch.length ? sb.rpc("supplier_update", { p_changes: ch, p_commit: true, p_ack: ack }) : nothing();
+function runUpdate(changes, title){
+  modalOpen(`<h4>${esc(title)}</h4><div class="pbody"><div class="cnote">Nothing is saved until you press the button.</div><div id="cuMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="cuCancel">Cancel</button><button class="pobtn go" id="cuGo">Save</button></div>`);
+  $("cuCancel").onclick = modalClose;
+  saveTwoStep(upd(changes), $("cuMsg"), $("cuGo"), async () => { modalClose(); await loadDetail(curId); await loadList(); });
+}
+
+/* ── 고르기 칸 ────────────────────────────────────────── */
+function opts(list, valKey, label, blank){ return `<option value="">${esc(blank)}</option>` + list.map(x => `<option value="${esc(x[valKey])}">${esc(label(x))}</option>`).join(""); }
+function ensureVal(id, value, label){
+  const el = $(id); if(!el) return;
+  const v = sv(value);
+  if(v && ![...el.options].some(o => o.value === v)){ const o = document.createElement("option"); o.value = v; o.textContent = (label || v) + " (current · inactive)"; el.appendChild(o); }
+  el.value = v;
+}
+function moneyFields(isNewForm){
+  const blank = isNewForm ? "Default" : "— none —";
+  return `<div class="csect">Money terms — manager only</div><div class="cgrid">
+      <div class="cf"><label>Currency</label><select id="f_currency_id">${opts(refs.currencies, "id", x => x.code, blank)}</select></div>
+      <div class="cf"><label>Payment term</label><select id="f_payment_term_id">${opts(refs.terms, "id", x => x.name, blank)}</select></div>
+      <div class="cf"><label>Account payable</label><select id="f_account_payable_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, blank)}</select></div>
+      <div class="cf"><label>Tax rule</label><input type="text" id="f_tax_rule" placeholder="${isNewForm ? "Default" : ""}"></div></div>`;
+}
+function generalFields(){
+  return `<div class="cgrid">
+      <div class="cf"><label>Name *</label><input type="text" id="f_name"></div>
+      <div class="cf"><label>Purchasable</label><select id="f_is_purchasable"><option value="">Not set</option><option value="true">Yes</option><option value="false">No</option></select></div>
+      <div class="cf"><label>Discontinued</label><input type="checkbox" id="f_is_discontinued"></div>
+      <div class="cf"><label>Discontinued on</label><input type="date" id="f_discontinued_on"></div></div>
+    <div class="cf"><label>Note</label><textarea id="f_note"></textarea></div>`;
+}
+
+/* ── 만들기 ───────────────────────────────────────────── */
+const AF = ["type", "line1", "line2", "city", "state_province", "postal_code", "country"];
+function openNew(){
+  modalOpen(`<h4>New supplier</h4><div class="pbody">
+      ${generalFields()}
+      <div class="csect">Address</div><div class="cgrid">
+        <div class="cf"><label>Type</label><input type="text" id="n_a_type" value="Business"></div>
+        <div class="cf"><label>Street</label><input type="text" id="n_a_line1"></div>
+        <div class="cf"><label>Street 2</label><input type="text" id="n_a_line2"></div>
+        <div class="cf"><label>City</label><input type="text" id="n_a_city"></div>
+        <div class="cf"><label>Province / State</label><input type="text" id="n_a_state_province"></div>
+        <div class="cf"><label>Postal code</label><input type="text" id="n_a_postal_code"></div>
+        <div class="cf"><label>Country</label><input type="text" id="n_a_country"></div></div>
+      <div class="csect">Contact</div><div class="cgrid">
+        <div class="cf"><label>Name</label><input type="text" id="n_c_name"></div>
+        <div class="cf"><label>Phone</label><input type="text" id="n_c_phone"></div>
+        <div class="cf"><label>Email</label><input type="email" id="n_c_email"></div></div>
+      ${isMaster ? moneyFields(true) : `<div class="cnote">Currency, payment term, payable account and tax rule start from the defaults (USD · Due on receipt · _109_ · Zero-rated (Purchase)). A manager changes them if needed.</div>`}
+      <div id="nMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="nCancel">Cancel</button><button class="pobtn go" id="nGo">Create</button></div>`);
+  $("nCancel").onclick = modalClose;
+  const build = () => {
+    const p = {};
+    const nm = val("f_name"); if(nm) p.name = nm;
+    const note = val("f_note"); if(note) p.note = note;
+    const pu = val("f_is_purchasable"); if(pu) p.is_purchasable = pu === "true";
+    if(val("f_is_discontinued")){ p.is_discontinued = true; const dt = val("f_discontinued_on"); if(dt) p.discontinued_on = dt; }
+    const a = {}; AF.forEach(f => { const x = val("n_a_" + f); if(x) a[f] = x; });
+    if(a.line1 || a.city || a.postal_code) p.addresses = [a];
+    const c = { name: val("n_c_name"), phone: val("n_c_phone"), email: val("n_c_email") };
+    if(c.name || c.phone || c.email) p.contacts = [Object.fromEntries(Object.entries(c).filter(([, v]) => v))];
+    if(isMaster) MONEY.forEach(f => { const v = val("f_" + f); if(v) p[f] = v; });
+    return p;
+  };
+  saveTwoStep(ack => sb.rpc("supplier_create", { p_supplier: build(), p_commit: true, p_ack: ack }), $("nMsg"), $("nGo"),
+    async (d) => { modalClose(); await openSupplier(d.supplier_id); });
+}
+
+/* ── 고치기(머리 칸) ──────────────────────────────────── */
+function openEdit(){
+  const r = cur.r;
+  modalOpen(`<h4>Edit — ${esc(r.name)}</h4><div class="pbody">${generalFields()}
+      ${isMaster ? moneyFields(false) : `<div class="cnote">Currency, payment term, payable account and tax rule are changed by a manager.</div>`}
+      <div id="eMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="eCancel">Cancel</button><button class="pobtn go" id="eGo">Save</button></div>`);
+  $("f_name").value = sv(r.name); $("f_note").value = sv(r.note);
+  $("f_is_purchasable").value = r.is_purchasable === null || r.is_purchasable === undefined ? "" : String(r.is_purchasable);
+  $("f_is_discontinued").checked = !!r.is_discontinued; $("f_discontinued_on").value = sv(r.discontinued_on);
+  if(isMaster){
+    ensureVal("f_currency_id", r.currency_id, r.ref_currency ? r.ref_currency.code : "");
+    ensureVal("f_payment_term_id", r.payment_term_id, r.payment_term_name);
+    ensureVal("f_account_payable_id", r.account_payable_id, r.account_payable_code);
+    $("f_tax_rule").value = sv(r.tax_rule);
   }
+  $("eCancel").onclick = modalClose;
+  const build = () => {
+    const ch = [], add = (f, now, was) => { if(now !== was) ch.push({ supplier_id: r.id, op: "set", field: f, value: now === "" ? null : now, old: was }); };
+    add("name", val("f_name"), sv(r.name)); add("note", val("f_note"), sv(r.note));
+    add("is_purchasable", val("f_is_purchasable"), r.is_purchasable === null || r.is_purchasable === undefined ? "" : String(r.is_purchasable));
+    add("is_discontinued", String(val("f_is_discontinued")), String(!!r.is_discontinued));
+    add("discontinued_on", val("f_discontinued_on"), sv(r.discontinued_on));
+    if(isMaster) MONEY.forEach(f => add(f, val("f_" + f), sv(r[f])));
+    return ch;
+  };
+  saveTwoStep(ack => upd(build())(ack), $("eMsg"), $("eGo"), async () => { modalClose(); await loadDetail(curId); await loadList(); });
+}
+
+/* ── 주소 · 연락처 · 할인 ─────────────────────────────── */
+function openAddr(a){
+  modalOpen(`<h4>${a ? "Edit address" : "Add address"}</h4><div class="pbody"><div class="cgrid">
+      <div class="cf"><label>Type</label><input type="text" id="a_type"></div>
+      <div class="cf"><label>Street</label><input type="text" id="a_line1"></div>
+      <div class="cf"><label>Street 2</label><input type="text" id="a_line2"></div>
+      <div class="cf"><label>City</label><input type="text" id="a_city"></div>
+      <div class="cf"><label>Province / State</label><input type="text" id="a_state_province"></div>
+      <div class="cf"><label>Postal code</label><input type="text" id="a_postal_code"></div>
+      <div class="cf"><label>Country</label><input type="text" id="a_country"></div></div>
+    <div id="aMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="aCancel">Cancel</button><button class="pobtn go" id="aGo">Save</button></div>`);
+  AF.forEach(f => { $("a_" + f).value = a ? sv(a[f]) : (f === "type" ? "Business" : ""); });
+  $("aCancel").onclick = modalClose;
+  const build = () => {
+    const sid = cur.r.id;
+    if(!a){ const v = {}; AF.forEach(f => { const x = val("a_" + f); if(x) v[f] = x; }); return [{ supplier_id: sid, op: "address_add", values: v }]; }
+    const v = {}, o = {};
+    AF.forEach(f => { const now = val("a_" + f), was = sv(a[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = was; } });
+    return Object.keys(v).length ? [{ supplier_id: sid, op: "address_set", address_id: a.id, values: v, olds: o }] : [];
+  };
+  saveTwoStep(ack => upd(build())(ack), $("aMsg"), $("aGo"), async () => { modalClose(); await loadDetail(curId); });
+}
+const CF = ["name", "phone", "mobile_phone", "fax", "email", "website"];
+function openCont(t){
+  modalOpen(`<h4>${t ? "Edit contact" : "Add contact"}</h4><div class="pbody"><div class="cgrid">
+      <div class="cf"><label>Name</label><input type="text" id="c_name"></div>
+      <div class="cf"><label>Phone</label><input type="text" id="c_phone"></div>
+      <div class="cf"><label>Mobile</label><input type="text" id="c_mobile_phone"></div>
+      <div class="cf"><label>Fax</label><input type="text" id="c_fax"></div>
+      <div class="cf"><label>Email</label><input type="email" id="c_email"></div>
+      <div class="cf"><label>Website</label><input type="text" id="c_website"></div></div>
+    ${t ? "" : '<div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="c_default"> Make it the default contact</label></div>'}
+    <div id="ctMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="ctCancel">Cancel</button><button class="pobtn go" id="ctGo">Save</button></div>`);
+  CF.forEach(f => { $("c_" + f).value = t ? sv(t[f]) : ""; });
+  $("ctCancel").onclick = modalClose;
+  const build = () => {
+    const sid = cur.r.id;
+    if(!t){ const v = {}; CF.forEach(f => { const x = val("c_" + f); if(x) v[f] = x; }); v.is_default = val("c_default"); return [{ supplier_id: sid, op: "contact_add", values: v }]; }
+    const v = {}, o = {};
+    CF.forEach(f => { const now = val("c_" + f), was = sv(t[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = was; } });
+    return Object.keys(v).length ? [{ supplier_id: sid, op: "contact_set", contact_id: t.id, values: v, olds: o }] : [];
+  };
+  saveTwoStep(ack => upd(build())(ack), $("ctMsg"), $("ctGo"), async () => { modalClose(); await loadDetail(curId); });
+}
+function openDisc(x){
+  modalOpen(`<h4>${x ? "Edit discount" : "Add discount"}</h4><div class="pbody"><div class="cgrid">
+      <div class="cf"><label>Name</label><input type="text" id="d_name"></div>
+      <div class="cf"><label>Percent</label><input type="number" step="any" min="0" max="100" id="d_percent"></div></div>
+    <div class="cnote">Supplier discounts are copied onto new purchase orders. Open purchase orders keep their discounts.</div>
+    <div id="dMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="dCancel">Cancel</button><button class="pobtn go" id="dGo">Save</button></div>`);
+  $("d_name").value = x ? sv(x.name) : ""; $("d_percent").value = x ? sv(x.percent) : "";
+  $("dCancel").onclick = modalClose;
+  const build = () => {
+    const sid = cur.r.id, nm = val("d_name"), pc = val("d_percent");
+    if(!x) return [{ supplier_id: sid, op: "discount_add", values: { name: nm, percent: pc } }];
+    const v = {}, o = {};
+    if(nm !== sv(x.name)){ v.name = nm; o.name = sv(x.name); }
+    if(pc === "" ? sv(x.percent) !== "" : Number(pc) !== Number(x.percent)){ v.percent = pc; o.percent = sv(x.percent); }
+    return Object.keys(v).length ? [{ supplier_id: sid, op: "discount_set", discount_id: x.id, values: v, olds: o }] : [];
+  };
+  saveTwoStep(ack => upd(build())(ack), $("dMsg"), $("dGo"), async () => { modalClose(); await loadDetail(curId); });
 }
 
 /* ── 시작 ─────────────────────────────────────────────── */
-imsAuth.start({ changePw:true }, async (client, meData) => {
-  sb = client; me = meData; isAdmin = (me.role === "admin");
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
   imsHeader(me);
-  if(isAdmin) document.getElementById("opts").hidden = false;
-
-  document.getElementById("onlyActive").onchange  = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
-  document.getElementById("hideDisc").onchange    = e => { hideDisc   = e.target.checked; pg.reset(); clearDetail(); loadList(); };
-  document.getElementById("purchFilter").onchange = e => { purchF     = e.target.value;   pg.reset(); clearDetail(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
-
-  await loadList();
+  $("buildTag").textContent = SP_BUILD;
+  isMaster = imsAuth.canWrite("master");
+  canWrite = isMaster || imsAuth.canWrite("purchasing");
+  $("newBtn").hidden = !canWrite; $("newBtn").onclick = openNew;
+  $("wnewBtn").hidden = !canWrite; $("wnewBtn").onclick = openNew;
+  if(!canWrite){ $("opts").hidden = true; document.querySelector("#wide .wopts").hidden = true; $("wclear").hidden = true; }
+  const [p, c, a] = await Promise.all([
+    sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_currency").select("id,code").eq("is_active", true).order("code"),
+    sb.from("ref_account").select("id,code,name").eq("is_active", true).order("code"),
+  ]);
+  refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || [];
+  // 필터 값은 한 벌 — 두 목록의 칸이 같은 값을 쓴다
+  $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
+  $("hideDisc").onchange = e => { hideDisc = e.target.checked; pg.reset(); loadList(); };
+  $("purchFilter").onchange = e => { purchF = e.target.value; pg.reset(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
+  $("wactive").onchange = e => { onlyActive = e.target.checked; wpg.reset(); loadWide(); };
+  $("whide").onchange = e => { hideDisc = e.target.checked; wpg.reset(); loadWide(); };
+  $("wpurch").onchange = e => { purchF = e.target.value; wpg.reset(); loadWide(); };
+  imsQ("#wq", v => { q = v; wpg.reset(); loadWide(); });
+  $("wclear").onclick = () => { q = ""; onlyActive = true; hideDisc = false; purchF = "all"; syncCtl(); wpg.reset(); loadWide(); };
+  const want = new URLSearchParams(location.search);
+  if(want.get("id")) await openSupplier(want.get("id"));
+  else showWide();
 });
 </script>
 </body>
