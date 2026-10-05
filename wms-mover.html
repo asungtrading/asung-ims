@@ -84,6 +84,25 @@
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast.bad{background:var(--danger)}
 
+  /* mv v2 — 옮길 목록 · 이 칸에 있는 것(판정 234 · mv-multi 묶음 2 · 3) */
+  .lcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 12px;margin-top:12px}
+  .lcard .lh{display:flex;align-items:center;gap:8px}
+  .lcard .lh .t{font-family:var(--mono);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .lcard .lh .sp{flex:1}
+  .lrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line)}
+  .lrow:first-of-type{border-top:0}
+  .lrow .sk{font-family:var(--mono);font-weight:800;font-size:14px}
+  .lrow .nm{font-size:11.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+  .lrow .grow{flex:1;min-width:0}
+  .lrow input{width:72px;font-family:var(--mono);font-weight:800;font-size:16px;text-align:center;border:1px solid var(--line);border-radius:8px;padding:5px}
+  .lrow .of{font-size:11px;color:var(--mut);white-space:nowrap}
+  .lrow .x{border:1px solid var(--line);background:#fff;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--mut)}
+  .lrow.off .sk,.lrow.off .of{color:var(--mut-2)}
+  .lrow .addb{border:1px solid #cfe9d7;background:var(--ok-bg);color:#136b33;border-radius:8px;font:inherit;font-size:12px;font-weight:700;padding:5px 10px;cursor:pointer}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-size:12.5px;font-weight:700;padding:6px 10px;cursor:pointer}
+  .mini.ok{border-color:#cfe9d7;background:var(--ok-bg);color:#136b33}
+  details.inbin summary{cursor:pointer;font-family:var(--mono);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+
   /* bin list modal — wms-receiver 모양 */
   .modal-ov{position:fixed;inset:0;background:rgba(16,22,30,.5);backdrop-filter:blur(2px);z-index:70;display:flex;align-items:flex-end;justify-content:center}
   @media(min-width:560px){.modal-ov{align-items:center}}
@@ -142,6 +161,7 @@
             <button class="qall" id="qAll">All</button>
           </div>
           <div class="ea" id="qHint">single units (EA) · scan the product again to add</div>
+          <div style="margin-top:8px"><button class="mini ok" id="addBtn">Add to list</button> <span class="ea">— or scan the next product (this one goes to the list)</span></div>
         </div>
       </div>
       <div class="step" id="sTo">
@@ -155,6 +175,15 @@
     <div class="scanhint"><span class="live"></span><span id="hint">Scan the FROM bin</span></div>
 
     <div class="err" id="err"></div>
+
+    <div class="lcard" id="listCard" style="display:none">
+      <div class="lh"><span class="t" id="listTitle">To move</span><span class="sp"></span><button class="mini" id="clearList">Clear list</button></div>
+      <div id="listRows"></div>
+    </div>
+    <div class="lcard" id="binCard" style="display:none">
+      <div class="lh"><span class="t" id="binTitle">In this bin</span><span class="sp"></span><button class="mini ok" id="addAllBtn">Add all in this bin</button></div>
+      <details class="inbin" id="binDetails"><summary id="binSummary">Show what is here</summary><div id="binRows"></div></details>
+    </div>
 
     <div class="acts">
       <button class="btn ghost" id="resetBtn">Start over</button>
@@ -196,12 +225,13 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const MV_BUILD = "2026-09-28 · mv v1";   // trf-b(대화 Claude) — 판정 60 ~ 63 · 창구 1429943(inv_move_now · inv_move_open_plans)
+const MV_BUILD = "2026-10-05 · mv v2";   // mv-multi-2(대화 Claude) — 판정 234 · mv-multi 묶음 2 ~ 6: 목록에 담아 Move all · Add all in this bin · 최대는 inv_move_bin_contents 하나에서(asung-wms c79c50c · definer = 확정과 같은 눈 · mv v1 의 세 조각은 RLS 로 트랜스퍼 픽을 못 봐 최대가 커 보일 수 있었다) ← mv v1 trf-b · 판정 60 ~ 63 · 창구 1429943(inv_move_now)
 console.log("wms-mover.html build:", MV_BUILD);
 
 let sb = null, me = null, canMove = false, actx = null, busy = false;
 let whs = [], wh = null;                  // wh = {id, name}
-const st = { from: null, item: null, to: null, info: null, qty: 0 };
+const st = { from: null, item: null, to: null, info: null, qty: 0, list: [], contents: null };
+/* mv v2 — st.list = [{id, sku, name, qty, max}] (옮길 목록 · 한 상품 한 줄) · st.contents = inv_move_bin_contents 의 items(출발 칸) */
 /* st.from / st.to = {id, name} · st.item = {id, sku, name, factor, scanned} · st.info = {book, picked, waiting, max, follow, plans} */
 const codeCache = new Map();              // scanned code → {id, sku, name, factor} (this session)
 
@@ -290,26 +320,53 @@ async function productByCode(code){
   return out;
 }
 
-/* The same numbers the database will check: book and picked-not-shipped (the adjustment
-   pieces) and the open pick plans of this bin (inv_move_open_plans · ruling 62). */
+/* mv v2 — the bin's numbers come from one window (inv_move_bin_contents · c79c50c): book · picked · waiting · max ·
+   plans · follow · blocked for every product in the FROM bin. Its max is the same count the confirm makes
+   (inv_move_eval) and is read as definer — the mv v1 pieces read the transfer picks through RLS. */
+async function loadContents(){
+  if(!st.from){ st.contents = null; return; }
+  const from = st.from;
+  const { data, error } = await sb.rpc("inv_move_bin_contents", { p_warehouse_id: wh.id, p_bin_id: from.id });
+  if(st.from !== from) return;                               // the person moved on meanwhile
+  if(error){ setConn("err"); st.contents = null; throw error; }
+  setConn("ok");
+  st.contents = (data && data.items) || [];
+}
+function rowOf(pid){ return (st.contents || []).find(r => r.product_id === pid) || null; }
+function infoOf(r){
+  if(!r) return { book: 0, picked: 0, waiting: 0, follow: 0, max: 0, waitingBy: [], blocked: null, missing: true };
+  const plans = r.plans || [];
+  return { book: n0(r.book), picked: n0(r.picked), waiting: n0(r.waiting), follow: n0(r.follow), max: n0(r.max), blocked: r.blocked || null,
+           waitingBy: plans.filter(p => n0(p.blocking) > 0).map(p => `${p.batch_label || p.so_number} ${fmt(p.blocking)}`) };
+}
+function whyNot(r){
+  if(r.blocked) return r.blocked;
+  if(n0(r.waiting) > 0) return "waiting for picker";
+  if(n0(r.book) < 0) return "negative book";
+  return "picked, not shipped";
+}
 async function loadInfo(){
   if(!st.from || !st.item){ st.info = null; return; }
-  const from = st.from, item = st.item;
-  const [r1, r2, r3] = await Promise.all([
-    sb.rpc("inv_adjust_ledger", { p_warehouse: wh.name, p_bin: from.name, p_sku: item.sku }),
-    sb.rpc("inv_adjust_picked", { p_warehouse_id: wh.id, p_bin_id: from.id, p_product_id: item.id }),
-    sb.rpc("inv_move_open_plans", { p_warehouse_id: wh.id, p_bin_id: from.id, p_product_id: item.id })
-  ]);
-  if(st.from !== from || st.item !== item) return;           // the person moved on meanwhile
-  const bad = r1.error || r2.error || r3.error;
-  if(bad){ setConn("err"); throw bad; }
-  setConn("ok");
-  const plans = r3.data || [];
-  const book = n0(r1.data), picked = n0(r2.data);
-  const waiting = plans.reduce((s, p) => s + n0(p.blocking_qty), 0);
-  const follow = plans.reduce((s, p) => s + n0(p.movable_qty), 0);
-  st.info = { book, picked, waiting, follow, max: book - picked - waiting,
-              waitingBy: plans.filter(p => n0(p.blocking_qty) > 0).map(p => `${p.batch_label || p.so_number} ${fmt(p.blocking_qty)}`) };
+  if(st.contents === null) await loadContents();
+  st.info = infoOf(rowOf(st.item.id));
+}
+/* in-list quantity of a product (the current item adds on top of it) */
+function inList(pid){ const l = st.list.find(x => x.id === pid); return l ? l.qty : 0; }
+function roomFor(pid){ const r = rowOf(pid); return Math.max(n0(r && r.max) - inList(pid), 0); }
+function addToList(item, qty){
+  if(!(qty > 0)) return false;
+  const r = rowOf(item.id); if(!r || r.blocked) return false;
+  const l = st.list.find(x => x.id === item.id);
+  const max = n0(r.max);
+  if(l){ if(l.qty + qty > max) return false; l.qty += qty; }
+  else { if(qty > max) return false; st.list.push({ id: item.id, sku: item.sku, name: item.name || r.product_name || "", qty, max }); }
+  return true;
+}
+function commitItem(){   // the current item goes to the list
+  if(!st.item || !(st.qty > 0)) return true;
+  if(!addToList(st.item, st.qty)){ flash("bad", "✕ Only " + fmt(roomFor(st.item.id)) + " more can move"); return false; }
+  st.item = null; st.info = null; st.qty = 0;
+  return true;
 }
 
 /* ── state → screen ─────────────────────────────────── */
@@ -354,14 +411,55 @@ function render(){
     cur === "item" ? `Scan the product in ${st.from.name}` :
     cur === "to"   ? "Scan the product again to add · or scan the TO bin" :
                      `Press Move — or scan ${st.to.name} again to move`;
-  const ok = cur === "go" && !busy && i && st.qty > 0 && st.qty <= i.max;
+  /* mv v2 — the list and the bin */
+  const lines = st.list.length + (st.item && st.qty > 0 ? 1 : 0);
+  const itemOk = !st.item || (i && st.qty > 0 && st.qty <= roomFor(st.item.id));
+  const ok = !busy && st.from && st.to && lines > 0 && itemOk;
   $("moveBtn").disabled = !ok;
-  $("moveBtn").textContent = st.item && st.to ? `Move ${fmt(st.qty)} → ${st.to.name}` : "Move";
+  $("moveBtn").textContent = !st.to ? (st.list.length ? `Move all (${lines})` : "Move")
+    : st.list.length ? `Move all ${lines} line${lines === 1 ? "" : "s"} → ${st.to.name}` : st.item ? `Move ${fmt(st.qty)} → ${st.to.name}` : "Move";
+  if(cur === "to" || cur === "go") $("hint").textContent = st.to ? `Press Move — or scan ${st.to.name} again to move` : "Scan the next product · or scan the TO bin";
+  if(cur === "item" && st.list.length) $("hint").textContent = `Scan the next product in ${st.from.name} · or scan the TO bin`;
+  $("addBtn").disabled = !(st.item && i && st.qty > 0 && st.qty <= roomFor(st.item.id));
+
+  $("listCard").style.display = st.list.length ? "block" : "none";
+  const tot = st.list.reduce((a, l) => a + l.qty, 0);
+  $("listTitle").textContent = `To move · ${st.list.length} line${st.list.length === 1 ? "" : "s"} · ${fmt(tot)} EA`;
+  $("listRows").innerHTML = st.list.map((l, k) => `<div class="lrow">
+      <div class="grow"><div class="sk">${esc(l.sku)}</div><div class="nm">${esc(l.name)}</div></div>
+      <input type="number" inputmode="numeric" min="1" step="1" data-lq="${k}" value="${esc(l.qty)}">
+      <span class="of">of ${fmt(l.max)}</span>
+      <button class="x" data-lx="${k}" title="Take off the list">×</button></div>`).join("");
+  $("listRows").querySelectorAll("[data-lq]").forEach(el => {
+    el.onchange = () => { const k = Number(el.dataset.lq), l = st.list[k]; if(!l) return;
+      const q = Math.max(0, Math.floor(Number(el.value) || 0));
+      if(q > l.max){ flash("bad", "✕ Only " + fmt(l.max) + " can move"); el.value = l.qty; return; }
+      if(q === 0) st.list.splice(k, 1); else l.qty = q; render(); focusScan(); };
+  });
+  $("listRows").querySelectorAll("[data-lx]").forEach(b => { b.onclick = () => { st.list.splice(Number(b.dataset.lx), 1); render(); focusScan(); }; });
+
+  const c = st.contents;
+  $("binCard").style.display = st.from && c ? "block" : "none";
+  if(st.from && c){
+    const movable = c.filter(r => n0(r.max) > 0 && !r.blocked);
+    $("binTitle").textContent = `In ${st.from.name} · ${c.length} product${c.length === 1 ? "" : "s"}`;
+    $("binSummary").textContent = `${movable.length} can move · ${c.length - movable.length} cannot — show`;
+    $("addAllBtn").disabled = !movable.some(r => roomFor(r.product_id) > 0);
+    $("binRows").innerHTML = c.length ? c.map(r => { const room = r.product_id ? roomFor(r.product_id) : 0, can = n0(r.max) > 0 && !r.blocked;
+      return `<div class="lrow ${can ? "" : "off"}">
+        <div class="grow"><div class="sk">${esc(r.sku)}</div><div class="nm">${esc(r.product_name || "")}</div></div>
+        <span class="of">book ${fmt(r.book)} · can move ${fmt(r.max)}${can ? "" : " · " + esc(whyNot(r))}</span>
+        ${can && room > 0 ? `<button class="addb" data-ba="${esc(r.product_id)}">Add ${fmt(room)}</button>` : ""}</div>`; }).join("")
+      : '<div class="empty">Nothing on the book in this bin.</div>';
+    $("binRows").querySelectorAll("[data-ba]").forEach(b => { b.onclick = () => {
+      const r = rowOf(b.dataset.ba); if(!r) return;
+      addToList({ id: r.product_id, sku: r.sku, name: r.product_name }, roomFor(r.product_id)); render(); focusScan(); }; });
+  }
 }
 
 function resetAll(keepFrom){
-  st.item = null; st.to = null; st.info = null; st.qty = 0;
-  if(!keepFrom) st.from = null;
+  st.item = null; st.to = null; st.info = null; st.qty = 0; st.list = [];
+  if(!keepFrom){ st.from = null; st.contents = null; }
   showErr(""); render(); focusScan();
 }
 function setQty(v){
@@ -378,19 +476,26 @@ async function onScan(raw){
     if(!st.from){
       const b = await binByName(code);
       if(!b){ flash("bad", "✕ Not a bin here"); toast(`"${code}" is not an active bin at ${wh.name}`, true); return; }
-      st.from = b; flash("ok", "From " + b.name); render(); return;
+      st.from = b; st.contents = null; flash("ok", "From " + b.name); render();
+      await loadContents(); render(); return;
     }
     if(!st.item){
       const p = await productByCode(code);
       if(!p){
         const b = await binByName(code);
-        if(b){ st.from = b; flash("ok", "From " + b.name); render(); return; }   // a second bin scan before any item = change the from bin
+        if(b && !st.list.length){ st.from = b; st.contents = null; flash("ok", "From " + b.name); render(); await loadContents(); render(); return; }   // a second bin scan before any item = change the from bin
+        if(b){   // mv v2 — with a list, a bin here is the TO bin
+          if(b.id === st.from.id){ flash("bad", "✕ Same bin"); toast("From and to are the same bin", true); return; }
+          if(st.to && b.id === st.to.id){ await doMove(); return; }
+          st.to = b; flash("ok", "To " + b.name); render(); return;
+        }
         flash("bad", "✕ Unknown barcode"); toast("Unknown barcode — ask the office to register the product", true); return;
       }
       st.item = p; st.qty = p.factor; render();
       await loadInfo();
-      if(st.info && st.qty > st.info.max) st.qty = Math.max(st.info.max, 0);
-      flash(st.info && st.info.max > 0 ? "ok" : "bad", st.info && st.info.max > 0 ? p.sku : "✕ Nothing can move");
+      const room = roomFor(p.id);
+      if(st.qty > room) st.qty = room;
+      flash(room > 0 ? "ok" : "bad", room > 0 ? p.sku : (inList(p.id) ? "✕ All of it is on the list" : "✕ Nothing can move"));
       render(); return;
     }
     // item chosen: the same product again adds its pack size · a bin = the TO bin · the TO bin again = Move
@@ -398,16 +503,27 @@ async function onScan(raw){
     const p = await productByCode(code).catch(() => null);
     if(p && p.id === st.item.id){
       const next = st.qty + p.factor;
-      if(st.info && next > st.info.max){ flash("bad", "✕ Only " + fmt(st.info.max) + " can move"); return; }
+      if(next > roomFor(st.item.id)){ flash("bad", "✕ Only " + fmt(roomFor(st.item.id)) + " can move"); return; }
       st.qty = next; flash("ok", "+" + p.factor + " = " + fmt(st.qty)); render(); return;
     }
-    if(p){ flash("bad", "✕ Different product"); toast(`That is ${p.sku} — finish ${st.item.sku} first or press Start over`, true); return; }
+    if(p){   // mv v2 — a different product: the current one goes to the list, the new one becomes the item
+      if(st.to){ flash("bad", "✕ Move first"); toast(`The TO bin is set — press Move, or Start over to add more`, true); return; }
+      if(!commitItem()) return;
+      st.item = p; st.qty = p.factor; render();
+      await loadInfo();
+      const room = roomFor(p.id);
+      if(st.qty > room) st.qty = room;
+      flash(room > 0 ? "ok" : "bad", room > 0 ? p.sku : (inList(p.id) ? "✕ All of it is on the list" : "✕ Nothing can move"));
+      render(); return;
+    }
     const b = await binByName(code);
     if(!b){ flash("bad", "✕ Not a bin here"); toast(`"${code}" is not an active bin at ${wh.name}`, true); return; }
     if(b.id === st.from.id){ flash("bad", "✕ Same bin"); toast("From and to are the same bin", true); return; }
     st.to = b; render();
-    const r = await sb.rpc("inv_adjust_ledger", { p_warehouse: wh.name, p_bin: b.name, p_sku: st.item.sku });
-    if(st.to === b && !r.error){ b.book = n0(r.data); }
+    if(!st.list.length){   // the single-item view keeps "Book there now" (display only · not a check)
+      const r = await sb.rpc("inv_adjust_ledger", { p_warehouse: wh.name, p_bin: b.name, p_sku: st.item.sku });
+      if(st.to === b && !r.error){ b.book = n0(r.data); }
+    }
     flash("ok", "To " + b.name); render();
   }catch(e){
     flash("bad", "✕ Error"); showErr(rpcMsg(e));
@@ -416,27 +532,39 @@ async function onScan(raw){
   }
 }
 
-/* ── Move — saved at once (inv_move_now: create + line + confirm in one go) ── */
+/* ── Move — saved at once (inv_move_now: create + lines + confirm in one go · all or nothing) ──
+   mv v2: the list plus the current item, one TO bin for all (ruling 234 · bundle 4). */
 async function doMove(){
-  if(busy || !st.from || !st.item || !st.to) return;
-  if(!(st.qty > 0)){ flash("bad", "✕ Quantity"); return; }
+  if(busy || !st.from || !st.to) return;
+  const all = st.list.map(l => ({ id: l.id, sku: l.sku, qty: l.qty }));
+  if(st.item && st.qty > 0){
+    if(st.qty > roomFor(st.item.id)){ flash("bad", "✕ Only " + fmt(roomFor(st.item.id)) + " can move"); return; }
+    const l = all.find(x => x.id === st.item.id);
+    if(l) l.qty += st.qty; else all.push({ id: st.item.id, sku: st.item.sku, qty: st.qty });
+  }
+  if(!all.length){ flash("bad", "✕ Nothing to move"); return; }
   busy = true; render(); showErr("");
-  const line = { product_id: st.item.id, from_bin_id: st.from.id, to_bin_id: st.to.id, qty: String(st.qty) };
-  const { data, error } = await sb.rpc("inv_move_now", { p_warehouse_id: wh.id, p_lines: [line], p_note: null });
+  const lines = all.map(l => ({ product_id: l.id, from_bin_id: st.from.id, to_bin_id: st.to.id, qty: String(l.qty) }));
+  const { data, error } = await sb.rpc("inv_move_now", { p_warehouse_id: wh.id, p_lines: lines, p_note: null });
   busy = false;
   if(error){
     setConn("err");
     flash("bad", "✕ Not moved");
-    showErr(rpcMsg(error));
-    try{ await loadInfo(); }catch(e){ /* the message above already says what happened */ }
+    const m = rpcMsg(error);
+    const hit = all.filter(l => m.includes(" " + l.sku + " ")).map(l => l.sku);
+    showErr(m + (all.length > 1 ? ` — nothing moved (all ${all.length} lines stay on the list)` + (hit.length ? ` · check ${hit.join(", ")}` : "") : ""));
+    try{ await loadContents(); if(st.item) st.info = infoOf(rowOf(st.item.id)); st.list.forEach(l => { const r = rowOf(l.id); l.max = n0(r && r.max); }); }catch(e){ /* the message above already says what happened */ }
     render(); focusScan(); return;
   }
   setConn("ok");
   const moved = (data && data.plans_moved) || [];
-  flash("done", `✓ ${data.move_number} · ${fmt(st.qty)} ${st.item.sku}`);
-  toast(`${data.move_number}: ${fmt(st.qty)} ${st.item.sku} ${st.from.name} → ${st.to.name}` +
+  const ea = all.reduce((a, l) => a + l.qty, 0);
+  const what = all.length === 1 ? `${fmt(all[0].qty)} ${all[0].sku}` : `${all.length} lines · ${fmt(ea)} EA`;
+  flash("done", `✓ ${data.move_number} · ${what}`);
+  toast(`${data.move_number}: ${what} ${st.from.name} → ${st.to.name}` +
         (moved.length ? ` · ${moved.length} waiting pick plan${moved.length === 1 ? "" : "s"} now point to ${st.to.name}` : ""));
   resetAll(true);                           // the next item often comes from the same bin
+  st.contents = null; loadContents().then(render).catch(e => showErr(rpcMsg(e)));
   loadRecent();
 }
 
@@ -444,7 +572,7 @@ async function doMove(){
 function closeBinModal(){ const m = document.getElementById("binModal"); if(m) m.remove(); focusScan(); }
 function openBinModal(which){
   if(!canMove) return;
-  if(which === "to" && (!st.from || !st.item)) { toast("Choose the from bin and the item first", true); return; }
+  if(which === "to" && (!st.from || (!st.item && !st.list.length))) { toast("Choose the from bin and an item first", true); return; }
   closeBinModal();
   const ov = document.createElement("div");
   ov.className = "modal-ov"; ov.id = "binModal";
@@ -472,7 +600,7 @@ function openBinModal(which){
       : '<div class="empty">No bin matches.</div>';
     box.querySelectorAll("[data-bin]").forEach(btn => { btn.onclick = () => {
       closeBinModal();
-      if(which === "from"){ resetAll(false); st.from = { id: btn.dataset.bin, name: btn.dataset.name }; initAudio(); flash("ok", "From " + st.from.name); render(); focusScan(); }
+      if(which === "from"){ resetAll(false); st.from = { id: btn.dataset.bin, name: btn.dataset.name }; initAudio(); flash("ok", "From " + st.from.name); render(); loadContents().then(render).catch(e => showErr(rpcMsg(e))); focusScan(); }
       else onScan(btn.dataset.name);
     }; });
   };
@@ -539,7 +667,18 @@ imsAuth.start({ requireScreen: "stock_move" }, async (client, meData) => {   // 
   $("moveBtn").onclick = () => { initAudio(); doMove(); };
   $("qMinus").onclick = () => { setQty(st.qty - 1); focusScan(); };
   $("qPlus").onclick = () => { setQty(st.qty + 1); focusScan(); };
-  $("qAll").onclick = () => { if(st.info) setQty(Math.max(st.info.max, 0)); focusScan(); };
+  $("qAll").onclick = () => { if(st.info) setQty(st.item ? roomFor(st.item.id) : 0); focusScan(); };
+  $("addBtn").onclick = () => { initAudio(); if(commitItem()){ flash("ok", "Added"); render(); } focusScan(); };
+  $("clearList").onclick = () => { st.list = []; render(); focusScan(); };
+  $("addAllBtn").onclick = () => {
+    initAudio(); if(!st.contents) return;
+    if(st.item && !commitItem()) return;
+    let n = 0; st.contents.forEach(r => { if(r.product_id && !r.blocked && roomFor(r.product_id) > 0 && addToList({ id: r.product_id, sku: r.sku, name: r.product_name }, roomFor(r.product_id))) n++; });
+    const off = st.contents.filter(r => !(n0(r.max) > 0) || r.blocked).length;
+    flash(n ? "ok" : "bad", n ? `+${n} line${n === 1 ? "" : "s"}` : "✕ Nothing more can move");
+    if(off) toast(`${off} product${off === 1 ? "" : "s"} here cannot move — see In this bin`);
+    render(); focusScan();
+  };
   $("qIn").addEventListener("input", e => setQty(e.target.value));
   $("qIn").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); focusScan(); } });
 
