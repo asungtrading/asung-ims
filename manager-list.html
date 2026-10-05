@@ -37,6 +37,7 @@
       <button data-t="unpaid">Unpaid at hand-over<span class="badge zero" id="bUnpaid">0</span></button>
       <button data-t="pos">POS not finished<span class="badge zero" id="bPos">0</span></button>
       <button data-t="counter">Counter orders</button>
+      <button data-t="newcust">New customers to review<span class="badge zero" id="bNewCust">0</span></button>
       <span class="sp"></span>
       <select id="wh" title="Branch"><option value="">All branches</option></select>
     </div>
@@ -60,7 +61,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-10-01 · ml v1.1";   // 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
+const ML_BUILD = "2026-10-05 · ml v1.2";   // 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
@@ -79,11 +80,13 @@ function daysAgo(d){
 
 /* ── 배지 넷을 한 번에(탭을 바꾸지 않아도 쌓인 것이 보이게) ── */
 async function loadBadges(){
-  const [sh, un, po] = await Promise.all([
+  const [sh, un, po, nc] = await Promise.all([
     sb.rpc("so_stock_short_list", { p_filters: Object.assign({ unchecked_only: true }, whId ? { warehouse_id: whId } : {}) }),
     unpaidQuery(true),
     sb.rpc("so_pos_open_list", { p_location_id: whId || null }),
+    sb.from("customer_review_list").select("customer_id", { count: "exact", head: true }),
   ]);
+  if(!nc.error) badge("bNewCust", nc.count || 0);
   if(!sh.error) badge("bShort", sh.data.unchecked_count || 0);
   if(!un.error) badge("bUnpaid", un.count || 0);
   if(!po.error) badge("bPos", po.data.stale_count || 0);
@@ -106,6 +109,7 @@ async function show(){
   if(tab === "unpaid")  return showUnpaid(box);
   if(tab === "pos")     return showPos(box);
   if(tab === "counter") return showCounter(box);
+  if(tab === "newcust") return showNewCust(box);
 }
 
 /* ① 재고 없이 나갔다 — 미확인은 기간과 상관없이 전량 · 확인된 것은 최근 30일 */
@@ -192,6 +196,27 @@ async function showCounter(box){
         <td>${o.shipped_at ? imsTs(o.shipped_at) + ` <span class="dim" style="font-size:11.5px">${esc((o.shipper && o.shipper.name) || "")}</span>` : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>
       <div class="sosub">Counter orders take stock out without going through the warehouse screens — this list is how a manager sees them. Last 30 days.</div>`
     : '<div class="msg">No counter orders in the last 30 days.</div>';
+}
+
+/* ⑤ 새 손님 확인(판정 240 · cs-5 ②) — sales 가 IMS 에서 만든 손님 · 돈 조건이 기본값(Wholesale · 0% · C.B.S · CAD)인 채
+   ⭐ 확인(Reviewed) · 돈 칸 고치기는 손님 화면에서 master 가 — 이 탭은 목록 + 그 손님으로 가는 길 · 창고 거르기는 손님의 기본 창고 이름으로 */
+async function showNewCust(box){
+  let qy = sb.from("customer_review_list").select("customer_id,name,display_name,created_at,created_by_name,price_tier,discount_pct,payment_term_name,currency_code,default_location_name,so_count,open_so_count,first_order_at,city")
+    .order("created_at", { ascending: true }).limit(300);
+  if(whName) qy = qy.eq("default_location_name", whName);
+  const { data, error } = await qy;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = (data || []).length ? `<table><thead><tr><th>Customer</th><th>City</th><th>Created</th><th>Terms now</th><th class="num">Orders</th><th>First order</th><th></th></tr></thead>
+      <tbody>${data.map(c => `<tr>
+        <td><a class="lnk" href="customers.html?id=${encodeURIComponent(c.customer_id)}">${esc(c.name)}</a>${c.display_name ? ` <span class="dim" style="font-size:11.5px">${esc(c.display_name)}</span>` : ""}</td>
+        <td>${dim(c.city)}</td>
+        <td>${imsTs(c.created_at)} <span class="dim" style="font-size:11.5px">${esc(c.created_by_name || "")}</span></td>
+        <td>${esc(c.price_tier || "—")} · ${esc(c.discount_pct === null || c.discount_pct === undefined ? "0" : String(c.discount_pct))}% · ${esc(c.payment_term_name || "—")} · ${esc(c.currency_code || "—")}</td>
+        <td class="num">${esc(String(c.so_count || 0))}${Number(c.open_so_count) ? ` <span class="dim" style="font-size:11.5px">(${esc(String(c.open_so_count))} open)</span>` : ""}</td>
+        <td>${c.first_order_at ? imsTs(c.first_order_at) : '<span class="dim">no order yet</span>'}</td>
+        <td><a class="lnk" href="customers.html?id=${encodeURIComponent(c.customer_id)}">Open</a></td></tr>`).join("")}</tbody></table>
+      <div class="sosub">Customers made by sales start on the default terms (Wholesale · 0% · C.B.S · CAD). A manager opens each one, changes the terms if needed, and presses Reviewed — changing a money term counts as reviewed too.</div>`
+    : '<div class="msg">No new customers waiting for review.</div>';
 }
 
 /* ── 시작 ── */
