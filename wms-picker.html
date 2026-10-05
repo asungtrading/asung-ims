@@ -178,6 +178,19 @@
   .bdtype button{width:auto;padding:11px 14px}
   .bdempty{display:flex;gap:8px;align-items:center;font-size:13.5px;margin:4px 0 14px}
   .bdempty input{width:20px;height:20px}
+  /* pick-shelf-2(판정 235 · 묶음 1 ~ 4) — on shelf · 계획 칸 + 바로 밑 체크 · 고르기 → 확인 · 결과 줄 */
+  .shelf{display:inline-block;margin-left:8px;font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 8px;border-radius:7px;background:#eef3ff;color:#2952a3;vertical-align:middle}
+  .shelf.low{background:#fdf1e3;color:#a86400}
+  .shelf.zero{background:#fde8e8;color:var(--danger)}
+  .bdplan{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper);margin:4px 0 12px}
+  .bdplan .lbl,.bdsect{font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+  .bdplan .pb{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:15px;font-weight:800;margin:4px 0 8px}
+  .bdplan .bdempty{margin:0}
+  .bdrow.sel{border-color:var(--ok);border-width:2px;background:#e7f7ed}
+  .bdrow .bq{display:flex;gap:8px;align-items:center}
+  .bdfoot{display:flex;gap:8px}
+  .bdfoot button{flex:1}
+  .rpok{color:var(--ok);font-weight:700}
 
   /* ---- mobile ---- */
   @media(max-width:480px){
@@ -259,10 +272,15 @@
   <div class="fzbox">
     <div class="t" style="color:var(--ink)" id="bdTitle">Pick from a different bin</div>
     <p class="sub" id="bdSub"></p>
+    <div class="bdplan">
+      <div class="lbl">Planned</div>
+      <div class="pb"><span id="bdPlanBin">—</span><span id="bdPlanShelf"></span></div>
+      <label class="bdempty"><input type="checkbox" id="bdEmpty"> This bin was empty (tell the manager)</label>
+    </div>
+    <div class="bdsect">Pick from</div>
     <div class="bdlist" id="bdList"></div>
-    <div class="bdtype"><input id="bdType" autocomplete="off" placeholder="Other bin — type its name"><button class="btn ghost" id="bdUse">Use</button></div>
-    <label class="bdempty"><input type="checkbox" id="bdEmpty"> The planned bin was empty (tell the manager)</label>
-    <button class="btn ghost" id="bdCancel">Cancel</button>
+    <div class="bdtype"><input id="bdType" autocomplete="off" placeholder="Other bin — type its name"><button class="btn ghost" id="bdUse">Select</button></div>
+    <div class="bdfoot"><button class="btn ghost" id="bdCancel">Cancel</button><button class="btn dark" id="bdGo" disabled>Pick from …</button></div>
   </div>
 </div>
 
@@ -292,7 +310,7 @@
    클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 안내 · Cin7 void 배너 — 대신 「오더가 Working 이 아니다」 배너(판정 21 · so.status) ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 화면이 product_image_primary 를 부른다) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다 · 동선 순서 열쇠 warehouse_id|zone. */
-const WP_BUILD="2026-10-01 · pk v1.3";   // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
+const WP_BUILD="2026-10-05 · pk v1.4";   // pick-shelf-2(판정 235 · 묶음 1 ~ 4) — 칸 옆 on shelf(wms_pick_shelf 한 번 · asung-wms pick-shelf-1) · Different bin = 계획 칸 + 바로 밑 체크 · 고르기 → 「Pick from」 · 줄에 결과 · 빈 계획 칸 보고 한 번만 ← wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17 — 저장 값은 그대로 · 글자만
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
@@ -920,6 +938,27 @@ async function loadLines(){
   await enterPickView();
 }
 
+/* ── pick-shelf-2(판정 235) — on shelf = 그 칸의 장부 − 집었지만 아직 출고 안 된 몫(판정 62) ──
+   숫자는 DB 창구 wms_pick_shelf 하나에서(definer · 확정과 같은 눈) · 과제의 모든 줄을 한 번에 · 표시만(막지 않는다 · 판정 123) */
+let shelfMap={};   // base_sku → { bin_id → {bin, book, picked, on_shelf, planned} }
+async function loadShelf(){
+  const skus=[...new Set(lines.map(l=>l.base_sku).filter(Boolean))];
+  if(!skus.length || !curWh){ shelfMap={}; return; }
+  const {data,error}=await sb.rpc("wms_pick_shelf",{p_warehouse_id:curWh, p_skus:skus});
+  if(error){ console.warn("wms_pick_shelf:", error.message); return; }   // 표시만 — 못 읽어도 픽은 그대로
+  const m={};
+  for(const it of ((data&&data.items)||[])){ const k=it.sku; m[k]={}; for(const b of (it.bins||[])) m[k][b.bin_id]={bin:b.bin, book:Number(b.book||0), picked:Number(b.picked||0), on_shelf:Number(b.on_shelf||0), planned:!!b.planned}; }
+  for(const l of lines){ const r=((data&&data.items)||[]).find(it=>it.sku===l.base_sku || it.sku===l.order_sku); if(r && !m[l.base_sku]) m[l.base_sku]=m[r.sku]; }
+  shelfMap=m;
+}
+function shelfOf(l, binId){ const m=shelfMap[l.base_sku]; return m && binId ? m[binId] : null; }
+function shelfChip(l, binId){
+  const x=shelfOf(l, binId); if(!x) return "";
+  const need=l.assigned-l.picked;
+  return `<span class="shelf ${x.on_shelf<=0?"zero":x.on_shelf<need?"low":""}" title="Book ${x.book} − picked, not shipped ${x.picked}">on shelf ${x.on_shelf}</span>`;
+}
+function curBinId(l){ return l.binSel ? l.binSel.bin_id : ((l.planned||[])[0]||{}).bin_id; }
+
 /* shared pick-view entry: sort lines by route, build the scan map, show.
    Used by both a single batch (loadLines) and a wave (loadWaveLines). 줄 · 바코드 · 가용은 이미 창구가 줬다(별도 보강 조회 없음). */
 async function enterPickView(){
@@ -949,6 +988,7 @@ async function enterPickView(){
   document.getElementById("pTitle").textContent=pickTitle;
   document.getElementById("pMeta").textContent=pickMeta;
   renderPick(); focusScan();
+  loadShelf().then(()=>{ if(!frozen) renderPick(); }).catch(()=>{});   // pick-shelf-2 — on shelf 는 늦게 와도 된다(한 번 다시 그린다 · 표시만)
   // 오더 상태 배너(판정 21 · 운영 Cin7 void 배너의 자리) — 진행 중 배치는 숨기지 않고 알린다(실물이 토트에 있다). 부가 정보 — 실패해도 진입을 막지 않는다.
   checkOrderBanner(wave? [...new Set(lines.map(l=>l._orderId).filter(Boolean))] : [task.order_id]);
   if(HAS_IMAGES) loadImageFlags();   // independent — restores the pressed state of ⚑ Image differs
@@ -1194,8 +1234,8 @@ function renderSingle(){
       <div class="head">
         ${HAS_IMAGES?`<div class="img" data-psku="${esc(l.order_sku)}">${imgTag(l)}</div>`:""}
         <div class="info">
-          <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.binSel?l.binSel.bin:(l.bins||l.bin||"—"))}</span>${curBinName(l)?`<button class="mapchip" data-map="${esc(curBinName(l))}" title="Find this bin on the warehouse map">🗺</button>`:""}${(!done&&!frozen)?`<button class="binchg" data-binchg>⇄ Different bin</button>`:""}</div>
-          ${l.binSel?`<span class="binnow">Planned: ${esc(l.bins||l.bin||"—")}</span>`:""}
+          <div class="zbin"><span class="zbadge">${esc(l.zone||"·")}</span><span class="binbig">${esc(l.binSel?l.binSel.bin:(l.bins||l.bin||"—"))}</span>${shelfChip(l, curBinId(l))}${curBinName(l)?`<button class="mapchip" data-map="${esc(curBinName(l))}" title="Find this bin on the warehouse map">🗺</button>`:""}${(!done&&!frozen)?`<button class="binchg" data-binchg>⇄ Different bin</button>`:""}</div>
+          ${l.binSel?`<span class="binnow">Planned: ${esc(l.bins||l.bin||"—")} · picking from ${esc(l.binSel.bin)}${l.reported&&l.reported[l.binSel.bin_id]?` · <span class="rpok">planned bin reported empty ✓</span>`:""}</span>`:""}
           ${splitText(l)?`<div class="binsplit">Picked from ${esc(splitText(l))}</div>`:""}
           <div class="nm">${esc(l.product_name)}</div>
           <div class="sku">${esc(l.order_sku)}${l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${availChip(l)}</div>
@@ -1341,28 +1381,45 @@ function move(dir){ curIdx=Math.max(0,Math.min(lines.length-1,curIdx+dir)); rend
    칸 목록(계획 먼저 · 장부 재고 있는 칸) 에서 고르거나 이름을 친다 · 친 이름은 이 창고 칸인지 ref_bin 으로 먼저 본다(서버도 다시 본다) ·
    장부가 모자라도 막지 않는다(판정 123 — 저장 반환의 warnings 로 알린다) · 체크하면 wrong_location 을 칸 셋과 함께 자동으로(판정 124). */
 let bdLine=null;
+let bdPick=null;   // pick-shelf-2 — 창에서 고른 칸(확인 전)
 function openBinDlg(idx){
   if(frozen) return;
   const l=lines[idx]; if(!l) return;
-  bdLine=l; scanBusy=true;
+  bdLine=l; bdPick=null; scanBusy=true;
   document.getElementById("bdTitle").textContent=`Pick ${l.order_sku} from a different bin`;
-  document.getElementById("bdSub").textContent=`Planned: ${l.bins||l.bin||"—"} · still to pick ${l.assigned-l.picked}. The next scans go to the bin you choose.`;
-  const cur=curBinName(l);
-  const rows=(l.stockBins||[]);
-  document.getElementById("bdList").innerHTML=rows.length ? rows.map((b,i)=>`<button class="bdrow ${b.bin===cur?"cur":""}" data-bd="${i}">
-      <span>${esc(b.bin)}${b.planned?`<span class="bt">planned</span>`:""}${b.active?"":`<span class="bt off">inactive</span>`}</span>
-      <span class="bq">ledger ${b.qty}</span></button>`).join("")
-    : `<p class="sub">No bin in this warehouse shows stock for this item. Type the bin name below.</p>`;
-  document.querySelectorAll("#bdList [data-bd]").forEach(b=>b.onclick=()=>{ const pickRow=rows[+b.dataset.bd]; closeBinDlg(); chooseBin(l, pickRow, document.getElementById("bdEmpty").checked); renderPick(); focusScan(); });
+  document.getElementById("bdSub").textContent=`Still to pick ${l.assigned-l.picked}. The next scans go to the bin you choose.`;
+  const plan=(l.planned||[])[0]||{};
+  document.getElementById("bdPlanBin").textContent=l.bins||l.bin||"—";
+  document.getElementById("bdPlanShelf").innerHTML=shelfChip(l, plan.bin_id);
+  const planIds=new Set((l.planned||[]).map(p=>p.bin_id));
+  const rows=(l.stockBins||[]).filter(b=>!planIds.has(b.bin_id));   // 묶음 2 — 계획 칸은 목록에서 빠진다(위 칸에 따로)
+  const cur=l.binSel ? l.binSel.bin_id : null;
+  document.getElementById("bdList").innerHTML=rows.length ? rows.map((b,i)=>`<button class="bdrow ${b.bin_id===cur?"cur":""}" data-bd="${i}">
+      <span>${esc(b.bin)}${b.active?"":`<span class="bt off">inactive</span>`}</span>
+      <span class="bq">${shelfChip(l, b.bin_id) || `<span>ledger ${b.qty}</span>`}</span></button>`).join("")
+    : `<p class="sub">No other bin in this warehouse shows stock for this item. Type the bin name below.</p>`;
+  document.querySelectorAll("#bdList [data-bd]").forEach(btn=>btn.onclick=()=>bdSelect(rows[+btn.dataset.bd], btn));
   document.getElementById("bdType").value="";
   document.getElementById("bdEmpty").checked=false;
+  bdSyncGo();
   document.getElementById("binDlg").style.display="grid";
 }
+function bdSelect(pick, btn){
+  bdPick=pick;
+  document.querySelectorAll("#bdList .bdrow").forEach(x=>x.classList.remove("sel"));
+  if(btn) btn.classList.add("sel");
+  bdSyncGo();
+}
+function bdSyncGo(){
+  const g=document.getElementById("bdGo");
+  g.disabled=!bdPick; g.textContent=bdPick ? `Pick from ${bdPick.bin}` : "Pick from …";
+}
 function closeBinDlg(){ document.getElementById("binDlg").style.display="none"; scanBusy=false; scanEl.value=""; }
-document.getElementById("bdCancel").onclick=()=>{ closeBinDlg(); bdLine=null; focusScan(); };
-document.getElementById("bdUse").onclick=async ()=>{
+document.getElementById("bdCancel").onclick=()=>{ closeBinDlg(); bdLine=null; bdPick=null; focusScan(); };
+document.getElementById("bdUse").onclick=async ()=>{   // 친 이름 → 고르기만(확인은 Pick from)
   const l=bdLine; if(!l) return;
   const name=document.getElementById("bdType").value.trim(); if(!name) return;
+  if((l.planned||[]).some(p=>String(p.bin).toUpperCase()===name.toUpperCase())){ toast(`${name} is the planned bin — choose another bin`,true); return; }
   const inList=(l.stockBins||[]).find(b=>b.bin.toUpperCase()===name.toUpperCase());
   let pick=inList||null;
   if(!pick){
@@ -1372,6 +1429,11 @@ document.getElementById("bdUse").onclick=async ()=>{
     if(!hit){ toast(`Bin ${name} is not in this warehouse`,true); return; }
     pick={bin_id:hit.id, bin:hit.name, qty:0, active:hit.is_active!==false, planned:false};
   }
+  const btn=[...document.querySelectorAll("#bdList .bdrow")].find(x=>x.textContent.trim().toUpperCase().startsWith(pick.bin.toUpperCase()));
+  bdSelect(pick, btn||null);
+};
+document.getElementById("bdGo").onclick=()=>{
+  const l=bdLine, pick=bdPick; if(!l||!pick) return;
   const empty=document.getElementById("bdEmpty").checked;
   closeBinDlg(); chooseBin(l, pick, empty); renderPick(); focusScan();
 };
@@ -1387,6 +1449,8 @@ function chooseBin(l, b, plannedEmpty){
 async function reportPlannedEmpty(l, b){   // 판정 124 — 칸 셋은 칸으로(planned_bin · found_bin · bin_qty) · kind wrong_location 만
   const o=lineOrder(l);
   if(!o.id){ toast("Cannot report — order unknown",true); return; }
+  l.reported=l.reported||{};
+  if(l.reported[b.bin_id]){ toast(`Already reported — ${l.bin||"the planned bin"} was empty (found at ${b.bin})`); return; }   // pick-shelf-2 묶음 4 — 화면 한 곳
   const qty=Math.max(1, l.assigned-l.picked);
   try{
     const {error}=await sb.from("wms_reports").insert({
@@ -1396,7 +1460,11 @@ async function reportPlannedEmpty(l, b){   // 판정 124 — 칸 셋은 칸으�
       planned_bin:l.bin||null, found_bin:b.bin, bin_qty:qty,
       reported_by:me.id, source:"picker"
     });
-    if(error) throw error;
+    if(error){
+      if(/already reported/i.test(error.message||"")){ l.reported[b.bin_id]=true; renderPick(); toast("Already reported — the manager has it"); return; }   // DB 한 곳(pick-shelf-1 트리거)
+      throw error;
+    }
+    l.reported[b.bin_id]=true; renderPick();
     toast("Empty planned bin reported to the manager");
   }catch(e){ toast("Report failed: "+(e.message||e),true); }
 }
