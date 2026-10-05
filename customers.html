@@ -30,6 +30,10 @@
   .cmsg .b{color:#dc2626;font-weight:600}
   .cmsg .m{display:block;margin:2px 0 0 14px;color:var(--muted)}
   .newchip{border-color:#ecdcb4;color:#a86400}
+  /* cs v2(판정 242) — 넓은 목록은 공통 #wide · .wfilt(ims-ui.css · products · so · po 와 같은 id) · 이 화면 몫만 */
+  #wide td.nmc{font-weight:600}
+  #wide tr.off td{color:var(--muted)}
+  #wide .wfilt input[type=search]{width:320px}
 </style>
 </head>
 <body>
@@ -43,8 +47,26 @@
   <button id="logoutBtn">Sign Out</button>
 </header>
 
-<div class="wrap">
-  <section class="list">
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search name">
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wnew"> New — not reviewed</label>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnewBtn" hidden>+ New customer</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
     <div class="cstop"><button class="pobtn go" id="newBtn" hidden>+ New customer</button></div>
     <div class="top">
       <input type="search" id="q" placeholder="Search name">
@@ -80,12 +102,12 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-05 · cs v1";   // 대화 Claude — cs-5 ①(판정 236 ~ 241 · cs-5 묶음 1 ~ 4)
+const CS_BUILD = "2026-10-05 · cs v2";   // 대화 Claude — 판정 242: products · so · po 와 같은 두 모드(넓은 목록 · 좁은 목록 + 상세 · ☰ List · ‹ All customers) ← cs v1 cs-5 ①(판정 236 ~ 241)
 console.log("customers.html build:", CS_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
 let q = "", onlyActive = true, onlyNew = false, curId = null, detailSeq = 0, cur = null;
-const pg = imsPage(100);
+const pg = imsPage(100), wpg = imsPage(100);
 const refs = { tiers: [], terms: [], currencies: [], accounts: [], warehouses: [] };
 const MONEY = ["price_tier", "discount_pct", "payment_term_id", "currency_id", "ar_account_id", "sale_account_id", "is_bill_parent", "invoice_split_by_store"];
 const CONSENT = { "": "Unknown", "2": "Opt in", "3": "Opt out" };
@@ -100,12 +122,51 @@ function isNew(r){ return r.source === "manual" && !r.reviewed_at; }
 
 /* ── 목록 ─────────────────────────────────────────────── */
 function clearDetail(){ curId = null; cur = null; detailSeq++; $("detail").innerHTML = '<div class="card"><div class="msg">Select a customer.</div></div>'; }
-async function loadList(){
-  let qry = sb.from("customer").select("id,name,display_name,is_active,source,reviewed_at,price_tier", { count: "exact" });
+const navBtns = () => `<button class="pobtn" id="togList" title="Show or hide the list on the left">&#9776; List</button> <button class="pobtn" id="toWide">&lsaquo; All customers</button>`;
+function baseQuery(cols){
+  let qry = sb.from("customer").select(cols, { count: "exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
   if(onlyNew) qry = qry.eq("source", "manual").is("reviewed_at", null);
-  if(q) qry = qry.ilike("name", `%${q}%`);
-  const { data, error } = await pg.run(qry.order("name"));
+  if(q) qry = qry.or(`name.ilike.%${q}%,display_name.ilike.%${q}%`);
+  return qry.order("name");
+}
+/* ── 두 모드(판정 242 · products 판정 209 와 같다) — 아무것도 안 골랐으면 넓은 목록 · 고르면 좁은 목록 + 상세 ── */
+function syncCtl(){
+  $("q").value = q; $("wq").value = q;
+  $("onlyActive").checked = onlyActive; $("wactive").checked = onlyActive;
+  $("onlyNew").checked = onlyNew; $("wnew").checked = onlyNew;
+}
+function showWide(){
+  curId = null; cur = null; detailSeq++;
+  syncCtl();
+  $("wide").hidden = false; $("wrapBox").hidden = true;
+  history.replaceState(null, "", location.pathname + (onlyNew ? "?new=1" : ""));
+  loadWide();
+}
+async function openCustomer(id){
+  curId = id; syncCtl();
+  $("wide").hidden = true; $("wrapBox").hidden = false; $("listPanel").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id));
+  loadList(); await loadDetail(id);
+}
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq;
+  const { data, error } = await wpg.run(baseQuery("id,name,display_name,is_active,source,reviewed_at,price_tier,payment_term_name,currency_code,discount_pct,default_location_name,created_at"));
+  if(seq !== wideSeq) return;
+  const box = $("wrows");
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Display name</th><th>Price tier</th><th class="num">Disc %</th><th>Payment term</th><th>Currency</th><th>Warehouse</th><th>Source</th><th>Status</th><th>Active</th></tr></thead><tbody>
+    ${data.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active ? "" : "off"}">
+      <td class="nmc">${esc(r.name)}</td><td>${dim(r.display_name)}</td><td>${dim(r.price_tier)}</td><td class="num">${dim(r.discount_pct)}</td>
+      <td>${dim(r.payment_term_name)}</td><td class="mono">${dim(r.currency_code)}</td><td>${dim(r.default_location_name)}</td><td>${esc(r.source)}</td>
+      <td>${isNew(r) ? '<span class="tag newchip">new · not reviewed</span>' : ""}</td><td>${yn(r.is_active, true)}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No customers match.</div>';
+  box.querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openCustomer(tr.dataset.id); });
+  wpg.render({ range: "#wrange", prev: "#wprev", next: "#wnext" }, loadWide);
+}
+async function loadList(){
+  const { data, error } = await pg.run(baseQuery("id,name,display_name,is_active,source,reviewed_at,price_tier"));
   if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   $("rows").innerHTML = data.length ? data.map(r => {
     const tags = [];
@@ -113,7 +174,7 @@ async function loadList(){
     if(isNew(r)) tags.push('<span class="tag newchip">new · not reviewed</span>');
     return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
   }).join("") : '<div class="msg">No customers match.</div>';
-  document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); }; });
+  document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => openCustomer(el.dataset.id); });
   pg.render({ range: "#range", prev: "#prev", next: "#next" }, loadList);
 }
 
@@ -153,7 +214,7 @@ async function loadDetail(id){
     ["Reviewed", r.reviewed_at ? `${imsTs(r.reviewed_at)} · ${esc(names[r.reviewed_by] || "")}` : (r.source === "manual" ? '<span class="dim">not yet</span>' : '<span class="dim">— (from Cin7)</span>')],
     ["Updated", `${imsTs(r.updated_at)}${r.updated_by ? " · " + esc(names[r.updated_by] || "") : ""}`],
   ];
-  const acts = [];
+  const acts = [navBtns()];
   if(canWrite) acts.push('<button class="pobtn" id="editBtn">Edit</button>');
   if(isMaster && isNew(r)) acts.push('<button class="pobtn go" id="revBtn">Reviewed</button>');
   if(isMaster) acts.push(`<button class="pobtn" id="actBtn">${r.is_active ? "Deactivate" : "Activate"}</button>`);
@@ -170,11 +231,13 @@ async function loadDetail(id){
       ${rows.length ? `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : '<div class="msg">None.</div>'}</div>`;
   box.innerHTML = `
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div>
-      ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}</div>
+      <div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
     ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr")}
     ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Marketing", ""], cRows, "addCont")}`;
 
+  $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
+  $("toWide").onclick = showWide;
   if($("editBtn")) $("editBtn").onclick = openEdit;
   if($("revBtn")) $("revBtn").onclick = doReview;
   if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], r.is_active ? "Deactivate " + r.name : "Activate " + r.name);
@@ -325,7 +388,7 @@ function openNew(){
     return p;
   };
   saveTwoStep(ack => sb.rpc("customer_create", { p_customer: build(), p_commit: true, p_ack: ack }), $("nMsg"), $("nGo"),
-    async (d) => { modalClose(); curId = d.customer_id; await loadList(); await loadDetail(curId); });
+    async (d) => { modalClose(); await openCustomer(d.customer_id); });
 }
 function onlyDefaultWarehouse(){ const w = refs.warehouses.find(x => x.name === "Asung Trading Inc."); return w ? w.id : ""; }
 
@@ -437,6 +500,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   isMaster = imsAuth.canWrite("master");
   canWrite = isMaster || imsAuth.canWrite("sales");
   $("newBtn").hidden = !canWrite; $("newBtn").onclick = openNew;
+  $("wnewBtn").hidden = !canWrite; $("wnewBtn").onclick = openNew;
   const [t, p, c, a, w] = await Promise.all([
     sb.from("ref_price_tier").select("name,purpose,is_active").eq("purpose", "sale").eq("is_active", true).order("name"),
     sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
@@ -445,13 +509,18 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
   ]);
   refs.tiers = t.data || []; refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.warehouses = w.data || [];
-  $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
-  $("onlyNew").onchange = e => { onlyNew = e.target.checked; pg.reset(); clearDetail(); loadList(); };
-  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+  // 필터 값은 한 벌 — 좁은 목록 칸과 넓은 목록 칸이 같은 값을 쓴다(products 와 같다)
+  $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
+  $("onlyNew").onchange = e => { onlyNew = e.target.checked; pg.reset(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); loadList(); });
+  $("wactive").onchange = e => { onlyActive = e.target.checked; wpg.reset(); loadWide(); };
+  $("wnew").onchange = e => { onlyNew = e.target.checked; wpg.reset(); loadWide(); };
+  imsQ("#wq", v => { q = v; wpg.reset(); loadWide(); });
+  $("wclear").onclick = () => { q = ""; onlyActive = true; onlyNew = false; syncCtl(); wpg.reset(); loadWide(); };
   const want = new URLSearchParams(location.search);
-  if(want.get("new") === "1"){ onlyNew = true; $("onlyNew").checked = true; }
-  await loadList();
-  if(want.get("id")){ curId = want.get("id"); await loadDetail(curId); }
+  if(want.get("new") === "1") onlyNew = true;
+  if(want.get("id")) await openCustomer(want.get("id"));
+  else showWide();
 });
 </script>
 </body>
