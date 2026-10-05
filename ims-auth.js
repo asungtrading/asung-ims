@@ -78,7 +78,7 @@
     ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
     ["Credit Notes","so-credits.html","sales","ims",true,"sales"],
     ["Backorders","so-backorders.html","sales","ims",true,"sales"],
-    // ⬜ ["Customers","customers.html","sales","ims",false,"sales"],   — 손님 화면이 서면 (판정 150 · 162)
+    ["Customers","customers.html","sales","ims",false,"sales"],   // cs-5 ①(2026-10-05 · 판정 236 ~ 241) — 판정 150 · 162 의 자리 · 보기는 sales 읽기 · 쓰기는 창구가 가른다
     // Inventory (판정 150 · 151)
     ["Products","products.html","master","ims",false,"inventory"],
     ["Product Sheet","product-sheet.html","master","ims",false,"inventory"],

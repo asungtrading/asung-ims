@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customers · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .chip · .tag · .kv · .pomodal/.pobox · .pobtn) */
+  .list{width:340px;flex:0 0 340px}
+  .list .rows{max-height:calc(100vh - 250px)}
+  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .list .row.cur{color:#3b5bdb;font-weight:600}
+  main{display:flex;flex-direction:column;gap:14px}
+  .cstop{display:flex;gap:8px;align-items:center;padding:8px 10px 0}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .xs{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font:inherit;font-size:12px;cursor:pointer}
+  .xs:hover{background:#f2f4f8}
+  /* 폼 — .cf 한 줄(라벨 + 입력) · .cgrid 두 칸 */
+  .cf{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .cf > label{width:150px;flex:0 0 150px;font-size:12.5px;color:var(--muted)}
+  .cf input[type=text],.cf input[type=number],.cf input[type=email],.cf select,.cf textarea{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;min-width:0}
+  .cf textarea{min-height:52px}
+  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .csect{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;border-top:1px solid var(--line);padding-top:10px}
+  .csect:first-child{border-top:0;margin-top:0;padding-top:0}
+  .cnote{font-size:12px;color:var(--muted);line-height:1.5;margin:4px 0 10px}
+  .cmsg{font-size:12.5px;line-height:1.55;margin-top:10px}
+  .cmsg .w{color:#a86400}
+  .cmsg .b{color:#dc2626;font-weight:600}
+  .cmsg .m{display:block;margin:2px 0 0 14px;color:var(--muted)}
+  .newchip{border-color:#ecdcb4;color:#a86400}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="wrap">
+  <section class="list">
+    <div class="cstop"><button class="pobtn go" id="newBtn" hidden>+ New customer</button></div>
+    <div class="top">
+      <input type="search" id="q" placeholder="Search name">
+      <div class="opts">
+        <label><input type="checkbox" id="onlyActive" checked> Active only</label>
+        <label><input type="checkbox" id="onlyNew"> New — not reviewed</label>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+
+  <main id="detail"><div class="card"><div class="msg">Select a customer.</div></div></main>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Customers — 손님 목록 · 상세 · 만들기 · 고치기 · 확인(cs-5 ① · 판정 236 ~ 241 · 정본 so-module §41)
+   창구(asung-wms master-cs-2a · 2b · 3 — 손님 표 셋은 직접 쓰기가 닫혔다):
+     customer_create(p_customer, p_commit, p_ack) · customer_update(p_changes, p_commit, p_ack) · customer_review(p_customer_id, p_commit)
+   ⭐ 열쇠: 만들기 · 일반 칸 · 주소 · 연락처 = sales 또는 master · 돈 칸 아홉 · 끄기 · 켜기 · Reviewed = master 만(판정 237 · 241)
+      sales 화면은 돈 칸을 아예 보내지 않는다(보내면 money_field_not_allowed — 값이 비어도) · 「기본값으로 들어간다 — 매니저가 확인」(판정 239)
+   ⭐ 저장은 바로 commit 을 부른다 — 알리기가 있으면 창구가 unacked 로 돌려준다 · 그때 알리기를 보이고 「Confirm」이 같은 바꿈을 p_ack 로 다시 보낸다
+   ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
+   ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
+   ───────────────────────────────────────────────────────────── */
+const CS_BUILD = "2026-10-05 · cs v1";   // 대화 Claude — cs-5 ①(판정 236 ~ 241 · cs-5 묶음 1 ~ 4)
+console.log("customers.html build:", CS_BUILD);
+
+let sb = null, me = null, canWrite = false, isMaster = false;
+let q = "", onlyActive = true, onlyNew = false, curId = null, detailSeq = 0, cur = null;
+const pg = imsPage(100);
+const refs = { tiers: [], terms: [], currencies: [], accounts: [], warehouses: [] };
+const MONEY = ["price_tier", "discount_pct", "payment_term_id", "currency_id", "ar_account_id", "sale_account_id", "is_bill_parent", "invoice_split_by_store"];
+const CONSENT = { "": "Unknown", "2": "Opt in", "3": "Opt out" };
+
+const $ = (id) => document.getElementById(id);
+const sv = (v) => v === null || v === undefined ? "" : String(v);
+function consentOf(b){ return b === true ? "2" : b === false ? "3" : ""; }
+function modalOpen(html){ $("modalBox").innerHTML = html; $("modal").hidden = false; }
+function modalClose(){ $("modal").hidden = true; $("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("modal").hidden) modalClose(); });
+function isNew(r){ return r.source === "manual" && !r.reviewed_at; }
+
+/* ── 목록 ─────────────────────────────────────────────── */
+function clearDetail(){ curId = null; cur = null; detailSeq++; $("detail").innerHTML = '<div class="card"><div class="msg">Select a customer.</div></div>'; }
+async function loadList(){
+  let qry = sb.from("customer").select("id,name,display_name,is_active,source,reviewed_at,price_tier", { count: "exact" });
+  if(onlyActive) qry = qry.eq("is_active", true);
+  if(onlyNew) qry = qry.eq("source", "manual").is("reviewed_at", null);
+  if(q) qry = qry.ilike("name", `%${q}%`);
+  const { data, error } = await pg.run(qry.order("name"));
+  if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  $("rows").innerHTML = data.length ? data.map(r => {
+    const tags = [];
+    if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
+    if(isNew(r)) tags.push('<span class="tag newchip">new · not reviewed</span>');
+    return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
+  }).join("") : '<div class="msg">No customers match.</div>';
+  document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); }; });
+  pg.render({ range: "#range", prev: "#prev", next: "#next" }, loadList);
+}
+
+/* ── 상세 ─────────────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = $("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [c, addr, cont, so] = await Promise.all([
+    sb.from("customer").select("*").eq("id", id).maybeSingle(),
+    sb.from("customer_address").select("*").eq("customer_id", id).eq("is_active", true).order("type").order("is_default_for_type", { ascending: false }),
+    sb.from("customer_contact").select("*").eq("customer_id", id).eq("is_active", true).order("is_default", { ascending: false }),
+    sb.from("so").select("id", { count: "exact", head: true }).eq("customer_id", id).in("status", ["draft", "confirmed", "at_wms", "picking", "packed"]),
+  ]);
+  if(seq !== detailSeq) return;
+  if(c.error || !c.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(c.error ? c.error.message : "Customer not found")}</div></div>`; return; }
+  const r = c.data;
+  const staffIds = [r.created_by, r.reviewed_by, r.updated_by].filter(Boolean);
+  const names = {};
+  if(staffIds.length){ const s = await sb.from("ims_staff").select("id,name").in("id", staffIds); (s.data || []).forEach(x => { names[x.id] = x.name; }); }
+  const parent = r.parent_id ? (await sb.from("customer").select("name").eq("id", r.parent_id).maybeSingle()).data : null;
+  if(seq !== detailSeq) return;
+  cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0 };
+
+  const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span class="chip">${esc(r.source)}</span>`];
+  if(isNew(r)) chips.push('<span class="chip warn">new — not reviewed by a manager</span>');
+  const kv = [
+    ["Display name", dim(r.display_name)],
+    ["Price tier", dim(r.price_tier)], ["Discount %", dim(r.discount_pct)], ["Payment term", dim(r.payment_term_name)],
+    ["Currency", `<span class="mono">${dim(r.currency_code)}</span>`],
+    ["A/R account", `<span class="mono">${dim(r.ar_account_code)}</span>`], ["Sale account", `<span class="mono">${dim(r.sale_account_code)}</span>`],
+    ["Bill parent", yn(r.is_bill_parent, false)], ["Split invoice by store", yn(r.invoice_split_by_store, false)],
+    ["Default warehouse", dim(r.default_location_name)], ["Tax rule", dim(r.tax_rule)], ["Tax number", dim(r.tax_number)],
+    ["Parent", parent ? esc(parent.name) : '<span class="dim">—</span>'], ["Tags", dim(r.tags)], ["Note", dim(r.note)],
+    ["Open orders", `<span class="mono">${cur.openSo}</span>`],
+    ["Created", `${imsTs(r.created_at)}${r.created_by ? " · " + esc(names[r.created_by] || "") : ""}`],
+    ["Reviewed", r.reviewed_at ? `${imsTs(r.reviewed_at)} · ${esc(names[r.reviewed_by] || "")}` : (r.source === "manual" ? '<span class="dim">not yet</span>' : '<span class="dim">— (from Cin7)</span>')],
+    ["Updated", `${imsTs(r.updated_at)}${r.updated_by ? " · " + esc(names[r.updated_by] || "") : ""}`],
+  ];
+  const acts = [];
+  if(canWrite) acts.push('<button class="pobtn" id="editBtn">Edit</button>');
+  if(isMaster && isNew(r)) acts.push('<button class="pobtn go" id="revBtn">Reviewed</button>');
+  if(isMaster) acts.push(`<button class="pobtn" id="actBtn">${r.is_active ? "Deactivate" : "Activate"}</button>`);
+  const aRows = cur.addr.map((a, i) => `<tr>
+      <td class="mono">${dim(a.type)}${a.is_default_for_type ? ' <span class="chip good">default</span>' : ""}</td>
+      <td>${dim(a.label)}</td><td>${dim(a.line1)}${a.line2 ? "<br>" + esc(a.line2) : ""}</td><td>${dim(a.city)}</td><td>${dim(a.state_province)}</td>
+      <td class="mono">${dim(a.postal_code)}</td><td>${dim(a.country)}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ae="${i}">Edit</button> ${a.is_default_for_type ? "" : `<button class="xs" data-ad="${i}">Make default</button> `}<button class="xs" data-ao="${i}">Remove</button>` : ""}</td></tr>`);
+  const cRows = cur.cont.map((t, i) => `<tr>
+      <td>${dim(t.name)}${t.is_default ? ' <span class="chip good">default</span>' : ""}</td><td>${dim(t.job_title)}</td>
+      <td class="mono">${dim(t.phone)}</td><td class="mono">${dim(t.mobile_phone)}</td><td>${dim(t.email)}</td><td>${CONSENT[consentOf(t.marketing_consent)]}</td>
+      <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ce="${i}">Edit</button> ${t.is_default ? "" : `<button class="xs" data-cd="${i}">Make default</button> `}<button class="xs" data-co="${i}">Remove</button>` : ""}</td></tr>`);
+  const tbl = (title, n, head, rows, addId) => `<div class="card"><h3>${title} <span class="n">${n}</span>${canWrite ? ` <button class="xs" id="${addId}" style="float:right">+ Add</button>` : ""}</h3>
+      ${rows.length ? `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : '<div class="msg">None.</div>'}</div>`;
+  box.innerHTML = `
+    <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div>
+      ${acts.length ? `<div class="acts">${acts.join("")}</div>` : ""}</div>
+      <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr")}
+    ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Marketing", ""], cRows, "addCont")}`;
+
+  if($("editBtn")) $("editBtn").onclick = openEdit;
+  if($("revBtn")) $("revBtn").onclick = doReview;
+  if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], r.is_active ? "Deactivate " + r.name : "Activate " + r.name);
+  if($("addAddr")) $("addAddr").onclick = () => openAddr(null);
+  if($("addCont")) $("addCont").onclick = () => openCont(null);
+  box.querySelectorAll("[data-ae]").forEach(b => { b.onclick = () => openAddr(cur.addr[+b.dataset.ae]); });
+  box.querySelectorAll("[data-ad]").forEach(b => { b.onclick = () => { const a = cur.addr[+b.dataset.ad]; runUpdate([{ customer_id: r.id, op: "address_default", address_id: a.id }], `Make this the default ${a.type} address`); }; });
+  box.querySelectorAll("[data-ao]").forEach(b => { b.onclick = () => { const a = cur.addr[+b.dataset.ao]; runUpdate([{ customer_id: r.id, op: "address_off", address_id: a.id }], `Remove the ${a.type} address ${a.line1 || ""}`); }; });
+  box.querySelectorAll("[data-ce]").forEach(b => { b.onclick = () => openCont(cur.cont[+b.dataset.ce]); });
+  box.querySelectorAll("[data-cd]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.cd]; runUpdate([{ customer_id: r.id, op: "contact_default", contact_id: t.id }], `Make ${t.name || "this contact"} the default contact`); }; });
+  box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ customer_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
+}
+
+/* ── 창구 결과 그리기 · 두 번 부르기 ─────────────────────── */
+function resultHtml(d){
+  const out = [];
+  (d.blocks || []).forEach(b => out.push(`<div class="b">✕ ${esc(b.message || b.code)}</div>`));
+  (d.warnings || []).forEach(w => {
+    out.push(`<div class="w">⚠ ${esc(w.message || w.code)}</div>`);
+    (w.matches || []).forEach(m => out.push(`<span class="m">${esc(m.name || "")}${m.city ? " · " + esc(m.city) : ""}</span>`));
+  });
+  return out.join("");
+}
+/* 저장 — commit 을 바로 부른다 · unacked 면 알리기를 보이고 Confirm 이 같은 것을 ack 와 함께 · 막기면 보인다 */
+async function saveTwoStep(call, msgEl, goBtn, onDone){
+  const go = async (ack) => {
+    goBtn.disabled = true; msgEl.className = "cmsg"; msgEl.textContent = "Saving…";
+    const { data, error } = await call(ack);
+    if(error){ msgEl.innerHTML = `<div class="b">✕ ${esc(error.message)}</div>`; goBtn.disabled = false; return; }
+    if(data.committed){ await onDone(data); return; }
+    msgEl.innerHTML = resultHtml(data);
+    if((data.blocks || []).length){ goBtn.disabled = false; goBtn.textContent = "Save"; goBtn.onclick = () => go([]); return; }
+    const keys = data.unacked || [];
+    goBtn.disabled = false; goBtn.textContent = "Confirm and save";
+    goBtn.onclick = () => go(keys);
+  };
+  goBtn.onclick = () => go([]);
+}
+/* 한 번에 끝나는 바꿈(끄기 · 기본 · 지우기) — 작은 확인 창 */
+function runUpdate(changes, title){
+  modalOpen(`<h4>${esc(title)}</h4><div class="pbody"><div class="cnote">Nothing is saved until you press the button.</div><div id="cuMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="cuCancel">Cancel</button><button class="pobtn go" id="cuGo">Save</button></div>`);
+  $("cuCancel").onclick = modalClose;
+  saveTwoStep(ack => sb.rpc("customer_update", { p_changes: changes, p_commit: true, p_ack: ack }), $("cuMsg"), $("cuGo"),
+    async () => { modalClose(); await loadDetail(curId); await loadList(); });
+}
+async function doReview(){
+  const r = cur.r;
+  const { data, error } = await sb.rpc("customer_review", { p_customer_id: r.id, p_commit: false });
+  const summary = error ? `<div class="b">✕ ${esc(error.message)}</div>` : resultHtml(data) || `<div class="cnote">Tier ${esc(r.price_tier || "—")} · discount ${esc(sv(r.discount_pct) || "0")}% · ${esc(r.payment_term_name || "—")} · ${esc(r.currency_code || "—")} — change them with Edit first if they are not right.</div>`;
+  modalOpen(`<h4>Reviewed — ${esc(r.name)}</h4><div class="pbody">${summary}<div id="rvMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="rvCancel">Cancel</button><button class="pobtn go" id="rvGo">Mark reviewed</button></div>`);
+  $("rvCancel").onclick = modalClose;
+  $("rvGo").onclick = async () => {
+    $("rvGo").disabled = true;
+    const res = await sb.rpc("customer_review", { p_customer_id: r.id, p_commit: true });
+    if(res.error){ $("rvMsg").innerHTML = `<div class="b">✕ ${esc(res.error.message)}</div>`; $("rvGo").disabled = false; return; }
+    if(res.data && res.data.committed === false && (res.data.blocks || []).length){ $("rvMsg").innerHTML = resultHtml(res.data); return; }
+    modalClose(); await loadDetail(curId); await loadList();
+  };
+}
+
+/* ── 고르기 칸(돈 칸 · 창고) ──────────────────────────── */
+function opts(list, valKey, label, selected, blank){
+  return (blank ? `<option value="">${esc(blank)}</option>` : "") + list.map(x => `<option value="${esc(x[valKey])}" ${String(x[valKey]) === String(selected) ? "selected" : ""}>${esc(label(x))}</option>`).join("");
+}
+function moneyFields(isNewForm){
+  const blank = isNewForm ? "Default" : "— none —";
+  return `<div class="csect">Money terms — manager only</div>
+    <div class="cgrid">
+      <div class="cf"><label>Price tier</label><select id="f_price_tier">${opts(refs.tiers, "name", x => x.name, "", blank)}</select></div>
+      <div class="cf"><label>Discount %</label><input type="number" step="any" min="0" max="100" id="f_discount_pct" placeholder="${isNewForm ? "Default" : ""}"></div>
+      <div class="cf"><label>Payment term</label><select id="f_payment_term_id">${opts(refs.terms, "id", x => x.name, "", blank)}</select></div>
+      <div class="cf"><label>Currency</label><select id="f_currency_id">${opts(refs.currencies, "id", x => x.code, "", blank)}</select></div>
+      <div class="cf"><label>A/R account</label><select id="f_ar_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
+      <div class="cf"><label>Sale account</label><select id="f_sale_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
+      <div class="cf"><label>Bill parent</label><input type="checkbox" id="f_is_bill_parent"></div>
+      <div class="cf"><label>Split invoice by store</label><input type="checkbox" id="f_invoice_split_by_store"></div>
+    </div>`;
+}
+/* 고르기 칸에 지금 값을 넣는다 — 목록에 없으면(꺼진 참조 · 예 Net30) 「(current)」 줄을 더해 그대로 보인다 · 그래야 안 바꾼 칸이 바뀐 것으로 읽히지 않는다 */
+function ensureVal(id, value, label){
+  const el = $(id); if(!el) return;
+  const v = sv(value);
+  if(v && ![...el.options].some(o => o.value === v)){ const o = document.createElement("option"); o.value = v; o.textContent = (label || v) + " (current · inactive)"; el.appendChild(o); }
+  el.value = v;
+}
+function generalFields(){
+  return `<div class="cgrid">
+      <div class="cf"><label>Name *</label><input type="text" id="f_name"></div>
+      <div class="cf"><label>Display name</label><input type="text" id="f_display_name"></div>
+      <div class="cf"><label>Default warehouse</label><select id="f_default_location_id">${opts(refs.warehouses, "id", x => x.name, "", "— none —")}</select></div>
+      <div class="cf"><label>Tax number</label><input type="text" id="f_tax_number"></div>
+      <div class="cf"><label>Tags</label><input type="text" id="f_tags"></div>
+      <div class="cf"><label>Tax rule (shown)</label><input type="text" id="f_tax_rule"></div>
+    </div>
+    <div class="cf"><label>Note</label><textarea id="f_note"></textarea></div>`;
+}
+const val = (id) => { const el = $(id); if(!el) return undefined; return el.type === "checkbox" ? el.checked : el.value.trim(); };
+
+/* ── 만들기 ───────────────────────────────────────────── */
+function addrBlock(type){
+  const k = type.toLowerCase();
+  return `<div class="csect">${type} address</div>
+    <div class="cgrid">
+      <div class="cf"><label>Street</label><input type="text" id="${k}_line1"></div>
+      <div class="cf"><label>Street 2</label><input type="text" id="${k}_line2"></div>
+      <div class="cf"><label>City</label><input type="text" id="${k}_city"></div>
+      <div class="cf"><label>Province</label><input type="text" id="${k}_state_province"></div>
+      <div class="cf"><label>Postal code</label><input type="text" id="${k}_postal_code"></div>
+      <div class="cf"><label>Country</label><input type="text" id="${k}_country" value="Canada"></div>
+    </div>`;
+}
+function readAddr(type){
+  const k = type.toLowerCase(), o = { type };
+  ["line1", "line2", "city", "state_province", "postal_code", "country"].forEach(f => { o[f] = val(`${k}_${f}`); });
+  return o.line1 || o.city || o.postal_code ? o : null;
+}
+function openNew(){
+  modalOpen(`<h4>New customer</h4><div class="pbody">
+      ${generalFields()}
+      ${addrBlock("Billing")}
+      <div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="sameShip" checked> Shipping address is the same</label></div>
+      <div id="shipBox" hidden>${addrBlock("Shipping")}</div>
+      <div class="csect">Contact</div>
+      <div class="cgrid">
+        <div class="cf"><label>Name</label><input type="text" id="n_c_name"></div>
+        <div class="cf"><label>Job title</label><input type="text" id="n_c_job_title"></div>
+        <div class="cf"><label>Phone</label><input type="text" id="n_c_phone"></div>
+        <div class="cf"><label>Email</label><input type="email" id="n_c_email"></div>
+        <div class="cf"><label>Marketing email</label><select id="n_c_consent"><option value="">Unknown</option><option value="2">Opt in</option><option value="3">Opt out</option></select></div>
+      </div>
+      ${isMaster ? moneyFields(true) : `<div class="cnote">Price tier, discount, payment term, currency and accounts start from the defaults (Wholesale · 0% · C.B.S · CAD). A manager reviews new customers in the Action Centre and changes them if needed.</div>`}
+      <div id="nMsg" class="cmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="nCancel">Cancel</button><button class="pobtn go" id="nGo">Create</button></div>`);
+  if(onlyDefaultWarehouse()) $("f_default_location_id").value = onlyDefaultWarehouse();
+  $("sameShip").onchange = e => { $("shipBox").hidden = e.target.checked; };
+  $("nCancel").onclick = modalClose;
+  const build = () => {
+    const p = {};
+    ["name", "display_name", "note", "tax_number", "tags", "tax_rule", "default_location_id"].forEach(f => { const v = val("f_" + f); if(v) p[f] = v; });
+    const bill = readAddr("Billing"), ship = $("sameShip").checked ? (bill ? Object.assign({}, bill, { type: "Shipping" }) : null) : readAddr("Shipping");
+    p.addresses = [bill, ship].filter(Boolean);
+    const cn = { name: val("n_c_name"), job_title: val("n_c_job_title"), phone: val("n_c_phone"), email: val("n_c_email") };
+    if(cn.name || cn.phone || cn.email){ const mc = val("n_c_consent"); if(mc) cn.marketing_consent = mc; p.contacts = [cn]; }
+    if(isMaster) MONEY.forEach(f => { const v = val("f_" + f); if(v === true || (v !== false && v !== "" && v !== undefined)) p[f] = v === true ? true : v; });
+    return p;
+  };
+  saveTwoStep(ack => sb.rpc("customer_create", { p_customer: build(), p_commit: true, p_ack: ack }), $("nMsg"), $("nGo"),
+    async (d) => { modalClose(); curId = d.customer_id; await loadList(); await loadDetail(curId); });
+}
+function onlyDefaultWarehouse(){ const w = refs.warehouses.find(x => x.name === "Asung Trading Inc."); return w ? w.id : ""; }
+
+/* ── 고치기(머리 칸) ──────────────────────────────────── */
+function openEdit(){
+  const r = cur.r;
+  modalOpen(`<h4>Edit — ${esc(r.name)}</h4><div class="pbody">
+      ${generalFields()}
+      ${isMaster ? moneyFields(false) : `<div class="cnote">Money terms (tier, discount, payment term, currency, accounts) are changed by a manager.</div>`}
+      <div id="eMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="eCancel">Cancel</button><button class="pobtn go" id="eGo">Save</button></div>`);
+  ["name", "display_name", "note", "tax_number", "tags", "tax_rule"].forEach(f => { $("f_" + f).value = sv(r[f]); });
+  ensureVal("f_default_location_id", r.default_location_id, r.default_location_name);
+  if(isMaster){
+    ensureVal("f_price_tier", r.price_tier, r.price_tier);
+    ensureVal("f_payment_term_id", r.payment_term_id, r.payment_term_name);
+    ensureVal("f_currency_id", r.currency_id, r.currency_code);
+    ensureVal("f_ar_account_id", r.ar_account_id, r.ar_account_code);
+    ensureVal("f_sale_account_id", r.sale_account_id, r.sale_account_code);
+    $("f_discount_pct").value = sv(r.discount_pct);
+    $("f_is_bill_parent").checked = !!r.is_bill_parent; $("f_invoice_split_by_store").checked = !!r.invoice_split_by_store;
+  }
+  $("eCancel").onclick = modalClose;
+  const build = () => {
+    const ch = [];
+    const fields = ["name", "display_name", "note", "tax_number", "tags", "tax_rule", "default_location_id"].concat(isMaster ? MONEY : []);
+    fields.forEach(f => {
+      const el = $("f_" + f); if(!el) return;
+      const now = el.type === "checkbox" ? String(el.checked) : el.value.trim();
+      const was = el.type === "checkbox" ? String(!!r[f]) : sv(r[f]);
+      const same = f === "discount_pct" ? (now === "" ? was === "" : Number(now) === Number(was)) : now === was;
+      if(!same) ch.push({ customer_id: r.id, op: "set", field: f, value: now === "" ? null : now, old: was });
+    });
+    return ch;
+  };
+  saveTwoStep(ack => { const ch = build(); if(!ch.length) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } }); return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack }); },
+    $("eMsg"), $("eGo"), async () => { modalClose(); await loadDetail(curId); await loadList(); });
+}
+
+/* ── 주소 · 연락처 ────────────────────────────────────── */
+const AF = ["type", "label", "line1", "line2", "city", "state_province", "postal_code", "country"];
+function openAddr(a){
+  modalOpen(`<h4>${a ? "Edit address" : "Add address"}</h4><div class="pbody"><div class="cgrid">
+      <div class="cf"><label>Type</label><select id="a_type"><option>Billing</option><option>Shipping</option><option>Business</option></select></div>
+      <div class="cf"><label>Label</label><input type="text" id="a_label"></div>
+      <div class="cf"><label>Street</label><input type="text" id="a_line1"></div>
+      <div class="cf"><label>Street 2</label><input type="text" id="a_line2"></div>
+      <div class="cf"><label>City</label><input type="text" id="a_city"></div>
+      <div class="cf"><label>Province</label><input type="text" id="a_state_province"></div>
+      <div class="cf"><label>Postal code</label><input type="text" id="a_postal_code"></div>
+      <div class="cf"><label>Country</label><input type="text" id="a_country"></div>
+    </div>${a ? "" : '<div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="a_default"> Make it the default for its type</label></div>'}
+    <div id="aMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="aCancel">Cancel</button><button class="pobtn go" id="aGo">Save</button></div>`);
+  AF.forEach(f => { $("a_" + f).value = a ? sv(a[f]) : (f === "country" ? "Canada" : f === "type" ? "Shipping" : ""); });
+  $("aCancel").onclick = modalClose;
+  const build = () => {
+    const cid = cur.r.id;
+    if(!a){ const v = {}; AF.forEach(f => { const x = val("a_" + f); if(x) v[f] = x; }); v.is_default_for_type = val("a_default"); return [{ customer_id: cid, op: "address_add", values: v }]; }
+    const v = {}, o = {};
+    AF.forEach(f => { const now = val("a_" + f), was = sv(a[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = was; } });
+    return Object.keys(v).length ? [{ customer_id: cid, op: "address_set", address_id: a.id, values: v, olds: o }] : [];
+  };
+  saveTwoStep(ack => { const ch = build(); if(!ch.length) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } }); return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack }); },
+    $("aMsg"), $("aGo"), async () => { modalClose(); await loadDetail(curId); });
+}
+const CF = ["name", "job_title", "phone", "mobile_phone", "email", "website"];
+function openCont(t){
+  modalOpen(`<h4>${t ? "Edit contact" : "Add contact"}</h4><div class="pbody"><div class="cgrid">
+      <div class="cf"><label>Name</label><input type="text" id="c_name"></div>
+      <div class="cf"><label>Job title</label><input type="text" id="c_job_title"></div>
+      <div class="cf"><label>Phone</label><input type="text" id="c_phone"></div>
+      <div class="cf"><label>Mobile</label><input type="text" id="c_mobile_phone"></div>
+      <div class="cf"><label>Email</label><input type="email" id="c_email"></div>
+      <div class="cf"><label>Website</label><input type="text" id="c_website"></div>
+      <div class="cf"><label>Marketing email</label><select id="c_marketing_consent"><option value="">Unknown</option><option value="2">Opt in</option><option value="3">Opt out</option></select></div>
+      <div class="cf"><label>Include in email</label><input type="checkbox" id="c_include_in_email"></div>
+    </div>${t ? "" : '<div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="c_default"> Make it the default contact</label></div>'}
+    <div id="ctMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="ctCancel">Cancel</button><button class="pobtn go" id="ctGo">Save</button></div>`);
+  CF.forEach(f => { $("c_" + f).value = t ? sv(t[f]) : ""; });
+  $("c_marketing_consent").value = t ? consentOf(t.marketing_consent) : "";
+  $("c_include_in_email").checked = t ? !!t.include_in_email : false;
+  $("ctCancel").onclick = modalClose;
+  const build = () => {
+    const cid = cur.r.id;
+    if(!t){
+      const v = {}; CF.forEach(f => { const x = val("c_" + f); if(x) v[f] = x; });
+      const mc = val("c_marketing_consent"); if(mc) v.marketing_consent = mc;
+      v.include_in_email = val("c_include_in_email"); v.is_default = val("c_default");
+      return [{ customer_id: cid, op: "contact_add", values: v }];
+    }
+    const v = {}, o = {};
+    CF.forEach(f => { const now = val("c_" + f), was = sv(t[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = was; } });
+    const mcNow = val("c_marketing_consent"), mcWas = consentOf(t.marketing_consent);
+    if(mcNow !== mcWas){ v.marketing_consent = mcNow === "" ? null : mcNow; o.marketing_consent = mcWas; }
+    const ieNow = val("c_include_in_email"); if(ieNow !== !!t.include_in_email){ v.include_in_email = ieNow; o.include_in_email = String(!!t.include_in_email); }
+    return Object.keys(v).length ? [{ customer_id: cid, op: "contact_set", contact_id: t.id, values: v, olds: o }] : [];
+  };
+  saveTwoStep(ack => { const ch = build(); if(!ch.length) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } }); return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack }); },
+    $("ctMsg"), $("ctGo"), async () => { modalClose(); await loadDetail(curId); });
+}
+
+/* ── 시작 ─────────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  $("buildTag").textContent = CS_BUILD;
+  isMaster = imsAuth.canWrite("master");
+  canWrite = isMaster || imsAuth.canWrite("sales");
+  $("newBtn").hidden = !canWrite; $("newBtn").onclick = openNew;
+  const [t, p, c, a, w] = await Promise.all([
+    sb.from("ref_price_tier").select("name,purpose,is_active").eq("purpose", "sale").eq("is_active", true).order("name"),
+    sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_currency").select("id,code").eq("is_active", true).order("code"),
+    sb.from("ref_account").select("id,code,name").eq("is_active", true).order("code"),
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+  ]);
+  refs.tiers = t.data || []; refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.warehouses = w.data || [];
+  $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  $("onlyNew").onchange = e => { onlyNew = e.target.checked; pg.reset(); clearDetail(); loadList(); };
+  imsQ("#q", v => { q = v; pg.reset(); clearDetail(); loadList(); });
+  const want = new URLSearchParams(location.search);
+  if(want.get("new") === "1"){ onlyNew = true; $("onlyNew").checked = true; }
+  await loadList();
+  if(want.get("id")){ curId = want.get("id"); await loadDetail(curId); }
+});
+</script>
+</body>
+</html>
