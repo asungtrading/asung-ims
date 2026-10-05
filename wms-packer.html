@@ -302,7 +302,7 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-10-01 · pa v1.4";   // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+const WK_BUILD="2026-10-05 · pa v1.5";   // rep-close-2(판정 58 묶음 1) — 픽을 넘겨 채울 때 「Found it?」 창 하나(찾았나 + 어느 칸 · 기본 = 픽 계획 칸) · 채운 줄에 「Found · 칸」 표시 · 완료 창구가 신고를 found_at_pack · 몇 개 · 칸으로 닫는다(rep-close-1) ← pa v1.4 // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, whById={}, staffName={};
@@ -1258,7 +1258,7 @@ function renderList(){
     const cls=done?"done":[partial?"partial":"",idx===curIdx?"cur":""].filter(Boolean).join(" ");
     let chip="";
     if(l.expected<l.required){
-      if(l.verified>=l.required) chip=`<span class="recchip">Pack fill +${l.verified-l.expected}</span>`;
+      if(l.verified>=l.required) chip=`<span class="recchip">Found +${l.verified-l.expected}${l.recoverBin?` · ${esc(l.recoverBin)}`:""}</span>`;
       else chip=`<span class="shortchip">Short ${l.required-l.verified}</span>`;
     }
     if((l.overScans||0)>0) chip+=`<span class="overchip">Over-scan ${l.overScans}</span>`;
@@ -1344,27 +1344,30 @@ function processScan(code){
 function autoAdvance(){ const n=lines.findIndex((l,i)=>i>curIdx&&l.verified<l.required); const a=lines.findIndex(l=>l.verified<l.required); curIdx=n>=0?n:(a>=0?a:curIdx); }
 
 // Pick was incomplete (expected < required): crossing the picker's picked qty needs confirmation.
-// Fires an audible beep + red flash + vibrate so it's noticeable, then asks to confirm. Used by scan AND manual +.
+// rep-close-2(판정 58 묶음 1 · 2026-10-05) — 「Found it?」 창 하나: 찾았는지와 어느 칸에서인지를 한 번에 묻는다(옛 confirm + prompt 둘을 하나로).
+//   OK = 찾았다 · 그 칸에서 더한다(빈 값 = 픽 계획 칸) · Cancel = 멈춘다(아무것도 더하지 않는다) · 소리 · 붉은 번쩍 · 진동은 그대로
+//   몇 개 = 완료 때 채운 수(verified − expected) — 완료 창구가 그 수 · 칸으로 신고를 found_at_pack 으로 닫는다(rep-close-1)
 function confirmFillIfNeeded(l, newVerified){
   if(l.expected < l.required && !l.fillConfirmed && newVerified > l.expected){
     flash("bad", `⚠ ${esc(l.order_sku)} — beyond picker's ${l.expected}`);   // sound + flash + vibrate
-    const need = l.required - l.expected;
-    const msg = `${l.order_sku}\n\nPicker pulled ${l.expected}, ordered ${l.required}.\nYou are going beyond what the picker pulled.\n\nDid you find the remaining ${need} from another location?\n\nOK = yes, add it.   Cancel = stop.`;
-    if(!confirm(msg)) return false;   // not confirmed → nothing added
-    l.fillConfirmed = true;           // confirmed once → no repeat for this line
-    if(!askRecoverBin(l)) { l.fillConfirmed = false; return false; }   // 판정 57 — 어느 칸에서 가져왔나(기본 = 픽 계획 칸)
+    if(!askFoundIt(l)) return false;   // not confirmed → nothing added
+    l.fillConfirmed = true;            // confirmed once → no repeat for this line
   }
   return true;
 }
-/* 판정 57(adj-rec-a 2026-09-28) — 픽을 넘겨 채운 낱개는 어느 칸에서 왔는지 남긴다(픽커가 뽑은 것과 같은 기록 · 출고 · 원장 · P 가 맞아진다).
-   기본 = 그 줄의 픽 계획 칸(첫째) · 스캐너로 찍거나 타이핑해 바꾼다 · 빈 값이면 계획 칸 · 서버(wms_complete_pack)가 이 창고의 활성 칸인지 다시 본다 */
-function askRecoverBin(l){
-  const b=prompt(`${l.order_sku}\nWhich bin did the extra come from?\n(scan or type the bin · leave as is for the picker's planned bin)`, l.recoverBin||l.bin||"");
-  if(b===null) return false;
-  l.recoverBin=(b||"").trim()||l.bin||"";
-  if(!l.recoverBin){ alert("A bin is needed for recovered stock — the planned bin is unknown for this line, type the bin you took it from."); return askRecoverBin(l); }
+/* 판정 57 · 58 — 픽을 넘겨 채운 낱개는 어느 칸에서 왔는지 남긴다(기본 = 그 줄의 픽 계획 칸 · 스캐너로 찍거나 타이핑해 바꾼다)
+   서버(wms_complete_pack)가 이 창고의 활성 칸인지 다시 본다 · 완료 때 칸이 없는 회복 줄이 있으면 이 창을 다시 연다 */
+function askFoundIt(l){
+  const need = l.required - l.expected;
+  const sd = stockDeclOf(l);
+  const msg = `FOUND IT? — ${l.order_sku}\n\nPicker pulled ${l.expected}, ordered ${l.required} — ${need} missing.${sd ? `\n"Not enough stock" was declared by ${sd.by || "someone"}.` : ""}\n\nIf you found the rest, scan or type the bin you took it from\n(leave as is for the picker's planned bin) and press OK.\n\nOK = found it, add it.   Cancel = stop.`;
+  const b = prompt(msg, l.recoverBin || l.bin || "");
+  if(b === null) return false;
+  l.recoverBin = (b || "").trim() || l.bin || "";
+  if(!l.recoverBin){ alert("A bin is needed for found stock — the planned bin is unknown for this line, type the bin you took it from."); return askFoundIt(l); }
   return true;
 }
+function askRecoverBin(l){ return askFoundIt(l); }   // 완료 때 칸이 빈 회복 줄(옛 이름 · 부르는 곳 그대로)
 function manualAdjust(idx,d){
   if(frozen) return;
   const l=lines[idx]; const nv=Math.max(0,Math.min(l.required,l.verified+d)); if(nv===l.verified)return;

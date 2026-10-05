@@ -298,7 +298,7 @@
 /* inv-basis-4 (2026-09-29 · wa v1.14) — 판정 88 ⑧ · 93 · 98 (inv_basis_2 20260929195458): Receiving 탭(배지 · 「waiting for a decision」 · 「Rejected — still on a shelf」) · Review 모달 · Stats 차이 카드가 off_invoice 를 off_po 옆에 본다(글자 「Off-invoice」 · 옛 off_po 행은 옛 이름) ·
    수량 = received − expected(줄 있는 off_invoice = 오피스 확정이 만든 인보이스 초과 · 줄 없는 행 = PO 밖 품목 · expected 0) · Health 151 off_invoice_undecided 는 RPC 반환(title · hint)을 그대로 그린다 — 화면 글자 없음 · 판매 · 트랜스퍼 · PO 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · Health 161 없음 ⇒ 「Rejected — still on a shelf」 · Review 의 rejected 글자 · Stats 의 rejected 카드는 옛 off_po 행에만 */
-const WK_BUILD="2026-09-30 · wa v1.15";   // pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-10-05 · wa v1.16";   // rep-close-2(판정 58 묶음 3) — Reports: 닫힌 신고에 닫힌 방법 칩(Found at packing — 누가 found N in 칸 · Adjusted — ADJ-… · Resolved by hand) · Not enough stock 합계 갈라 보기 · Mark resolved = 창구 wms_report_resolve(rep-close-1 · 이미 닫힌 것 거부) ← pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -2014,6 +2014,20 @@ async function loadReports(){
   repSumRows=sum.data||[]; repSumTotal=sum.count??repSumRows.length;
   renderReports();
 }
+/* rep-close-2(판정 58 묶음 3) — 닫힌 방법(rep-close-1 · wms_reports.resolved_how · qty · bin · doc) · 옛 행은 비어 있다(「—」 없이 지금처럼) */
+function howChip(r){
+  const st='display:inline-block;margin:0 6px 2px 0;padding:1px 7px;border-radius:7px;font-size:11px;font-weight:700;';
+  if(r.resolved_how==="found_at_pack") return `<span style="${st}background:#e7f7ed;color:#136b33">Found at packing — ${esc(nameOf(r.resolved_by)||"packer")}${r.resolved_qty!=null?` found ${nf(r.resolved_qty)}`:""}${r.resolved_bin?` in ${esc(r.resolved_bin)}`:""}</span><br>`;
+  if(r.resolved_how==="adjusted") return `<span style="${st}background:#eef3ff;color:#2456d6">Adjusted — ${esc(r.resolved_doc||"")}</span><br>`;
+  if(r.resolved_how==="resolved") return `<span style="${st}background:#f2f4f8;color:var(--mut)">Resolved by hand</span><br>`;
+  return "";
+}
+function stockShortTally(){   // 「Not enough stock」 합계 갈라 보기 — 열린 것 전부 + 이 기간에 닫힌 것(Resolved 목록이 잘렸으면 그만큼)
+  const o=repOpen.filter(r=>r.kind==="stock_short").length, d=repDone.filter(r=>r.kind==="stock_short");
+  const n=k=>d.filter(r=>r.resolved_how===k).length, other=d.filter(r=>!r.resolved_how).length;
+  const parts=[`${o} open`]; if(n("found_at_pack")) parts.push(`${n("found_at_pack")} found at pack`); if(n("adjusted")) parts.push(`${n("adjusted")} adjusted`); if(n("resolved")) parts.push(`${n("resolved")} resolved by hand`); if(other) parts.push(`${other} closed earlier`);
+  return `<div style="font-size:12.5px;margin:0 0 10px"><b>Not enough stock</b> — ${o+d.length} (${parts.join(" · ")})</div>`;
+}
 function renderReports(){
   const el=document.getElementById("reportsList");
   const row=(r,actionable)=>`<tr>
@@ -2025,7 +2039,7 @@ function renderReports(){
     <td style="color:var(--mut);font-size:12px">${r.created_at?new Date(r.created_at).toLocaleDateString()+(actionable?ageBadge(r.created_at):""):""}</td>
     ${actionable
       ? `<td style="white-space:nowrap"><button class="btnsm ok" data-resolve="${r.id}">Mark resolved</button>${(canAdjust&&r.kind==="stock_short")?` <a class="btnsm" href="stock-adjustments.html?report=${encodeURIComponent(r.id)}" title="Open a stock adjustment for this SKU, filled from where it was picked">Adjust stock</a>`:""}</td>`
-      : `<td style="color:var(--mut);font-size:12px">${r.resolved_by?esc(nameOf(r.resolved_by))+" · ":""}${r.resolved_at?new Date(r.resolved_at).toLocaleDateString():""}${resolvedIn(r.created_at,r.resolved_at)}</td>`}
+      : `<td style="color:var(--mut);font-size:12px">${howChip(r)}${r.resolved_by?esc(nameOf(r.resolved_by))+" · ":""}${r.resolved_at?new Date(r.resolved_at).toLocaleDateString():""}${resolvedIn(r.created_at,r.resolved_at)}</td>`}
   </tr>`;
   const keep=r=>repKind==="all"||r.kind===repKind;
   const openR=repOpen.filter(keep), doneR=repDone.filter(keep);
@@ -2047,6 +2061,7 @@ function renderReports(){
   const head=`<thead><tr><th>Order</th><th>SKU</th><th>Type</th><th>Detail</th><th>Reported by</th><th>Date</th><th></th></tr></thead>`;
   el.innerHTML=`
     ${filterBar}
+    ${(repKind==="all"||repKind==="stock_short")?stockShortTally():""}
     <div class="sect-h" style="margin-top:0">Open ${openR.length?`(${openR.length})`:"(0)"}</div>
     <table>${head}<tbody>${openR.length?openR.map(r=>row(r,true)).join(""):`<tr><td colspan="7" style="color:var(--mut);padding:14px">No open reports.</td></tr>`}</tbody></table>
     <div class="sect-h">Resolved (recent)</div>
@@ -2057,8 +2072,9 @@ function renderReports(){
   refreshReportBadge();
 }
 async function resolveReport(id){
-  const {error}=await sb.from("wms_reports").update({resolved_by:me.id, resolved_at:new Date().toISOString()}).eq("id",id);   // 사람 칸 = ims_staff.id(판정 4) · 직접 쓰기(판정 6)
-  if(error){ toast("Failed: "+error.message,true); return; }
+  // rep-close-2 — 창구 wms_report_resolve(rep-close-1 · 문 wms_manage · 닫힌 방법 resolved · 이미 닫힌 신고는 거부 — 옛 직접 쓰기는 누가 · 언제를 덮었다)
+  const {error}=await sb.rpc("wms_report_resolve",{p_report_id:id});
+  if(error){ toast("Failed: "+error.message,true); loadReports(); return; }
   toast("Resolved"); loadReports();
 }
 
