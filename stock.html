@@ -107,7 +107,7 @@
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-06 · stk v1a";   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-06 · stk v1b";   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -135,6 +135,20 @@ async function photosFor(skus){
   const { data } = await sb.rpc("product_image_primary", { p_skus: skus });
   (data || []).forEach(x => { if(x.storage_path) out[x.sku] = photoUrl(x.storage_path); });
   return out;
+}
+/* ── bin — 쪽마다 한 번(stk_bins_many · 판정 273) · 결과에 없는 제품 = 빈 칸 · bin '' = (no bin) ── */
+async function binsFor(pids){
+  const out = {};
+  if(!pids.length) return out;
+  const { data, error } = await sb.rpc("stk_bins_many", { p_product_ids: pids, p_warehouse_id: wh });
+  if(error){ out.__err = error.message; return out; }
+  (data || []).forEach(x => { (out[x.product_id] = out[x.product_id] || []).push(x); });   // 창구가 qty desc 로 준다
+  return out;
+}
+function binCell(list){
+  if(!list || !list.length) return '<span class="dim"></span>';
+  const show = list.slice(0, 3).map(x => `${x.bin ? `<span class="mono${x.bin_is_active === false ? " dim" : ""}">${esc(x.bin)}</span>` : '<span class="dim">(no bin)</span>'} <span class="dim">(${n0(x.qty)})</span>`);
+  return show.join(" · ") + (list.length > 3 ? ` <span class="dim">+${list.length - 3}</span>` : "");
 }
 const thumb = (url) => url ? `<img class="th" src="${esc(url)}" alt="" loading="lazy">` : '<span class="th ph">—</span>';
 
@@ -179,17 +193,18 @@ async function loadWide(off){
   if(seq !== wideSeq) return;
   if(error){ $("wrows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
-  const ph = await photosFor(rows.map(r => r.sku));
+  const [ph, bn] = await Promise.all([photosFor(rows.map(r => r.sku)), binsFor(rows.map(r => r.product_id))]);
   if(seq !== wideSeq) return;
-  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th>SKU</th><th>Name</th><th>Brand</th>
+  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th>SKU</th><th>Name</th><th>Brand</th><th>Bin</th>
       <th class="num">On hand</th><th class="num">Allocated</th><th class="num">Transfer res.</th><th class="num">Available</th>
       <th class="num">On order</th><th class="num">In transit</th><th>Last movement</th></tr></thead><tbody>
     ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
       <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
-      <td>${dim(r.brand_name)}</td>
+      <td>${dim(r.brand_name)}</td><td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
       ${numTd(r.on_hand)}${numTd(r.sales_allocated)}${numTd(r.transfer_reserved)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}
       <td>${r.last_event_on ? esc(r.last_event_on) : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>`
     : `<div class="msg">No stock matches${zero ? "" : " — turn on “Show zero stock” to see empty lines"}.</div>`;
+  if(bn.__err) $("wrows").insertAdjacentHTML("afterbegin", `<div class="msg err">Bins: ${esc(bn.__err)}</div>`);
   $("wrows").querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openProduct(tr.dataset.id); });
   pager("wrange", "wprev", "wnext", off, total, loadWide);
 }
