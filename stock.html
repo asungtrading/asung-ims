@@ -107,7 +107,7 @@
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-06 · stk v1";   // 대화 Claude — stk-3 첫 판
+const STK_BUILD = "2026-10-06 · stk v1a";   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -209,10 +209,10 @@ async function loadList(off){
 /* ── 상세 — 머리(사진 · 브랜치) · 숫자 · Bins · Movements ── */
 const EV = {
   opening: "Opening balance", po_in: "Purchase receipt", sale_out: "Sale", credit_in: "Credit note (return)",
-  transfer_out: "Transfer out", transfer_in: "Transfer in", adjust: "Adjustment", adjust_new: "Adjustment (new)",
+  transfer_out: "Transfer out", transfer_in: "Transfer in", adjust: "Adjustment", adjust_existing: "Adjustment", adjust_new: "Adjustment (new)",
   manual_reversal: "Correction", assembly_in: "Assembly in", assembly_out: "Assembly out",
 };
-const evLabel = (t) => EV[t] || t;
+const evLabel = (t) => EV[t] || String(t || "").replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
 let mvFrom = "", mvTo = "";
 
 async function loadDetail(id){
