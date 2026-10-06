@@ -200,8 +200,11 @@
    ⚠️ 18,714행이다. 목록을 훑는 화면이 아니라 검색해서 들어가는 화면이다.
    ⚠️ 제품은 감추지 않는다(Caleb 2026-09-15) — 비활성·대체 UPC 도 찾을 일이 있다.
    ⭐ 세트·콤보는 다른 것이다: 세트 = parent_product_id + pack_factor · 콤보 = product_bom 의 부모
+   ⭐ [pr v4 · asm-3a] 콤보 정의 = product_bom_set(p_parent_sku, p_lines [{sku, qty}] 전체, p_old 화면이 본 켜진 목록 | 새 콤보 null, p_commit, p_ack) — asm-1 20261005192944
+      판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
+      ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v3c";   // 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 2): Surcharge group 칸(보기 · Edit 에서 고르기 · product_update op surcharge_group_set · 세트는 없음) ← pr v3b
+const PR_BUILD = "pr v4";   // 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -405,14 +408,15 @@ async function loadDetail(id){
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
-  const [p, bar, sup, bom, kids, pri, img] = await Promise.all([
+  const [p, bar, sup, bom, kids, pri, img, used] = await Promise.all([
     sb.from("product").select("*").eq("id", id).maybeSingle(),
     sb.from("product_barcode").select("*").eq("product_id", id).order("is_primary", {ascending:false}),
     sb.from("product_supplier").select("*, supplier(name)").eq("product_id", id).order("is_default", {ascending:false}),
-    sb.from("product_bom").select("*").eq("parent_product_id", id),
+    sb.from("product_bom").select("*").eq("parent_product_id", id).eq("is_active", true),          // pr v4: 켜진 줄만(꺼진 줄 = 뺀 구성품 · 해제된 콤보)
     sb.from("product").select("id,sku,name,pack_factor,is_active").eq("parent_product_id", id).order("sku"),
     sb.from("product_price").select("id,tier_id,price,is_active,source").eq("product_id", id),
     sb.from("product_image").select("*").eq("product_id", id).order("sort_order").order("created_at"),
+    sb.from("product_bom").select("parent_product_id,quantity").eq("component_product_id", id).eq("is_active", true),   // pr v4: 이 상품을 구성품으로 쓰는 콤보
   ]);
   if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Product not found.")}</div></div>`; return; }
   const r = p.data;
@@ -420,9 +424,18 @@ async function loadDetail(id){
   let comps = [];
   if((bom.data||[]).length){
     const ids = bom.data.map(b => b.component_product_id).filter(Boolean);
-    const { data: cp } = await sb.from("product").select("id,sku,name").in("id", ids);
+    const { data: cp } = await sb.from("product").select("id,sku,name,is_active,parent_product_id,pack_factor").in("id", ids);
     const map = {}; (cp||[]).forEach(x => map[x.id] = x);
-    comps = bom.data.map(b => Object.assign({}, b, { c: map[b.component_product_id] || null }));
+    comps = bom.data.map(b => Object.assign({}, b, { c: map[b.component_product_id] || null }))
+      .sort((a, b) => String(a.c ? a.c.sku : "").localeCompare(String(b.c ? b.c.sku : "")));
+  }
+  let usedIn = [];
+  if((used.data||[]).length){
+    const pids = used.data.map(b => b.parent_product_id).filter(Boolean);
+    const { data: pp } = await sb.from("product").select("id,sku,name,is_active").in("id", pids);
+    const pm = {}; (pp||[]).forEach(x => pm[x.id] = x);
+    usedIn = used.data.map(b => ({ qty: b.quantity, p: pm[b.parent_product_id] || null }))
+      .sort((a, b) => String(a.p ? a.p.sku : "").localeCompare(String(b.p ? b.p.sku : "")));
   }
   let parent = null, family = null, sibs = [];
   if(r.parent_product_id){
@@ -449,7 +462,7 @@ async function loadDetail(id){
   }
 
   if(seq !== detailSeq) return;
-  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, parent, family, sibs, imgs, imgsOff, fallback };
+  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, usedIn, parent, family, sibs, imgs, imgsOff, fallback };
   render();
 }
 
@@ -520,8 +533,11 @@ function renderRead(){
     ["Cin7 modified", `<span class="mono">${dim(r.cin7_modified_on ? String(r.cin7_modified_on).slice(0,10) : null)}</span>`],
   ];
 
+  /* pr v4(판정 247): 낱개 · 콤보 아님 · 다른 콤보의 구성품 아님 · 켜짐 → Make combo(세트 · 구성품은 창구가 막는다 — 단추를 아예 안 보인다) */
+  const canCombo = canEdit && !r.parent_product_id && !comps.length && !cur.usedIn.length && r.is_active;
   const acts = `<div class="acts">${navBtns()}${canEdit
     ? `<button class="pobtn go" data-act="edit">Edit</button>
+         ${canCombo ? `<button class="pobtn" data-act="comboEdit" title="Make this SKU a combo of other products">Make combo</button>` : ""}
          <span class="hint">Change several fields, then save once.</span>` : ""}</div>`;
 
   /* 판매가 — 판매용 티어만(판정 138 · 비교 · 참고 티어는 여기 안 보인다) · 세트는 비어 있으면 계산 가격 */
@@ -550,9 +566,13 @@ function renderRead(){
       <td class="mono">${dim(b.barcode)}</td><td>${yn(b.is_primary, false)}</td>
       <td class="mono">${dim(b.valid_from)}</td><td>${yn(b.is_active)}</td></tr>`);
 
-  const bomRows = comps.map(x => `<tr>
+  const bomRows = comps.map(x => `<tr${x.c && !x.c.is_active ? ' style="opacity:.5"' : ""}>
       <td class="mono">${x.c ? `<span class="lnk" data-go="${x.c.id}">${esc(x.c.sku)}</span>` : '<span class="dim">?</span>'}</td>
-      <td>${esc(x.c ? x.c.name : "")}</td><td class="num">${dim(x.quantity)}</td></tr>`);
+      <td>${esc(x.c ? x.c.name : "")}${x.c && x.c.parent_product_id ? ` <span class="tag">set ×${esc(x.c.pack_factor)}</span>` : ""}${x.c && !x.c.is_active ? ' <span class="tag off">inactive</span>' : ""}</td>
+      <td class="num">${dim(qtyTxt(x.quantity))}</td><td class="dim" style="font-size:11.5px">${esc(x.source || "")}</td></tr>`);
+  const usedRows = cur.usedIn.map(x => `<tr${x.p && !x.p.is_active ? ' style="opacity:.5"' : ""}>
+      <td class="mono">${x.p ? `<span class="lnk" data-go="${x.p.id}">${esc(x.p.sku)}</span>` : '<span class="dim">?</span>'}</td>
+      <td>${esc(x.p ? x.p.name : "")}</td><td class="num">${dim(qtyTxt(x.qty))}</td></tr>`);
   const kidRows = cur.kids.map(k => `<tr>
       <td class="mono"><span class="lnk" data-go="${k.id}">${esc(k.sku)}</span></td>
       <td>${esc(k.name)}</td><td class="num">${dim(k.pack_factor)}</td><td>${yn(k.is_active)}</td></tr>`);
@@ -574,7 +594,9 @@ function renderRead(){
           supShow.length, ["Supplier","Supplier SKU",["Fixed","num"],["Latest","num"],"Cur","Last supplied","Default","Active"], supRows,
           r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
-    ${comps.length ? tbl("Components", comps.length, ["SKU","Name",["Qty","num"]], bomRows) : ""}
+    ${comps.length ? tbl("Components", comps.length, ["SKU","Name",["Qty per combo","num"],"Source"], bomRows, "", "",
+        canEdit ? `<button class="pobtn" data-act="comboEdit" style="margin-left:auto">Edit components</button>` : "") : ""}
+    ${cur.usedIn.length ? tbl("Components — used in combos", cur.usedIn.length, ["Combo SKU","Name",["Qty per combo","num"]], usedRows) : ""}
     ${kidRows.length ? tbl("Sets of this product", kidRows.length, ["SKU","Name",["Pack factor","num"],"Active"], kidRows) : ""}
     ${family ? tbl(
         `Same family <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--muted)">${esc(family.name)}</span>`,
@@ -956,6 +978,7 @@ function wireDetail(box){
       if(a === "supDrop"){ keepInputs(() => edit.addSup.splice(Number(el.dataset.i), 1)); return; }
 
       if(a === "addVariant"){ openFamilyDialog({ familyId: cur.family.id, family: cur.family }); return; }
+      if(a === "comboEdit"){ if(leaveEditOk()) openComboDialog(null); return; }
       if(a === "photoAdd"){ const f = document.getElementById("photoFile"); f.value = ""; f.click(); return; }
       if(a === "photoPrimary"){ await photoOp([{ op:"image_primary", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
       if(a === "photoOff"){ await photoOp([{ op:"image_off", sku:cur.r.sku, image_id: el.dataset.img }]); return; }
@@ -1279,6 +1302,99 @@ function openFamilyDialog(st){
 }
 
 /* 만든 뒤 — 그 상품으로 연다(목록이 고른 것을 알아보게 먼저 검색어를 그 SKU 로) */
+/* ── Combo — 구성품 고치기(pr v4 · asm-3a · 판정 244 · 247 · asm 묶음 1) ──
+   창구 product_bom_set(p_parent_sku, p_lines, p_old, p_commit, p_ack) — 줄 op 가 아니라 구성품 **전체** 목록을 보낸다
+   p_old = 이 창을 열 때 본 켜진 목록(새 콤보면 null) — 그 사이 남이 바꿨으면 changed_elsewhere 로 막힌다
+   빈 목록 = 콤보 해제(줄을 끈다 · 지우지 않는다) · 막기 15 · 알리기 4 는 runWindow 가 그대로 보인다(문장은 서버 것) */
+const qtyTxt = v => { if(v === null || v === undefined || v === "") return ""; const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(6))) : String(v); };
+let comboSeq = 0;
+function openComboDialog(st){
+  const r = cur.r;
+  if(!st){
+    const old = cur.comps.filter(x => x.c).map(x => ({ sku: x.c.sku, qty: qtyTxt(x.quantity) }));
+    st = { parentId: r.id, parentSku: r.sku, isNew: !old.length, old,
+           rows: old.length ? old.map(x => ({ sku: x.sku, qty: x.qty })) : [{ sku:"", qty:"1" }, { sku:"", qty:"1" }],
+           info: {} };
+    cur.comps.forEach(x => { if(x.c) st.info[x.c.sku.toUpperCase()] = { found:true, name:x.c.name, is_active:x.c.is_active, set:x.c.parent_product_id ? x.c.pack_factor : null, combo:false, self:false }; });
+  }
+  const hint = row => {
+    const k = (row.sku || "").trim().toUpperCase();
+    if(!k) return "";
+    const i = st.info[k];
+    if(!i) return '<span class="ghost">checking…</span>';
+    if(!i.found) return '<span class="bchint bad">No such SKU</span>';
+    const bits = [esc(i.name || "")];
+    if(i.self) bits.push('<span class="bchint bad">this is the combo itself</span>');
+    if(!i.is_active) bits.push('<span class="bchint bad">inactive</span>');
+    if(i.combo) bits.push('<span class="bchint bad">is itself a combo</span>');
+    if(i.set) bits.push(`<span class="bchint warn">set ×${esc(i.set)} — counts as singles</span>`);
+    return bits.join(" · ");
+  };
+  const rows = st.rows.map((x, i) => `<tr>
+      <td style="width:190px"><input class="ein mono" data-cb="sku" data-i="${i}" value="${esc(x.sku)}" placeholder="component SKU" autocomplete="off"></td>
+      <td style="width:110px"><input class="ein sm mono" data-cb="qty" data-i="${i}" value="${esc(x.qty)}" inputmode="decimal"></td>
+      <td data-cbh="${i}" style="font-size:12px">${hint(x)}</td>
+      <td style="width:70px"><button class="xbtn" data-cbx="drop" data-i="${i}">remove</button></td></tr>`).join("");
+  const b = openForm(`<h4>${st.isNew ? "Make combo" : "Edit components"} — <span class="mono">${esc(st.parentSku)}</span></h4>
+    <div class="pbody">
+      <div class="ghost" style="margin-bottom:10px">A combo is sold as one line; the warehouse picks the components and packs them together.
+        List <b>every</b> component with how many go into <b>one</b> combo. At least two components.</div>
+      <table class="vt"><thead><tr><th>SKU</th><th>Qty per combo</th><th>Product</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="display:flex;gap:6px;margin-top:8px"><button class="xbtn" data-cbx="add">+ component</button></div>
+    </div>
+    <div class="pfoot">
+      ${st.isNew ? "" : `<button class="pobtn" data-cbx="release" title="Turn all component rows off — the SKU stops being a combo">Release combo</button>`}
+      <span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-cbx="go">Check &amp; save</button></div>`);
+
+  const read = () => { b.querySelectorAll('[data-cb]').forEach(el => { st.rows[Number(el.dataset.i)][el.dataset.cb] = el.value; }); };
+  const look = async () => {
+    const want = [...new Set(st.rows.map(x => (x.sku || "").trim()).filter(Boolean).filter(k => !st.info[k.toUpperCase()]))];
+    if(!want.length) return;
+    const seq = ++comboSeq;
+    const { data } = await sb.from("product").select("id,sku,name,is_active,parent_product_id,pack_factor").in("sku", want);
+    const ids = (data||[]).map(x => x.id);
+    let combos = new Set();
+    if(ids.length){
+      const { data: cb } = await sb.from("product_bom").select("parent_product_id").in("parent_product_id", ids).eq("is_active", true);
+      combos = new Set((cb||[]).map(x => x.parent_product_id));
+    }
+    if(seq !== comboSeq) return;
+    want.forEach(k => {
+      const p = (data||[]).find(x => x.sku === k) || (data||[]).find(x => x.sku.toUpperCase() === k.toUpperCase());
+      st.info[k.toUpperCase()] = p ? { found:true, name:p.name, is_active:p.is_active, set:p.parent_product_id ? p.pack_factor : null, combo:combos.has(p.id), self:p.id === st.parentId }
+                                   : { found:false };
+    });
+    st.rows.forEach((x, i) => { const td = b.querySelector(`[data-cbh="${i}"]`); if(td) td.innerHTML = hint(x); });
+  };
+  b.querySelectorAll('[data-cb="sku"]').forEach(el => { el.onchange = () => { read(); look(); }; });
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  b.querySelectorAll("[data-cbx]").forEach(el => {
+    el.onclick = async () => {
+      const a = el.dataset.cbx;
+      read();
+      if(a === "add"){ st.rows.push({ sku:"", qty:"1" }); openComboDialog(st); return; }
+      if(a === "drop"){ st.rows.splice(Number(el.dataset.i), 1); openComboDialog(st); return; }
+      if(a === "release"){
+        if(!confirm(`Release combo ${st.parentSku}? Its component rows are turned off (kept as history) and it sells as a plain SKU again.`)) return;
+        await saveCombo(st, []); return;
+      }
+      if(a === "go"){
+        const lines = st.rows.map(x => ({ sku: (x.sku || "").trim(), qty: (x.qty || "").toString().trim() })).filter(x => x.sku || x.qty);
+        if(!lines.length){ alert(st.isNew ? "Add at least two components." : "To stop this SKU being a combo, use Release combo."); return; }
+        await saveCombo(st, lines); return;
+      }
+    };
+  });
+  look();
+}
+async function saveCombo(st, lines){
+  await runWindow("product_bom_set",
+    { p_parent_sku: st.parentSku, p_lines: lines, p_old: st.isNew ? null : st.old },
+    async d => { await loadDetail(st.parentId); },
+    () => openComboDialog(st));
+}
+
 async function openCreated(pid, sku){
   if(!pid) { await loadList(); return; }
   q = sku || ""; document.getElementById("q").value = q;
