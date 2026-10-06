@@ -146,7 +146,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-05 · so v4a";   // 대화 Claude — asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-05 · so v4b";   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -1142,6 +1142,25 @@ async function runShip(){
    ⭐ 미리 보기(p_commit false)는 아무것도 쓰지 않고 번호도 안 당긴다 — 실행 단추는 「지금 입력으로 본 미리 보기」 뒤에만 켜진다
    📌 줄 빼기(removed · 판정 9 어휘)는 이 판에 없다 — 손님이 안 받는 줄은 다음 판 */
 let finPlan = null, finKey = null;
+/* so v4b — 결과 줄(line_id 가 있는 목록)을 콤보 줄 바로 아래 구성품으로 다시 줄 세운다 · 구성품인지는 cur.lines 의 combo_line_id 로 가린다 */
+function comboOrder(rows){
+  const byId = {}; (cur.lines || []).forEach(l => { byId[l.id] = l; });
+  const parentOf = r => (byId[r.line_id] || {}).combo_line_id || null;
+  const kids = {}; rows.filter(r => parentOf(r)).forEach(r => { (kids[parentOf(r)] = kids[parentOf(r)] || []).push(r); });
+  const out = [];
+  rows.filter(r => !parentOf(r)).forEach(r => { out.push(r); (kids[r.line_id] || []).forEach(k => out.push(k)); delete kids[r.line_id]; });
+  Object.values(kids).flat().forEach(k => out.push(k));
+  return out.map(r => Object.assign({ _comp: !!parentOf(r), _combo: !!(byId[r.line_id] || {}).is_combo || !!r.combo }, r));
+}
+const comboSkuCell = (r) => `<td class="mono">${r._comp ? `<span class="dim">↳</span> ` : ""}${esc(r.sku || "")}${r._combo ? ' <span class="tag">combo</span>' : ""}${r._comp && r.combo_sku ? ` <span class="dim" style="font-size:11px">for ${esc(r.combo_sku)}</span>` : ""}</td>`;
+/* so v4b(판정 246) — 되돌려 놓을 것 · Finalize 가 구성품 픽을 통째 콤보로 줄인 몫(장부는 출고 때만 빠지므로 닿지 않는다 · 실물만 제자리에) */
+function putBackHtml(list, done){
+  if(!(list || []).length) return "";
+  return `<div class="sowarn" style="margin-top:10px"><b>Put back to the shelf</b> — ${done ? "these were picked but did not ship" : "these picked items will not ship"}: a combo ships whole or not at all, so the extra components go back to their bin${done ? " (the warehouse sees this list too)" : ""}.
+    <table style="margin-top:6px"><thead><tr><th>SKU</th><th>Bin</th><th class="num">Qty</th><th>For combo</th></tr></thead><tbody>
+    ${list.map(x => `<tr><td class="mono">${esc(x.sku || "")}</td><td class="mono">${esc(x.bin || "—")}</td><td class="num">${qty(x.qty)}</td><td class="mono">${esc(x.combo_sku || "")}${x.combo_line_no ? ` <span class="dim">line ${esc(x.combo_line_no)}</span>` : ""}</td></tr>`).join("")}
+    </tbody></table></div>`;
+}
 function finInput(){
   const v = (id) => (document.getElementById(id).value || "").trim();
   const o = { so_id: curId };
@@ -1249,9 +1268,11 @@ async function previewFinalize(){
   document.getElementById("fnOut").innerHTML = `
     <div class="sosub" style="margin:10px 0 6px">What will happen</div>
     <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Ships</th><th class="num">Short</th></tr></thead><tbody>
-      ${lines.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.ordered)}</td>
+      ${comboOrder(lines).map(l => `<tr${l._comp ? ' class="comp"' : ""}><td class="num">${esc(l.line_no)}</td>${comboSkuCell(l)}<td class="num">${qty(l.ordered)}</td>
         <td class="num">${qty(l.picked != null ? l.picked : l.to_ship)}</td><td class="num">${Number(l.short) ? `<span class="bad">${qty(l.short)}</span>` : "—"}</td></tr>`).join("")}
     </tbody></table>
+    ${lines.some(l => l.combo) ? '<div class="sohint">A combo line counts whole combos — its components ship together; a combo that is not complete goes to the backorder order as one.</div>' : ""}
+    ${putBackHtml(data.put_back, false)}
     ${Number(sh.backorder_lines) ? `<div class="sohint">${qty(sh.backorder_lines)} line(s) short — a backorder order is created for the rest.</div>` : ""}
     ${(od.surcharges || []).length ? `<div class="sohint">Surcharge changes: ${(od.surcharges || []).map(x => `line ${esc(x.line_no)} <span class="mono">${esc(x.sku)}</span> ${scBrief(x.old)} → ${scBrief(x.new)}`).join(" · ")}</div>` : ""}
     ${(od.charges || []).length ? `<div class="sohint">Freight line: ${(od.charges || []).map(c => `${esc(c.name || "")} ${money(c.amount)}`).join(" · ")}</div>` : '<div class="sohint">No freight line.</div>'}
@@ -1278,6 +1299,7 @@ async function runFinalize(){
       <div class="stat">Still owed<b>${money(tt.remaining)}</b></div>
     </div>
     <div class="sohint">Issued ${esc(inv.issued_on || "")}${inv.due_on ? " · due " + esc(inv.due_on) : ""}.${bo && bo.so_number ? ` The short part carries on as <b class="mono">${esc(bo.so_number)}</b>.` : ""}</div>
+    ${putBackHtml(data.put_back, true)}
     ${[].concat(data.warnings || [], inv.warnings || []).length ? `<div class="sowarn">${warnChips([].concat(data.warnings || [], inv.warnings || []))}</div>` : ""}`;
   document.getElementById("fnUnits").innerHTML = "";
   say("fnMsg", "on", "Done.");
@@ -1378,10 +1400,10 @@ function openDivide(){
     <h4>Divide ${esc(cur.so.so_number)} — move lines to a new order</h4>
     <div class="pbody">
       <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Move</th></tr></thead>
-      <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></td>
+      <tbody>${comboOrder(lines.map(l => Object.assign({ line_id: l.id }, l))).map(l => `<tr${l._comp ? ' class="comp"' : ""}><td class="num">${esc(l.line_no)}</td><td>${l._comp ? '<span class="dim">↳</span> ' : ""}<span class="mono">${esc(l.sku)}</span>${l._combo ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}${l._comp ? ` · ${esc(qty(l.combo_qty))} per combo` : ""}</div></td>
         <td class="num">${qty(l.qty_ordered)}</td>
-        <td class="num"><input class="qin" type="number" step="any" min="0" max="${esc(l.qty_ordered)}" data-mv="${l.id}"></td></tr>`).join("")}</tbody></table>
-      <div class="sohint">Type how much of each line moves. The whole line or part of it — its reservation goes with it. The new order is a sibling (manual split) and keeps this order's header.</div>
+        <td class="num">${l._comp ? '<span class="dim" style="font-size:11px" title="Move the combo line — its components follow">follows</span>' : `<input class="qin" type="number" step="${l._combo ? 1 : "any"}" min="0" max="${esc(l.qty_ordered)}" data-mv="${l.id}">`}</td></tr>`).join("")}</tbody></table>
+      <div class="sohint">Type how much of each line moves. The whole line or part of it — its reservation goes with it. The new order is a sibling (manual split) and keeps this order's header.${lines.some(l => l.combo_line_id) ? " A combo moves in whole combos — type it on the combo line and its components follow." : ""}</div>
       <div id="dvOut" style="margin-top:10px"></div><div id="dvMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span>
@@ -1399,7 +1421,7 @@ function openDivide(){
     const { data, error } = await sb.rpc("so_divide", { p_so_id: curId, p_moves: mv, p_commit: commit });
     if(error){ say("dvMsg", "err", error.message); return; }
     document.getElementById("dvOut").innerHTML = `<table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th class="num">Moves</th><th>Reservation</th></tr></thead>
-      <tbody>${(data.lines || []).map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.qty_ordered)}</td>
+      <tbody>${(data.lines || []).map(l => `<tr${l.combo_sku ? ' class="comp"' : ""}><td class="num">${esc(l.line_no)}</td><td class="mono">${l.combo_sku ? `<span class="dim">↳</span> ` : ""}${esc(l.sku)}${l.combo_sku ? ` <span class="dim" style="font-size:11px">for ${esc(l.combo_sku)}</span>` : ""}</td><td class="num">${qty(l.qty_ordered)}</td>
         <td class="num">${qty(l.qty_moved)}${l.whole ? ' <span class="dim">whole line</span>' : ""}</td>
         <td>${l.reserve_kind ? esc(l.reserve_kind) + " · " + qty(l.reserve_follows) + " follows" : '<span class="dim">none</span>'}</td></tr>`).join("")}</tbody></table>
       ${data.sibling ? `<div class="sosub">New order: <b class="mono">${esc(data.sibling.so_number || "")}</b></div>` : ""}`;
@@ -1473,9 +1495,10 @@ async function openMerge(){
 function data_cust_name(){ return (cur && cur.customer_name) || ""; }
 function drawMerge(d, done){
   const diffs = (d.head_diffs || []).map(x => `<tr><td>${esc(String(x.field || "").replace(/_/g, " "))}</td><td>${(x.values || []).map(v => `<span class="mono">${esc(v.so_number || "")}</span> ${esc(v.value === null || v.value === undefined ? "—" : String(v.value))}`).join(" · ")}</td></tr>`);
-  const lines = (d.lines || []).map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}</td><td class="num">${qty(l.qty)}</td>
+  const KEPT = { unit_price: "unit price", list_price: "list price", discount_pct: "discount", free_reason: "free reason", price_override: "price set by hand", surcharge: "surcharge", combo_definition: "combo made of different components" };
+  const lines = (d.lines || []).map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}${l.is_combo ? ' <span class="tag" title="Its components are hung under it again on the new draft">combo</span>' : ""}</td><td class="num">${qty(l.qty)}</td>
     <td class="num">${price(l.unit_price)}</td><td class="num">${l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%"}</td>
-    <td>${l.free_reason ? `<span class="tag">free · ${esc(l.free_reason)}</span>` : ""}${Array.isArray(l.kept_apart_by) && l.kept_apart_by.length ? `<span class="dim" style="font-size:11px">kept apart: ${esc(l.kept_apart_by.join(", "))}</span>` : ""}</td></tr>`);
+    <td>${l.free_reason ? `<span class="tag">free · ${esc(l.free_reason)}</span>` : ""}${l.kept_apart && Array.isArray(l.differs_in) && l.differs_in.length ? `<span class="dim" style="font-size:11px">kept apart: ${esc(l.differs_in.map(k => KEPT[k] || k).join(", "))}</span>` : ""}</td></tr>`);
   const rq = (d.requote && ((d.requote.lines || []).length + (d.requote.combined || []).length)) ? `
     <div class="sosub">Today's quote would be better for: ${(d.requote.lines || []).map(r => `line ${esc(r.line_no)} ${esc(r.sku)} ${price(r.unit_price)} → ${price(r.quote_unit_price)}`).concat(
       (d.requote.combined || []).map(r => `${esc(r.sku)} as one line of ${qty(r.qty)} → ${price(r.quote_unit_price)}`)).join(" · ")}. Nothing changes by itself — change a line on the new draft if you want it.</div>` : "";
@@ -1488,7 +1511,7 @@ function drawMerge(d, done){
     </div>
     ${diffs.length ? `<h5 style="margin:12px 0 4px;font-size:12px;color:var(--muted)">HEADER DIFFERS — the oldest order's value is kept · change it on the new draft</h5>
       <table><tbody>${diffs.join("")}</tbody></table>` : ""}
-    <h5 style="margin:12px 0 4px;font-size:12px;color:var(--muted)">LINES — prices as they were (set by hand)</h5>
+    <h5 style="margin:12px 0 4px;font-size:12px;color:var(--muted)">LINES — prices as they were (set by hand)${(d.lines || []).some(l => l.is_combo) ? " · a combo line brings its components with it" : ""}</h5>
     <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Disc %</th><th></th></tr></thead><tbody>${lines.join("")}</tbody></table>
     ${rq}
     ${(d.charges || []).length ? `<div class="sosub">Freight is not carried over — add it again on the new draft. Was: ${d.charges.map(c => `${esc(c.so_number)} ${esc(c.name)} ${money(c.amount)}`).join(" · ")}</div>` : ""}
