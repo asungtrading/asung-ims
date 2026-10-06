@@ -38,6 +38,11 @@
   .socols .stat b{font-size:15px}
   /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
   .lnth{display:flex;gap:8px;align-items:flex-start}
+  /* so v4a · asm-3b1 — 콤보 줄 아래 구성품 줄(묶음 2 · 3) */
+  tr.comp td{background:#fafbfd;border-top-color:#f0f2f6}
+  tr.comp .cin{padding-left:22px;position:relative}
+  tr.comp .cin::before{content:"↳";position:absolute;left:4px;top:0;color:var(--muted)}
+  .avl{font-size:11px;margin-top:2px;white-space:nowrap}
   /* surcharge-3 — 줄의 관세 부가 요금 칸(판정 227 · 묶음 1) */
   .scc{font-size:12px;line-height:1.35;white-space:nowrap}
   .scc .u{color:var(--muted);font-size:11.5px}
@@ -141,7 +146,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-02 · so sc v1.1";   // 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-05 · so v4a";   // 대화 Claude — asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -506,12 +511,27 @@ async function drawAlHits(term){
   /* v1.3 — 가용 재고(Caleb 화면 시험 2026-09-25) · so_available_many 한 곳(창고 잔고 − 열린 할당 · 낱개 EA) · 오더 창고 기준 · 한 번에 부른다
      ⭐ 세트는 낱개(부모) 재고를 본다 — 세트로는 EA ÷ pack_factor 의 몫만 보인다(계산이 아니라 나눠 보이기) */
   const stockPid = (p) => p.parent_product_id || p.id;
+  /* so v4a(판정 244 · 248) — 콤보 SKU 는 자기 재고가 없다 · 가용 = 구성품마다 floor(가용 EA ÷ 콤보 하나에 드는 EA) 의 최소(so_lines_available 과 같은 식 · 같은 재고 키는 합친다) */
+  const CB = {};
+  { const bm = await sb.from("product_bom").select("parent_product_id,quantity,component:component_product_id(id,sku,parent_product_id,pack_factor)").in("parent_product_id", rows.map(p => p.id)).eq("is_active", true);
+    (bm.data || []).forEach(b => { if(!b.component) return; const k = b.component.parent_product_id || b.component.id;
+      const need = (CB[b.parent_product_id] = CB[b.parent_product_id] || { n: 0, need: {} });
+      need.n++; need.need[k] = (need.need[k] || 0) + Number(b.quantity) * (Number(b.component.pack_factor) || 1); }); }
   let AV = {};
   if(cur && cur.so && cur.so.location_id){
-    const av = await sb.rpc("so_available_many", { p_stock_pids: [...new Set(rows.map(stockPid))], p_location_id: cur.so.location_id });
-    if(!av.error) (av.data || []).forEach(a => { AV[a.stock_pid] = a; });
+    const pids = rows.filter(p => !CB[p.id]).map(stockPid);
+    Object.values(CB).forEach(c => pids.push(...Object.keys(c.need)));
+    if(pids.length){
+      const av = await sb.rpc("so_available_many", { p_stock_pids: [...new Set(pids)], p_location_id: cur.so.location_id });
+      if(!av.error) (av.data || []).forEach(a => { AV[a.stock_pid] = a; });
+    }
   }
   const avTxt = (p) => {
+    if(CB[p.id]){
+      const c = CB[p.id];
+      const units = Math.min(...Object.entries(c.need).map(([k, n]) => Math.floor(Math.max(Number((AV[k] || {}).available_ea) || 0, 0) / n)));
+      return ` <span class="tag">combo · ${esc(c.n)} items</span> <span class="${units > 0 ? "on" : "off"}" style="font-size:11.5px">available ${esc(units.toLocaleString("en-CA"))} combo${units === 1 ? "" : "s"}</span>`;
+    }
     const a = AV[stockPid(p)];
     if(!a) return "";
     const ea = Number(a.available_ea), pf = Number(p.pack_factor) || 1;
@@ -626,7 +646,7 @@ async function runLines(rows, commit, ids, keepOpen){
       const v = VERDICT[l.verdict] || ["dim", l.verdict || ""];
       return `<tr><td class="num">${esc(l.n)}</td><td class="mono">${esc(l.input_sku)}</td><td>${dim(l.product_name)}</td>
         <td class="num">${qty(l.qty !== undefined && l.qty !== null ? l.qty : l.input_qty)}</td>
-        <td><span class="${v[0]}">${esc(v[1])}</span></td><td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
+        <td><span class="${v[0]}">${esc(v[1])}</span>${l.combo ? ` <span class="tag">combo + ${esc(l.components)} components</span>` : ""}</td><td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
     }).join("")}</tbody></table>`;
   document.getElementById(ids.go).disabled = s.too_many || (Number(s.ok) + Number(s.no_price || 0) + Number(s.merged || 0)) === 0;
   if(commit){
@@ -867,7 +887,7 @@ async function runConfirm(commit){
     <table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th>
       <th class="num">Reserved</th><th class="num">Backorder</th><th class="num">Preorder</th>${commit ? "" : "<th>Preorder?</th>"}</tr></thead>
     <tbody>${lines.map(l => `<tr>
-      <td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.qty_ordered)}</td>
+      <td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}${l.combo ? ' <span class="tag" title="Counted in whole combos — a short component backorders the whole combo">combo</span>' : ""}</td><td class="num">${qty(l.qty_ordered)}</td>
       <td>${esc(l.kind || "")}</td><td class="num">${qty(l.allocated)}</td>
       <td class="num">${Number(l.backordered) ? `<span class="neutral">${qty(l.backordered)}</span>` : '<span class="dim">0</span>'}</td>
       <td class="num">${Number(l.preorder) ? `<span class="neutral">${qty(l.preorder)}</span>` : '<span class="dim">0</span>'}</td>
@@ -1280,7 +1300,7 @@ function resLabel(x){
 function planTable(data, done){
   const lines = data.lines || [];
   return `<table><thead><tr><th class="num">#</th><th>SKU</th><th class="num">Ordered</th><th>Result</th><th class="num">Reserved</th><th class="num">Backorder</th><th class="num">Preorder</th></tr></thead>
-    <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}</td><td class="num">${qty(l.qty_ordered)}</td>
+    <tbody>${lines.map(l => `<tr><td class="num">${esc(l.line_no ?? "")}</td><td class="mono">${esc(l.sku || "")}${l.combo ? ' <span class="tag">combo</span>' : ""}</td><td class="num">${qty(l.qty_ordered)}</td>
       <td>${esc(l.kind || "")}</td><td class="num">${qty(l.allocated)}</td>
       <td class="num">${Number(l.backordered) ? `<span class="neutral">${qty(l.backordered)}</span>` : '<span class="dim">0</span>'}</td>
       <td class="num">${Number(l.preorder) ? `<span class="neutral">${qty(l.preorder)}</span>` : '<span class="dim">0</span>'}</td></tr>`).join("") || '<tr><td colspan="7" class="dim">No line changes.</td></tr>'}</tbody></table>
@@ -1521,6 +1541,12 @@ async function loadDetail(id){
     const rr = await sb.from("so_reserve").select("so_line_id,kind,qty_allocated").is("released_at", null).in("so_line_id", lineIds);
     (rr.data || []).forEach(x => { (RES[x.so_line_id] = RES[x.so_line_id] || []).push(x); });
   }
+  /* so v4a(판정 248) — 초안이면 줄마다 가용(so_lines_available 한 번 · 콤보 줄 = 통째 콤보 수 · 구성품 · 보통 줄 = 자기 단위) · 정지 그림(줄끼리 서로 빼지 않는다 — 확정이 한다) */
+  let AVL = {};
+  if(d.data && d.data.so && d.data.so.status === "draft" && lineIds.length){
+    const la = await sb.rpc("so_lines_available", { p_so_id: id });
+    if(!la.error) (la.data || []).forEach(x => { AVL[x.line_id] = x; });
+  }
   /* v2 — 병합으로 만든 초안이면 「오늘 견적이 더 유리한 줄」(판정 4 보완 ①) */
   let HINT = null;
   if(d.data && d.data.so && d.data.so.status === "draft"){
@@ -1690,7 +1716,31 @@ async function loadDetail(id){
     </div>`;
 
   const shownQty = s.status !== "draft";
-  const lines = (data.lines || []).map(l => {
+  /* so v4a(묶음 2 · 3) — 콤보 줄 바로 아래 그 구성품 줄(line_no 가 떨어져 있어도 · 합치기 · 형제는 구성품을 끝 번호로 단다) */
+  const allL = data.lines || [];
+  const kidsOf = {};
+  allL.filter(l => l.combo_line_id).forEach(l => { (kidsOf[l.combo_line_id] = kidsOf[l.combo_line_id] || []).push(l); });
+  const ordL = [];
+  allL.filter(l => !l.combo_line_id).forEach(l => { ordL.push(l); (kidsOf[l.id] || []).sort((a, b) => a.line_no - b.line_no).forEach(k => ordL.push(k)); delete kidsOf[l.id]; });
+  Object.values(kidsOf).flat().forEach(k => ordL.push(k));   // 짝 없는 구성품(있으면 안 된다 — 그래도 숨기지 않는다)
+  const avlTxt = (l) => {
+    const a = AVL[l.id]; if(!a) return "";
+    const u = Number(a.available_units) || 0, need = Number(l.qty_ordered) || 0;
+    return `<div class="avl ${u >= need ? "on" : "off"}" title="Available in this warehouse now — on hand minus what other orders reserved${l.is_combo ? " · a combo counts whole combos its components can make" : ""}">available ${esc(u.toLocaleString("en-CA"))}${l.is_combo ? " combo" + (u === 1 ? "" : "s") : ""}</div>`;
+  };
+  const compRow = (l) => `<tr class="comp">
+      ${ed ? "<td></td>" : ""}
+      <td class="num dim">${esc(l.line_no)}</td>
+      <td><div class="cin"><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
+        <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")} · ${esc(qty(l.combo_qty))} per combo</div></div></td>
+      <td class="num">${qty(l.qty_ordered)}${ed ? avlTxt(l) : ""}</td>
+      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => resLabel(x)).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
+      <td></td><td></td><td></td><td></td><td></td>
+      <td><span class="dim" style="font-size:11.5px" title="A component carries no price — the combo line does">for combo ${esc(l.combo_sku || "")}</span></td>
+      ${ed ? "<td></td>" : ""}
+    </tr>`;
+  const lines = ordL.map(l => {
+    if(l.combo_line_id) return compRow(l);
     const src = l.free_reason ? `<span class="tag">free · ${esc(l.free_reason)}</span>`
       : l.price_override ? '<span class="tag disc">price set by hand</span>'
       : l.discount_source === "manual" ? '<span class="tag disc">discount by hand</span>'
@@ -1704,10 +1754,10 @@ async function loadDetail(id){
     return `<tr>
       ${ed ? `<td>${l.free_reason ? "" : `<input type="checkbox" data-scpick="${l.id}" title="Pick for Set surcharge…">`}</td>` : ""}
       <td class="num">${esc(l.line_no)}</td>
-      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}${l.is_combo ? ' <span class="tag" title="Sold as one line — the components below carry the stock">combo</span>' : ""}
         <div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>${l.comments ? `<div class="dim" style="font-size:11.5px">${esc(l.comments)}</div>` : ""}</div></div></td>
-      <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` : qty(l.qty_ordered)}</td>
-      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${(RES[l.id] || []).map(x => resLabel(x)).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>'}</td>` : ""}
+      <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ordered)}" data-prev="${esc(l.qty_ordered)}" data-line="${l.id}" data-f="qty_ordered">` + avlTxt(l) : qty(l.qty_ordered)}</td>
+      ${shownQty ? `<td class="num">${qty(l.qty_shipped)}</td><td>${l.is_combo ? '<span class="dim" style="font-size:11.5px">see components ↓</span>' : ((RES[l.id] || []).map(x => resLabel(x)).join(" ") || '<span class="dim" style="font-size:11.5px">—</span>')}</td>` : ""}
       <td class="num">${price(l.list_price)}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" max="100" value="${esc(l.discount_pct ?? "")}" data-prev="${esc(l.discount_pct ?? "")}" data-line="${l.id}" data-f="discount_pct" title="Type a discount to set it by hand · empty it to go back to the system discount">` : (l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%")}</td>
       <td class="num">${ed && !l.free_reason ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.unit_price ?? "")}" data-prev="${esc(l.unit_price ?? "")}" data-line="${l.id}" data-f="unit_price" title="Type a price to override">` : price(l.unit_price)}</td>
@@ -1772,12 +1822,14 @@ async function loadDetail(id){
       <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
     </div>
 
-    ${tbl("Lines", (data.lines || []).length,
+    ${tbl("Lines", (data.lines || []).filter(l => !l.combo_line_id).length,
       (ed ? [['<input type="checkbox" id="scAll" title="Pick every line that can carry a surcharge">', ""]] : []).concat([["#","num"],["Product",""],["Qty","num"]]).concat(shownQty ? [["Qty out","num"],["Stock",""]] : [])
         .concat([["List","num"],["Disc %","num"],["Unit","num"],["Surcharge",""],["Total","num"],["Price from",""]]).concat(ed ? [["",""]] : []),
       lines,
       `Totals use ${basisNote}. Each line's tax is rounded on its own and added up (as Cin7 does).` +
       (ed ? " Edit quantity, discount or unit price in the cell — a price you type overrides the system price; ↺ puts it back. Surcharge: + on a line, or tick lines and press Set surcharge… to give them all the same one." : "") +
+      (ordL.some(l => l.combo_line_id) ? " A combo is changed or removed on its combo line — the component lines under it follow and carry the stock; a short component backorders the whole combo." : "") +
+      (ed ? " Available is a snapshot of this warehouse; lines are not netted against each other — Confirm does that." : "") +
       (Number(t.surcharge_amount) ? " The surcharge is charged per unit, is not part of the order discount and shows as its own line on the invoice." : ""))}
 
     ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"],["Tax rule",""]].concat(ed ? [["",""]] : []), charges,
