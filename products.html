@@ -204,7 +204,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v4";   // 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v4a";   // 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -676,6 +676,9 @@ function renderEdit(){
     ] : [f("Surcharge group", sgSelect(r))]),
     f("Note", `<textarea class="ein" data-f="note">${esc(r.note||"")}</textarea>`),
     f("Discontinued", `<label><input type="checkbox" data-f="is_discontinued" ${r.is_discontinued?"checked":""}> discontinued</label>`),
+    f("Sellable", `<label><input type="checkbox" data-f="sellable" ${r.sellable!==false?"checked":""}> can go on orders</label> <span class="dim">— ${isSet
+        ? "off: scanning or pasting this set adds the single × pack instead"
+        : "off: orders refuse this product"}</span>`),
     f("Active", `<label><input type="checkbox" data-f="is_active" ${r.is_active?"checked":""}> active</label>`),
   ];
 
@@ -747,6 +750,7 @@ function scalarOrig(r, k){
   switch(k){
     case "is_discontinued": return !!r.is_discontinued;
     case "is_active": return !!r.is_active;
+    case "sellable": return r.sellable !== false;   /* dsc-1 — NOT NULL(판정 291) · 옛 캐시 대비 */
     default: return r[k] === undefined ? null : r[k];
   }
 }

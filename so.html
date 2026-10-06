@@ -146,7 +146,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-05 · so v4b1";   // Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-06 · so v4c";   // 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -244,6 +244,7 @@ const WARN = {
   backorder_siblings_stay_open: "Backorder orders of the originals stay open.",
   preorder_lines_need_reflag: "Some lines were preorders — pick them again as preorder when you confirm.",
   superseded_not_reopenable: "Some backorder lines taken over by the originals could not be reopened.",
+  set_converted_to_base: "A set that is not sold as a set went in as its base SKU × pack.",   /* dsc-1 판정 293 */
 };
 const warnText = (w) => {
   const key = String(w).split(":")[0];
@@ -460,7 +461,10 @@ const VERDICT = {
   not_found: ["off",     "not found"],
   inactive:  ["off",     "inactive product"],
   bad_qty:   ["off",     "bad quantity"],
+  not_sellable: ["off",  "not for sale — turn on Sellable in Products first"],   /* dsc-1 판정 281 · 293 */
 };
+/* dsc-1 — 안 파는 세트는 창구가 낱개 × pack_factor 로 바꾼다(판정은 ok · merged … 그대로 · 꼬리표만) */
+const convTag = c => c ? ` <span class="tag" title="This set is not sold as a set">from set ${esc(c.set_sku)} × ${qty(c.set_qty)} → ${esc(c.base_sku)} × ${qty(c.base_qty)}</span>` : "";
 let addPick = [];
 function openAddLine(){
   addPick = [];
@@ -468,7 +472,7 @@ function openAddLine(){
     <h4>Add lines — ${esc(cur.so.so_number)}</h4>
     <div class="pbody">
       <input type="search" id="alq" placeholder="SKU · product name · barcode" autocomplete="off">
-      ${isMgr() ? `<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--muted)"><input type="checkbox" id="alSets"> Include sets (cases · packs) — hidden by default · a set has its own set price</label>` : ""}
+      ${isMgr() ? `<label style="display:flex;gap:6px;align-items:center;font-size:12px;margin-top:6px;color:var(--muted)"><input type="checkbox" id="alSets"> Include sets (cases · packs) — hidden by default · a set not sold as a set goes in as its base SKU × pack</label>` : ""}
       <div id="alHits" class="binlist"><div class="msg">Type to search.</div></div>
       <div id="alChosen" style="margin-top:12px"></div>
       <div id="alOut" style="margin-top:12px"></div>
@@ -494,7 +498,7 @@ async function drawAlHits(term){
   if(!term){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
   /* ⚠️ 제품 18,714 — 캡 위라 서버에서만 좁힌다 · 세 질문을 나란히(sku · 이름 · 바코드) 뒤 합친다 */
   const t = orTerm(term);
-  /* v1.3 — 세트(parent_product_id 있는 제품)는 기본으로 숨긴다(Caleb 2026-09-25 「세트는 보일 필요가 없는데」) · 체크하면 보인다 · 붙여넣기는 세트 SKU 를 그대로 받는다 */
+  /* v1.3 — 세트(parent_product_id 있는 제품)는 기본으로 숨긴다(Caleb 2026-09-25 「세트는 보일 필요가 없는데」) · 체크하면 보인다 · 붙여넣기는 세트 SKU 를 받되 안 파는 세트는 창구가 낱개 × pack_factor 로 바꾼다(dsc-1 판정 281) */
   const withSets = !!(document.getElementById("alSets") || {}).checked;
   const noSets = (qb) => withSets ? qb : qb.is("parent_product_id", null);
   const [a, b, c] = await Promise.all([
@@ -639,14 +643,15 @@ async function runLines(rows, commit, ids, keepOpen){
     : `${s.total} rows · ok ${s.ok}` + (s.no_price ? ` · no price ${s.no_price}` : "") + (s.merged ? ` · merged ${s.merged}` : "")
       + (s.ask ? ` · price differs ${s.ask}` : "") + (s.not_found ? ` · not found ${s.not_found}` : "")
       + (s.inactive ? ` · inactive ${s.inactive}` : "") + (s.duplicate ? ` · duplicate ${s.duplicate}` : "")
-      + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "") + (commit ? ` · added ${s.inserted} · updated ${s.updated}` : "");
+      + (s.bad_qty ? ` · bad qty ${s.bad_qty}` : "") + (s.not_sellable ? ` · not for sale ${s.not_sellable}` : "")
+      + (s.converted ? ` · set → base ${s.converted}` : "") + (commit ? ` · added ${s.inserted} · updated ${s.updated}` : "");
   document.getElementById(ids.out).innerHTML = `
     <table><thead><tr><th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th>Verdict</th><th>Note</th></tr></thead>
     <tbody>${(data.lines || []).map(l => {
       const v = VERDICT[l.verdict] || ["dim", l.verdict || ""];
       return `<tr><td class="num">${esc(l.n)}</td><td class="mono">${esc(l.input_sku)}</td><td>${dim(l.product_name)}</td>
         <td class="num">${qty(l.qty !== undefined && l.qty !== null ? l.qty : l.input_qty)}</td>
-        <td><span class="${v[0]}">${esc(v[1])}</span>${l.combo ? ` <span class="tag">combo + ${esc(l.components)} components</span>` : ""}</td><td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
+        <td><span class="${v[0]}">${esc(v[1])}</span>${l.combo ? ` <span class="tag">combo + ${esc(l.components)} components</span>` : ""}${convTag(l.converted)}</td><td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
     }).join("")}</tbody></table>`;
   document.getElementById(ids.go).disabled = s.too_many || (Number(s.ok) + Number(s.no_price || 0) + Number(s.merged || 0)) === 0;
   if(commit){
