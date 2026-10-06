@@ -34,6 +34,15 @@
   #wide td.nmc{font-weight:600}
   #wide tr.off td{color:var(--muted)}
   #wide .wfilt input[type=search]{width:320px}
+  /* cs v3(cs-par-1 · 판정 251 ~ 256) — 손님 고르기 · 집안 표시 */
+  .pk{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+  .pk:empty{display:none}
+  .pkrow{padding:6px 9px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+  .pkrow:hover{background:#f2f4f8}
+  .pksel{font-size:12.5px;margin-top:6px}
+  .fam{font-size:11.5px;color:var(--muted);white-space:nowrap}
+  a.lk{color:#3b5bdb;cursor:pointer;text-decoration:none}
+  a.lk:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -102,14 +111,20 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-05 · cs v2";   // 대화 Claude — 판정 242: products · so · po 와 같은 두 모드(넓은 목록 · 좁은 목록 + 상세 · ☰ List · ‹ All customers) ← cs v1 cs-5 ①(판정 236 ~ 241)
+const CS_BUILD = "2026-10-06 · cs v3";   // 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+/* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
+   ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
+   ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
+   ⭐ 막기 bill_to_is_old_parent · bill_to_self · ship_to_self · 깊이는 트리거 · 알리기 bill_to_reset_with_parent(옛 부모 청구처가 자기 자신으로 돌아간다) — 화면은 창구 결과를 그대로 보인다
+   ⭐ 청구처를 바꿔도 이미 만든 오더는 그대로(so.bill_to_customer_id 는 만든 날 값) */   // 대화 Claude — 판정 242: products · so · po 와 같은 두 모드(넓은 목록 · 좁은 목록 + 상세 · ☰ List · ‹ All customers) ← cs v1 cs-5 ①(판정 236 ~ 241)
 console.log("customers.html build:", CS_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
 let q = "", onlyActive = true, onlyNew = false, curId = null, detailSeq = 0, cur = null;
 const pg = imsPage(100), wpg = imsPage(100);
 const refs = { tiers: [], terms: [], currencies: [], accounts: [], warehouses: [] };
-const MONEY = ["price_tier", "discount_pct", "payment_term_id", "currency_id", "ar_account_id", "sale_account_id", "is_bill_parent", "invoice_split_by_store"];
+const MONEY = ["price_tier", "discount_pct", "payment_term_id", "currency_id", "ar_account_id", "sale_account_id", "invoice_split_by_store"];   // is_bill_parent 는 판정 254 로 창구에서 빠졌다
+let fam = { parentOf: {}, kids: {}, names: {} };   // 집안 표 — 부모 있는 손님은 열몇 줄이라 통째로 읽는다(caps-ok)
 const CONSENT = { "": "Unknown", "2": "Opt in", "3": "Opt out" };
 
 const $ = (id) => document.getElementById(id);
@@ -156,10 +171,10 @@ async function loadWide(){
   if(seq !== wideSeq) return;
   const box = $("wrows");
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Display name</th><th>Price tier</th><th class="num">Disc %</th><th>Payment term</th><th>Currency</th><th>Warehouse</th><th>Source</th><th>Status</th><th>Active</th></tr></thead><tbody>
+  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Display name</th><th>Price tier</th><th class="num">Disc %</th><th>Payment term</th><th>Currency</th><th>Warehouse</th><th>Family</th><th>Source</th><th>Status</th><th>Active</th></tr></thead><tbody>
     ${data.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active ? "" : "off"}">
       <td class="nmc">${esc(r.name)}</td><td>${dim(r.display_name)}</td><td>${dim(r.price_tier)}</td><td class="num">${dim(r.discount_pct)}</td>
-      <td>${dim(r.payment_term_name)}</td><td class="mono">${dim(r.currency_code)}</td><td>${dim(r.default_location_name)}</td><td>${esc(r.source)}</td>
+      <td>${dim(r.payment_term_name)}</td><td class="mono">${dim(r.currency_code)}</td><td>${dim(r.default_location_name)}</td><td>${famTag(r.id)}</td><td>${esc(r.source)}</td>
       <td>${isNew(r) ? '<span class="tag newchip">new · not reviewed</span>' : ""}</td><td>${yn(r.is_active, true)}</td></tr>`).join("")}</tbody></table>`
     : '<div class="msg">No customers match.</div>';
   box.querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openCustomer(tr.dataset.id); });
@@ -172,10 +187,144 @@ async function loadList(){
     const tags = [];
     if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
     if(isNew(r)) tags.push('<span class="tag newchip">new · not reviewed</span>');
+    const ft = famTag(r.id); if(ft) tags.push(ft);
     return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
   }).join("") : '<div class="msg">No customers match.</div>';
   document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => openCustomer(el.dataset.id); });
   pg.render({ range: "#range", prev: "#prev", next: "#next" }, loadList);
+}
+
+/* ── 집안(cs v3) ─────────────────────────────────────────── */
+async function loadFamily(){
+  const k = await sb.from("customer").select("id,name,parent_id").not("parent_id", "is", null);   // caps-ok: 부모 있는 손님 13 남짓
+  const f = { parentOf: {}, kids: {}, names: {} };
+  (k.data || []).forEach(x => { f.parentOf[x.id] = x.parent_id; (f.kids[x.parent_id] = f.kids[x.parent_id] || []).push(x.id); f.names[x.id] = x.name; });
+  const pids = Object.keys(f.kids);
+  if(pids.length){ const p = await sb.from("customer").select("id,name").in("id", pids); (p.data || []).forEach(x => { f.names[x.id] = x.name; }); }
+  fam = f;
+}
+function famTag(id){
+  if(fam.kids[id]) return `<span class="fam">&#9670; ${fam.kids[id].length} store${fam.kids[id].length > 1 ? "s" : ""}</span>`;
+  if(fam.parentOf[id]) return `<span class="fam">&#8627; ${esc(fam.names[fam.parentOf[id]] || "")}</span>`;
+  return "";
+}
+async function namesOf(ids){
+  const want = [...new Set(ids.filter(Boolean))], out = {};
+  if(want.length){ const n = await sb.from("customer").select("id,name,is_active").in("id", want); (n.data || []).forEach(x => { out[x.id] = x; }); }
+  return out;
+}
+/* 청구처 글 — null = 자기 자신 · 부모면 「Parent — 이름」 */
+function billLabel(billId, parentId, names){
+  if(!billId) return '<span class="dim">This customer</span>';
+  const n = names[billId], nm = n ? esc(n.name) : '<span class="dim">(unknown)</span>';
+  const off = n && !n.is_active ? ' <span class="tag off">inactive</span>' : "";
+  return (billId === parentId ? "Parent — " : "") + `<a class="lk" data-open="${esc(billId)}">${nm}</a>${off}`;
+}
+/* 손님 고르기 — 이름 검색(서버 · 활성만 · 20줄) · 고르면 onPick({id,name,parent_id}) */
+function pickerHtml(pfx, label){
+  return `<div class="cf"><label>${label}</label><input type="search" id="${pfx}_q" placeholder="Search customer name"></div>
+    <div class="cf"><label></label><div style="flex:1;min-width:0"><div id="${pfx}_res" class="pk"></div><div id="${pfx}_sel" class="pksel dim">Nothing picked yet.</div></div></div>`;
+}
+function wirePicker(pfx, exclude, onPick){
+  imsQ("#" + pfx + "_q", async v => {
+    const box = $(pfx + "_res");
+    if(!v){ box.innerHTML = ""; return; }
+    const { data, error } = await sb.from("customer").select("id,name,parent_id").eq("is_active", true).ilike("name", `%${v}%`).order("name").limit(20);
+    if(error){ box.innerHTML = `<div class="pkrow">${esc(error.message)}</div>`; return; }
+    const rows = (data || []).filter(x => !exclude.includes(x.id));
+    box.innerHTML = rows.length ? rows.map(x => `<div class="pkrow" data-pk="${esc(x.id)}"><span>${esc(x.name)}</span>${famTag(x.id)}</div>`).join("") : '<div class="pkrow dim">No match.</div>';
+    box.querySelectorAll("[data-pk]").forEach(el => { el.onclick = () => {
+      const x = rows.find(y => y.id === el.dataset.pk);
+      $(pfx + "_sel").className = "pksel"; $(pfx + "_sel").textContent = "Picked: " + x.name;
+      box.innerHTML = ""; $(pfx + "_q").value = "";
+      onPick(x);
+    }; });
+  });
+}
+async function afterFamilySave(){ modalClose(); await loadFamily(); await loadDetail(curId); await loadList(); }
+const NOTE_ORDERS = '<div class="cnote">Orders already created keep the bill-to they were made with — only new orders follow this change.</div>';
+
+/* 부모 정하기 · 바꾸기 — 이 손님(자식)의 parent_id · 「부모에게 청구」가 켜져 있으면 청구처도 같은 호출에 */
+function openSetParent(){
+  const r = cur.r;
+  const billWasParent = !r.default_bill_to_customer_id || r.default_bill_to_customer_id === r.parent_id;
+  modalOpen(`<h4>${r.parent_id ? "Change parent" : "Set parent"} — ${esc(r.name)}</h4><div class="pbody">
+      <div class="cnote">This customer becomes a store of the parent you pick. A store cannot have stores of its own, and a parent cannot be a store.</div>
+      ${pickerHtml("sp", "Parent")}
+      <div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="sp_bill" ${billWasParent ? "checked" : ""}> Send invoices to the parent</label></div>
+      ${NOTE_ORDERS}<div id="spMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="spCancel">Cancel</button><button class="pobtn go" id="spGo">Save</button></div>`);
+  let picked = null;
+  wirePicker("sp", [r.id, r.parent_id].filter(Boolean), x => { picked = x; });
+  $("spCancel").onclick = modalClose;
+  saveTwoStep(ack => {
+    if(!picked) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Pick a parent first." }] } });
+    const ch = [{ customer_id: r.id, op: "set", field: "parent_id", value: picked.id, old: sv(r.parent_id) }];
+    if($("sp_bill").checked && sv(r.default_bill_to_customer_id) !== picked.id)
+      ch.push({ customer_id: r.id, op: "set", field: "default_bill_to_customer_id", value: picked.id, old: sv(r.default_bill_to_customer_id) });
+    return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack });
+  }, $("spMsg"), $("spGo"), afterFamilySave);
+}
+/* 떼기 — 자식의 parent_id 를 비운다 · 청구처가 그 부모였으면 창구가 알리고(bill_to_reset_with_parent) 자기 자신으로 돌린다 */
+function detach(child, parentId, parentName){
+  runUpdateFam([{ customer_id: child.id, op: "set", field: "parent_id", value: null, old: sv(parentId) }],
+    `Detach ${child.name} from ${parentName || "its parent"}`);
+}
+function runUpdateFam(changes, title){
+  modalOpen(`<h4>${esc(title)}</h4><div class="pbody"><div class="cnote">Nothing is saved until you press the button.</div>${NOTE_ORDERS}<div id="fuMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="fuCancel">Cancel</button><button class="pobtn go" id="fuGo">Save</button></div>`);
+  $("fuCancel").onclick = modalClose;
+  saveTwoStep(ack => sb.rpc("customer_update", { p_changes: changes, p_commit: true, p_ack: ack }), $("fuMsg"), $("fuGo"), afterFamilySave);
+}
+/* 청구처 — 자기 자신(null) · 부모 · 다른 손님 */
+function openBillTo(){
+  const r = cur.r, pn = fam.names[r.parent_id] || "";
+  const now = !r.default_bill_to_customer_id ? "self" : r.default_bill_to_customer_id === r.parent_id ? "parent" : "other";
+  modalOpen(`<h4>Bill to — ${esc(r.name)}</h4><div class="pbody">
+      <div class="cf"><label>Invoices go to</label><div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <label style="width:auto"><input type="radio" name="bt" value="self"> This customer</label>
+        ${r.parent_id ? `<label style="width:auto"><input type="radio" name="bt" value="parent"> Parent — ${esc(pn)}</label>` : ""}
+        <label style="width:auto"><input type="radio" name="bt" value="other"> Another customer</label></div></div>
+      <div id="btOther" hidden>${pickerHtml("bt", "Customer")}</div>
+      ${NOTE_ORDERS}<div id="btMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="btCancel">Cancel</button><button class="pobtn go" id="btGo">Save</button></div>`);
+  let picked = null;
+  const radios = [...document.querySelectorAll('input[name="bt"]')];
+  radios.forEach(x => { x.checked = x.value === now; x.onchange = () => { $("btOther").hidden = (radios.find(y => y.checked) || {}).value !== "other"; }; });
+  $("btOther").hidden = now !== "other";
+  if(now === "other"){ const s = $("bt_sel"); s.className = "pksel"; s.textContent = "Now: " + (cur.billName || ""); }
+  wirePicker("bt", [r.id], x => { picked = x; });
+  $("btCancel").onclick = modalClose;
+  saveTwoStep(ack => {
+    const pick = (radios.find(x => x.checked) || {}).value;
+    const target = pick === "self" ? null : pick === "parent" ? r.parent_id : (picked ? picked.id : (now === "other" ? r.default_bill_to_customer_id : undefined));
+    if(target === undefined) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Pick the customer to bill." }] } });
+    if(sv(target) === sv(r.default_bill_to_customer_id)) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } });
+    return sb.rpc("customer_update", { p_changes: [{ customer_id: r.id, op: "set", field: "default_bill_to_customer_id", value: target, old: sv(r.default_bill_to_customer_id) }], p_commit: true, p_ack: ack });
+  }, $("btMsg"), $("btGo"), afterFamilySave);
+}
+/* 매장 붙이기(부모 쪽) — 고른 손님의 parent_id 를 이 손님으로 · 청구처도 함께(체크) */
+function openAddStore(){
+  const r = cur.r;
+  modalOpen(`<h4>Add a store to ${esc(r.name)}</h4><div class="pbody">
+      <div class="cnote">Pick an existing customer. A customer that already has stores cannot become a store.</div>
+      ${pickerHtml("as", "Store")}
+      <div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="as_bill" checked> Send its invoices to ${esc(r.name)}</label></div>
+      ${NOTE_ORDERS}<div id="asMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="asCancel">Cancel</button><button class="pobtn go" id="asGo">Add store</button></div>`);
+  let picked = null;
+  wirePicker("as", [r.id].concat(fam.kids[r.id] || []), async x => {
+    const d = await sb.from("customer").select("id,name,parent_id,default_bill_to_customer_id").eq("id", x.id).maybeSingle();
+    picked = d.data || null;
+  });
+  $("asCancel").onclick = modalClose;
+  saveTwoStep(ack => {
+    if(!picked) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Pick a customer first." }] } });
+    const ch = [{ customer_id: picked.id, op: "set", field: "parent_id", value: r.id, old: sv(picked.parent_id) }];
+    if($("as_bill").checked && picked.default_bill_to_customer_id !== r.id)
+      ch.push({ customer_id: picked.id, op: "set", field: "default_bill_to_customer_id", value: r.id, old: sv(picked.default_bill_to_customer_id) });
+    return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack });
+  }, $("asMsg"), $("asGo"), afterFamilySave);
 }
 
 /* ── 상세 ─────────────────────────────────────────────── */
@@ -195,9 +344,16 @@ async function loadDetail(id){
   const staffIds = [r.created_by, r.reviewed_by, r.updated_by].filter(Boolean);
   const names = {};
   if(staffIds.length){ const s = await sb.from("ims_staff").select("id,name").in("id", staffIds); (s.data || []).forEach(x => { names[x.id] = x.name; }); }
-  const parent = r.parent_id ? (await sb.from("customer").select("name").eq("id", r.parent_id).maybeSingle()).data : null;
+  const kidsQ = await sb.from("customer").select("id,name,is_active,default_bill_to_customer_id").eq("parent_id", id).order("name");   // caps-ok: 한 부모의 매장 수
+  const kids = kidsQ.data || [];
+  const kidOpen = {};
+  if(kids.length){
+    const ko = await sb.from("so").select("customer_id").in("customer_id", kids.map(k => k.id)).in("status", ["draft", "confirmed", "at_wms", "picking", "packed"]);   // caps-ok: 매장들의 열린 오더
+    (ko.data || []).forEach(x => { kidOpen[x.customer_id] = (kidOpen[x.customer_id] || 0) + 1; });
+  }
+  const cnm = await namesOf([r.parent_id, r.default_bill_to_customer_id, r.default_ship_to_customer_id].concat(kids.map(k => k.default_bill_to_customer_id)));
   if(seq !== detailSeq) return;
-  cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0 };
+  cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0, kids, billName: cnm[r.default_bill_to_customer_id] ? cnm[r.default_bill_to_customer_id].name : "" };
 
   const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span class="chip">${esc(r.source)}</span>`];
   if(isNew(r)) chips.push('<span class="chip warn">new — not reviewed by a manager</span>');
@@ -206,9 +362,14 @@ async function loadDetail(id){
     ["Price tier", dim(r.price_tier)], ["Discount %", dim(r.discount_pct)], ["Payment term", dim(r.payment_term_name)],
     ["Currency", `<span class="mono">${dim(r.currency_code)}</span>`],
     ["A/R account", `<span class="mono">${dim(r.ar_account_code)}</span>`], ["Sale account", `<span class="mono">${dim(r.sale_account_code)}</span>`],
-    ["Bill parent", yn(r.is_bill_parent, false)], ["Split invoice by store", yn(r.invoice_split_by_store, false)],
+    ["Bill to", billLabel(r.default_bill_to_customer_id, r.parent_id, cnm) + (isMaster ? ` <button class="xs" id="billBtn">Change</button>` : "")],
+    ...(r.default_ship_to_customer_id ? [["Ship to", `<a class="lk" data-open="${esc(r.default_ship_to_customer_id)}">${esc(cnm[r.default_ship_to_customer_id] ? cnm[r.default_ship_to_customer_id].name : "(unknown)")}</a>`]] : []),
+    ["Split invoice by store", yn(r.invoice_split_by_store, false)],
     ["Default warehouse", dim(r.default_location_name)], ["Tax rule", dim(r.tax_rule)], ["Tax number", dim(r.tax_number)],
-    ["Parent", parent ? esc(parent.name) : '<span class="dim">—</span>'], ["Tags", dim(r.tags)], ["Note", dim(r.note)],
+    ["Parent", (r.parent_id ? `<a class="lk" data-open="${esc(r.parent_id)}">${esc(cnm[r.parent_id] ? cnm[r.parent_id].name : "(unknown)")}</a>` : '<span class="dim">—</span>')
+      + (isMaster && !kids.length ? ` <button class="xs" id="parBtn">${r.parent_id ? "Change" : "Set parent"}</button>` : "")
+      + (isMaster && r.parent_id ? ` <button class="xs" id="detBtn">Detach</button>` : "")],
+    ["Tags", dim(r.tags)], ["Note", dim(r.note)],
     ["Open orders", `<span class="mono">${cur.openSo}</span>`],
     ["Created", `${imsTs(r.created_at)}${r.created_by ? " · " + esc(names[r.created_by] || "") : ""}`],
     ["Reviewed", r.reviewed_at ? `${imsTs(r.reviewed_at)} · ${esc(names[r.reviewed_by] || "")}` : (r.source === "manual" ? '<span class="dim">not yet</span>' : '<span class="dim">— (from Cin7)</span>')],
@@ -233,12 +394,19 @@ async function loadDetail(id){
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div>
       <div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    ${storesCard(r, kids, kidOpen, cnm)}
     ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr")}
     ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Marketing", ""], cRows, "addCont")}`;
 
   $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
   $("toWide").onclick = showWide;
   if($("editBtn")) $("editBtn").onclick = openEdit;
+  if($("billBtn")) $("billBtn").onclick = openBillTo;
+  if($("parBtn")) $("parBtn").onclick = openSetParent;
+  if($("detBtn")) $("detBtn").onclick = () => detach(r, r.parent_id, cnm[r.parent_id] ? cnm[r.parent_id].name : "");
+  if($("addStore")) $("addStore").onclick = openAddStore;
+  box.querySelectorAll("[data-det]").forEach(b => { b.onclick = () => detach(kids[+b.dataset.det], r.id, r.name); });
+  box.querySelectorAll("[data-open]").forEach(a => { a.onclick = () => openCustomer(a.dataset.open); });
   if($("revBtn")) $("revBtn").onclick = doReview;
   if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], r.is_active ? "Deactivate " + r.name : "Activate " + r.name);
   if($("addAddr")) $("addAddr").onclick = () => openAddr(null);
@@ -249,6 +417,18 @@ async function loadDetail(id){
   box.querySelectorAll("[data-ce]").forEach(b => { b.onclick = () => openCont(cur.cont[+b.dataset.ce]); });
   box.querySelectorAll("[data-cd]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.cd]; runUpdate([{ customer_id: r.id, op: "contact_default", contact_id: t.id }], `Make ${t.name || "this contact"} the default contact`); }; });
   box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ customer_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
+}
+
+/* 매장 표 — 매장이 있거나, master 가 보는 부모 없는 손님(매장을 붙일 수 있다)일 때만 */
+function storesCard(r, kids, kidOpen, names){
+  const canAdd = isMaster && !r.parent_id;
+  if(!kids.length && !canAdd) return "";
+  const rows = kids.map((k, i) => `<tr>
+      <td><a class="lk" data-open="${esc(k.id)}">${esc(k.name)}</a>${k.is_active ? "" : ' <span class="tag off">inactive</span>'}</td>
+      <td>${billLabel(k.default_bill_to_customer_id, r.id, names)}</td><td class="mono">${kidOpen[k.id] || 0}</td>
+      <td style="white-space:nowrap">${isMaster ? `<button class="xs" data-det="${i}">Detach</button>` : ""}</td></tr>`);
+  return `<div class="card"><h3>Stores <span class="n">${kids.length}</span>${canAdd ? ' <button class="xs" id="addStore" style="float:right">+ Add store</button>' : ""}</h3>
+      ${rows.length ? `<table><thead><tr><th>Store</th><th>Bill to</th><th>Open orders</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table>` : '<div class="msg">No stores. A store bills to its parent when you add it with the box checked.</div>'}</div>`;
 }
 
 /* ── 창구 결과 그리기 · 두 번 부르기 ─────────────────────── */
@@ -314,7 +494,6 @@ function moneyFields(isNewForm){
       <div class="cf"><label>Currency</label><select id="f_currency_id">${opts(refs.currencies, "id", x => x.code, "", blank)}</select></div>
       <div class="cf"><label>A/R account</label><select id="f_ar_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
       <div class="cf"><label>Sale account</label><select id="f_sale_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
-      <div class="cf"><label>Bill parent</label><input type="checkbox" id="f_is_bill_parent"></div>
       <div class="cf"><label>Split invoice by store</label><input type="checkbox" id="f_invoice_split_by_store"></div>
     </div>`;
 }
@@ -409,7 +588,7 @@ function openEdit(){
     ensureVal("f_ar_account_id", r.ar_account_id, r.ar_account_code);
     ensureVal("f_sale_account_id", r.sale_account_id, r.sale_account_code);
     $("f_discount_pct").value = sv(r.discount_pct);
-    $("f_is_bill_parent").checked = !!r.is_bill_parent; $("f_invoice_split_by_store").checked = !!r.invoice_split_by_store;
+    $("f_invoice_split_by_store").checked = !!r.invoice_split_by_store;
   }
   $("eCancel").onclick = modalClose;
   const build = () => {
@@ -508,6 +687,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     sb.from("ref_account").select("id,code,name").eq("is_active", true).order("code"),
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
   ]);
+  await loadFamily();
   refs.tiers = t.data || []; refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.warehouses = w.data || [];
   // 필터 값은 한 벌 — 좁은 목록 칸과 넓은 목록 칸이 같은 값을 쓴다(products 와 같다)
   $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
