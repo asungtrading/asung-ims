@@ -37,6 +37,9 @@
   h5.sec{margin:14px 0 6px;font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
   /* 줄 사진 — 판정 214 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
   .lnth{display:flex;gap:8px;align-items:flex-start}
+  /* cr v2 · asm-3d — 콤보 구성품 줄 */
+  tr.comp td{background:#fafbfd}
+  .cind{color:var(--muted);margin-right:4px}
 </style>
 </head>
 <body>
@@ -119,7 +122,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-02 · cr sc v1";   // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-05 · cr v2";   // 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -320,6 +323,32 @@ async function loadPrep(invoiceId){
   drawForm();
 }
 
+/* cr v2(판정 245 · 묶음 7) — 상품 줄 하나 · 콤보면 그 아래 구성품마다 「돌아갈 칸 · 안 돌아옴」 줄(수량은 콤보 수 × 콤보 하나에 든 수 — 서버가 센다) */
+function stockCell(def){
+  return `<td style="white-space:nowrap">
+        <select class="sofield" data-mode><option value="bin">to bin</option>${Object.entries(NOREST).map(([k, x]) => `<option value="${k}">not restocked · ${x}</option>`).join("")}</select>
+        <input class="tin" data-bin value="${esc(binOf(def))}" placeholder="bin" style="width:110px">
+        <input class="tin" data-nrn placeholder="note" style="width:120px" hidden>
+      </td>`;
+}
+function prodRow(l){
+  const main = `<tr data-pl="${l.so_invoice_line_id}">
+      <td class="num">${esc(l.line_no)}</td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
+      <td class="num">${qty(l.qty_sold)}</td><td class="num">${Number(l.qty_credited) ? qty(l.qty_credited) : '<span class="dim">0</span>'}</td>
+      <td class="num">${qty(l.qty_returnable)}</td>
+      <td class="num">${price(l.unit_price)}<div class="dim" style="font-size:11px">${esc(l.rate_pct !== null && l.rate_pct !== undefined ? Number(l.rate_pct) + "% tax" : "")}</div></td>
+      <td class="num"><input class="qin" type="number" step="any" min="0" max="${esc(l.qty_returnable)}" data-q ${Number(l.qty_returnable) > 0 ? "" : "disabled"}></td>
+      ${Array.isArray(l.combo_components) ? '<td class="dim" style="font-size:11.5px">each component below</td>' : stockCell(l.restock_bin_default)}
+    </tr>`;
+  if(!Array.isArray(l.combo_components)) return main;
+  return main + l.combo_components.map(c => `<tr class="comp" data-cc="${l.so_invoice_line_id}" data-csku="${esc(c.sku || "")}">
+      <td></td>
+      <td><span class="cind">↳</span><span class="mono">${esc(c.sku || "")}</span><div class="dim" style="font-size:11.5px;padding-left:16px">${esc(c.description || "")} · ${esc(qty(c.qty_per_combo))} per combo</div></td>
+      <td></td><td></td><td></td><td></td><td></td>
+      ${stockCell(c.restock_bin_default)}
+    </tr>`).join("");
+}
 function drawForm(){
   const v = prep.invoice, wh = prep.warehouse || {}, fee = prep.restock_fee || {};
   const prods = (prep.lines || []).filter(l => l.kind === "product");
@@ -344,19 +373,8 @@ function drawForm(){
     <h5 class="sec">Products</h5>
     <table><thead><tr><th class="num">#</th><th>Item</th><th class="num">Sold</th><th class="num">Credited</th><th class="num">Can return</th>
       <th class="num">Unit</th><th class="num">Return</th><th>Back to stock</th></tr></thead>
-    <tbody>${prods.map(l => `<tr data-pl="${l.so_invoice_line_id}">
-      <td class="num">${esc(l.line_no)}</td>
-      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
-      <td class="num">${qty(l.qty_sold)}</td><td class="num">${Number(l.qty_credited) ? qty(l.qty_credited) : '<span class="dim">0</span>'}</td>
-      <td class="num">${qty(l.qty_returnable)}</td>
-      <td class="num">${price(l.unit_price)}<div class="dim" style="font-size:11px">${esc(l.rate_pct !== null && l.rate_pct !== undefined ? Number(l.rate_pct) + "% tax" : "")}</div></td>
-      <td class="num"><input class="qin" type="number" step="any" min="0" max="${esc(l.qty_returnable)}" data-q ${Number(l.qty_returnable) > 0 ? "" : "disabled"}></td>
-      <td style="white-space:nowrap">
-        <select class="sofield" data-mode><option value="bin">to bin</option>${Object.entries(NOREST).map(([k, x]) => `<option value="${k}">not restocked · ${x}</option>`).join("")}</select>
-        <input class="tin" data-bin value="${esc(binOf(l.restock_bin_default))}" placeholder="bin" style="width:110px">
-        <input class="tin" data-nrn placeholder="note" style="width:120px" hidden>
-      </td>
-    </tr>`).join("") || '<tr><td colspan="8" class="dim">No product lines on this invoice.</td></tr>'}</tbody></table>
+    <tbody>${prods.map(l => prodRow(l)).join("") || '<tr><td colspan="8" class="dim">No product lines on this invoice.</td></tr>'}</tbody></table>
+    ${prods.some(l => Array.isArray(l.combo_components)) ? '<div class="sohint">A combo comes back whole: type the number of combos on the combo line, then pick for each component where it goes. If only one item of a combo is the problem, do not return the combo — use Other adjustment below (amount only, no stock).</div>' : ""}
     <div class="sohint">Back to stock uses the bin the product sits in now (usual bin first). Not restocked keeps the goods out of stock and records why. Unit price and tax come from the invoice.</div>
     ${scs.length ? `<div class="sohint">Surcharge on this invoice comes back by itself with the quantity you return — added automatically, it cannot be typed: ${scs.map(l => `<span class="mono">${esc(l.sku || "")}</span> ${esc(l.description || "")} ${price(l.unit_price)}/ea${Number(l.amount_credited) ? ` <span class="dim">(${money(l.amount_credited)} already credited)</span>` : ""}`).join(" · ")}</div>` : ""}
 
@@ -402,9 +420,17 @@ function buildP(){
   document.querySelectorAll("#nwBody tr[data-pl]").forEach(tr => {
     const qv = Number(tr.querySelector("[data-q]").value);
     if(!(qv > 0)) return;
-    const mode = tr.querySelector("[data-mode]").value;
+    const mode = (tr.querySelector("[data-mode]") || {}).value;
     const ln = { kind: "product", so_invoice_line_id: tr.dataset.pl, qty_returned: qv };
-    if(mode === "bin"){ const b = tr.querySelector("[data-bin]").value.trim(); if(b) ln.restock_bin = b; }
+    const kids = Array.from(document.querySelectorAll(`#nwBody tr[data-cc="${tr.dataset.pl}"]`));
+    if(kids.length){   // cr v2 — 콤보: 줄에는 칸 · 사유를 안 적고 구성품마다 적는다(components[] · 판정 245)
+      ln.components = kids.map(k => {
+        const m = k.querySelector("[data-mode]").value, c = { sku: k.dataset.csku };
+        if(m === "bin"){ const b = k.querySelector("[data-bin]").value.trim(); if(b) c.restock_bin = b; }
+        else { c.not_restocked_reason = m; const n = k.querySelector("[data-nrn]").value.trim(); if(n) c.not_restocked_note = n; }
+        return c;
+      });
+    } else if(mode === "bin"){ const b = tr.querySelector("[data-bin]").value.trim(); if(b) ln.restock_bin = b; }
     else { ln.not_restocked_reason = mode; const n = tr.querySelector("[data-nrn]").value.trim(); if(n) ln.not_restocked_note = n; }
     lines.push(ln);
   });
@@ -448,10 +474,10 @@ async function runIssue(commit){
   document.getElementById("pvOut").innerHTML = `
     <div class="card" style="padding:10px 14px">
       <table><thead><tr><th>Kind</th><th>Item</th><th class="num">Qty</th><th>Stock</th><th class="num">Unit</th><th class="num">Amount</th><th class="num">Tax</th></tr></thead>
-      <tbody>${(data.lines || []).map(l => `<tr>
-        <td>${esc(l.kind)}</td><td><span class="mono">${esc(l.sku || "")}</span> <span class="dim">${esc(l.description || "")}</span></td>
+      <tbody>${(data.lines || []).map(l => `<tr${l.combo_parent_line_no ? ' class="comp"' : ""}>
+        <td>${esc(l.kind)}</td><td>${l.combo_parent_line_no ? '<span class="cind">↳</span>' : ""}<span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""} <span class="dim">${esc(l.description || "")}</span></td>
         <td class="num">${qty(l.qty_returned)}</td>
-        <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : l.kind === "surcharge" ? '<span class="dim">added automatically</span>' : ""}</td>
+        <td>${Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : l.kind === "surcharge" ? '<span class="dim">added automatically</span>' : ""}</td>
         <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td><td class="num">${money(l.tax_amount)}</td></tr>`).join("")}</tbody></table>
       <div class="socols">
         <div class="stat">Products<b>${money(t.lines_amount)}</b></div>
@@ -582,11 +608,11 @@ async function loadDetail(id){
       <div class="stat ${Number(v.remaining) > 0 ? "warn" : ""}">Remaining<b>${live ? money(v.remaining) : '<span class="dim">—</span>'}</b></div>
     </div>`;
 
-  const lines = (data.lines || []).map(l => `<tr>
+  const lines = (data.lines || []).map(l => `<tr${l.combo_credit_line_id ? ' class="comp"' : ""}>
       <td class="num">${esc(l.line_no)}</td><td>${esc(l.kind || "")}</td>
-      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
+      <td><div class="lnth">${l.combo_credit_line_id ? '<span class="cind">↳</span>' : ""}${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}${l.combo_credit_line_id && l.combo_qty ? ` · ${esc(qty(l.combo_qty))} per combo` : ""}</div></div></div></td>
       <td class="num">${l.kind === "product" || l.kind === "surcharge" ? qty(l.qty_returned) : ""}</td>
-      <td>${l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
+      <td>${Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
       <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
       <td><span class="mono">${esc(l.account_code || "")}</span>${l.account_code && ACCT_NAME[l.account_code] ? ` <span class="dim" style="font-size:11px">${esc(ACCT_NAME[l.account_code])}</span>` : ""}</td>
