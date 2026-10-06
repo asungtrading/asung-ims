@@ -80,6 +80,7 @@
     ["Backorders","so-backorders.html","sales","ims",true,"sales"],
     ["Customers","customers.html","sales","ims",false,"sales"],   // cs-5 ①(2026-10-05 · 판정 236 ~ 241) — 판정 150 · 162 의 자리 · 보기는 sales 읽기 · 쓰기는 창구가 가른다
     // Inventory (판정 150 · 151)
+    ["Stock Availability","stock.html",null,"ims",false,"inventory"],   // stk-3(2026-10-06 · 판정 257 · 258) — 브랜치별 가용 · bin · 움직임 · 열쇠 없음 = 로그인한 직원 누구나(창구 문 = 활성 직원)
     ["Products","products.html","master","ims",false,"inventory"],
     ["Product Sheet","product-sheet.html","master","ims",false,"inventory"],
     ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],

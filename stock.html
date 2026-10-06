@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stock · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .chip · .tag · .kv · #wide · .wfilt · .foot) */
+  .list{width:340px;flex:0 0 340px}
+  .list .rows{max-height:calc(100vh - 250px)}
+  .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .list .row.cur{color:#3b5bdb;font-weight:600}
+  .list .row .av{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+  main{display:flex;flex-direction:column;gap:14px}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  #wide .wfilt input[type=search]{width:280px}
+  #wide .wfilt select{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13px}
+  #wide td.nmc{font-weight:600}
+  #wide tr.off td{color:var(--muted)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.av{font-weight:700}
+  td.neg{color:#dc2626}
+  .th{width:38px;height:38px;object-fit:cover;border-radius:6px;background:#f2f4f8;display:block}
+  .th.ph{display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+  .bigph{width:120px;height:120px;object-fit:cover;border-radius:10px;background:#f2f4f8;flex:0 0 120px}
+  .phead{display:flex;gap:16px;align-items:flex-start}
+  .phead .nm{font-size:18px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer}
+  .seg button.on{background:#3b5bdb;color:#fff}
+  .nums{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;margin-top:12px}
+  .nums div{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .nums b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+  .nums span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .nums .hi{border-color:#3b5bdb}
+  .setm{font-size:11px;color:#a86400}
+  tr.rev td{color:var(--muted);text-decoration:line-through;text-decoration-color:#c7cbd3}
+  tr.open td{background:#f7f8fb;font-weight:600}
+  .mvf{display:flex;gap:8px;align-items:center;font-size:12.5px}
+  .mvf input{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px}
+  .xs{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font:inherit;font-size:12px;cursor:pointer}
+  .xs:hover{background:#f2f4f8}
+  a.lk{color:#3b5bdb;text-decoration:none}
+  a.lk:hover{text-decoration:underline}
+  .src{font-size:10.5px;color:var(--muted);margin-left:4px}
+  .scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <select id="wwh" title="Branch"></select>
+      <input type="search" id="wq" placeholder="Search SKU, name or brand">
+      <select id="wbrand"><option value="">All brands</option></select>
+      <select id="wcat"><option value="">All categories</option></select>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wzero"> Show zero stock</label>
+      <button class="pobtn" id="wclear">Clear</button>
+    </div>
+    <div id="wrows" class="scroll"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="top">
+      <input type="search" id="q" placeholder="Search SKU, name or brand">
+      <div class="opts"><label><input type="checkbox" id="zero"> Show zero stock</label></div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+  <main id="detail"><div class="card"><div class="msg">Select a product.</div></div></main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Stock — 브랜치별 재고 가용 · bin · 움직임(stk-3 · 판정 257 ~ 272 · 정본 so-module §46)
+   창구(asung-wms stk-1 20261006143300 · stk-2 20261006152050 · 모두 definer · 문 = 로그인 + 활성 직원 · 판정 258 · 268):
+     stk_availability(p_warehouse_id, p_q, p_brand_id, p_category_id, p_include_zero, p_limit, p_offset) → 줄 + total
+     stk_bins(p_product_id, p_warehouse_id) · stk_movements(p_product_id, p_warehouse_id, p_from, p_to, p_max)
+   ⭐ 판정 값(가용)은 창구가 낸다 — 화면은 셈하지 않고 그린다(§39-d 1) · 원가는 어디에도 없다(판정 262)
+   ⭐ 판정 257 한 화면 두 모드(판정 243) · ?id=<product_id>&wh=<warehouse_id>
+   ⭐ 판정 261 · 266 기본은 다섯 숫자 모두 0 인 줄 숨김 · 「Show zero stock」 · 세트 sku 검색은 낱개 줄 + 세트 표시(267)
+   ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
+   ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
+   ───────────────────────────────────────────────────────────── */
+const STK_BUILD = "2026-10-06 · stk v1";   // 대화 Claude — stk-3 첫 판
+console.log("stock.html build:", STK_BUILD);
+
+let sb = null, me = null;
+let WHS = [], wh = "", q = "", brand = "", cat = "", zero = false;
+let curId = null, detailSeq = 0;
+const PAGE = 100;
+let wOff = 0, lOff = 0, wideSeq = 0, listSeq = 0;
+const BUCKET = "product-images";
+const $ = (id) => document.getElementById(id);
+const n0 = (v) => v === null || v === undefined ? "" : Number(v).toLocaleString("en-CA", { maximumFractionDigits: 3 });
+function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
+function whName(id){ const w = WHS.find(x => x.id === id); return w ? w.name : ""; }
+function numTd(v, cls){ const x = Number(v || 0); return `<td class="num ${cls || ""}${x < 0 ? " neg" : ""}">${x === 0 ? '<span class="dim">0</span>' : n0(x)}</td>`; }
+function setMark(r){
+  if(!r.matched_set_sku) return "";
+  const more = r.matched_set_count > 1 ? ` (+${r.matched_set_count - 1} more)` : "";
+  return `<div class="setm">set ${esc(r.matched_set_sku)} = ×${n0(r.matched_set_pack_factor)}${more}</div>`;
+}
+const navBtns = () => `<button class="pobtn" id="togList" title="Show or hide the list on the left">&#9776; List</button> <button class="pobtn" id="toWide">&lsaquo; All stock</button>`;
+
+/* ── 사진 — 쪽마다 한 번 ─────────────────────────────── */
+async function photosFor(skus){
+  const out = {};
+  if(!skus.length) return out;
+  const { data } = await sb.rpc("product_image_primary", { p_skus: skus });
+  (data || []).forEach(x => { if(x.storage_path) out[x.sku] = photoUrl(x.storage_path); });
+  return out;
+}
+const thumb = (url) => url ? `<img class="th" src="${esc(url)}" alt="" loading="lazy">` : '<span class="th ph">—</span>';
+
+/* ── 창구 한 쪽 ─────────────────────────────────────── */
+function avail(off){
+  return sb.rpc("stk_availability", {
+    p_warehouse_id: wh, p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null,
+    p_include_zero: zero, p_limit: PAGE, p_offset: off,
+  });
+}
+function pager(rangeId, prevId, nextId, off, total, go){
+  $(rangeId).textContent = total ? `${off + 1}–${Math.min(off + PAGE, total)} of ${total.toLocaleString("en-CA")}` : "0";
+  $(prevId).disabled = off <= 0; $(nextId).disabled = off + PAGE >= total;
+  $(prevId).onclick = () => go(Math.max(0, off - PAGE));
+  $(nextId).onclick = () => go(off + PAGE);
+}
+function syncCtl(){
+  $("q").value = q; $("wq").value = q;
+  $("zero").checked = zero; $("wzero").checked = zero;
+  $("wwh").value = wh; $("wbrand").value = brand; $("wcat").value = cat;
+}
+
+/* ── 두 모드(판정 257 · 243) ─────────────────────────── */
+function showWide(){
+  curId = null; detailSeq++;
+  syncCtl();
+  $("wide").hidden = false; $("wrapBox").hidden = true;
+  history.replaceState(null, "", location.pathname + "?wh=" + encodeURIComponent(wh));
+  loadWide(wOff);
+}
+async function openProduct(id){
+  curId = id; syncCtl();
+  $("wide").hidden = true; $("wrapBox").hidden = false; $("listPanel").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id) + "&wh=" + encodeURIComponent(wh));
+  loadList(lOff); await loadDetail(id);
+}
+
+async function loadWide(off){
+  wOff = off; const seq = ++wideSeq;
+  $("wrows").innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await avail(off);
+  if(seq !== wideSeq) return;
+  if(error){ $("wrows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
+  const ph = await photosFor(rows.map(r => r.sku));
+  if(seq !== wideSeq) return;
+  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th>SKU</th><th>Name</th><th>Brand</th>
+      <th class="num">On hand</th><th class="num">Allocated</th><th class="num">Transfer res.</th><th class="num">Available</th>
+      <th class="num">On order</th><th class="num">In transit</th><th>Last movement</th></tr></thead><tbody>
+    ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
+      <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
+      <td>${dim(r.brand_name)}</td>
+      ${numTd(r.on_hand)}${numTd(r.sales_allocated)}${numTd(r.transfer_reserved)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}
+      <td>${r.last_event_on ? esc(r.last_event_on) : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="msg">No stock matches${zero ? "" : " — turn on “Show zero stock” to see empty lines"}.</div>`;
+  $("wrows").querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openProduct(tr.dataset.id); });
+  pager("wrange", "wprev", "wnext", off, total, loadWide);
+}
+async function loadList(off){
+  lOff = off; const seq = ++listSeq;
+  const { data, error } = await avail(off);
+  if(seq !== listSeq) return;
+  if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
+  $("rows").innerHTML = rows.length ? rows.map(r => `<div class="row ${r.product_id === curId ? "cur" : ""}" data-id="${esc(r.product_id)}">
+      <span><span class="mono">${esc(r.sku)}</span><br><span class="dim" style="font-size:12px">${esc(r.name)}</span></span>
+      <span class="av">${n0(r.available)}</span></div>`).join("") : '<div class="msg">No stock matches.</div>';
+  $("rows").querySelectorAll(".row[data-id]").forEach(el => { el.onclick = () => openProduct(el.dataset.id); });
+  pager("range", "prev", "next", off, total, loadList);
+}
+
+/* ── 상세 — 머리(사진 · 브랜치) · 숫자 · Bins · Movements ── */
+const EV = {
+  opening: "Opening balance", po_in: "Purchase receipt", sale_out: "Sale", credit_in: "Credit note (return)",
+  transfer_out: "Transfer out", transfer_in: "Transfer in", adjust: "Adjustment", adjust_new: "Adjustment (new)",
+  manual_reversal: "Correction", assembly_in: "Assembly in", assembly_out: "Assembly out",
+};
+const evLabel = (t) => EV[t] || t;
+let mvFrom = "", mvTo = "";
+
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  const box = $("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const p = await sb.from("product").select("id,sku,name,brand_name,category_name,is_active").eq("id", id).maybeSingle();
+  if(seq !== detailSeq) return;
+  if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Product not found")}</div></div>`; return; }
+  const pr = p.data;
+  const [a, b, ph] = await Promise.all([
+    sb.rpc("stk_availability", { p_warehouse_id: wh, p_q: pr.sku, p_brand_id: null, p_category_id: null, p_include_zero: true, p_limit: 500, p_offset: 0 }),   // 같은 sku 를 품은 다른 sku 가 앞에 와도 잡히게 상한까지
+    sb.rpc("stk_bins", { p_product_id: id, p_warehouse_id: wh }),
+    photosFor([pr.sku]),
+  ]);
+  if(seq !== detailSeq) return;
+  const r = (a.data || []).find(x => x.product_id === id) || null;
+  const bins = b.data || [];
+  const seg = WHS.map(w => `<button data-wh="${esc(w.id)}" class="${w.id === wh ? "on" : ""}">${esc(w.name)}</button>`).join("");
+  const big = ph[pr.sku] ? `<img class="bigph" src="${esc(ph[pr.sku])}" alt="">` : '<span class="bigph th ph" style="width:120px;height:120px">No photo</span>';
+  const tile = (label, v, hi) => `<div class="${hi ? "hi" : ""}"><span>${label}</span><b class="${Number(v || 0) < 0 ? "neg" : ""}">${n0(v || 0)}</b></div>`;
+  box.innerHTML = `
+    <div class="card"><div class="phead">${big}
+      <div style="flex:1;min-width:0">
+        <div class="nm">${esc(pr.name)}</div>
+        <div class="dim" style="margin-top:2px"><span class="mono">${esc(pr.sku)}</span>${pr.brand_name ? " · " + esc(pr.brand_name) : ""}${pr.category_name ? " · " + esc(pr.category_name) : ""}${pr.is_active ? "" : ' <span class="tag off">inactive</span>'}</div>
+        <div class="acts">${navBtns()} <span class="seg" id="whSeg">${seg}</span></div>
+      </div></div>
+      ${a.error ? `<div class="msg err">${esc(a.error.message)}</div>` : `<div class="nums">
+        ${tile("On hand", r && r.on_hand)}${tile("Allocated", r && r.sales_allocated)}${tile("Transfer res.", r && r.transfer_reserved)}
+        ${tile("Available", r && r.available, true)}${tile("On order", r && r.on_order)}${tile("In transit", r && r.in_transit)}
+        <div><span>Last movement</span><b style="font-size:13px">${r && r.last_event_on ? esc(r.last_event_on) : "—"}</b></div></div>`}
+    </div>
+    <div class="card"><h3>Bins <span class="n">${bins.length}</span></h3>
+      ${b.error ? `<div class="msg err">${esc(b.error.message)}</div>` : bins.length ? `<table><thead><tr><th>Bin</th><th>Zone</th><th class="num">Qty</th><th>Last movement</th></tr></thead><tbody>
+        ${bins.map(x => `<tr class="${x.bin_is_active === false ? "rev" : ""}"><td class="mono">${x.bin ? esc(x.bin) : '<span class="dim">(no bin)</span>'}${x.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}</td>
+          <td>${dim(x.bin_zone)}</td>${numTd(x.qty)}<td>${x.last_event_on ? esc(x.last_event_on) : ""}</td></tr>`).join("")}</tbody></table>` : '<div class="msg">No stock in any bin at this branch.</div>'}
+    </div>
+    <div class="card"><h3>Movements — ${esc(whName(wh))}</h3>
+      <div class="mvf">From <input type="date" id="mvFrom"> To <input type="date" id="mvTo"> <button class="xs" id="mvGo">Apply</button> <button class="xs" id="mvAll">All</button>
+        <span class="dim">Balance is shown at the end of each day.</span></div>
+      <div id="mvBox" class="scroll" style="margin-top:8px"><div class="msg">Loading…</div></div>
+    </div>`;
+  $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
+  $("toWide").onclick = showWide;
+  $("whSeg").querySelectorAll("[data-wh]").forEach(bt => { bt.onclick = () => { wh = bt.dataset.wh; lOff = 0; openProduct(id); }; });
+  $("mvFrom").value = mvFrom; $("mvTo").value = mvTo;
+  $("mvGo").onclick = () => { mvFrom = $("mvFrom").value; mvTo = $("mvTo").value; loadMoves(id, seq); };
+  $("mvAll").onclick = () => { mvFrom = ""; mvTo = ""; $("mvFrom").value = ""; $("mvTo").value = ""; loadMoves(id, seq); };
+  loadMoves(id, seq);
+}
+async function loadMoves(id, seq){
+  const box = $("mvBox"); if(!box) return;
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: wh, p_from: mvFrom || null, p_to: mvTo || null, p_max: 2000 });
+  if(seq !== detailSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [];
+  if(!rows.length){ box.innerHTML = '<div class="msg">No movements.</div>'; return; }
+  box.innerHTML = `<table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th></tr></thead><tbody>
+    ${rows.map(m => {
+      const opening = m.event_type === "opening";
+      const doc = m.doc_href ? `<a class="lk" href="${esc(m.doc_href)}">${esc(m.doc_number)}</a>`
+        : m.doc_number ? `<span class="mono">${esc(m.doc_number)}</span>${m.source && m.source !== "ims" ? `<span class="src" title="Loaded history — not an IMS document">${esc(m.source)}</span>` : ""}` : "";
+      const cls = opening ? "open" : m.is_reversal ? "rev" : "";
+      const bal = m.is_day_end ? `<td class="num${Number(m.balance_after) < 0 ? " neg" : ""}"><b>${n0(m.balance_after)}</b></td>` : '<td class="num"></td>';
+      return `<tr class="${cls}" title="${m.is_reversal ? "Reversal / correction line" : ""}">
+        <td>${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}${m.is_reversal ? ' <span class="tag off">reversal</span>' : ""}</td>
+        <td>${doc}</td><td class="mono">${m.bin ? esc(m.bin) : ""}</td>
+        <td class="num">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="num">${m.qty_out ? n0(m.qty_out) : ""}</td>${bal}</tr>`;
+    }).join("")}</tbody></table>`;
+}
+
+/* ── 시작 ─────────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  $("buildTag").textContent = STK_BUILD;
+  const [w, br, ct] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name,is_default").eq("is_active", true).order("name"),
+    sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_category").select("id,name").eq("is_active", true).order("name"),
+  ]);
+  WHS = (w.data || []).filter(x => x.name !== "IN_TRANSIT");
+  const def = WHS.find(x => x.is_default) || WHS[0];
+  $("wwh").innerHTML = WHS.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+  $("wbrand").insertAdjacentHTML("beforeend", (br.data || []).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(""));
+  $("wcat").insertAdjacentHTML("beforeend", (ct.data || []).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(""));
+  const want = new URLSearchParams(location.search);
+  wh = (want.get("wh") && WHS.some(x => x.id === want.get("wh"))) ? want.get("wh") : (def ? def.id : "");
+  // 거르기 값은 한 벌 — 넓은 목록 칸과 좁은 목록 칸이 같은 값을 쓴다
+  $("wwh").onchange = e => { wh = e.target.value; showWide(wOff = 0); };
+  $("wbrand").onchange = e => { brand = e.target.value; loadWide(0); };
+  $("wcat").onchange = e => { cat = e.target.value; loadWide(0); };
+  $("wzero").onchange = e => { zero = e.target.checked; loadWide(0); };
+  $("zero").onchange = e => { zero = e.target.checked; loadList(0); };
+  imsQ("#wq", v => { q = v; loadWide(0); });
+  imsQ("#q", v => { q = v; loadList(0); });
+  $("wclear").onclick = () => { q = ""; brand = ""; cat = ""; zero = false; syncCtl(); loadWide(0); };
+  if(!wh){ $("wrows").innerHTML = '<div class="msg err">No active branch.</div>'; $("wide").hidden = false; return; }
+  if(want.get("id")) await openProduct(want.get("id"));
+  else showWide();
+});
+</script>
+</body>
+</html>
