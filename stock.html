@@ -45,6 +45,15 @@
   a.lk:hover{text-decoration:underline}
   .src{font-size:10.5px;color:var(--muted);margin-left:4px}
   .scroll{overflow-x:auto}
+  /* stk v1c — 캐럿 펼침(운영 WMS 재고 화면 모양) */
+  .car{border:0;background:none;cursor:pointer;font-size:12px;color:var(--muted);padding:2px 6px;line-height:1}
+  .car:hover{color:#3b5bdb}
+  tr.exp > td{background:#f7f8fb;padding:10px 18px 14px}
+  tr.exp table{background:#fff}
+  .exph{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+  .exph:first-child{margin-top:0}
+  tr.sub > td{background:#fbfbfd;padding:6px 10px 10px 34px}
+  .expact{margin-top:8px}
 </style>
 </head>
 <body>
@@ -107,7 +116,7 @@
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-06 · stk v1b";   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-06 · stk v1c";   // 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -115,6 +124,7 @@ let WHS = [], wh = "", q = "", brand = "", cat = "", zero = false;
 let curId = null, detailSeq = 0;
 const PAGE = 100;
 let wOff = 0, lOff = 0, wideSeq = 0, listSeq = 0;
+let pageRows = {}, pageBins = {};   // 넓은 목록 한 쪽 — 캐럿 펼침이 다시 묻지 않고 쓴다
 const BUCKET = "product-images";
 const $ = (id) => document.getElementById(id);
 const n0 = (v) => v === null || v === undefined ? "" : Number(v).toLocaleString("en-CA", { maximumFractionDigits: 3 });
@@ -122,7 +132,7 @@ function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/ob
 function whName(id){ const w = WHS.find(x => x.id === id); return w ? w.name : ""; }
 function numTd(v, cls){ const x = Number(v || 0); return `<td class="num ${cls || ""}${x < 0 ? " neg" : ""}">${x === 0 ? '<span class="dim">0</span>' : n0(x)}</td>`; }
 function setMark(r){
-  if(!r.matched_set_sku) return "";
+  if(!r.matched_set_sku || String(q || "").trim().toUpperCase() !== String(r.matched_set_sku).toUpperCase()) return "";   // 세트 sku 를 정확히 쳤을 때만(넓은 검색에서는 펼침의 Sets 로)
   const more = r.matched_set_count > 1 ? ` (+${r.matched_set_count - 1} more)` : "";
   return `<div class="setm">set ${esc(r.matched_set_sku)} = ×${n0(r.matched_set_pack_factor)}${more}</div>`;
 }
@@ -195,10 +205,12 @@ async function loadWide(off){
   const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
   const [ph, bn] = await Promise.all([photosFor(rows.map(r => r.sku)), binsFor(rows.map(r => r.product_id))]);
   if(seq !== wideSeq) return;
-  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th>SKU</th><th>Name</th><th>Brand</th><th>Bin</th>
+  pageRows = {}; rows.forEach(r => { pageRows[r.product_id] = r; }); pageBins = bn;
+  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th></th><th>SKU</th><th>Name</th><th>Brand</th><th>Bin</th>
       <th class="num">On hand</th><th class="num">Allocated</th><th class="num">Transfer res.</th><th class="num">Available</th>
       <th class="num">On order</th><th class="num">In transit</th><th>Last movement</th></tr></thead><tbody>
     ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
+      <td style="width:22px"><button class="car" data-car="${esc(r.product_id)}" title="Show sets, bins and recent movements">&#9656;</button></td>
       <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
       <td>${dim(r.brand_name)}</td><td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
       ${numTd(r.on_hand)}${numTd(r.sales_allocated)}${numTd(r.transfer_reserved)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}
@@ -206,6 +218,7 @@ async function loadWide(off){
     : `<div class="msg">No stock matches${zero ? "" : " — turn on “Show zero stock” to see empty lines"}.</div>`;
   if(bn.__err) $("wrows").insertAdjacentHTML("afterbegin", `<div class="msg err">Bins: ${esc(bn.__err)}</div>`);
   $("wrows").querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openProduct(tr.dataset.id); });
+  $("wrows").querySelectorAll("[data-car]").forEach(b => { b.onclick = (e) => { e.stopPropagation(); toggleExp(b); }; });
   pager("wrange", "wprev", "wnext", off, total, loadWide);
 }
 async function loadList(off){
@@ -279,6 +292,66 @@ async function loadDetail(id){
   $("mvAll").onclick = () => { mvFrom = ""; mvTo = ""; $("mvFrom").value = ""; $("mvTo").value = ""; loadMoves(id, seq); };
   loadMoves(id, seq);
 }
+/* 문서 칸 — 상세 · 펼침이 같이 쓴다 */
+function docCell(m){
+  return m.doc_href ? `<a class="lk" href="${esc(m.doc_href)}">${esc(m.doc_number)}</a>`
+    : m.doc_number ? `<span class="mono">${esc(m.doc_number)}</span>${m.source && m.source !== "ims" ? `<span class="src" title="Loaded history — not an IMS document">${esc(m.source)}</span>` : ""}` : "";
+}
+
+/* ── 캐럿 펼침(stk v1c) — Sets · Bins(bin 캐럿) · 최근 Movements ── */
+const EXP_COLS = 13;
+function toggleExp(btn){
+  const tr = btn.closest("tr"), id = btn.dataset.car, nx = tr.nextElementSibling;
+  if(nx && nx.classList.contains("exp")){ nx.remove(); btn.innerHTML = "&#9656;"; return; }
+  btn.innerHTML = "&#9662;";
+  tr.insertAdjacentHTML("afterend", `<tr class="exp"><td colspan="${EXP_COLS}"><div class="msg">Loading…</div></td></tr>`);
+  fillExp(id, tr.nextElementSibling.firstElementChild);
+}
+async function fillExp(id, cell){
+  const r = pageRows[id]; if(!r) return;
+  const myWh = wh;
+  const [st, mv] = await Promise.all([
+    sb.from("product").select("sku,pack_factor,is_active").eq("parent_product_id", id).order("pack_factor"),
+    sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: myWh, p_from: null, p_to: null, p_max: 2000 }),
+  ]);
+  if(!cell.isConnected || myWh !== wh) return;
+  const sets = st.data || [], moves = mv.data || [], bins = pageBins[id] || [];
+  const av = Math.max(0, Math.floor(Number(r.available || 0)));
+  const setsHtml = sets.length
+    ? sets.map(x => `<span class="mono${x.is_active ? "" : " dim"}">${esc(x.sku)}</span> <span class="dim">(×${n0(x.pack_factor)})</span>`).join(" · ")
+      + `<div class="dim" style="margin-top:4px">Available ${n0(av)} EA = ${sets.filter(x => Number(x.pack_factor) > 0).map(x => `${Math.floor(av / Number(x.pack_factor))} × ${n0(x.pack_factor)}`).join(" · ")}</div>`
+    : '<span class="dim">No sets — sold as single units only.</span>';
+  const binsHtml = bins.length ? `<table><thead><tr><th></th><th>Bin</th><th>Zone</th><th class="num">Qty</th></tr></thead><tbody>
+      ${bins.map((b, i) => `<tr data-bi="${i}"><td style="width:22px"><button class="car" data-bincar="${i}" title="Show movements in this bin">&#9656;</button></td>
+        <td class="mono">${b.bin ? esc(b.bin) : '<span class="dim">(no bin)</span>'}${b.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}</td>
+        <td>${dim(b.bin_zone)}</td>${numTd(b.qty)}</tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No stock in any bin at this branch.</div>';
+  const recent = moves.slice().reverse().slice(0, 20);
+  const mvHtml = mv.error ? `<div class="msg err">${esc(mv.error.message)}</div>` : recent.length ? `<table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th></tr></thead><tbody>
+      ${recent.map(m => `<tr class="${m.event_type === "opening" ? "open" : m.is_reversal ? "rev" : ""}">
+        <td>${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}${m.is_reversal ? ' <span class="tag off">reversal</span>' : ""}</td><td>${docCell(m)}</td>
+        <td class="mono">${m.bin ? esc(m.bin) : ""}</td><td class="num">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="num">${m.qty_out ? n0(m.qty_out) : ""}</td>
+        <td class="num">${m.is_day_end ? `<b>${n0(m.balance_after)}</b>` : ""}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No movements.</div>';
+  cell.innerHTML = `<div class="exph">Sets</div><div>${setsHtml}</div>
+    <div class="exph">Bins — ${esc(whName(myWh))}</div>${binsHtml}
+    <div class="exph">Recent movements — ${esc(whName(myWh))}${moves.length > 20 ? ` <span class="dim" style="text-transform:none;letter-spacing:0">(latest 20 of ${moves.length})</span>` : ""}</div>${mvHtml}
+    <div class="expact"><button class="xs" data-full="1">Full history &rsaquo;</button></div>`;
+  cell.querySelector("[data-full]").onclick = () => openProduct(id);
+  cell.querySelectorAll("[data-bincar]").forEach(btn => { btn.onclick = () => {
+    const btr = btn.closest("tr"), nx = btr.nextElementSibling;
+    if(nx && nx.classList.contains("sub")){ nx.remove(); btn.innerHTML = "&#9656;"; return; }
+    btn.innerHTML = "&#9662;";
+    const b = bins[+btn.dataset.bincar], key = b.bin || "";
+    const ev = moves.filter(m => m.event_type !== "opening" && (m.bin || "") === key).reverse();   // 이 bin 의 사건 · 잔고 없음(잔고는 브랜치 단위로만 정확하다)
+    btr.insertAdjacentHTML("afterend", `<tr class="sub"><td colspan="4">${ev.length ? `<table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th class="num">In</th><th class="num">Out</th></tr></thead><tbody>
+      ${ev.map(m => `<tr class="${m.is_reversal ? "rev" : ""}"><td>${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}${m.is_reversal ? ' <span class="tag off">reversal</span>' : ""}</td><td>${docCell(m)}</td>
+        <td class="num">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="num">${m.qty_out ? n0(m.qty_out) : ""}</td></tr>`).join("")}</tbody></table>
+      <div class="dim" style="font-size:11.5px;margin-top:4px">Bin quantity now: ${n0(b.qty)} · the opening stock in this bin came from the starting count and is not listed as an event.</div>`
+      : '<div class="msg">No movements recorded in this bin since the starting count.</div>'}</td></tr>`);
+  }; });
+}
+
 async function loadMoves(id, seq){
   const box = $("mvBox"); if(!box) return;
   box.innerHTML = '<div class="msg">Loading…</div>';
@@ -290,8 +363,7 @@ async function loadMoves(id, seq){
   box.innerHTML = `<table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th></tr></thead><tbody>
     ${rows.map(m => {
       const opening = m.event_type === "opening";
-      const doc = m.doc_href ? `<a class="lk" href="${esc(m.doc_href)}">${esc(m.doc_number)}</a>`
-        : m.doc_number ? `<span class="mono">${esc(m.doc_number)}</span>${m.source && m.source !== "ims" ? `<span class="src" title="Loaded history — not an IMS document">${esc(m.source)}</span>` : ""}` : "";
+      const doc = docCell(m);
       const cls = opening ? "open" : m.is_reversal ? "rev" : "";
       const bal = m.is_day_end ? `<td class="num${Number(m.balance_after) < 0 ? " neg" : ""}"><b>${n0(m.balance_after)}</b></td>` : '<td class="num"></td>';
       return `<tr class="${cls}" title="${m.is_reversal ? "Reversal / correction line" : ""}">
