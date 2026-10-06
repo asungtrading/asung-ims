@@ -167,6 +167,9 @@
   .binchg{margin-left:8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:12.5px;font-weight:700;cursor:pointer}
   .binnow{display:block;font-size:12px;color:var(--mut);margin-top:2px;font-family:var(--mono)}
   .binsplit{font-family:var(--mono);font-size:12px;color:#a86400;margin-top:4px}
+  /* pk v1.5 · asm-3c — 콤보 구성품 표시(묶음 6) */
+  .forcombo{display:inline-block;font-size:11.5px;font-weight:600;color:#7048e8;background:#f3f0ff;border:1px solid #d0bfff;border-radius:6px;padding:0 6px;margin:2px 0}
+  .lrow .li .fc{color:#7048e8;font-weight:600}
   .bdlist{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow-y:auto;margin:6px 0 12px}
   .bdrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);font-family:var(--mono);font-size:14px;cursor:pointer;text-align:left;width:100%}
   .bdrow.cur{border-color:var(--ink);border-width:2px}
@@ -310,7 +313,7 @@
    클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 안내 · Cin7 void 배너 — 대신 「오더가 Working 이 아니다」 배너(판정 21 · so.status) ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 화면이 product_image_primary 를 부른다) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다 · 동선 순서 열쇠 warehouse_id|zone. */
-const WP_BUILD="2026-10-05 · pk v1.4";   // pick-shelf-2(판정 235 · 묶음 1 ~ 4) — 칸 옆 on shelf(wms_pick_shelf 한 번 · asung-wms pick-shelf-1) · Different bin = 계획 칸 + 바로 밑 체크 · 고르기 → 「Pick from」 · 줄에 결과 · 빈 계획 칸 보고 한 번만 ← wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
+const WP_BUILD="2026-10-05 · pk v1.5";   // asm-3c(판정 244 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○ · N per combo」(wms_pick_lines 의 combo_sku · combo_qty · asm-2b1) · 픽은 구성품 그대로 · 콤보 줄 자체는 오지 않는다 ← pk v1.4 pick-shelf-2(판정 235 · 묶음 1 ~ 4) — 칸 옆 on shelf(wms_pick_shelf 한 번 · asung-wms pick-shelf-1) · Different bin = 계획 칸 + 바로 밑 체크 · 고르기 → 「Pick from」 · 줄에 결과 · 빈 계획 칸 보고 한 번만 ← wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17 — 저장 값은 그대로 · 글자만
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
@@ -872,6 +875,7 @@ function lineFromRpc(r, t){
     vmethod:r.verification_method||null, _sync:true,
     _taskId:r.pick_task_id, _tote:r.tote_no||0,
     _orderId:r.so_id, _orderNumber:r.so_number||"", _customer:r.customer_name||"",
+    _combo:r.combo_sku||null, _comboQty:(r.combo_qty==null)?null:Number(r.combo_qty), _comboLine:r.combo_line_id||null,   // asm-3c — 콤보 구성품이면 콤보 SKU · 콤보 하나에 드는 수(보통 줄 null)
     planned:pb.map(b=>({bin_id:b.bin_id, bin:b.bin||"", qty:Number(b.qty_base||0)})),   // pick-bin — 계획 칸(순서 = 계획 행 id)
     stockBins:(r.stock_bins||[]).map(b=>({bin_id:b.bin_id, bin:b.bin||"", zone:b.zone||"", qty:Number(b.qty||0), active:b.is_active!==false, planned:!!b.planned})),   // 판정 122 — 칸 목록(EA · 계획 먼저)
     ...binStateFrom(pb, r.actual_bins||[], Number(r.picked_base||0)),                  // 판정 121 — 저장된 실제 칸을 되살린다(보류 · 이어받기 · 다른 기기)
@@ -1238,6 +1242,7 @@ function renderSingle(){
           ${l.binSel?`<span class="binnow">Planned: ${esc(l.bins||l.bin||"—")} · picking from ${esc(l.binSel.bin)}${l.reported&&l.reported[l.binSel.bin_id]?` · <span class="rpok">planned bin reported empty ✓</span>`:""}</span>`:""}
           ${splitText(l)?`<div class="binsplit">Picked from ${esc(splitText(l))}</div>`:""}
           <div class="nm">${esc(l.product_name)}</div>
+          ${comboTag(l)}
           <div class="sku">${esc(l.order_sku)}${l.order_sku!==l.base_sku?` · base ${esc(l.base_sku)}`:""} ${availChip(l)}</div>
         </div>
       </div>
@@ -1278,6 +1283,8 @@ function renderSingle(){
   const mc=s.querySelector("[data-map]");
   if(mc) mc.onclick=()=>window.open("https://tools.asung.ca/warehousemap.html?loc="+encodeURIComponent(mc.dataset.map),"_blank");
 }
+/* asm-3c(묶음 6) — 콤보 구성품 표시 · 픽은 보통 줄과 같다(창고 조립 없음 · 팩에서 묶는다) */
+function comboTag(l){ return l._combo ? `<span class="forcombo" title="Part of a combo — pick it like any item; the packer puts the combo together">for combo ${esc(l._combo)}${l._comboQty?` · ${esc(l._comboQty)} per combo`:""}</span>` : ""; }
 function renderList(){
   document.getElementById("single").style.display="none";
   const el=document.getElementById("list"); el.style.display="flex";
@@ -1288,7 +1295,7 @@ function renderList(){
     return `<div class="lrow ${cls}" data-idx="${idx}">
       <span class="zn">${esc(l.zone||"·")}</span>${l._tote?`<span class="tt">T${l._tote}</span>`:""}
       ${HAS_IMAGES?`<div class="thumb" data-psku="${esc(l.order_sku)}">${imgTag(l)}</div>`:""}
-      <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${esc(l.product_name)}</div><div class="b">${esc(l.binSel?l.binSel.bin+" (planned "+(l.bins||l.bin||"—")+")":(l.bins||l.bin||"—"))}${availChip(l)}</div></div>
+      <div class="li"><div class="s">${esc(l.order_sku)}</div><div class="n">${l._combo?`<span class="fc">for ${esc(l._combo)}</span> · `:""}${esc(l.product_name)}</div><div class="b">${esc(l.binSel?l.binSel.bin+" (planned "+(l.bins||l.bin||"—")+")":(l.bins||l.bin||"—"))}${availChip(l)}</div></div>
       <div class="q">${l.picked} / ${l.assigned}</div>
     </div>`;
   }).join("");
