@@ -152,7 +152,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v1";
+const DR_BUILD = "dr v1a";   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;
@@ -789,8 +789,11 @@ function showModal(html){
 function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
 function showCheck(d, onGo){
   const L = labMap();
-  const li = x => `<li>${esc(x.message)}</li>`;
+  const li = x => x.code === "changed_elsewhere"
+    ? `<li>Someone else saved this deal at ${imsTs(x.updated_at)} after you opened it — nothing was saved. Load the latest version to see their change, then make yours again.</li>`
+    : `<li>${esc(x.message)}</li>`;
   const blocks = d.blocks || [], warns = d.warnings || [];
+  const stale = blocks.some(x => x.code === "changed_elsewhere");
   const chg = (d.changes || []).map(c => chgText(c, L)).filter(Boolean);
   const body = d.error ? `<div class="msg err">${esc(d.error)}</div>`
     : `${blocks.length ? `<h5>Not saved — fix these first</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
@@ -798,11 +801,14 @@ function showCheck(d, onGo){
        ${warns.length ? `<h5>${blocks.length ? "Also" : "Please confirm"}</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
        ${(d.unacked || []).length && !blocks.length ? `<div class="note">Something changed since the check — please confirm again.</div>` : ""}`;
   const go = (!d.error && !blocks.length && onGo) ? `<button class="pobtn go" data-m="go">${warns.length ? "Save anyway" : "Save"}</button>` : "";
+  const reload = stale && curId ? `<button class="pobtn go" data-m="reload">Load the latest version</button>` : "";
   showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4>
-    <div class="pbody res">${body}</div>
-    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Back" : "Close"}</button>${go}</div>`);
+    <div class="pbody res">${body}${reload ? `<div class="note">Loading the latest version drops the changes you made here.</div>` : ""}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Back" : "Close"}</button>${go}${reload}</div>`);
   const box = document.getElementById("modalBox");
   box.querySelector('[data-m="close"]').onclick = () => closeModal();
+  const rl = box.querySelector('[data-m="reload"]');
+  if(rl) rl.onclick = async () => { closeModal(); ed = null; await loadDeals(); renderList(); await loadDetail(curId); };
   const g = box.querySelector('[data-m="go"]');
   if(g) g.onclick = () => { g.disabled = true; onGo(); };
 }
