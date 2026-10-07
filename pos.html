@@ -117,7 +117,7 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-06 · pos v1.6";   // 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-07 · pos v1.7";   // 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
@@ -135,7 +135,7 @@ function discNote(l){
   if(l.free_reason) return `<div class="dsc">free · ${esc(l.free_reason)}</div>`;
   if(l.price_override) return '<div class="dsc">price set by hand</div>';
   if(!pct) return "";
-  const src = l.discount_source === "deal" ? ["deal", "Sale"] : l.discount_source === "manual" ? ["", "Discount by hand"] : ["", "Customer discount"];
+  const src = l.discount_source === "deal" ? ["deal", "Sale"] : l.discount_source === "manual" ? ["", "Discount by hand"] : l.discount_source === "set" ? ["", "Set discount"] : ["", "Customer discount"];   // pos v1.7 — set(판정 298)
   return `<div class="dsc ${src[0]}">${src[1]} −${esc(pct)}% · list ${plain(l.list_price)}</div>`;
 }
 const isSale = l => l.discount_source === "deal" && Number(l.discount_pct) > 0 && !l.free_reason;
@@ -171,6 +171,15 @@ const WARN = {
   direct_order_tier_unexpected: "This customer's price tier is not Wholesale — check the prices.",
   tier_differs_from_customer: "Price tier differs from the customer's own tier.",
   bill_to_empty: "The customer has no billing address — the invoice goes out without one.",
+  coupon_not_used: "The coupon is not giving the discount — see Coupon on the right.",   /* pos v1.7 */
+  coupon_detached_not_used: "The coupon was not used, so it was taken off — the customer can still use it.",
+};
+/* pos v1.7 — 쿠폰이 안 먹히는 까닭(so_coupon_info · so_coupon_check 의 reason · so.html 과 같은 말) */
+const CP_REASON = {
+  lower_pct: "the sale already gets a bigger discount", below_min_amount: "the sale is below the minimum amount of the coupon's deal",
+  manual: "the order discount % was set by hand", other_customer: "it belongs to another customer", voided: "it was voided",
+  used_elsewhere: "it was already used on another sale", expired: "it expired before the sale date",
+  deal_not_coupon: "its deal no longer takes coupons", deal_inactive: "its deal is switched off",
 };
 const warnText = (w) => { const k = String(w).split(":")[0]; return WARN[k] || String(w); };
 
@@ -295,11 +304,33 @@ async function setTax(name){
   await openSale(curId);
 }
 
+/* ── pos v1.7 쿠폰 — 초안에 넣기 · 빼기(창구 so_coupon_apply · so_coupon_remove · sales) ── */
+async function applyCoupon(){
+  const el = document.getElementById("cpCode");
+  const code = ((el && el.value) || "").trim();
+  if(!code){ if(el) el.focus(); return; }
+  const { data, error } = await sb.rpc("so_coupon_apply", { p_so_id: curId, p_code: code });
+  if(error){ alert(error.message); return; }
+  await openSale(curId);
+  if(data && data.coupon && data.coupon.status !== "won")
+    setTimeout(() => alert(`Coupon ${data.coupon.code} is on the sale but not used — ${CP_REASON[data.coupon.reason] || data.coupon.reason || ""}.`), 30);
+}
+async function removeCoupon(){
+  const cp = cur && cur.coupon; if(!cp) return;
+  if(!confirm(`Take coupon ${cp.code} off this sale? The customer can still use it later.`)) return;
+  const { error } = await sb.rpc("so_coupon_remove", { p_so_id: curId });
+  if(error){ alert(error.message); return; }
+  await openSale(curId);
+}
+
 /* ── Confirm · 다시 열기 · 잠시 두기 ── */
 async function confirmSale(){
   const { data, error } = await sb.rpc("so_pos_confirm", { p_so_id: curId });
   if(error){ alert(error.message); return; }
   await openSale(curId); loadParked();
+  /* pos v1.7 — 확정이 쿠폰을 떼었으면(이기지 못함) 알린다 */
+  const cw = ((data && data.warnings) || []).filter(x => String(x).startsWith("coupon_"));
+  if(cw.length) setTimeout(() => alert("⚠ " + cw.map(warnText).join("\n⚠ ")), 30);
 }
 async function reopenSale(){
   if(!confirm("Reopen this sale to change it? Payments already taken stay on it.")) return;
@@ -463,7 +494,7 @@ async function openSale(id){
   document.getElementById("bigTot").textContent = plain(t.order_total_with_tax);
   document.getElementById("totRows").innerHTML = `
     <div class="row2">Items<b>${plain(t.lines_total)}</b></div>
-    ${Number(t.order_discount_amount) ? `<div class="row2" style="color:#b42318">Order discount${s.order_discount_pct ? " · " + esc(Number(s.order_discount_pct)) + "%" : ""}<b style="color:#b42318">−${plain(t.order_discount_amount)}</b></div>` : ""}
+    ${Number(t.order_discount_amount) ? `<div class="row2" style="color:#b42318">Order discount${s.order_discount_source === "coupon" && data.coupon ? " · coupon " + esc(data.coupon.code) : ""}${s.order_discount_pct ? " · " + esc(Number(s.order_discount_pct)) + "%" : ""}<b style="color:#b42318">−${plain(t.order_discount_amount)}</b></div>` : ""}
     ${Number(t.charges_total) ? `<div class="row2">Charges<b>${plain(t.charges_total)}</b></div>` : ""}
     ${Number(t.surcharge_amount) ? `<div class="row2">Surcharge<b>${plain(t.surcharge_amount)}</b></div>` : ""}
     <div class="row2">Tax${t.tax_rule ? " · " + esc(t.tax_rule) : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : plain(t.tax)}</b></div>
@@ -472,7 +503,15 @@ async function openSale(id){
       <div class="row2" style="font-size:15px">To pay<b class="mid">${plain(Math.max(0, Number(est.amount_due) || 0))}</b></div>` : ""}`;
   let acts = "";
   if(draft){
-    acts = `<div class="acts"><button class="pobtn go" id="aConfirm" ${ls.length ? "" : "disabled"}>Confirm — show the amount</button></div>`;
+    /* pos v1.7 — 쿠폰 칸(초안만 · 붙은 쿠폰은 상태와 ✕) */
+    const cp = data.coupon;
+    const cpNow = cp ? `<div style="font-size:12.5px;margin-bottom:6px"><span class="mono">${esc(cp.code)}</span>
+        ${cp.status === "won" ? `<span class="tag">applied${cp.pct !== null && cp.pct !== undefined ? " · " + esc(Number(cp.pct)) + "%" : ""}</span>` : '<span class="tag off">not used</span>'}
+        <button class="xbtn" id="cpRemove" title="Take the coupon off">&#10005;</button>
+        ${cp.status !== "won" ? `<div class="dim" style="font-size:11.5px">Not used — ${esc(CP_REASON[cp.reason] || cp.reason || "")}</div>` : ""}</div>` : "";
+    acts = `<div style="padding:10px 14px;border-top:1px solid var(--line)"><div class="dim" style="font-size:12px;margin-bottom:6px">COUPON</div>${cpNow}
+        <div style="display:flex;gap:6px"><input type="search" id="cpCode" autocomplete="off" placeholder="${cp ? "Another code" : "Coupon code"}" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:13px"><button class="pobtn" id="cpApply">${cp ? "Replace" : "Apply"}</button></div></div>
+      <div class="acts"><button class="pobtn go" id="aConfirm" ${ls.length ? "" : "disabled"}>Confirm — show the amount</button></div>`;
   } else {
     acts = `<div class="paygrid">${PMETH.map(([k, l]) => `<button class="pobtn" data-pay="${k}">${l}</button>`).join("")}</div>
       <div class="acts">
@@ -483,6 +522,9 @@ async function openSale(id){
   }
   document.getElementById("sideActs").innerHTML = acts;
   const bc = document.getElementById("aConfirm"); if(bc) bc.onclick = confirmSale;
+  { const ca = document.getElementById("cpApply"); if(ca) ca.onclick = applyCoupon;                                  // pos v1.7
+    const cr = document.getElementById("cpRemove"); if(cr) cr.onclick = removeCoupon;
+    const cc = document.getElementById("cpCode"); if(cc) cc.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); applyCoupon(); } }; }
   document.querySelectorAll("[data-pay]").forEach(b => { b.onclick = () => openPay(b.dataset.pay); });
   const bf = document.getElementById("aFinish"); if(bf) bf.onclick = finishSale;
   const bp = document.getElementById("aPark"); if(bp) bp.onclick = parkSale;
