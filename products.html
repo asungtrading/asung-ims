@@ -161,6 +161,7 @@
         <datalist id="brandList"></datalist>
         <datalist id="catList"></datalist>
         <datalist id="unitList"></datalist>
+        <datalist id="tagList"></datalist>
         <select id="cat" style="flex:1;min-width:0">
           <option value="">All categories</option>
         </select>
@@ -204,7 +205,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v4a";   // 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v4b";   // 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -216,7 +217,9 @@ const pg = imsPage(100);
 let openSets = {};
 let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{}, sgroups:[] };
 let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
-let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[] } — 입력값은 DOM 에서 읽는다
+let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[], addTag:[], offTag:[] } — 입력값은 DOM 에서 읽는다(태그는 칸이 아니라 목록 · pr v4b)
+let tagNames = null; // pr v4b — 모든 태그 글자(Edit 를 처음 열 때 한 번 읽는다 · datalist tagList)
+const escQ = v => esc(v).replace(/"/g, "&quot;");   // pr v4b — 속성 값(공통 esc 는 큰따옴표를 막지 않는다 · §6)
 
 function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
 
@@ -408,7 +411,7 @@ async function loadDetail(id){
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
 
-  const [p, bar, sup, bom, kids, pri, img, used] = await Promise.all([
+  const [p, bar, sup, bom, kids, pri, img, used, tg] = await Promise.all([
     sb.from("product").select("*").eq("id", id).maybeSingle(),
     sb.from("product_barcode").select("*").eq("product_id", id).order("is_primary", {ascending:false}),
     sb.from("product_supplier").select("*, supplier(name)").eq("product_id", id).order("is_default", {ascending:false}),
@@ -417,6 +420,7 @@ async function loadDetail(id){
     sb.from("product_price").select("id,tier_id,price,is_active,source").eq("product_id", id),
     sb.from("product_image").select("*").eq("product_id", id).order("sort_order").order("created_at"),
     sb.from("product_bom").select("parent_product_id,quantity").eq("component_product_id", id).eq("is_active", true),   // pr v4: 이 상품을 구성품으로 쓰는 콤보
+    sb.from("product_tag").select("id,tag,source").eq("product_id", id).order("tag"),                                    // pr v4b: 태그(떼면 행이 지워진다 — 켜짐 칸 없음)
   ]);
   if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Product not found.")}</div></div>`; return; }
   const r = p.data;
@@ -462,7 +466,7 @@ async function loadDetail(id){
   }
 
   if(seq !== detailSeq) return;
-  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, usedIn, parent, family, sibs, imgs, imgsOff, fallback };
+  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, usedIn, parent, family, sibs, imgs, imgsOff, fallback, tags: tg.data||[] };
   render();
 }
 
@@ -594,6 +598,7 @@ function renderRead(){
           supShow.length, ["Supplier","Supplier SKU",["Fixed","num"],["Latest","num"],"Cur","Last supplied","Default","Active"], supRows,
           r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
+    ${tagCardRead()}
     ${comps.length ? tbl("Components", comps.length, ["SKU","Name",["Qty per combo","num"],"Source"], bomRows, "", "",
         canEdit ? `<button class="pobtn" data-act="comboEdit" style="margin-left:auto">Edit components</button>` : "") : ""}
     ${cur.usedIn.length ? tbl("Components — used in combos", cur.usedIn.length, ["Combo SKU","Name",["Qty per combo","num"]], usedRows) : ""}
@@ -656,6 +661,55 @@ function refName(kind, id){ if(!id) return ""; if(String(id).startsWith("?")) re
 function refId(kind, text){ const v = (text || "").trim(); if(!v) return null; const x = refs[REFS[kind][0]].find(y => y.name.toLowerCase() === v.toLowerCase()); return x ? x.id : "?" + v; }
 function refIn(kind, attrs, id, fallbackName){ const nm = refName(kind, id) || (id && !String(id).startsWith("?") ? (fallbackName || "") : ""); return `<input class="ein" ${attrs} list="${REFS[kind][1]}" value="${esc(nm)}" autocomplete="off">`; }
 const badRef = id => !!id && String(id).startsWith("?");
+
+/* ── 태그(pr v4b · 판정 336) — 붙이기 tag_add · 떼기 tag_off(행 삭제) · 글자 그대로(대소문자 구분) ── */
+const tagBox = inner => `<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px 14px">${inner}</div>`;
+function tagCardRead(){
+  const t = cur.tags;
+  return `<div class="card"><h3 class="ims-sec" data-sec="">Tags <span class="n">${t.length}</span></h3>
+    ${t.length ? tagBox(t.map(x => `<span class="chip" title="source: ${escQ(x.source)}">${esc(x.tag)}</span>`).join(""))
+               : `<div class="msg">No tags.</div>`}
+    <div class="note">Discount Rules can target products by tag.</div></div>`;
+}
+function tagCardEdit(){
+  const have = cur.tags.map((x, i) => edit.offTag.includes(x.tag)
+      ? `<span class="chip" style="text-decoration:line-through;opacity:.6">${esc(x.tag)}</span><button class="xbtn" data-act="tagUndo" data-i="${i}" title="Keep this tag">undo</button>`
+      : `<span class="chip">${esc(x.tag)}</span><button class="xbtn" data-act="tagOff" data-i="${i}" title="Take this tag off">✕</button>`)
+    .concat(edit.addTag.map((t, i) => `<span class="chip">${esc(t)} <span class="newtag">new</span></span><button class="xbtn" data-act="tagDrop" data-i="${i}" title="Do not add">remove</button>`));
+  const add = `<div class="addrow"><input class="ein" id="tagNew" list="tagList" placeholder="Add a tag" autocomplete="off">
+      <button class="pobtn" data-act="tagAdd">Add</button>
+      <span class="dim" style="font-size:11.5px">Tags are case-sensitive — pick from the list to keep one spelling. ✕ takes a tag off when you save.</span></div>`;
+  return `<div class="card"><h3 class="ims-sec" data-sec="">Tags <span class="n">${cur.tags.length - edit.offTag.length + edit.addTag.length}</span></h3>
+    ${have.length ? tagBox(have.join("")) : `<div class="msg">No tags.</div>`}${add}</div>`;
+}
+async function loadTagNames(){
+  if(tagNames) return;
+  try {
+    const rows = await fetchAll("product_tag", "tag", x => x.order("tag").order("id"));   // 같은 태그가 쪽 경계에 걸려도 빠지지 않게 id 로 순서를 못 박는다
+    tagNames = [...new Set(rows.map(x => x.tag))];
+  } catch(e){ tagNames = null; return; }
+  const dl = document.getElementById("tagList");
+  if(dl) dl.innerHTML = tagNames.map(t => `<option value="${escQ(t)}">`).join("");
+}
+function addTag(){
+  const inp = document.getElementById("tagNew"); if(!inp || !edit) return;
+  const v = (inp.value || "").trim();
+  if(!v) return;
+  if(cur.tags.some(x => x.tag === v)){
+    if(edit.offTag.includes(v)){ keepInputs(() => { edit.offTag = edit.offTag.filter(x => x !== v); }); return; }   // 떼려던 것을 다시 넣으면 떼기를 취소
+    alert("That tag is already on this product."); return;
+  }
+  if(edit.addTag.includes(v)){ alert("That tag is already added."); return; }
+  const low = v.toLowerCase();
+  const other = [...(tagNames || []), ...cur.tags.map(x => x.tag), ...edit.addTag].find(t => t.toLowerCase() === low && t !== v);
+  if(other){
+    alert(`The tag "${other}" already exists with different capital letters. The box now holds "${other}" — press Add again to use that spelling.`);
+    inp.value = other; inp.focus(); return;
+  }
+  keepInputs(() => edit.addTag.push(v));
+  const n = document.getElementById("tagNew"); if(n) n.focus();
+}
+
 function renderEdit(){
   const { r } = cur;
   const isSet = !!r.parent_product_id;
@@ -739,6 +793,7 @@ function renderEdit(){
           `<div class="note">Clear a price to turn it off${isSet ? " — the set then goes back to the calculated price" : ""}.</div>`)}
     ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU","Fixed","Latest","Default","Off"], supRows, "None.", supAdd)}
     ${tbl("Barcodes", live.length + edit.addBc.length, ["Barcode","Primary","Off"], barRows, "None.", bcAdd)}
+    ${tagCardEdit()}
     <div class="card"><div class="msg">Photos are changed outside Edit — Cancel, then use Upload photos.</div></div>
   `;
 }
@@ -841,6 +896,10 @@ function buildChanges(){
     if(!(tgtOff && tgtOff.checked)) out.push({ op:"barcode_primary", sku, barcode: priNow.dataset.bcpri });
   }
   box.querySelectorAll("[data-bcoff]").forEach(el => { if(el.checked) out.push({ op:"barcode_off", sku, barcode: el.dataset.bcoff }); });
+
+  /* 태그 — 더하기 · 떼기(pr v4b) */
+  (edit.addTag || []).forEach(t => out.push({ op:"tag_add", sku, tag: t }));
+  (edit.offTag || []).forEach(t => out.push({ op:"tag_off", sku, tag: t }));
 
   const bad = out.filter(x => x.__bad).length, lines = out.filter(x => !x.__bad);
   const c = document.getElementById("chgCount");
@@ -951,7 +1010,7 @@ function wireDetail(box){
     el.onclick = async () => {
       if(a === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; return; }
       if(a === "wide"){ if(leaveEditOk()) showWide(); return; }
-      if(a === "edit"){ edit = { id: cur.r.id, addBc: [], addSup: [] }; render(); return; }
+      if(a === "edit"){ edit = { id: cur.r.id, addBc: [], addSup: [], addTag: [], offTag: [] }; render(); loadTagNames(); return; }
       if(a === "cancel"){ edit = null; render(); return; }
       if(a === "save"){
         const ch = buildChanges();
@@ -980,6 +1039,10 @@ function wireDetail(box){
         keepInputs(() => edit.addSup.push(n)); return;
       }
       if(a === "supDrop"){ keepInputs(() => edit.addSup.splice(Number(el.dataset.i), 1)); return; }
+      if(a === "tagAdd"){ addTag(); return; }
+      if(a === "tagDrop"){ keepInputs(() => edit.addTag.splice(Number(el.dataset.i), 1)); return; }
+      if(a === "tagOff"){ const t = cur.tags[Number(el.dataset.i)]; if(t) keepInputs(() => edit.offTag.push(t.tag)); return; }
+      if(a === "tagUndo"){ const t = cur.tags[Number(el.dataset.i)]; if(t) keepInputs(() => { edit.offTag = edit.offTag.filter(x => x !== t.tag); }); return; }
 
       if(a === "addVariant"){ openFamilyDialog({ familyId: cur.family.id, family: cur.family }); return; }
       if(a === "comboEdit"){ if(leaveEditOk()) openComboDialog(null); return; }
@@ -994,6 +1057,9 @@ function wireDetail(box){
       }
     };
   });
+
+  /* pr v4b — 태그 칸 Enter = Add(목록에서 고른 뒤 Enter 한 번) */
+  { const tn = box.querySelector("#tagNew"); if(tn) tn.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); addTag(); } }; }
 
   /* 고치는 중 — 칸을 바꿀 때마다 노란 표시 · 바꾼 수 */
   if(edit) box.querySelectorAll("input,select,textarea").forEach(el => {
@@ -1027,7 +1093,7 @@ function keepInputs(mutate){
   const box = document.getElementById("detail");
   const saved = [];
   box.querySelectorAll("input,select,textarea").forEach(el => {
-    if(el.id === "bcNew" || el.id.startsWith("supNew")) return;
+    if(el.id === "bcNew" || el.id === "tagNew" || el.id.startsWith("supNew")) return;
     saved.push([el, el.type === "checkbox" || el.type === "radio" ? el.checked : el.value]);
   });
   const keyOf = el => ["f","price","sup","k","supdef","supoff","bcpri","bcoff"].map(k => el.dataset[k] || "").join("|") + "|" + el.name;
@@ -1036,7 +1102,7 @@ function keepInputs(mutate){
   render();
   document.getElementById("detail").querySelectorAll("input,select,textarea").forEach(el => {
     const k = keyOf(el);
-    if(!map.has(k) || el.id === "bcNew" || el.id.startsWith("supNew")) return;
+    if(!map.has(k) || el.id === "bcNew" || el.id === "tagNew" || el.id.startsWith("supNew")) return;
     if(el.type === "checkbox" || el.type === "radio") el.checked = map.get(k); else el.value = map.get(k);
   });
   buildChanges();
