@@ -116,7 +116,7 @@
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-06 · stk v1c";   // 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-07 · stk v1d";   // 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -242,6 +242,10 @@ const EV = {
 };
 const evLabel = (t) => EV[t] || String(t || "").replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
 let mvFrom = "", mvTo = "";
+/* stk v1d — 이동 순서(화면에서만 뒤집는다 · 잔고는 줄마다 서버 값) · 이 브라우저에 기억 */
+let mvDesc = false; try { mvDesc = localStorage.getItem("stk.mvDesc") === "1"; } catch(e) {}
+let mvRows = [];
+const mvOrdLabel = () => mvDesc ? "&darr; Newest first" : "&uarr; Oldest first";
 
 async function loadDetail(id){
   const seq = ++detailSeq;
@@ -281,6 +285,7 @@ async function loadDetail(id){
     </div>
     <div class="card"><h3>Movements — ${esc(whName(wh))}</h3>
       <div class="mvf">From <input type="date" id="mvFrom"> To <input type="date" id="mvTo"> <button class="xs" id="mvGo">Apply</button> <button class="xs" id="mvAll">All</button>
+        <button class="xs" id="mvOrd" title="Switch between oldest first and newest first">${mvOrdLabel()}</button>
         <span class="dim">Balance is shown at the end of each day.</span></div>
       <div id="mvBox" class="scroll" style="margin-top:8px"><div class="msg">Loading…</div></div>
     </div>`;
@@ -290,6 +295,7 @@ async function loadDetail(id){
   $("mvFrom").value = mvFrom; $("mvTo").value = mvTo;
   $("mvGo").onclick = () => { mvFrom = $("mvFrom").value; mvTo = $("mvTo").value; loadMoves(id, seq); };
   $("mvAll").onclick = () => { mvFrom = ""; mvTo = ""; $("mvFrom").value = ""; $("mvTo").value = ""; loadMoves(id, seq); };
+  $("mvOrd").onclick = () => { mvDesc = !mvDesc; try { localStorage.setItem("stk.mvDesc", mvDesc ? "1" : "0"); } catch(e) {} $("mvOrd").innerHTML = mvOrdLabel(); drawMoves(); };   // stk v1d
   loadMoves(id, seq);
 }
 /* 문서 칸 — 상세 · 펼침이 같이 쓴다 */
@@ -358,7 +364,13 @@ async function loadMoves(id, seq){
   const { data, error } = await sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: wh, p_from: mvFrom || null, p_to: mvTo || null, p_max: 2000 });
   if(seq !== detailSeq) return;
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  const rows = data || [];
+  mvRows = data || [];
+  drawMoves();
+}
+/* stk v1d — 그리기만 따로(순서 단추가 다시 읽지 않고 뒤집는다) */
+function drawMoves(){
+  const box = $("mvBox"); if(!box) return;
+  const rows = mvDesc ? mvRows.slice().reverse() : mvRows;
   if(!rows.length){ box.innerHTML = '<div class="msg">No movements.</div>'; return; }
   box.innerHTML = `<table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="num">In</th><th class="num">Out</th><th class="num">Balance</th></tr></thead><tbody>
     ${rows.map(m => {
