@@ -205,7 +205,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v4b";   // 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v4c";   // 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -218,7 +218,7 @@ let openSets = {};
 let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{}, sgroups:[] };
 let cur = null;      // 지금 상세에 그린 상품의 읽은 것 전부
 let edit = null;     // 고치는 중이면 { id, addBc:[], addSup:[], addTag:[], offTag:[] } — 입력값은 DOM 에서 읽는다(태그는 칸이 아니라 목록 · pr v4b)
-let tagNames = null; // pr v4b — 모든 태그 글자(Edit 를 처음 열 때 한 번 읽는다 · datalist tagList)
+let tagNames = null; // pr v4b — 모든 태그 글자(Edit 를 처음 열 때 한 번 읽는다 · datalist tagList) · pr v4c: 제품 태그 ∪ 딜 대상 태그 · 저장한 태그는 바로 더한다
 const escQ = v => esc(v).replace(/"/g, "&quot;");   // pr v4b — 속성 값(공통 esc 는 큰따옴표를 막지 않는다 · §6)
 
 function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
@@ -685,11 +685,23 @@ function tagCardEdit(){
 async function loadTagNames(){
   if(tagNames) return;
   try {
-    const rows = await fetchAll("product_tag", "tag", x => x.order("tag").order("id"));   // 같은 태그가 쪽 경계에 걸려도 빠지지 않게 id 로 순서를 못 박는다
-    tagNames = [...new Set(rows.map(x => x.tag))];
+    const [rows, drows] = await Promise.all([
+      fetchAll("product_tag", "tag", x => x.order("tag").order("id")),                              // 같은 태그가 쪽 경계에 걸려도 빠지지 않게 id 로 순서를 못 박는다
+      fetchAll("so_deal_target", "tag", x => x.eq("target", "tag").order("tag").order("id")),       // pr v4c: 딜이 먼저 쓰는 태그(아직 붙은 제품이 없어도 같은 철자로)
+    ]);
+    tagNames = [...new Set(rows.concat(drows).map(x => x.tag).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   } catch(e){ tagNames = null; return; }
+  fillTagList();
+}
+function fillTagList(){
   const dl = document.getElementById("tagList");
-  if(dl) dl.innerHTML = tagNames.map(t => `<option value="${escQ(t)}">`).join("");
+  if(dl && tagNames) dl.innerHTML = tagNames.map(t => `<option value="${escQ(t)}">`).join("");
+}
+/* pr v4c — 저장한 태그를 목록에 바로(다시 읽지 않는다 · 아직 안 읽었으면 다음 Edit 가 읽는다) */
+function mergeTagNames(list){
+  if(!tagNames || !list || !list.length) return;
+  let n = 0; list.forEach(t => { if(!tagNames.includes(t)){ tagNames.push(t); n++; } });
+  if(n){ tagNames.sort((a, b) => a.localeCompare(b)); fillTagList(); }
 }
 function addTag(){
   const inp = document.getElementById("tagNew"); if(!inp || !edit) return;
@@ -1017,7 +1029,8 @@ function wireDetail(box){
         if(ch.__bad){ alert("Pick the brand, category or unit from the list (red field)."); return; }
         if(!ch.length){ edit = null; render(); return; }
         const skuLine = ch.find(x => x.op === "set" && x.field === "sku");
-        await runWindow("product_update", { p_changes: ch }, async () => afterSave(skuLine ? skuLine.value : null));
+        const addT = ch.filter(x => x.op === "tag_add").map(x => x.tag);                                  // pr v4c
+        await runWindow("product_update", { p_changes: ch }, async () => { mergeTagNames(addT); await afterSave(skuLine ? skuLine.value : null); });
         return;
       }
       if(a === "bcAdd"){
