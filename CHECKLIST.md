@@ -1604,6 +1604,26 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 
 ---
 
+## 7-zc. `discount-rules.html` — Discount Rules (2026-10-06 신설 · 대화 Claude · 1판 「2026-10-06 · dr v1」 · 창구 so_deal_list · so_deal_detail · so_deal_save(asung-wms 20261007003838) · so_coupon_issue · so_coupon_void(20261006204146) · 메뉴 열쇠 master(판정 285) · 판정 330 ~ 344 · so-module §50)
+
+⚠️ 시험 딜은 새로 만든 「DR TEST …」만 쓴다 · 실제 딜 「TEST POS SALE 15」는 열어 보기만(고치지 않는다) · 되돌릴 수 없는 것(쿠폰 발행)은 맨 끝 · 영어 칸 · 값은 화면이 보여 주는 값을 보고 고른다
+```
+[ ] 1. Ctrl+F5 · 헤더 빌드 표시 「dr v1」(뒤에 「nav v5」) · Settings ▾ 에 Discount Rules · master 없는 직원에게는 안 보인다
+[ ] 2. 넓은 목록 — Live / Off or ended / All · 타입 거르기 · 검색 · 줄을 누르면 왼쪽 목록 + 상세 · ☰ List · ‹ All deals
+[ ] 3. 상세(줄 딜 · 「TEST POS SALE 15」는 보기만) — Lines(꺼진 줄 흐림) · Customers · Products(링크 → products.html) · 열린 오더 수
+[ ] 4. + New line discount — 이름 「DR TEST line」 · 줄 하나(%) · 대상 브랜드 하나 추가 · Create deal → 확인 창에 「What changes」 · 저장 뒤 상세가 열리고 Products 수가 그 브랜드 제품 수와 맞는다
+[ ] 5. Edit — 줄 추가 → 새 번호가 꺼진 줄까지 센 다음 번호(판정 342) · 줄 Turn off → 저장 → 꺼진 줄로 남는다(판정 330) · Turn on 으로 되살리기
+[ ] 6. 같은 딜을 연 둘째 탭에서 먼저 저장 → 첫 탭 저장이 「Someone just changed …」로 막힌다(판정 331)
+[ ] 7. 대상 태그 — 없는 태그를 적으면 확인 창에 「No product carries the tag(s) …」(판정 332) · 있는 태그와 대소문자만 다른 글자 → 막힌다
+[ ] 8. 손님 조건 — Only Branch 하나 저장 → 그 조건을 지우고 저장 → 「… will apply to every customer」 확인(판정 343)
+[ ] 9. + New order discount — 「DR TEST order」 · 단계 둘(금액 · %) · 저장 · 단계 금액 맞바꾸기 저장이 된다(판정 340)
+[ ] 10. (마지막 · 되돌릴 수 없다) 「DR TEST order」에 Coupon required 켜기 저장 → Coupons 카드 → Issue coupons(손님 하나 · 기한 없음) → 코드 목록 · Copy list → 한 장 Void
+[ ] 11. 시험 딜 정리 — 「DR TEST …」 딜은 Active 를 끄고 저장(딜은 지우지 않는다)
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
 ## 8. 로그인 · 계정
 
 ```

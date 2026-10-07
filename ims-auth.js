@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v4";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v5";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -94,7 +94,7 @@
     ["Settings","settings.html","master","ims",false,"settings"],
     ["Surcharge Groups","surcharge-groups.html","master","ims",false,"settings"],   // surcharge-4b(판정 231) — 보기는 master · 고치기는 admin(창구)
     ["Staff","staff.html","staff","ims",false,"settings"],
-    // ⬜ ["Discount Rules","…","…","ims",false,"settings"],   — 할인 규칙 화면이 서면 (판정 150 · 162)
+    ["Discount Rules","discount-rules.html","master","ims",false,"settings"],   // dr v1(2026-10-06 · dsc-4 · 판정 285 · 330 ~ 344) — 보기 · 고치기 master · 쿠폰 발행 · 무효
     ["System Check","system-check.html",null,"ims",false,"settings"],
     // POS 모드 — pos.html 하나 · 펼침 · ☰ 없음 (판정 159)
     ["POS","pos.html","sales","pos",false,null],

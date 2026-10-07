@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discount Rules · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css */
+  .list{width:320px;flex:0 0 320px}
+  .list .rows{max-height:calc(100vh - 230px)}
+  main{display:flex;flex-direction:column;gap:14px}
+  .list .row .nm2{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .list .row .sub2{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .list .row.cur .nm2{color:#3b5bdb}
+  .flt{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
+
+  #wide td.nmc{font-weight:600}
+  #wide tr.off td{color:var(--muted)}
+
+  .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .head .acts .hint{font-size:12px;color:var(--muted)}
+  .editing{outline:2px solid #3b5bdb22;border-radius:12px}
+
+  /* 고치기 칸 */
+  .ein{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:#fff}
+  .ein.w{width:100%}
+  textarea.ein{min-height:46px;resize:vertical;width:100%}
+  .fg{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted);padding:0 16px 14px}
+  .fg .full{grid-column:2 / span 3}
+  .fg label.ck{display:flex;align-items:center;gap:6px;color:var(--ink);cursor:pointer}
+  .typebar{display:flex;gap:6px}
+  .typebar .pobtn.on2{background:#eef3ff;border-color:#3b5bdb;color:#3b5bdb}
+
+  /* 대상 · 조건 칩 */
+  .tg{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 4px 1px 9px;
+      font-size:11.5px;margin:2px 4px 2px 0;background:#fff;white-space:nowrap}
+  .tg.inc{border-color:#cfe9d7}
+  .tg.exc{border-color:#f3d3cf;color:var(--bad)}
+  .tg .k{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .tg .x{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px;border-radius:999px}
+  .tg .x:hover{background:#fdf0ef;color:var(--bad)}
+  .tg.ro{padding-right:9px}
+  .adder{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
+  .adder .ein{min-width:90px}
+  .adder input.ein{flex:0 1 220px}
+  .picks{display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:180px;overflow:auto}
+  .picks button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 8px;font:inherit;font-size:12.5px;cursor:pointer}
+  .picks button:hover{background:#eef3ff}
+
+  table.ed td{vertical-align:middle}
+  tr.offl td{color:var(--muted)}
+  tr.offl td .tg{opacity:.6}
+  .pad{padding:10px 14px}
+  .cnt{font-size:12px;color:var(--muted);padding:8px 14px;border-top:1px solid var(--line)}
+
+  /* 확인 대화상자 */
+  .res h5{margin:6px 0 6px;font-size:12.5px}
+  .res ul{margin:0 0 12px;padding-left:18px;font-size:12.5px;line-height:1.55}
+  .res .blk li{color:var(--bad)}
+  .res .wrn li{color:var(--warn)}
+  .res .chg li{color:var(--ink)}
+  .codes td{font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search deal name">
+      <select id="wshow">
+        <option value="live">Live (on · not ended)</option>
+        <option value="off">Off or ended</option>
+        <option value="">All</option>
+      </select>
+      <select id="wtype">
+        <option value="">All types</option>
+        <option value="line">Line discounts</option>
+        <option value="order">Order discounts</option>
+      </select>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <span id="wnewBar" hidden style="display:flex;gap:8px">
+        <button class="pobtn" id="wnewOrder">+ New order discount</button>
+        <button class="pobtn go" id="wnewLine">+ New line discount</button>
+      </span>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="note" id="wfoot"></div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="top">
+      <input type="search" id="q" placeholder="Search deal name">
+      <div class="opts">
+        <select id="show" class="flt">
+          <option value="live">Live</option>
+          <option value="off">Off or ended</option>
+          <option value="">All</option>
+        </select>
+        <select id="type" class="flt">
+          <option value="">All types</option>
+          <option value="line">Line</option>
+          <option value="order">Order</option>
+        </select>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot"><span class="range" id="range"></span></div>
+  </section>
+
+  <main id="detail"><div class="card"><div class="msg">Pick a deal.</div></div></main>
+</div>
+
+<datalist id="brandList"></datalist>
+<datalist id="catList"></datalist>
+<datalist id="tagList"></datalist>
+<datalist id="whList"></datalist>
+<datalist id="tierList"></datalist>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Discount Rules — deal list · read · edit · coupons (dr v1 · 2026-10-06 · 대화 Claude)
+   정본: docs/design/so-module.md §47 ~ §50 · 판정 277 ~ 344
+   창구(마이그레이션 = 실물 · 화면은 조각을 모아 세지 않는다 · 판정 264):
+     so_deal_list()                         — 20261007003838 dsc-4b · {count, active_customers, today, deals[]}
+     so_deal_detail(p_deal_id, p_limit)     — 20261007003838 dsc-4b · {deal(⭐ so_deal_save 가 받는 덩이 그대로), updated_at, labels, products, customers, coupons, open_orders_n, limit}
+     so_deal_save(p_deal, p_old, p_commit, p_ack) — 20261007003838 dsc-4b 재발행 · 통째 저장 · 미리 보기도 실제로 쓰고 되돌린다(open_orders_to_flag 정확)
+     so_coupon_issue(p_deal_id, p_customer_ids, p_expires_on, p_prefix) · so_coupon_void(p_code, p_note) — 20261006204146 dsc-3b · raise 로 거부
+   덩이 계약(판정 343): 없는 열쇠 = 그대로 · [] = 전부 지움(줄은 끔) · is_active false 줄 = 끔 · 읽기 전용 칸은 지나침 · 모르는 열쇠 field_unknown
+     ⇒ 이 화면은 tiers · lines · rules 를 **늘 전부** 보낸다(편집한 그대로). 줄 딜이면 tiers [] · 오더 딜이면 lines [].
+   판정 330 줄은 지우지 않고 끈다(새 줄만 화면에서 뺀다) · 342 새 줄 번호 = 꺼진 줄 포함 최대 + 1 · 331 p_old = {updated_at: 읽은 글자 그대로}
+   판정 332 없는 태그는 서버가 tag_unused 로 묻는다 · 343 걸기 조건이 0 이 되면 rules_open_to_all 로 묻는다
+   ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
+   ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
+   ───────────────────────────────────────────────────────────── */
+const DR_BUILD = "dr v1";
+
+let sb = null, canEdit = false;
+let deals = [], today = null, activeCustomers = 0;
+let q = "", show = "live", dtype = "";
+let curId = null, cur = null, ed = null, detailSeq = 0;
+let refs = { brands:[], cats:[], tiers:[], whs:[], tags:[] };
+
+const escA = s => esc(s).replace(/"/g, "&quot;");
+const num2 = v => (v === null || v === undefined || v === "") ? "" : String(v);
+
+/* ⚠️ PostgREST 는 한 번에 1,000 행까지 */
+async function fetchAll(table, select, build){
+  const out = [];
+  for(let from = 0; ; from += 1000){
+    let qy = sb.from(table).select(select).range(from, from + 999);
+    if(build) qy = build(qy);
+    const { data, error } = await qy;
+    if(error) throw error;
+    out.push(...(data || []));
+    if(!data || data.length < 1000) break;
+  }
+  return out;
+}
+
+/* ── 이름표 ─────────────────────────────────────────── */
+function labMap(){
+  const L = { brands:{}, categories:{}, products:{}, customers:{}, warehouses:{}, tiers:{} };
+  refs.brands.forEach(x => { L.brands[x.id] = x.name; });
+  refs.cats.forEach(x => { L.categories[x.id] = x.name; });
+  refs.whs.forEach(x => { L.warehouses[x.id] = x.name; });
+  refs.tiers.forEach(x => { L.tiers[x.id] = x.name; });
+  const add = src => { if(!src) return; Object.keys(L).forEach(k => Object.assign(L[k], src[k] || {})); };
+  if(cur) add(cur.labels);
+  if(ed) add(ed.lab);
+  return L;
+}
+function targetLabel(t, L){
+  if(t.target === "tag") return t.tag;
+  if(t.target === "brand") return L.brands[t.brand_id] || t.brand_id;
+  if(t.target === "category") return L.categories[t.category_id] || t.category_id;
+  if(t.target === "product"){ const p = L.products[t.product_id]; return p ? (p.sku || p) : t.product_id; }
+  return "";
+}
+function ruleLabel(r, L){
+  if(r.target === "customer") return L.customers[r.customer_id] || r.customer_id;
+  if(r.target === "branch") return L.warehouses[r.warehouse_id] || r.warehouse_id;
+  if(r.target === "tier") return L.tiers[r.tier_id] || r.tier_id;
+  return "";
+}
+function chip(kind, what, label, xAttr){
+  const cls = kind === "exclude" ? "exc" : "inc";
+  const x = xAttr ? `<button class="x" ${xAttr} title="Remove">×</button>` : "";
+  return `<span class="tg ${cls} ${x ? "" : "ro"}"><span class="k">${kind === "exclude" ? "not " : ""}${esc(what)}</span>${esc(label)}${x}</span>`;
+}
+function period(d){
+  if(!d.date_from && !d.date_to) return "Always";
+  if(d.date_from && !d.date_to) return `From ${d.date_from}`;
+  if(!d.date_from && d.date_to) return `Until ${d.date_to}`;
+  return `${d.date_from} – ${d.date_to}`;
+}
+function typeText(d){
+  if(!d.is_order_level) return "Line discount";
+  return d.coupon_required ? "Order discount · coupon" : "Order discount";
+}
+function statusChip(d){
+  if(!d.is_active) return '<span class="chip bad">off</span>';
+  if(d.ended) return '<span class="chip warn">ended</span>';
+  return '<span class="chip good">on</span>';
+}
+
+/* ── 목록 ─────────────────────────────────────────── */
+async function loadDeals(){
+  const { data, error } = await sb.rpc("so_deal_list");
+  if(error){ deals = []; return error.message; }
+  deals = (data && data.deals) || [];
+  today = data ? data.today : null;
+  activeCustomers = data ? data.active_customers : 0;
+  return null;
+}
+function filtered(){
+  const s = q.toLowerCase();
+  return deals.filter(d => {
+    if(s && !String(d.name).toLowerCase().includes(s)) return false;
+    if(show === "live" && !(d.is_active && !d.ended)) return false;
+    if(show === "off" && (d.is_active && !d.ended)) return false;
+    if(dtype === "line" && d.is_order_level) return false;
+    if(dtype === "order" && !d.is_order_level) return false;
+    return true;
+  });
+}
+function renderWide(errMsg){
+  const box = document.getElementById("wrows");
+  if(errMsg){ box.innerHTML = `<div class="msg err">${esc(errMsg)}</div>`; return; }
+  const rows = filtered();
+  box.innerHTML = rows.length ? `<table><thead><tr>
+      <th>Name</th><th>Type</th><th>Period</th><th class="num">Lines / tiers</th><th class="num">Products</th>
+      <th class="num">Customers</th><th class="num">Coupons left</th><th class="num">Open orders</th><th>Status</th></tr></thead>
+    <tbody>${rows.map(d => `<tr data-id="${escA(d.id)}" class="${d.is_active && !d.ended ? "" : "off"}">
+      <td class="nmc">${esc(d.name)}</td><td>${esc(typeText(d))}</td><td>${esc(period(d))}</td>
+      <td class="num">${d.is_order_level ? esc(d.tiers) + " tier" + (d.tiers === 1 ? "" : "s") : esc(d.lines_on) + (d.lines_off ? ` <span class="dim">+${esc(d.lines_off)} off</span>` : "")}</td>
+      <td class="num">${d.product_n === null ? '<span class="dim">—</span>' : esc(Number(d.product_n).toLocaleString())}</td>
+      <td class="num">${d.all_customers ? '<span class="dim">all</span> ' : ""}${esc(Number(d.customer_n).toLocaleString())}</td>
+      <td class="num">${d.coupon_required ? esc(d.coupons_unused) : '<span class="dim">—</span>'}</td>
+      <td class="num">${esc(d.open_orders_n)}</td><td>${statusChip(d)}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="msg">${deals.length ? "No deals match." : "No deals yet."}</div>`;
+  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openDeal(tr.dataset.id); });
+  document.getElementById("wfoot").textContent =
+    `${rows.length} of ${deals.length} deal${deals.length === 1 ? "" : "s"} · ${Number(activeCustomers).toLocaleString()} active customers` + (today ? ` · today ${today}` : "");
+}
+function renderList(){
+  const rows = filtered();
+  const box = document.getElementById("rows");
+  box.innerHTML = rows.length ? rows.map(d => `<div class="row ${d.id === curId ? "cur" : ""}" data-id="${escA(d.id)}">
+      <div class="nm2">${esc(d.name)}${!d.is_active ? '<span class="tag off">off</span>' : d.ended ? '<span class="tag disc">ended</span>' : ""}</div>
+      <div class="sub2">${esc(typeText(d))} · ${esc(period(d))}</div></div>`).join("")
+    : '<div class="msg">No deals match.</div>';
+  box.querySelectorAll(".row").forEach(el => {
+    el.onclick = () => {
+      if(el.dataset.id === curId) return;
+      if(!leaveEditOk()) return;
+      curId = el.dataset.id; renderList(); loadDetail(curId);
+    };
+  });
+  document.getElementById("range").textContent = `${rows.length} / ${deals.length}`;
+}
+function syncCtl(){
+  document.getElementById("q").value = q;        document.getElementById("wq").value = q;
+  document.getElementById("show").value = show;  document.getElementById("wshow").value = show;
+  document.getElementById("type").value = dtype; document.getElementById("wtype").value = dtype;
+}
+
+/* ── 두 모드(판정 209 · 243) ─────────────────────────── */
+async function showWide(){
+  if(!leaveEditOk()) return;
+  curId = null; cur = null; ed = null; detailSeq++;
+  syncCtl();
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  const err = await loadDeals();
+  renderWide(err);
+}
+async function openDeal(id){
+  curId = id;
+  syncCtl();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  renderList();
+  await loadDetail(id);
+}
+function openNew(isOrder){
+  if(!leaveEditOk()) return;
+  curId = null; cur = null; detailSeq++;
+  ed = newEd(isOrder);
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  renderList();
+  render();
+}
+function leaveEditOk(){
+  if(!ed || !ed.dirty) { ed = null; return true; }
+  if(confirm("You have unsaved changes. Discard them?")){ ed = null; return true; }
+  return false;
+}
+
+/* ── 상세 읽기 ─────────────────────────────────────── */
+async function loadDetail(id){
+  const seq = ++detailSeq;
+  ed = null;
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [r, cp] = await Promise.all([
+    sb.rpc("so_deal_detail", { p_deal_id: id, p_limit: 200 }),
+    sb.from("so_coupon").select("id,code,customer_id,expires_on,issued_at,used_so_id,used_at,voided_at,note,customer(name)")
+      .eq("deal_id", id).order("issued_at", { ascending:false }),
+  ]);
+  if(seq !== detailSeq) return;
+  if(r.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(r.error.message)}</div></div>`; cur = null; return; }
+  cur = r.data;
+  cur.couponRows = cp.error ? null : (cp.data || []);
+  cur.couponErr = cp.error ? cp.error.message : null;
+  render();
+}
+
+function render(){
+  const box = document.getElementById("detail");
+  box.innerHTML = ed ? renderEdit() : (cur ? renderRead() : '<div class="card"><div class="msg">Pick a deal.</div></div>');
+  if(ed) wireEdit(box); else wireRead(box);
+}
+
+const navBtns = () => `<button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
+  <button class="pobtn" data-act="wide">&lsaquo; All deals</button>`;
+
+function renderRead(){
+  const d = cur.deal, L = labMap();
+  const ended = d.date_to && today && d.date_to < today;
+  const chips = [
+    !d.is_active ? '<span class="chip bad">off</span>' : ended ? '<span class="chip warn">ended</span>' : '<span class="chip good">on</span>',
+    `<span class="chip">${esc(typeText(d))}</span>`,
+    `<span class="chip">${esc(d.source)}</span>`,
+  ];
+  const acts = `<div class="acts">${navBtns()}${canEdit ? `<button class="pobtn go" data-act="edit">Edit</button><span class="hint">Change the whole deal, then save once.</span>` : ""}</div>`;
+  const head = `<div class="card"><div class="head">
+      <div class="nm">${esc(d.name)}</div><div class="chips">${chips.join("")}</div>
+      <table class="kv" style="margin-top:10px"><tbody>
+        <tr><td>Period</td><td>${esc(period(d))}</td></tr>
+        <tr><td>Open orders using it</td><td class="mono">${esc(cur.open_orders_n)}</td></tr>
+        <tr><td>Note</td><td>${d.note ? esc(d.note) : '<span class="dim">—</span>'}</td></tr>
+        <tr><td>Last saved</td><td>${imsTs(cur.updated_at)}</td></tr>
+      </tbody></table>${acts}</div></div>`;
+
+  /* 줄 · 단계 */
+  let body = "";
+  if(d.is_order_level){
+    const tiers = (d.tiers || []).slice().sort((a,b) => Number(a.min_amount) - Number(b.min_amount));
+    body += `<div class="card"><h3 class="ims-sec" data-sec="discounts">Amount tiers <span class="n">${tiers.length}</span></h3>
+      ${tiers.length ? `<table><thead><tr><th>#</th><th class="num">Order total from</th><th class="num">Discount</th></tr></thead><tbody>
+        ${tiers.map(t => `<tr><td class="mono">${esc(t.tier_no)}</td><td class="num">$${esc(Number(t.min_amount).toFixed(2))}</td><td class="num">${esc(t.pct)}%</td></tr>`).join("")}
+      </tbody></table>` : '<div class="msg">No tiers.</div>'}
+      <div class="note">Products total after line discounts, freight excluded. The largest of automatic · tier · coupon wins on the order.</div></div>`;
+  } else {
+    const lines = (d.lines || []).slice().sort((a,b) => a.line_no - b.line_no);
+    const on = lines.filter(l => l.is_active).length;
+    body += `<div class="card"><h3 class="ims-sec" data-sec="discounts">Lines <span class="n">${on}</span>${lines.length > on ? ` <span class="dim">· ${lines.length - on} off</span>` : ""}</h3>
+      ${lines.length ? `<table><thead><tr><th>#</th><th class="num">Discount</th><th>Minimum</th><th>Applies to</th><th>Except</th><th>Status</th></tr></thead><tbody>
+        ${lines.map(l => `<tr class="${l.is_active ? "" : "offl"}"><td class="mono">${esc(l.line_no)}</td><td class="num">${esc(l.pct)}%</td>
+          <td>${l.min_qty_mode === "qty" ? `${esc(l.min_qty)} each` : l.min_qty_mode === "case" ? "Full case" : '<span class="dim">none</span>'}</td>
+          <td>${(l.targets || []).filter(t => t.kind === "include").map(t => chip("include", t.target, targetLabel(t, L))).join("") || '<span class="dim">nothing yet</span>'}</td>
+          <td>${(l.targets || []).filter(t => t.kind === "exclude").map(t => chip("exclude", t.target, targetLabel(t, L))).join("") || '<span class="dim">—</span>'}</td>
+          <td>${l.is_active ? yn(true) : '<span class="tag off">off</span>'}</td></tr>`).join("")}
+      </tbody></table>` : '<div class="msg">No lines.</div>'}
+      <div class="note">Quantity counts single units on one order line (a set line counts its singles). The biggest of customer discount · deal · set discount wins on a line.</div></div>`;
+  }
+
+  /* 손님 */
+  const rules = d.rules || [];
+  const cu = cur.customers || { n:0, items:[] };
+  body += `<div class="card"><h3 class="ims-sec">Customers <span class="n">${esc(Number(cu.n).toLocaleString())}</span></h3>
+    <div class="pad">${rules.length ? rules.map(r => chip(r.kind, r.target, ruleLabel(r, L))).join("") : '<span class="dim">No customer rules — every active customer.</span>'}</div>
+    ${!cu.all_customers && (cu.items || []).length ? `<table><tbody>${cu.items.map(x => `<tr><td>${esc(x.name)}</td></tr>`).join("")}</tbody></table>
+      ${cu.n > cu.items.length ? `<div class="cnt">Showing ${cu.items.length} of ${Number(cu.n).toLocaleString()}.</div>` : ""}` : ""}
+  </div>`;
+
+  /* 제품 */
+  if(!d.is_order_level){
+    const pr = cur.products || { n:0, n_all:0, items:[] };
+    body += `<div class="card"><h3 class="ims-sec" data-sec="lines">Products <span class="n">${esc(Number(pr.n || 0).toLocaleString())}</span>${pr.n_all > pr.n ? ` <span class="dim">· +${esc(pr.n_all - pr.n)} inactive</span>` : ""}</h3>
+      ${(pr.items || []).length ? `<table><thead><tr><th>SKU</th><th>Name</th><th>Lines</th><th>Matched by</th></tr></thead><tbody>
+        ${pr.items.map(x => `<tr class="${x.is_active ? "" : "offl"}"><td class="mono"><a class="lnk" href="products.html?id=${encodeURIComponent(x.product_id)}">${esc(x.sku)}</a>${x.is_set ? ' <span class="tag">set</span>' : ""}</td>
+          <td>${esc(x.name)}</td><td class="mono">${esc((x.line_nos || []).join(", "))}</td><td class="mono">${esc((x.matched_by || []).join(", "))}</td></tr>`).join("")}
+      </tbody></table>${pr.n_all > pr.items.length ? `<div class="cnt">Showing ${pr.items.length} of ${Number(pr.n_all).toLocaleString()}.</div>` : ""}`
+      : '<div class="msg">No product matches these lines.</div>'}</div>`;
+  }
+
+  /* 쿠폰 */
+  if(d.is_order_level && d.coupon_required){
+    const c = cur.coupons || { unused:0, used:0, voided:0 };
+    const rows = cur.couponRows;
+    body += `<div class="card"><h3 class="ims-sec">Coupons <span class="n">${esc(c.unused)}</span> <span class="dim">unused · ${esc(c.used)} used · ${esc(c.voided)} voided</span></h3>
+      ${canEdit ? `<div class="pad"><button class="pobtn go" data-act="issue">Issue coupons</button> <span class="dim" style="font-size:12px">One code per customer · used once · on this deal only.</span></div>` : ""}
+      ${cur.couponErr ? `<div class="msg err">${esc(cur.couponErr)}</div>`
+        : rows && rows.length ? `<table><thead><tr><th>Code</th><th>Customer</th><th>Expires</th><th>Issued</th><th>Status</th><th></th></tr></thead><tbody>
+          ${rows.map(x => {
+            const st = x.voided_at ? '<span class="tag off">voided</span>' : x.used_so_id ? `<span class="tag">used ${imsTs(x.used_at)}</span>` : '<span class="tag disc">unused</span>';
+            const vbtn = canEdit && !x.voided_at && !x.used_so_id ? `<button class="xbtn" data-act="void" data-code="${escA(x.code)}">Void</button>` : "";
+            return `<tr class="${x.voided_at ? "offl" : ""}"><td class="mono">${esc(x.code)}</td><td>${esc(x.customer ? x.customer.name : x.customer_id)}</td>
+              <td class="mono">${x.expires_on ? esc(x.expires_on) : '<span class="dim">no limit</span>'}</td><td>${imsTs(x.issued_at)}</td><td>${st}</td><td>${vbtn}</td></tr>`;
+          }).join("")}</tbody></table>`
+        : '<div class="msg">No coupons issued yet.</div>'}</div>`;
+  }
+  return head + body;
+}
+function wireRead(box){
+  box.querySelectorAll("[data-act]").forEach(b => {
+    const a = b.dataset.act;
+    if(a === "toglist") b.onclick = () => { const p = document.getElementById("listPanel"); p.hidden = !p.hidden; };
+    else if(a === "wide") b.onclick = () => showWide();
+    else if(a === "edit") b.onclick = () => { ed = edFromCur(); render(); };
+    else if(a === "issue") b.onclick = () => openIssue();
+    else if(a === "void") b.onclick = () => voidCoupon(b.dataset.code);
+  });
+}
+
+/* ── 고치기 상태 ─────────────────────────────────────
+   ed = { isNew, dirty, updatedAt, head{…}, tiers[], lines[{…, targets[], _new}], rules[], lab{…}, add{line idx: {kind,target,value}}, radd{…}, picks{…} } */
+function blankLab(){ return { brands:{}, categories:{}, products:{}, customers:{}, warehouses:{}, tiers:{} }; }
+function newEd(isOrder){
+  return {
+    isNew: true, dirty: false, updatedAt: null,
+    head: { id:null, name:"", is_active:true, date_from:"", date_to:"", is_order_level: !!isOrder, kind:"pct", coupon_required:false, note:"" },
+    tiers: isOrder ? [{ tier_no:1, min_amount:"0", pct:"", note:null }] : [],
+    lines: isOrder ? [] : [{ id:null, line_no:1, pct:"", min_qty_mode:"none", min_qty:"", note:null, is_active:true, targets:[], _new:true }],
+    rules: [], lab: blankLab(), add:{}, radd:{ kind:"include", target:"customer", value:"" }, picks:null,
+  };
+}
+function edFromCur(){
+  const d = cur.deal;
+  return {
+    isNew: false, dirty: false, updatedAt: cur.updated_at,
+    head: { id:d.id, name:d.name || "", is_active:!!d.is_active, date_from:d.date_from || "", date_to:d.date_to || "", is_order_level:!!d.is_order_level,
+            kind:d.kind || "pct", coupon_required:!!d.coupon_required, note:d.note || "" },
+    tiers: (d.tiers || []).map(t => ({ tier_no:t.tier_no, min_amount:num2(t.min_amount), pct:num2(t.pct), note:t.note })),
+    lines: (d.lines || []).map(l => ({ id:l.id, line_no:l.line_no, pct:num2(l.pct), min_qty_mode:l.min_qty_mode || "none", min_qty:num2(l.min_qty), note:l.note,
+            is_active:!!l.is_active, targets:(l.targets || []).map(t => ({ kind:t.kind, target:t.target, tag:t.tag, brand_id:t.brand_id, product_id:t.product_id, category_id:t.category_id, note:t.note })), _new:false })),
+    rules: (d.rules || []).map(r => ({ kind:r.kind, target:r.target, customer_id:r.customer_id, warehouse_id:r.warehouse_id, tier_id:r.tier_id, note:r.note })),
+    lab: blankLab(), add:{}, radd:{ kind:"include", target:"customer", value:"" }, picks:null,
+  };
+}
+/* 숫자 칸 — 숫자면 숫자 · 아니면 글자 그대로(서버가 pct_invalid 류로 막고 이유를 말한다) */
+const asNum = v => { const s = String(v === null || v === undefined ? "" : v).trim(); if(s === "") return null; const n = Number(s); return Number.isFinite(n) ? n : s; };
+
+/* ⭐ 보낼 덩이 — tiers · lines · rules 를 늘 전부(판정 343 · 편집한 그대로) */
+function buildBundle(){
+  const h = ed.head;
+  const deal = {
+    id: h.id, name: h.name.trim(), is_active: !!h.is_active,
+    date_from: h.date_from || null, date_to: h.date_to || null,
+    is_order_level: !!h.is_order_level, kind: h.kind || "pct",
+    coupon_required: h.is_order_level ? !!h.coupon_required : false,
+    note: h.note.trim() ? h.note.trim() : null,
+  };
+  deal.tiers = h.is_order_level
+    ? ed.tiers.map(t => ({ tier_no: t.tier_no, min_amount: asNum(t.min_amount), pct: asNum(t.pct), note: t.note || null }))
+    : [];
+  deal.lines = h.is_order_level ? [] : ed.lines.map(l => {
+    const o = { id: l.id || null, line_no: l.line_no, pct: asNum(l.pct), min_qty_mode: l.min_qty_mode,
+                min_qty: l.min_qty_mode === "qty" ? asNum(l.min_qty) : null, note: l.note || null, is_active: !!l.is_active };
+    o.targets = l.targets.map(t => {
+      const x = { kind: t.kind, target: t.target };
+      if(t.target === "tag") x.tag = t.tag;
+      if(t.target === "brand") x.brand_id = t.brand_id;
+      if(t.target === "product") x.product_id = t.product_id;
+      if(t.target === "category") x.category_id = t.category_id;
+      if(t.note) x.note = t.note;
+      return x;
+    });
+    return o;
+  });
+  deal.rules = ed.rules.map(r => {
+    const x = { kind: r.kind, target: r.target };
+    if(r.target === "customer") x.customer_id = r.customer_id;
+    if(r.target === "branch") x.warehouse_id = r.warehouse_id;
+    if(r.target === "tier") x.tier_id = r.tier_id;
+    if(r.note) x.note = r.note;
+    return x;
+  });
+  return deal;
+}
+const nextLineNo = () => ed.lines.reduce((m, l) => Math.max(m, Number(l.line_no) || 0), 0) + 1;   // 판정 342 — 꺼진 줄 포함
+const nextTierNo = () => ed.tiers.reduce((m, t) => Math.max(m, Number(t.tier_no) || 0), 0) + 1;
+
+/* ── 고치기 그리기 ─────────────────────────────────── */
+function renderEdit(){
+  const h = ed.head, L = labMap();
+  const headCard = `<div class="card editing"><div class="head">
+      <div class="nm">${ed.isNew ? "New deal" : "Edit deal"}</div>
+      <div class="acts">${ed.isNew ? "" : navBtns()}<span class="hint">${ed.isNew ? "Fill in the deal, then save once." : "Change what you need, then save once — the server checks everything first."}</span></div>
+    </div>
+    <div class="fg">
+      <span>Name</span><input class="ein w full" data-f="h:name" value="${escA(h.name)}" maxlength="120">
+      <span>Type</span><span class="typebar full">
+        <button class="pobtn ${h.is_order_level ? "" : "on2"}" data-act="type" data-v="line">Line discount</button>
+        <button class="pobtn ${h.is_order_level ? "on2" : ""}" data-act="type" data-v="order">Order discount</button></span>
+      <span>Active</span><label class="ck"><input type="checkbox" data-f="h:is_active" ${h.is_active ? "checked" : ""}> On</label>
+      <span>Coupon required</span><label class="ck" title="${h.is_order_level ? "Only orders with a coupon code get this discount" : "Coupons are for order discounts only"}">
+        <input type="checkbox" data-f="h:coupon_required" ${h.is_order_level && h.coupon_required ? "checked" : ""} ${h.is_order_level ? "" : "disabled"}> ${h.is_order_level ? "Only with a coupon code" : '<span class="dim">order discounts only</span>'}</label>
+      <span>From</span><input type="date" class="ein" data-f="h:date_from" value="${escA(h.date_from)}">
+      <span>To</span><input type="date" class="ein" data-f="h:date_to" value="${escA(h.date_to)}">
+      <span>Note</span><textarea class="ein full" data-f="h:note">${esc(h.note)}</textarea>
+    </div>
+    <div class="note">Empty dates = always on. Dates are checked against the order date.</div></div>`;
+
+  let mid = "";
+  if(h.is_order_level){
+    const order = ed.tiers.map((t, i) => [t, i]).sort((a, b) => (Number(a[0].min_amount) || 0) - (Number(b[0].min_amount) || 0));
+    mid = `<div class="card"><h3 class="ims-sec" data-sec="discounts">Amount tiers <span class="n">${ed.tiers.length}</span></h3>
+      <table class="ed"><thead><tr><th>#</th><th>Order total from ($)</th><th>Discount (%)</th><th></th></tr></thead><tbody>
+      ${order.map(([t, i]) => `<tr><td class="mono">${esc(t.tier_no)}</td>
+        <td><input class="qin" data-f="t:${i}:min_amount" value="${escA(t.min_amount)}" inputmode="decimal"></td>
+        <td><input class="qin" data-f="t:${i}:pct" value="${escA(t.pct)}" inputmode="decimal"></td>
+        <td><button class="xbtn" data-act="delTier" data-i="${i}">Remove</button></td></tr>`).join("") || '<tr><td colspan="4" class="dim">No tiers.</td></tr>'}
+      </tbody></table>
+      <div class="pad"><button class="pobtn" data-act="addTier">+ Add tier</button></div></div>`;
+  } else {
+    const order = ed.lines.map((l, i) => [l, i]).sort((a, b) => a[0].line_no - b[0].line_no);
+    mid = `<div class="card"><h3 class="ims-sec" data-sec="discounts">Lines <span class="n">${ed.lines.filter(l => l.is_active).length}</span></h3>
+      <table class="ed"><thead><tr><th>#</th><th>Discount (%)</th><th>Minimum</th><th>Applies to · except</th><th></th></tr></thead><tbody>
+      ${order.map(([l, i]) => lineRow(l, i, L)).join("") || '<tr><td colspan="5" class="dim">No lines.</td></tr>'}
+      </tbody></table>
+      <div class="pad"><button class="pobtn" data-act="addLine">+ Add line</button>
+        <span class="dim" style="font-size:12px">Lines that orders already used are turned off, not deleted. A new line takes the next free number.</span></div></div>`;
+  }
+
+  const rad = ed.radd;
+  const rules = `<div class="card"><h3 class="ims-sec">Customers</h3>
+    <div class="pad">${ed.rules.map((r, i) => chip(r.kind, r.target, ruleLabel(r, L), `data-act="delRule" data-i="${i}"`)).join("") || '<span class="dim">No customer rules — every active customer.</span>'}
+      <div class="adder">
+        <select class="ein" data-ra="kind"><option value="include" ${rad.kind === "include" ? "selected" : ""}>Only</option><option value="exclude" ${rad.kind === "exclude" ? "selected" : ""}>Not</option></select>
+        <select class="ein" data-ra="target">
+          <option value="customer" ${rad.target === "customer" ? "selected" : ""}>Customer</option>
+          <option value="branch" ${rad.target === "branch" ? "selected" : ""}>Branch</option>
+          <option value="tier" ${rad.target === "tier" ? "selected" : ""}>Price tier</option></select>
+        <input class="ein" data-ra="value" value="${escA(rad.value)}" list="${rad.target === "branch" ? "whList" : rad.target === "tier" ? "tierList" : ""}"
+          placeholder="${rad.target === "customer" ? "Customer name" : rad.target === "branch" ? "Branch" : "Price tier"}">
+        <button class="pobtn" data-act="addRule">Add</button>
+      </div>
+      ${ed.picks ? `<div class="picks">${ed.picks.map((c, j) => `<button data-act="pickCust" data-j="${j}">${esc(c.name)}</button>`).join("")}</div>` : ""}
+      <div class="dim" style="font-size:12px;margin-top:6px">Same kind = any of them · different kinds = all of them · a "Not" rule always wins.</div>
+    </div></div>`;
+
+  const foot = `<div class="card"><div class="pad" style="display:flex;gap:8px;align-items:center">
+      <span id="dirtyHint" class="dim" style="font-size:12px">${ed.dirty ? "Unsaved changes." : "No changes yet."}</span><span class="sp" style="flex:1"></span>
+      <button class="pobtn" data-act="cancel">Cancel</button><button class="pobtn go" data-act="save">${ed.isNew ? "Create deal" : "Save"}</button></div></div>`;
+  return headCard + mid + rules + foot;
+}
+function lineRow(l, i, L){
+  const a = ed.add[i] || { kind:"include", target:"brand", value:"" };
+  const tchips = l.targets.map((t, j) => chip(t.kind, t.target, targetLabel(t, L), l.is_active ? `data-act="delTarget" data-i="${i}" data-j="${j}"` : "")).join("");
+  const listFor = a.target === "brand" ? "brandList" : a.target === "category" ? "catList" : a.target === "tag" ? "tagList" : "";
+  const ph = a.target === "product" ? "SKU" : a.target === "tag" ? "Tag" : a.target === "brand" ? "Brand" : "Category";
+  if(!l.is_active){
+    return `<tr class="offl"><td class="mono">${esc(l.line_no)}</td><td class="mono">${esc(l.pct)}%</td>
+      <td>${l.min_qty_mode === "qty" ? esc(l.min_qty) + " each" : l.min_qty_mode === "case" ? "Full case" : "none"}</td>
+      <td>${tchips || '<span class="dim">no targets</span>'}</td>
+      <td><span class="tag off">off</span> <button class="xbtn" data-act="onLine" data-i="${i}">Turn on</button></td></tr>`;
+  }
+  return `<tr><td class="mono">${esc(l.line_no)}${l._new ? ' <span class="tag">new</span>' : ""}</td>
+    <td><input class="qin" data-f="l:${i}:pct" value="${escA(l.pct)}" inputmode="decimal"></td>
+    <td><select class="ein" data-f="l:${i}:min_qty_mode">
+        <option value="none" ${l.min_qty_mode === "none" ? "selected" : ""}>None</option>
+        <option value="qty" ${l.min_qty_mode === "qty" ? "selected" : ""}>At least</option>
+        <option value="case" ${l.min_qty_mode === "case" ? "selected" : ""}>Full case</option></select>
+      ${l.min_qty_mode === "qty" ? `<input class="qin" style="width:70px" data-f="l:${i}:min_qty" value="${escA(l.min_qty)}" inputmode="decimal"> each` : ""}</td>
+    <td>${tchips || '<span class="dim">no targets — matches nothing yet</span>'}
+      <div class="adder">
+        <select class="ein" data-la="${i}:kind"><option value="include" ${a.kind === "include" ? "selected" : ""}>Applies to</option><option value="exclude" ${a.kind === "exclude" ? "selected" : ""}>Except</option></select>
+        <select class="ein" data-la="${i}:target">
+          <option value="brand" ${a.target === "brand" ? "selected" : ""}>Brand</option>
+          <option value="category" ${a.target === "category" ? "selected" : ""}>Category</option>
+          <option value="tag" ${a.target === "tag" ? "selected" : ""}>Tag</option>
+          <option value="product" ${a.target === "product" ? "selected" : ""}>Product</option></select>
+        <input class="ein" data-la="${i}:value" value="${escA(a.value)}" list="${listFor}" placeholder="${ph}">
+        <button class="pobtn" data-act="addTarget" data-i="${i}">Add</button>
+      </div></td>
+    <td><button class="xbtn" data-act="offLine" data-i="${i}">${l._new ? "Remove" : "Turn off"}</button></td></tr>`;
+}
+
+/* ── 고치기 연결 ───────────────────────────────────── */
+function setDirty(){
+  ed.dirty = true;
+  const h = document.getElementById("dirtyHint");
+  if(h) h.textContent = "Unsaved changes.";
+}
+function wireEdit(box){
+  box.querySelectorAll("[data-f]").forEach(el => {
+    const ev = (el.type === "checkbox" || el.tagName === "SELECT") ? "change" : "input";
+    el.addEventListener(ev, () => {
+      const [k, a, b] = el.dataset.f.split(":");
+      const v = el.type === "checkbox" ? el.checked : el.value;
+      if(k === "h") ed.head[a] = v;
+      else if(k === "t") ed.tiers[Number(a)][b] = v;
+      else if(k === "l") ed.lines[Number(a)][b] = v;
+      setDirty();
+      if(k === "l" && b === "min_qty_mode") render();   // 수량 칸이 나타나거나 사라진다
+    });
+  });
+  box.querySelectorAll("[data-la]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      const [i, f] = el.dataset.la.split(":");
+      const a = ed.add[i] || (ed.add[i] = { kind:"include", target:"brand", value:"" });
+      a[f] = el.value;
+      if(f === "target"){ a.value = ""; render(); }
+    });
+  });
+  box.querySelectorAll("[data-ra]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      ed.radd[el.dataset.ra] = el.value;
+      if(el.dataset.ra === "target"){ ed.radd.value = ""; ed.picks = null; render(); }
+    });
+  });
+  box.querySelectorAll("[data-act]").forEach(b => {
+    const a = b.dataset.act, i = b.dataset.i !== undefined ? Number(b.dataset.i) : null;
+    if(a === "toglist") b.onclick = () => { const p = document.getElementById("listPanel"); p.hidden = !p.hidden; };
+    else if(a === "wide") b.onclick = () => showWide();
+    else if(a === "cancel") b.onclick = () => {
+      if(ed.dirty && !confirm("Discard your changes?")) return;
+      const wasNew = ed.isNew; ed = null;
+      if(wasNew) showWide(); else render();
+    };
+    else if(a === "save") b.onclick = () => saveDeal();
+    else if(a === "type") b.onclick = () => {
+      const toOrder = b.dataset.v === "order";
+      if(ed.head.is_order_level === toOrder) return;
+      ed.head.is_order_level = toOrder;
+      if(toOrder && !ed.tiers.length) ed.tiers.push({ tier_no:nextTierNo(), min_amount:"0", pct:"", note:null });
+      if(!toOrder && !ed.lines.some(l => l.is_active)) ed.lines.push({ id:null, line_no:nextLineNo(), pct:"", min_qty_mode:"none", min_qty:"", note:null, is_active:true, targets:[], _new:true });
+      if(!toOrder) ed.head.coupon_required = false;
+      setDirty(); render();
+    };
+    else if(a === "addTier") b.onclick = () => { ed.tiers.push({ tier_no:nextTierNo(), min_amount:"", pct:"", note:null }); setDirty(); render(); };
+    else if(a === "delTier") b.onclick = () => { ed.tiers.splice(i, 1); setDirty(); render(); };
+    else if(a === "addLine") b.onclick = () => { ed.lines.push({ id:null, line_no:nextLineNo(), pct:"", min_qty_mode:"none", min_qty:"", note:null, is_active:true, targets:[], _new:true }); setDirty(); render(); };
+    else if(a === "offLine") b.onclick = () => {
+      const l = ed.lines[i];
+      if(l._new){ ed.lines.splice(i, 1); delete ed.add[i]; ed.add = reindexAdd(ed.add, i); }
+      else l.is_active = false;
+      setDirty(); render();
+    };
+    else if(a === "onLine") b.onclick = () => { ed.lines[i].is_active = true; setDirty(); render(); };
+    else if(a === "delTarget") b.onclick = () => { ed.lines[i].targets.splice(Number(b.dataset.j), 1); setDirty(); render(); };
+    else if(a === "addTarget") b.onclick = () => addTarget(i);
+    else if(a === "delRule") b.onclick = () => { ed.rules.splice(i, 1); setDirty(); render(); };
+    else if(a === "addRule") b.onclick = () => addRule();
+    else if(a === "pickCust") b.onclick = () => {
+      const c = ed.picks[Number(b.dataset.j)];
+      pushRule({ kind: ed.radd.kind, target:"customer", customer_id: c.id }, () => { ed.lab.customers[c.id] = c.name; });
+    };
+  });
+}
+/* 새 줄을 빼면 그 뒤 줄의 추가 칸 상태 번호가 하나씩 당겨진다 */
+function reindexAdd(add, gone){
+  const out = {};
+  Object.keys(add).forEach(k => { const n = Number(k); if(n < gone) out[n] = add[k]; else if(n > gone) out[n - 1] = add[k]; });
+  return out;
+}
+function sameTarget(x, y){
+  return x.kind === y.kind && x.target === y.target && (x.tag || null) === (y.tag || null) && (x.brand_id || null) === (y.brand_id || null)
+      && (x.product_id || null) === (y.product_id || null) && (x.category_id || null) === (y.category_id || null);
+}
+async function addTarget(i){
+  const a = ed.add[i] || { kind:"include", target:"brand", value:"" };
+  const v = String(a.value || "").trim();
+  if(!v){ alert("Type a value first."); return; }
+  const t = { kind: a.kind, target: a.target };
+  if(a.target === "tag") t.tag = v;    // 글자 그대로(btrim 만 · 판정 332) — 대소문자 충돌 · 없는 태그는 저장 때 서버가 말한다
+  else if(a.target === "brand"){
+    const hit = refs.brands.find(x => x.name.toLowerCase() === v.toLowerCase());
+    if(!hit){ alert(`No active brand named "${v}".`); return; }
+    t.brand_id = hit.id;
+  } else if(a.target === "category"){
+    const hit = refs.cats.find(x => x.name.toLowerCase() === v.toLowerCase());
+    if(!hit){ alert(`No active category named "${v}".`); return; }
+    t.category_id = hit.id;
+  } else if(a.target === "product"){
+    const { data, error } = await sb.from("product").select("id,sku,name,is_active").ilike("sku", v.replace(/[%_]/g, m => "\\" + m)).limit(2);
+    if(error){ alert(error.message); return; }
+    if(!data || !data.length){ alert(`No product with SKU "${v}".`); return; }
+    t.product_id = data[0].id;
+    ed.lab.products[data[0].id] = { sku: data[0].sku, name: data[0].name, is_active: data[0].is_active };
+  }
+  const line = ed.lines[i];
+  if(line.targets.some(x => sameTarget(x, t))){ alert("That target is already on this line."); return; }
+  line.targets.push(t);
+  ed.add[i] = { kind: a.kind, target: a.target, value: "" };
+  setDirty(); render();
+}
+function pushRule(r, before){
+  const same = ed.rules.some(x => x.kind === r.kind && x.target === r.target && (x.customer_id || null) === (r.customer_id || null)
+                                 && (x.warehouse_id || null) === (r.warehouse_id || null) && (x.tier_id || null) === (r.tier_id || null));
+  if(same){ alert("That customer rule is already there."); return; }
+  if(before) before();
+  ed.rules.push(r);
+  ed.radd.value = ""; ed.picks = null;
+  setDirty(); render();
+}
+async function addRule(){
+  const ra = ed.radd, v = String(ra.value || "").trim();
+  if(!v){ alert("Type a value first."); return; }
+  if(ra.target === "branch"){
+    const hit = refs.whs.find(x => x.name.toLowerCase() === v.toLowerCase());
+    if(!hit){ alert(`No branch named "${v}".`); return; }
+    pushRule({ kind: ra.kind, target:"branch", warehouse_id: hit.id });
+  } else if(ra.target === "tier"){
+    const hit = refs.tiers.find(x => x.name.toLowerCase() === v.toLowerCase());
+    if(!hit){ alert(`No sale price tier named "${v}".`); return; }
+    pushRule({ kind: ra.kind, target:"tier", tier_id: hit.id });
+  } else {
+    const pat = "%" + v.replace(/[%_]/g, m => "\\" + m) + "%";
+    const { data, error } = await sb.from("customer").select("id,name,is_active").ilike("name", pat).eq("is_active", true).order("name").limit(20);
+    if(error){ alert(error.message); return; }
+    const rows = data || [];
+    if(!rows.length){ alert(`No active customer matches "${v}". (Looking up customers needs the sales permission.)`); return; }
+    const exact = rows.filter(c => c.name.toLowerCase() === v.toLowerCase());
+    if(exact.length === 1 || rows.length === 1){
+      const c = exact.length === 1 ? exact[0] : rows[0];
+      pushRule({ kind: ra.kind, target:"customer", customer_id: c.id }, () => { ed.lab.customers[c.id] = c.name; });
+      return;
+    }
+    ed.picks = rows; render();
+  }
+}
+
+/* ── 저장 — 검사(미리 보기) → 막기면 보이고 끝 · 아니면 바뀌는 것 · 경고를 보이고 확인 → 저장(판정 176) ── */
+function chgText(c, L){
+  const amt = v => v === null || v === undefined ? "" : `$${Number(v).toFixed(2)}`;
+  if(c.part === "head"){
+    if(c.action === "added") return `New deal "${c.name}"`;
+    if(c.action === "changed") return `${c.field}: ${c.old === null || c.old === undefined ? "—" : c.old} → ${c.new === null || c.new === undefined ? "—" : c.new}`;
+    return null;
+  }
+  if(c.part === "tier"){
+    if(c.action === "unchanged") return null;
+    const n = c.new || {}, o = c.old || {};
+    if(c.action === "added") return `Tier ${c.tier_no} added — from ${amt(n.min_amount)} · ${n.pct}%`;
+    if(c.action === "removed") return `Tier ${c.tier_no} removed (was from ${amt(o.min_amount)} · ${o.pct}%)`;
+    return `Tier ${c.tier_no} changed — from ${amt(o.min_amount)} · ${o.pct}% → ${amt(n.min_amount)} · ${n.pct}%`;
+  }
+  if(c.part === "line"){
+    if(c.action === "unchanged") return null;
+    if(c.action === "turned_off") return `Line ${c.line_no} turned off${c.so_lines ? ` (${c.so_lines} order line(s) keep their discount)` : ""}`;
+    if(c.action === "turned_on") return `Line ${c.line_no} turned back on`;
+    if(c.action === "added") return `Line ${c.line_no} added${c.new && c.new.pct !== undefined ? ` — ${c.new.pct}%` : ""}`;
+    return `Line ${c.line_no} ${String(c.action).replace(/_/g, " ")}`;
+  }
+  if(c.part === "target"){
+    if(c.action === "unchanged") return null;
+    const t = { target: c.target, tag: c.value, brand_id: c.value, product_id: c.value, category_id: c.value };
+    return `Line ${c.line_no}: ${c.action} ${c.kind === "exclude" ? "except" : "applies to"} ${c.target} ${targetLabel(t, L)}`;
+  }
+  if(c.part === "rule"){
+    if(c.action === "unchanged") return null;
+    const r = { target: c.target, customer_id: c.value, warehouse_id: c.value, tier_id: c.value };
+    return `Customer rule ${c.action}: ${c.kind === "exclude" ? "not" : "only"} ${c.target} ${ruleLabel(r, L)}`;
+  }
+  return `${c.part} ${c.action}`;
+}
+function showModal(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+function showCheck(d, onGo){
+  const L = labMap();
+  const li = x => `<li>${esc(x.message)}</li>`;
+  const blocks = d.blocks || [], warns = d.warnings || [];
+  const chg = (d.changes || []).map(c => chgText(c, L)).filter(Boolean);
+  const body = d.error ? `<div class="msg err">${esc(d.error)}</div>`
+    : `${blocks.length ? `<h5>Not saved — fix these first</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
+       ${!blocks.length && chg.length ? `<h5>What changes</h5><ul class="chg">${chg.map(s => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+       ${warns.length ? `<h5>${blocks.length ? "Also" : "Please confirm"}</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
+       ${(d.unacked || []).length && !blocks.length ? `<div class="note">Something changed since the check — please confirm again.</div>` : ""}`;
+  const go = (!d.error && !blocks.length && onGo) ? `<button class="pobtn go" data-m="go">${warns.length ? "Save anyway" : "Save"}</button>` : "";
+  showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4>
+    <div class="pbody res">${body}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Back" : "Close"}</button>${go}</div>`);
+  const box = document.getElementById("modalBox");
+  box.querySelector('[data-m="close"]').onclick = () => closeModal();
+  const g = box.querySelector('[data-m="go"]');
+  if(g) g.onclick = () => { g.disabled = true; onGo(); };
+}
+async function saveDeal(){
+  const p_deal = buildBundle();
+  const p_old = ed.isNew ? null : { updated_at: ed.updatedAt };    // ⚠️ 읽은 글자 그대로(판정 331 · Date 로 바꾸지 않는다)
+  showModal(`<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>`);
+  const r1 = await sb.rpc("so_deal_save", { p_deal, p_old, p_commit:false, p_ack:[] });
+  if(r1.error){ showCheck({ error: r1.error.message }); return; }
+  const d1 = r1.data || {};
+  if((d1.blocks || []).length){ showCheck(d1); return; }
+  showCheck(d1, () => commit((d1.warnings || []).map(w => w.key)));
+
+  async function commit(ack){
+    showModal(`<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>`);
+    const r2 = await sb.rpc("so_deal_save", { p_deal, p_old, p_commit:true, p_ack:ack });
+    if(r2.error){ showCheck({ error: r2.error.message }); return; }
+    const d2 = r2.data || {};
+    if(d2.committed){
+      closeModal();
+      ed = null;
+      await loadDeals();
+      if(!filtered().some(x => x.id === d2.deal_id)){ show = ""; q = ""; dtype = ""; }   // 꺼진 채 만든 딜도 왼쪽 목록에 보이게
+      await openDeal(d2.deal_id);
+      return;
+    }
+    if((d2.blocks || []).length){ showCheck(d2); return; }
+    showCheck(d2, () => commit((d2.warnings || []).map(w => w.key)));   // 그 사이 바뀌었다 — 새 경고를 다시 묻는다
+  }
+}
+
+/* ── 쿠폰 발행 · 무효(so_coupon_issue · so_coupon_void — raise 로 거부) ── */
+let issue = null;
+function openIssue(){
+  issue = { custs: [], picks: null, expires: "", prefix: "" };
+  drawIssue();
+}
+function drawIssue(){
+  showModal(`<h4>Issue coupons — ${esc(cur.deal.name)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Customers</label><input class="ein" id="icq" placeholder="Search customer name"><button class="pobtn" id="icfind">Find</button></div>
+      ${issue.picks ? `<div class="picks" style="margin:-4px 0 10px 130px">${issue.picks.map((c, j) => `<button data-pj="${j}">${esc(c.name)}</button>`).join("") || '<span class="dim">No match.</span>'}</div>` : ""}
+      <div style="margin:0 0 10px 130px">${issue.custs.map((c, j) => `<span class="tg inc">${esc(c.name)}<button class="x" data-rj="${j}" title="Remove">×</button></span>`).join("") || '<span class="dim" style="font-size:12px">No customers picked yet.</span>'}</div>
+      <div class="frow"><label>Expires on</label><input type="date" class="ein" id="icexp" value="${escA(issue.expires)}"><span class="dim" style="font-size:12px">empty = no limit · checked against the order date</span></div>
+      <div class="frow"><label>Code prefix</label><input class="ein" id="icpre" value="${escA(issue.prefix)}" maxlength="8" placeholder="optional · 2–8 letters or digits"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" data-m="go" ${issue.custs.length ? "" : "disabled"}>Issue ${issue.custs.length || ""} coupon${issue.custs.length === 1 ? "" : "s"}</button></div>`);
+  const box = document.getElementById("modalBox");
+  const keep = () => { issue.expires = box.querySelector("#icexp").value; issue.prefix = box.querySelector("#icpre").value; };
+  box.querySelector("#icfind").onclick = async () => {
+    keep();
+    const v = box.querySelector("#icq").value.trim();
+    if(!v) return;
+    const pat = "%" + v.replace(/[%_]/g, m => "\\" + m) + "%";
+    const { data, error } = await sb.from("customer").select("id,name").ilike("name", pat).eq("is_active", true).order("name").limit(20);
+    if(error){ alert(error.message); return; }
+    issue.picks = data || []; drawIssue();
+  };
+  box.querySelectorAll("[data-pj]").forEach(b => b.onclick = () => {
+    keep();
+    const c = issue.picks[Number(b.dataset.pj)];
+    if(!issue.custs.some(x => x.id === c.id)) issue.custs.push(c);
+    drawIssue();
+  });
+  box.querySelectorAll("[data-rj]").forEach(b => b.onclick = () => { keep(); issue.custs.splice(Number(b.dataset.rj), 1); drawIssue(); });
+  box.querySelector('[data-m="close"]').onclick = () => { issue = null; closeModal(); };
+  box.querySelector('[data-m="go"]').onclick = async () => {
+    keep();
+    const args = { p_deal_id: cur.deal.id, p_customer_ids: issue.custs.map(c => c.id),
+                   p_expires_on: issue.expires || null, p_prefix: issue.prefix.trim() || null };
+    showModal(`<h4>Issuing…</h4><div class="pbody"><div class="msg">Issuing coupons…</div></div>`);
+    const { data, error } = await sb.rpc("so_coupon_issue", args);
+    if(error){ showModal(`<h4>Not issued</h4><div class="pbody"><div class="msg err">${esc(error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="back">Back</button></div>`);
+      document.querySelector('#modalBox [data-m="back"]').onclick = () => drawIssue(); return; }
+    const cs = (data && data.coupons) || [];
+    const txt = cs.map(c => `${c.customer_name}\t${c.code}\t${c.expires_on || "no limit"}`).join("\n");
+    showModal(`<h4>${esc(data.issued)} coupon${data.issued === 1 ? "" : "s"} issued — ${esc(data.deal_name)}</h4>
+      <div class="pbody"><table class="codes"><thead><tr><th>Customer</th><th>Code</th><th>Expires</th></tr></thead><tbody>
+        ${cs.map(c => `<tr><td style="font-family:inherit">${esc(c.customer_name)}</td><td>${esc(c.code)}</td><td>${c.expires_on ? esc(c.expires_on) : "no limit"}</td></tr>`).join("")}</tbody></table></div>
+      <div class="pfoot"><button class="pobtn" data-m="copy">Copy list</button><span class="sp"></span><button class="pobtn go" data-m="done">Done</button></div>`);
+    const bx = document.getElementById("modalBox");
+    bx.querySelector('[data-m="copy"]').onclick = async e => {
+      try { await navigator.clipboard.writeText(txt); e.target.textContent = "Copied"; } catch(_){ e.target.textContent = "Copy failed"; }
+    };
+    bx.querySelector('[data-m="done"]').onclick = async () => { issue = null; closeModal(); await loadDeals(); renderList(); await loadDetail(cur.deal.id); };
+  };
+}
+async function voidCoupon(code){
+  const note = prompt(`Void coupon ${code}? It can never be used after this.\nOptional note:`, "");
+  if(note === null) return;
+  const { data, error } = await sb.rpc("so_coupon_void", { p_code: code, p_note: note.trim() || null });
+  if(error){ alert(error.message); return; }
+  if(data && data.detached_from_drafts) alert(`Voided. It was taken off ${data.detached_from_drafts} draft order(s).`);
+  await loadDeals(); renderList(); await loadDetail(cur.deal.id);
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true }, async (client, me) => {
+  sb = client;
+  canEdit = imsAuth.canWrite("master");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = DR_BUILD;
+  if(canEdit){
+    document.getElementById("wnewBar").hidden = false;
+    document.getElementById("wnewLine").onclick = () => openNew(false);
+    document.getElementById("wnewOrder").onclick = () => openNew(true);
+  }
+  const both = fn => e => { fn(e); syncCtl(); if(!document.getElementById("wide").hidden) renderWide(); else renderList(); };
+  imsQ("#wq", v => { q = v; syncCtl(); renderWide(); });
+  imsQ("#q", v => { q = v; syncCtl(); renderList(); });
+  document.getElementById("wshow").onchange = both(e => { show = e.target.value; });
+  document.getElementById("show").onchange  = both(e => { show = e.target.value; });
+  document.getElementById("wtype").onchange = both(e => { dtype = e.target.value; });
+  document.getElementById("type").onchange  = both(e => { dtype = e.target.value; });
+  document.getElementById("wclear").onclick = () => { q = ""; show = "live"; dtype = ""; syncCtl(); renderWide(); };
+  document.getElementById("modal").onclick = e => {
+    if(e.target.id !== "modal") return;
+    if(document.querySelector('#modalBox [data-m="go"]')) return;     // 확인이 걸린 창은 단추로만 닫는다
+    const c = document.querySelector('#modalBox [data-m="close"], #modalBox [data-m="done"]');
+    if(c) c.click();
+  };
+
+  /* 기준표 — 대상 · 조건 고르기(이름 → id) */
+  try {
+    const [bl, cl, tl, wl, tg] = await Promise.all([
+      fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
+      fetchAll("ref_warehouse", "*"),
+      fetchAll("product_tag", "tag"),
+    ]);
+    refs.brands = bl; refs.cats = cl;
+    refs.tiers = tl.filter(t => t.purpose === "sale");
+    refs.whs = wl.filter(w => w.is_active !== false).map(w => ({ id: w.id, name: w.name }));
+    refs.tags = [...new Set(tg.map(x => x.tag))].sort((a, b) => a.localeCompare(b));
+  } catch(err){
+    document.getElementById("wrows").innerHTML = `<div class="msg err">Reference lists failed: ${esc(err.message)}</div>`;
+  }
+  document.getElementById("brandList").innerHTML = refs.brands.map(x => `<option value="${escA(x.name)}">`).join("");
+  document.getElementById("catList").innerHTML = refs.cats.map(x => `<option value="${escA(x.name)}">`).join("");
+  document.getElementById("tagList").innerHTML = refs.tags.map(x => `<option value="${escA(x)}">`).join("");
+  document.getElementById("whList").innerHTML = refs.whs.map(x => `<option value="${escA(x.name)}">`).join("");
+  document.getElementById("tierList").innerHTML = refs.tiers.map(x => `<option value="${escA(x.name)}">`).join("");
+
+  /* ?id= 는 바로 상세 · 그 밖은 넓은 목록 */
+  const want = imsParam("id");
+  if(want){ show = ""; await loadDeals(); await openDeal(want); }
+  else await showWide();
+});
+</script>
+</body>
+</html>
