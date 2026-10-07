@@ -44,9 +44,12 @@
   <div class="card">
     <div class="bofilt">
       <select id="fState" title="State">
-        <option value="open">Open backorders</option>
-        <option value="ended">Ended</option>
+        <option value="open">Open</option>
+        <option value="ended">Ended (backorders)</option>
         <option value="all">All</option>
+      </select>
+      <select id="fKind" title="Backorder or pre-order">
+        <option value="">Backorders and pre-orders</option><option value="backorder">Backorders only</option><option value="preorder">Pre-orders only</option>
       </select>
       <select id="fLoc" title="Branch"><option value="">All branches</option></select>
       <button class="pobtn cust" id="fCust" title="Pick a customer">All customers</button>
@@ -92,7 +95,7 @@
    ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
    ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-05 · bo v2";   // 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-07 · bo v3";   // 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -119,6 +122,7 @@ const END_LBL = { superseded: "taken over", proceeded: "proceeded", expired: "ex
 function filters(){
   const f = { state: document.getElementById("fState").value, limit: PAGE, offset: offset };
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("kind", document.getElementById("fKind").value);   // bo v3 — 판정 351
   put("location_id", document.getElementById("fLoc").value);
   put("customer_id", custId);
   put("supplier_id", document.getElementById("fSup").value);
@@ -143,11 +147,12 @@ async function load(){
   document.getElementById("sum").innerHTML = `
     <div class="stat">Lines<b>${esc(data.total)}</b></div>
     <div class="stat">Open<b>${esc(data.open)}</b></div>
+    ${data.open_preorder !== undefined ? `<div class="stat">Backorders<b>${esc(data.open_backorder)}</b></div><div class="stat">Pre-orders<b>${esc(data.open_preorder)}</b></div>` : ""}
     <div class="stat">Ended<b>${esc(data.ended)}</b></div>
     ${Number(data.open_owed) > 0 || owedOnly ? `<div class="stat"><a class="lnk" id="owedTog" title="${owedOnly ? "Show every backorder again" : "Show only the free lines we still owe"}">Free lines we owe${owedOnly ? " — showing only these" : ""}</a><b>${esc(data.open_owed)}</b></div>` : ""}`;
   const tg = document.getElementById("owedTog");
   if(tg) tg.onclick = () => { owedOnly = !owedOnly; refilter(); };
-  if(!rows.length){ box.innerHTML = '<div class="msg">No backorders match.</div>'; pager(data); return; }
+  if(!rows.length){ box.innerHTML = '<div class="msg">Nothing matches.</div>'; pager(data); return; }
 
   /* 손님마다 묶어 보인다 — 창구가 손님 · 제품 · 주문일 순으로 준다 */
   let html = `<table><thead><tr>
@@ -166,7 +171,8 @@ async function load(){
         + `<div class="dim" style="font-size:11px">here ${qty(r.available_here)}${r.is_combo ? " combo" + (Number(r.available_here) === 1 ? "" : "s") : ""} · ${otherTxt(r.available_other)}</div>`
       : "";
     const st = open
-      ? (r.owed ? '<span class="tag disc">free — we owe it</span>' : '<span class="tag">open</span>')
+      ? (r.kind === "preorder" ? '<span class="tag disc" title="A confirmed order waiting for stock that has not come in yet — never expires or gets taken over">Pre-order</span> ' : "")   // bo v3
+        + (r.owed ? '<span class="tag disc">free — we owe it</span>' : '<span class="tag">open</span>')
       : `<span class="tag">${esc(END_LBL[r.end_kind] || r.end_kind || "ended")}</span>`
         + (r.taken_by_so_number ? ` <a class="lnk mono" href="so.html?so=${encodeURIComponent(r.taken_by_so_number)}">${esc(r.taken_by_so_number)}</a>` : "")
         + (Number(r.qty_unwanted) ? `<div class="dim" style="font-size:11px">taken ${qty(r.qty_taken)} · no longer wanted ${qty(r.qty_unwanted)}</div>` : "");
@@ -180,11 +186,12 @@ async function load(){
       <td class="num">${r.days_waiting !== null && r.days_waiting !== undefined ? esc(r.days_waiting) + "d" : '<span class="dim">—</span>'}</td>
       <td>${stock}</td>
       <td>${st}</td>
-      <td>${open && isMgr() ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" title="Reserve what is in stock now for this backorder order (manager)">proceed</button>` : ""}</td>
+      <td>${open && isMgr() ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" title="Reserve what is in stock now for this ${r.kind === "preorder" ? "pre-order" : "backorder"} order (manager)">proceed</button>` : ""}</td>
     </tr>`;
   });
   html += `</tbody></table>
-    <div class="sosub">Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder was made (adjustments and returns do not count).
+    <div class="sosub">Pre-orders are confirmed orders waiting for stock that has not come in yet — they are listed while open, never expire and are never taken over by a new order (ruling 9); arrived and proceed work the same way.
+      Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder or pre-order was made (adjustments and returns do not count).
       Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here. Mail notices are still sent from Cin7, so this screen does not show them yet.</div>`;
   box.innerHTML = html;
   box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no); });
@@ -298,11 +305,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
 
   const endSel = document.getElementById("fEnd");
   document.getElementById("fState").onchange = () => { endSel.hidden = document.getElementById("fState").value === "open"; refilter(); };
-  ["fLoc","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
+  ["fKind","fLoc","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
   imsQ("#fSku", refilter);
   document.getElementById("fCust").onclick = openCustPick;
   document.getElementById("fClear").onclick = () => {
-    ["fLoc","fSup","fBrand","fSku","fArr","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
+    ["fKind","fLoc","fSup","fBrand","fSku","fArr","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
     owedOnly = false;
     document.getElementById("fState").value = "open"; endSel.hidden = true;
     custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
