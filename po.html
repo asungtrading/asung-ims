@@ -25,6 +25,14 @@
   .list .row .r{text-align:right;white-space:nowrap}
   .list .row .amt{font-family:var(--mono);font-size:12.5px}
   .list .row.cur .pn{color:#3b5bdb;font-weight:700}
+  /* po st v1 — 판정 360: 단계별 채운 색(so.html 판정 359 와 같은 뜻 · 파랑 기다림 · 보라 진행 · 주황 사무실 손 · 초록 끝) */
+  .post{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.5;color:#fff;white-space:nowrap}
+  .post.p-draft{background:#868e96}
+  .post.p-ordered{background:#3b5bdb}
+  .post.p-receiving{background:#7048e8}
+  .post.p-received{background:#e8590c}
+  .post.p-completed{background:#2f9e44}
+  .post.p-cancelled{background:#e03131}
   /* ⚠️ main 은 ims-ui.css 의 main 과 이름이 겹쳐 올리지 않았다(2026-09-17) — 바른 길은 <main class="stack">(§13-h 미룬 것 · HTML 은 이번 범위 밖).
      이 화면은 padding 없음 — 좌우 분할이라 바깥 .wrap 이 여백을 준다 */
   main{display:flex;flex-direction:column;gap:14px}
@@ -86,8 +94,11 @@
       <select id="wst">
         <option value="open">Open</option>
         <option value="draft">Draft</option>
-        <option value="confirmed">Confirmed</option>
-        <option value="closed">Closed</option>
+        <option value="confirmed">Confirmed — any</option>
+        <option value="ordered">Ordered — nothing received</option>
+        <option value="receiving">Receiving — part received</option>
+        <option value="received">Received — not completed</option>
+        <option value="closed">Completed</option>
         <option value="cancelled">Cancelled</option>
         <option value="all">All</option>
       </select>
@@ -118,8 +129,11 @@
           <select id="st">
             <option value="open">Open</option>
             <option value="draft">Draft</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="closed">Closed</option>
+            <option value="confirmed">Confirmed — any</option>
+            <option value="ordered">Ordered — nothing received</option>
+            <option value="receiving">Receiving — part received</option>
+            <option value="received">Received — not completed</option>
+            <option value="closed">Completed</option>
             <option value="cancelled">Cancelled</option>
             <option value="all">All</option>
           </select>
@@ -175,7 +189,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-01 · po thumb v2";   // 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-07 · po st v1";   // 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 /* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -222,11 +236,24 @@ function unpaidCell(v){
   return `<span class="neutral">${money(n)}</span>`;
 }
 
-/* ⚠️ 색은 절제한다 — cancelled 만 빨강, closed 만 초록(완료). draft·confirmed 는 회색. */
-function stChip(s){
-  if(s === "cancelled") return '<span class="chip bad">cancelled</span>';
-  if(s === "closed")    return '<span class="chip good">closed</span>';
-  return `<span class="chip">${esc(s)}</span>`;
+/* po st v1 — 판정 360: 저장값(draft · confirmed · closed · cancelled)은 그대로 · confirmed 는 입고 수량으로 셋으로 가른다 */
+const PO_STAGE = {
+  draft:     ["Draft",     "The office is writing it"],
+  ordered:   ["Ordered",   "Confirmed — waiting for the supplier to send"],
+  receiving: ["Receiving", "Part has arrived — the rest is still coming"],
+  received:  ["Received",  "Everything arrived — the office finishes it (invoice · charges · payment · complete)"],
+  completed: ["Completed", "Done"],
+  cancelled: ["Cancelled", "Cancelled"],
+};
+function poStage(status, received, ordered){
+  if(status === "closed") return "completed";
+  if(status !== "confirmed") return status;
+  const r = Number(received) || 0, o = Number(ordered) || 0;
+  return r <= 0 ? "ordered" : (o > 0 && r < o ? "receiving" : "received");
+}
+function stChip(status, received, ordered){
+  const k = poStage(status, received, ordered), d = PO_STAGE[k];
+  return d ? `<span class="post p-${k}" title="${esc(d[1])}">${esc(d[0])}</span>` : `<span class="chip">${esc(status)}</span>`;
 }
 
 /* ⭐ 모체 번호 — PO-02001a → PO-02001. 갈라진 문서를 한 번에 찾는 열쇠다(§11-c 「찾기는 접두어로」) */
@@ -254,6 +281,9 @@ function baseQuery(){
   // ⚠️ 상태 필터는 매니저에게도 보인다 — 발주 목록은 감출 것이 아니다.
   //    §10-j 3-b 의 「admin 만 #opts」는 마스터에서 정돈된 목록을 주기 위한 규칙이고 여기는 그 경우가 아니다.
   if(stFilter === "open")       qry = qry.in("status", ["draft","confirmed"]);
+  else if(stFilter === "ordered")   qry = qry.eq("status", "confirmed").eq("receipt_phase", "none");      // po st v1 — 판정 360(입고 국면은 뷰가 판정)
+  else if(stFilter === "receiving") qry = qry.eq("status", "confirmed").eq("receipt_phase", "partial");
+  else if(stFilter === "received")  qry = qry.eq("status", "confirmed").eq("receipt_phase", "done");
   else if(stFilter !== "all")   qry = qry.eq("status", stFilter);
   if(supFilter) qry = qry.eq("supplier_id", supFilter);
   if(dateFrom)  qry = qry.gte("order_date", dateFrom);
@@ -283,9 +313,7 @@ function dots(r){
 /* ⭐ 발주번호 옆 태그 — 진행도가 아니라 「이런 일이 있었다」 */
 function rowTags(r){
   const t = [];
-  if(r.status === "cancelled") t.push('<span class="tag off">cancelled</span>');
-  else if(r.status === "closed") t.push('<span class="tag">closed</span>');
-  else if(r.status === "draft")  t.push('<span class="tag">draft</span>');
+  t.push(stChip(r.status, r.received_qty, r.ordered_qty));   // po st v1 — 판정 360: 늘 단계 칩(채운 색)
   if(Number(r.split_to_count) > 0) t.push('<span class="tag">split</span>');
   // ⚠️ 크레딧은 국면이 아니다 — 진행도가 아니라 사건이다(Caleb)
   if(Number(r.credit_count) > 0)   t.push('<span class="tag">credit</span>');
@@ -1124,7 +1152,7 @@ async function loadDetail(id){
      ⚠️ 이것은 **편의**다. 진짜로 막는 것은 DB(po_doc_delete)다. 없는 버튼을 누르게 두지 않을 뿐이다. */
   if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
 
-  const chips = [stChip(h.status)];
+  const chips = [stChip(h.status, t.received_qty, t.ordered_qty)];   // po st v1
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
   if((h.split_to || []).length) chips.push(`<span class="chip">split into ${h.split_to.length}</span>`);
 
