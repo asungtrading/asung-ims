@@ -148,7 +148,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-07 · so v5e";   // 대화 Claude — Caleb 화면 시험 SO-25067: Finalize 미리 보기가 손대지 않은 운임(Freight 10)을 「No freight line.」 으로 보였다(화면은 바뀐 운임만 보내고 미리 보기는 보낸 것만 그렸다) → 오더에 있는 운임 + 바뀐 값 + 새 줄을 합쳐 「Charges on the invoice」 로 · 바뀐 것 · 새 것 · 그대로 표시 ← so v5d 2026-10-07 · 대화 Claude — Caleb 「freight 이 중복으로 들어간다 — 확정 전에 넣은 대략 운임이 출고 때 고쳐져야 하는데 새로 하나 만들어진다」: Finalize 창이 오더에 이미 있는 운임 줄(견적)을 칸에 미리 채우고 고치면 그 줄을 고친다(so_finalize charges[].charge_id · 서버 길은 원래 있었다 · 화면만 늘 새 줄을 보냈다) · 설명 · 계정은 그대로 넘긴다 · 새 줄 칸은 따로 하나(비우면 없음) ← so v5c 2026-10-07 · 대화 Claude — 판정 350(Caleb 「세일즈 오더 화면에도 오더 토탈 금액」 · 안 A): 넓은 목록 Total 열 · 좁은 목록 오른쪽 위 금액 = 오더 화면 Total 과 같은 숫자(세금 포함 · 나간 뒤 보낸 수량) · 읽기 창구 so_totals_many(p_so_ids) 한 번(20261007161321 so-tot-1 · 한 쪽 100 줄) · 그린 뒤 채운다 · 세금 규칙 없음 = 「no tax rule」 ← so v5b 2026-10-07 · 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-07 · so v5f";   // 대화 Claude — 운임 할인 화면(판정 352 · 353 · 356 · 357-7 · fr-1 20261007171939): Add/Edit a charge 창에 할인(없음 · % · $ — so_charge_set p_discount_pct · p_discount_amount · 고치기도 전체 모양) · Charges 표에 Discount · Net 열 · Finalize 전 창고 오더의 운임에 「estimate」 · 합계 칸 Freight discount · Finalize 창의 운임 줄에도 할인(바뀐 것만 보냄 · 열쇠 없음 = 그대로 · "" = 지움) · 미리 보기에 순액 ← so v5e 2026-10-07 · 대화 Claude — Caleb 화면 시험 SO-25067: Finalize 미리 보기가 손대지 않은 운임(Freight 10)을 「No freight line.」 으로 보였다(화면은 바뀐 운임만 보내고 미리 보기는 보낸 것만 그렸다) → 오더에 있는 운임 + 바뀐 값 + 새 줄을 합쳐 「Charges on the invoice」 로 · 바뀐 것 · 새 것 · 그대로 표시 ← so v5d 2026-10-07 · 대화 Claude — Caleb 「freight 이 중복으로 들어간다 — 확정 전에 넣은 대략 운임이 출고 때 고쳐져야 하는데 새로 하나 만들어진다」: Finalize 창이 오더에 이미 있는 운임 줄(견적)을 칸에 미리 채우고 고치면 그 줄을 고친다(so_finalize charges[].charge_id · 서버 길은 원래 있었다 · 화면만 늘 새 줄을 보냈다) · 설명 · 계정은 그대로 넘긴다 · 새 줄 칸은 따로 하나(비우면 없음) ← so v5c 2026-10-07 · 대화 Claude — 판정 350(Caleb 「세일즈 오더 화면에도 오더 토탈 금액」 · 안 A): 넓은 목록 Total 열 · 좁은 목록 오른쪽 위 금액 = 오더 화면 Total 과 같은 숫자(세금 포함 · 나간 뒤 보낸 수량) · 읽기 창구 so_totals_many(p_so_ids) 한 번(20261007161321 so-tot-1 · 한 쪽 100 줄) · 그린 뒤 채운다 · 세금 규칙 없음 = 「no tax rule」 ← so v5b 2026-10-07 · 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -818,14 +818,21 @@ async function removeLine(lineId, sku){
 
 /* ── 운임 ─────────────────────────────────────────────
    ⚠️ 금액은 0 이상(음수는 크레딧 노트) · 세금은 오더 규칙을 따른다(줄마다 못 바꾼다 · §16 판정 9) */
+/* so v5f — 운임 할인 칸(판정 356: % 또는 $ 하나) · 표시 글자 */
+const chDiscKind = (c) => c && c.discount_pct !== null && c.discount_pct !== undefined ? "pct" : (c && c.discount_amount !== null && c.discount_amount !== undefined ? "amt" : "");
+const chDiscVal  = (c) => chDiscKind(c) === "pct" ? String(Number(c.discount_pct)) : chDiscKind(c) === "amt" ? String(Number(c.discount_amount)) : "";
+const chDiscTxt  = (c) => chDiscKind(c) === "pct" ? `${esc(Number(c.discount_pct))}%` : chDiscKind(c) === "amt" ? `$${esc(Number(c.discount_amount).toFixed(2))}` : "";
+const chDiscFields = (kind, val, attrs) => `<select class="sofield" ${attrs.k} style="width:90px"><option value="" ${kind === "" ? "selected" : ""}>none</option><option value="pct" ${kind === "pct" ? "selected" : ""}>%</option><option value="amt" ${kind === "amt" ? "selected" : ""}>$</option></select>
+  <input class="sofield" ${attrs.v} type="number" step="0.01" min="0" value="${esc(val)}" placeholder="discount" style="width:110px">`;
 function openCharge(c){
   modalOpen(`
     <h4>${c ? "Edit charge" : "Add a charge"}</h4>
     <div class="pbody">
       <div class="frow"><label>Name</label><input id="chN" class="sofield" value="${esc(c ? c.name : "Freight")}"></div>
       <div class="frow"><label>Amount</label><input id="chA" class="sofield" type="number" step="0.01" min="0" value="${esc(c ? c.amount : "")}"></div>
+      <div class="frow"><label>Discount</label>${chDiscFields(chDiscKind(c), chDiscVal(c), { k: 'id="chDk"', v: 'id="chDv"' })}</div>
       <div class="frow"><label>Description</label><input id="chD" class="sofield" value="${esc(c ? (c.description || "") : "")}"></div>
-      <div class="sohint">Tax follows the order's tax rule. A charge cannot be negative — money back is a credit note.</div>
+      <div class="sohint">Tax follows the order's tax rule. A charge cannot be negative — money back is a credit note. A discount shows as its own line on the invoice (freight sales and freight discount are kept apart).</div>
       <div id="chMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span>
@@ -838,9 +845,12 @@ function openCharge(c){
     const amt  = Number(document.getElementById("chA").value);
     if(!name){ say("chMsg", "err", "Give the charge a name."); return; }
     if(!isFinite(amt) || document.getElementById("chA").value.trim() === ""){ say("chMsg", "err", "Give an amount (0 or more)."); return; }
+    const dk = document.getElementById("chDk").value, dvRaw = document.getElementById("chDv").value.trim(), dv = Number(dvRaw);   // so v5f
+    if(dk && (dvRaw === "" || !isFinite(dv) || dv <= 0)){ say("chMsg", "err", "Give the discount a number above 0 — or pick none."); return; }
     say("chMsg", "", "Saving…");
     const { error } = await sb.rpc("so_charge_set", { p_so_id: curId, p_name: name, p_amount: amt,
-      p_charge_id: c ? c.id : null, p_description: document.getElementById("chD").value.trim() || null });
+      p_charge_id: c ? c.id : null, p_description: document.getElementById("chD").value.trim() || null,
+      p_discount_pct: dk === "pct" ? dv : null, p_discount_amount: dk === "amt" ? dv : null });
     if(error){ say("chMsg", "err", error.message); return; }
     modalClose(); await reloadHere();
   };
@@ -1237,8 +1247,12 @@ function finInput(){
   document.querySelectorAll("#modalBox [data-fcid]").forEach(row => {
     const id = row.dataset.fcid, c = (cur.charges || []).find(x => x.id === id); if(!c) return;
     const nm = row.querySelector("[data-fcn]").value.trim(), am = row.querySelector("[data-fca]").value.trim();
-    if(nm === String(c.name || "") && am !== "" && Number(am) === Number(c.amount)) return;
-    ch.push({ charge_id: id, name: nm || c.name, amount: am === "" ? NaN : Number(am), description: c.description || "", _no: c.line_no });
+    const dk = row.querySelector("[data-fdk]").value, dvRaw = row.querySelector("[data-fdv]").value.trim();   // so v5f
+    const discSame = dk === chDiscKind(c) && (dk === "" || Number(dvRaw) === Number(chDiscVal(c)));
+    if(nm === String(c.name || "") && am !== "" && Number(am) === Number(c.amount) && discSame) return;
+    const line = { charge_id: id, name: nm || c.name, amount: am === "" ? NaN : Number(am), description: c.description || "", _no: c.line_no };
+    if(!discSame){ line.discount_pct = dk === "pct" ? dvRaw : ""; line.discount_amount = dk === "amt" ? dvRaw : ""; line._dk = dk; }   // 열쇠가 오면 그 값 · "" = 지움(so_finalize)
+    ch.push(line);
   });
   const amt = v("fnAmt");
   if(amt !== "") ch.push({ name: v("fnChName") || "Freight", amount: Number(amt) });
@@ -1261,20 +1275,22 @@ function finInput(){
 /* so v5e — 미리 보기의 운임 = 오더에 있는 운임(그대로 · 바뀜) + 새 줄 · 서버 미리 보기는 보낸 것만 돌려준다 */
 function finChargesHint(sent){
   const by = {}; (sent || []).forEach(c => { if(c.charge_id) by[c.charge_id] = c; });
+  const dsc = (x) => Number(x.discount) > 0 ? ` − ${money(x.discount)} discount = ${money(x.net)}` : "";   // so v5f — 서버 미리 보기의 discount · net(보낸 줄) · so_detail 의 discount · net(그대로인 줄)
   const parts = (cur.charges || []).map(c => by[c.id]
-      ? `${esc(by[c.id].name || c.name || "")} ${money(by[c.id].amount)} <span class="dim">(was ${money(c.amount)})</span>`
-      : `${esc(c.name || "")} ${money(c.amount)} <span class="dim">(unchanged)</span>`)
+      ? `${esc(by[c.id].name || c.name || "")} ${money(by[c.id].amount)}${dsc(by[c.id])} <span class="dim">(was ${money(c.amount)}${dsc(c)})</span>`
+      : `${esc(c.name || "")} ${money(c.amount)}${dsc(c)} <span class="dim">(unchanged)</span>`)
     .concat((sent || []).filter(c => !c.charge_id).map(c => `${esc(c.name || "")} ${money(c.amount)} <span class="dim">(new)</span>`));
   return parts.length ? `<div class="sohint">Charges on the invoice: ${parts.join(" · ")}</div>` : '<div class="sohint">No freight line.</div>';
 }
 function finSend(o){   // surcharge-3 — 화면 표지 칸(_no · _k)은 서버에 보내지 않는다
-  if(o.charges) o = Object.assign({}, o, { charges: o.charges.map(x => { const y = Object.assign({}, x); delete y._no; return y; }) });   // so v5d
+  if(o.charges) o = Object.assign({}, o, { charges: o.charges.map(x => { const y = Object.assign({}, x); delete y._no; delete y._dk; return y; }) });   // so v5d · v5f
   if(!o.surcharges) return o;
   return Object.assign({}, o, { surcharges: o.surcharges.map(x => ({ line_id: x.line_id, surcharge_label: x.surcharge_label, surcharge_pct: x.surcharge_pct, surcharge_amount: x.surcharge_amount })) });
 }
 function finCheck(o){
   for(const c of (o.charges || [])){   // so v5d — 줄마다
     if(!(Number.isFinite(c.amount) && c.amount >= 0)) return c.charge_id ? `Charge ${c._no}: enter an amount, 0 or more.` : "New freight must be a number, 0 or more — leave it empty for no new line.";
+    if(c._dk && !(Number(c._dk === "pct" ? c.discount_pct : c.discount_amount) > 0)) return `Charge ${c._no}: give the discount a number above 0 — or pick none.`;   // so v5f
   }
   for(const x of (o.surcharges || [])){
     const bad = scBad(x.surcharge_label, x._k || "pct", x._k === "amt" ? x.surcharge_amount : x.surcharge_pct);
@@ -1292,7 +1308,8 @@ async function openFinalize(){
       ${(cur.charges || []).length ? `<div class="sosub" style="margin:0 0 4px">Charges already on the order — change the amount to the actual freight (the line is updated, not added again)</div>
         ${(cur.charges || []).map(c => `<div class="frow" data-fcid="${c.id}"><label>Charge ${esc(c.line_no)}</label>
           <input class="sofield" data-fcn value="${esc(c.name || "").replace(/"/g, "&quot;")}" style="flex:1">
-          <input class="sofield" data-fca type="number" step="0.01" min="0" value="${esc(String(Number(c.amount)))}" style="width:120px" title="${esc(s.currency_code || "")}"></div>`).join("")}` : ""}
+          <input class="sofield" data-fca type="number" step="0.01" min="0" value="${esc(String(Number(c.amount)))}" style="width:120px" title="${esc(s.currency_code || "")}">
+          ${chDiscFields(chDiscKind(c), chDiscVal(c), { k: "data-fdk", v: "data-fdv" })}</div>`).join("")}` : ""}
       <div class="frow"><label>${(cur.charges || []).length ? "Add another charge" : "Freight line"}</label><input id="fnChName" class="sofield" value="Freight"></div>
       <div class="frow"><label>${(cur.charges || []).length ? "Its amount" : "Freight amount"} (${esc(s.currency_code || "")})</label><input id="fnAmt" class="sofield" type="number" step="0.01" min="0" placeholder="${(cur.charges || []).length ? "empty = no extra line" : "empty = no freight line"}"></div>
       <div class="frow"><label>Carrier</label><input id="fnCar" class="sofield" value="${esc(s.carrier || "")}"></div>
@@ -1863,6 +1880,7 @@ async function loadDetail(id){
       <div class="stat">Lines<b>${money(t.lines_total)}</b></div>
       <div class="stat">Order discount<b>${Number(t.order_discount_amount) ? "−" + money(t.order_discount_amount) : money(0)}</b></div>
       <div class="stat">Charges<b>${money(t.charges_total)}</b></div>
+      ${Number(t.charges_discount_amount) ? `<div class="stat">Freight discount<b>−${money(t.charges_discount_amount)}</b></div>` : ""}
       ${Number(t.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(t.surcharge_amount)}</b></div>` : ""}
       <div class="stat ${t.tax === null || t.tax === undefined ? "warn" : ""}">Tax${t.tax_rule ? ` <span class="dim">${esc(t.tax_rule)}</span>` : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : money(t.tax)}</b></div>
       <div class="stat">Total<b>${money(t.order_total_with_tax)}</b></div>
@@ -1927,9 +1945,12 @@ async function loadDetail(id){
       ${ed ? `<td style="white-space:nowrap">${manual ? `<button class="xbtn" data-reset="${l.id}" data-sku="${esc(l.sku)}" title="Back to the system price">↺</button> ` : ""}<button class="xbtn" data-del="${l.id}" data-sku="${esc(l.sku)}" title="Remove line">&#10005;</button></td>` : ""}
     </tr>`;
   });
+  const estimate = ch === "warehouse" && ["draft","confirmed","at_wms","picking"].includes(s.status);   // so v5f — 판정 357-7: Finalize 전 운임은 견적
+  const anyDisc = (data.charges || []).some(c => Number(c.discount) > 0);
   const charges = (data.charges || []).map(c => `<tr>
-      <td>${esc(c.name)}${c.description ? `<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>` : ""}</td>
+      <td>${esc(c.name)}${estimate ? ' <span class="tag" title="Before Finalize the freight is an estimate — Finalize updates this line with the actual freight">estimate</span>' : ""}${c.description ? `<div class="dim" style="font-size:11.5px">${esc(c.description)}</div>` : ""}</td>
       <td class="num">${money(c.amount)}</td>
+      ${anyDisc ? `<td class="num">${Number(c.discount) > 0 ? `−${money(c.discount)} <span class="dim" style="font-size:11.5px">${chDiscTxt(c)}</span>` : '<span class="dim">—</span>'}</td><td class="num">${money(c.net ?? c.amount)}</td>` : ""}
       <td class="dim" style="font-size:11.5px">${esc(c.tax_rule || "")}</td>
       ${ed ? `<td style="white-space:nowrap"><button class="xbtn" data-cedit="${c.id}" title="Edit">✎</button> <button class="xbtn" data-cdel="${c.id}" data-cname="${esc(c.name)}" title="Remove">&#10005;</button></td>` : ""}
     </tr>`);
@@ -1993,7 +2014,7 @@ async function loadDetail(id){
       (Number(t.surcharge_amount) ? " The surcharge is charged per unit, is not part of the order discount and shows as its own line on the invoice." : "") +
       (showNet ? ` Disc % is the line discount only; Net unit shows the unit after the ${esc(odp)}% order discount, which is taken once off the lines total.` : ""))}
 
-    ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"],["Tax rule",""]].concat(ed ? [["",""]] : []), charges,
+    ${tbl("Charges", (data.charges || []).length, [["Charge",""],["Amount","num"]].concat(anyDisc ? [["Discount","num"],["Net","num"]] : []).concat([["Tax rule",""]]).concat(ed ? [["",""]] : []), charges,
       "Freight and similar. Tax follows the order's rule.")}
 
     ${invRows.length ? tbl("Invoice", invRows.length, [["Number",""],["Status",""],["Issued",""],["Due",""],["Total","num"],["Due at issue","num"],["Paid","num"],["Still owed","num"]], invRows,
