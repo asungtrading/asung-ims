@@ -89,6 +89,7 @@
         <option value="order">Order discounts</option>
       </select>
       <button class="pobtn" id="wclear">Clear</button>
+      <button class="pobtn" id="wcheck" title="What price would a customer get for a product today?">Price check…</button>
       <span class="sp"></span>
       <span id="wnewBar" hidden style="display:flex;gap:8px">
         <button class="pobtn" id="wnewOrder">+ New order discount</button>
@@ -152,7 +153,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v1b";   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
+const DR_BUILD = "dr v2";   // 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;
@@ -903,6 +904,79 @@ function drawIssue(){
     bx.querySelector('[data-m="done"]').onclick = async () => { issue = null; closeModal(); await loadDeals(); renderList(); await loadDetail(cur.deal.id); };
   };
 }
+/* ── dr v2 가격 확인(so_quote_preview · 줄 층만 — 오더 할인은 오더 합계에 걸려 여기 없다) ── */
+const QP_REASON = {
+  won: "wins", lower_pct: "a bigger discount wins", inactive: "deal or line is off", kind_not_pct: "not a % deal",
+  period_before: "deal has not started on this date", period_after: "deal has ended by this date", excluded_product: "this product is excluded on the line",
+  customer_excluded: "customer is excluded", customer_not_matched: "customer is not in the deal's customers", below_min_qty: "quantity is below the line's minimum",
+};
+let pc = null;
+function openPriceCheck(){
+  pc = { cq: "", cust: null, cpicks: null, pq: "", prod: null, ppicks: null, qty: "1", on: "", tier: "", res: null, err: null };
+  drawPriceCheck();
+}
+function drawPriceCheck(){
+  const r = pc.res;
+  const picks = (arr, attr, lab) => arr ? `<div class="picks" style="margin:-4px 0 10px 130px">${arr.length ? arr.map((x, j) => `<button data-${attr}="${j}">${lab(x)}</button>`).join("") : '<span class="dim" style="font-size:12px">Nothing found.</span>'}</div>` : "";
+  const cand = r ? (r.candidates || []).map(c => `<tr${c.status === "won" ? ' style="font-weight:600"' : ""}>
+      <td>${c.kind === "deal" ? `deal · ${esc(c.deal_name || "")}${c.line_no ? ` <span class="dim">line ${esc(c.line_no)}</span>` : ""}` : c.kind === "customer" ? "customer discount" : "set discount"}</td>
+      <td class="num">${esc(Number(c.pct))}%</td>
+      <td>${c.kind === "deal" ? (c.min_qty_mode === "qty" ? `at least ${esc(Number(c.min_qty))} each` : c.min_qty_mode === "case" ? "full case" : '<span class="dim">—</span>') : '<span class="dim">—</span>'}</td>
+      <td>${c.status === "won" ? '<span class="tag">wins</span>' : `<span class="dim">${esc(QP_REASON[c.reason] || c.reason || c.status)}</span>`}</td></tr>`).join("") : "";
+  const SRC = { deal: "deal", customer: "customer discount", set: "set discount", manual: "by hand" };
+  showModal(`<h4>Price check</h4>
+    <div class="pbody">
+      <div class="frow"><label>Customer</label><input type="search" class="ein" id="pcq" autocomplete="off" value="${escA(pc.cust ? pc.cust.name : pc.cq)}" placeholder="Type part of a name, then Find" style="flex:1"><button class="pobtn" id="pcfind">Find</button></div>
+      ${pc.cust ? "" : picks(pc.cpicks, "pcc", x => esc(x.name))}
+      <div class="frow"><label>Product</label><input type="search" class="ein" id="ppq" autocomplete="off" value="${escA(pc.prod ? pc.prod.sku : pc.pq)}" placeholder="SKU or part of a name, then Find" style="flex:1"><button class="pobtn" id="ppfind">Find</button></div>
+      ${pc.prod ? `<div class="dim" style="font-size:12px;margin:-4px 0 10px 130px">${esc(pc.prod.name || "")}</div>` : picks(pc.ppicks, "ppc", x => `<span class="mono">${esc(x.sku)}</span> ${esc(x.name || "")}`)}
+      <div class="frow"><label>Quantity</label><input class="ein" id="pcqty" inputmode="decimal" value="${escA(pc.qty)}" style="width:90px"><span class="dim" style="font-size:12px">in the product's own unit — a set counts its singles</span></div>
+      <div class="frow"><label>Order date</label><input type="date" class="ein" id="pcon" value="${escA(pc.on)}"><span class="dim" style="font-size:12px">empty = today (Toronto)</span></div>
+      <div class="frow"><label>Price tier</label><select class="ein" id="pctier"><option value="">the customer's own tier</option>${refs.tiers.map(t => `<option value="${escA(t.id)}" ${t.id === pc.tier ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select></div>
+      ${pc.err ? `<div class="msg err">${esc(pc.err)}</div>` : ""}
+      ${r ? `<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px;font-size:13px">
+          <b>${esc(r.customer_name)}</b> · <span class="mono">${esc(r.sku)}</span> × ${esc(Number(r.qty))}${r.is_set ? ` <span class="dim">(= ${esc(Number(r.qty_ea))} singles)</span>` : ""} · ${esc(r.tier || "no tier")} · ${esc(r.on)}
+          <div style="margin-top:6px">List <b>${r.list_price === null ? "no price" : esc(Number(r.list_price).toFixed(2))}</b>
+            · discount <b>${esc(Number(r.discount_pct || 0))}%</b> <span class="dim">${esc(SRC[r.discount_source] || r.discount_source || "")}</span>
+            · unit <b>${r.unit_price === null ? "—" : esc(Number(r.unit_price).toFixed(4).replace(/0{1,2}$/, ""))}</b>
+            · line <b>${r.line_total === null ? "—" : esc(Number(r.line_total).toFixed(2))}</b></div>
+          ${cand ? `<table style="margin-top:8px"><thead><tr><th>Candidate</th><th class="num">%</th><th>Minimum</th><th>Result</th></tr></thead><tbody>${cand}</tbody></table>` : ""}
+          <div class="note">Line discounts only — the biggest one wins. An order discount (amount steps or a coupon) is taken off the order total on top of this and is not shown here.</div>
+        </div>` : ""}
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button><button class="pobtn go" id="pcgo" ${pc.cust && pc.prod ? "" : "disabled"}>Check</button></div>`);
+  const box = document.getElementById("modalBox");
+  const keep = () => { pc.qty = box.querySelector("#pcqty").value; pc.on = box.querySelector("#pcon").value; pc.tier = box.querySelector("#pctier").value;
+    const cv = box.querySelector("#pcq").value; if(!pc.cust || cv !== pc.cust.name){ pc.cust = null; pc.cq = cv; }
+    const pv = box.querySelector("#ppq").value; if(!pc.prod || pv !== pc.prod.sku){ pc.prod = null; pc.pq = pv; } };
+  const like = v => "%" + v.replace(/[%_]/g, m => "\\" + m) + "%";
+  box.querySelector("#pcfind").onclick = async () => {
+    keep(); const v = pc.cq.trim(); if(!v) return;
+    const { data, error } = await sb.from("customer").select("id,name").ilike("name", like(v)).eq("is_active", true).order("name").limit(20);
+    if(error){ pc.err = error.message; } else { pc.cpicks = data || []; pc.err = null; }
+    pc.res = null; drawPriceCheck();
+  };
+  box.querySelector("#ppfind").onclick = async () => {
+    keep(); const v = pc.pq.trim(); if(!v) return;
+    const { data, error } = await sb.from("product").select("id,sku,name").or(`sku.ilike.${like(v).replace(/[,()]/g, "%")},name.ilike.${like(v).replace(/[,()]/g, "%")}`).eq("is_active", true).order("sku").limit(20);
+    if(error){ pc.err = error.message; } else { pc.ppicks = data || []; pc.err = null; }
+    pc.res = null; drawPriceCheck();
+  };
+  box.querySelector("#pcq").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); box.querySelector("#pcfind").click(); } });
+  box.querySelector("#ppq").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); box.querySelector("#ppfind").click(); } });
+  box.querySelectorAll("[data-pcc]").forEach(b => b.onclick = () => { keep(); pc.cust = pc.cpicks[Number(b.dataset.pcc)]; pc.cpicks = null; pc.res = null; drawPriceCheck(); });
+  box.querySelectorAll("[data-ppc]").forEach(b => b.onclick = () => { keep(); pc.prod = pc.ppicks[Number(b.dataset.ppc)]; pc.ppicks = null; pc.res = null; drawPriceCheck(); });
+  box.querySelector('[data-m="close"]').onclick = () => { pc = null; closeModal(); };
+  box.querySelector("#pcgo").onclick = async () => {
+    keep(); if(!pc.cust || !pc.prod) return;
+    const n = Number(pc.qty);
+    if(!(n > 0)){ pc.err = "Quantity must be a positive number."; pc.res = null; drawPriceCheck(); return; }
+    const { data, error } = await sb.rpc("so_quote_preview", { p_customer_id: pc.cust.id, p_product_id: pc.prod.id, p_qty: n, p_on: pc.on || null, p_tier_id: pc.tier || null });
+    if(error){ pc.err = error.message; pc.res = null; } else { pc.err = null; pc.res = data; }
+    drawPriceCheck();
+  };
+}
+
 async function voidCoupon(code){
   const note = prompt(`Void coupon ${code}? It can never be used after this.\nOptional note:`, "");
   if(note === null) return;
@@ -931,6 +1005,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("wtype").onchange = both(e => { dtype = e.target.value; });
   document.getElementById("type").onchange  = both(e => { dtype = e.target.value; });
   document.getElementById("wclear").onclick = () => { q = ""; show = "live"; dtype = ""; syncCtl(); renderWide(); };
+  document.getElementById("wcheck").onclick = openPriceCheck;   // dr v2
   document.getElementById("modal").onclick = e => {
     if(e.target.id !== "modal") return;
     if(document.querySelector('#modalBox [data-m="go"]')) return;     // 확인이 걸린 창은 단추로만 닫는다
