@@ -148,7 +148,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-07 · so v5b";   // 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-07 · so v5c";   // 대화 Claude — 판정 350(Caleb 「세일즈 오더 화면에도 오더 토탈 금액」 · 안 A): 넓은 목록 Total 열 · 좁은 목록 오른쪽 위 금액 = 오더 화면 Total 과 같은 숫자(세금 포함 · 나간 뒤 보낸 수량) · 읽기 창구 so_totals_many(p_so_ids) 한 번(20261007161321 so-tot-1 · 한 쪽 100 줄) · 그린 뒤 채운다 · 세금 규칙 없음 = 「no tax rule」 ← so v5b 2026-10-07 · 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -316,7 +316,7 @@ async function loadWide(){
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   if(!data.length){ box.innerHTML = '<div class="msg">No sales orders match.</div>'; pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide); return; }
   box.innerHTML = `<table><thead><tr>
-      <th>SO</th><th>Status</th><th>Channel</th><th>Ordered</th><th>Customer</th><th>Reference</th><th>Warehouse</th><th>Currency</th>
+      <th>SO</th><th>Status</th><th>Channel</th><th>Ordered</th><th>Customer</th><th>Reference</th><th>Warehouse</th><th class="num">Total</th><th>Currency</th>
     </tr></thead><tbody>${data.map(r => `
       <tr data-id="${r.id}">
         <td><span class="mono">${esc(r.so_number)}</span> ${r.split_from_id ? '<span class="tag">split</span>' : ""}</td>
@@ -326,11 +326,27 @@ async function loadWide(){
         <td>${esc(custName(r))}</td>
         <td class="mono">${dim(r.ref)}</td>
         <td>${dim(r.location_name)}</td>
+        <td class="num" data-tot="${r.id}"><span class="dim">…</span></td>
         <td class="mono">${dim(r.currency_code)}</td>
       </tr>`).join("")}</tbody></table>
-    <div class="sosub">Amounts are not stored on the order — the invoice fixes them. Open an order to see its totals.</div>`;
+    <div class="sosub">Total is the same figure the order shows — tax included; once an order ships, shipped quantities. It is worked out each time (not stored); the invoice fixes the final amount.</div>`;
   box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openSo(el.dataset.id); });
   pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+  fillTotals(data.map(r => r.id), box);   // so v5c — 그린 뒤 채운다
+}
+/* so v5c — 판정 350: 목록 금액은 서버 한 곳(so_totals_many · so_detail 의 totals 와 같은 값 · 검증 so-tot-1) · 화면이 더하지 않는다 */
+async function fillTotals(ids, scope){
+  if(!ids.length) return;
+  const { data, error } = await sb.rpc("so_totals_many", { p_so_ids: ids });
+  const by = {}; (data || []).forEach(t => { by[t.so_id] = t; });
+  scope.querySelectorAll("[data-tot]").forEach(el => {
+    const t = by[el.dataset.tot];
+    if(error){ el.innerHTML = '<span class="dim" title="' + esc(error.message).replace(/"/g, "&quot;") + '">—</span>'; return; }
+    if(!t){ el.innerHTML = ""; return; }
+    el.innerHTML = (t.order_total_with_tax === null || t.order_total_with_tax === undefined)
+      ? `<span class="dim" title="Before tax ${esc(Number(t.order_total).toFixed(2))} — no tax rule yet">no tax rule</span>`
+      : `<span title="${t.basis === "shipped" ? "Shipped quantities" : "Ordered quantities"} · tax included">${money(t.order_total_with_tax)}</span>`;
+  });
 }
 
 async function loadList(){
@@ -344,6 +360,7 @@ async function loadList(){
         ${r.ref ? `<div class="sn">${esc(r.ref)}</div>` : ""}
       </span>
       <span class="r">
+        <div class="mono" style="font-size:12.5px" data-tot="${r.id}"><span class="dim">…</span></div>
         <div class="dim" style="font-size:11.5px">${esc(r.order_date || "")}</div>
         <div style="margin-top:3px">${rowTags(r)}</div>
       </span>
@@ -352,6 +369,7 @@ async function loadList(){
     el.onclick = () => { curId = el.dataset.id; loadList(); loadDetail(curId); };
   });
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+  fillTotals(data.map(r => r.id), document.getElementById("rows"));   // so v5c
 }
 
 /* 형제·병합 사이 이동 — 모체 번호를 검색칸에 넣어 한 뭉치가 목록에 보이게(po.html gotoPo 선례) */
