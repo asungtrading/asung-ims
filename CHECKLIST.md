@@ -7,6 +7,8 @@
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
 
+⚠️ [2026-10-07 · so-module §51 미룬 131] 이 목록에 **절이 없는 화면** — surcharge-groups.html · stock.html · customers.html(10-06 dr-1 Claude Code 이견 4) · 더해야 낡은 목록이 아니다
+
 📌 숫자는 2026-09-15 실측(화면·SQL · Caleb)이다. 적재가 다시 돌면 달라진다 —
 그때는 숫자를 고치고 **언제 왜 달라졌는지**를 한 줄 남긴다.
 
@@ -195,6 +197,15 @@
 [ ] FAMILY 칸이 파란 링크이고 누르면 families.html 로 간다
 [ ] ⭐ 검색어나 Kind·Brand·Category 를 바꾸면 오른쪽이 비워진다 · ← → 로 페이지를 넘기면 그대로다 (§10-j 3-d)
     ⚠️ 구성품·형제 SKU 를 눌러 이동할 때는 비워지지 않는다 — 코드가 넣는 검색어다
+```
+
+**[2026-10-07 · pr v4b · v4c — 태그 · asung-ims 93d5c31 · c750a8b · 판정 336 · so-module §51]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「pr v4c」 · 제품 상세에 Tags 카드(읽기)
+[ ] Edit → 태그 붙이기(product_update tag_add) · ✕ 로 떼기(tag_off) → Save · Save 전 undo
+[ ] 있는 태그와 대소문자만 다른 글자 → 기존 철자로 바꿔 다시 Add
+[ ] 태그 목록(자동 완성) = 제품 태그 ∪ 딜 대상 태그 · 이 화면에서 방금 저장한 태그가 목록에 바로 있다(v4b 결함 · Caleb 시험)
+[ ] 딜이 쓰는 태그의 마지막 제품에서 떼면 확인 창 tag_off_used_by_deal
 ```
 
 ---
@@ -699,6 +710,18 @@ so v3 — Finalize 창
 ```
 ⬜ Finalize 창의 줄 빼기(removed · 판정 9) · 견적서(so_proforma) 인쇄 단추 · 판정 17 표 공통화(ims-ui.js · manager-list · pos · so-backorders · 0-a 재점검)
 
+**[2026-10-07 · so v5a · v5b — 할인 표시 · 다시 매기기 · asung-ims afa18e1 · 6c91244 · 판정 284 · 312 · 346 · 349 · so-module §51]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「so v5b」
+[ ] v5a 머리 Coupon 줄 — apply · replace · ✕ · applied / not used + 까닭
+[ ] Order discount 출처 이름표 — rule · 딜 이름 / coupon 코드 / set by hand · locked(312) · 「a rule would give N%」
+[ ] 줄 표 Net unit 칸 — 오더 할인 % 가 있을 때만(판정 284 · 그릴 때 계산) · Price from 에 set discount · 딜 이름 · 경고 글 셋
+    기대(Caleb 시험 통과): SO-25053 지움 · SO-25054 · 쿠폰 9MGKPT8X · 20% · manual 1% → not used · 비우면 쿠폰 · ✕
+[ ] v5b 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ 깃발 · Confirmed 에는 깃발이 없다 · 판정 349) · 상태 거르기 「Draft — reprice suggested」
+[ ] 경고 글이 원인 전부(딜 · 제품 brand / category / 태그 · 주문일 · 티어 · 할인) + since 시각 · 깃발이면 Reprice ●
+    기대(Caleb 시험 통과): 10-02 초안 · Adore 줄 customer 0% → Reprice → deal 15% · surcharge 37% 가 새 단가를 따라 1.79
+```
+
 ⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다. → ✅ [2026-09-26] Release to WMS · Recall from WMS 는 v2.4 로 섰다 → ✅ [2026-09-28] 오피스 마무리(so_finalize)는 v3 로 섰다 · 인쇄 · 손님 잔액 화면은 그대로
 
 ---
@@ -758,6 +781,14 @@ so v3 — Finalize 창
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · pg_trgm 검색 인덱스(정본 ⬜). 받아 둔 돈 손으로 붙이기(so_payment_attach) · Customer Payments 화면은 7-h · 크레딧 붙이기 · Credit Notes 화면은 7-i 로 섰다.
+
+**[2026-10-07 · inv v2a — 할인 표시 · asung-ims 9a23633 · 판정 284 · so-module §51]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「inv v2a」 · 줄 표 Net unit 칸(줄의 오더의 order_discount_pct) · 종류 「order discount」
+[ ] ⭐ Order discount 합계가 「−1.95」 하나(금액은 음수로 저장 · so_invoice_taxable_ck — 옛 판은 「−-0.97」)
+    기대(Caleb 시험 통과): SO-25056 Counter · 쿠폰 9MGKPT8X → 인보이스 60018 −1.95 · Net unit 3.8692 · 3.9358
+⬜ 인보이스 단가 표시 설정(so_invoice_unit_display · 판정 314)은 인쇄 차수에서(미룬 127)
+```
 
 ---
 
@@ -866,6 +897,14 @@ so v3 — Finalize 창
 
 ⚠️ [2026-09-25] 아직 없는 것 — 인쇄(PDF) · Cin7 판매 반품(오더 번호로 되짚기 · 줄 손으로 · 창구 cin7{…} 은 있다) · B급 칸 · 손님별 크레딧 잔액 화면 (정본 §19-g).
 
+**[2026-10-07 · cr v2a · v2b — 오더 할인 · asung-ims 9a23633 · 61e0ac7 · 판정 325 · so-module §51]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「cr v2b」 · 상세 표 종류 「order discount」 · 합계에 Order discount
+[ ] ⭐ 만들기 창(Raise a credit note) 미리 보기 표도 「order discount」(v2a 는 상세 표만 고쳤다 — 「order_discount」 가 남았다)
+    기대(Caleb 시험 통과): 인보이스 60018 → CR-01005 −0.97 · 세금 −0.13 · total 4.37
+[ ] 크레딧은 낸 인보이스에 저절로 붙지 않는다 — 붙이지 않으면 다음 판매 확정에 「Credit / on account」(SO-25058 · 4.37 · To pay 0.00)
+```
+
 ---
 
 ## 7-j. `so-backorders.html` — 백오더 (2026-09-25 밤 신설 · 대화 Claude · 「2026-09-25 · bo v1」 → v1.1(다른 창고 가용을 이름별로) → v1.2(무상 줄 필터 칸 없앰 · 요약 숫자로 거른다) → **v1.3**(잡힐 것 없으면 진행 막힘))
@@ -973,6 +1012,14 @@ Parked and open at this store
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 영수증·인보이스 인쇄 · 현금 서랍·거스름돈 기록(거스름돈은 기록하지 않는 것이 판정) · so.html 의 Finish on POS 단추(자리만 · 이 화면이 대신한다) (정본 6-f · §18). 매니저의 「안 끝난 판매」 목록은 manager-list.html 의 POS not finished 탭으로 섰다(7-l · 같은 날 밤).
+
+**[2026-10-07 · pos v1.7 · v1.8 — 쿠폰 · asung-ims 7801ae6 · 5d4af74 · 판정 283 · so-module §51]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「pos v1.8」
+[ ] 쿠폰 칸은 쓸 수 있는 쿠폰(안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 켜진 쿠폰 딜)이 있거나 붙었을 때만 — 코드 · 딜 · 기한 · Use · 쿠폰 없는 손님은 칸 없음
+[ ] Use → 붙음 · 확정 뒤 「Order discount · coupon 코드 · %」 · 확정이 진 쿠폰을 떼면 알림 · Set discount 줄 메모
+    기대(Caleb 시험 통과): 9MGKPT8X used on SO-25056 막힘 · AS-ZPZC4BFM 확정 · AS-YWC426GE Use · 쿠폰 없는 손님 칸 없음
+```
    · 사진 — 오른쪽 판 맨 위에 방금 스캔한 제품의 사진을 크게 · 그 아래 합계 · 세금 · 결제 단추 · 사진 없는 제품은 그 자리에 SKU 와 이름을 크게(Caleb 2026-09-25).
      전제: IMS 제품 마스터에 사진 칸 · Cin7 사진 파일을 우리 저장소로 복사(지금 사진은 Cin7 주소라 Cin7 을 끄면 죽을 수 있다) — 마스터 쓰기(상품 등록) 차례.
 
@@ -1585,7 +1632,7 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 
 ⭐ 마우스 · 터치 · 높이는 Claude Code 렌더 시험(jsdom)이 증명하지 못한다(:hover · 레이아웃 없음 · so-module §32-d 3) — 이 절은 눈으로만 닫힌다
 ```
-[ ] Ctrl+F5 · 헤더 오른쪽 빌드 표시 뒤 「nav v4」
+[ ] Ctrl+F5 · 헤더 오른쪽 빌드 표시 뒤 「nav v4」 → [2026-10-06 · dr v1 · 3eace0c] 「nav v5」(Settings ▾ 에 Discount Rules · master)
 [ ] 열쇠가 다른 둘(admin + 창고 직원)로 로그인 — 메뉴 · 모드가 열쇠대로(직원은 모드 없이 로고 · WMS 탭 Picking · Packing 류만)
 [ ] 110% — IMS · POS 화면이 크고 WMS 화면은 그대로
 [ ] ⭐ 마우스로 갈래 사이를 옮겨 다니면 펼침이 하나만 열린다 · Sales 를 **눌러** 연 뒤 Inventory 로 옮겨도 겹치지 않는다(실사고 길 · 판정 168)
@@ -1619,6 +1666,9 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 [ ] 9. + New order discount — 「DR TEST order」 · 단계 둘(금액 · %) · 저장 · 단계 금액 맞바꾸기 저장이 된다(판정 340)
 [ ] 10. (마지막 · 되돌릴 수 없다) 「DR TEST order」에 Coupon required 켜기 저장 → Coupons 카드 → Issue coupons(손님 하나 · 기한 없음) → 코드 목록 · Copy list → 한 장 Void
 [ ] 11. 시험 딜 정리 — 「DR TEST …」 딜은 Active 를 끄고 저장(딜은 지우지 않는다)
+    ✅ 2026-10-06 21:30 ~ 22:20 Caleb 1 ~ 11 통과(제품 수 81 / 85 = SQL · Edmonton 조건 손님 135 = SQL) · dr v1a(a61b7a9) 6 의 막기 창에 토론토 시각 + 「Load the latest version」 · dr v1b(124da1f) 손님 검색 칸 type=search · autocomplete=off · Enter = 찾기
+[ ] 12. [2026-10-07 · dr v2 · 4e6e4f4] 빌드 표시 「dr v2」 · 넓은 목록 「Price check…」 — 손님 · 제품 · 수량 · 날짜 · 티어 → 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(won / 진 까닭) · 「오더 할인은 여기 없다」 안내
+    기대(Caleb 시험 통과): JOJOJO · AD010069 → 15% deal · 단가 4.8365 · customer 7% 는 lower_pct
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
