@@ -7,7 +7,7 @@
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
 
-⚠️ [2026-10-07 · so-module §51 미룬 131] 이 목록에 **절이 없는 화면** — surcharge-groups.html · stock.html · customers.html(10-06 dr-1 Claude Code 이견 4) · 더해야 낡은 목록이 아니다
+⚠️ [2026-10-07 · so-module §51 미룬 131] 이 목록에 **절이 없는 화면** — surcharge-groups.html · stock.html · customers.html(10-06 dr-1 Claude Code 이견 4) · 더해야 낡은 목록이 아니다 → [2026-10-07 · §52] stock 은 7-zd 로 섰다 · surcharge-groups · customers · 옛 판 빈자리는 미룬 137
 
 📌 숫자는 2026-09-15 실측(화면·SQL · Caleb)이다. 적재가 다시 돌면 달라진다 —
 그때는 숫자를 고치고 **언제 왜 달라졌는지**를 한 줄 남긴다.
@@ -208,6 +208,13 @@
 [ ] 딜이 쓰는 태그의 마지막 제품에서 떼면 확인 창 tag_off_used_by_deal
 ```
 
+**[2026-10-07 · pr v4d — 세일 라벨 · On sale · asung-ims 2d4ecc5 · 판정 361 · sale-1 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「pr v4d」 · 목록이 product_list 를 부른다 — 검색 · 브랜드 · 카테고리 · 공급처 · 종류 · Active · 쪽이 전과 같은 줄 · 같은 순서
+[ ] 세일 제품에 빨간 「Sale N%」(조건 있으면 *) · 마우스 설명에 딜 · % · 끝 날짜 · 조건 · 상세 머리에도
+[ ] On sale 거르기 → 세일 제품만 · 세트도 낱개의 딜로 라벨이 붙는다(판정 302)
+```
+
 ---
 
 ## 5. `families.html` — 패밀리
@@ -333,6 +340,13 @@
 ⚠️ 콘솔 오류 「Cannot read properties of null (reading 'onchange') at po.html:1180」 — [2026-09-16 저녁 조사] 배포본(a867578)은 1,137행이고 어느 커밋(36c1fc2 → a867578)에도 1,180행이 없다.
    imsAuth.start 콜백 안에서 forEach 로 onchange 를 거는 자리는 코드에 **없다**(콜백 안 forEach 는 wclear 의 `.value = ""` 하나). 커밋되지 않은 다른 사본이나 콘솔에 남은 옛 기록으로 **짐작**한다.
    ⇒ 강력 새로 고침 뒤 다시 나면 그때 `curl -s https://ims.asung.ca/po.html | wc -l` 로 배포본 행수를 대조한다.
+
+**[2026-10-07 · po st v1 ~ v4 — 상태 칩 · 결제 · asung-ims 8b758bf · 623f678 · 07a47b2 · 판정 360 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「po st v4」 · 머리 · 두 목록의 상태 칩 채운 색 — Draft 회색 · Ordered 파랑 · Receiving 보라 · Received 주황(사무실 마무리) · Completed 초록(저장값 closed) · Cancelled 빨강
+[ ] Status 열의 국면 점 다섯이 없다 · 상태 거르기는 칩 이름(ordered · receiving · received · Completed)
+[ ] 공급처 인보이스가 있으면 번호 옆 결제 태그(unpaid · partly paid · paid) · 결제 거르기
+```
 
 ---
 
@@ -722,6 +736,20 @@ so v3 — Finalize 창
     기대(Caleb 시험 통과): 10-02 초안 · Adore 줄 customer 0% → Reprice → deal 15% · surcharge 37% 가 새 단가를 따라 1.79
 ```
 
+**[2026-10-07 오후 · so v5c ~ v5p — 목록 Total · 운임 · 상태 색 · 결제 · 인보이스 · Fulfilled · asung-ims 89e2784 ~ ec7d5ac · 판정 350 · 352 ~ 357 · 359 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「so v5p」
+[ ] v5c 넓은 · 좁은 목록 Total = 오더 화면 Total(세금 포함 · so_totals_many) · 기대(대화 Claude 회신 · Caleb 시험): SO-25067 194.29 · SO-25070 11.21
+[ ] v5d · v5e Finalize 창이 견적 운임을 미리 채우고 고친다(둘째 운임이 안 생긴다) · 미리 보기에 그대로 · was → new · new
+[ ] v5f Charge 창 · Finalize 에 할인 % 또는 $ · Charges 표 Discount / Net · Finalize 전 운임에 「estimate」
+[ ] v5g 알릴 것 없는 Confirm 은 창이 저절로 닫힌다 · Release to WMS 확인 창 없음 · Backorders taken over 는 있을 때만 · 글로
+[ ] v5h ~ v5k 상태 칩 채운 색(판정 359) · Branch 거르기 · Status 열 먼저 · Shipped 는 거르기에 없고 「Invoice cancelled」 칩(인보이스 취소 뒤에만)
+[ ] v5i · v5l 결제 태그(unpaid · partly paid · paid · overdue Nd) · 결제 거르기(고르면 상태 Open → All)
+[ ] v5m Invoice 열(살아 있는 인보이스 번호 · Sales Invoices 링크) · 인보이스 번호로 검색(취소된 것도)
+[ ] v5p Fulfilled 날짜 + 걸린 날 수(같은 날 초록 · 1 ~ 3 일 호박 · 넘음 빨강 · 토론토 날짜)
+⬜ Finalize 경고 charge_added_beside_existing 의 화면 문장(WARN 표에 없음 · 미룬 133)
+```
+
 ⚠️ [2026-09-25 밤] 아직 없는 것 — Release to WMS(단추 자리만) · 오피스 마무리(so_finalize) · 인쇄 · 손님 잔액 화면 (정본 §14~§21). 보류·나누기·창고 바꾸기·백오더 진행·병합은 2판(v2)으로 섰다 · 백오더 목록은 so-backorders.html(7-j) · POS 계산대는 pos.html(7-k) · 「재고 없이 나갔다」 관리는 manager-list.html(7-l)로 섰다. → ✅ [2026-09-26] Release to WMS · Recall from WMS 는 v2.4 로 섰다 → ✅ [2026-09-28] 오피스 마무리(so_finalize)는 v3 로 섰다 · 인쇄 · 손님 잔액 화면은 그대로
 
 ---
@@ -788,6 +816,14 @@ so v3 — Finalize 창
 [ ] ⭐ Order discount 합계가 「−1.95」 하나(금액은 음수로 저장 · so_invoice_taxable_ck — 옛 판은 「−-0.97」)
     기대(Caleb 시험 통과): SO-25056 Counter · 쿠폰 9MGKPT8X → 인보이스 60018 −1.95 · Net unit 3.8692 · 3.9358
 ⬜ 인보이스 단가 표시 설정(so_invoice_unit_display · 판정 314)은 인쇄 차수에서(미룬 127)
+```
+
+**[2026-10-07 오후 · inv v2b · v2c · v2d — 운임 할인 · asung-ims 702e56c · a824097 · 96f6055 · 판정 352 · 357-6 · fr-2 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「inv v2d」 · 운임 · 운임 할인 줄은 제품 표 밖 「Freight and charges」(합계 가까이)
+[ ] 오더 표 Charges 는 순액(10.00 − 5.00 → 5.00) · 그 줄이 Total 로 더해진다 · Freight discount 통계
+[ ] 「money on account applied」 = −balance_forward − credit_applied(크레딧을 두 번 보이지 않는다)
+    기대(대화 Claude 회신 · Caleb 시험): 60019 · 60020
 ```
 
 ---
@@ -905,6 +941,14 @@ so v3 — Finalize 창
 [ ] 크레딧은 낸 인보이스에 저절로 붙지 않는다 — 붙이지 않으면 다음 판매 확정에 「Credit / on account」(SO-25058 · 4.37 · To pay 0.00)
 ```
 
+**[2026-10-07 오후 · cr v2c · v2d — 운임 할인 되돌림 · asung-ims 702e56c · a824097 · 판정 355 · fr-3 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「cr v2d」 · 운임 줄에 할인 · 낸 순액 · 남은 순액(so_credit_prepare net_remaining)
+[ ] 미리 보기 · 상세에 「freight discount」 줄(자동 · 같은 비율 · 마지막은 남은 할인 전부) · 합계 이름 「Lines」(Products 아님)
+[ ] 무료 배송(100%) 운임을 돌려주면 total 0 안내
+    기대(대화 Claude 회신 · Caleb 시험): 크레딧 미리 보기 2.26
+```
+
 ---
 
 ## 7-j. `so-backorders.html` — 백오더 (2026-09-25 밤 신설 · 대화 Claude · 「2026-09-25 · bo v1」 → v1.1(다른 창고 가용을 이름별로) → v1.2(무상 줄 필터 칸 없앰 · 요약 숫자로 거른다) → **v1.3**(잡힐 것 없으면 진행 막힘))
@@ -950,6 +994,13 @@ so v3 — Finalize 창
 [ ] Proceed 는 미리 보기가 온 뒤에만 눌린다 → p_commit true → 표가 결과로 바뀌고 「Done.」 · 「Split off:」 · 아래에 「Proceeded.」 · Cancel 이 Close 로 바뀌고 닫으면 목록을 다시 읽는다
 [ ] ⭐ [v1.3] 미리 보기에서 **잡힐 줄이 하나도 없으면(Reserved 전부 0) Proceed 가 막힌 채**로 「Nothing can be reserved yet — … Proceed does not wait for stock: press it again after stock arrives」가 뜬다(「스탁이 들어오면 자동으로 reserve 한다」는 오해를 막는다 · so.html 의 Proceed backorder… 와 같은 문장)
 [ ] 창구가 거부하면(권한 · 상태) 문장이 모달 안에 뜨고 Proceed 가 다시 눌린다
+```
+
+**[2026-10-07 · bo v3 — 프리오더 · asung-ims 3a7de42 · 판정 351 · 9 · bo-pre-1 · so-module §52]**
+```
+[ ] Ctrl+F5 · 빌드 표시 「bo v3」 · Pre-order 이름표 · Kind 거르기(both · backorders · pre-orders) · 열린 백오더 · 프리오더 수
+[ ] 프리오더도 Arrived · Available · Proceed 가 백오더와 같다 · 만료 · 이어받기 · 알림 칸은 「—」(판정 9) · 끝난 목록은 백오더만
+    기대(대화 Claude 회신 · Caleb 시험): SO-25068 Pre-order
 ```
 
 ⚠️ [2026-09-25] 아직 없는 것 — 알림(notified) 표시 · 보내기(입고 메일은 GAS·Cin7) · so.html 의 「백오더 진행」 단추(자리만 · 이 화면의 proceed 가 대신한다) · 인쇄 (정본 §15).
@@ -1669,6 +1720,18 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
     ✅ 2026-10-06 21:30 ~ 22:20 Caleb 1 ~ 11 통과(제품 수 81 / 85 = SQL · Edmonton 조건 손님 135 = SQL) · dr v1a(a61b7a9) 6 의 막기 창에 토론토 시각 + 「Load the latest version」 · dr v1b(124da1f) 손님 검색 칸 type=search · autocomplete=off · Enter = 찾기
 [ ] 12. [2026-10-07 · dr v2 · 4e6e4f4] 빌드 표시 「dr v2」 · 넓은 목록 「Price check…」 — 손님 · 제품 · 수량 · 날짜 · 티어 → 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(won / 진 까닭) · 「오더 할인은 여기 없다」 안내
     기대(Caleb 시험 통과): JOJOJO · AD010069 → 15% deal · 단가 4.8365 · customer 7% 는 lower_pct
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
+## 7-zd. `stock.html` — Stock Availability (2026-10-06 신설 · 대화 Claude · 「stk v1」 15b9660 → v1a 2a5979e(움직임 종류 글자) → v1b 3dfd7b8(Bin 열) → v1c ddb2eb6(펼침) → v1d db31e25(Movements 순서) → **v1e** 2d4ecc5(세일 라벨 · On sale) · 창구 stk_availability · stk_bins · stk_bins_many · stk_movements · 판정 257 ~ 276 · 361 · so-module §46 · §52 · 미룬 131 로 신설)
+
+```
+[ ] Ctrl+F5 · 빌드 표시 「stk v1e」 · 브랜치 고르기(활성만) · 줄 = 낱개 재고 키(세트 · 콤보 줄 없음) · On hand · Sales reserved · Transfer reserved · Available · On order · In transit
+[ ] 다섯 숫자 모두 0 인 줄은 기본에서 빠진다 · Include zero 로 보인다 · 세트 sku 검색 → 낱개 줄(matched set)
+[ ] Bin 열 · ▸ 펼침(세트 · 칸 · 최근 움직임) · Movements 순서 단추(oldest / newest · 이 브라우저에 기억 · 잔고는 줄마다 그대로)
+[ ] v1e 세일 낱개에 빨간 「Sale N%」(* = 조건) · 마우스 설명 · On sale 거르기 → 세일 낱개만(세트만 대상인 딜은 낱개 줄에 안 보인다 · 미룬 136)
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ```
 
