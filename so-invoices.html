@@ -115,7 +115,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-10-05 · inv v2";   // 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-10-07 · inv v2a";   // 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -424,7 +424,7 @@ async function loadDetail(id){
   const stats = `
     <div class="stats">
       <div class="stat">Lines<b>${money(v.lines_amount)}</b></div>
-      <div class="stat">Order discount<b>${Number(v.order_discount_amount) ? "−" + money(v.order_discount_amount) : money(0)}</b></div>
+      <div class="stat">Order discount<b>${Number(v.order_discount_amount) ? "−" + money(Math.abs(Number(v.order_discount_amount))) : money(0)}</b></div>   <!-- inv v2a: 인보이스의 오더 할인 금액은 음수로 저장된다(taxable = lines + order_discount + charges) — 「−-0.97」 이 되지 않게 -->
       <div class="stat">Charges<b>${money(v.charges_amount)}</b></div>
       ${Number(v.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(v.surcharge_amount)}</b></div>` : ""}
       <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
@@ -450,6 +450,16 @@ async function loadDetail(id){
   const includesTxt = (l) => Array.isArray(l.combo_components) && l.combo_components.length
     ? `<div style="font-size:11.5px;color:var(--muted)">Includes (each): ${l.combo_components.map(c => `${esc(qty(c.qty_per_combo))} × ${esc(c.description || "")} <span class="mono">${esc(c.sku || "")}</span>`).join(", ")}</div>` : "";
   /* surcharge-3 — kind surcharge 줄은 그 상품 줄 바로 아래(발행이 그렇게 놓는다 · surcharge-2b) · 사진 없이 「↳ 이름」 */
+  /* inv v2a — Net unit(판정 284): 줄의 오더(invoice_order_id)의 오더 할인 % 로 · 오더 할인이 있는 오더가 하나라도 있을 때만 칸을 둔다 */
+  const odPct = {}; (data.orders || []).forEach(o => { odPct[o.id] = Number(o.order_discount_pct) || 0; });
+  const showNet = Object.values(odPct).some(x => x > 0);
+  const netTd = (l) => {
+    if(!showNet) return "";
+    const pct = odPct[l.invoice_order_id] || 0;
+    if(l.kind !== "product" || !pct || l.unit_price === null || l.unit_price === undefined) return "<td></td>";
+    return `<td class="num" title="Unit after the ${esc(pct)}% order discount">${price(Number(l.unit_price) * (1 - pct / 100))}</td>`;
+  };
+  const KIND_LBL = { order_discount: "order discount" };
   const lines = (data.lines || []).map(l => l.kind === "surcharge" ? `<tr>
       <td class="num">${esc(l.line_no)}</td>
       <td>surcharge</td>
@@ -457,16 +467,18 @@ async function loadDetail(id){
       <td class="num">${qty(l.qty)}</td>
       <td></td><td></td>
       <td class="num">${price(l.unit_price)}</td>
+      ${netTd(l)}
       <td class="num">${money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
     </tr>` : `<tr>
       <td class="num">${esc(l.line_no)}</td>
-      <td>${esc(l.kind || "")}</td>
+      <td>${esc(KIND_LBL[l.kind] || l.kind || "")}</td>
       <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div>${includesTxt(l)}</div></div></td>
       <td class="num">${qty(l.qty)}</td>
       <td class="num">${price(l.list_price)}</td>
       <td class="num">${l.discount_pct === null || l.discount_pct === undefined ? '<span class="dim">—</span>' : esc(Number(l.discount_pct)) + "%"}</td>
       <td class="num">${price(l.unit_price)}</td>
+      ${netTd(l)}
       <td class="num">${money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
     </tr>`);
@@ -524,8 +536,8 @@ async function loadDetail(id){
       "Each order keeps its own ship-to and tax rule — one invoice can carry several orders of the same bill-to customer.")}
 
     ${tbl("Lines", lines.length,
-      [["#","num"],["Kind",""],["Item",""],["Qty","num"],["List","num"],["Disc %","num"],["Unit","num"],["Amount","num"],["Tax","num"]], lines,
-      "Each line's tax is rounded on its own and added up.")}
+      [["#","num"],["Kind",""],["Item",""],["Qty","num"],["List","num"],["Disc %","num"],["Unit","num"]].concat(showNet ? [["Net unit","num"]] : []).concat([["Amount","num"],["Tax","num"]]), lines,
+      "Each line's tax is rounded on its own and added up." + (showNet ? " Disc % is the line discount only; Net unit shows the unit after the order's order discount, which is its own line (amounts are not changed)." : ""))}
 
     ${tbl("Payments", pays.length,
       [["Paid on",""],["Method",""],["Reference",""],["Account",""],["On this invoice","num"],["Payment","num"],["How it attached",""],["",""]], pays,

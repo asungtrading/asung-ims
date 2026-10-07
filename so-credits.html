@@ -122,7 +122,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-05 · cr v2";   // 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-07 · cr v2a";   // 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -599,6 +599,7 @@ async function loadDetail(id){
   const stats = `
     <div class="stats">
       <div class="stat">Products<b>${money(v.lines_amount)}</b></div>
+      ${Number(c.order_discount_amount) ? `<div class="stat">Order discount<b>−${money(Math.abs(Number(c.order_discount_amount)))}</b></div>` : ""}
       <div class="stat">Fee<b>${money(v.fee_amount)}</b></div>
       ${Number(v.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(v.surcharge_amount)}</b></div>` : ""}
       <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
@@ -609,7 +610,7 @@ async function loadDetail(id){
     </div>`;
 
   const lines = (data.lines || []).map(l => `<tr${l.combo_credit_line_id ? ' class="comp"' : ""}>
-      <td class="num">${esc(l.line_no)}</td><td>${esc(l.kind || "")}</td>
+      <td class="num">${esc(l.line_no)}</td><td>${esc(l.kind === "order_discount" ? "order discount" : (l.kind || ""))}</td>
       <td><div class="lnth">${l.combo_credit_line_id ? '<span class="cind">↳</span>' : ""}${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}${l.combo_credit_line_id && l.combo_qty ? ` · ${esc(qty(l.combo_qty))} per combo` : ""}</div></div></div></td>
       <td class="num">${l.kind === "product" || l.kind === "surcharge" ? qty(l.qty_returned) : ""}</td>
       <td>${Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
