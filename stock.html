@@ -54,6 +54,8 @@
   .exph:first-child{margin-top:0}
   tr.sub > td{background:#fbfbfd;padding:6px 10px 10px 34px}
   .expact{margin-top:8px}
+  /* stk v1e — 세일 라벨(채운 빨강) */
+  .salet{display:inline-block;background:#e03131;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;white-space:nowrap;cursor:help;font-family:inherit}
 </style>
 </head>
 <body>
@@ -75,6 +77,7 @@
       <select id="wbrand"><option value="">All brands</option></select>
       <select id="wcat"><option value="">All categories</option></select>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wzero"> Show zero stock</label>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wsale"> On sale</label>
       <button class="pobtn" id="wclear">Clear</button>
     </div>
     <div id="wrows" class="scroll"><div class="msg">Loading…</div></div>
@@ -89,7 +92,7 @@
   <section class="list" id="listPanel">
     <div class="top">
       <input type="search" id="q" placeholder="Search SKU, name or brand">
-      <div class="opts"><label><input type="checkbox" id="zero"> Show zero stock</label></div>
+      <div class="opts"><label><input type="checkbox" id="zero"> Show zero stock</label> <label><input type="checkbox" id="sale"> On sale</label></div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
     <div class="foot">
@@ -116,11 +119,12 @@
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-07 · stk v1d";   // 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-07 · stk v1e";   // 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
 let WHS = [], wh = "", q = "", brand = "", cat = "", zero = false;
+let saleOnly = false;   // stk v1e
 let curId = null, detailSeq = 0;
 const PAGE = 100;
 let wOff = 0, lOff = 0, wideSeq = 0, listSeq = 0;
@@ -166,8 +170,24 @@ const thumb = (url) => url ? `<img class="th" src="${esc(url)}" alt="" loading="
 function avail(off){
   return sb.rpc("stk_availability", {
     p_warehouse_id: wh, p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null,
-    p_include_zero: zero, p_limit: PAGE, p_offset: off,
+    p_include_zero: zero, p_limit: PAGE, p_offset: off, p_sale_only: saleOnly,
   });
+}
+/* stk v1e — 세일 라벨 · 설명(판정 361) */
+const saleTag = (r) => r && r.sale_pct !== null && r.sale_pct !== undefined
+  ? ` <span class="salet" data-sale="${esc(r.product_id)}" title="On sale">Sale ${esc(Number(r.sale_pct))}%${r.sale_conditional ? "*" : ""}</span>` : "";
+function saleHint(deals){
+  return (deals || []).map(d => `${d.name} ${Number(d.pct)}%` + (d.date_to ? ` · until ${d.date_to}` : "")
+    + (d.min_qty_mode && d.min_qty_mode !== "none" ? ` · ${d.min_qty_mode === "case" ? "full case" : (d.min_qty || "") + "+ units"}` : "")
+    + (d.customer_limited ? " · some customers only" : "")).join("\n") + ((deals || []).some(d => (d.min_qty_mode && d.min_qty_mode !== "none") || d.customer_limited) ? "\n* conditions apply" : "");
+}
+async function fillSaleHints(scope){
+  const ids = Array.from(new Set(Array.from(scope.querySelectorAll("[data-sale]")).map(el => el.dataset.sale)));
+  if(!ids.length) return;
+  const { data, error } = await sb.rpc("so_sale_now", { p_product_ids: ids, p_on: null });
+  if(error){ console.warn("sale hints:", error.message); return; }
+  const by = {}; (data || []).forEach(x => { by[x.product_id] = x; });
+  scope.querySelectorAll("[data-sale]").forEach(el => { const x = by[el.dataset.sale]; if(x) el.title = saleHint(x.deals); });
 }
 function pager(rangeId, prevId, nextId, off, total, go){
   $(rangeId).textContent = total ? `${off + 1}–${Math.min(off + PAGE, total)} of ${total.toLocaleString("en-CA")}` : "0";
@@ -178,6 +198,7 @@ function pager(rangeId, prevId, nextId, off, total, go){
 function syncCtl(){
   $("q").value = q; $("wq").value = q;
   $("zero").checked = zero; $("wzero").checked = zero;
+  $("sale").checked = saleOnly; $("wsale").checked = saleOnly;   // stk v1e
   $("wwh").value = wh; $("wbrand").value = brand; $("wcat").value = cat;
 }
 
@@ -211,7 +232,7 @@ async function loadWide(off){
       <th class="num">On order</th><th class="num">In transit</th><th>Last movement</th></tr></thead><tbody>
     ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
       <td style="width:22px"><button class="car" data-car="${esc(r.product_id)}" title="Show sets, bins and recent movements">&#9656;</button></td>
-      <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
+      <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${saleTag(r)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
       <td>${dim(r.brand_name)}</td><td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
       ${numTd(r.on_hand)}${numTd(r.sales_allocated)}${numTd(r.transfer_reserved)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}
       <td>${r.last_event_on ? esc(r.last_event_on) : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>`
@@ -219,6 +240,7 @@ async function loadWide(off){
   if(bn.__err) $("wrows").insertAdjacentHTML("afterbegin", `<div class="msg err">Bins: ${esc(bn.__err)}</div>`);
   $("wrows").querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openProduct(tr.dataset.id); });
   $("wrows").querySelectorAll("[data-car]").forEach(b => { b.onclick = (e) => { e.stopPropagation(); toggleExp(b); }; });
+  fillSaleHints($("wrows"));   // stk v1e
   pager("wrange", "wprev", "wnext", off, total, loadWide);
 }
 async function loadList(off){
@@ -228,9 +250,10 @@ async function loadList(off){
   if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
   $("rows").innerHTML = rows.length ? rows.map(r => `<div class="row ${r.product_id === curId ? "cur" : ""}" data-id="${esc(r.product_id)}">
-      <span><span class="mono">${esc(r.sku)}</span><br><span class="dim" style="font-size:12px">${esc(r.name)}</span></span>
+      <span><span class="mono">${esc(r.sku)}</span>${saleTag(r)}<br><span class="dim" style="font-size:12px">${esc(r.name)}</span></span>
       <span class="av">${n0(r.available)}</span></div>`).join("") : '<div class="msg">No stock matches.</div>';
   $("rows").querySelectorAll(".row[data-id]").forEach(el => { el.onclick = () => openProduct(el.dataset.id); });
+  fillSaleHints($("rows"));   // stk v1e
   pager("range", "prev", "next", off, total, loadList);
 }
 
@@ -269,7 +292,7 @@ async function loadDetail(id){
   box.innerHTML = `
     <div class="card"><div class="phead">${big}
       <div style="flex:1;min-width:0">
-        <div class="nm">${esc(pr.name)}</div>
+        <div class="nm">${esc(pr.name)}${saleTag(r)}</div>
         <div class="dim" style="margin-top:2px"><span class="mono">${esc(pr.sku)}</span>${pr.brand_name ? " · " + esc(pr.brand_name) : ""}${pr.category_name ? " · " + esc(pr.category_name) : ""}${pr.is_active ? "" : ' <span class="tag off">inactive</span>'}</div>
         <div class="acts">${navBtns()} <span class="seg" id="whSeg">${seg}</span></div>
       </div></div>
@@ -408,9 +431,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("wcat").onchange = e => { cat = e.target.value; loadWide(0); };
   $("wzero").onchange = e => { zero = e.target.checked; loadWide(0); };
   $("zero").onchange = e => { zero = e.target.checked; loadList(0); };
+  $("wsale").onchange = e => { saleOnly = e.target.checked; loadWide(0); };   // stk v1e
+  $("sale").onchange = e => { saleOnly = e.target.checked; loadList(0); };
   imsQ("#wq", v => { q = v; loadWide(0); });
   imsQ("#q", v => { q = v; loadList(0); });
-  $("wclear").onclick = () => { q = ""; brand = ""; cat = ""; zero = false; syncCtl(); loadWide(0); };
+  $("wclear").onclick = () => { q = ""; brand = ""; cat = ""; zero = false; saleOnly = false; syncCtl(); loadWide(0); };
   if(!wh){ $("wrows").innerHTML = '<div class="msg err">No active branch.</div>'; $("wide").hidden = false; return; }
   if(want.get("id")) await openProduct(want.get("id"));
   else showWide();

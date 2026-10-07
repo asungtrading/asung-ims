@@ -95,6 +95,8 @@
   .bchint.bad{color:var(--bad)} .bchint.warn{color:var(--warn)}
   .ein.bcbad{border-color:#e7a29b;background:#fdf1ef}
   .ein.bcwarn{border-color:#e8cf7a;background:#fff8e6}
+  /* pr v4d — 세일 라벨(채운 빨강) */
+  .salet{display:inline-block;background:#e03131;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;font-family:var(--sans, inherit);white-space:nowrap;cursor:help}
 </style>
 </head>
 <body>
@@ -121,6 +123,7 @@
         <option value="">All</option>
       </select>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wsale"> On sale</label>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
       <a class="lnk" id="wsheet" href="product-sheet.html" style="font-size:12.5px">Open sheet</a>
@@ -147,6 +150,7 @@
       <input type="search" id="q" placeholder="Search SKU or name">
       <div class="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
+        <label><input type="checkbox" id="saleOnly"> On sale</label>
         <a class="lnk" id="sheetLink" href="product-sheet.html" style="margin-left:auto;font-size:12px">Open sheet</a>
         <label>Kind
           <select id="kind">
@@ -205,7 +209,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v4c";   // 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v4d";   // 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -213,6 +217,7 @@ const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 let sb=null, isAdmin=false, canEdit=false, showDead=false;
 let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
+let saleOnly = false;   // pr v4d
 const pg = imsPage(100);
 let openSets = {};
 let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], supByName:{}, axes:[], cur:{}, sgroups:[] };
@@ -253,20 +258,34 @@ function leaveEditOk(){
 /* ── 목록 ─────────────────────────────────────────────── */
 /* ⭐ 목록 질의 한 곳 — 넓은 목록(loadWide) · 좁은 목록(loadList)이 같은 필터 · 같은 쪽 pg 를 쓴다
    (둘 다 100 줄 · 넓은 목록 3 쪽에서 고르면 좁은 목록도 3 쪽 — 고른 줄이 왼쪽에 보인다) */
-function listQuery(){
-  const cols = "id,sku,name,is_active,parent_product_id,pack_factor,brand_name,category_name";
-  /* ⭐ 공급처로 거르기(판정 151) — product_supplier 를 !inner 로 묶어 그 공급처의 켜진 줄이 있는 상품만 */
-  let qry = supId
-    ? sb.from("product").select(cols + ",product_supplier!inner(supplier_id,is_active)", { count:"exact" })
-        .eq("product_supplier.supplier_id", supId).eq("product_supplier.is_active", true)
-    : sb.from("product").select(cols, { count:"exact" });
-  if(onlyActive) qry = qry.eq("is_active", true);
-  if(kind==="single") qry = qry.is("parent_product_id", null);
-  if(kind==="set")    qry = qry.not("parent_product_id", "is", null);
-  if(brand) qry = qry.eq("brand_name", brand);
-  if(cat)   qry = qry.eq("category_name", cat);
-  if(q) qry = qry.or(`sku.ilike.%${q}%,name.ilike.%${q}%`);
-  return qry.order("sku");
+function listQuery(){   // pr v4d — 서버 창구 product_list(거르기 일곱 + 세일만) · pg.run 이 부르는 range(from, to) 모양으로 감싼다
+  const args = { p_q: q || null, p_brand_name: brand || null, p_category_name: cat || null, p_supplier_id: supId || null,
+    p_kind: kind === "single" || kind === "set" ? kind : "all", p_only_active: onlyActive, p_sale_only: saleOnly };
+  return { range: async (from, to) => {
+    const { data, error } = await sb.rpc("product_list", Object.assign({}, args, { p_limit: to - from + 1, p_offset: from }));
+    return { data: data || [], error, count: data && data.length ? Number(data[0].total) : 0 };
+  } };
+}
+/* pr v4d — 세일 라벨 · 설명(딜 이름 · % · 기간 · 조건) */
+const saleTag = (r) => r.sale_pct === null || r.sale_pct === undefined ? ""
+  : ` <span class="salet" data-sale="${r.id}" title="On sale">Sale ${esc(Number(r.sale_pct))}%${r.sale_conditional ? "*" : ""}</span>`;
+function saleHint(deals){
+  return (deals || []).map(d => `${d.name} ${Number(d.pct)}%` + (d.date_to ? ` · until ${d.date_to}` : "")
+    + (d.min_qty_mode && d.min_qty_mode !== "none" ? ` · ${d.min_qty_mode === "case" ? "full case" : (d.min_qty || "") + "+ units"}` : "")
+    + (d.customer_limited ? " · some customers only" : "")).join("\n") + ((deals || []).some(d => (d.min_qty_mode && d.min_qty_mode !== "none") || d.customer_limited) ? "\n* conditions apply" : "");
+}
+async function fillSaleChip(id){
+  const { data } = await sb.rpc("so_sale_now", { p_product_ids: [id], p_on: null });
+  const x = (data || [])[0], el = document.querySelector(`[data-salechip="${id}"]`);
+  if(x && el) el.outerHTML = `<span class="salet" style="margin-left:0" title="${esc(saleHint(x.deals))}">Sale ${esc(Number(x.best_pct))}%${x.conditional ? "*" : ""}</span>`;
+}
+async function fillSaleHints(scope){
+  const ids = Array.from(new Set(Array.from(scope.querySelectorAll("[data-sale]")).map(el => el.dataset.sale)));
+  if(!ids.length) return;
+  const { data, error } = await sb.rpc("so_sale_now", { p_product_ids: ids, p_on: null });
+  if(error){ console.warn("sale hints:", error.message); return; }
+  const by = {}; (data || []).forEach(x => { by[x.product_id] = x; });
+  scope.querySelectorAll("[data-sale]").forEach(el => { const x = by[el.dataset.sale]; if(x) el.title = saleHint(x.deals); });
 }
 
 /* ── 두 모드(판정 209 · po.html 과 같은 모양) ───────────────
@@ -295,6 +314,7 @@ function syncCtl(){
   document.getElementById("sup").value = supName; document.getElementById("wsup").value = supName;
   document.getElementById("kind").value = kind;   document.getElementById("wkind").value = kind;
   document.getElementById("onlyActive").checked = onlyActive; document.getElementById("wactive").checked = onlyActive;
+  document.getElementById("saleOnly").checked = saleOnly; document.getElementById("wsale").checked = saleOnly;   // pr v4d
 }
 
 /* ── 넓은 목록 ─────────────────────────────────────────
@@ -333,7 +353,7 @@ async function loadWide(){
       <th>Default supplier</th><th class="num">${esc(wsTier ? wsTier.name : "Wholesale")}</th><th>Active</th></tr></thead>
     <tbody>${rows.map(r => `<tr data-id="${r.id}" class="${r.is_active ? "" : "off"}">
       ${th ? `<td class="thc">${window.imsThumb(r.sku)}</td>` : ""}
-      <td class="sk">${esc(r.sku)}</td><td>${esc(r.name)}</td>
+      <td class="sk">${esc(r.sku)}${saleTag(r)}</td><td>${esc(r.name)}</td>
       <td>${dim(r.brand_name)}</td><td>${dim(r.category_name)}</td><td>${kindTxt(r)}</td>
       <td>${dim(supOf[r.id])}</td><td class="num">${priceTxt(r)}</td><td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
     : '<div class="msg">No products match.</div>';
@@ -341,6 +361,7 @@ async function loadWide(){
     tr.onclick = ev => { if(ev.target.closest(".ims-thumb img")) return; openProduct(tr.dataset.id); };
   });
   if(th && typeof window.imsThumbFill === "function") window.imsThumbFill(box);
+  fillSaleHints(box);   // pr v4d
   pg.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
 }
 
@@ -369,6 +390,7 @@ async function loadList(){
     if(r.parent_product_id) tags.push(`<span class="tag">×${esc(r.pack_factor)}</span>`);
     else if(kids.length)    tags.push(`<span class="tag">${kids.length} set${kids.length>1?"s":""}</span>`);
     if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
+    if(saleTag(r)) tags.push(saleTag(r));   // pr v4d
     return `<div class="row ${isKid?"kid":""} ${r.id===curId?"cur":""}" data-id="${r.id}">
       ${car}
       <div class="body">
@@ -496,6 +518,7 @@ function headChips(r){
   if(r.is_discontinued) chips.push('<span class="chip bad">discontinued</span>');
   if(r.sellable===false) chips.push('<span class="chip">not sellable</span>');
   if(r.cin7_type) chips.push(`<span class="chip">${esc(r.cin7_type)}</span>`);
+  chips.unshift(`<span data-salechip="${r.id}"></span>`); setTimeout(() => fillSaleChip(r.id), 0);   // pr v4d — 세일 칩(그린 뒤 채운다)
   chips.push(`<span class="chip">${esc(r.source)}</span>`);
   return chips.join("");
 }
@@ -1506,6 +1529,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   }
   const wideAnd = fn => e => { fn(e); pg.reset(); loadWide(); };
   document.getElementById("wactive").onchange = wideAnd(e => { onlyActive = e.target.checked; });
+  document.getElementById("wsale").onchange = wideAnd(e => { saleOnly = e.target.checked; });   // pr v4d
   document.getElementById("wkind").value = kind;
   document.getElementById("wkind").onchange = wideAnd(e => { kind = e.target.value; openSets = {}; });
   document.getElementById("wcat").onchange = wideAnd(e => { cat = e.target.value; });
@@ -1517,7 +1541,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   });
   imsQ("#wq", v => { q = v; pg.reset(); loadWide(); });
   document.getElementById("wclear").onclick = () => {
-    q = ""; brand = ""; cat = ""; supId = ""; kind = "single"; onlyActive = true; openSets = {};
+    q = ""; brand = ""; cat = ""; supId = ""; kind = "single"; onlyActive = true; saleOnly = false; openSets = {};
     syncCtl(); pg.reset(); loadWide();
   };
   document.getElementById("wsheet").onclick = e => {
@@ -1534,6 +1558,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
 
   const resetAnd = fn => e => { if(!leaveEditOk()){ return; } fn(e); pg.reset(); clearDetail(); loadList(); };
   document.getElementById("onlyActive").onchange = resetAnd(e => { onlyActive = e.target.checked; });
+  document.getElementById("saleOnly").onchange = resetAnd(e => { saleOnly = e.target.checked; });   // pr v4d
   document.getElementById("kind").value = kind;
   document.getElementById("kind").onchange = resetAnd(e => { kind = e.target.value; openSets = {}; });
   document.getElementById("cat").onchange  = resetAnd(e => { cat = e.target.value; });
