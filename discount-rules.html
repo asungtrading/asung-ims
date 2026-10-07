@@ -152,7 +152,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v1a";   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
+const DR_BUILD = "dr v1b";   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;
@@ -556,11 +556,11 @@ function renderEdit(){
           <option value="customer" ${rad.target === "customer" ? "selected" : ""}>Customer</option>
           <option value="branch" ${rad.target === "branch" ? "selected" : ""}>Branch</option>
           <option value="tier" ${rad.target === "tier" ? "selected" : ""}>Price tier</option></select>
-        <input class="ein" data-ra="value" value="${escA(rad.value)}" list="${rad.target === "branch" ? "whList" : rad.target === "tier" ? "tierList" : ""}"
+        <input class="ein" data-ra="value" type="search" name="dr-rule-q" autocomplete="off" value="${escA(rad.value)}" list="${rad.target === "branch" ? "whList" : rad.target === "tier" ? "tierList" : ""}"
           placeholder="${rad.target === "customer" ? "Customer name" : rad.target === "branch" ? "Branch" : "Price tier"}">
         <button class="pobtn" data-act="addRule">Add</button>
       </div>
-      ${ed.picks ? `<div class="picks">${ed.picks.map((c, j) => `<button data-act="pickCust" data-j="${j}">${esc(c.name)}</button>`).join("")}</div>` : ""}
+      ${ed.picks ? `<div class="dim" style="font-size:12px;margin-top:6px">Several customers match — click one to add:</div><div class="picks">${ed.picks.map((c, j) => `<button data-act="pickCust" data-j="${j}">${esc(c.name)}</button>`).join("")}</div>` : ""}
       <div class="dim" style="font-size:12px;margin-top:6px">Same kind = any of them · different kinds = all of them · a "Not" rule always wins.</div>
     </div></div>`;
 
@@ -620,6 +620,9 @@ function wireEdit(box){
       if(k === "l" && b === "min_qty_mode") render();   // 수량 칸이 나타나거나 사라진다
     });
   });
+  box.querySelectorAll('[data-la$=":value"]').forEach(el => {
+    el.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); addTarget(Number(el.dataset.la.split(":")[0])); } });
+  });
   box.querySelectorAll("[data-la]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
     el.addEventListener(ev, () => {
@@ -629,6 +632,8 @@ function wireEdit(box){
       if(f === "target"){ a.value = ""; render(); }
     });
   });
+  const rv = box.querySelector('[data-ra="value"]');
+  if(rv) rv.addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); addRule(); } });
   box.querySelectorAll("[data-ra]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
     el.addEventListener(ev, () => {
@@ -843,14 +848,14 @@ async function saveDeal(){
 /* ── 쿠폰 발행 · 무효(so_coupon_issue · so_coupon_void — raise 로 거부) ── */
 let issue = null;
 function openIssue(){
-  issue = { custs: [], picks: null, expires: "", prefix: "" };
+  issue = { custs: [], picks: null, expires: "", prefix: "", q: "" };
   drawIssue();
 }
 function drawIssue(){
   showModal(`<h4>Issue coupons — ${esc(cur.deal.name)}</h4>
     <div class="pbody">
-      <div class="frow"><label>Customers</label><input class="ein" id="icq" placeholder="Search customer name"><button class="pobtn" id="icfind">Find</button></div>
-      ${issue.picks ? `<div class="picks" style="margin:-4px 0 10px 130px">${issue.picks.map((c, j) => `<button data-pj="${j}">${esc(c.name)}</button>`).join("") || '<span class="dim">No match.</span>'}</div>` : ""}
+      <div class="frow"><label>Customers</label><input type="search" class="ein" id="icq" name="dr-coupon-cust-q" autocomplete="off" value="${escA(issue.q)}" placeholder="Type part of a name, then Find (or Enter)"><button class="pobtn" id="icfind">Find</button></div>
+      ${issue.picks ? `<div style="margin:-4px 0 10px 130px">${issue.picks.length ? '<div class="dim" style="font-size:12px;margin-bottom:2px">Click a customer to add:</div>' : ""}<div class="picks">${issue.picks.map((c, j) => `<button data-pj="${j}">${esc(c.name)}</button>`).join("") || '<span class="err" style="font-size:12.5px">No active customer matches.</span>'}</div></div>` : ""}
       <div style="margin:0 0 10px 130px">${issue.custs.map((c, j) => `<span class="tg inc">${esc(c.name)}<button class="x" data-rj="${j}" title="Remove">×</button></span>`).join("") || '<span class="dim" style="font-size:12px">No customers picked yet.</span>'}</div>
       <div class="frow"><label>Expires on</label><input type="date" class="ein" id="icexp" value="${escA(issue.expires)}"><span class="dim" style="font-size:12px">empty = no limit · checked against the order date</span></div>
       <div class="frow"><label>Code prefix</label><input class="ein" id="icpre" value="${escA(issue.prefix)}" maxlength="8" placeholder="optional · 2–8 letters or digits"></div>
@@ -858,10 +863,11 @@ function drawIssue(){
     <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button>
       <button class="pobtn go" data-m="go" ${issue.custs.length ? "" : "disabled"}>Issue ${issue.custs.length || ""} coupon${issue.custs.length === 1 ? "" : "s"}</button></div>`);
   const box = document.getElementById("modalBox");
-  const keep = () => { issue.expires = box.querySelector("#icexp").value; issue.prefix = box.querySelector("#icpre").value; };
+  const keep = () => { issue.expires = box.querySelector("#icexp").value; issue.prefix = box.querySelector("#icpre").value; issue.q = box.querySelector("#icq").value; };
+  box.querySelector("#icq").addEventListener("keydown", e => { if(e.key === "Enter"){ e.preventDefault(); box.querySelector("#icfind").click(); } });
   box.querySelector("#icfind").onclick = async () => {
     keep();
-    const v = box.querySelector("#icq").value.trim();
+    const v = issue.q.trim();
     if(!v) return;
     const pat = "%" + v.replace(/[%_]/g, m => "\\" + m) + "%";
     const { data, error } = await sb.from("customer").select("id,name").ilike("name", pat).eq("is_active", true).order("name").limit(20);
