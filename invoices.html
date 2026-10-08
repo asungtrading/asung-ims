@@ -97,7 +97,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-10-08 · inv tx v1";   // 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-10-08 · inv tx v1a";   // 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
 let TAX_RULES = [];           // inv tx v1 — active purchase tax rules (head · line pickers)
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
@@ -315,7 +315,7 @@ async function loadDetail(id){
   const stats = `
     <div class="stats">
       <div class="stat">Goods<b>${money(m.goods_sum)}</b></div>
-      <div class="stat">Discount<b>${esc(Number(m.discount_factor))}</b></div>
+      <div class="stat" title="Discount chain on this document — multiplier ${esc(Number(m.discount_factor))}. An early-payment discount is not here: it is entered on the payment (Payments table below).">Discount<b>${(() => { const d = Number(m.goods_sum || 0) + Number(m.other_sum || 0) - Number(m.taxable_amount || 0); return d ? "−" + money(d) : money(0); })()}</b>${Number(m.discount_factor) !== 1 ? `<div class="dim" style="font-size:11px">× ${esc(Number(m.discount_factor))}</div>` : ""}</div>
       <div class="stat">Other lines<b>${money(m.other_sum)}</b></div>
       <div class="stat">Before tax<b>${money(m.taxable_amount)}</b></div>
       <div class="stat">Tax<b>${m.tax_amount === null || m.tax_amount === undefined ? '<span class="dim">—</span>' : money(m.tax_amount)}</b></div>
