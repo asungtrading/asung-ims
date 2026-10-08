@@ -108,13 +108,13 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-10-05 · sup v2";   // 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-10-08 · sup tx v1";   // 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
 let q = "", onlyActive = true, hideDisc = false, purchF = "all", curId = null, detailSeq = 0, cur = null;
 const pg = imsPage(100), wpg = imsPage(100);
-const refs = { terms: [], currencies: [], accounts: [] };
+const refs = { terms: [], currencies: [], accounts: [], taxRules: [] };
 const MONEY = ["currency_id", "payment_term_id", "account_payable_id", "tax_rule"];
 const $ = (id) => document.getElementById(id);
 const sv = (v) => v === null || v === undefined ? "" : String(v);
@@ -325,7 +325,8 @@ function moneyFields(isNewForm){
       <div class="cf"><label>Currency</label><select id="f_currency_id">${opts(refs.currencies, "id", x => x.code, blank)}</select></div>
       <div class="cf"><label>Payment term</label><select id="f_payment_term_id">${opts(refs.terms, "id", x => x.name, blank)}</select></div>
       <div class="cf"><label>Account payable</label><select id="f_account_payable_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, blank)}</select></div>
-      <div class="cf"><label>Tax rule</label><input type="text" id="f_tax_rule" placeholder="${isNewForm ? "Default" : ""}"></div></div>`;
+      <div class="cf"><label>Tax rule</label><select id="f_tax_rule">${opts(refs.taxRules, "name", x => x.name + " · " + Number(x.rate_pct) + "%", blank)}</select></div></div>
+    <div class="cnote">The tax rule is where a new purchase order and a new charge bill start their tax. A supplier abroad that bills no Canadian tax is Zero-rated.</div>`;
 }
 function generalFields(){
   return `<div class="cgrid">
@@ -388,7 +389,7 @@ function openEdit(){
     ensureVal("f_currency_id", r.currency_id, r.ref_currency ? r.ref_currency.code : "");
     ensureVal("f_payment_term_id", r.payment_term_id, r.payment_term_name);
     ensureVal("f_account_payable_id", r.account_payable_id, r.account_payable_code);
-    $("f_tax_rule").value = sv(r.tax_rule);
+    ensureVal("f_tax_rule", r.tax_rule, r.tax_rule);
   }
   $("eCancel").onclick = modalClose;
   const build = () => {
@@ -479,12 +480,13 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("newBtn").hidden = !canWrite; $("newBtn").onclick = openNew;
   $("wnewBtn").hidden = !canWrite; $("wnewBtn").onclick = openNew;
   if(!canWrite){ $("opts").hidden = true; document.querySelector("#wide .wopts").hidden = true; $("wclear").hidden = true; }
-  const [p, c, a] = await Promise.all([
+  const [p, c, a, t] = await Promise.all([
     sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
     sb.from("ref_currency").select("id,code").eq("is_active", true).order("code"),
     sb.from("ref_account").select("id,code,name").eq("is_active", true).order("code"),
+    sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name"),
   ]);
-  refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || [];
+  refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.taxRules = t.data || [];
   // 필터 값은 한 벌 — 두 목록의 칸이 같은 값을 쓴다
   $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
   $("hideDisc").onchange = e => { hideDisc = e.target.checked; pg.reset(); loadList(); };
