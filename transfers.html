@@ -123,7 +123,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-10-02 · tf paste v1";   // 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-10-08 · tf tx v1";   // 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -132,7 +132,7 @@ const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.i
 let sb = null, me = null, canWrite = false, canAdj = false;
 let q = "", stFilter = "", fwFilter = "", twFilter = "", dateFrom = "", dateTo = "", curId = null;
 let detailSeq = 0;
-let allWhs = [], sups = [], curs = [];
+let allWhs = [], sups = [], curs = [], TAX_RULES = [];   // tf tx v1 — TAX_RULES = active purchase tax rules
 
 const ST_LABEL = { draft:"draft", confirmed:"confirmed", at_wms:"at warehouse", picking:"picking",
                    in_transit:"in transit", receiving:"receiving", received:"received", cancelled:"cancelled" };
@@ -147,7 +147,9 @@ const WARN_TEXT = {
   alloc_on_cancelled_po:             "One of the purchase orders on this charge is cancelled.",
   unallocated:                       "The allocated amount does not match the total yet — confirm will be refused until it does.",
   no_allocs:                         "No transfer is on this charge yet.",
-  unit_cost_unknown_zero:            "The receiving warehouse had no cost for this SKU — the found units went into the books at cost 0."
+  unit_cost_unknown_zero:            "The receiving warehouse had no cost for this SKU — the found units went into the books at cost 0.",
+  tax_amount_zero_with_rate:         "The carrier's tax rule has a rate but Tax is 0 — type the tax printed on the bill (leave 0 only if the bill really has none).",
+  tax_amount_not_given:              "No tax was entered — saved as 0."
 };
 const warnText = (w) => WARN_TEXT[w] || w;
 
@@ -464,21 +466,22 @@ function freightCard(fr, h){
   return `<div class="card">
       <h3>Freight and other charges on this transfer</h3>
       ${ch.length ? `<table><thead><tr>
-          <th>Charge</th><th>Supplier</th><th>Kind</th><th>Date</th><th>Status</th><th class="num">Total</th>
-          <th class="num">On this transfer</th><th class="num">On stock cost (CAD)</th><th></th>
+          <th>Charge</th><th>Supplier</th><th>Kind</th><th>Date</th><th>Status</th><th class="num">Total incl. tax</th>
+          <th class="num">On this transfer (before tax)</th><th class="num">On stock cost (CAD)</th><th></th>
         </tr></thead><tbody>${ch.map(c => `<tr>
           <td class="mono">${esc(c.charge_number)}</td>
           <td>${esc(c.supplier_name || "")}</td>
           <td>${esc(KIND_LABEL[c.kind] || c.kind)}</td>
           <td>${dim(c.charge_date)}</td>
           <td>${chgChip(c.status)}</td>
-          <td class="num">${money(c.total_amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
+          <td class="num" title="Before tax ${esc(Number(c.total_amount || 0).toFixed(2))} · tax ${esc(Number(c.tax_amount || 0).toFixed(2))}">${money(c.total_with_tax ?? c.total_amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
           <td class="num">${money(c.amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
           <td class="num">${money(c.posted_cad)}${n0(c.layers) ? `<div class="sub">${esc(c.layers)} layer${n0(c.layers) === 1 ? "" : "s"}</div>` : ""}</td>
           <td><button class="pobtn" data-chg="${esc(c.charge_id)}">Open</button></td>
         </tr>`).join("")}</tbody></table>`
       : `<div class="msg">No charges yet.${canWrite && h.status !== "draft" && h.status !== "cancelled" ? " Use “Add freight charge” when the carrier's bill comes in." : ""}</div>`}
-      <div class="invsub">Freight goes onto the cost of what arrived, split by cost amount (the last line takes the cents).
+      <div class="invsub">Only the amount before tax goes onto stock cost — the tax on the bill is owed to the carrier but comes back as a tax credit.
+        Freight goes onto the cost of what arrived, split by cost amount (the last line takes the cents).
         Lost units' share is carried by what arrived; returned units and units found at the receiving warehouse take none.
         A charge confirmed before the transfer arrives is added the moment the receiving warehouse completes the arrival.
         Pay a charge on the supplier payments screen, the same way as any charge.</div>
@@ -892,7 +895,11 @@ function openOverDecide(h, d, lines){
    change the amounts) — the allocated amounts must add up to the total before it can be confirmed.
    Confirm puts it onto the cost of the stock that arrived. Once it is on stock cost it cannot be
    reopened — enter an offsetting charge instead. */
-function chargeForm(v){
+function chargeForm(v, editing){
+  /* tf tx v1 — 규칙은 이름으로 보낸다(창구 p_tax_rule · 열쇠 tax_rule) · 만들기의 빈칸 = 운송사의 규칙 · 고치기의 빈칸 = 규칙 없음 */
+  const ruleOpts = `<option value="">${editing ? "— no tax rule —" : "the carrier's rule"}</option>`
+    + (editing && v.tax_rule && !TAX_RULES.some(r => r.name === v.tax_rule) ? `<option value="${esc(v.tax_rule)}" selected>${esc(v.tax_rule)} (current · inactive)</option>` : "")
+    + TAX_RULES.map(r => `<option value="${esc(r.name)}" ${editing && v.tax_rule === r.name ? "selected" : ""}>${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("");
   const supOpts = sups.map(s => `<option value="${esc(s.id)}" ${v.supplier_id === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
   const curOpts = curs.map(c => `<option value="${esc(c.id)}" ${v.currency_id === c.id ? "selected" : ""}>${esc(c.code)}</option>`).join("");
   const kindOpts = Object.keys(KIND_LABEL).map(k => `<option value="${k}" ${v.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("");
@@ -902,7 +909,9 @@ function chargeForm(v){
     <div class="frow"><label>Bill date</label><input id="fDate" type="date" value="${esc(v.charge_date || torontoToday())}"></div>
     <div class="frow"><label>Due date</label><input id="fDue" type="date" value="${esc(v.due_date || "")}"></div>
     <div class="frow"><label>Kind</label><select id="fKind">${kindOpts}</select></div>
-    <div class="frow"><label>Total</label><input id="fTot" type="number" step="0.01" value="${esc(v.total_amount === undefined || v.total_amount === null ? "" : v.total_amount)}"></div>
+    <div class="frow"><label>Before tax</label><input id="fTot" type="number" step="0.01" value="${esc(v.total_amount === undefined || v.total_amount === null ? "" : v.total_amount)}"></div>
+    <div class="frow"><label>Tax</label><input id="fTax" type="number" step="0.01" value="${esc(v.tax_amount === undefined || v.tax_amount === null ? "" : v.tax_amount)}" placeholder="the tax printed on the bill"></div>
+    <div class="frow"><label>Tax rule</label><select id="fRule">${ruleOpts}</select></div>
     <div class="frow"><label>Currency</label><select id="fCur"><option value="">— choose —</option>${curOpts}</select></div>
     <div class="frow"><label>Exchange rate</label><input id="fRate" type="number" step="0.000001" value="${esc(v.exchange_rate || "")}" placeholder="CAD per 1 unit of the bill's currency — only when not CAD"></div>
     <div class="frow"><label>Description</label><input id="fDesc" value="${esc(v.description || "")}"></div>
@@ -913,7 +922,8 @@ function readChargeForm(){
   return {
     supplier_id: val("fSup") || null, charge_number: val("fNum"), charge_date: val("fDate") || null, due_date: val("fDue") || null,
     kind: val("fKind"), total_amount: val("fTot") === "" ? null : Number(val("fTot")), currency_id: val("fCur") || null,
-    exchange_rate: val("fRate") === "" ? null : Number(val("fRate")), description: val("fDesc") || null, note: val("fNote") || null
+    exchange_rate: val("fRate") === "" ? null : Number(val("fRate")), description: val("fDesc") || null, note: val("fNote") || null,
+    tax_amount: val("fTax") === "" ? null : Number(val("fTax")), tax_rule: val("fRule") || null
   };
 }
 
@@ -923,8 +933,8 @@ function openChargeCreate(h){
     <h4>Add a charge · ${esc(h.transfer_number)}</h4>
     <div class="pbody">
       ${chargeForm({ kind: "freight", currency_id: cad ? cad.id : "" })}
-      <div class="dim" style="font-size:12px">The whole total goes on ${esc(h.transfer_number)}. To split one bill across several transfers,
-        open the charge after saving and add the others.</div>
+      <div class="dim" style="font-size:12px">The whole amount before tax goes on ${esc(h.transfer_number)}. To split one bill across several transfers,
+        open the charge after saving and add the others. Check fills an empty Tax with what the rule suggests — change it to the bill.</div>
       <div id="fWarn"></div>
       <div id="fMsg" style="font-size:12.5px;margin-top:8px"></div>
     </div>
@@ -936,7 +946,7 @@ function openChargeCreate(h){
   const args = (commit) => { const v = readChargeForm(); return {
     p_transfer_id: h.id, p_supplier_id: v.supplier_id, p_charge_number: v.charge_number, p_charge_date: v.charge_date, p_kind: v.kind,
     p_total_amount: v.total_amount, p_currency_id: v.currency_id, p_exchange_rate: v.exchange_rate, p_due_date: v.due_date,
-    p_description: v.description, p_note: v.note, p_commit: commit }; };
+    p_description: v.description, p_note: v.note, p_commit: commit, p_tax_amount: v.tax_amount, p_tax_rule: v.tax_rule }; };
   const check = async () => {
     const a = args(false);
     if(!a.p_supplier_id){ say("fMsg", "err", "Choose the supplier."); return false; }
@@ -946,8 +956,12 @@ function openChargeCreate(h){
     say("fMsg", "", "Checking…");
     const { data, error } = await sb.rpc("tf_charge_create", a);
     if(error){ say("fMsg", "err", error.message); document.getElementById("fGo").disabled = true; return false; }
-    const w = data.warnings || [];
-    document.getElementById("fWarn").innerHTML = w.length ? `<div class="warnbox">${w.map(x => esc(warnText(x))).join("<br>")}</div>` : '<div class="infobox">Looks fine.</div>';
+    // tf tx v1 — 빈 Tax 칸에 제안값(사람이 본 값을 보낸다 · po-tax-2 ㉡)
+    const taxBox = document.getElementById("fTax");
+    if(taxBox.value.trim() === "" && data.tax_suggested !== null && data.tax_suggested !== undefined) taxBox.value = String(data.tax_suggested);
+    const w = (data.warnings || []).filter(x => x !== "tax_amount_not_given");
+    document.getElementById("fWarn").innerHTML = (w.length ? `<div class="warnbox">${w.map(x => esc(warnText(x))).join("<br>")}</div>` : '<div class="infobox">Looks fine.</div>')
+      + `<div class="dim" style="font-size:12px;margin-top:6px">${data.tax_rule ? "Tax rule " + esc(data.tax_rule) + " · " : ""}Tax ${money(Number(taxBox.value || 0))} — check it against the bill.</div>`;
     document.getElementById("fGo").disabled = w.includes("charge_number_exists");
     say("fMsg", "", "");
     return true;
@@ -983,9 +997,11 @@ async function openCharge(chargeId){
       ${kvTbl([
         ["Supplier", esc(c.supplier_name || "")],
         ["Bill date", dim(c.charge_date)], ["Due date", dim(c.due_date)],
-        ["Total", `${money(c.total_amount)} ${esc(c.currency_code || "")}${c.exchange_rate ? ` <span class="dim">@ ${esc(c.exchange_rate)}</span>` : ""}`],
+        ["Before tax", `${money(c.total_amount)} ${esc(c.currency_code || "")}${c.exchange_rate ? ` <span class="dim">@ ${esc(c.exchange_rate)}</span>` : ""}`],
+        ["Tax", `${money(c.tax_amount || 0)} ${esc(c.currency_code || "")}${c.tax_rule ? ` <span class="dim">· ${esc(c.tax_rule)}</span>` : ""}${ed && n0(m.tax_suggested) && n0(m.tax_suggested) !== n0(c.tax_amount) ? ` <span class="dim">· the rule suggests ${money(m.tax_suggested)}</span>` : ""}`],
+        ["Total with tax", `${money(m.total_with_tax ?? c.total_amount)} ${esc(c.currency_code || "")}`],
         ["Allocated", `${money(m.alloc_sum)} · unallocated ${n0(m.unallocated) ? `<span class="bad">${money(m.unallocated)}</span>` : money(0)}`],
-        ["Paid", `${money(m.paid)} · unpaid ${money(m.unpaid)}`],
+        ["Paid", `${money(m.paid)} · unpaid ${money(m.unpaid)} <span class="dim">(incl. tax)</span>`],
         ["Description", dim(c.description)], ["Note", dim(c.note)],
         ["Created", `${imsTs(c.created_at)} · ${esc(c.created_by_name || "")}`],
         ["Confirmed", c.confirmed_at ? `${imsTs(c.confirmed_at)} · ${esc(c.confirmed_by_name || "")}` : '<span class="dim">not yet</span>']
@@ -1077,8 +1093,8 @@ function openChargeEdit(c, chargeId){
   modalOpen(`
     <h4>Edit charge <span class="mono">${esc(c.charge_number)}</span></h4>
     <div class="pbody">
-      ${chargeForm(c)}
-      <div class="dim" style="font-size:12px">Changing the total does not change the allocation lines — fix them on the charge afterwards.</div>
+      ${chargeForm(c, true)}
+      <div class="dim" style="font-size:12px">Changing the amount before tax does not change the allocation lines — fix them on the charge afterwards. Tax is what the bill prints (0 if none).</div>
       <div id="eMsg" style="font-size:12.5px;margin-top:8px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span>
@@ -1087,13 +1103,17 @@ function openChargeEdit(c, chargeId){
   document.getElementById("eCancel").onclick = () => openCharge(chargeId);
   document.getElementById("eGo").onclick = async () => {
     const v = readChargeForm();
-    if(!v.supplier_id || !v.charge_number || v.total_amount === null || !v.currency_id || !v.charge_date){ say("eMsg", "err", "Supplier, bill number, bill date, total and currency are needed."); return; }
+    if(!v.supplier_id || !v.charge_number || v.total_amount === null || !v.currency_id || !v.charge_date){ say("eMsg", "err", "Supplier, bill number, bill date, amount before tax and currency are needed."); return; }
+    if(v.tax_amount === null){ say("eMsg", "err", "Tax cannot be left empty — enter 0 when the bill has no tax."); return; }
     const old = { supplier_id: c.supplier_id, charge_number: c.charge_number, charge_date: c.charge_date, due_date: c.due_date || null, kind: c.kind,
                   total_amount: c.total_amount === null ? null : Number(c.total_amount), currency_id: c.currency_id,
                   exchange_rate: c.exchange_rate === null || c.exchange_rate === undefined ? null : Number(c.exchange_rate),
-                  description: c.description || null, note: c.note || null };
+                  description: c.description || null, note: c.note || null,
+                  tax_amount: c.tax_amount === null || c.tax_amount === undefined ? 0 : Number(c.tax_amount), tax_rule: c.tax_rule || null };
     const patch = {};
     Object.keys(v).forEach(k => { if(String(v[k] === null ? "" : v[k]) !== String(old[k] === null ? "" : old[k])) patch[k] = v[k]; });
+    // tf tx v1 — 규칙을 비우면 이름 · id 둘 다 ""(짝 CHECK) · 고르면 이름만(짝 트리거가 id 를 푼다)
+    if("tax_rule" in patch && !patch.tax_rule){ patch.tax_rule = ""; patch.tax_rule_id = ""; }
     if(!Object.keys(patch).length){ openCharge(chargeId); return; }
     say("eMsg", "", "Saving…");
     const { error } = await sb.rpc("tf_charge_update", { p_charge_id: chargeId, p_patch: patch });
@@ -1157,6 +1177,8 @@ imsAuth.start({ changePw:true, requireScreen:"transfer" }, async (client, meData
   allWhs = (wh && wh.data) || [];
   sups = (su && su.data) || [];
   curs = (cu && cu.data) || [];
+  const trr = await sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name");
+  TAX_RULES = (trr && trr.data) || [];
   const whOpts = allWhs.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
   document.getElementById("wfw").innerHTML = '<option value="">From: all</option>' + whOpts;
   document.getElementById("wtw").innerHTML = '<option value="">To: all</option>' + whOpts;
