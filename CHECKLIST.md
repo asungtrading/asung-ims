@@ -1737,6 +1737,35 @@ PO 에 없는 물건 = **`wms_recv_off_po(p_receipt_id, p_product_id, p_qty_ea)`
 
 ---
 
+## 7-ze. 2026-10-08 — 매입 세금 화면 · 단추 이름 (so v5q da58c81 · po tx v1 324596e · v1a 149cdc8 · inv tx v1 58adb7d · v1a 64f5db5 · chg tx v1 429afbb · tf tx v1 a080958 · sup tx v1 6f3ddfa · v1a 9a5d453 · asung-wms po-tax-1 51971d0 · po-tax-2 8c3343d · po-disc-1 cc67e94 · 판정 382 ~ 389 · so-module §53)
+
+```
+[ ] Ctrl+F5 · 빌드 표시 다섯 화면 각각(so v5q · po tx v1a · inv tx v1a · chg tx v1 · tf tx v1 · sup tx v1a)
+so.html(v5q · 판정 382)
+[ ] 오피스 단추 · 창 제목 · 실행 단추 · 확인 글 · packed 상태 글이 「Ship & invoice」 · 상태 칩은 그대로 「Finalized」 · 창고 화면 단추는 그대로 「Finalize」
+suppliers.html(sup tx v1 · v1a)
+[ ] Tax rule 이 고르기(활성 purchase 규칙만) · 지금 값이 꺼진 규칙이면 「(current · inactive)」 로 남는다 · 고치기 · 새로 만들기 창이 옆으로 넘치지 않는다(좁은 화면도)
+po.html(po tx v1 · v1a)
+[ ] 초안 PO 머리 Tax rule 고르기 → 저장 → 다시 열면 이름 그대로(id 는 트리거가 채움) · 지우기 = 둘 다 비움 · 확정 PO 는 읽기만 · Ship to 가 창고 이름(id 아님 · v1a)
+[ ] PO-02045(P&G · HST ON) — Tax 5,893.80 · Total with tax = Net + Tax · 줄 Tax rule 열 빈 칸 = 머리 규칙 · 줄 하나를 Zero-rated 로 → Tax 가 그 줄 몫만큼 준다(되돌려 둔다)
+[ ] 규칙 없는 PO → 규칙 없음 경고 문장(tax_rule_missing) · Tax 칸은 0 이 아니라 빈 값으로 보이는지(뷰는 null — 화면 글자는 짐작 · 본 대로 적는다)
+[ ] 인보이스 표 Computed · Payable 이 세금 포함 · 비용 표 총액 세금 포함(마우스 = 세금 전)
+invoices.html(inv tx v1 · v1a)
+[ ] 1030266656(P&G) — Before tax 45,336.96 · Tax 5,893.80 · Computed incl. tax 51,230.76 · Diff 0
+[ ] 시험용 초안 인보이스에 할인 체인 2.1% 를 넣으면 Tax 가 5,770.03 으로(할인 줄 세금 한 번 · 줄마다) · ⚠️ 조기 결제 할인은 체인에 넣지 않는다(판정 389 · 결제의 Discount taken) — 시험 뒤 지운다
+[ ] Discount 카드 = 할인 금액(계수는 작은 글씨 · v1a) · 머리 Tax rule 은 초안에서만 고른다 · 줄 Tax rule · Tax 열 · 규칙 없으면 tax_rule_missing 문장
+charges.html(chg tx v1)
+[ ] 만들기 — Before tax 200 · 청구처 HST ON · Tax 칸 비우고 Check → 26.00 이 채워진다(제안값) · 비운 채 만들면 Tax 0 + 세금 안 넣음 경고 문장(tax_amount_not_given · 화면 글자는 본 대로) · CBSA(Zero-rated)는 제안 0 · 수입 GST 를 손으로 적는다
+[ ] 상세 Before tax / Tax / Total with tax / Balance incl. tax · 배분은 세금 전 합 = Before tax(Not allocated 0) · 초안에서 Tax · Tax rule 고치기
+[ ] 결제(payments.html)에서 그 청구서 Still owed = 세금 포함 · 그만큼 충당 통과 · 1 센트 넘으면 막힘
+transfers.html(tf tx v1)
+[ ] 운임 만들기 · 고치기 Before tax + Tax + Tax rule · Check 가 빈 Tax 를 제안값으로 · 상세 Total with tax · 운임 표 Total incl. tax(세금 전 몫 함께) · 확정 뒤 머리 고치기 막힘
+공통
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
 ## 8. 로그인 · 계정
 
 ```
