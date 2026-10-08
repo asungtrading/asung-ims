@@ -20,7 +20,8 @@
   .cf > label{width:150px;flex:0 0 150px;font-size:12.5px;color:var(--muted)}
   .cf input[type=text],.cf input[type=number],.cf input[type=email],.cf input[type=date],.cf select,.cf textarea{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;min-width:0}
   .cf textarea{min-height:52px}
-  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .cgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 18px}   /* sup tx v1a — minmax(0,…): 긴 고르기 글자(계정 이름 · 세금 규칙)가 칸을 밀어 창이 옆으로 넘쳤다 */
+  .cf > select,.cf > input,.cf > textarea{min-width:0}
   .csect{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;border-top:1px solid var(--line);padding-top:10px}
   .csect:first-child{border-top:0;margin-top:0;padding-top:0}
   .cnote{font-size:12px;color:var(--muted);line-height:1.5;margin:4px 0 10px}
@@ -108,7 +109,7 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-10-08 · sup tx v1";   // 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-10-08 · sup tx v1a";   // 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
