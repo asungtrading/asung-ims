@@ -103,7 +103,8 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-09-29 · exchange rate";   // 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-10-08 · chg tx v1";   // 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -208,7 +209,7 @@ async function loadWide(){
   }
   box.innerHTML = `<table><thead><tr>
       <th>Number</th><th>Kind</th><th>Date</th><th>Due</th><th>Supplier</th><th>Orders</th>
-      <th class="num">Total</th><th class="num">Allocated</th><th class="num">Not allocated</th>
+      <th class="num">Total incl. tax</th><th class="num">Allocated</th><th class="num">Not allocated</th>
       <th class="num">Paid</th><th class="num">Balance</th><th>Status</th>
     </tr></thead><tbody>${data.map(r => `<tr data-id="${r.id}">
         <td><span class="mono">${esc(r.charge_number)}</span>${
@@ -218,14 +219,15 @@ async function loadWide(){
         <td>${dim(r.due_date)}</td>
         <td>${esc(r.supplier_name)}</td>
         <td class="mono" style="font-size:11.5px">${dim(r.po_numbers)}</td>
-        <td class="num">${money(r.total_amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num" title="Before tax ${money(r.total_amount)} · tax ${money(r.tax_amount || 0)}">${money(r.total_with_tax ?? r.total_amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
         <td class="num">${money(r.alloc_sum)}</td>
         <td class="num">${gapCell(r.unallocated)}</td>
         <td class="num">${money(r.paid)}</td>
         <td class="num">${Number(r.unpaid) > 0 ? `<span class="neutral">${money(r.unpaid)}</span>` : '<span class="dim">0.00</span>'}</td>
         <td>${stChip(r.status)}</td>
       </tr>`).join("")}</tbody></table>
-    <div class="invsub">Not allocated is the document total minus what has been handed out to purchase orders.
+    <div class="invsub">Allocated and Not allocated are before tax — only the amount before tax goes onto the cost of the goods; the tax is owed to the biller but comes back as a tax credit.
+      Not allocated is the amount before tax minus what has been handed out to purchase orders.
       It has to reach zero before the charge can be confirmed. A charge owes money from the moment it is entered —
       unlike an invoice, the balance does not wait for confirmation.</div>`;
   box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openChg(el.dataset.id); });
@@ -288,6 +290,9 @@ async function loadDetail(id){
     ["Confirmed by", dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     ["Cancelled",    h.cancelled_at ? `<span class="off">${imsTs(h.cancelled_at)}</span>` +
                      (h.cancelled_by_name ? ` <span class="dim">· ${esc(h.cancelled_by_name)}</span>` : "") : '<span class="dim">—</span>'],
+    // chg tx v1 — 규칙은 제안 재료다(저장된 Tax 가 정본) · 초안이면 고른다
+    ["Tax rule",     ed ? `<select class="tin" data-head="tax_rule_id" data-prev="${esc(h.tax_rule_id ?? "")}">${taxOptions(h.tax_rule_id, h.tax_rule, "— no tax rule —")}</select>`
+                        : taxLabel(h.tax_rule, m.rate_pct)],
     ["Note",         ed ? `<input class="tin" style="width:280px" value="${esc(h.note || "")}" data-head="note">` : dim(h.note)],
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${
@@ -330,7 +335,7 @@ async function loadDetail(id){
     </div>`;
 
   const warn = (data.warnings || []).length
-    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(esc).join(" · ")}</div></div>` : "";
+    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(w => esc(WARN_TEXT[w] || w)).join(" · ")}</div></div>` : "";
 
   box.innerHTML = `
     <div class="card">
@@ -341,20 +346,27 @@ async function loadDetail(id){
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
-          <span>Document total</span>
+          <span>Before tax</span>
           ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.total_amount)}" data-prev="${esc(h.total_amount)}" data-head="total_amount">`
                : `<span class="mono">${money(h.total_amount)}</span>`}
+          <span>Tax</span>
+          ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.tax_amount ?? 0)}" data-prev="${esc(h.tax_amount ?? 0)}" data-head="tax_amount" title="Type the tax printed on the bill">`
+               : `<span class="mono">${money(h.tax_amount || 0)}</span>`}
           <span class="mono">${esc(h.currency_code || "")}</span>
+          ${ed && Number(m.tax_suggested) && Number(m.tax_suggested) !== Number(h.tax_amount)
+              ? `<span class="dim">· the rule suggests ${money(m.tax_suggested)} — use what the bill says</span>` : ""}
         </div>
       </div>
       <div class="gap">
-        <div class="g"><b>${money(m.total_amount)}</b><span>Document total</span></div>
+        <div class="g"><b>${money(m.total_amount)}</b><span>Before tax</span></div>
+        <div class="g"><b>${money(m.tax_amount || 0)}</b><span>Tax</span></div>
+        <div class="g"><b>${money(m.total_with_tax ?? m.total_amount)}</b><span>Total with tax</span></div>
         <div class="g"><b>${money(m.alloc_sum)}</b><span>Allocated</span></div>
         <div class="g ${balanced ? "ok" : "bad"}"><b>${money(m.unallocated)}</b><span>Not allocated</span></div>
         <div class="g"><b>${money(m.paid)}</b><span>Paid</span></div>
-        <div class="g"><b>${money(m.unpaid)}</b><span>Balance</span></div>
+        <div class="g"><b>${money(m.unpaid)}</b><span>Balance incl. tax</span></div>
       </div>
-      ${!balanced && ed ? `<div class="invsub">&#9888; The split has to add up to the document total before this charge can be confirmed.
+      ${!balanced && ed ? `<div class="invsub">&#9888; The split has to add up to the amount before tax before this charge can be confirmed.
         Adjust a row, or press <strong>Spread by amount</strong> to divide the whole total again in proportion to the orders.</div>` : ""}
       <div class="invsub"><div class="invgrid">${kvTbl(kvL)}${kvTbl(kvR)}</div></div>
       <div id="headMsg" style="padding:0 14px 10px;font-size:12.5px"></div>
@@ -387,10 +399,28 @@ async function loadDetail(id){
   });
   if(ed){
     box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+    box.querySelectorAll("select[data-head]").forEach(i => { i.onchange = () => { if(i.value !== i.dataset.prev) saveHead(h.id, i); }; });
     box.querySelectorAll("input[data-alloc]").forEach(i => { i.onchange = () => saveAlloc(i); });
     box.querySelectorAll("input[data-anote]").forEach(i => { i.onchange = () => saveAllocNote(i); });
     box.querySelectorAll("[data-adel]").forEach(b => { b.onclick = () => removeAlloc(b.dataset.adel); });
   }
+}
+
+/* chg tx v1 — tax helpers. TAX_RULES = active purchase rules, read once at start.
+   A current value missing from the list (inactive) stays as "(current · inactive)" so an untouched field never saves a change. */
+const WARN_TEXT = {
+  tax_amount_zero_with_rate: "The biller's tax rule has a rate but Tax is 0 — type the tax printed on the bill (leave 0 only if the bill really has none)",
+  tax_amount_not_given: "No tax was entered — saved as 0"
+};
+function taxLabel(name, rate){
+  if(!name) return '<span class="dim">—</span>';
+  return esc(name) + (rate === null || rate === undefined ? "" : ` <span class="dim">${esc(Number(rate))}%</span>`);
+}
+function taxOptions(curId, curName, blankLabel){
+  const known = TAX_RULES.some(r => r.id === curId);
+  return `<option value="">${esc(blankLabel)}</option>`
+    + (curId && !known ? `<option value="${esc(curId)}" selected>${esc(curName || "?")} (current · inactive)</option>` : "")
+    + TAX_RULES.map(r => `<option value="${r.id}" ${r.id === curId ? "selected" : ""}>${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("");
 }
 
 /* ── Head fields ───────────────────────────────────────
@@ -402,12 +432,15 @@ async function saveHead(id, inp){
   const field = inp.dataset.head;
   /* ⚠️ total_amount and charge_date are NOT NULL. Blanking them would come back as a
      constraint error the person cannot act on, so put the old value back instead. */
-  if(inp.value.trim() === "" && (field === "total_amount" || field === "charge_date")){
+  if(inp.value.trim() === "" && (field === "total_amount" || field === "charge_date" || field === "tax_amount")){
     inp.value = inp.dataset.prev || inp.value;
     say("headMsg", "err", "That field cannot be left empty.");
     return;
   }
-  const patch = {}; patch[field] = inp.value === "" ? null : inp.value;
+  // chg tx v1 — 규칙: id 를 쓰면 짝 트리거가 이름을 채운다 · 비울 때는 둘 다 null(짝 CHECK)
+  const patch = field === "tax_rule_id"
+    ? (inp.value ? { tax_rule_id: inp.value } : { tax_rule_id: null, tax_rule: null })
+    : { [field]: inp.value === "" ? null : inp.value };
   const res = await imsSaved(sb.from("po_charge").update(patch).eq("id", id).select("id"));
   if(!res.ok){ say("headMsg", "err", res.reason); return; }
   if(inp.dataset.prev !== undefined) inp.dataset.prev = inp.value;
@@ -579,7 +612,13 @@ async function openCreate(preselectPoId){
           <option value="brokerage">Brokerage</option>
           <option value="other">Other</option>
         </select></div>
-      <div class="frow"><label>Total</label><input id="cTotal" placeholder="what the document says"></div>
+      <div class="frow"><label>Before tax</label><input id="cTotal" placeholder="the amount before tax"></div>
+      <div class="frow"><label>Tax</label><input id="cTax" placeholder="the tax printed on the bill"></div>
+      <div class="frow"><label>Tax rule</label>
+        <select id="cRule"><option value="">the biller's rule</option>${
+          TAX_RULES.map(r => `<option value="${esc(r.name)}">${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("")}</select></div>
+      <div class="dim" style="font-size:12px;margin:-2px 0 6px">Only the amount before tax goes onto the cost of the goods. Import GST on a customs bill
+        cannot be worked out from a rate — type it from the bill. Check fills an empty Tax with what the rule suggests; change it to the bill.</div>
       <div class="frow"><label>Currency</label>
         <select id="cCur"><option value="">Choose…</option>${
           (cur.data || []).map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)}</option>`).join("")}</select></div>
@@ -644,7 +683,9 @@ async function openCreate(preselectPoId){
     p_due_date:     document.getElementById("cDue").value || null,
     p_description:  document.getElementById("cDesc").value.trim() || null,
     p_note:         null,
-    p_po_ids:       Array.from(picked)
+    p_po_ids:       Array.from(picked),
+    p_tax_amount:   document.getElementById("cTax").value.trim() === "" ? null : Number(document.getElementById("cTax").value),
+    p_tax_rule:     document.getElementById("cRule").value || null
   });
 
   const drawProposal = (d) => {
@@ -666,8 +707,12 @@ async function openCreate(preselectPoId){
     const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:false }));
     if(error){ say("cMsg", "err", error.message); document.getElementById("cGo").disabled = true; return; }
     drawProposal(data);
-    const w = data.warnings || [];
-    say("cMsg", w.length ? "err" : "on", w.length ? "⚠ " + w.join(" · ") : "Looks fine — press Create.");
+    // chg tx v1 — 빈 Tax 칸에 제안값을 채운다(사람이 본 값을 보낸다 · po-tax-2 ㉡)
+    const taxBox = document.getElementById("cTax");
+    if(taxBox.value.trim() === "" && data.tax_suggested !== null && data.tax_suggested !== undefined) taxBox.value = String(data.tax_suggested);
+    const w = (data.warnings || []).filter(x => x !== "tax_amount_not_given");
+    say("cMsg", w.length ? "err" : "on", (w.length ? "⚠ " + w.map(x => WARN_TEXT[x] || x).join(" · ") : "Looks fine — press Create.")
+      + (data.tax_rule ? ` · Tax rule ${data.tax_rule}` : "") + ` · Tax ${money(Number(taxBox.value || 0))} — check it against the bill`);
     // ⚠️ A number that already exists is only a warning here; the commit refuses it.
     document.getElementById("cGo").disabled = w.includes("charge_number_exists");
   };
@@ -677,7 +722,7 @@ async function openCreate(preselectPoId){
     const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:true }));
     if(error){ say("cMsg", "err", error.message); return; }
     modalClose();
-    if((data.warnings || []).length) alert("⚠ " + data.warnings.join("\n⚠ "));
+    if((data.warnings || []).length) alert("⚠ " + data.warnings.map(x => WARN_TEXT[x] || x).join("\n⚠ "));
     openChg(data.charge_id);
   };
 }
@@ -687,6 +732,8 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
   document.getElementById("buildTag").textContent = CHG_BUILD;
+  const tr = await sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name");
+  TAX_RULES = tr.data || [];
 
   // ⚠️ Charge suppliers are not purchase suppliers — CBSA and the brokers are marked
   //    is_purchasable = false, so do NOT filter this list by that column.
