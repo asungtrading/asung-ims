@@ -97,8 +97,9 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-10-01 · inv thumb v1";   // 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-10-08 · inv tx v1";   // 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
+let TAX_RULES = [];           // inv tx v1 — active purchase tax rules (head · line pickers)
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
 const thumbOf = sku => (sku && typeof window.imsThumb === "function") ? window.imsThumb(sku) : "";
@@ -203,8 +204,8 @@ async function loadWide(){
   }
   box.innerHTML = `<table><thead><tr>
       <th>Number</th><th>Kind</th><th>Date</th><th>Due</th><th>Supplier</th><th>POs</th>
-      <th class="num">Printed</th><th class="num">Computed</th><th class="num">Diff</th>
-      <th class="num">Payable</th><th class="num">Paid / used</th><th class="num">Balance</th><th>Status</th>
+      <th class="num">Printed</th><th class="num">Computed incl. tax</th><th class="num">Diff</th>
+      <th class="num">Payable incl. tax</th><th class="num">Paid / used</th><th class="num">Balance</th><th>Status</th>
     </tr></thead><tbody>${data.map(r => {
       const bad = Number(r.diff) !== 0;
       return `<tr data-id="${r.id}">
@@ -232,7 +233,7 @@ async function loadWide(){
       </tr>`;
     }).join("")}</tbody></table>
     <div class="invsub">⚠️ Printed is what the supplier put on the document and stays the source of truth.
-      Computed is ours, from the lines and the discount chain. A non-zero Diff means they disagree — check the lines.
+      Computed is ours, from the lines, the discount chain and the tax rule (tax line by line). A non-zero Diff means they disagree — check the lines.
       On a credit row, Paid / used is how much of it has been spent and Balance is what is left; a credit tied to an invoice
       shows <em>applied</em> because it has already come off that invoice.</div>`;
   box.querySelectorAll("tbody tr").forEach(el => { el.onclick = () => openInv(el.dataset.id); });
@@ -297,6 +298,9 @@ async function loadDetail(id){
     ["Payment term",  dim(h.payment_term_name)],
   ];
   const kvR = [
+    // inv tx v1 — 세금 규칙(po-tax-1): 초안이면 드롭다운 · 줄 규칙이 비면 이것을 따른다
+    ["Tax rule",     headTax(h.tax_rule_id, h.tax_rule, h.rate_pct, ed)
+                     + ((data.warnings || []).includes("tax_rule_missing") ? '<div class="bad" style="font-size:11.5px">Some lines have no tax rule — their tax counts as 0</div>' : "")],
     ["Currency",     `<span class="mono">${dim(h.currency_code)}</span>` +
                      (h.exchange_rate ? ` <span class="dim">@ ${esc(h.exchange_rate)}</span>` : "")],
     ["Created by",   dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
@@ -313,10 +317,12 @@ async function loadDetail(id){
       <div class="stat">Goods<b>${money(m.goods_sum)}</b></div>
       <div class="stat">Discount<b>${esc(Number(m.discount_factor))}</b></div>
       <div class="stat">Other lines<b>${money(m.other_sum)}</b></div>
-      <div class="stat">Computed<b>${money(m.computed_total)}</b></div>
+      <div class="stat">Before tax<b>${money(m.taxable_amount)}</b></div>
+      <div class="stat">Tax<b>${m.tax_amount === null || m.tax_amount === undefined ? '<span class="dim">—</span>' : money(m.tax_amount)}</b></div>
+      <div class="stat">Computed incl. tax<b>${money(m.computed_total)}</b></div>
       <div class="stat ${bad ? "warn" : ""}">Printed<b>${money(h.total_amount)}</b></div>
       <div class="stat ${bad ? "warn" : ""}">Diff<b>${money(m.diff)}</b></div>
-      <div class="stat">${isCredit ? "Credit net" : "Payable"}<b>${money(m.payable_net)}</b></div>
+      <div class="stat">${isCredit ? "Credit net incl. tax" : "Payable incl. tax"}<b>${money(m.payable_net)}</b></div>
       <div class="stat">${isCredit ? "Used" : "Paid"}<b>${money(m.alloc_total)}</b></div>
       <div class="stat">${isCredit ? "Remaining" : "Balance"}<b>${
         isCredit ? money(m.remaining) : balCell(m.unpaid)}</b></div>
@@ -342,6 +348,8 @@ async function loadDetail(id){
             ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(l.unit_price)}" data-prev="${esc(l.unit_price)}" data-line="${l.id}" data-f="unit_price">`
             : money(l.unit_price)}${priceOff ? `<div class="off" style="font-size:11.5px">PO ${money(l.po_unit_price)}</div>` : ""}</td>
       <td class="num">${money(l.amount)}</td>
+      <td>${lineTax(l, ed)}</td>
+      <td class="num">${l.tax_amount === null || l.tax_amount === undefined ? '<span class="dim">—</span>' : money(l.tax_amount)}</td>
       <td class="num">${l.po_line_id ? qty(l.po_qty_ea) : '<span class="dim">—</span>'}</td>
       <td class="num">${l.po_line_id ? qty(l.received_qty) : '<span class="dim">—</span>'}</td>
       <td class="num">${l.po_line_id
@@ -430,11 +438,12 @@ async function loadDetail(id){
 
     ${tbl("Lines", (data.lines||[]).length,
       [["#","num"],["Kind",""],["Item",""],["PO",""],["Qty","num"],["Unit price","num"],
-       ["Amount","num"],["PO qty","num"],["Received","num"],["Qty diff","num"],["Payable",""]]
+       ["Amount","num"],["Tax rule",""],["Tax","num"],["PO qty","num"],["Received","num"],["Qty diff","num"],["Payable",""]]
         .concat(ed ? [["",""]] : []), lines,
       "Qty diff compares what is billed with what actually arrived. A non-zero value is what a credit note is usually made from. " +
       "Clearing Payable leaves a line out of the amount to settle — that is how freight billed here but paid elsewhere is handled." +
-      (ed ? " Quantity and unit price are edited in the cell." : ""))}
+      (ed ? " Quantity and unit price are edited in the cell." : "") +
+      " Tax is worked out line by line from the tax rule (a blank rule follows the document's); the discount chain takes its share of the tax back once — line Tax is before the discount.")}
 
     ${tbl("Discounts", (data.discounts||[]).length,
       [["Seq","num"],["Name",""],["Percent","num"],["Source",""]].concat(ed ? [["",""]] : []), disc,
@@ -480,6 +489,8 @@ async function loadDetail(id){
     box.querySelectorAll("input[data-line]").forEach(i => { i.onchange = () => saveLine(i); });
     box.querySelectorAll("input[data-disc]").forEach(i => { i.onchange = () => saveDiscount(i); });
     box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
+    box.querySelectorAll("select[data-head]").forEach(i => { i.onchange = () => { if(i.value !== i.dataset.prev) saveHead(h.id, i); }; });
+    box.querySelectorAll("select[data-ltax]").forEach(sel => { sel.onchange = () => saveLineTax(sel); });
     box.querySelectorAll("[data-pay]").forEach(c => { c.onchange = () => togglePayable(c); });
     box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del); });
     box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
@@ -552,6 +563,38 @@ async function removeDiscount(id){
   reload();
 }
 
+/* inv tx v1 — tax rule pickers (po-tax-1). The list is the active purchase rules, read once at start.
+   A current value missing from the list (inactive) is kept as "(current · inactive)" so an untouched field never saves a change. */
+function taxLabel(name, rate){
+  if(!name) return '<span class="dim">—</span>';
+  return esc(name) + (rate === null || rate === undefined ? "" : ` <span class="dim">${esc(Number(rate))}%</span>`);
+}
+function taxOptions(curId, curName, blankLabel){
+  const known = TAX_RULES.some(r => r.id === curId);
+  return `<option value="">${esc(blankLabel)}</option>`
+    + (curId && !known ? `<option value="${esc(curId)}" selected>${esc(curName || "?")} (current · inactive)</option>` : "")
+    + TAX_RULES.map(r => `<option value="${r.id}" ${r.id === curId ? "selected" : ""}>${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("");
+}
+function headTax(id, name, rate, ed){
+  if(!ed) return taxLabel(name, rate);
+  return `<select class="tin" data-head="tax_rule_id" data-prev="${esc(id ?? "")}">${taxOptions(id, name, "— no tax rule —")}</select>`;
+}
+function lineTax(l, ed){
+  if(!ed) return l.tax_rule ? esc(l.tax_rule) : `<span class="dim">${l.tax_rule_effective ? "document rule" : "—"}</span>`;
+  return `<select class="tin" data-ltax="${l.id}" data-prev="${esc(l.tax_rule_id ?? "")}">${taxOptions(l.tax_rule_id, l.tax_rule, "document rule")}</select>`;
+}
+async function saveLineTax(sel){
+  const prev = sel.dataset.prev, v = sel.value;
+  if(v === prev) return;
+  sel.disabled = true;
+  const patch = v ? { tax_rule_id: v } : { tax_rule_id: "", tax_rule: "" };
+  const { error } = await sb.rpc("po_invoice_line_update", { p_line_id: sel.dataset.ltax, p_patch: patch });
+  sel.disabled = false;
+  if(error){ sel.value = prev; alert(error.message); return; }
+  sel.dataset.prev = v;
+  reload();
+}
+
 /* ⚠️ The printed total is a cross-check, not a calculated field.
    Type in what the supplier printed; if it disagrees with ours, Diff says so. */
 async function saveHead(id, inp){
@@ -562,7 +605,8 @@ async function saveHead(id, inp){
   const val = field === "total_amount" ? Number(inp.value) : (inp.value.trim() || null);
   if(field === "total_amount" && (!isFinite(val) || inp.value.trim() === "")){ inp.value = prev; return; }
   say("headMsg", "", "Saving…");
-  const patch = {}; patch[field] = val;
+  // inv tx v1 — 세금 규칙: id 를 쓰면 짝 트리거가 이름을 채운다 · 비울 때는 둘 다 null(짝 CHECK)
+  const patch = field === "tax_rule_id" ? (val ? { tax_rule_id: val } : { tax_rule_id: null, tax_rule: null }) : { [field]: val };
   const res = await imsSaved(sb.from("po_invoice").update(patch).eq("id", id).select("id"));
   if(!res.ok){ inp.value = prev; say("headMsg", "err", res.reason); return; }
   inp.dataset.prev = String(inp.value);
@@ -883,6 +927,8 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   sb = client; me = meData; isAdmin = (me.role === "admin");
   imsHeader(me);
   document.getElementById("buildTag").textContent = INV_BUILD;
+  const tr = await sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name");
+  TAX_RULES = tr.data || [];
 
   const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
   if(sup.data) document.getElementById("wsup").innerHTML =
