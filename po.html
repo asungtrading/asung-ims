@@ -183,7 +183,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-07 · po st v4";   // 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-08 · po tx v1";   // 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 /* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -347,7 +347,7 @@ async function loadWide(){
         <td>${dim(r.required_by)}</td>
         <td>${esc(r.supplier_name)}</td>
         <td class="num">${esc(r.line_count)}</td>
-        <td class="num">${money(r.net_total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
+        <td class="num">${money(r.net_total)} <span class="dim">${esc(r.currency_code || "")}</span>${Number(r.tax_amount) ? `<div class="dim" style="font-size:11.5px">+ tax ${money(r.tax_amount)}</div>` : ""}</td>
         <td class="num">${Number(r.ordered_qty) ? qty(r.received_qty) + ' <span class="dim">/ ' + qty(r.ordered_qty) + '</span>' : '<span class="dim">—</span>'}</td>
         <td class="num">${Number(r.invoice_count) ? money(r.invoiced_total) : '<span class="dim">—</span>'}</td>
         <td class="num">${Number(r.charge_count) ? money(r.charge_total) : '<span class="dim">—</span>'}</td>
@@ -1183,8 +1183,11 @@ async function loadDetail(id){
     ["Confirmed by",  dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     // ⚠️ closed 는 「입고 종료」다 — 비용은 그 뒤에도 붙는다(§13)
     ["Closed",        h.closed_at ? imsTs(h.closed_at) : (h.cancelled_at ? `<span class="off">cancelled ${imsTs(h.cancelled_at)}</span>` : '<span class="dim">—</span>')],
-    // ⚠️ 세금은 **기록만** 한다 — ref_tax_rule 이 없어 세율을 모른다. totals 에 반영하지 않는다
-    ["Tax rule",      dim(h.tax_rule) + (h.tax_inclusive ? ' <span class="tag">tax inclusive</span>' : "")],
+    // po tx v1 — 세금 규칙(po-tax-1): 초안이면 드롭다운 · 세율을 옆에 · 경고 둘(규칙 없음 · tax inclusive 는 계산 안 함)
+    ["Tax rule",      headTax(h.tax_rule_id, h.tax_rule, h.rate_pct, edDraft)
+                        + (h.tax_inclusive ? ' <span class="tag">tax inclusive</span>' : "")
+                        + ((data.warnings || []).includes("tax_rule_missing") ? '<div class="bad" style="font-size:11.5px">No tax rule — tax is not calculated for this order</div>' : "")
+                        + ((data.warnings || []).includes("tax_inclusive_not_supported") ? '<div class="bad" style="font-size:11.5px">Marked tax inclusive — tax is still calculated on top of the prices</div>' : "")],
     ["Inventory acct", h.inventory_account_code
                         ? `<span class="mono">${esc(h.inventory_account_code)}</span> <span class="dim">${esc(h.inventory_account_name || "")}</span>`
                         : '<span class="dim">—</span>'],
@@ -1202,6 +1205,8 @@ async function loadDetail(id){
       <div class="stat">Subtotal<b>${money(t.subtotal)}</b></div>
       <div class="stat">Discount<b>${t.discount_amount ? "−"+money(t.discount_amount) : money(0)}</b></div>
       <div class="stat">Net<b>${money(t.net_total)}</b></div>
+      <div class="stat">Tax<b>${t.tax_amount === null || t.tax_amount === undefined ? '<span class="dim">—</span>' : money(t.tax_amount)}</b></div>
+      <div class="stat">Total with tax<b>${t.total_with_tax === null || t.total_with_tax === undefined ? '<span class="dim">—</span>' : money(t.total_with_tax)}</b></div>
       <div class="stat">Charges added<b>${money(t.charge_total)}</b></div>
       <div class="stat ${shortQty ? "warn" : ""}">Received<b>${qty(t.received_qty)} / ${qty(t.ordered_qty)}</b></div>
     </div>`;
@@ -1220,6 +1225,7 @@ async function loadDetail(id){
       <td class="num">${ed ? `<input class="qin" type="number" step="any" min="0" value="${esc(l.qty_ea)}" data-prev="${esc(l.qty_ea)}" data-line="${l.id}" data-f="qty_ea">` : qty(l.qty_ea)}</td>
       <td class="num">${ed ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(l.unit_price)}" data-prev="${esc(l.unit_price)}" data-line="${l.id}" data-f="unit_price">` : money(l.unit_price)}</td>
       <td class="num">${money(l.amount)}</td>
+      <td>${lineTax(l, ed)}</td>
       <td class="num">${qty(l.received_qty)}</td>
       <td class="num">${over ? `<span class="off">+${qty(-l.remaining_qty)}</span>`
                              : (Number(l.remaining_qty) > 0 ? `<span class="neutral">${qty(l.remaining_qty)}</span>` : '<span class="dim">0</span>')}</td>
@@ -1300,7 +1306,7 @@ async function loadDetail(id){
       <td>${esc(c.supplier_name)}</td>
       <td>${dim(c.charge_date)}</td>
       <td class="num">${money(c.alloc_amount)}</td>
-      <td class="num"><span class="dim">${money(c.total_amount)}</span></td>
+      <td class="num"><span class="dim" title="Before tax ${money(c.total_amount)} · tax ${money(c.tax_amount || 0)}">${money(c.total_with_tax ?? c.total_amount)}</span></td>
       <td class="num">${Number(c.unpaid) === 0 ? '<span class="dim">0.00</span>' : `<span class="neutral">${money(c.unpaid)}</span>`}</td>
     </tr>` + caretRow(7, c.allocs, "POs this charge is spread over"));
 
@@ -1348,9 +1354,10 @@ async function loadDetail(id){
 
     ${tbl("Lines", (data.lines||[]).length,
       [["#","num"],["Product",""],["Supplier SKU",""],["Qty","num"],["Unit price","num"],
-       ["Amount","num"],["Received","num"],["Remaining","num"]].concat(ed ? [["",""]] : []), lines,
+       ["Amount","num"],["Tax rule",""],["Received","num"],["Remaining","num"]].concat(ed ? [["",""]] : []), lines,
       "⚠️ A negative Remaining (red) means more arrived than was ordered. Since 2026-09-29 the extra is an off-invoice item on the receipt: it is already in a bin and goes into stock when the office decides it (free or billed) in Purchase Receipts. The warehouse receives an order only after its supplier invoice is confirmed — confirming the invoice keeps this number for what was billed and moves the rest to a sibling order." +
-      (ed ? " Edit quantity and unit price right in the cell. Going below what was received is refused by the database." : ""))}
+      (ed ? " Edit quantity and unit price right in the cell. Going below what was received is refused by the database." : "") +
+      " Tax rule left blank follows the order's tax rule — set it on a line only when that item is taxed differently.")}
 
     ${tbl("Discounts", (data.discounts||[]).length,
       [["Seq","num"],["Name",""],["Percent","num"],["Source",""]].concat(ed ? [["",""]] : []), disc,
@@ -1361,8 +1368,8 @@ async function loadDetail(id){
       "One line can be split across several bins.")}
 
     ${tbl("Invoices", (data.invoices||[]).length,
-      [["Number",""],["Date",""],["Due",""],["Printed","num"],["Computed","num"],["Diff","num"],
-       ["Payable","num"],["Paid","num"],["Credit","num"],["Unpaid","num"],["Lines","num"]], invs,
+      [["Number",""],["Date",""],["Due",""],["Printed","num"],["Computed incl. tax","num"],["Diff","num"],
+       ["Payable incl. tax","num"],["Paid","num"],["Credit","num"],["Unpaid","num"],["Lines","num"]], invs,
       "⚠️ Payable is not the invoiced total — lines we do not pay (freight and the like) are left out. " +
       "A non-zero Diff means the printed total and our calculation disagree. " +
       "Unpaid showing credit due means they owe us — a credit landed after we had paid.")}
@@ -1374,8 +1381,8 @@ async function loadDetail(id){
       "For showing unattached means the credit is not tied to any invoice yet; Remaining is what is left to use on a future payment.")}
 
     ${tbl("Charges", (data.charges||[]).length,
-      [["Number",""],["Kind",""],["Supplier",""],["Date",""],["Allocated here","num"],["Charge total","num"],["Unpaid","num"]], chgs,
-      "One charge document is spread over several POs — Allocated here is this PO's share. Open the caret to see the rest.")}
+      [["Number",""],["Kind",""],["Supplier",""],["Date",""],["Allocated here","num"],["Charge total incl. tax","num"],["Unpaid","num"]], chgs,
+      "One charge document is spread over several POs — Allocated here is this PO's share (before tax · only the amount before tax goes onto the cost of the goods). Open the caret to see the rest.")}
 
     ${tbl("Payments", (data.payments||[]).length,
       [["Reference",""],["Date",""],["Target",""],["Paid","num"],["Discount","num"],["Applied","num"],["Account",""],["By",""]], pays,
@@ -1429,6 +1436,7 @@ async function loadDetail(id){
     box.querySelectorAll("[data-del]").forEach(b => {
       b.onclick = () => deleteLine(b.dataset.del, b.dataset.sku);
     });
+    box.querySelectorAll("select[data-ltax]").forEach(sel => { sel.onchange = () => saveLineTax(sel); });
     box.querySelectorAll("input[data-disc]").forEach(inp => { inp.onchange = () => saveDiscount(inp); });
     box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
   }
@@ -1436,6 +1444,7 @@ async function loadDetail(id){
 
 /* ── 시작 ─────────────────────────────────────────── */
 let WHS = [];                 // 활성 창고 — Ship to 가 고른다
+let TAX_RULES = [];           // po tx v1 — 활성 purchase 세금 규칙(머리 · 줄 고르기)
 
 /* ── 발주 머리 고치기 ─────────────────────────────────
    ⭐ 다른 문서 셋(인보이스·비용·결제)은 머리 칸을 표 안에서 바로 고치는데 발주만 그 길이 없었다.
@@ -1475,6 +1484,41 @@ function headWh(value, ed){
   </select>`;
 }
 
+/* po tx v1 — 세금 규칙 고르기(po-tax-1). 고르기 목록은 활성 purchase 규칙(TAX_RULES · 시작 때 한 번).
+   지금 값이 목록에 없으면(비활성 등) 「(current · inactive)」 줄을 더해 그대로 — 안 바꾼 칸이 바뀐 것으로 저장되지 않게(§42-d 2). */
+function taxLabel(name, rate){
+  if(!name) return '<span class="dim">—</span>';
+  return esc(name) + (rate === null || rate === undefined ? "" : ` <span class="dim">${esc(Number(rate))}%</span>`);
+}
+function taxOptions(curId, curName, blankLabel){
+  const known = TAX_RULES.some(r => r.id === curId);
+  return `<option value="">${esc(blankLabel)}</option>`
+    + (curId && !known ? `<option value="${esc(curId)}" selected>${esc(curName || "?")} (current · inactive)</option>` : "")
+    + TAX_RULES.map(r => `<option value="${r.id}" ${r.id === curId ? "selected" : ""}>${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("");
+}
+function headTax(id, name, rate, ed){
+  if(!ed) return taxLabel(name, rate);
+  return `<select class="tin" data-head="tax_rule_id" data-prev="${esc(id ?? "")}">${taxOptions(id, name, "— no tax rule —")}</select>`;
+}
+function lineTax(l, ed){
+  if(!ed) return l.tax_rule ? esc(l.tax_rule) : '<span class="dim">order rule</span>';
+  return `<select class="tin" data-ltax="${l.id}" data-prev="${esc(l.tax_rule_id ?? "")}">${taxOptions(l.tax_rule_id, l.tax_rule, "order rule")}</select>`;
+}
+/* 줄 규칙 — po_line_update 열쇠(po-tax-1): tax_rule_id 로 고르면 짝 트리거가 이름을 채운다 · 비우면 둘 다 ""(= 머리를 따른다) */
+async function saveLineTax(sel){
+  const prev = sel.dataset.prev, v = sel.value;
+  if(v === prev) return;
+  sel.disabled = true;
+  const patch = v ? { tax_rule_id: v } : { tax_rule_id: "", tax_rule: "" };
+  const { error } = await sb.rpc("po_line_update", { p_line_id: sel.dataset.ltax, p_patch: patch });
+  sel.disabled = false;
+  if(error){ sel.value = prev; alert(error.message); return; }
+  sel.dataset.prev = v;
+  const y = window.scrollY;
+  await loadDetail(curId); await loadList();
+  window.scrollTo(0, y);
+}
+
 /* ⚠️ 한 칸이라 PostgREST 로 바로 쓴다(§13-d 「일이 여럿이면 RPC · 한 가지면 PostgREST」).
    실패하면 **적혀 있던 값으로 되돌린다** — 화면이 안 들어간 값을 보이면 안 된다. */
 async function saveHead(id, el){
@@ -1487,8 +1531,10 @@ async function saveHead(id, el){
     } else val = Number(val);
   } else if(val === "") val = null;
 
+  // po tx v1 — 세금 규칙: id 를 쓰면 짝 트리거가 이름을 채운다 · 비울 때는 둘 다 null(짝 CHECK)
+  const upd = field === "tax_rule_id" ? (val ? { tax_rule_id: val } : { tax_rule_id: null, tax_rule: null }) : { [field]: val };
   say("headMsg", "", "Saving…");
-  const res = await imsSaved(sb.from("po").update({ [field]: val }).eq("id", id).select("id"));
+  const res = await imsSaved(sb.from("po").update(upd).eq("id", id).select("id"));
   if(!res.ok){ el.value = prev; say("headMsg", "err", res.reason); return; }
   el.dataset.prev = el.value;
   say("headMsg", "on", "Saved");
@@ -1510,6 +1556,8 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
      ⚠️ IN_TRANSIT 은 비활성이라 여기 안 나온다 — 물건을 그리로 보낼 수는 없다. */
   const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
   WHS = wh.data || [];
+  const tr = await sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name");
+  TAX_RULES = tr.data || [];
 
   const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
   if(sup.data) document.getElementById("wsup").innerHTML =
