@@ -2,7 +2,7 @@
    ─────────────────────────────────────────────
    ⭐⭐ 설명은 이 파일의 imsDesc 로만 그린다 — 원문 칸(cin7_description · description_html)을 innerHTML 로 직접 그리지 마라(CHECKLIST)
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-desc.js (esc · imsTs · imsAuth 를 쓴다)
-   📌 2026-10-09 · 대화 Claude · desc v1
+   📌 2026-10-09 · 대화 Claude · desc v1 · desc v1a(손대지 않은 Save 는 저장하지 않는다 — 비교 기준 = 편집 창이 열린 직후의 글)
 
    DB(desc-1b) 사실 — 2026-10-09 실측
      product · product_family: description_html(null = Cin7 을 따른다 · '' = 일부러 비움) · description_edited_at · description_edited_by
@@ -224,6 +224,11 @@
       <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="cancel">Cancel</button><button class="pobtn go" data-m="save">Save</button></div>`);
     const ed = box.querySelector("[data-ed]"), src = box.querySelector("[data-src]");
     ed.innerHTML = first.html;
+    /* desc v1a — 손대지 않았는지는 「원문」이 아니라 「편집 창에 넣은 직후 같은 방식으로 꺼내 거른 글」과 비교한다
+       (원문과 비교하면 거른 몫(POWR 등)만큼 늘 달라 손대지 않은 Save 가 IMS 소유로 바뀐다 · Caleb 2026-10-09 「손대지 않았으면 cin7 버전으로 재적재」) */
+    const norm = h => { const t = String(h || "").trim(); return t.replace(/<br\s*\/?>|&nbsp;|\s|<p>\s*<\/p>/gi, "") === "" ? "" : t; };
+    const edStart = ed.innerHTML;
+    const baseline = norm((await clean(edStart, sb)).html);
     let srcMode = false;
 
     box.querySelectorAll("[data-cmd]").forEach(b => {
@@ -258,15 +263,14 @@
 
     box.querySelector('[data-m="cancel"]').onclick = () => {
       const now = srcMode ? src.value : ed.innerHTML;
-      if (now !== first.html && !confirm("Close without saving your changes?")) return;
+      if (now !== edStart && !confirm("Close without saving your changes?")) return;
       closeModal();
     };
     box.querySelector('[data-m="save"]').onclick = async () => {
       const r = await clean(srcMode ? src.value : ed.innerHTML, sb);
-      let html = r.html.trim();
-      if (html.replace(/<br\s*\/?>|&nbsp;|\s|<p>\s*<\/p>/gi, "") === "") html = "";
+      const html = norm(r.html);
       const isEdited = row.description_html !== null && row.description_html !== undefined;
-      if (html === String(effective || "").trim()) { closeModal(); return; }   // 바뀐 것 없음 — 표시도 안 붙인다
+      if (html === baseline) { closeModal(); return; }   // desc v1a — 손대지 않았다 → 저장 안 함 · Cin7 을 계속 따른다(고친 적 있는 것은 그대로 IMS 글)
       if (html === "" && !confirm("Save an empty description? The site will show none — Cin7's text is not used while the IMS text is kept.")) return;
       if (!isEdited && !confirm("Save this description in IMS?\n\nFrom now on the daily Cin7 reload will not change it. You can go back with “Follow Cin7 again”.")) return;
       const line = Object.assign({ op: "description_set", html: html, old: isEdited ? row.description_html : null },
