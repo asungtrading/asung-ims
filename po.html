@@ -183,7 +183,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-08 · po tx v1a";   // 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-08 · po fx v1";   // 대화 Claude — ⑥ 환율 차액(판정 394 · po-disc-5b): 외화 PO 의 환율 칸 아래에 「이미 원가가 잡힌 물건이 다른 환율로」 경고 + 차액(CAD) · 「Apply FX difference」 창(po_fx_cost_apply 미리 보기 → 저장) · 인보이스 환율로 원가를 세운 줄 · 핀 없는 옛 레이어는 따로 한 줄 · 환율 수정은 지금처럼 열려 있다(원가는 저절로 안 바뀐다) ← po tx v1a · 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 /* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -1064,7 +1064,15 @@ async function loadDetail(id){
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That purchase order is gone.</div></div>'; return; }
 
   const h = data.header, t = data.totals || {};
-  curHead = h;                                         // ⭐ paste preview reads the supplier from here
+  curHead = h;
+  /* po fx v1 · ruling 394 — for a foreign-currency order, how much received stock was costed at another rate.
+     Changing the rate does not change cost by itself; this says so, and the button applies the difference. */
+  let fx = null, fxErr = "";
+  if(h.currency_code && h.currency_code !== "CAD" && h.status !== "draft" && h.status !== "cancelled"){
+    const fr = await sb.rpc("po_fx_cost_status", { p_po_id: id });
+    if(seq !== detailSeq) return;
+    if(fr.error) fxErr = fr.error.message; else fx = fr.data;
+  }                                         // ⭐ paste preview reads the supplier from here
   const cur = h.currency_code ? ` <span class="dim">${esc(h.currency_code)}</span>` : "";
 
   /* ⭐ 고칠 수 있는 상태인가 — draft · confirmed 는 고친다. closed · cancelled 는 못 고친다.
@@ -1178,7 +1186,7 @@ async function loadDetail(id){
                       h.currency_code === "CAD"
                         ? '<span class="dim">base currency</span>'
                         : headIn("exchange_rate", h.exchange_rate, edAlways, "number") +
-                          (h.exchange_rate ? "" : ' <span class="bad">needed for costing</span>')],
+                          (h.exchange_rate ? "" : ' <span class="bad">needed for costing</span>') + fxNote(fx, fxErr)],
     ["Created by",    dim(h.created_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
     ["Confirmed by",  dim(h.confirmed_by_name) + (h.confirmed_at ? ` <span class="dim">· ${imsTs(h.confirmed_at)}</span>` : "")],
     // ⚠️ closed 는 「입고 종료」다 — 비용은 그 뒤에도 붙는다(§13)
@@ -1416,6 +1424,7 @@ async function loadDetail(id){
       if(b.dataset.act === "invoice") openCreateInvoice(h);
       if(b.dataset.act === "receive") window.location.href = "receiving.html?po_id=" + encodeURIComponent(h.id);
       if(b.dataset.act === "charge")  window.location.href = "charges.html?po_id=" + encodeURIComponent(h.id);
+      if(b.dataset.act === "fxapply") openFxApply(h);
       if(b.dataset.act === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.po_number);
       if(b.dataset.act === "toglist"){ const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; }
     };
@@ -1521,6 +1530,65 @@ async function saveLineTax(sel){
   const y = window.scrollY;
   await loadDetail(curId); await loadList();
   window.scrollTo(0, y);
+}
+
+/* ── po fx v1 · ruling 394 — FX difference on stock already received ─────────
+   Stock is costed at the rate fixed when it was received. Editing the rate here is still allowed (a typo
+   must be fixable), and it does not move cost by itself — a person decides with Apply FX difference.
+   Lines costed at the invoice's own rate are not affected by this rate; layers received before rates were
+   pinned are left out until the cutover rebuild. */
+function fxNote(fx, err){
+  if(err) return `<div class="bad" style="font-size:11.5px">FX check: ${esc(err)}</div>`;
+  if(!fx || fx.is_base) return "";
+  const out = [];
+  const tot = Number(fx.total_remaining_cad || 0);
+  if(fx.affected && tot !== 0){
+    out.push(`<div class="bad" style="font-size:11.5px;margin-top:4px">Stock already received was costed at another rate — difference ${money(tot)} CAD on ${esc(fx.affected_lines)} line${Number(fx.affected_lines) === 1 ? "" : "s"}
+      <button class="pobtn" style="padding:2px 9px;font-size:12px;margin-left:6px" data-act="fxapply">Apply FX difference</button></div>`);
+  }
+  if(Number(fx.excluded_invoice_layers) > 0)
+    out.push(`<div class="dim" style="font-size:11.5px">${esc(fx.excluded_invoice_layers)} received lot${Number(fx.excluded_invoice_layers) === 1 ? "" : "s"} costed at the invoice's rate — this rate does not change them</div>`);
+  if(Number(fx.unpinned_layers) > 0)
+    out.push(`<div class="dim" style="font-size:11.5px">${esc(fx.unpinned_layers)} older lot${Number(fx.unpinned_layers) === 1 ? "" : "s"} without a fixed rate — not included</div>`);
+  return out.join("");
+}
+function openFxApply(h){
+  modalOpen(`
+    <h4>Apply FX difference — ${esc(h.po_number)}</h4>
+    <div class="pbody">
+      <div class="dim" style="font-size:12.5px">
+        Stock received on this order is costed at the rate fixed on receipt. This moves its cost to the rate in the
+        header now (${esc(h.exchange_rate)} CAD per ${esc(h.currency_code)}). The part already sold goes to cost of goods sold.
+        Applying twice at the same rate changes nothing the second time.
+      </div>
+      <div id="fxOut" style="margin-top:10px"><div class="msg">Checking…</div></div>
+      <div id="fxMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="fxGo" disabled>Apply</button>
+    </div>`);
+  (async () => {
+    const { data, error } = await sb.rpc("po_fx_cost_apply", { p_po_id: h.id, p_commit: false });
+    if(error){ document.getElementById("fxOut").innerHTML = ""; say("fxMsg", "err", error.message); return; }
+    const rows = (data.lines || []).filter(l => Number(l.remaining_cad) !== 0);
+    document.getElementById("fxOut").innerHTML = rows.length ? `<table><thead><tr>
+        <th class="num">#</th><th>SKU</th><th class="num">Qty</th><th class="num">Fixed rate</th><th class="num">Cost now</th><th class="num">At ${esc(h.exchange_rate)}</th><th class="num">Difference</th></tr></thead><tbody>${
+      rows.map(l => `<tr><td class="num">${esc(l.line_no)}</td><td class="mono">${esc(l.sku)}</td><td class="num">${qty(l.layer_qty)}</td>
+        <td class="num">${esc(l.pin_fx)}</td><td class="num">${money(l.already_cad)}</td><td class="num">${money(l.target_cad)}</td>
+        <td class="num">${money(l.remaining_cad)}</td></tr>`).join("")}</tbody></table>`
+      : '<div class="msg">Nothing to apply — the cost already matches this rate.</div>';
+    document.getElementById("fxGo").disabled = rows.length === 0;
+  })();
+  document.getElementById("fxGo").onclick = async () => {
+    document.getElementById("fxGo").disabled = true;
+    say("fxMsg", "", "Applying…");
+    const { data, error } = await sb.rpc("po_fx_cost_apply", { p_po_id: h.id, p_commit: true });
+    if(error){ say("fxMsg", "err", error.message); return; }
+    modalClose();
+    alert(`FX difference applied: ${Number(data.applied_cad || 0).toFixed(2)} CAD on ${data.event_count || 0} line${Number(data.event_count) === 1 ? "" : "s"}.`);
+    await loadDetail(h.id);
+  };
 }
 
 /* ⚠️ 한 칸이라 PostgREST 로 바로 쓴다(§13-d 「일이 여럿이면 RPC · 한 가지면 PostgREST」).
