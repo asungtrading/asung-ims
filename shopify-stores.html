@@ -80,7 +80,7 @@
          응답 {ok, shop{name, myshopifyDomain, currencyCode}, locations[{id, name, isActive, paired_warehouse}], scopes[], missing_scopes[], warnings[{code, …}], cost, ms}
    ⭐ 위치 대조는 GID 로만(이름은 표시) · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const SS_BUILD = "2026-10-09 · ss v1";   // 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
+const SS_BUILD = "2026-10-09 · ss v1a";   // 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
 console.log("shopify-stores.html build:", SS_BUILD);
 
 let sb = null, isAdmin = false, canCheck = false, onlyActive = true;
@@ -128,6 +128,16 @@ function lastCheck(s){
   if(!s.last_ping_at) return '<span class="dim">never</span>';
   return (s.last_ping_ok ? '<span class="on">✓ ok</span>' : '<span class="off">✗ failed</span>') + ` <span class="dim">${imsTs(s.last_ping_at)}</span>`
     + (s.last_ping_error ? `<div class="dim" style="font-size:11.5px">${esc(String(s.last_ping_error).slice(0, 120))}</div>` : "");
+}
+
+/* ss v1a — 저장 뒤 다시 그리고, 켜진 스토어면 저절로 다시 점검한다(옛 점검 결과 · 경고를 남기지 않는다) */
+function afterSave(code){
+  return async () => {
+    delete lastPing[code];
+    await load();
+    const ns = stores.find(x => x.code === code);
+    if(ns && ns.is_active && canCheck) await runPing(ns);
+  };
 }
 
 /* ── 상세 — 위치 짝 · 점검 ───────────────────────── */
@@ -313,7 +323,7 @@ function openForm(s){
     }
     newCode = code;
     return [Object.assign({ op: "store_set", code }, v, { old: s ? oldOf(s) : null })];
-  }, async () => { if(!s && newCode) pickedCode = newCode; await load(); });
+  }, async () => { const c = s ? s.code : newCode; if(!s && newCode) pickedCode = newCode; await afterSave(c)(); });
 }
 function openToggle(s){
   if(s.is_active){
@@ -321,14 +331,14 @@ function openToggle(s){
       <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">IMS stops talking to this store — no product, stock or order sync, and Check connection is hidden. The location pairs stay, so turning it back on brings everything back. Nothing changes in Shopify itself.</div>
       <div id="ssMsg" class="ssmsg"></div></div>${foot("Turn off")}`);
     document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
-    wireTwoStep(() => [{ op: "store_off", code: s.code, old: s.shop_domain }], load, true);
+    wireTwoStep(() => [{ op: "store_off", code: s.code, old: s.shop_domain }], async () => { delete lastPing[s.code]; await load(); }, true);
   } else {
     modalOpen(`<h4>Turn on ${esc(s.label)}</h4>
       <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">IMS starts talking to this store again with the settings shown on the page. Check connection afterwards.</div>
       <div id="ssMsg" class="ssmsg"></div></div>${foot("Turn on")}`);
     document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
     const o = oldOf(s);
-    wireTwoStep(() => [Object.assign({ op: "store_set", code: s.code }, o, { compare_tier: o.compare_tier || "", old: o })], load, true);
+    wireTwoStep(() => [Object.assign({ op: "store_set", code: s.code }, o, { compare_tier: o.compare_tier || "", old: o })], afterSave(s.code), true);
   }
 }
 
@@ -342,14 +352,14 @@ function openPair(s, gid, name, wid){
       <div class="dim" style="margin-top:6px">Stock for this location will come from that warehouse, and orders shipped from it will be marked shipped from this location.</div></div>
       <div id="ssMsg" class="ssmsg"></div></div>${foot("Save")}`);
   document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
-  wireTwoStep(() => [{ op: "location_set", store_code: s.code, shopify_location_gid: gid, warehouse_id: wid, old: cur ? cur.warehouse_id : null }], load, true);
+  wireTwoStep(() => [{ op: "location_set", store_code: s.code, shopify_location_gid: gid, warehouse_id: wid, old: cur ? cur.warehouse_id : null }], afterSave(s.code), true);
 }
 function openUnpair(s, l){
   modalOpen(`<h4>Unpair “${esc(l.shopify_name || l.shopify_location_gid)}”</h4>
     <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">This Shopify location stops getting stock from <b>${esc(l.warehouse_name)}</b>. You can pair it again later.</div>
       <div id="ssMsg" class="ssmsg"></div></div>${foot("Unpair")}`);
   document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
-  wireTwoStep(() => [{ op: "location_off", store_code: s.code, shopify_location_gid: l.shopify_location_gid, old: l.warehouse_id }], load, true);
+  wireTwoStep(() => [{ op: "location_off", store_code: s.code, shopify_location_gid: l.shopify_location_gid, old: l.warehouse_id }], afterSave(s.code), true);
 }
 
 /* ── 시작 ─────────────────────────────────────────── */
