@@ -57,7 +57,7 @@
       <input type="search" id="wq" placeholder="Reference · document number · supplier · account">
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
-      <button class="pobtn go" id="wnew">New payment</button>
+      <button class="pobtn go" id="wnew">To pay</button>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
     <div class="foot">
@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-09-23 · Toronto date";
+const PAY_BUILD = "2026-10-08 · pay disc v1";   // 대화 Claude — ⑥ 결제 할인 화면(po-disc-4a1 · 4a2 · 4b): To pay(po_pay_candidates · 결제일 기준 할인 제안) → Pay selected(문서마다 금액 · 할인 · 비용 청구서 기준 · p_targets.discount) · Paid · Discount taken 은 읽기 전용(문지기) · 줄마다 Discount + Adjust discount(po_payment_alloc_discount_set 미리 보기 → 저장) · Still owed 를 할인으로 끝내기(미룬 144) · 경고 코드를 사람 말로(미룬 143 gap_not_zero 등) ← 「Toronto date」(2026-09-23)
 console.log("payments.html build:", PAY_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -149,6 +149,33 @@ function say(where, cls, text){
 }
 function docErr(error){
   alert((error && error.message) || "Something went wrong — nothing was saved.");
+}
+
+/* pay disc v1 · deferred 143 — warnings arrived as codes (gap_not_zero). Some carry a document
+   number after a colon (discount_expired:1030266656); that number is kept. Unknown codes show as they are. */
+const PAY_WARN = {
+  gap_not_zero:              "Paid plus discount does not equal what is applied to the documents",
+  no_allocs:                 "nothing is on this payment yet",
+  mixed_currency:            "a document is in another currency",
+  alloc_on_unconfirmed_doc:  "a document on this payment is not confirmed",
+  mixed_supplier:            "the documents belong to more than one supplier",
+  paid_on_after_discount_deadline: "paid after a discount deadline but the discount was still taken",
+  account_missing:           "no account chosen",
+  discount_expired:          "the early-pay discount had expired on the paying date — none was taken",
+  discount_after_deadline:   "a discount was taken after its deadline",
+  discount_without_terms:    "a discount was taken on a document with no early-pay terms",
+  discount_available:        "an early-pay discount was available but not taken",
+  legacy_shape:              "",
+  early_discount_no_deadline:"the discount has no deadline"
+};
+function warnText(list){
+  return (list || []).map(w => {
+    const i = String(w).indexOf(":");
+    const code = i < 0 ? w : w.slice(0, i), arg = i < 0 ? "" : w.slice(i + 1);
+    const t = PAY_WARN[code];
+    if(t === "") return null;
+    return (t || code) + (arg ? ` (${arg})` : "");
+  }).filter(Boolean).join(" · ");
 }
 
 /* ── Two modes ─────────────────────────────────────── */
@@ -243,8 +270,10 @@ async function loadDetail(id){
 
   const kvL = [
     ["Paid on",     `<input class="tin" type="date" value="${esc(h.paid_on || "")}" data-prev="${esc(h.paid_on || "")}" data-head="paid_on">`],
-    ["Paid",        `<input class="qin" type="number" step="any" min="0" value="${esc(h.amount)}" data-prev="${esc(h.amount)}" data-head="amount"> <span class="mono dim">${esc(h.currency_code || "")}</span>`],
-    ["Discount taken", `<input class="qin" type="number" step="any" min="0" value="${esc(h.discount_taken)}" data-prev="${esc(h.discount_taken)}" data-head="discount_taken">`],
+    /* pay disc v1 — what left the bank is a fact: Paid is not edited (a wrong one is deleted and entered again).
+       Discount taken is the sum of the lines below; each line's discount is changed with Adjust discount. */
+    ["Paid",        `<span class="mono">${money(h.amount)}</span> <span class="mono dim">${esc(h.currency_code || "")}</span>`],
+    ["Discount taken", `<span class="mono">${money(h.discount_taken)}</span> <span class="dim">· the sum of the lines below</span>`],
     ["Reference",   `<input class="tin" style="width:260px" value="${esc(h.reference || "")}" data-head="reference" placeholder="wire ref · cheque no · card">`],
   ];
   const kvR = [
@@ -274,6 +303,9 @@ async function loadDetail(id){
       <td class="num">${money(a.doc_paid_total)}</td>
       <td class="num">${Number(a.doc_unpaid) > 0 ? `<span class="neutral">${money(a.doc_unpaid)}</span>` : '<span class="dim">0.00</span>'}</td>
       <td class="num"><input class="qin" type="number" step="any" min="0" value="${esc(a.amount)}" data-prev="${esc(a.amount)}" data-alloc="${a.alloc_id}" data-kind="${esc(a.target_kind)}" data-target="${esc(a.target_id)}"></td>
+      <td class="num">${Number(a.discount_amount) > 0 ? money(a.discount_amount) : '<span class="dim">0.00</span>'}
+        <div><button class="xbtn" data-adisc="${a.alloc_id}" style="font-size:11.5px">Adjust discount</button></div>
+        ${Number(a.doc_unpaid) > 0 ? `<div><button class="xbtn" data-asettle="${a.alloc_id}" style="font-size:11.5px" title="Take what is still owed as discount">Settle with discount</button></div>` : ""}</td>
       <td><input class="tin" value="${esc(a.note || "")}" data-anote="${a.alloc_id}" placeholder="why this amount"></td>
       <td><button class="xbtn" data-adel="${a.alloc_id}" title="Take this document off the payment">&#10005;</button></td>
     </tr>`;
@@ -289,7 +321,7 @@ async function loadDetail(id){
     </div>`;
 
   const warn = (data.warnings || []).length
-    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(esc).join(" · ")}</div></div>` : "";
+    ? `<div class="card"><div class="msg err">&#9888; ${esc(warnText(data.warnings))}</div></div>` : "";
 
   box.innerHTML = `
     <div class="card">
@@ -315,10 +347,12 @@ async function loadDetail(id){
     ${warn}
     ${tbl("Documents settled", allocList.length,
       [["Document",""],["Supplier",""],["Cur",""],["Document total","num"],["Paid so far","num"],
-       ["Still owed","num"],["On this payment","num"],["Note",""],["",""]],
+       ["Still owed","num"],["On this payment","num"],["Discount","num"],["Note",""],["",""]],
       allocs,
       "Paid so far counts every payment against that document, not just this one — so Still owed is what " +
-      "is left after all of them. Paying only part is normal; a document can be settled by several payments.")}
+      "is left after all of them. Paying only part is normal; a document can be settled by several payments. " +
+      "On this payment includes the discount. A discount lowers the cost of the goods it was for (and of what was already sold); " +
+      "Settle with discount takes what is still owed as discount, when the supplier let it go.")}
   `;
 
   box.querySelectorAll("[data-act]").forEach(b => {
@@ -334,6 +368,78 @@ async function loadDetail(id){
   box.querySelectorAll("input[data-alloc]").forEach(i => { i.onchange = () => saveAlloc(i); });
   box.querySelectorAll("input[data-anote]").forEach(i => { i.onchange = () => saveAllocNote(i); });
   box.querySelectorAll("[data-adel]").forEach(b => { b.onclick = () => removeAlloc(b.dataset.adel); });
+  const byAlloc = new Map(allocList.map(a => [a.alloc_id, a]));
+  box.querySelectorAll("[data-adisc]").forEach(b => { b.onclick = () => openAdjust(byAlloc.get(b.dataset.adisc), null); });
+  box.querySelectorAll("[data-asettle]").forEach(b => { b.onclick = () => {
+    const a = byAlloc.get(b.dataset.asettle);
+    openAdjust(a, Math.round((Number(a.discount_amount || 0) + Number(a.doc_unpaid || 0)) * 100) / 100);
+  }; });
+}
+
+/* ── Adjusting one line's discount ─────────────────────
+   pay disc v1 · po-disc-4b — what was paid stays as it is (it left the bank); the line's amount moves by
+   the change in discount, so the payment stays balanced. The cost events of the line are reversed and
+   rebuilt. Check first shows the before and after; Save writes it. Raising the discount on a document
+   that is already fully settled is refused — there is nothing left for it to cover. */
+function openAdjust(a, prefill){
+  if(!a) return;
+  const isCharge = a.target_kind === "charge";
+  const start = prefill !== null && prefill !== undefined ? prefill : Number(a.discount_amount || 0);
+  modalOpen(`
+    <h4>Adjust discount — ${esc(a.target_number)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Discount</label><input id="jDisc" type="number" step="any" min="0" value="${esc(start)}"></div>
+      ${isCharge ? `<div class="frow"><label>Worked out on</label>
+        <select id="jBasis"><option value="pre_tax">the amount before tax</option><option value="with_tax">the amount including tax</option></select></div>` : ""}
+      <div class="dim" style="font-size:12.5px">
+        Now ${money(a.discount_amount)} on this line · On this payment ${money(a.amount)} · Still owed ${money(a.doc_unpaid)}.
+        Paid stays as it is; On this payment moves by the change.
+      </div>
+      <div id="jOut" style="margin-top:10px;font-size:12.5px"></div>
+      <div id="jMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn" id="jChk">Check</button>
+      <button class="pobtn go" id="jGo" disabled>Save</button>
+    </div>`);
+  const args = (commit) => {
+    const v = Number(document.getElementById("jDisc").value);
+    const o = { p_alloc_id: a.alloc_id, p_discount: v, p_commit: commit };
+    if(isCharge) o.p_discount_basis = document.getElementById("jBasis").value;
+    return o;
+  };
+  const bad = () => {
+    const raw = document.getElementById("jDisc").value.trim(), v = Number(raw);
+    return raw === "" || !isFinite(v) || v < 0;
+  };
+  document.getElementById("jDisc").oninput = () => { document.getElementById("jGo").disabled = true; };
+  document.getElementById("jChk").onclick = async () => {
+    if(bad()){ say("jMsg", "err", "Enter 0 or more — nothing was saved."); return; }
+    say("jMsg", "", "Checking…");
+    const { data, error } = await sb.rpc("po_payment_alloc_discount_set", args(false));
+    if(error){ say("jMsg", "err", error.message); return; }
+    const b = data.before || {}, f = data.after || {};
+    document.getElementById("jOut").innerHTML = `
+      <table><thead><tr><th></th><th class="num">On this payment</th><th class="num">Discount</th></tr></thead><tbody>
+        <tr><td>Now</td><td class="num">${money(b.amount)}</td><td class="num">${money(b.discount)}</td></tr>
+        <tr><td>After</td><td class="num">${money(f.amount)}</td><td class="num">${money(f.discount)}</td></tr>
+      </tbody></table>
+      <div class="dim" style="margin-top:6px">Lowers stock cost by ${money(f.cost_part)}${Number(f.tax_part) ? ` · tax share ${money(f.tax_part)} (recorded, not cost)` : ""}${Number(f.other_part) ? ` · other lines ${money(f.other_part)}` : ""}.</div>`;
+    const w = warnText(data.warnings);
+    say("jMsg", w ? "err" : "", w ? "⚠ " + w : "Looks right — Save writes it.");
+    document.getElementById("jGo").disabled = false;
+  };
+  document.getElementById("jGo").onclick = async () => {
+    if(bad()) return;
+    document.getElementById("jGo").disabled = true;
+    say("jMsg", "", "Saving…");
+    const { error } = await sb.rpc("po_payment_alloc_discount_set", args(true));
+    if(error){ say("jMsg", "err", error.message); return; }
+    modalClose();
+    const y = window.scrollY; await reload(); window.scrollTo(0, y);
+    say("headMsg", "on", `${a.target_number}: discount saved`);
+  };
 }
 
 /* ── Head fields ───────────────────────────────────────
@@ -343,7 +449,7 @@ async function loadDetail(id){
 async function saveHead(id, inp){
   const field = inp.dataset.head;
   // ⚠️ paid_on and amount are NOT NULL, and amount must stay above zero.
-  if(inp.value.trim() === "" && (field === "paid_on" || field === "amount" || field === "discount_taken")){
+  if(inp.value.trim() === "" && field === "paid_on"){
     inp.value = inp.dataset.prev || inp.value;
     say("headMsg", "err", "That field cannot be left empty.");
     return;
@@ -547,55 +653,43 @@ async function drawOwing(qId, listId, currencyId, supplierId, onPick, pickedKeys
   });
 }
 
-/* ── Creating a payment ────────────────────────────────
-   ⭐ Two steps, like every other create on these screens. Check shows what will be written
-      and whether it adds up; nothing is saved until Create.
-   ⭐ The supplier comes first because the supplier is what decides the currency — the
-      documents and the currency both follow from that one choice. */
-/* ── Creating a payment ────────────────────────────────
-   ⭐⭐ What is being settled comes first, and the money second.
-       The first version asked for currency, date, amount, discount, reference and account
-       before it ever asked what the payment was for — so a person filled in six boxes and
-       was then told they had not started. [Caleb 2026-09-17: "페이먼트가 뭐 이리 어려워?"]
-   ⭐ There is no currency field. The supplier decides the currency, so the first document
-      picked settles it and the rest of the list greys out. Remove every document and it
-      opens up again. Nobody has to know the rule to obey it.
-   ⭐ One button. The money boxes only appear once something is picked, and by then the
-      totals are already on screen, so a separate Check step had nothing left to reveal.
-      ⚠️ The preview call stays — Create runs p_commit:false first so a refusal is shown
-         before anything is written. What went away is the button, not the check. */
+/* ── To pay → Pay selected ─────────────────────────────
+   pay disc v1 · rulings 389 · 391 — the list is what is owed (po_pay_candidates), worked out on the
+   paying date: an invoice whose early-pay terms are still open shows the discount it earns.
+   Clicking a row puts it on the payment with its whole balance and, when open, its discount.
+   Each line has its own amount and discount; Paid is the lines minus the discounts unless typed.
+   ⭐ The supplier decides the currency, so the first document picked settles it and the rest grey out.
+   ⭐ Changing the paying date re-reads the list — a discount can open or close on that date; a line
+      whose discount was typed by hand keeps it.
+   ⚠️ Create runs p_commit:false first so a refusal arrives before anything is written. */
 async function openCreate(preselect){
   const today = torontoToday();
   modalOpen(`
-    <h4>New payment</h4>
+    <h4>To pay</h4>
     <div class="pbody">
+      <div class="frow"><label>Paying on</label><input type="date" id="pDate" value="${today}"></div>
       <div class="dim" style="font-size:12.5px;margin-bottom:8px">
-        What is this payment settling? Click the invoices and charges it covers.
+        Click the invoices and charges this payment settles. A green discount is earned when paid on the date above.
       </div>
       <input type="search" id="pQ" placeholder="Search document number, supplier or PO number" autocomplete="off">
-      <div id="pList" style="max-height:240px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
+      <div id="pList" style="max-height:260px;overflow:auto;margin-top:8px;border:1px solid var(--line);border-radius:10px">
         <div class="msg">Loading…</div>
       </div>
 
-      <!-- ⚠️ Hidden until something is picked. An empty amount box above an empty list is
-           what made the old version feel like a form with no beginning. -->
       <div id="pRest" hidden>
         <div id="pOut" style="margin-top:14px"></div>
 
         <div class="gap" style="padding:12px 0">
           <div class="g"><b id="pSum">0.00</b><span>Applied</span></div>
+          <div class="g"><b id="pDiscSum">0.00</b><span>Discount</span></div>
+          <div class="g"><b id="pPaidShow">0.00</b><span>Paid</span></div>
           <div class="g" id="pGapBox"><b id="pGap">0.00</b><span>Off by</span></div>
         </div>
 
         <div class="frow"><label>Paid</label>
-          <input id="pAmt" placeholder="leave blank if you sent exactly the amount above"></div>
-        <div class="frow"><label>Discount taken</label>
-          <input id="pDisc" value="0" placeholder="0"></div>
-        <div class="frow"><label>Paid on</label><input type="date" id="pDate" value="${today}"></div>
+          <input id="pAmt" placeholder="leave blank if you sent the amount above"></div>
         <div class="frow"><label>Reference</label>
           <input id="pRef" placeholder="wire ref · cheque no · card · Wise"></div>
-        <!-- ⚠️ Nothing marks our bank accounts in ref_account, so this is a search rather than
-             a short list. "CHEQUING" finds all three. -->
         <div class="frow"><label>From account</label>
           <input id="pAcc" placeholder="search code or name — try CHEQUING" autocomplete="off"></div>
         <div id="pAccList" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:-4px 0 10px;display:none"></div>
@@ -605,74 +699,134 @@ async function openCreate(preselect){
     </div>
     <div class="pfoot"><span class="sp"></span>
       <button class="pobtn" onclick="modalClose()">Cancel</button>
-      <button class="pobtn go" id="pGo" disabled>Create payment</button>
+      <button class="pobtn go" id="pGo" disabled>Pay selected</button>
     </div>`);
 
-  // kind:id → { number, unpaid, currency_id, currency, amount }   amount null = whatever is owed
+  // kind:id → { number, unpaid, currency_id, currency, amount, discount, discEdited, basis, offer }
   const picked = new Map();
   let accId = null;
-  /* ⭐ Not sent. The back end works the supplier out from the documents and only warns if they
-     disagree, so there is nothing here for the screen to decide. */
-  const supplierId = null;
+  let cands = [];          // last po_pay_candidates read
+  let candSeq = 0;
 
-  // ⭐ The currency of the payment is whatever the first picked document is in.
   const lockedCur = () => picked.size ? picked.values().next().value.currency_id : null;
-
   const amountOf = (v) => Number(v.amount === null ? v.unpaid : v.amount) || 0;
-  const appliedSum = () => { let s = 0; picked.forEach(v => { s += amountOf(v); }); return s; };
+  const discOf   = (v) => Number(v.discount) || 0;
+  const appliedSum = () => { let s = 0; picked.forEach(v => { s += amountOf(v); }); return Math.round(s * 100) / 100; };
+  const discSum    = () => { let s = 0; picked.forEach(v => { s += discOf(v); });   return Math.round(s * 100) / 100; };
+  const paidValue  = () => {
+    const raw = (document.getElementById("pAmt") || {}).value;
+    return raw === undefined || String(raw).trim() === "" ? Math.round((appliedSum() - discSum()) * 100) / 100 : Number(raw) || 0;
+  };
 
-  /* ⭐ Off by is what the payment still has to account for. It updates as the person types,
-     rather than waiting for a round trip, so the number never lags behind the boxes. */
   const refreshTotals = () => {
-    const rest = document.getElementById("pRest");
-    rest.hidden = picked.size === 0;
-    const sum = appliedSum();
-    const paidRaw = (document.getElementById("pAmt") || {}).value;
-    const discRaw = (document.getElementById("pDisc") || {}).value;
-    const paid = paidRaw === undefined || String(paidRaw).trim() === "" ? sum : Number(paidRaw) || 0;
-    const disc = discRaw === undefined || String(discRaw).trim() === "" ? 0 : Number(discRaw) || 0;
-    const gap = Math.round((paid + disc - sum) * 100) / 100;
+    document.getElementById("pRest").hidden = picked.size === 0;
+    const sum = appliedSum(), ds = discSum(), paid = paidValue();
+    const gap = Math.round((paid + ds - sum) * 100) / 100;
     document.getElementById("pSum").textContent = sum.toFixed(2);
+    document.getElementById("pDiscSum").textContent = ds.toFixed(2);
+    document.getElementById("pPaidShow").textContent = paid.toFixed(2);
     document.getElementById("pGap").textContent = gap.toFixed(2);
     document.getElementById("pGapBox").className = "g " + (gap === 0 ? "ok" : "bad");
     document.getElementById("pGo").disabled = picked.size === 0;
-    return gap;
+  };
+
+  /* The discount the list offers on the paying date — 0 when there are no terms or they have expired. */
+  const offerOf = (c) => c && c.discount_valid ? Number(c.discount_available) || 0 : 0;
+  const offerText = (c) => {
+    if(!c || c.kind !== "invoice") return "";
+    if(c.terms_source === "none" || (c.early_discount_pct === null && c.early_discount_amount === null)) return "";
+    if(c.discount_valid) return `<span class="on" style="margin-left:8px;font-size:12px">−${money(c.discount_available)} if paid by ${esc(c.early_discount_until || "—")}</span>`;
+    return `<span class="dim" style="margin-left:8px;font-size:12px">discount expired ${esc(c.early_discount_until || "")}</span>`;
   };
 
   const drawPicked = () => {
     const el = document.getElementById("pOut");
     if(!picked.size){ el.innerHTML = ""; return; }
-    el.innerHTML = `<table><thead><tr><th>Settling</th><th class="num">Still owed</th><th class="num">On this payment</th><th></th></tr></thead>
+    el.innerHTML = `<table><thead><tr><th>Settling</th><th class="num">Still owed</th><th class="num">On this payment</th><th class="num">Discount</th><th></th></tr></thead>
       <tbody>${Array.from(picked.entries()).map(([key, v]) => {
         const [kind] = key.split(":");
         return `<tr>
-          <td>${kindChip(kind)} <span class="mono">${esc(v.number)}</span></td>
+          <td>${kindChip(kind)} <span class="mono">${esc(v.number)}</span>${v.offer > 0 && !v.discEdited ? '<div class="dim" style="font-size:11px">discount from the early-pay terms</div>' : ""}</td>
           <td class="num">${money(v.unpaid)} <span class="dim">${esc(v.currency)}</span></td>
           <td class="num"><input class="qin" type="number" step="any" min="0"
                value="${v.amount === null ? esc(Number(v.unpaid).toFixed(2)) : esc(v.amount)}" data-pk="${esc(key)}"></td>
+          <td class="num"><input class="qin" type="number" step="any" min="0" value="${esc(discOf(v).toFixed(2))}" data-pd="${esc(key)}">
+            ${kind === "charge" ? `<div><select class="tin" data-pb="${esc(key)}" style="font-size:11.5px;margin-top:4px">
+              <option value="pre_tax"${v.basis !== "with_tax" ? " selected" : ""}>on amount before tax</option>
+              <option value="with_tax"${v.basis === "with_tax" ? " selected" : ""}>on amount incl. tax</option></select></div>` : ""}</td>
           <td><button class="xbtn" data-prem="${esc(key)}" title="Take it off">&#10005;</button></td>
         </tr>`;
       }).join("")}</tbody></table>`;
     el.querySelectorAll("input[data-pk]").forEach(i => {
-      i.oninput = () => {
-        const rec = picked.get(i.dataset.pk);
-        if(rec) rec.amount = i.value.trim() === "" ? null : Number(i.value);
-        refreshTotals();
-      };
+      i.oninput = () => { const r = picked.get(i.dataset.pk); if(r) r.amount = i.value.trim() === "" ? null : Number(i.value); refreshTotals(); };
+    });
+    el.querySelectorAll("input[data-pd]").forEach(i => {
+      i.oninput = () => { const r = picked.get(i.dataset.pd); if(r){ r.discount = i.value.trim() === "" ? 0 : Number(i.value); r.discEdited = true; } refreshTotals(); };
+    });
+    el.querySelectorAll("select[data-pb]").forEach(s => {
+      s.onchange = () => { const r = picked.get(s.dataset.pb); if(r) r.basis = s.value; };
     });
     el.querySelectorAll("[data-prem]").forEach(b => {
-      b.onclick = () => { picked.delete(b.dataset.prem); drawPicked(); refreshTotals(); draw(); };
+      b.onclick = () => { picked.delete(b.dataset.prem); drawPicked(); refreshTotals(); drawList(); };
     });
   };
 
-  const draw = () => drawOwing("pQ", "pList", lockedCur(), null, (kind, id, unpaid, meta) => {
-    const key = kind + ":" + id;
-    if(picked.has(key)) picked.delete(key);
-    else picked.set(key, { amount:null, unpaid, number:meta.number, currency_id:meta.currency_id, currency:meta.currency });
-    drawPicked(); refreshTotals(); draw();   // ⚠️ redraw: the first pick locks the currency
-  }, picked);
+  const drawList = () => {
+    const box = document.getElementById("pList");
+    const t = (document.getElementById("pQ").value || "").trim().toLowerCase();
+    const cur = lockedCur();
+    const rows = cands.filter(c => !t
+        || String(c.number || "").toLowerCase().includes(t)
+        || String(c.supplier_name || "").toLowerCase().includes(t)
+        || String(c.po_numbers || "").toLowerCase().includes(t))
+      .slice().sort((a, b) => (cur && a.currency_id !== cur ? 1 : 0) - (cur && b.currency_id !== cur ? 1 : 0));
+    if(!rows.length){ box.innerHTML = '<div class="msg">Nothing is owed that matches.</div>'; return; }
+    box.innerHTML = rows.map(c => {
+      const key = c.kind + ":" + c.id;
+      const off = cur && c.currency_id !== cur;
+      const on = !off && picked.has(key);
+      return `<div class="prow ${off ? "off" : ""} ${on ? "on" : ""}" ${off ? "" : `data-pick="${esc(key)}"`}>
+        <span class="tag">${esc(c.kind)}</span>
+        <span class="mono" style="margin-left:6px">${esc(c.number)}</span>
+        <span class="dim" style="margin-left:8px">${esc(c.supplier_name)}</span>
+        <span class="mono" style="margin-left:8px">${off ? `${money(c.unpaid)} ${esc(c.currency_code)}` : `<strong class="owe">${money(c.unpaid)} ${esc(c.currency_code)}</strong>`}</span>
+        ${c.due_date ? `<span class="dim" style="margin-left:8px;font-size:11.5px">due ${esc(c.due_date)}</span>` : ""}
+        ${offerText(c)}
+        ${c.po_numbers ? `<span class="dim mono" style="margin-left:8px;font-size:11.5px">${esc(c.po_numbers)}</span>` : ""}
+        ${on ? '<span class="chip good" style="margin-left:8px">on this payment</span>' : ""}
+        ${off ? `<span class="off" style="margin-left:8px;font-size:11.5px">${esc(c.currency_code)} — needs its own payment</span>` : ""}
+      </div>`;
+    }).join("");
+    const byKey = new Map(cands.map(c => [c.kind + ":" + c.id, c]));
+    box.querySelectorAll("[data-pick]").forEach(el => {
+      el.onclick = () => {
+        const key = el.dataset.pick, c = byKey.get(key);
+        if(!c) return;
+        if(picked.has(key)) picked.delete(key);
+        else picked.set(key, { amount:null, unpaid:Number(c.unpaid), number:c.number, currency_id:c.currency_id, currency:c.currency_code,
+                               discount: offerOf(c), offer: offerOf(c), discEdited:false, basis:"pre_tax" });
+        drawPicked(); refreshTotals(); drawList();
+      };
+    });
+  };
 
-  /* ⚠️ Typing in the account box clears the pick — otherwise a stale id rides along with new text. */
+  /* Read the list on the paying date. Lines already picked take the new offer unless their discount was typed. */
+  const loadCands = async () => {
+    const seq = ++candSeq;
+    const { data, error } = await sb.rpc("po_pay_candidates", { p_supplier_id: null, p_currency_id: null, p_on: document.getElementById("pDate").value || null });
+    if(seq !== candSeq) return;
+    if(error){ document.getElementById("pList").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    cands = data || [];
+    const byKey = new Map(cands.map(c => [c.kind + ":" + c.id, c]));
+    picked.forEach((v, key) => {
+      const c = byKey.get(key);
+      v.offer = offerOf(c);
+      if(!v.discEdited) v.discount = v.offer;
+      if(c) v.unpaid = Number(c.unpaid);
+    });
+    drawPicked(); refreshTotals(); drawList();
+  };
+
   const drawAccounts = async () => {
     const t = document.getElementById("pAcc").value.trim();
     const box = document.getElementById("pAccList");
@@ -694,26 +848,26 @@ async function openCreate(preselect){
     });
   };
 
-  imsQ("#pQ", draw);
-  ["pAmt","pDisc"].forEach(id => { document.getElementById(id).oninput = refreshTotals; });
+  imsQ("#pQ", drawList);
+  document.getElementById("pAmt").oninput = refreshTotals;
+  document.getElementById("pDate").onchange = loadCands;
   imsQ("#pAcc", () => { accId = null; drawAccounts(); });
-  draw();
 
   const args = (commit) => ({
-    p_supplier_id:    supplierId,
+    p_supplier_id:    null,
     p_paid_on:        document.getElementById("pDate").value || null,
-    // ⭐ Blank means "I sent exactly what these documents come to" — the usual case.
-    p_amount:         document.getElementById("pAmt").value.trim() === ""
-                        ? appliedSum()
-                        : Number(document.getElementById("pAmt").value),
+    p_amount:         paidValue(),
     p_currency_id:    lockedCur(),
-    p_discount_taken: document.getElementById("pDisc").value.trim() === "" ? 0 : Number(document.getElementById("pDisc").value),
+    p_discount_taken: discSum(),
     p_account_id:     accId,
     p_reference:      document.getElementById("pRef").value.trim() || null,
     p_note:           null,
+    /* ⭐ The new shape: every element carries its own discount (po-disc-4a2), charges also their basis. */
     p_targets:        Array.from(picked.entries()).map(([key, v]) => {
                         const [kind, id] = key.split(":");
-                        return { kind, id, amount: amountOf(v), note: null };
+                        const o = { kind, id, amount: amountOf(v), discount: discOf(v), note: null };
+                        if(kind === "charge") o.discount_basis = v.basis || "pre_tax";
+                        return o;
                       }),
     p_commit:         commit
   });
@@ -723,15 +877,12 @@ async function openCreate(preselect){
     const btn = document.getElementById("pGo");
     btn.disabled = true;
     say("pMsg", "", "Checking…");
-    /* ⚠️ Dry run first. Create is one button now, but the refusal still has to arrive before
-       anything is written — the back end's sentences name the document and say what to fix. */
     const dry = await sb.rpc("po_payment_create", args(false));
     if(dry.error){ say("pMsg", "err", dry.error.message); btn.disabled = false; return; }
-    const w = dry.data.warnings || [];
-    // ⚠️ A missing account is worth saying out loud but is not worth stopping for.
-    if(w.length) say("pMsg", "err", "⚠ " + w.join(" · "));
-
-    say("pMsg", "", "Creating…");
+    /* Ask only about what changes money or cost — a missing account is said, not asked. */
+    const ask = (dry.data.warnings || []).filter(x => /^(discount_after_deadline|discount_without_terms|mixed_supplier)/.test(x));
+    if(ask.length && !confirm(`Before paying:\n\n⚠ ${warnText(ask)}\n\nPay anyway?`)){ say("pMsg", "err", "⚠ " + warnText(ask)); btn.disabled = false; return; }
+    say("pMsg", "", "Paying…");
     const { data, error } = await sb.rpc("po_payment_create", args(true));
     if(error){ say("pMsg", "err", error.message); btn.disabled = false; return; }
     modalClose();
@@ -739,10 +890,8 @@ async function openCreate(preselect){
   };
 
   // ⭐ Arriving from an invoice, a charge or a purchase order — search for it straight away.
-  if(preselect){
-    document.getElementById("pQ").value = preselect;
-    draw();
-  }
+  if(preselect) document.getElementById("pQ").value = preselect;
+  await loadCands();
 }
 
 /* ── Start ─────────────────────────────────────────── */
