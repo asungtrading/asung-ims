@@ -97,7 +97,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-10-08 · inv tx v1b";   // 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-10-08 · inv disc v2";   // 대화 Claude — ⑥ 할인 화면(po-disc-4a1 · 5a): 인보이스 조기 결제 할인 조건(Early-pay discount · % 또는 금액 · 세금 전/포함 · 기한 · 오늘 기준 금액 · 고치기 창 → PostgREST 네 칸 한 번에 · 잠금 문장 그대로) · 크레딧 줄 Reason(Not received / Price difference · 초안 고르기 → po_invoice_line_update credit_reason · 제안 · 걸침 경고) · 크레딧 원가 변경 표(credit_cost_events) · 확정 결과에 원가 변경 한 줄 · 경고 글귀 ← inv tx v1b · 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
 let TAX_RULES = [];           // inv tx v1 — active purchase tax rules (head · line pickers)
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
@@ -248,6 +248,14 @@ async function loadDetail(id){
 
   const { data, error } = await sb.rpc("po_invoice_detail", { p_invoice_id: id });
   if(seq !== detailSeq) return;
+  /* inv disc v2 · po-disc-4a1 — the early-payment terms are not in the detail header; one read beside it.
+     The amount is worked out on today's date by the same formula the payment uses (po_early_discount_calc). */
+  let early = null;
+  if(data && data.header && data.header.doc_kind === "invoice"){
+    const er = await sb.rpc("po_invoice_early_discount", { p_invoice_id: id });
+    if(seq !== detailSeq) return;
+    if(!er.error) early = (er.data || [])[0] || null;
+  }
   if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That document is gone.</div></div>'; return; }
 
@@ -309,6 +317,9 @@ async function loadDetail(id){
     ["Due date",      dim(h.due_date)],
     ["Payment term",  dim(h.payment_term_name)],
   ];
+  // inv disc v2 — invoices only · a credit note has no early-payment terms
+  if(!isCredit) kvL.push(["Early-pay discount", earlyText(early)
+      + (h.status !== "cancelled" ? ' <button class="pobtn" style="padding:2px 9px;font-size:12px" data-act="early">Edit</button>' : "")]);
   const kvR = [
     // inv tx v1 — 세금 규칙(po-tax-1): 초안이면 드롭다운 · 줄 규칙이 비면 이것을 따른다
     ["Tax rule",     headTax(h.tax_rule_id, h.tax_rule, h.rate_pct, ed)
@@ -370,9 +381,21 @@ async function loadDetail(id){
       <td>${ed
             ? `<input type="checkbox" data-pay="${l.id}" ${l.is_payable ? "checked" : ""} title="Counts toward the amount to settle">`
             : (l.is_payable ? "" : '<span class="tag">not payable</span>')}</td>
+      ${isCredit ? `<td>${reasonCell(l, ed)}</td>` : ""}
       ${ed ? `<td><button class="xbtn" data-del="${l.id}" title="Remove line">&#10005;</button></td>` : ""}
     </tr>`;
   });
+
+  /* inv disc v2 · ruling 400 — what a credit note's price-difference lines did to stock cost.
+     A pending row waits for the goods to be received; reopening or cancelling the credit adds a reversal. */
+  const cevs = (data.credit_cost_events || []).map(e => `<tr>
+      <td class="num">${esc(e.line_no)}</td>
+      <td>${e.reverses_id ? '<span class="tag">reversal</span>' : '<span class="tag">price difference</span>'}</td>
+      <td class="num">${money(e.amount_cad)}</td>
+      <td>${e.status === "posted" ? '<span class="on">applied</span>' : '<span class="dim">pending — waits for the goods to be received</span>'}</td>
+      <td>${dim(e.posted_on)}</td>
+    </tr>`);
+  const dwarn = (data.warnings || []).filter(w => INV_DWARN[w]).map(w => `<div class="off" style="margin-top:8px;font-size:12.5px">⚠ ${INV_DWARN[w]}</div>`).join("");
 
   /* Discounts — one row applies to every goods line. Rows multiply in sequence. */
   const disc = (data.discounts || []).map(d => `<tr>
@@ -432,6 +455,7 @@ async function loadDetail(id){
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
         ${received ? '<div class="dim" style="margin-top:8px;font-size:12px">Received — Reopen and Cancel are closed. Correct this invoice with a credit note.</div>' : ""}
+        ${dwarn}
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
           <span>Printed total</span>
           ${ed ? `<input class="qin pin" type="number" step="any" min="0" value="${esc(h.total_amount)}" data-prev="${esc(h.total_amount)}" data-head="total_amount">`
@@ -452,11 +476,16 @@ async function loadDetail(id){
     ${tbl("Lines", (data.lines||[]).length,
       [["#","num"],["Kind",""],["Item",""],["PO",""],["Qty","num"],["Unit price","num"],
        ["Amount","num"],["Tax rule",""],["Tax","num"],["PO qty","num"],["Received","num"],["Qty diff","num"],["Payable",""]]
-        .concat(ed ? [["",""]] : []), lines,
+        .concat(isCredit ? [["Reason",""]] : []).concat(ed ? [["",""]] : []), lines,
       "Qty diff compares what is billed with what actually arrived. A non-zero value is what a credit note is usually made from. " +
       "Clearing Payable leaves a line out of the amount to settle — that is how freight billed here but paid elsewhere is handled." +
       (ed ? " Quantity and unit price are edited in the cell." : "") +
-      " Tax is worked out line by line from the tax rule (a blank rule follows the document's); the discount chain takes its share of the tax back once — line Tax is before the discount.")}
+      " Tax is worked out line by line from the tax rule (a blank rule follows the document's); the discount chain takes its share of the tax back once — line Tax is before the discount." +
+      (isCredit ? " Reason decides what the credit does to cost: Not received leaves cost alone (the goods never came); Price difference lowers the cost of goods already received, and of what was already sold." : ""))}
+
+    ${isCredit && (data.credit_cost_events || []).length ? tbl("Cost changes", (data.credit_cost_events || []).length,
+      [["Line","num"],["Kind",""],["Amount CAD","num"],["Status",""],["Applied on",""]], cevs,
+      "Price difference lines lower stock cost when the credit is confirmed — the part already sold goes to cost of goods sold. Pending means the goods are not received yet; it is applied at receipt.") : ""}
 
     ${tbl("Discounts", (data.discounts||[]).length,
       [["Seq","num"],["Name",""],["Percent","num"],["Source",""]].concat(ed ? [["",""]] : []), disc,
@@ -491,6 +520,7 @@ async function loadDetail(id){
       if(a === "cancel")  cancelDoc(h);
       if(a === "restore") restoreDoc(h);
       if(a === "delete")  deleteDoc(h);
+      if(a === "early")   openEarly(h, early);
       if(a === "pay")     window.location.href = "payments.html?doc=" + encodeURIComponent(h.invoice_number);
     };
   });
@@ -504,6 +534,7 @@ async function loadDetail(id){
     box.querySelectorAll("input[data-head]").forEach(i => { i.onchange = () => saveHead(h.id, i); });
     box.querySelectorAll("select[data-head]").forEach(i => { i.onchange = () => { if(i.value !== i.dataset.prev) saveHead(h.id, i); }; });
     box.querySelectorAll("select[data-ltax]").forEach(sel => { sel.onchange = () => saveLineTax(sel); });
+    box.querySelectorAll("select[data-creason]").forEach(sel => { sel.onchange = () => saveCreditReason(sel); });
     box.querySelectorAll("[data-pay]").forEach(c => { c.onchange = () => togglePayable(c); });
     box.querySelectorAll("[data-del]").forEach(b => { b.onclick = () => removeLine(b.dataset.del); });
     box.querySelectorAll("[data-ddel]").forEach(b => { b.onclick = () => removeDiscount(b.dataset.ddel); });
@@ -608,6 +639,104 @@ async function saveLineTax(sel){
   reload();
 }
 
+/* ── inv disc v2 · ruling 400 — a credit line's reason ─────────────────────
+   The system suggests one; the person confirms or changes it before confirming the credit.
+   A line that is partly not-received and partly a price difference has to be split in two. */
+const REASON_LABEL = { not_received: "Not received", price_difference: "Price difference" };
+function reasonCell(l, ed){
+  if(l.line_kind !== "goods") return '<span class="dim">—</span>';
+  const sug = l.credit_reason_suggested;
+  const span = l.credit_spans_both
+    ? `<div class="off" style="font-size:11.5px">Only ${qty(l.credit_not_received_left)} EA are still not received — split this line: that many as Not received, the rest as Price difference</div>` : "";
+  if(!ed) return (l.credit_reason ? `<span class="tag">${esc(REASON_LABEL[l.credit_reason] || l.credit_reason)}</span>` : '<span class="dim">—</span>') + span;
+  const opts = (l.credit_reason ? "" : '<option value="" selected>— choose —</option>')
+    + Object.keys(REASON_LABEL).map(k => `<option value="${k}"${l.credit_reason === k ? " selected" : ""}>${REASON_LABEL[k]}</option>`).join("");
+  const hint = sug && sug !== l.credit_reason ? `<div class="dim" style="font-size:11px">suggested: ${esc(REASON_LABEL[sug] || sug)}</div>` : "";
+  return `<select class="tin" data-creason="${l.id}" data-prev="${esc(l.credit_reason || "")}">${opts}</select>${hint}${span}`;
+}
+async function saveCreditReason(sel){
+  const prev = sel.dataset.prev, v = sel.value;
+  if(v === prev || !v) { sel.value = prev; return; }
+  sel.disabled = true;
+  const { error } = await sb.rpc("po_invoice_line_update", { p_line_id: sel.dataset.creason, p_patch: { credit_reason: v } });
+  sel.disabled = false;
+  if(error){ sel.value = prev; alert(error.message); return; }
+  sel.dataset.prev = v;
+  reload();
+}
+const INV_DWARN = {
+  credit_reason_missing:  "Some goods lines have no reason yet — choose Not received or Price difference before confirming.",
+  credit_line_spans_both: "A line is partly not received and partly a price difference — split it before confirming."
+};
+
+/* ── inv disc v2 · rulings 389 · 391 — early-payment terms on an invoice ─────────
+   They are what the payment screen offers as the discount when paying by the date.
+   Suggested from the payment term when the invoice was made — the term's name can be wrong
+   (P&G "2%19 Net30" is really 2.1% within 13 days), so check it against the invoice.
+   The four fields are saved together: the database refuses a percent without a basis, or both
+   a percent and an amount. Once a payment has taken the discount the terms are locked. */
+function earlyText(e){
+  if(!e || !e.has_terms) return '<span class="dim">none</span>';
+  const what = e.pct !== null && e.pct !== undefined ? `${esc(Number(e.pct))}%` : money(e.amount);
+  const base = e.basis === "with_tax" ? "incl. tax" : "before tax";
+  const until = e.until_date ? `pay by ${esc(e.until_date)}` : "no deadline";
+  const st = e.is_valid
+    ? `<span class="on">open${e.days_left !== null && e.days_left !== undefined ? ` · ${esc(e.days_left)} day${Number(e.days_left) === 1 ? "" : "s"} left` : ""}</span>`
+    : '<span class="off">expired</span>';
+  return `${what} ${base} · ${until} · <span class="mono">${money(e.discount)}</span> ${st}`;
+}
+function openEarly(h, e){
+  const has = e && e.has_terms;
+  const kind = !has ? "none" : (e.pct !== null && e.pct !== undefined ? "pct" : "amt");
+  modalOpen(`
+    <h4>Early-pay discount — ${esc(h.invoice_number)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Discount</label>
+        <select id="eKind">
+          <option value="none"${kind === "none" ? " selected" : ""}>none</option>
+          <option value="pct"${kind === "pct" ? " selected" : ""}>percent</option>
+          <option value="amt"${kind === "amt" ? " selected" : ""}>fixed amount</option>
+        </select></div>
+      <div class="frow"><label>Value</label><input id="eVal" type="number" step="any" min="0"
+        value="${has ? esc(kind === "pct" ? e.pct : e.amount) : ""}" placeholder="2.1"></div>
+      <div class="frow"><label>Worked out on</label>
+        <select id="eBasis">
+          <option value="pre_tax"${!has || e.basis === "pre_tax" ? " selected" : ""}>the amount before tax</option>
+          <option value="with_tax"${has && e.basis === "with_tax" ? " selected" : ""}>the amount including tax</option>
+        </select></div>
+      <div class="frow"><label>Pay by</label><input id="eUntil" type="date" value="${has && e.until_date ? esc(e.until_date) : ""}"></div>
+      <div class="dim" style="font-size:12.5px">
+        This is what the payment screen offers as the discount when paying by the date.
+        It was suggested from the payment term — check it against the invoice; the term name can be wrong.
+        Leave Pay by empty when there is no deadline. Due date is separate: it is when the full amount is owed.
+      </div>
+      <div id="eMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" onclick="modalClose()">Cancel</button>
+      <button class="pobtn go" id="eGo">Save</button>
+    </div>`);
+  document.getElementById("eGo").onclick = async () => {
+    const k = document.getElementById("eKind").value;
+    const raw = document.getElementById("eVal").value.trim();
+    const v = Number(raw);
+    let patch;
+    if(k === "none"){
+      patch = { early_discount_pct: null, early_discount_amount: null, early_discount_basis: null, early_discount_until: null };
+    } else {
+      if(raw === "" || !isFinite(v) || v <= 0){ say("eMsg", "err", "Enter a value above 0 — nothing was saved."); return; }
+      if(k === "pct" && v >= 100){ say("eMsg", "err", "A percent must be below 100 — nothing was saved."); return; }
+      patch = { early_discount_pct: k === "pct" ? v : null, early_discount_amount: k === "amt" ? v : null,
+                early_discount_basis: document.getElementById("eBasis").value,
+                early_discount_until: document.getElementById("eUntil").value || null };
+    }
+    say("eMsg", "", "Saving…");
+    const res = await imsSaved(sb.from("po_invoice").update(patch).eq("id", h.id).select("id"));
+    if(!res.ok){ say("eMsg", "err", res.reason); return; }
+    modalClose(); reload();
+  };
+}
+
 /* ⚠️ The printed total is a cross-check, not a calculated field.
    Type in what the supplier printed; if it disagrees with ours, Diff says so. */
 async function saveHead(id, inp){
@@ -639,7 +768,10 @@ const INV_WARN = {
   po_reattached:            "The split-off quantities went back onto the order — see above.",
   total_amount_zero:        "The document total is 0.",
   total_differs_from_lines: "The document total differs from the sum of its lines.",
-  has_attached_credits:     "Credit notes are attached to this invoice."
+  has_attached_credits:     "Credit notes are attached to this invoice.",
+  credit_fx_mixed:          "The goods were costed at more than one exchange rate — the cost change uses their quantity-weighted rate.",
+  credit_fx_unpinned:       "The goods are not received yet — the cost change uses this document's exchange rate.",
+  price_credit_qty_above_received: "A price difference covers more than has been received so far."
 };
 async function confirmInv(id, on){
   const msg = on
@@ -660,6 +792,14 @@ async function confirmInv(id, on){
   });
   const warns = ((data && data.warnings) || []).filter(w => w !== "po_split" && w !== "po_reattached");
   if(warns.length) out.push("", ...warns.map(w => "⚠ " + (INV_WARN[w] || w)));
+  /* inv disc v2 · ruling 400 — what confirming a credit did to stock cost */
+  const cev = (data && data.cost_events) || [];
+  if(on && cev.length){
+    const sum = cev.reduce((a, e) => a + Number(e.amount_cad || 0), 0);
+    const pend = cev.filter(e => e.status === "pending").length;
+    out.push(`Stock cost changed on ${cev.length} line${cev.length === 1 ? "" : "s"}: ${money(sum)} CAD` + (pend ? ` (${pend} pending until the goods are received)` : "") + ".");
+  }
+  if(!on && ((data && data.cost_reversed) || []).length) out.push("The cost changes from this credit were reversed.");
   if(on && data && !(data.split || []).length && data.doc_kind !== "credit") out.push("The whole order is billed — nothing was split off. The warehouse can receive it now.");
   if(out.length) alert(out.join("\n"));
   reload();
