@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-10-08 · pay disc v1";   // 대화 Claude — ⑥ 결제 할인 화면(po-disc-4a1 · 4a2 · 4b): To pay(po_pay_candidates · 결제일 기준 할인 제안) → Pay selected(문서마다 금액 · 할인 · 비용 청구서 기준 · p_targets.discount) · Paid · Discount taken 은 읽기 전용(문지기) · 줄마다 Discount + Adjust discount(po_payment_alloc_discount_set 미리 보기 → 저장) · Still owed 를 할인으로 끝내기(미룬 144) · 경고 코드를 사람 말로(미룬 143 gap_not_zero 등) ← 「Toronto date」(2026-09-23)
+const PAY_BUILD = "2026-10-08 · pay disc v1a";   // 대화 Claude — Caleb 화면: 할인 0 으로 Check 하면 「Lowers stock cost by —」 — 원가 몫이 빈 값 · 되돌림인지 · 바뀌는 것인지 문장으로(costLine) ← pay disc v1 · 대화 Claude — ⑥ 결제 할인 화면(po-disc-4a1 · 4a2 · 4b): To pay(po_pay_candidates · 결제일 기준 할인 제안) → Pay selected(문서마다 금액 · 할인 · 비용 청구서 기준 · p_targets.discount) · Paid · Discount taken 은 읽기 전용(문지기) · 줄마다 Discount + Adjust discount(po_payment_alloc_discount_set 미리 보기 → 저장) · Still owed 를 할인으로 끝내기(미룬 144) · 경고 코드를 사람 말로(미룬 143 gap_not_zero 등) ← 「Toronto date」(2026-09-23)
 console.log("payments.html build:", PAY_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -381,6 +381,16 @@ async function loadDetail(id){
    the change in discount, so the payment stays balanced. The cost events of the line are reversed and
    rebuilt. Check first shows the before and after; Save writes it. Raising the discount on a document
    that is already fully settled is refused — there is nothing left for it to cover. */
+/* pay disc v1a — Caleb screen: with the discount set to 0 the server sends no cost part and the line read
+   "Lowers stock cost by —". Say what actually happens: the earlier lowering is reversed, or there is none. */
+function costLine(b, f, data){
+  const cp = Number(f.cost_part || 0), had = Number(b.discount || 0) > 0, now = Number(f.discount || 0) > 0;
+  const extra = (Number(f.tax_part) ? ` · tax share ${money(f.tax_part)} (recorded, not cost)` : "")
+              + (Number(f.other_part) ? ` · other lines ${money(f.other_part)}` : "");
+  if(!now && had) return "No discount after this — the stock cost lowering from this line is reversed.";
+  if(!now) return "No discount — stock cost is not changed.";
+  return `Stock cost is lowered by ${money(cp)} in all${had ? " (the earlier lowering is reversed and this replaces it)" : ""}${extra}.`;
+}
 function openAdjust(a, prefill){
   if(!a) return;
   const isCharge = a.target_kind === "charge";
@@ -425,7 +435,7 @@ function openAdjust(a, prefill){
         <tr><td>Now</td><td class="num">${money(b.amount)}</td><td class="num">${money(b.discount)}</td></tr>
         <tr><td>After</td><td class="num">${money(f.amount)}</td><td class="num">${money(f.discount)}</td></tr>
       </tbody></table>
-      <div class="dim" style="margin-top:6px">Lowers stock cost by ${money(f.cost_part)}${Number(f.tax_part) ? ` · tax share ${money(f.tax_part)} (recorded, not cost)` : ""}${Number(f.other_part) ? ` · other lines ${money(f.other_part)}` : ""}.</div>`;
+      <div class="dim" style="margin-top:6px">${costLine(b, f, data)}</div>`;
     const w = warnText(data.warnings);
     say("jMsg", w ? "err" : "", w ? "⚠ " + w : "Looks right — Save writes it.");
     document.getElementById("jGo").disabled = false;
