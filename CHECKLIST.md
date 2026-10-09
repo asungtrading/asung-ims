@@ -1766,6 +1766,33 @@ transfers.html(tf tx v1)
 
 ---
 
+## 7-zf. 2026-10-08 밤 — 할인 원가 화면 넷 (inv tx v1b 066d2e2 · inv disc v2 e110bc3 · v2a ba182c9 · v2b a666920 · pay disc v1 51c55c1 · v1a 379cbef · v1b 81c4176 · po fx v1 bf94422 · asung-wms po-disc-2 ec38429 ~ po-disc-5b 4c134f7 · 판정 389 ~ 400 · so-module §54)
+
+```
+✅ = Caleb 화면 확인 끝(2026-10-08 밤 · 집 PC) · ⬜ = 끝에서 끝 시험(미룬 158 · 회사)
+[✅] Ctrl+F5 · 빌드 표시 셋(inv disc v2b · pay disc v1b · po fx v1)
+invoices.html(inv tx v1b · 판정 396)
+[✅] 입고 있는 확정 인보이스 — Reopen · Cancel 흐림 + 「correct it with a credit note」 한 줄 · 서버 거부 문장 그대로
+invoices.html(inv disc v2 · v2a · v2b · 판정 389 · 391 · 400)
+[✅] Early-pay discount 줄 — 조건 · 오늘 기준 금액 · 남은 일수 · Edit 가 네 칸(% · 금액 · 기준 · 기한)을 한 번에 저장 · 결제가 할인을 쓴 뒤에는 잠금 문장
+[✅] P&G 1030266656 — 2.1% · pre_tax · until 2026-10-21 · due 2026-11-07 · 952.08
+[✅] 크레딧 Reason 칸 — 자동 줄 Not received · 더한 줄 제안 · 바꾸면 differs 경고 · 걸치는 줄 split-the-line 경고 · 확정 거부 문장
+[✅] Cost changes 표 · 확정 요약(가격 크레딧 사건 · 상태 pending/posted) · 크레딧 만들기 창 Billed 가 숫자로(v2a 옛 결함) · 창 경고가 사람 말(v2b)
+[ ] Early-pay discount Edit 단추 크기(미룬 157)
+payments.html(pay disc v1 · v1a · v1b · 판정 389 · 391 · 393 · 미룬 143 · 144)
+[✅] To pay — 결제일을 바꾸면 할인 · 기한 판정이 바뀐다 · 비용 청구서는 할인 칸 비움 · 검색 칸 전체 너비(v1b)
+[✅] Pay selected — 문서별 금액 · 할인(제안 · 기한 지남 · 조건 없음 경고) · 비용 청구서 기준(pre_tax / with_tax) · 저장 뒤 원가 사건 요약
+[✅] 결제 상세 Paid · Discount taken 읽기 전용 · 줄 Discount · Adjust discount(Check → Save) · 할인 0 Check 문장이 되돌림 · 대체 · 무변(v1a) · Settle with discount · 경고가 사람 말
+po.html(po fx v1 · 판정 394)
+[✅] 환율 칸 아래 환율 차액 경고(CAD 차액 · 줄 수) · Apply FX difference 미리 보기 → 반영 · invoice 환율 줄 · 핀 없는 옛 lot 안내 · 환율은 그대로 고칠 수 있다
+끝에서 끝(⬜ 미룬 158 · 회사 · 대화 Claude 가 단계마다 원가 확인 쿼리)
+[ ] 새 USD PO → 인보이스 할인 조건 → 확정 → 입고(핀) → To pay · Pay selected(할인 → 원가) → PO 환율 변경 → Apply FX difference
+공통
+[✅] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+---
+
 ## 8. 로그인 · 계정
 
 ```
