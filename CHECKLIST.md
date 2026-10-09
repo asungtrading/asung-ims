@@ -1778,7 +1778,7 @@ invoices.html(inv disc v2 · v2a · v2b · 판정 389 · 391 · 400)
 [✅] P&G 1030266656 — 2.1% · pre_tax · until 2026-10-21 · due 2026-11-07 · 952.08
 [✅] 크레딧 Reason 칸 — 자동 줄 Not received · 더한 줄 제안 · 바꾸면 differs 경고 · 걸치는 줄 split-the-line 경고 · 확정 거부 문장
 [✅] Cost changes 표 · 확정 요약(가격 크레딧 사건 · 상태 pending/posted) · 크레딧 만들기 창 Billed 가 숫자로(v2a 옛 결함) · 창 경고가 사람 말(v2b)
-[ ] Early-pay discount Edit 단추 크기(미룬 157)
+[✅] Early-pay discount Edit 단추 크기(미룬 157) — inv disc v2c 292d684 · 2026-10-09 · 7-zg
 payments.html(pay disc v1 · v1a · v1b · 판정 389 · 391 · 393 · 미룬 143 · 144)
 [✅] To pay — 결제일을 바꾸면 할인 · 기한 판정이 바뀐다 · 비용 청구서는 할인 칸 비움 · 검색 칸 전체 너비(v1b)
 [✅] Pay selected — 문서별 금액 · 할인(제안 · 기한 지남 · 조건 없음 경고) · 비용 청구서 기준(pre_tax / with_tax) · 저장 뒤 원가 사건 요약
@@ -1786,9 +1786,34 @@ payments.html(pay disc v1 · v1a · v1b · 판정 389 · 391 · 393 · 미룬 14
 po.html(po fx v1 · 판정 394)
 [✅] 환율 칸 아래 환율 차액 경고(CAD 차액 · 줄 수) · Apply FX difference 미리 보기 → 반영 · invoice 환율 줄 · 핀 없는 옛 lot 안내 · 환율은 그대로 고칠 수 있다
 끝에서 끝(⬜ 미룬 158 · 회사 · 대화 Claude 가 단계마다 원가 확인 쿼리)
-[ ] 새 USD PO → 인보이스 할인 조건 → 확정 → 입고(핀) → To pay · Pay selected(할인 → 원가) → PO 환율 변경 → Apply FX difference
+[✅] 새 USD PO → 인보이스 할인 조건 → 확정 → 입고(핀) → To pay · Pay selected(할인 → 원가) → PO 환율 변경 → Apply FX difference — 2026-10-09 PO-02048 · 환율 변경 단계는 해당 없음(인보이스 환율 lot · 경고 없음이 정답) · so-module §55-b
 공통
 [✅] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+```
+
+
+---
+
+## 7-zg. 2026-10-09 — 상품 설명 카드 · Edit 단추 크기 (inv disc v2c 292d684 · desc v1 · pr v4e · fam v2b 8966716 · desc v1a 439fb69 · asung-wms desc-1b 9184853 · 판정 381 · 401 · 402 · so-module §55)
+
+```
+⭐⭐ 규칙 — 설명은 ims-desc.js 의 imsDesc(card · wire · clean)로만 그린다 · cin7_description · description_html 을 innerHTML 로 직접 그리지 않는다(새 화면 · Shopify 보내기도 같은 거르기)
+✅ = Caleb 화면 확인 끝(2026-10-09 · 회사 PC · DES00948 · DES00905 · so-module §55-c) · [ ] = 그날 기록에 확인이 없는 것
+[ ] Ctrl+F5 · 빌드 표시(inv disc v2c · pr v4e · fam v2b)
+invoices.html(inv disc v2c · 미룬 157)
+[✅] Early-pay discount 의 Edit 단추가 다른 단추와 같은 크기(미룬 157 닫힘)
+products.html(pr v4e) · families.html(fam v2b) · ims-desc.js(desc v1 · v1a)
+[ ] Description 카드 — products 는 Photos 위 · families 는 머리 아래 · 고치기 중(products Edit)에는 안 그린다 · 단추는 master 만
+[✅] 보이는 글은 거른 값 — POWR 채팅 iframe 없음
+[ ] 유튜브 · 페이스북 iframe 과 img 는 그대로 보인다
+[ ] 편집기 도구 줄 + HTML 모드 · 붙여 넣기 정리 · 금지 태그(예: script)를 넣고 Save → 막기 문장
+[✅] 글을 손대지 않고 Save → 저장하지 않는다(거른 몫만 다를 때도 · desc v1a)
+[✅] 고쳐 저장(Barcode 줄 삭제) → edited 표시 · edited_by_name · differs_from_cin7 t(product_description_edited)
+[✅] Cin7 original 보기 · Follow Cin7 again → 되돌림(description_follow_cin7 · 원문으로 돌아온다)
+[ ] families.html 에서 같은 흐름 한 번(family 설명) — 그날 시험한 DES00948 · DES00905 가 상품인지 family 인지는 기록에 없다(안 봤다)
+공통
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+⬜ 미룬 159(뷰 쓰기 권한 정리) · 160(설명 끝 「(Barcode: …)」 줄 정리)
 ```
 
 ---
