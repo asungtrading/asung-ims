@@ -97,7 +97,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-10-08 · inv disc v2";   // 대화 Claude — ⑥ 할인 화면(po-disc-4a1 · 5a): 인보이스 조기 결제 할인 조건(Early-pay discount · % 또는 금액 · 세금 전/포함 · 기한 · 오늘 기준 금액 · 고치기 창 → PostgREST 네 칸 한 번에 · 잠금 문장 그대로) · 크레딧 줄 Reason(Not received / Price difference · 초안 고르기 → po_invoice_line_update credit_reason · 제안 · 걸침 경고) · 크레딧 원가 변경 표(credit_cost_events) · 확정 결과에 원가 변경 한 줄 · 경고 글귀 ← inv tx v1b · 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-10-08 · inv disc v2a";   // 대화 Claude — Caleb 화면: 크레딧 만들기 창 Billed 칸이 전부 「—」 — 서버 반환은 invoice_qty 인데 화면이 invoiced_qty 를 읽었다(옛 결함) ← inv disc v2 · 대화 Claude — ⑥ 할인 화면(po-disc-4a1 · 5a): 인보이스 조기 결제 할인 조건(Early-pay discount · % 또는 금액 · 세금 전/포함 · 기한 · 오늘 기준 금액 · 고치기 창 → PostgREST 네 칸 한 번에 · 잠금 문장 그대로) · 크레딧 줄 Reason(Not received / Price difference · 초안 고르기 → po_invoice_line_update credit_reason · 제안 · 걸침 경고) · 크레딧 원가 변경 표(credit_cost_events) · 확정 결과에 원가 변경 한 줄 · 경고 글귀 ← inv tx v1b · 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
 let TAX_RULES = [];           // inv tx v1 — active purchase tax rules (head · line pickers)
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
@@ -1061,7 +1061,7 @@ async function runCreateCredit(h, commit){
     <tbody>${rows.map(l => `<tr>
       <td class="num">${esc(l.n)}</td>
       <td class="mono">${dim(l.sku)}</td>
-      <td class="num">${qty(l.invoiced_qty !== undefined ? l.invoiced_qty : l.qty_ordered)}</td>
+      <td class="num">${qty(l.invoice_qty !== undefined ? l.invoice_qty : l.qty_ordered)}</td>
       <td class="num">${qty(l.received_qty)}</td>
       <td class="num">${qty(l.qty_ea)}</td>
       <td class="num">${money(l.unit_price)}</td>
