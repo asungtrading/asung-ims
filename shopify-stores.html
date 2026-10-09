@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shopify Stores · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .pobtn · .pomodal/.pobox/.frow · .xbtn · .chip) */
+  .sswrap{max-width:1180px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .ssbar{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:12px 14px}
+  .ssbar h2,.ssbar h3{margin:0}
+  .ssbar h2{font-size:19px}
+  .ssbar h3{font-size:16px}
+  .sssub{padding:8px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line);line-height:1.5}
+  .pobox input[type=text],.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .ssmsg{margin-top:10px;font-size:12.5px;line-height:1.5}
+  .ssmsg .chip{display:inline-block;margin:2px 4px 2px 0}
+  tr.off td{color:var(--muted)}
+  tr.pick td{background:#eef4ff}
+  tr[data-row]{cursor:pointer}
+  .mono{font-family:var(--mono)}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;padding:10px 14px;font-size:13px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .res{padding:10px 14px;font-size:12.5px;line-height:1.6}
+  .res .chip{display:inline-block;margin:2px 4px 2px 0}
+  .sel{border:1px solid var(--line);border-radius:8px;padding:4px 6px;font:inherit;font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="sswrap">
+  <div class="card">
+    <div class="ssbar">
+      <h2>Shopify stores</h2>
+      <span class="dim" style="font-size:12.5px" id="ssCount"></span>
+      <span class="sp"></span>
+      <label style="font-size:12.5px"><input type="checkbox" id="onlyActive" checked> Active only</label>
+      <button class="pobtn go" id="newBtn" hidden>New store</button>
+    </div>
+    <div id="body"><div class="msg">Loading…</div></div>
+    <div class="sssub">
+      Each row is one Shopify store IMS talks to. <b>Price</b> and <b>Compare-at</b> are the price tiers sent to Shopify — Compare-at can be the same tier as Price or left empty (sale prices are set by the Wholesale All In One app).
+      Each Shopify location must be paired with one IMS warehouse — stock and shipping use only these pairs.
+      Press a row to see its locations, then <b>Check connection</b> to read the store's live locations from Shopify.
+      Only an admin can add or change stores and pairs.
+    </div>
+  </div>
+  <div id="detail"></div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Shopify Stores — Shopify 연동 ① 바탕 화면(판정 362 · 403 · asung-wms shop-1a 584aaf0 · shop-1b 9d67484)
+   읽기  뷰 shop_store_list(id · code · shop_domain · label · kind · is_active · secret_prefix · note · updated_at · updated_by
+         · sale_tier_id · sale_tier_name · compare_tier_id · compare_tier_name · locations jsonb[{id, shopify_location_gid, shopify_name,
+           warehouse_id, warehouse_name, is_active, checked_at}] · locations_active · last_ping_ok · last_ping_at · last_ping_error)
+   쓰기  shop_store_save(p_changes, p_commit, p_ack) · admin 만 · 두 번 부르기
+         store_set {code, shop_domain, label, kind, sale_tier(이름), compare_tier(이름 | ''), secret_prefix?, old}
+           old = 새 스토어 null · 있는 스토어 {shop_domain, label, kind, sale_tier, compare_tier, secret_prefix}(뷰의 *_name 그대로)
+         store_off {code, old = shop_domain} · 다시 켜기는 store_set(알리기 store_reactivated)
+         location_set {store_code, shopify_location_gid, warehouse_id, old = 지금 warehouse_id | null}
+         location_off {store_code, shopify_location_gid, old = warehouse_id}
+   점검  Edge Function shopify {action:'ping', store:<code>} — sb.functions.invoke(세션 JWT 가 실린다) · 문 ims_can_write('shopify')
+         응답 {ok, shop{name, myshopifyDomain, currencyCode}, locations[{id, name, isActive, paired_warehouse}], scopes[], missing_scopes[], warnings[{code, …}], cost, ms}
+   ⭐ 위치 대조는 GID 로만(이름은 표시) · 화면은 다시 계산하지 않는다
+   ───────────────────────────────────────────────────────────── */
+const SS_BUILD = "2026-10-09 · ss v1";   // 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
+console.log("shopify-stores.html build:", SS_BUILD);
+
+let sb = null, isAdmin = false, canCheck = false, onlyActive = true;
+let stores = [], tiers = [], warehouses = [], pickedCode = null, lastPing = {};
+const escA = (v) => esc(v).replace(/"/g, "&quot;");
+
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+/* ── 고를 것(티어 · 창고) ─────────────────────────── */
+async function loadRefs(){
+  const [t, w] = await Promise.all([
+    sb.from("ref_price_tier").select("id,name,purpose,is_active").eq("is_active", true).in("purpose", ["sale", "compare"]).order("name"),
+    sb.from("ref_warehouse").select("id,name,is_active").eq("is_active", true).order("name"),
+  ]);
+  tiers = t.data || []; warehouses = w.data || [];
+}
+
+/* ── 목록 ─────────────────────────────────────────── */
+async function load(){
+  const body = document.getElementById("body");
+  let q = sb.from("shop_store_list").select("*").order("code");
+  if(onlyActive) q = q.eq("is_active", true);
+  const { data, error } = await q;
+  if(error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(error.message)}</div>`; return; }
+  stores = data || [];
+  document.getElementById("ssCount").textContent = `${stores.length} store(s)`;
+  if(!stores.length){ body.innerHTML = '<div class="msg">No Shopify stores yet.' + (isAdmin ? " Press New store to add one." : "") + "</div>"; renderDetail(); return; }
+  body.innerHTML = `<table><thead><tr><th>Code</th><th>Store</th><th>Kind</th><th>Price</th><th>Compare-at</th><th class="num">Locations paired</th><th>Last check</th><th>Active</th></tr></thead><tbody>
+    ${stores.map(s => `<tr data-row="${escA(s.code)}" class="${s.is_active ? "" : "off"} ${s.code === pickedCode ? "pick" : ""}">
+      <td class="mono"><b>${esc(s.code)}</b></td>
+      <td>${esc(s.label)}<div class="dim mono" style="font-size:11.5px">${esc(s.shop_domain)}</div></td>
+      <td>${esc(s.kind)}</td>
+      <td>${esc(s.sale_tier_name || "")}</td>
+      <td>${s.compare_tier_name ? esc(s.compare_tier_name) : '<span class="dim">(none)</span>'}</td>
+      <td class="num">${esc(s.locations_active ?? 0)}</td>
+      <td style="font-size:12px">${lastCheck(s)}</td>
+      <td>${yn(s.is_active)}</td>
+    </tr>`).join("")}</tbody></table>`;
+  body.querySelectorAll("[data-row]").forEach(tr => { tr.onclick = () => { pickedCode = tr.dataset.row; load(); }; });
+  renderDetail();
+}
+function lastCheck(s){
+  if(!s.last_ping_at) return '<span class="dim">never</span>';
+  return (s.last_ping_ok ? '<span class="on">✓ ok</span>' : '<span class="off">✗ failed</span>') + ` <span class="dim">${imsTs(s.last_ping_at)}</span>`
+    + (s.last_ping_error ? `<div class="dim" style="font-size:11.5px">${esc(String(s.last_ping_error).slice(0, 120))}</div>` : "");
+}
+
+/* ── 상세 — 위치 짝 · 점검 ───────────────────────── */
+function renderDetail(){
+  const box = document.getElementById("detail");
+  const s = stores.find(x => x.code === pickedCode);
+  if(!s){ box.innerHTML = ""; return; }
+  const locs = Array.isArray(s.locations) ? s.locations : [];
+  const ping = lastPing[s.code];
+  box.innerHTML = `<div class="card">
+    <div class="ssbar"><h3>${esc(s.label)} <span class="dim mono" style="font-size:12.5px">${esc(s.code)}</span></h3><span class="sp"></span>
+      ${canCheck && s.is_active ? '<button class="pobtn go" id="pingBtn">Check connection</button>' : ""}
+      ${isAdmin ? '<button class="pobtn" id="editBtn">Edit</button>' : ""}
+      ${isAdmin ? `<button class="pobtn" id="tglBtn">${s.is_active ? "Turn off" : "Turn on"}</button>` : ""}
+    </div>
+    <div class="kv">
+      <div>Shopify address</div><div class="mono">${esc(s.shop_domain)}</div>
+      <div>Kind</div><div>${esc(s.kind)}</div>
+      <div>Price tier</div><div>${esc(s.sale_tier_name || "")}</div>
+      <div>Compare-at tier</div><div>${s.compare_tier_name ? esc(s.compare_tier_name) : '<span class="dim">(none — not sent)</span>'}</div>
+      <div>Key name</div><div class="mono">${esc(s.secret_prefix)}_CLIENT_ID · _CLIENT_SECRET</div>
+      <div>Updated</div><div class="dim">${imsTs(s.updated_at)}</div>
+    </div>
+    <div class="ssbar" style="border-top:1px solid var(--line)"><h3>Location pairs</h3><span class="dim" style="font-size:12px">Shopify location ↔ IMS warehouse</span></div>
+    ${locs.length ? `<table><thead><tr><th>Shopify location</th><th>Shopify ID</th><th>IMS warehouse</th><th>Last seen in Shopify</th><th>Active</th>${isAdmin ? "<th></th>" : ""}</tr></thead><tbody>
+      ${locs.map(l => `<tr class="${l.is_active ? "" : "off"}">
+        <td>${l.shopify_name ? esc(l.shopify_name) : '<span class="dim">—</span>'}</td>
+        <td class="mono dim" style="font-size:11.5px">${esc(String(l.shopify_location_gid).replace("gid://shopify/Location/", ""))}</td>
+        <td><b>${esc(l.warehouse_name || "")}</b></td>
+        <td class="dim" style="font-size:12px">${l.checked_at ? imsTs(l.checked_at) : "never"}</td>
+        <td>${yn(l.is_active)}</td>
+        ${isAdmin ? `<td>${l.is_active ? `<button class="xbtn" data-unpair="${escA(l.shopify_location_gid)}">Unpair</button>` : ""}</td>` : ""}
+      </tr>`).join("")}</tbody></table>`
+      : '<div class="msg">No pairs yet — press Check connection to see the store\'s Shopify locations, then pair each one with a warehouse.</div>'}
+    <div id="pingBox">${ping ? pingHtml(s, ping) : ""}</div>
+  </div>`;
+  const pb = document.getElementById("pingBtn"); if(pb) pb.onclick = () => runPing(s);
+  const eb = document.getElementById("editBtn"); if(eb) eb.onclick = () => openForm(s);
+  const tb = document.getElementById("tglBtn"); if(tb) tb.onclick = () => openToggle(s);
+  box.querySelectorAll("[data-unpair]").forEach(b => { b.onclick = () => openUnpair(s, locs.find(l => l.shopify_location_gid === b.dataset.unpair)); });
+  wirePingBox(s);
+}
+
+/* ── Check connection(ping) ──────────────────────── */
+const WARN_TEXT = {
+  location_unmapped:  w => `Shopify location “${w.name || w.gid}” is not paired with a warehouse yet.`,
+  location_missing:   w => `A paired location is gone from Shopify or turned off there${w.name ? " (" + w.name + ")" : ""}.`,
+  missing_scopes:     w => `The app is missing permissions on this store: ${(w.scopes || w.missing || []).join(", ")} — approve the new app version in the store.`,
+  currency_not_cad:   w => `The store currency is ${w.currency || "not CAD"}, not CAD.`,
+  domain_mismatch:    w => `Shopify says this store is ${w.actual || "another address"} — the address here is different.`,
+  pair_update_failed: w => `Could not record the Shopify location names on the pairs (the check itself worked).`,
+};
+async function runPing(s){
+  const box = document.getElementById("pingBox");
+  box.innerHTML = '<div class="res">Checking with Shopify…</div>';
+  const { data, error } = await sb.functions.invoke("shopify", { body: { action: "ping", store: s.code } });
+  let res = data;
+  if(error){
+    try { res = await error.context.json(); } catch(e) { res = { ok: false, error: error.message }; }
+  }
+  lastPing[s.code] = res || { ok: false, error: "No answer from the server." };
+  await load();   // 이름 · 마지막 점검이 갱신됐다 — 목록 · 상세를 다시 그린다(점검 결과는 lastPing 에 남는다)
+}
+function pingHtml(s, p){
+  if(!p.ok) return `<div class="res"><span class="chip bad">✗ Connection failed</span> ${esc(p.error || "Unknown error")}</div>`;
+  const locs = Array.isArray(s.locations) ? s.locations : [];
+  const pairOf = gid => locs.find(l => l.shopify_location_gid === gid && l.is_active);
+  const warns = (p.warnings || []).map(w => `<span class="chip warn">⚠ ${esc((WARN_TEXT[w.code] || (() => w.code))(w))}</span>`).join("");
+  const rows = (p.locations || []).map(L => {
+    const pr = pairOf(L.id);
+    const pick = isAdmin ? `<select class="sel" data-wh="${escA(L.id)}"><option value="">— warehouse —</option>${warehouses.map(w => `<option value="${escA(w.id)}" ${pr && pr.warehouse_id === w.id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select>
+        <button class="xbtn" data-pair="${escA(L.id)}">${pr ? "Change" : "Pair"}</button>` : "";
+    return `<tr class="${L.isActive ? "" : "off"}">
+      <td><b>${esc(L.name)}</b>${L.isActive ? "" : ' <span class="dim">(inactive in Shopify)</span>'}</td>
+      <td class="mono dim" style="font-size:11.5px">${esc(String(L.id).replace("gid://shopify/Location/", ""))}</td>
+      <td>${pr ? `<b>${esc(pr.warehouse_name)}</b>` : '<span class="off">not paired</span>'}</td>
+      ${isAdmin ? `<td style="white-space:nowrap">${pick}</td>` : ""}
+    </tr>`;
+  }).join("");
+  return `<div class="ssbar" style="border-top:1px solid var(--line)"><h3>Shopify says</h3><span class="dim" style="font-size:12px">${p.ms ? esc(p.ms) + " ms" : ""}</span></div>
+    <div class="res">
+      <span class="chip good">✓ Connected</span> <b>${esc(p.shop ? p.shop.name : "")}</b>
+      <span class="dim mono">${esc(p.shop ? p.shop.myshopifyDomain : "")}</span> · ${esc(p.shop ? p.shop.currencyCode : "")}
+      · permissions ${(p.missing_scopes || []).length ? '<span class="off">missing ' + esc(p.missing_scopes.join(", ")) + "</span>" : '<span class="on">all granted</span>'}
+      ${warns ? `<div style="margin-top:6px">${warns}</div>` : ""}
+    </div>
+    <table><thead><tr><th>Shopify location</th><th>Shopify ID</th><th>Paired with</th>${isAdmin ? "<th>Pair with</th>" : ""}</tr></thead><tbody>${rows || '<tr><td colspan="4" class="dim">Shopify returned no locations.</td></tr>'}</tbody></table>`;
+}
+function wirePingBox(s){
+  document.querySelectorAll("#pingBox [data-pair]").forEach(b => {
+    b.onclick = () => {
+      const gid = b.dataset.pair;
+      const sel = document.querySelector(`#pingBox select[data-wh="${CSS.escape(gid)}"]`);
+      const wid = sel ? sel.value : "";
+      if(!wid){ alert("Pick the IMS warehouse for this Shopify location first."); return; }
+      const L = (lastPing[s.code].locations || []).find(x => x.id === gid);
+      openPair(s, gid, L ? L.name : gid, wid);
+    };
+  });
+}
+
+/* ── 저장 — 두 번 부르기(surcharge-groups 모양) ───────── */
+async function callSave(changes, commit, ack){
+  return sb.rpc("shop_store_save", { p_changes: changes, p_commit: commit, p_ack: ack || [] });
+}
+function showResult(data){
+  const blocks = data.blocks || [], warns = data.warnings || [];
+  return (blocks.length ? `<div class="err">${blocks.map(b => esc(b.message || b.code)).join("<br>")}</div>` : "")
+       + (warns.length ? `<div style="margin-top:6px">${warns.map(w => `<span class="chip warn">⚠ ${esc(w.message || w.code)}</span>`).join("")}</div>` : "");
+}
+function wireTwoStep(build, onDone, autoCheck){
+  let seen = null, seenKey = null;
+  const msg = () => document.getElementById("ssMsg");
+  const goBtn = () => document.getElementById("ssGo");
+  document.querySelectorAll("#modalBox input, #modalBox select").forEach(el => { el.oninput = el.onchange = () => { seen = null; goBtn().disabled = true; }; });
+  document.getElementById("ssCheck").onclick = async () => {
+    const ch = build(); if(!ch) return;
+    msg().className = "ssmsg"; msg().textContent = "Checking…";
+    const { data, error } = await callSave(ch, false, []);
+    if(error){ msg().className = "ssmsg err"; msg().textContent = error.message; return; }
+    msg().innerHTML = showResult(data) || '<span class="on">No problems — press Save.</span>';
+    if((data.blocks || []).length){ goBtn().disabled = true; return; }
+    seen = (data.warnings || []).map(w => w.key); seenKey = JSON.stringify(ch); goBtn().disabled = false;
+  };
+  goBtn().onclick = async () => {
+    const ch = build(); if(!ch) return;
+    if(seen === null || JSON.stringify(ch) !== seenKey){ msg().className = "ssmsg err"; msg().textContent = "Check again first — the inputs changed."; goBtn().disabled = true; return; }
+    goBtn().disabled = true; msg().textContent = "Saving…";
+    const { data, error } = await callSave(ch, true, seen);
+    if(error){ msg().className = "ssmsg err"; msg().textContent = error.message; return; }
+    if(!data.committed){ msg().innerHTML = showResult(data) + ((data.unacked || []).length ? '<div class="err">Something new came up — check again.</div>' : ""); return; }
+    modalClose(); await onDone();
+  };
+  if(autoCheck) document.getElementById("ssCheck").click();
+}
+const foot = (go) => `<div class="pfoot"><span class="sp"></span>
+    <button class="pobtn" data-m="close">Cancel</button>
+    <button class="pobtn" id="ssCheck">Check</button>
+    <button class="pobtn go" id="ssGo" disabled>${esc(go)}</button></div>`;
+const oldOf = (s) => ({ shop_domain: s.shop_domain, label: s.label, kind: s.kind, sale_tier: s.sale_tier_name, compare_tier: s.compare_tier_name, secret_prefix: s.secret_prefix });
+
+/* ── 만들기 · 고치기 ─────────────────────────────── */
+function openForm(s){
+  const saleOpts = tiers.filter(t => t.purpose === "sale");
+  const cur = s ? oldOf(s) : { shop_domain: "", label: "", kind: "asung", sale_tier: "", compare_tier: null, secret_prefix: "SHOPIFY_IMS" };
+  modalOpen(`<h4>${s ? "Change " + esc(s.label) : "New Shopify store"}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Code</label>${s ? `<b class="mono">${esc(s.code)}</b>` : '<input type="text" id="fCode" placeholder="e.g. asung · aone · test">'}</div>
+      ${s ? "" : '<div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Short name used inside IMS — lower-case letters, digits and _ . It cannot be changed later.</div>'}
+      <div class="frow"><label>Shopify address</label><input type="text" id="fDomain" value="${escA(cur.shop_domain)}" placeholder="name.myshopify.com" style="width:280px"></div>
+      <div class="frow"><label>Label</label><input type="text" id="fLabel" value="${escA(cur.label)}" placeholder="e.g. asung.ca" style="width:280px"></div>
+      <div class="frow"><label>Kind</label><select id="fKind">
+        <option value="asung" ${cur.kind === "asung" ? "selected" : ""}>asung — wholesale (asung.ca)</option>
+        <option value="aone" ${cur.kind === "aone" ? "selected" : ""}>aone — store pickup, card (aonebeauty.com)</option></select></div>
+      <div class="frow"><label>Price tier</label><select id="fSale"><option value="">— pick —</option>
+        ${saleOpts.map(t => `<option value="${escA(t.name)}" ${t.name === cur.sale_tier ? "selected" : ""}>${esc(t.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Compare-at tier</label><select id="fCmp"><option value="" ${!cur.compare_tier ? "selected" : ""}>(none — not sent)</option>
+        ${tiers.map(t => `<option value="${escA(t.name)}" ${t.name === cur.compare_tier ? "selected" : ""}>${esc(t.name)}${t.purpose === "compare" ? " (compare)" : ""}</option>`).join("")}</select></div>
+      <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Compare-at can be the same tier as Price — sale prices come from the Wholesale All In One app.</div>
+      <div class="frow"><label>Key name</label><input type="text" id="fPrefix" value="${escA(cur.secret_prefix || "SHOPIFY_IMS")}" class="mono" style="width:200px"></div>
+      <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Leave as SHOPIFY_IMS unless the store is in a different Shopify organization with its own app.</div>
+      <div id="ssMsg" class="ssmsg"></div>
+    </div>${foot("Save")}`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  let newCode = null;
+  wireTwoStep(() => {
+    const m = document.getElementById("ssMsg");
+    const code = s ? s.code : document.getElementById("fCode").value.trim();
+    const v = {
+      shop_domain: document.getElementById("fDomain").value.trim(),
+      label: document.getElementById("fLabel").value.trim(),
+      kind: document.getElementById("fKind").value,
+      sale_tier: document.getElementById("fSale").value,
+      compare_tier: document.getElementById("fCmp").value,
+      secret_prefix: document.getElementById("fPrefix").value.trim() || "SHOPIFY_IMS",
+    };
+    if(!code){ m.className = "ssmsg err"; m.textContent = "Give the store a code — e.g. asung."; return null; }
+    if(!v.sale_tier){ m.className = "ssmsg err"; m.textContent = "Pick the Price tier."; return null; }
+    if(s){
+      const same = v.shop_domain === s.shop_domain && v.label === s.label && v.kind === s.kind && v.sale_tier === (s.sale_tier_name || "")
+        && v.compare_tier === (s.compare_tier_name || "") && v.secret_prefix === s.secret_prefix;
+      if(same && s.is_active){ m.className = "ssmsg"; m.textContent = "Nothing changed."; return null; }
+    }
+    newCode = code;
+    return [Object.assign({ op: "store_set", code }, v, { old: s ? oldOf(s) : null })];
+  }, async () => { if(!s && newCode) pickedCode = newCode; await load(); });
+}
+function openToggle(s){
+  if(s.is_active){
+    modalOpen(`<h4>Turn off ${esc(s.label)}</h4>
+      <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">IMS stops talking to this store — no product, stock or order sync, and Check connection is hidden. The location pairs stay, so turning it back on brings everything back. Nothing changes in Shopify itself.</div>
+      <div id="ssMsg" class="ssmsg"></div></div>${foot("Turn off")}`);
+    document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+    wireTwoStep(() => [{ op: "store_off", code: s.code, old: s.shop_domain }], load, true);
+  } else {
+    modalOpen(`<h4>Turn on ${esc(s.label)}</h4>
+      <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">IMS starts talking to this store again with the settings shown on the page. Check connection afterwards.</div>
+      <div id="ssMsg" class="ssmsg"></div></div>${foot("Turn on")}`);
+    document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+    const o = oldOf(s);
+    wireTwoStep(() => [Object.assign({ op: "store_set", code: s.code }, o, { compare_tier: o.compare_tier || "", old: o })], load, true);
+  }
+}
+
+/* ── 위치 짝 ─────────────────────────────────────── */
+function openPair(s, gid, name, wid){
+  const locs = Array.isArray(s.locations) ? s.locations : [];
+  const cur = locs.find(l => l.shopify_location_gid === gid && l.is_active);
+  const wh = warehouses.find(w => w.id === wid);
+  modalOpen(`<h4>Pair “${esc(name)}”</h4>
+    <div class="pbody"><div style="font-size:12.5px;line-height:1.5">Shopify location <b>${esc(name)}</b> → IMS warehouse <b>${esc(wh ? wh.name : wid)}</b>${cur ? ` <span class="dim">(now ${esc(cur.warehouse_name)})</span>` : ""}.
+      <div class="dim" style="margin-top:6px">Stock for this location will come from that warehouse, and orders shipped from it will be marked shipped from this location.</div></div>
+      <div id="ssMsg" class="ssmsg"></div></div>${foot("Save")}`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  wireTwoStep(() => [{ op: "location_set", store_code: s.code, shopify_location_gid: gid, warehouse_id: wid, old: cur ? cur.warehouse_id : null }], load, true);
+}
+function openUnpair(s, l){
+  modalOpen(`<h4>Unpair “${esc(l.shopify_name || l.shopify_location_gid)}”</h4>
+    <div class="pbody"><div style="font-size:12.5px;line-height:1.5;color:var(--muted)">This Shopify location stops getting stock from <b>${esc(l.warehouse_name)}</b>. You can pair it again later.</div>
+      <div id="ssMsg" class="ssmsg"></div></div>${foot("Unpair")}`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  wireTwoStep(() => [{ op: "location_off", store_code: s.code, shopify_location_gid: l.shopify_location_gid, old: l.warehouse_id }], load, true);
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true, requireScreen: "shopify" }, async (client, me) => {
+  sb = client;
+  isAdmin = !!(me && me.role === "admin");
+  const lvl = me && me.access && me.access.screens ? me.access.screens.shopify : null;
+  canCheck = !!lvl && lvl !== "read";
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = SS_BUILD;
+  const nb = document.getElementById("newBtn");
+  nb.hidden = !isAdmin; nb.onclick = () => openForm(null);
+  document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; load(); };
+  await loadRefs();
+  await load();
+  if(!pickedCode && stores.length === 1){ pickedCode = stores[0].code; await load(); }
+});
+</script>
+</body>
+</html>

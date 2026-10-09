@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v5";     // 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v6";     // [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -52,7 +52,7 @@
 
   /* ---- 화면 표 — 메뉴 · 모드 · 탭이 **이 배열 하나**에서 나온다 (2026-09-17 · 2026-09-30 lay-1 재배치) ----
      [이름, 주소, 화면 값(perms 어휘 · null 이면 로그인만으로 보인다), 모드('ims'|'wms'|'pos'), 탭에 서나(true 면 그 갈래의 탭 줄에 · 판정 169: IMS 는 Purchasing · Sales 의 문서 화면 열 줄 · WMS 는 일곱 전부 · 마스터 · Inventory · Action Center · Settings 는 false = 펼침에만), 갈래]
-     ⭐ 화면 값은 ims_perm_catalog() 의 어휘 — purchasing · master · receiving · staff · sales · stock_adjust · transfer · stock_move · picking · packing · fulfillment · wms_receiving · wms_manage.
+     ⭐ 화면 값은 ims_perm_catalog() 의 어휘 — purchasing · master · receiving · staff · sales · stock_adjust · transfer · stock_move · picking · packing · fulfillment · wms_receiving · wms_manage · shopify(nav v6).
         노출 = access.screens[값] 이 null 이 아니면('read' 도 보인다). ⚠️ 이 차수(lay-1)는 열쇠 칸을 하나도 바꾸지 않았다.
      ⭐ 갈래(여섯째) — IMS 윗줄 펼침의 자리: 'purchasing' · 'sales' · 'inventory' · 'action' · 'settings' (판정 150 · 151 · 152 · 164 · 165 · 166) · null = 펼침에 안 선다(Dashboard) · WMS 는 'warehouse' 하나.
         갈래는 그 사람에게 보이는 화면이 하나라도 있을 때만 선다 · 줄 순서 = 펼침 안 순서.
@@ -94,7 +94,8 @@
     ["Settings","settings.html","master","ims",false,"settings"],
     ["Surcharge Groups","surcharge-groups.html","master","ims",false,"settings"],   // surcharge-4b(판정 231) — 보기는 master · 고치기는 admin(창구)
     ["Staff","staff.html","staff","ims",false,"settings"],
-    ["Discount Rules","discount-rules.html","master","ims",false,"settings"],   // dr v1(2026-10-06 · dsc-4 · 판정 285 · 330 ~ 344) — 보기 · 고치기 master · 쿠폰 발행 · 무효
+    ["Discount Rules","discount-rules.html","master","ims",false,"settings"],
+    ["Shopify Stores","shopify-stores.html","shopify","ims",false,"settings"],   // nav v6(2026-10-09 · shop-1a 584aaf0 · shop-1b 9d67484) — 보기 · Check connection = shopify(manager 이상 · 쓰기) · 스토어 · 짝 고치기 = admin(창구)   // dr v1(2026-10-06 · dsc-4 · 판정 285 · 330 ~ 344) — 보기 · 고치기 master · 쿠폰 발행 · 무효
     ["System Check","system-check.html",null,"ims",false,"settings"],
     // POS 모드 — pos.html 하나 · 펼침 · ☰ 없음 (판정 159)
     ["POS","pos.html","sales","pos",false,null],
