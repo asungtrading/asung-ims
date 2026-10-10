@@ -1818,7 +1818,7 @@ products.html(pr v4e) · families.html(fam v2b) · ims-desc.js(desc v1 · v1a)
 
 ---
 
-## 7-zh. 2026-10-09 ~ 10 — Shopify Stores · 큰따옴표 (ss v1 · nav v6 1761e27 · ss v1a f17f848 · esc v1 · inv esc v1 5f66c91 · asung-wms shop-1a 584aaf0 · shop-1b 9d67484 · shop-2a1 81d779c · shop-2a2 0d3eb6e · shop-2b 2f6136f · 판정 362 · 403 ~ 413 · so-module §56)
+## 7-zh. 2026-10-09 ~ 10 — Shopify Stores · 큰따옴표 (ss v1 · nav v6 1761e27 · ss v1a f17f848 · esc v1 · inv esc v1 5f66c91 · asung-wms shop-1a 584aaf0 · shop-1b 9d67484 · shop-2a1 81d779c · shop-2a2 0d3eb6e · shop-2b 2f6136f · 판정 362 · 403 ~ 413 · so-module §56 · 이어서 Shopify 카드 shop v1 · pr v5 · fam v3 32dae11 · shop v1a · pr v5a f3fabf9 · pr v5b · shop v1b · desc v1b e563a8e · 판정 414 ~ 416)
 
 ```
 ⭐⭐ 규칙 — 속성 값(value= · title= · data-*=)에 넣는 글은 esc 로(공통 esc 가 이제 " ' 도 막는다 · esc v1)
@@ -1842,7 +1842,29 @@ ims-ui.js(esc v1) · invoices.html(inv esc v1)
 [ ] 공통 esc 를 쓰는 다른 화면(37 · 약 400 곳) — 따옴표 든 실데이터(상품 · 공급처 · 손님 이름)로 한 번씩 열어 칸이 끝까지 보이는지(전 화면 훑기 · 공통 파일을 고쳤다)
 공통
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
-⬜ Shopify 칸(products.html · families.html 의 보냄 켜기 · 웹 대표 사진)은 아직 화면이 없다 — tools/shopify-push.sh 로만(shop-2c) · Edit 의 Save · Cancel 이 맨 위에만 있다(미룬 163)
+~~⬜ Shopify 칸(products.html · families.html 의 보냄 켜기 · 웹 대표 사진)은 아직 화면이 없다 — tools/shopify-push.sh 로만(shop-2c) · Edit 의 Save · Cancel 이 맨 위에만 있다(미룬 163)~~ → ✅ 아래 shop-2c(2026-10-10)
+
+── 2026-10-10 집 PC · shop-2c Shopify 카드 (shop v1 · v1a · v1b · pr v5 · v5a · v5b · fam v3 · desc v1b · 판정 404 ~ 407 · 413 · 415 · 416)
+⭐⭐ 규칙 — 따로 저장되는 카드(사진 · 설명 · Shopify)는 Edit 안에서 단추 없이 읽기만(판정 416 · 제목 옆 「Save or Cancel first to change this」)
+⭐  Send now 는 큐를 거치지 않고 바로(판정 415 · EF push) · 켜기 · 끄기 · 첫 사진 고르기는 큐 → cron(1 분)
+✅ = Caleb 화면 시험 통과(2026-10-10 · 테스트 DB · 시험 스토어 · so-module §56-c) · [ ] = 그날 기록에 확인이 없는 것
+[ ] Ctrl+F5 · 헤더 빌드 표시 products 「pr v5b」 · families 「fam v3」
+ims-shop.js(shop v1 · v1a · v1b) · families.html(fam v3)
+[✅] ANN01001FAM 카드 — 스토어 한 줄 Sent · ACTIVE · last send ok
+[✅] Send now → 결과 그 자리(바뀐 것 없음 = call_log push skipped_same_hash · 14:36:38 UTC)
+[✅] Open in Shopify — 관리자 상품이 새 탭 · 링크 밑줄 없음(shop v1a)
+[✅] First photo on Shopify — ANN01002(노랑) 고름 → 1 분 안에 온라인 스토어 사진 · 관리자 목록 썸네일 노랑 → Default 로 되돌림
+    ⚠️ 고르기 창을 열고 사진을 누르지 않으면 저장되지 않는다(결함 아님 — product_family.updated_at 그대로 · 큐 줄 없음으로 확인)
+[✅] ANN01291 Turn on(큐 13 · listing_on · ok) → Shopify ACTIVE → Turn off(큐 14 · listing_off · ok) → ARCHIVED · 그 사이 큐 줄 더 없음
+[✅] 켜기 · 끄기 뒤 4 초마다 다시 읽기 — 「last send ok」 와 「Sending…」 이 잠깐 함께 보여도 4 초 뒤 사라진다(EF 가 결과를 적은 시각과 큐를 닫은 시각 사이 · 결함 아님)
+[ ] 꺼진 구성원 줄 — 「in Shopify it shows as sold out (it is not removed)」 안내(판정 406)
+[ ] sellable 아닌 세트 — 「Sets are not sent to Shopify …」 안내만(판정 404)
+[ ] shopify 권한 없는 로그인 — 단추 없이 「… needs the Shopify permission」
+products.html(pr v5 · v5a · v5b) · ims-desc.js(desc v1b)
+[✅] ANN01001(family 구성원) 상품 화면 — family 링크만 · 단추 없음
+[✅] Edit 아래에도 Save · Cancel(pr v5 · 미룬 163) · 그 줄 안내 글 크기(pr v5a)
+[✅] Edit 안에서도 Shopify · Description · Photos 카드가 보인다 — 단추 없이 「Save or Cancel first to change this」(pr v5b · shop v1b · desc v1b · 판정 416)
+발견(기록만) — 퍼블리시한 ANN01001FAM 의 Shopify Category 가 「Uncategorized」(다른 두 상품은 빈칸) · Category 는 사람 칸이라 IMS 가 보내지 않는다 · 퍼블리시 때 Shopify 가 채운 것으로 본다(짐작)
 ```
 
 ---
