@@ -1,7 +1,7 @@
 /* Asung IMS — Shopify 카드(shop-2c · 판정 404 ~ 415 · DB shop-2a1 81d779c · shop-2a2 0d3eb6e · EF shop-2b 2f6136f)
    ─────────────────────────────────────────────
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-shop.js (esc · imsTs · imsPhotoUrl · imsAuth 를 쓴다)
-   📌 2026-10-10 · 대화 Claude · shop v1
+   📌 2026-10-10 · 대화 Claude · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험)
 
    읽기(DB — 화면은 표를 직접 쓰지 않는다)
      뷰 shop_store_list     스토어(code · label · shop_domain · is_active)
@@ -48,6 +48,7 @@
       .ishop-state .chip{margin-right:4px}
       .ishop-err{color:var(--bad,#b42318);font-size:12px;word-break:break-word}
       .ishop-btns{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+      .ishop-btns a.pobtn{text-decoration:none;color:inherit;display:inline-flex;align-items:center}
       .ishop-res{grid-column:1 / -1;font-size:12.5px;padding:6px 10px;border-radius:8px;background:#f5f7fb}
       .ishop-res.bad{background:#fef3f2;color:var(--bad,#b42318)}
       .ishop-res.good{background:#ecfdf3;color:#067647}
