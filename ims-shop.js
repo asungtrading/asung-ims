@@ -1,7 +1,8 @@
 /* Asung IMS — Shopify 카드(shop-2c · 판정 404 ~ 415 · DB shop-2a1 81d779c · shop-2a2 0d3eb6e · EF shop-2b 2f6136f)
    ─────────────────────────────────────────────
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-shop.js (esc · imsTs · imsPhotoUrl · imsAuth 를 쓴다)
-   📌 2026-10-10 · 대화 Claude · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험) · shop v1b(판정 416: products.html Edit 안에서도 읽기만으로 보인다 — card(kind, { readOnly }) · wire opts.readOnly → 단추 없음)
+   📌 2026-10-10 · 대화 Claude · shop v2(stock-1c · 판정 421 ~ 425): 스토어 줄마다 위치별 「Stock on Shopify」 표(뷰 shop_stock_list · 변형 × 위치 · 보낸 숫자 · 시각 · 에러 · 보내는 중) · 「Send stock now」(EF stock_push · 바로 · 판정 415 결) · family 구성원 화면에도 그 변형의 위치별 숫자 · 안내 글 sold out → not available(판정 425)
+   📌 2026-10-10 · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험) · shop v1b(판정 416: products.html Edit 안에서도 읽기만으로 보인다 — card(kind, { readOnly }) · wire opts.readOnly → 단추 없음)
 
    읽기(DB — 화면은 표를 직접 쓰지 않는다)
      뷰 shop_store_list     스토어(code · label · shop_domain · is_active)
@@ -11,6 +12,8 @@
      창구 shop_listing_set(p_changes, p_commit, p_ack) — 문 ims_require_write('shopify') · 두 번 부르기(판정 176)
        listing_on / listing_off {store_code, family_sku | sku, old}  old = 화면이 본 is_on 글자('true' | 'false') · 한 번도 안 켰으면 null
        family_web_image_set {family_sku, product_image_id | null, old}  old = 화면이 본 web_image_id(null 이면 null)
+     뷰 shop_stock_list(stock-1a) — 변형 × 위치 한 줄: product_id · sku · store_id · location_name · warehouse_name · quantity · sent_at · last_status · last_error · open_queue
+     EF shopify {action:'stock_push', store, family_sku | sku} — 재고를 바로(force) · 200 { ok, sent_items, activated, items[], blocked[] } · 404 · 409 · 403 · 502
      EF shopify {action:'push', store, family_sku | sku} — 판정 415: Send now 는 큐를 거치지 않고 바로(직원 길 · 서버가 ims_can_write('shopify'))
        200 result ok | skipped_same_hash · 422 description_forbidden_after_clean:… · 404 · 409 · 502 — 응답 몸은 error.context.json()
 
@@ -60,6 +63,12 @@
       .ishop-pick img{width:100%;height:90px;object-fit:contain;display:block;margin-bottom:4px}
       .ishop-pick .none{height:90px;display:flex;align-items:center;justify-content:center;color:var(--muted,#667085)}
       .res .blk li{color:var(--bad)} .res .wrn li{color:var(--warn)}
+      .ishop-stock{grid-column:1 / -1;font-size:12.5px}
+      .ishop-stock table{border-collapse:collapse;width:auto;min-width:320px}
+      .ishop-stock th,.ishop-stock td{padding:3px 12px 3px 0;text-align:left;border-bottom:1px solid var(--line,#e4e7ec)}
+      .ishop-stock th{font-weight:600;font-size:11px;color:var(--muted,#667085);text-transform:uppercase;letter-spacing:.03em}
+      .ishop-stock td.num{text-align:right;font-variant-numeric:tabular-nums}
+      .ishop-stock .cap{font-weight:600;margin:2px 0 4px}
       @media (max-width:760px){.ishop-row{grid-template-columns:1fr}.ishop-btns{justify-content:flex-start}}
     `;
     document.head.appendChild(st);
@@ -88,6 +97,26 @@
       <div class="note" data-ishop-note></div></div>`;
   }
 
+  /* ── 재고 표(stock-1c) — 한 스토어의 변형 × 위치 ── */
+  function stockBlock(rows, isOn) {
+    if (!rows.length) return isOn ? `<div class="ishop-stock"><div class="cap">Stock on Shopify</div><span class="dim">Not sent yet.</span></div>` : "";
+    const locs = [...new Set(rows.map(r => r.location_name || r.warehouse_name))].sort();
+    const bySku = {};
+    rows.forEach(r => { (bySku[r.sku] = bySku[r.sku] || { sku: r.sku, q: {}, at: null, errs: [], open: 0 }); const x = bySku[r.sku];
+      x.q[r.location_name || r.warehouse_name] = r.quantity;
+      if (r.sent_at && (!x.at || r.sent_at > x.at)) x.at = r.sent_at;
+      if (r.last_status === "error" && r.last_error) x.errs.push(r.last_error);
+      x.open = Math.max(x.open, Number(r.open_queue) || 0); });
+    const list = Object.values(bySku).sort((a, b) => String(a.sku).localeCompare(String(b.sku)));
+    const waiting = list.some(x => x.open > 0);
+    return `<div class="ishop-stock"><div class="cap">Stock on Shopify${waiting ? ` <span style="color:var(--warn,#b54708);font-weight:400">· sending… (within a minute)</span>` : ""}</div>
+      <table><thead><tr>${list.length > 1 ? "<th>SKU</th>" : ""}${locs.map(l => `<th style="text-align:right">${esc(l)}</th>`).join("")}<th>Sent</th></tr></thead><tbody>
+      ${list.map(x => `<tr>${list.length > 1 ? `<td class="mono">${esc(x.sku)}</td>` : ""}${locs.map(l => `<td class="num">${x.q[l] == null ? '<span class="dim">—</span>' : esc(String(Number(x.q[l])))}</td>`).join("")}
+        <td class="dim">${x.at ? esc(imsTs(x.at)) : "—"}${x.errs.length ? `<div class="ishop-err">${esc(x.errs.join(" · "))}</div>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>`;
+  }
+  const stockWaiting = (rows) => rows.some(r => Number(r.open_queue) > 0);
+
   /* ── 채우기 ───────────────────────────────────────────── */
   const pollers = new WeakMap();
   async function wire(root, opts) {
@@ -107,11 +136,18 @@
     if (isMember) {
       const fam = family || {};
       const off = !(row.is_active && row.sellable !== false);
-      body.innerHTML = `<div class="msg" style="text-align:left;padding:12px 14px">
+      const sk = await sb.from("shop_stock_list").select("store_id,store_code,product_id,sku,location_name,warehouse_name,quantity,sent_at,last_status,last_error,open_queue").eq("product_id", row.id);
+      if (!el.isConnected) return;
+      const skRows = sk.data || [];
+      const byStoreCode = {}; skRows.forEach(r => { (byStoreCode[r.store_code || r.store_id] = byStoreCode[r.store_code || r.store_id] || []).push(r); });
+      const memberStock = Object.keys(byStoreCode).sort().map(c => `<div class="ishop-row"><div class="ishop-store"><b>${esc(c)}</b></div>${stockBlock(byStoreCode[c], true)}</div>`).join("");
+      body.innerHTML = memberStock + `<div class="msg" style="text-align:left;padding:12px 14px">
         Sent to Shopify as a variant of its family
         <a class="lnk mono" href="families.html?id=${esc(row.family_id)}">${esc(fam.sku || "family")}</a>${fam.name ? " " + esc(fam.name) : ""}
-        — switch it on or off there.${off ? `<br><span style="color:var(--warn,#b54708)">This variant is inactive or not sellable — in Shopify it shows as sold out (it is not removed).</span>` : ""}</div>`;
+        — switch it on or off there.${off ? `<br><span style="color:var(--warn,#b54708)">This variant is inactive or not sellable — in Shopify it shows as not available, with stock 0 (it is not removed).</span>` : ""}</div>`;
       note.innerHTML = ""; nEl.textContent = "";
+      const prevM = pollers.get(el); if (prevM) { clearTimeout(prevM); pollers.delete(el); }
+      if (stockWaiting(skRows) && pollN < POLL_MAX) pollers.set(el, setTimeout(() => { if (el.isConnected) fill(el, opts, pollN + 1); }, POLL_MS));
       return;
     }
     if (isSet && row.sellable === false) {
@@ -120,9 +156,11 @@
       return;
     }
 
-    const [st, ls] = await Promise.all([
+    const stockIds = kind === "family" ? (opts.members || []).map(m => m.id) : [row.id];
+    const [st, ls, sk] = await Promise.all([
       sb.from("shop_store_list").select("id,code,label,shop_domain,is_active").order("code"),
       sb.from("shop_listing_list").select("*").eq(kind === "family" ? "family_id" : "product_id", row.id),
+      stockIds.length ? sb.from("shop_stock_list").select("store_id,product_id,sku,location_name,warehouse_name,quantity,sent_at,last_status,last_error,open_queue").in("product_id", stockIds) : Promise.resolve({ data: [] }),
     ]);
     if (!el.isConnected) return;
     if (st.error || ls.error) { body.innerHTML = `<div class="msg err">${esc((st.error || ls.error).message)}</div>`; return; }
@@ -138,6 +176,8 @@
       const l = byStore[s.id] || null;
       const waiting = !!(l && Number(l.open_queue) > 0);
       if (waiting) anyWaiting = true;
+      const skRows = (sk.data || []).filter(r => r.store_id === s.id);
+      if (l && l.is_on && stockWaiting(skRows)) anyWaiting = true;
       const sent = !l ? '<span class="dim">Not sent</span>'
         : l.is_on ? `<span class="on">Sent</span> <span class="dim">· on ${esc(imsTs(l.turned_on_at))}${l.turned_on_by_name ? " by " + esc(l.turned_on_by_name) : ""}</span>`
                   : `<span class="off">Switched off</span> <span class="dim">· ${esc(imsTs(l.turned_off_at))}${l.turned_off_by_name ? " by " + esc(l.turned_off_by_name) : ""}</span>`;
@@ -156,6 +196,7 @@
       if (can && s.is_active) {
         if (l && l.is_on) {
           btns.push(`<button class="pobtn go" data-ishop="push" data-store="${esc(s.code)}" data-t="${tj}" title="Send to Shopify now and show the result">Send now</button>`);
+          btns.push(`<button class="pobtn" data-ishop="stockpush" data-store="${esc(s.code)}" data-t="${tj}" title="Send the stock numbers to Shopify now and show the result">Send stock now</button>`);
           btns.push(`<button class="pobtn" data-ishop="off" data-store="${esc(s.code)}" data-t="${tj}" data-old="${esc(old)}" title="Stop sending — the Shopify product becomes Archived (not deleted)">Turn off</button>`);
         } else {
           btns.push(`<button class="pobtn go" data-ishop="on" data-store="${esc(s.code)}" data-t="${tj}" data-old="${esc(old)}" title="Send this to the Shopify store">Turn on</button>`);
@@ -166,6 +207,7 @@
         <div class="ishop-store"><b>${esc(s.label || s.code)}</b><span class="mono dim">${esc(s.shop_domain)}${s.is_active ? "" : " · store off"}</span></div>
         <div class="ishop-state">${sent}<div>${sh}</div>${err}${wait}</div>
         <div class="ishop-btns">${btns.join("")}</div>
+        ${l && l.is_on ? stockBlock(skRows, true) : ""}
       </div>`;
     }).join("") + (kind === "family" ? `<div data-ishop-web></div>` : "");
 
@@ -191,6 +233,7 @@
     let target; try { target = JSON.parse(b.dataset.t); } catch (e) { return; }
     const who = target.family_sku || target.sku;
     if (a === "push") return pushNow(el, opts, store, target, b);
+    if (a === "stockpush") return stockPushNow(el, opts, store, target, b);
     if (a === "on" || a === "off") {
       const msg = a === "on"
         ? `Send ${who} to the Shopify store "${store}"?\n\nIt goes to Shopify within a minute. It is not shown on the website until someone publishes it in Shopify.`
@@ -225,6 +268,34 @@
         : "Not sent — " + e;
     }
     /* 결과 줄은 남기고 위의 상태만 새로 읽는다 */
+    const keep = res.outerHTML;
+    await fill(el, opts, 0);
+    const again = el.querySelector(`[data-ishop-row="${CSS.escape(store)}"]`);
+    if (again) again.insertAdjacentHTML("beforeend", keep);
+  }
+
+  async function stockPushNow(el, opts, store, target, b) {
+    const rowEl = b.closest("[data-ishop-row]");
+    const old = rowEl.querySelector(".ishop-res"); if (old) old.remove();
+    const res = document.createElement("div"); res.className = "ishop-res"; res.textContent = "Sending stock to Shopify…";
+    rowEl.appendChild(res);
+    rowEl.querySelectorAll("button").forEach(x => { x.disabled = true; });
+    const { data, error } = await opts.sb.functions.invoke("shopify", { body: Object.assign({ action: "stock_push", store }, target) });
+    let r = data;
+    if (error) { try { r = await error.context.json(); } catch (e) { r = { ok: false, error: error.message }; } }
+    r = r || { ok: false, error: "No answer from the server" };
+    const blocked = (r.blocked || []).filter(x => x.result === "error");
+    const itemErr = (r.items || []).filter(x => x.result === "error");
+    if (r.ok && !itemErr.length) {
+      res.className = "ishop-res good";
+      res.textContent = `Stock sent · ${r.sent_items || 0} number${r.sent_items === 1 ? "" : "s"}`
+        + (r.activated ? ` · ${r.activated} location link${r.activated === 1 ? "" : "s"} added` : "")
+        + (blocked.length ? ` · not sent: ${blocked.map(x => x.sku + (x.error ? " (" + x.error + ")" : "")).join(", ")}` : "");
+    } else {
+      res.className = "ishop-res bad";
+      const msgs = [r.error].concat(itemErr.map(x => x.sku + ": " + x.error)).concat(blocked.map(x => x.sku + ": " + x.error)).filter(Boolean);
+      res.textContent = "Stock not sent — " + (msgs.join(" · ") || "Failed");
+    }
     const keep = res.outerHTML;
     await fill(el, opts, 0);
     const again = el.querySelector(`[data-ishop-row="${CSS.escape(store)}"]`);
