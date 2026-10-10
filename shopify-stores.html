@@ -71,8 +71,8 @@
          · sale_tier_id · sale_tier_name · compare_tier_id · compare_tier_name · locations jsonb[{id, shopify_location_gid, shopify_name,
            warehouse_id, warehouse_name, is_active, checked_at}] · locations_active · last_ping_ok · last_ping_at · last_ping_error)
    쓰기  shop_store_save(p_changes, p_commit, p_ack) · admin 만 · 두 번 부르기
-         store_set {code, shop_domain, label, kind, sale_tier(이름), compare_tier(이름 | ''), secret_prefix?, old}
-           old = 새 스토어 null · 있는 스토어 {shop_domain, label, kind, sale_tier, compare_tier, secret_prefix}(뷰의 *_name 그대로)
+         store_set {code, shop_domain, label, kind, sale_tier(이름), compare_tier(이름 | ''), secret_prefix?, oos_policy?(continue | deny · ss v2 · shop-pol), old}
+           old = 새 스토어 null · 있는 스토어 {shop_domain, label, kind, sale_tier, compare_tier, secret_prefix, oos_policy}(뷰의 *_name 그대로 · oos_policy 를 넣으면 그 칸도 changed_elsewhere 대조)
          store_off {code, old = shop_domain} · 다시 켜기는 store_set(알리기 store_reactivated)
          location_set {store_code, shopify_location_gid, warehouse_id, old = 지금 warehouse_id | null}
          location_off {store_code, shopify_location_gid, old = warehouse_id}
@@ -80,7 +80,7 @@
          응답 {ok, shop{name, myshopifyDomain, currencyCode}, locations[{id, name, isActive, paired_warehouse}], scopes[], missing_scopes[], warnings[{code, …}], cost, ms}
    ⭐ 위치 대조는 GID 로만(이름은 표시) · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const SS_BUILD = "2026-10-09 · ss v1a";   // 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
+const SS_BUILD = "2026-10-10 · ss v2";   // 대화 Claude — 판정 427 · 428 · shop-pol(asung-wms 8cd08a7): 「Sell when out of stock」(oos_policy continue = Allow · deny = Don't allow) 목록 · 상세 · 만들기/고치기 · 바꾸면 그 스토어의 켜진 상품이 다시 보내진다는 안내 · 「Send tags」(send_tags) 목록 · 상세에 읽기만(창구에 아직 없다 — 켜기는 관리자 SQL) ← ss v1a: 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
 console.log("shopify-stores.html build:", SS_BUILD);
 
 let sb = null, isAdmin = false, canCheck = false, onlyActive = true;
@@ -110,13 +110,15 @@ async function load(){
   stores = data || [];
   document.getElementById("ssCount").textContent = `${stores.length} store(s)`;
   if(!stores.length){ body.innerHTML = '<div class="msg">No Shopify stores yet.' + (isAdmin ? " Press New store to add one." : "") + "</div>"; renderDetail(); return; }
-  body.innerHTML = `<table><thead><tr><th>Code</th><th>Store</th><th>Kind</th><th>Price</th><th>Compare-at</th><th class="num">Locations paired</th><th>Last check</th><th>Active</th></tr></thead><tbody>
+  body.innerHTML = `<table><thead><tr><th>Code</th><th>Store</th><th>Kind</th><th>Price</th><th>Compare-at</th><th>Sell when out of stock</th><th>Tags</th><th class="num">Locations paired</th><th>Last check</th><th>Active</th></tr></thead><tbody>
     ${stores.map(s => `<tr data-row="${escA(s.code)}" class="${s.is_active ? "" : "off"} ${s.code === pickedCode ? "pick" : ""}">
       <td class="mono"><b>${esc(s.code)}</b></td>
       <td>${esc(s.label)}<div class="dim mono" style="font-size:11.5px">${esc(s.shop_domain)}</div></td>
       <td>${esc(s.kind)}</td>
       <td>${esc(s.sale_tier_name || "")}</td>
       <td>${s.compare_tier_name ? esc(s.compare_tier_name) : '<span class="dim">(none)</span>'}</td>
+      <td>${esc(oosTxt(s.oos_policy))}</td>
+      <td>${tagsTxt(s.send_tags)}</td>
       <td class="num">${esc(s.locations_active ?? 0)}</td>
       <td style="font-size:12px">${lastCheck(s)}</td>
       <td>${yn(s.is_active)}</td>
@@ -124,6 +126,8 @@ async function load(){
   body.querySelectorAll("[data-row]").forEach(tr => { tr.onclick = () => { pickedCode = tr.dataset.row; load(); }; });
   renderDetail();
 }
+const oosTxt = (v) => v === "deny" ? "Don't allow" : "Allow";   // ss v2 — Shopify 관리자 글자와 같게
+const tagsTxt = (v) => v ? '<span class="on">On</span>' : '<span class="dim">Off</span>';
 function lastCheck(s){
   if(!s.last_ping_at) return '<span class="dim">never</span>';
   return (s.last_ping_ok ? '<span class="on">✓ ok</span>' : '<span class="off">✗ failed</span>') + ` <span class="dim">${imsTs(s.last_ping_at)}</span>`
@@ -158,6 +162,8 @@ function renderDetail(){
       <div>Kind</div><div>${esc(s.kind)}</div>
       <div>Price tier</div><div>${esc(s.sale_tier_name || "")}</div>
       <div>Compare-at tier</div><div>${s.compare_tier_name ? esc(s.compare_tier_name) : '<span class="dim">(none — not sent)</span>'}</div>
+      <div>Sell when out of stock</div><div>${esc(oosTxt(s.oos_policy))} <span class="dim" style="font-size:11.5px">— turned-off variants and discontinued items never sell past stock</span></div>
+      <div>Send tags</div><div>${tagsTxt(s.send_tags)} <span class="dim" style="font-size:11.5px">— when on, Shopify tags follow the IMS tags exactly · switched by an admin in the database</span></div>
       <div>Key name</div><div class="mono">${esc(s.secret_prefix)}_CLIENT_ID · _CLIENT_SECRET</div>
       <div>Updated</div><div class="dim">${imsTs(s.updated_at)}</div>
     </div>
@@ -277,12 +283,12 @@ const foot = (go) => `<div class="pfoot"><span class="sp"></span>
     <button class="pobtn" data-m="close">Cancel</button>
     <button class="pobtn" id="ssCheck">Check</button>
     <button class="pobtn go" id="ssGo" disabled>${esc(go)}</button></div>`;
-const oldOf = (s) => ({ shop_domain: s.shop_domain, label: s.label, kind: s.kind, sale_tier: s.sale_tier_name, compare_tier: s.compare_tier_name, secret_prefix: s.secret_prefix });
+const oldOf = (s) => ({ shop_domain: s.shop_domain, label: s.label, kind: s.kind, sale_tier: s.sale_tier_name, compare_tier: s.compare_tier_name, secret_prefix: s.secret_prefix, oos_policy: s.oos_policy || "continue" });
 
 /* ── 만들기 · 고치기 ─────────────────────────────── */
 function openForm(s){
   const saleOpts = tiers.filter(t => t.purpose === "sale");
-  const cur = s ? oldOf(s) : { shop_domain: "", label: "", kind: "asung", sale_tier: "", compare_tier: null, secret_prefix: "SHOPIFY_IMS" };
+  const cur = s ? oldOf(s) : { shop_domain: "", label: "", kind: "asung", sale_tier: "", compare_tier: null, secret_prefix: "SHOPIFY_IMS", oos_policy: "continue" };
   modalOpen(`<h4>${s ? "Change " + esc(s.label) : "New Shopify store"}</h4>
     <div class="pbody">
       <div class="frow"><label>Code</label>${s ? `<b class="mono">${esc(s.code)}</b>` : '<input type="text" id="fCode" placeholder="e.g. asung · aone · test">'}</div>
@@ -297,6 +303,10 @@ function openForm(s){
       <div class="frow"><label>Compare-at tier</label><select id="fCmp"><option value="" ${!cur.compare_tier ? "selected" : ""}>(none — not sent)</option>
         ${tiers.map(t => `<option value="${escA(t.name)}" ${t.name === cur.compare_tier ? "selected" : ""}>${esc(t.name)}${t.purpose === "compare" ? " (compare)" : ""}</option>`).join("")}</select></div>
       <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Compare-at can be the same tier as Price — sale prices come from the Wholesale All In One app.</div>
+      <div class="frow"><label>Sell when out of stock</label><select id="fOos">
+        <option value="continue" ${cur.oos_policy !== "deny" ? "selected" : ""}>Allow — take orders at zero stock (asung.ca)</option>
+        <option value="deny" ${cur.oos_policy === "deny" ? "selected" : ""}>Don't allow — stop at zero stock (aonebeauty.com)</option></select></div>
+      <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Turned-off variants and discontinued items never sell past stock, whatever this says.${s ? " Changing this re-sends every product on this store." : ""}</div>
       <div class="frow"><label>Key name</label><input type="text" id="fPrefix" value="${escA(cur.secret_prefix || "SHOPIFY_IMS")}" class="mono" style="width:200px"></div>
       <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">Leave as SHOPIFY_IMS unless the store is in a different Shopify organization with its own app.</div>
       <div id="ssMsg" class="ssmsg"></div>
@@ -313,12 +323,13 @@ function openForm(s){
       sale_tier: document.getElementById("fSale").value,
       compare_tier: document.getElementById("fCmp").value,
       secret_prefix: document.getElementById("fPrefix").value.trim() || "SHOPIFY_IMS",
+      oos_policy: document.getElementById("fOos").value,
     };
     if(!code){ m.className = "ssmsg err"; m.textContent = "Give the store a code — e.g. asung."; return null; }
     if(!v.sale_tier){ m.className = "ssmsg err"; m.textContent = "Pick the Price tier."; return null; }
     if(s){
       const same = v.shop_domain === s.shop_domain && v.label === s.label && v.kind === s.kind && v.sale_tier === (s.sale_tier_name || "")
-        && v.compare_tier === (s.compare_tier_name || "") && v.secret_prefix === s.secret_prefix;
+        && v.compare_tier === (s.compare_tier_name || "") && v.secret_prefix === s.secret_prefix && v.oos_policy === (s.oos_policy || "continue");
       if(same && s.is_active){ m.className = "ssmsg"; m.textContent = "Nothing changed."; return null; }
     }
     newCode = code;
