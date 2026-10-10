@@ -3,6 +3,7 @@
    ⭐⭐ 설명은 이 파일의 imsDesc 로만 그린다 — 원문 칸(cin7_description · description_html)을 innerHTML 로 직접 그리지 마라(CHECKLIST)
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-desc.js (esc · imsTs · imsAuth 를 쓴다)
    📌 2026-10-09 · 대화 Claude · desc v1 · desc v1a(손대지 않은 Save 는 저장하지 않는다 — 비교 기준 = 편집 창이 열린 직후의 글)
+   📌 2026-10-10 · desc v1b(판정 416) — card(kind, row, { readOnly }) · products.html Edit 안에서는 단추 없이 읽기만
 
    DB(desc-1b) 사실 — 2026-10-09 실측
      product · product_family: description_html(null = Cin7 을 따른다 · '' = 일부러 비움) · description_edited_at · description_edited_by
@@ -19,7 +20,7 @@
      DOMPurify 3.1.6(cdnjs · 고정 판 · 2024 판이라 2 주 규칙을 넘는다)
 
    담은 것
-     imsDesc.card(kind, row)                 카드 HTML(자리만) — kind "product" | "family" · row = 표의 행(select "*")
+     imsDesc.card(kind, row, o)              카드 HTML(자리만) — kind "product" | "family" · row = 표의 행(select "*") · o = { readOnly }(판정 416)
      imsDesc.wire(root, opts)                카드를 채운다 · opts = { kind, row, sb, onChanged }
      imsDesc.clean(html)                     → Promise<{ html, removed[] }> — 다른 화면 · 미리 보기용
 */
@@ -132,12 +133,13 @@
 
   /* ── 카드 ─────────────────────────────────────────────── */
   const canEdit = () => !!(window.imsAuth && imsAuth.canWrite && imsAuth.canWrite("master"));
-  function card(kind, row) {
+  function card(kind, row, o) {
     ensureStyle();
+    const ro = !!(o && o.readOnly);
     const edited = row.description_html !== null && row.description_html !== undefined;
     const chip = edited ? '<span class="chip warn" style="text-transform:none">edited in IMS</span>'
                         : '<span class="chip" style="text-transform:none">from Cin7</span>';
-    const btns = canEdit() ? `<span style="margin-left:auto;display:flex;gap:6px">
+    const btns = ro ? '<span class="dim" style="margin-left:auto;font-weight:400;text-transform:none;font-size:11px;font-family:inherit">Save or Cancel first to change this</span>' : canEdit() ? `<span style="margin-left:auto;display:flex;gap:6px">
         ${edited ? '<button class="pobtn" data-idesc="follow" title="Drop the IMS text and follow Cin7 again">Follow Cin7 again</button>' : ""}
         ${edited ? '<button class="pobtn" data-idesc="orig" title="Show the Cin7 original next to it">Cin7 original</button>' : ""}
         <button class="pobtn go" data-idesc="edit">Edit description</button></span>` : "";

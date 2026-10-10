@@ -211,7 +211,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v5a";   // 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v5b";   // 대화 Claude — 판정 416: Edit 안에서도 Shopify · Description · Photos 카드가 보인다(읽기만 · 단추 없음 · 「Save or Cancel first to change this」 · 저장 전의 값이 따로 저장되는 일을 막는다) ← pr v5a: 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -511,8 +511,8 @@ function render(){
   const editing = !!(edit && edit.id === cur.r.id);
   box.innerHTML = editing ? renderEdit() : renderRead();
   wireDetail(box);
-  if(!editing) imsDesc.wire(box, { kind:"product", row: cur.r, sb, onChanged: async () => { await loadDetail(curId); } });   // pr v4e — 설명 카드(ims-desc.js)
-  if(!editing) imsShop.wire(box, { kind:"product", row: cur.r, sb, family: cur.family });                                       // pr v5 — Shopify 카드(ims-shop.js)
+  imsDesc.wire(box, { kind:"product", row: cur.r, sb, onChanged: async () => { await loadDetail(curId); } });   // pr v4e — 설명 카드(ims-desc.js) · pr v5b: Edit 안에서도(읽기만 — 단추가 없다)
+  imsShop.wire(box, { kind:"product", row: cur.r, sb, family: cur.family, readOnly: editing });                    // pr v5 — Shopify 카드(ims-shop.js) · pr v5b: Edit 안에서는 읽기만(판정 416)
 }
 
 function headChips(r){
@@ -656,9 +656,10 @@ function heroImg(){
   return `<div class="hero"><span class="none">No photo</span></div>`;
 }
 
-function photoCard(){
+function photoCard(ro){   // pr v5b — ro = Edit 안(판정 416 · 단추 없이 읽기만)
   const { imgs, imgsOff, fallback } = cur;
-  const up = canEdit ? `<button class="pobtn" data-act="photoAdd" style="margin-left:auto">Upload photos</button>` : "";
+  const can = canEdit && !ro;
+  const up = ro ? '<span class="dim" style="margin-left:auto;font-weight:400;text-transform:none;font-size:11px;font-family:inherit">Save or Cancel first to change this</span>' : canEdit ? `<button class="pobtn" data-act="photoAdd" style="margin-left:auto">Upload photos</button>` : "";
   const offNote = imgsOff ? ` <span class="dim" style="font-weight:400;text-transform:none;font-size:11px">${imgsOff} turned off</span>` : "";
   let big, thumbs = "";
   if(imgs.length){
@@ -666,7 +667,7 @@ function photoCard(){
     big = `<div class="big"><img src="${esc(photoUrl(p0.storage_path))}" alt="" data-zoom="${esc(p0.storage_path)}" style="cursor:zoom-in"></div>`;
     thumbs = imgs.map((x, i) => `<div class="th ${x.is_primary?"pri":""}">
         <div class="im" data-zoom="${esc(x.storage_path)}"><img src="${esc(photoUrl(x.storage_path))}" alt="" loading="lazy"></div>
-        ${canEdit ? `<div class="ops">
+        ${can ? `<div class="ops">
           ${x.is_primary ? '<span class="tag">primary</span>' : `<button class="xbtn" data-act="photoPrimary" data-img="${x.id}" title="Make primary">★</button>`}
           <button class="xbtn" data-act="photoLeft" data-i="${i}" title="Move left" ${i===0?"disabled":""}>◀</button>
           <button class="xbtn" data-act="photoRight" data-i="${i}" title="Move right" ${i===imgs.length-1?"disabled":""}>▶</button>
@@ -836,7 +837,9 @@ function renderEdit(){
     ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU","Fixed","Latest","Default","Off"], supRows, "None.", supAdd)}
     ${tbl("Barcodes", live.length + edit.addBc.length, ["Barcode","Primary","Off"], barRows, "None.", bcAdd)}
     ${tagCardEdit()}
-    <div class="card"><div class="msg">Photos are changed outside Edit — Cancel, then use Upload photos.</div></div>
+    ${imsShop.card("product", { readOnly: true })}
+    ${imsDesc.card("product", r, { readOnly: true })}
+    ${photoCard(true)}
     <div class="card editing"><div class="acts" style="display:flex;gap:8px;align-items:center;padding:12px 14px">
       <button class="pobtn go" data-act="save">Save</button>
       <button class="pobtn" data-act="cancel">Cancel</button>

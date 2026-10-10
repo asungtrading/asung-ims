@@ -1,7 +1,7 @@
 /* Asung IMS — Shopify 카드(shop-2c · 판정 404 ~ 415 · DB shop-2a1 81d779c · shop-2a2 0d3eb6e · EF shop-2b 2f6136f)
    ─────────────────────────────────────────────
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-shop.js (esc · imsTs · imsPhotoUrl · imsAuth 를 쓴다)
-   📌 2026-10-10 · 대화 Claude · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험)
+   📌 2026-10-10 · 대화 Claude · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험) · shop v1b(판정 416: products.html Edit 안에서도 읽기만으로 보인다 — card(kind, { readOnly }) · wire opts.readOnly → 단추 없음)
 
    읽기(DB — 화면은 표를 직접 쓰지 않는다)
      뷰 shop_store_list     스토어(code · label · shop_domain · is_active)
@@ -20,8 +20,8 @@
      family 구성원(낱개 · family_id 있음)은 family 로만 보낸다(shop-2-0) — 상품 화면에는 링크만
 
    담은 것
-     imsShop.card(kind, row)        카드 HTML(자리만) — kind "product" | "family"
-     imsShop.wire(root, opts)       채운다 · opts = { kind, row, sb, family (상품의 family 행 · 있으면), members ([{id, sku}] · family 만) }
+     imsShop.card(kind, o)          카드 HTML(자리만) — kind "product" | "family" · o = { readOnly }(판정 416 · Edit 안)
+     imsShop.wire(root, opts)       채운다 · opts = { kind, row, sb, family (상품의 family 행 · 있으면), members ([{id, sku}] · family 만), readOnly }
 */
 (function () {
   "use strict";
@@ -79,10 +79,11 @@
   function closeModal() { const m = document.getElementById("ishopModal"); if (m) { m.hidden = true; document.getElementById("ishopBox").innerHTML = ""; } }
 
   /* ── 카드 자리 ────────────────────────────────────────── */
-  function card(kind) {
+  function card(kind, o) {
     ensureStyle();
+    const ro = !!(o && o.readOnly);
     return `<div class="card" data-ishop-card="${esc(kind)}">
-      <h3 class="ims-sec" data-sec="" style="display:flex;align-items:center;gap:8px">Shopify <span class="n" data-ishop-n></span></h3>
+      <h3 class="ims-sec" data-sec="" style="display:flex;align-items:center;gap:8px">Shopify <span class="n" data-ishop-n></span>${ro ? '<span class="dim" style="margin-left:auto;font-weight:400;text-transform:none;font-size:11px;font-family:inherit">Save or Cancel first to change this</span>' : ""}</h3>
       <div data-ishop-body><div class="msg">Loading…</div></div>
       <div class="note" data-ishop-note></div></div>`;
   }
@@ -131,7 +132,7 @@
 
     if (!stores.length) { body.innerHTML = `<div class="msg">No Shopify store is set up — Settings → Shopify Stores.</div>`; note.innerHTML = ""; return; }
 
-    const can = canShop();
+    const can = canShop() && !opts.readOnly;   // shop v1b — Edit 안에서는 단추 없이 읽기만(판정 416)
     let anyWaiting = false;
     body.innerHTML = stores.map(s => {
       const l = byStore[s.id] || null;
@@ -170,7 +171,7 @@
 
     note.innerHTML = "Shopify follows IMS — prices, photos, text and variants changed here go to Shopify within a minute. "
       + "Showing it on the website (sales channels) is done in Shopify. To hide a product, turn it off here — it becomes Archived."
-      + (can ? "" : ` <span class="dim">You can see this, but turning it on or off needs the Shopify permission.</span>`);
+      + (can || opts.readOnly ? "" : ` <span class="dim">You can see this, but turning it on or off needs the Shopify permission.</span>`);
 
     el.querySelectorAll("[data-ishop]").forEach(b => {
       b.onclick = () => act(el, opts, b);
