@@ -3,6 +3,7 @@
    ⚠️ 여기를 고치면 모든 화면이 바뀐다. 고친 뒤 CHECKLIST.md 를 처음부터 훑는다.
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js
    📌 2026-09-15 · 화면 다섯에 복사돼 있던 것을 모았다.
+   📌 2026-10-10 · esc 가 " 와 ' 도 바꾼다(&quot; · &#39;) — 전에는 < > & 만이라 value="${esc(x)}" 가 따옴표에서 끊겼다(products.html Edit 가 이름을 잘라 저장 · 37 화면 공통 결함) · 본문 글자에서는 브라우저가 그대로 " ' 로 그린다 · ⚠️ esc 는 HTML 에 넣을 때만 — textContent · value 대입 · confirm 에 쓰면 &quot; 가 글자로 보인다
 
    담은 것
      esc / dim / yn / num       값 표시
@@ -20,7 +21,7 @@
   /* ── 값 표시 ───────────────────────────────── */
   const esc = (v) =>
     String(v === null || v === undefined ? "" : v)
-      .replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+      .replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]));   // ⭐ 2026-10-10 — 큰따옴표 · 작은따옴표도 막는다(속성 값 value="…" 가 「"」에서 끊겨 Edit 저장이 이름을 잘랐다 · ANN01001 「… (1/2" Diameter)」 → 「… (1/2」 · 따옴표 든 상품 이름 587)
 
   const dim = (v) =>
     (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(v);
