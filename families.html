@@ -78,6 +78,7 @@
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script src="ims-desc.js"></script>
+<script src="ims-shop.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
    Families — product_family 1,141 (읽기 전용) · fam v2a(2026-10-01)
@@ -98,7 +99,7 @@
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-const FAM_BUILD = "fam v2b";   // 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
+const FAM_BUILD = "fam v3";   // 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
 let sb=null, q="", axis="", brand="", onlyActive=true, curId=null;
 const pg = imsPage(100);
 
@@ -270,6 +271,7 @@ async function loadDetail(id){
       <div class="note">Family is a loose grouping — it decides how variants appear in Shopify.
         It does not affect stock or purchasing.</div>
     </div>
+    ${imsShop.card("family")}
     ${imsDesc.card("family", r)}
     ${tbl("Members", singles)}
     ${tbl("Sets in this family", sets)}
@@ -277,6 +279,7 @@ async function loadDetail(id){
   box.querySelector('[data-act="toglist"]').onclick = () => { const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; };
   box.querySelector('[data-act="wide"]').onclick = showWide;
   imsDesc.wire(box, { kind:"family", row: r, sb, onChanged: async () => { await loadDetail(id); } });   // fam v2b — 설명 카드(ims-desc.js)
+  imsShop.wire(box, { kind:"family", row: r, sb, members: singles.map(x => ({ id: x.id, sku: x.sku })) });   // fam v3 — Shopify 카드(ims-shop.js)
 }
 
 imsAuth.start({ changePw:true }, async (client, me) => {
