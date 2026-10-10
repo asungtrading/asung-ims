@@ -26,7 +26,7 @@
     Sales        Sales Orders · Sales Invoices · Customer Payments · Credit Notes · Backorders
     Inventory    Products · Supplier Products(판정 151 임시) · Families · Stock Adjustments · Transfers · Bin Moves (office)
     Action Center manager-list.html 하나 · 펼침 없음(판정 152 · 165 · 보이는 이름만 바뀜 · 열쇠 sales)
-    Settings     Settings · Staff · System Check
+    Settings     Settings · Staff · System Check  → [2026-10-06 nav v5] + Discount Rules · [2026-10-09 nav v6] + Shopify Stores(7-zh)
     ⭐ 메뉴 자리는 ims-auth.js items 한 곳 · 아직 없는 화면(Customers · 할인 규칙 · 상품 만들기 · 사진)은 주석 자리만(판정 162 · 빈 링크 없음)
     ⚠️ 갈래 · 줄은 **권한으로 갈린다** — 열쇠가 없으면 그 줄이 아예 안 보이고, 보이는 줄이 없는 갈래는 서지 않는다(빈 펼침이 아니다)
 [ ] 탭 줄(헤더 아래) — IMS 는 **Purchasing · Sales 의 문서 화면**에서만(판정 169): Purchasing 다섯 · Sales 다섯 · 지금 화면이 탭 화면일 때만 선다
@@ -1797,7 +1797,7 @@ po.html(po fx v1 · 판정 394)
 ## 7-zg. 2026-10-09 — 상품 설명 카드 · Edit 단추 크기 (inv disc v2c 292d684 · desc v1 · pr v4e · fam v2b 8966716 · desc v1a 439fb69 · asung-wms desc-1b 9184853 · 판정 381 · 401 · 402 · so-module §55)
 
 ```
-⭐⭐ 규칙 — 설명은 ims-desc.js 의 imsDesc(card · wire · clean)로만 그린다 · cin7_description · description_html 을 innerHTML 로 직접 그리지 않는다(새 화면 · Shopify 보내기도 같은 거르기)
+⭐⭐ 규칙 — 설명은 ims-desc.js 의 imsDesc(card · wire · clean)로만 그린다 · cin7_description · description_html 을 innerHTML 로 직접 그리지 않는다(새 화면도 · Shopify 보내기는 허락 · 거름 목록이 같고 엔진은 EF 규칙 기반 + ims_html_forbidden 안전장치 — 판정 412 · 7-zh)
 ✅ = Caleb 화면 확인 끝(2026-10-09 · 회사 PC · DES00948 · DES00905 · so-module §55-c) · [ ] = 그날 기록에 확인이 없는 것
 [ ] Ctrl+F5 · 빌드 표시(inv disc v2c · pr v4e · fam v2b)
 invoices.html(inv disc v2c · 미룬 157)
@@ -1814,6 +1814,35 @@ products.html(pr v4e) · families.html(fam v2b) · ims-desc.js(desc v1 · v1a)
 공통
 [ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
 ⬜ 미룬 159(뷰 쓰기 권한 정리) · 160(설명 끝 「(Barcode: …)」 줄 정리)
+```
+
+---
+
+## 7-zh. 2026-10-09 ~ 10 — Shopify Stores · 큰따옴표 (ss v1 · nav v6 1761e27 · ss v1a f17f848 · esc v1 · inv esc v1 5f66c91 · asung-wms shop-1a 584aaf0 · shop-1b 9d67484 · shop-2a1 81d779c · shop-2a2 0d3eb6e · shop-2b 2f6136f · 판정 362 · 403 ~ 413 · so-module §56)
+
+```
+⭐⭐ 규칙 — 속성 값(value= · title= · data-*=)에 넣는 글은 esc 로(공통 esc 가 이제 " ' 도 막는다 · esc v1)
+⭐⭐ 규칙 — esc 는 HTML 에 넣을 때만 — textContent · .value = · confirm/alert 에 쓰지 않는다(&quot; 가 글자로 보인다 · invoices.html 크레딧 번호 칸이 그랬다 · inv esc v1)
+⭐  화면 시험 — 이름에 " 가 든 상품(예 ANN01002 「… Yellow Medium (3/4" Diameter)」)으로 Edit 를 열어 칸이 끝까지 보이는지 · 손대지 않으면 「No changes yet.」
+    (products.html 의 escQ 는 이제 esc 와 같다 — 규칙이 아니라 옛 우회 · 정리는 so-module 미룬 166)
+✅ = Caleb 화면 확인 끝(2026-10-09 회사 PC · 2026-10-10 집 PC · so-module §56) · [ ] = 그날 기록에 확인이 없는 것
+[ ] Ctrl+F5 · 헤더 빌드 표시 뒤 공통 js 판 「nav v6」 · shopify-stores 「ss v1a」 · invoices 「inv esc v1」
+shopify-stores.html(ss v1 · v1a) · ims-auth.js(nav v6)
+[ ] Settings ▾ 에 Shopify Stores(화면 값 shopify · manager 이상 보기 · Check connection) — 스토어 · 위치 짝 고치기는 admin(창구 shop_store_save)
+[ ] 목록(shop_store_list) · 상세에 위치 짝 · 새로 / 고침 / 끄기 / 켜기
+[ ] Check connection = EF shopify ping — scope 10 대조 · Shopify 위치 목록에 Pair / Change / Unpair
+[✅] 위치 짝 Toronto ↔ Asung Trading Inc. · Edmonton ↔ Asung - Edmonton
+[✅] 짝 저장 · 풀기 · 고침 · 켜기 뒤 연결을 저절로 다시 확인 — 옛 경고가 남지 않는다(ss v1a · Caleb 시험 2026-10-09)
+[ ] 스토어를 끄면 마지막 확인 결과가 지워진다(ss v1a)
+ims-ui.js(esc v1) · invoices.html(inv esc v1)
+[✅] ANN01002 Edit 에 이름 「… Yellow Medium (3/4" Diameter)」 끝까지 · 「No changes yet.」
+[✅] ANN01001 이름 되살림 「ANNIE Snap-On Rollers - Blue Small (1/2" Diameter)」 저장(13:39:04) → 큐 10 → cron → ok
+[✅] invoices.html 헤더 inv esc v1
+[ ] invoices.html 크레딧 만들기 — 번호 칸(cNumShown)에 &quot; · &amp; 같은 글자가 안 보인다
+[ ] 공통 esc 를 쓰는 다른 화면(37 · 약 400 곳) — 따옴표 든 실데이터(상품 · 공급처 · 손님 이름)로 한 번씩 열어 칸이 끝까지 보이는지(전 화면 훑기 · 공통 파일을 고쳤다)
+공통
+[ ] 콘솔 빨간 오류 없음 · Network 에 운영 주소 0
+⬜ Shopify 칸(products.html · families.html 의 보냄 켜기 · 웹 대표 사진)은 아직 화면이 없다 — tools/shopify-push.sh 로만(shop-2c) · Edit 의 Save · Cancel 이 맨 위에만 있다(미룬 163)
 ```
 
 ---
