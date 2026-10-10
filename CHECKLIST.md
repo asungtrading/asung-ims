@@ -1888,6 +1888,33 @@ ims-shop.js(shop v2)
 남은 사람 몫 — Shopify 테마 「Sold out」 → 「Not available」(판정 425 · Caleb · 시험 스토어 먼저 · shopify-integration §7 · 미룬 180)
 ```
 
+## 7-zj. 2026-10-10 밤 — Shopify Stores 품절 판매 · 태그 · 직원 안내 (ss v2 34ea859 · asung-wms shop-pol 8cd08a7 · 판정 426 ~ 429 · so-module §59)
+
+```
+⭐⭐ 규칙 — 「Sell when out of stock」 은 스토어마다(oos_policy · continue = Allow · deny = Don't allow) — 바꾸면 그 스토어의 켜진 상품이 전부 다시 보내진다(트리거 · reason store)
+⭐⭐ 규칙 — 꺼진 구성원 · 단종은 스토어 설정과 상관없이 Don't allow(꺼진 구성원은 재고도 0 · 단종은 재고 숫자 그대로 — 판정 406 · 428)
+⭐  Send tags 는 읽기만 — 창구 shop_store_save 가 아직 send_tags 를 받지 않는다 · 켜기는 관리자 SQL(so-module 미룬 189) · 시험 스토어는 켜짐
+✅ = Caleb 화면 확인(2026-10-10 밤 · 테스트 DB · 「전부 맞음」) · 아래 항목은 그 확인의 범위
+shopify-stores.html(ss v2)
+[✅] Ctrl+F5 · 헤더 빌드 「2026-10-10 · ss v2」
+[✅] 목록 칸 「Sell when out of stock」(Allow · Don't allow) · 「Tags」(On · Off)
+[✅] 상세 — Sell when out of stock · Send tags 줄과 안내 글(turned-off variants and discontinued items never sell past stock · switched by an admin in the database)
+[✅] Edit 창 — 「Sell when out of stock」 선택 칸(Allow … · Don't allow — stop at zero stock (aonebeauty.com)) · 바꾸면 다시 보내진다는 안내
+[✅] 아무것도 안 바꾸고 Save → 「Nothing changed.」
+시험 스토어 실물(판정 426)
+[✅] send_tags 켜기(SQL) → Send now → Shopify Tags: ANN01001FAM 7 · ANN03907 11
+[ ] 단종 → Shopify 「Sell when out of stock」 Off(Caleb 선택 · 검증 T3 가 DB 안에서 증명 · 미룬 190)
+
+── 직원 안내 (판정 427 · 428 · Caleb 「sellable을 끄는게 훨씬 유용한 방법 아닐까?」)
+잠시 팔지 않음 / 웹에서 내림        → sellable 끄기 (SKU · 재고 · 원장 · 발주 · 이력 그대로 · 다시 켜면 1 분 안에 Shopify 도 돌아옴)
+SKU 정리(완전 퇴장)               → active 끄기
+단종(더 안 들여옴 · 남은 것은 판매)  → discontinued 켜기
+셋 다 모든 스토어와 IMS 오더에 함께 걸린다 · 스토어 하나에서만 변형을 끄는 길은 없다(보냄은 family 전체 단위)
+family 구성원은 families.html 에서 보낸다(켜기 · 끄기 · Send now · 첫 사진) · 낱개 · sellable 세트는 products.html
+내용(가격 · 이름 · 재고)은 products.html 에서 구성원을 고치면 family 가 저절로 간다(1 분)
+남은 사람 몫 — 테마 글자 「Sold out」 → 「Not available」 은 asung.ca 에만(판정 427 · 425) · 171 정리(판정 429 · review-deny-171.csv)
+```
+
 ---
 
 ## 8. 로그인 · 계정
