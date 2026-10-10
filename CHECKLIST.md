@@ -1857,7 +1857,7 @@ ims-shop.js(shop v1 · v1a · v1b) · families.html(fam v3)
     ⚠️ 고르기 창을 열고 사진을 누르지 않으면 저장되지 않는다(결함 아님 — product_family.updated_at 그대로 · 큐 줄 없음으로 확인)
 [✅] ANN01291 Turn on(큐 13 · listing_on · ok) → Shopify ACTIVE → Turn off(큐 14 · listing_off · ok) → ARCHIVED · 그 사이 큐 줄 더 없음
 [✅] 켜기 · 끄기 뒤 4 초마다 다시 읽기 — 「last send ok」 와 「Sending…」 이 잠깐 함께 보여도 4 초 뒤 사라진다(EF 가 결과를 적은 시각과 큐를 닫은 시각 사이 · 결함 아님)
-[ ] 꺼진 구성원 줄 — 「in Shopify it shows as sold out (it is not removed)」 안내(판정 406)
+[ ] 꺼진 구성원 줄 — 「in Shopify it shows as sold out (it is not removed)」 안내(판정 406) → shop v2 에서 「not available, with stock 0」 으로 바뀜(판정 425 · 7-zi)
 [ ] sellable 아닌 세트 — 「Sets are not sent to Shopify …」 안내만(판정 404)
 [ ] shopify 권한 없는 로그인 — 단추 없이 「… needs the Shopify permission」
 products.html(pr v5 · v5a · v5b) · ims-desc.js(desc v1b)
@@ -1865,6 +1865,27 @@ products.html(pr v5 · v5a · v5b) · ims-desc.js(desc v1b)
 [✅] Edit 아래에도 Save · Cancel(pr v5 · 미룬 163) · 그 줄 안내 글 크기(pr v5a)
 [✅] Edit 안에서도 Shopify · Description · Photos 카드가 보인다 — 단추 없이 「Save or Cancel first to change this」(pr v5b · shop v1b · desc v1b · 판정 416)
 발견(기록만) — 퍼블리시한 ANN01001FAM 의 Shopify Category 가 「Uncategorized」(다른 두 상품은 빈칸) · Category 는 사람 칸이라 IMS 가 보내지 않는다 · 퍼블리시 때 Shopify 가 채운 것으로 본다(짐작)
+```
+
+## 7-zi. 2026-10-10 저녁 — Shopify 재고 표 · Send stock now (shop v2 8f41b93 · asung-wms stock-1a 8feb7b3 · stock-1b 0192bf3 · cron jobid 44 · 45 · 46 · 판정 421 ~ 425 · so-module §58)
+
+```
+⭐⭐ 규칙 — 재고 표는 뷰 shop_stock_list 만 읽는다(변형 × 위치 한 줄 · 보낸 숫자 · 시각 · 에러 · 열린 줄) — 가용을 화면에서 다시 셈하지 않는다(식은 inv_available_base 한 곳)
+⭐⭐ 규칙 — Send stock now 는 EF shopify action stock_push(직원 길 · 서버가 ims_can_write('shopify') · 대상 하나 force) — 큐를 거치지 않는다 · 평소 반영은 트리거 → 큐 → cron 44(1 분)
+⭐  표의 숫자 = Shopify 에 마지막으로 보낸 Available(IMS 가용 · 음수 0 · 세트 ⌊낱개 ÷ pack_factor⌋ · 꺼진 구성원 0) — 지금 IMS 가용과 잠깐 다를 수 있다(sending… = 열린 줄)
+✅ = Caleb 화면 시험 통과(2026-10-10 저녁 · 테스트 DB · 시험 스토어 · so-module §58-c) · [ ] = 그날 기록에 확인이 없는 것
+[ ] Ctrl+F5 · 공통 js 판 「shop v2」(ims-shop.js 하나 · products.html · families.html 무접촉 — 헤더 판 글자는 그대로 pr v5b · fam v3)
+ims-shop.js(shop v2)
+[✅] ANN01001FAM(families.html) — 스토어 줄 아래 「Stock on Shopify」 표 · 변형 10 줄 × 위치
+[✅] Send stock now → 그 자리에 「Stock sent · 20 numbers」
+[✅] ANN03907(낱개 · products.html) — Toronto 43 · Edmonton 1
+[✅] ANN01001(family 구성원 · products.html) — 위치별 숫자 32 · 8(단추는 family 링크만)
+[ ] 꺼진 구성원 줄 — 「… in Shopify it shows as not available, with stock 0 (it is not removed)」(판정 425 · shop v1 의 sold out 글을 바꿈)
+[ ] 열린 재고 줄이 있을 때 표 제목 옆 「sending… (within a minute)」 → 1 분 안에 사라짐
+[ ] 보낸 적 없는 켜진 대상 — 「Not sent yet.」 · 꺼진 listing 은 표 없음
+[ ] Edit 안 — 표만 보이고 Send stock now 단추 없음(판정 416)
+[ ] shopify 권한 없는 로그인 — Send stock now 없음
+남은 사람 몫 — Shopify 테마 「Sold out」 → 「Not available」(판정 425 · Caleb · 시험 스토어 먼저 · shopify-integration §7 · 미룬 180)
 ```
 
 ---
