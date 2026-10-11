@@ -95,7 +95,7 @@
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-10-10 · wo v1";   // 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-10-10 · wo v1a";   // 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;
@@ -219,7 +219,7 @@ async function openDetail(id){
   box.innerHTML = `<div class="card">
     <div class="wobar"><h3>${esc(r.name || "")} <span class="dim mono" style="font-size:12.5px">${esc(r.store_code || "")}</span></h3>
       ${stChip(r.status)} <span class="dim" style="font-size:12px">${esc(st[2] || "")}</span><span class="sp"></span>
-      ${r.so_id ? `<a class="pobtn" href="so.html?id=${encodeURIComponent(r.so_id)}" style="text-decoration:none;color:inherit">Open ${esc(r.so_number || "sales order")}</a>` : ""}
+      ${r.so_number ? `<a class="pobtn" href="so.html?so=${encodeURIComponent(r.so_number)}" style="text-decoration:none;color:inherit">Open ${esc(r.so_number || "sales order")}</a>` : ""}
       ${url ? `<a class="pobtn" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">Open in Shopify</a>` : ""}
     </div>
     <div class="kv">
