@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v6";     // [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v7";     // [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -74,6 +74,7 @@
     ["Suppliers","suppliers.html","master","ims",false,"purchasing"],
     // Sales (판정 150 · 탭 다섯 = 문서 화면 · 판정 169 · POS 는 모드로 갈라 여기 없다 · 판정 159)
     ["Sales Orders","so.html","sales","ims",true,"sales"],
+    ["Web Orders","shopify-orders.html","sales","ims",true,"sales"],   // nav v7(2026-10-10 · ord-1c) — 받은 웹 오더(Shopify) · 보기 sales 읽기 · 손님 · 줄 고르기 sales 쓰기(창구) · 지금 처리 = shopify
     ["Sales Invoices","so-invoices.html","sales","ims",true,"sales"],
     ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
     ["Credit Notes","so-credits.html","sales","ims",true,"sales"],

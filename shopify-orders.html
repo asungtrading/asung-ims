@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Orders · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 받은 웹 오더(Shopify) 목록 + 아래 상세 · 모달은 so 화면들과 같은 모양 */
+  .wowrap{padding:14px;display:flex;flex-direction:column;gap:14px}
+  .wofilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .wofilt select,.wofilt input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
+  .wofilt .sp{flex:1}
+  tr[data-id]{cursor:pointer}
+  tr.pick td{background:#f3f6ff}
+  .wofoot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
+  .wofoot .sp{flex:1}
+  .wofoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
+  .wofoot button:disabled{opacity:.4;cursor:default}
+  .wobar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .wobar h3{margin:0;font-size:16px}
+  .wobar .sp{flex:1}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:6px 14px;padding:12px 14px;font-size:13px}
+  .kv > div:nth-child(odd){color:var(--muted);font-size:12px}
+  .wosec{padding:10px 14px;border-top:1px solid var(--line)}
+  .wosec h4{margin:0 0 8px;font-size:13px}
+  .reason{border:1px solid #f5c2c0;background:#fef3f2;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+  .warn{border:1px solid #fedf89;background:#fffaeb;border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:12.5px}
+  .warn.done{border-color:#abefc6;background:#ecfdf3}
+  .cands{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .pomodal[hidden]{display:none}
+  .pobox input[type=search],.pobox input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pick{max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:#fafbfd}
+  .lfix{display:flex;gap:6px;align-items:center}
+  .lfix input{width:130px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;font-size:12.5px}
+  .res .blk li{color:var(--bad)} .res .wrn li{color:var(--warn)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="wowrap">
+  <div class="card">
+    <div class="wofilt">
+      <select id="fState" title="State">
+        <option value="open">Open — needs a look or waiting</option>
+        <option value="needs_review">Needs review</option>
+        <option value="received">Waiting to be processed</option>
+        <option value="error">Error</option>
+        <option value="created">Done (order made)</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="warn">Done with warnings</option>
+        <option value="all">All</option>
+      </select>
+      <select id="fStore" title="Store"><option value="">All stores</option></select>
+      <input type="search" id="fQ" placeholder="Order # · email · customer" style="width:220px">
+      <span class="sp"></span>
+      <button class="pobtn" id="fProcess" hidden title="Process the waiting web orders now instead of waiting for the next minute">Process waiting now</button>
+      <button class="pobtn" id="fClear">Clear</button>
+    </div>
+    <div id="rows"><div class="msg">Loading…</div></div>
+    <div class="wofoot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </div>
+  <div id="detail"></div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Web Orders — 받은 웹 오더(Shopify) 화면 1판 (2026-10-10 · 대화 Claude · ord-1c)
+   판정 363 ~ 372 · 430 ~ 435 · DB ord-1a1 901e4c7 · 1a2 98b92bd · EF ord-1b · 1b2 7eeaf3a · 1b3 e425d3e
+   읽기: 뷰 shop_order_list(받은 오더 · 상태 · 손님 · 브랜치 · SO · 까닭 reasons · 경고 warnings) · 표 shop_order_line(줄 · match) · 뷰 shop_store_list(Shopify 주소)
+   쓰기: shop_order_resolve_customer(p_shop_order_id, p_customer_id, p_commit) — sales · 미리 보기(false) → 저장(true)
+         shop_order_resolve_lines(p_shop_order_id, p_choices, p_commit, p_ack) — sales · p_choices = [{line_no, sku} | {line_no, drop:true}] · 경고 열쇠 drop:<line_no> 를 ack
+         EF shopify {action:'orders_drain'} — 「Process waiting now」(권한 shopify · 없으면 단추를 숨긴다 · 기다리면 cron 이 1 분 안에 한다)
+   ⭐ 받은 오더 → SO 는 시스템이 만든다(화면은 SO 를 만들지 않는다) · 풀린 오더(received)는 다음 분 cron(ims-orders-drain)이 처리한다
+   ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
+   ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
+   ───────────────────────────────────────────────────────────── */
+const WO_BUILD = "2026-10-10 · wo v1";   // 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+console.log("shopify-orders.html build:", WO_BUILD);
+
+let sb = null, me = null;
+const PAGE = 50;
+let offset = 0, curId = null, stores = {};
+const canSales = () => !!(window.imsAuth && imsAuth.canWrite && imsAuth.canWrite("sales"));
+const canShop  = () => !!(window.imsAuth && imsAuth.canWrite && imsAuth.canWrite("shopify"));
+
+const ST = {
+  received:     ["Waiting", "warn",  "Ready — the system makes the sales order within a minute"],
+  needs_review: ["Needs review", "bad", "The system stopped — pick what it could not decide"],
+  created:      ["Done", "good", "Sales order made"],
+  cancelled:    ["Cancelled", "", "Cancelled in Shopify"],
+  error:        ["Error", "bad", "The system could not make the sales order"],
+};
+const stChip = (s) => { const x = ST[s] || [s, ""]; return `<span class="chip ${x[1]}">${esc(x[0])}</span>`; };
+const money = (v, cur) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + (cur && cur !== "CAD" ? " " + esc(cur) : "");
+const dim = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(v);
+const gidNum = (g) => { const m = String(g || "").match(/(\d+)$/); return m ? m[1] : ""; };
+const adminOrderUrl = (storeId, gid) => {
+  const s = stores[storeId]; if(!s) return "";
+  const h = String(s.shop_domain || "").replace(/\.myshopify\.com$/i, ""); const n = gidNum(gid);
+  return h && n ? `https://admin.shopify.com/store/${encodeURIComponent(h)}/orders/${n}` : "";
+};
+/* 경고 — 사람 말로(코드는 툴팁) · auto_cancelled 는 「끝난 일」(초록) */
+const WARN_LBL = {
+  discount_mismatch: "Discount differs from IMS rules",
+  list_price_mismatch: "List price differs from IMS",
+  tax_mismatch: "Tax differs from Shopify",
+  order_discount_dropped: "IMS order discount not applied (Shopify price kept)",
+  freight_not_applied: "Freight not added (decided at shipping)",
+  confirm_blocked: "Not confirmed — needs a fix on the sales order",
+  updated_after_so: "Changed in Shopify after the sales order was made",
+  cancelled_in_shopify: "Cancelled in Shopify — check the sales order",
+  auto_cancelled: "Sales order cancelled automatically",
+  cancel_needs_review: "Cancelled in Shopify — the sales order was not cancelled",
+  cancel_failed: "Cancel failed — cancel the sales order by hand",
+  lines_resolved: "Lines picked by staff",
+};
+function warnHtml(w){
+  const lbl = WARN_LBL[w.code] || w.code;
+  let extra = "";
+  if(w.code === "discount_mismatch") extra = ` — ${esc(w.sku || "")}: Shopify ${esc(String(w.shopify_pct ?? ""))} % · IMS ${esc(String(w.ims_pct ?? ""))} %`;
+  else if(w.code === "tax_mismatch") extra = ` — IMS ${money(w.ims)} · Shopify ${money(w.shopify)}`;
+  const done = w.code === "auto_cancelled" || w.code === "lines_resolved";
+  return `<div class="warn ${done ? "done" : ""}" title="${esc(w.code)}"><b>${esc(lbl)}</b>${extra}${w.message && !extra ? `<div class="dim" style="font-size:11.5px;margin-top:2px">${esc(w.message)}</div>` : ""}${w.at ? ` <span class="dim" style="font-size:11px">${esc(imsTs(w.at))}</span>` : ""}</div>`;
+}
+
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; }); }
+
+/* ── 목록 ─────────────────────────────────────────── */
+function query(){
+  let q = sb.from("shop_order_list").select("id,store_id,store_code,name,status,shopify_created_at,email,customer_name,location_name,so_id,so_number,so_status,total,currency_code,reason_count,warning_count,unmatched_count,received_at,is_test", { count: "exact" });
+  const st = document.getElementById("fState").value;
+  if(st === "open") q = q.in("status", ["needs_review", "received", "error"]);
+  else if(st === "warn") q = q.eq("status", "created").gt("warning_count", 0);
+  else if(st !== "all") q = q.eq("status", st);
+  const store = document.getElementById("fStore").value; if(store) q = q.eq("store_id", store);
+  const t = document.getElementById("fQ").value.trim().replace(/[,()]/g, " ");
+  if(t) q = q.or(`name.ilike.%${t}%,email.ilike.%${t}%,customer_name.ilike.%${t}%`);
+  return q.order("received_at", { ascending: false }).range(offset, offset + PAGE - 1);
+}
+async function load(){
+  const box = document.getElementById("rows");
+  const { data, error, count } = await query();
+  if(error){ box.innerHTML = `<div class="msg err">Could not load — ${esc(error.message)}</div>`; return; }
+  const rows = data || [];
+  document.getElementById("range").textContent = count ? `${offset + 1}–${Math.min(offset + PAGE, count)} of ${count}` : "0";
+  document.getElementById("prev").disabled = offset === 0;
+  document.getElementById("next").disabled = offset + PAGE >= (count || 0);
+  if(!rows.length){ box.innerHTML = '<div class="msg">No web orders here.</div>'; return; }
+  box.innerHTML = `<table><thead><tr>
+      <th>Received</th><th>Store</th><th>Order</th><th>Status</th><th>Customer</th><th>Branch</th><th>Sales order</th><th class="num">Total</th><th>Look</th>
+    </tr></thead><tbody>${rows.map(r => `
+      <tr data-id="${r.id}" class="${r.id === curId ? "pick" : ""}">
+        <td style="white-space:nowrap">${esc(imsTs(r.received_at))}</td>
+        <td>${esc(r.store_code || "")}</td>
+        <td class="mono"><b>${esc(r.name || "")}</b>${r.is_test ? ' <span class="tag">test</span>' : ""}</td>
+        <td>${stChip(r.status)}</td>
+        <td>${r.customer_name ? esc(r.customer_name) : `<span class="dim">${esc(r.email || "—")}</span>`}</td>
+        <td>${dim(r.location_name)}</td>
+        <td>${r.so_number ? `<span class="mono">${esc(r.so_number)}</span> <span class="dim" style="font-size:11.5px">${esc(r.so_status || "")}</span>` : '<span class="dim">—</span>'}</td>
+        <td class="num">${money(r.total, r.currency_code)}</td>
+        <td style="font-size:12px">${r.reason_count ? `<span class="chip bad">${r.reason_count} to pick</span>` : ""}${r.warning_count ? ` <span class="chip warn">${r.warning_count} warning${r.warning_count === 1 ? "" : "s"}</span>` : ""}</td>
+      </tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-id]").forEach(tr => { tr.onclick = () => openDetail(tr.dataset.id); });
+}
+function refilter(){ offset = 0; load(); }
+
+/* ── 상세 ─────────────────────────────────────────── */
+async function openDetail(id){
+  curId = id;
+  document.querySelectorAll("#rows tr[data-id]").forEach(tr => tr.classList.toggle("pick", tr.dataset.id === id));
+  const box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [o, ln] = await Promise.all([
+    sb.from("shop_order_list").select("*").eq("id", id).maybeSingle(),
+    sb.from("shop_order_line").select("line_no,sku,name,quantity,list_price,discount_amount,unit_price,product_id,match,so_line_id").eq("shop_order_id", id).order("line_no"),
+  ]);
+  if(o.error || !o.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc((o.error && o.error.message) || "Not found")}</div></div>`; return; }
+  const r = o.data, lines = ln.data || [];
+  const reasons = Array.isArray(r.reasons) ? r.reasons : [], warns = Array.isArray(r.warnings) ? r.warnings : [];
+  const url = adminOrderUrl(r.store_id, r.shopify_order_gid);
+  const st = ST[r.status] || [r.status, "", ""];
+  const can = canSales();
+
+  const reasonHtml = reasons.map((x, i) => {
+    let act = "";
+    if(can && x.code === "email_multiple" && Array.isArray(x.candidates)){
+      act = `<div class="cands">${x.candidates.map(c => `<button class="pobtn" data-pickcust="${esc(c.customer_id)}" data-cname="${esc(c.name)}">${esc(c.name)}${c.city ? ` <span class="dim">· ${esc(c.city)}</span>` : ""}</button>`).join("")}
+        <button class="pobtn" data-searchcust="1">Another customer…</button></div>`;
+    } else if(can && /^customer_/.test(x.code)){
+      act = `<div class="cands"><button class="pobtn" data-searchcust="1">Pick the customer…</button></div>`;
+    }
+    return `<div class="reason"><b>${esc(x.message || x.code)}</b>${act}</div>`;
+  }).join("");
+  const badLines = lines.filter(l => l.match && l.match !== "ok");
+
+  box.innerHTML = `<div class="card">
+    <div class="wobar"><h3>${esc(r.name || "")} <span class="dim mono" style="font-size:12.5px">${esc(r.store_code || "")}</span></h3>
+      ${stChip(r.status)} <span class="dim" style="font-size:12px">${esc(st[2] || "")}</span><span class="sp"></span>
+      ${r.so_id ? `<a class="pobtn" href="so.html?id=${encodeURIComponent(r.so_id)}" style="text-decoration:none;color:inherit">Open ${esc(r.so_number || "sales order")}</a>` : ""}
+      ${url ? `<a class="pobtn" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">Open in Shopify</a>` : ""}
+    </div>
+    <div class="kv">
+      <div>Customer</div><div>${r.customer_name ? esc(r.customer_name) : '<span class="dim">not decided</span>'}${r.email ? ` <span class="dim">· ${esc(r.email)}</span>` : ""}</div>
+      <div>Branch</div><div>${dim(r.location_name)}${r.ship_province_code ? ` <span class="dim">· ships to ${esc(r.ship_province_code)}${r.ship_country_code ? " " + esc(r.ship_country_code) : ""}</span>` : ' <span class="dim">· no ship-to province</span>'}</div>
+      <div>Sales order</div><div>${r.so_number ? `<span class="mono">${esc(r.so_number)}</span> · ${esc(r.so_status || "")}` : '<span class="dim">not made yet</span>'}</div>
+      <div>Payment in Shopify</div><div>${dim(r.financial_status)}${r.source_name ? ` <span class="dim">· from ${esc(r.source_name)}</span>` : ""}</div>
+      <div>Totals (Shopify)</div><div>subtotal ${money(r.subtotal)} · discounts ${money(r.total_discounts)} · shipping ${money(r.total_shipping)} · tax ${money(r.total_tax)} · <b>total ${money(r.total, r.currency_code)}</b></div>
+      ${r.freight_amount ? `<div>Freight in Shopify</div><div>${money(r.freight_amount)} ${r.freight_title ? `<span class="dim">· ${esc(r.freight_title)}</span>` : ""}</div>` : ""}
+      <div>Received</div><div class="dim">${esc(imsTs(r.received_at))}${r.processed_at ? " · processed " + esc(imsTs(r.processed_at)) : ""}${r.shopify_cancelled_at ? " · cancelled in Shopify " + esc(imsTs(r.shopify_cancelled_at)) : ""}</div>
+      ${r.error ? `<div>Error</div><div style="color:var(--bad)">${esc(r.error)}</div>` : ""}
+    </div>
+    ${reasons.length ? `<div class="wosec"><h4>To pick</h4>${reasonHtml}</div>` : ""}
+    <div class="wosec"><h4>Lines <span class="dim" style="font-weight:400">${lines.length}${badLines.length ? ` · ${badLines.length} not found` : ""}</span></h4>
+      <table><thead><tr><th>#</th><th>SKU</th><th>Name</th><th class="num">Qty</th><th class="num">List</th><th class="num">Discount</th><th class="num">Unit</th><th>Match</th></tr></thead><tbody>
+      ${lines.map(l => `<tr>
+        <td class="dim">${esc(l.line_no)}</td><td class="mono">${esc(l.sku || "")}</td><td>${esc(l.name || "")}</td>
+        <td class="num">${esc(l.quantity)}</td><td class="num">${money(l.list_price)}</td><td class="num">${money(l.discount_amount)}</td><td class="num">${money(l.unit_price)}</td>
+        <td>${l.match === "ok" ? '<span class="on">✓</span>' : `<span class="chip bad">${esc(String(l.match || "").replace(/_/g, " "))}</span>${can && r.status === "needs_review" ? ` <span class="lfix"><input type="text" data-lsku="${esc(l.line_no)}" placeholder="other SKU"><label class="dim" style="font-size:11.5px"><input type="checkbox" data-ldrop="${esc(l.line_no)}"> leave out</label></span>` : ""}`}</td>
+      </tr>`).join("")}</tbody></table>
+      ${can && r.status === "needs_review" && badLines.length ? `<div style="margin-top:8px"><button class="pobtn go" id="saveLines">Save line choices</button> <span class="dim" style="font-size:11.5px">Type the right SKU, or tick leave out. The order is made without left-out lines.</span></div>` : ""}
+    </div>
+    ${warns.length ? `<div class="wosec"><h4>Warnings</h4>${warns.map(warnHtml).join("")}</div>` : ""}
+  </div>`;
+
+  box.querySelectorAll("[data-pickcust]").forEach(b => { b.onclick = () => resolveCustomer(r, b.dataset.pickcust, b.dataset.cname); });
+  box.querySelectorAll("[data-searchcust]").forEach(b => { b.onclick = () => searchCustomer(r); });
+  const sl = document.getElementById("saveLines"); if(sl) sl.onclick = () => resolveLines(r);
+}
+
+/* ── 손님 고르기 — 미리 보기 → 저장 ── */
+async function resolveCustomer(r, custId, custName){
+  modalOpen(`<h4>Customer for ${esc(r.name)}</h4><div class="pbody"><div class="msg">Checking…</div></div>`);
+  const p = await sb.rpc("shop_order_resolve_customer", { p_shop_order_id: r.id, p_customer_id: custId, p_commit: false });
+  if(p.error){ modalOpen(`<h4>Could not check</h4><div class="pbody res"><div class="msg err">${esc(p.error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); wireModalClose(); return; }
+  const d = p.data || {};
+  modalOpen(`<h4>Customer for ${esc(r.name)}</h4>
+    <div class="pbody"><div style="font-size:13px;line-height:1.6">Use <b>${esc(d.customer_name || custName || "")}</b> for this web order.${d.will_link ? "<br><span class='dim'>The next orders from this Shopify customer will go to this customer by themselves.</span>" : ""}</div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="rcGo">Save</button></div>`);
+  wireModalClose();
+  document.getElementById("rcGo").onclick = async () => {
+    const c = await sb.rpc("shop_order_resolve_customer", { p_shop_order_id: r.id, p_customer_id: custId, p_commit: true });
+    if(c.error){ modalOpen(`<h4>Not saved</h4><div class="pbody res"><div class="msg err">${esc(c.error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); wireModalClose(); return; }
+    modalClose();
+    await afterResolve(r.id, c.data && c.data.prepare);
+  };
+}
+function searchCustomer(r){
+  modalOpen(`<h4>Pick the customer for ${esc(r.name)}</h4>
+    <div class="pbody"><input type="search" id="cpQ" placeholder="Search customer by name" autocomplete="off">
+      <div class="pick" id="cpList"><div class="msg">Type to search.</div></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
+  wireModalClose();
+  imsQ("#cpQ", async (t) => {
+    const box = document.getElementById("cpList"); if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const { data, error } = await sb.from("customer").select("id,name").eq("is_active", true).ilike("name", `%${t}%`).order("name").limit(60);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(x => `<div class="prow" data-cid="${x.id}" data-cn="${esc(x.name)}">${esc(x.name)}</div>`).join("") : '<div class="msg">No customer matches.</div>';
+    box.querySelectorAll("[data-cid]").forEach(el => { el.onclick = () => resolveCustomer(r, el.dataset.cid, el.dataset.cn); });
+  });
+}
+
+/* ── 못 찾은 줄 고르기 — 미리 보기 → (빼기 확인) → 저장 ── */
+async function resolveLines(r){
+  const choices = [];
+  document.querySelectorAll("[data-lsku]").forEach(el => {
+    const n = Number(el.dataset.lsku), drop = document.querySelector(`[data-ldrop="${el.dataset.lsku}"]`);
+    if(drop && drop.checked) choices.push({ line_no: n, drop: true });
+    else if(el.value.trim()) choices.push({ line_no: n, sku: el.value.trim() });
+  });
+  if(!choices.length){ alert("Type a SKU or tick leave out on at least one line."); return; }
+  modalOpen(`<h4>Lines for ${esc(r.name)}</h4><div class="pbody"><div class="msg">Checking…</div></div>`);
+  const p = await sb.rpc("shop_order_resolve_lines", { p_shop_order_id: r.id, p_choices: choices, p_commit: false, p_ack: [] });
+  if(p.error){ modalOpen(`<h4>Could not check</h4><div class="pbody res"><div class="msg err">${esc(p.error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); wireModalClose(); return; }
+  const d = p.data || {}, blocks = d.blocks || [], warns = d.warnings || [];
+  const li = (x) => `<li>${esc(x.message || x.code || JSON.stringify(x))}</li>`;
+  modalOpen(`<h4>${blocks.length ? "Not saved" : "Check before saving"}</h4>
+    <div class="pbody res">
+      ${(d.plan || []).length ? `<ul>${d.plan.map(x => `<li>Line ${esc(x.line_no)}: ${x.drop ? "leave out" : esc(x.sku || "")}</li>`).join("")}</ul>` : ""}
+      ${blocks.length ? `<h5>Fix these first</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
+      ${warns.length ? `<h5>Please confirm</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${blocks.length ? "Close" : "Cancel"}</button>${blocks.length ? "" : '<button class="pobtn go" id="rlGo">Save</button>'}</div>`);
+  wireModalClose();
+  const go = document.getElementById("rlGo");
+  if(go) go.onclick = async () => {
+    const c = await sb.rpc("shop_order_resolve_lines", { p_shop_order_id: r.id, p_choices: choices, p_commit: true, p_ack: [...new Set(warns.map(w => w.key).filter(Boolean).concat(choices.filter(c => c.drop).map(c => "drop:" + c.line_no)))] });
+    if(c.error){ modalOpen(`<h4>Not saved</h4><div class="pbody res"><div class="msg err">${esc(c.error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); wireModalClose(); return; }
+    if(c.data && !c.data.committed){ modalOpen(`<h4>Not saved</h4><div class="pbody res"><ul class="blk">${(c.data.blocks || []).concat((c.data.unacked || []).map(k => ({ message: "Not confirmed: " + k }))).map(li).join("")}</ul></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); wireModalClose(); return; }
+    modalClose();
+    await afterResolve(r.id, c.data && c.data.prepare);
+  };
+}
+
+/* 풀린 뒤 — received 면 cron 이 1 분 안에 SO 를 만든다 · 화면이 그동안 몇 번 다시 읽는다 */
+async function afterResolve(id, prep){
+  await load(); await openDetail(id);
+  if(prep && prep.status === "received"){
+    let n = 0;
+    const tick = async () => {
+      if(curId !== id || n++ > 24) return;
+      const { data } = await sb.from("shop_order_list").select("status").eq("id", id).maybeSingle();
+      if(data && data.status !== "received"){ await load(); await openDetail(id); return; }
+      setTimeout(tick, 5000);
+    };
+    setTimeout(tick, 5000);
+  }
+}
+
+/* 지금 처리 — EF orders_drain(권한 shopify) */
+async function processNow(){
+  const b = document.getElementById("fProcess"); b.disabled = true; b.textContent = "Processing…";
+  const { data, error } = await sb.functions.invoke("shopify", { body: { action: "orders_drain" } });
+  let r = data; if(error){ try { r = await error.context.json(); } catch(e){ r = { ok: false, error: error.message }; } }
+  b.disabled = false; b.textContent = "Process waiting now";
+  if(r && r.ok === false) alert("Could not process — " + (r.error || "failed"));
+  await load(); if(curId) await openDetail(curId);
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
+  window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = WO_BUILD;
+
+  const st = await sb.from("shop_store_list").select("id,code,label,shop_domain").order("code");
+  (st.data || []).forEach(s => { stores[s.id] = s; });
+  document.getElementById("fStore").insertAdjacentHTML("beforeend", (st.data || []).map(s => `<option value="${s.id}">${esc(s.label || s.code)}</option>`).join(""));
+
+  document.getElementById("fState").onchange = refilter;
+  document.getElementById("fStore").onchange = refilter;
+  imsQ("#fQ", refilter);
+  document.getElementById("fClear").onclick = () => { document.getElementById("fState").value = "open"; document.getElementById("fStore").value = ""; document.getElementById("fQ").value = ""; refilter(); };
+  document.getElementById("prev").onclick = () => { offset = Math.max(0, offset - PAGE); load(); };
+  document.getElementById("next").onclick = () => { offset += PAGE; load(); };
+  const pb = document.getElementById("fProcess");
+  if(canShop()){ pb.hidden = false; pb.onclick = processNow; }
+
+  /* ?id=<shop_order id> · ?so=<so id> 로 들어오면 그 오더를 연다(SO 화면의 「From Shopify」 링크) */
+  const pid = imsParam("id"), pso = imsParam("so");
+  if(pso){
+    const { data } = await sb.from("shop_order_list").select("id").eq("so_id", pso).maybeSingle();
+    if(data){ document.getElementById("fState").value = "all"; await load(); await openDetail(data.id); return; }
+  }
+  if(pid){ document.getElementById("fState").value = "all"; await load(); await openDetail(pid); return; }
+  load();
+});
+</script>
+</body>
+</html>
