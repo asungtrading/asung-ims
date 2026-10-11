@@ -1915,6 +1915,38 @@ family 구성원은 families.html 에서 보낸다(켜기 · 끄기 · Send now 
 남은 사람 몫 — 테마 글자 「Sold out」 → 「Not available」 은 asung.ca 에만(판정 427 · 425) · 171 정리(판정 429 · review-deny-171.csv)
 ```
 
+
+## 7-zk. 2026-10-10 밤 ~ 10-11 — Web Orders · 웹 오더 채널 (wo v1 · so v5r · nav v7 f66419f · wo v1a 8df43b7 · asung-wms ord-1a1 901e4c7 · ord-1a2 98b92bd · ord-1b · 1b2 7eeaf3a · ord-1b3 e425d3e · cron jobid 47 · 48 · 판정 430 ~ 435 · so-module §60)
+
+```
+⭐⭐ 규칙 — 다른 화면으로 가는 링크는 **그 화면이 받는 인자를 먼저 grep**(imsParam( · location.search) — so.html 은 ?so=<SO 번호>(?id= 를 모른다 · Backorders · Action Centre · Invoices 와 같은 모양)
+     ⚠️ 이름이 같아도 값의 뜻이 다를 수 있다 — shopify-orders.html 의 ?so= 는 **so id(uuid)**(so.html 「From Shopify」 칩) · ?id= 는 shop_order id
+⭐⭐ 규칙 — 웹 오더의 채널은 Warehouse 그대로 · 들어온 길 = intake shopify(판정 435) · 통계 · 보고서는 「채널 × 들어온 길 × 웹 스토어」 로 나눈다
+⭐  웹 오더 줄의 할인은 Shopify 그대로(discount_source shopify) · 수량 · 손님을 바꿔도 할인 % 그대로(판정 433) · IMS 규칙과 다르면 경고 discount_mismatch(판정 431)
+⭐  Shopify 에서 취소 — SO 가 만들어진 뒤 IMS 에서 안 바뀌었고 창고 전이면 자동 취소 · 아니면 경고만(판정 434)
+⭐  시험 스토어에서 오더 만들기 = 관리자 Create order(Draft) → Payment due later 를 눌러야 오더가 되고 웹훅이 간다(Bogus Gateway 없음)
+✅ = Caleb 화면 확인(2026-10-11 · 테스트 DB · 시험 스토어 · docs-1011 D 에 적힌 것만) · [ ] = 아직 또는 기록 없음
+shopify-orders.html(wo v1a)
+[ ] Ctrl+F5 · 헤더 빌드 「2026-10-10 · wo v1a」 · Sales 탭에 Web Orders(nav v7 · 열쇠 sales) — 화면은 썼으나 빌드 글자 확인은 기록에 없음
+[✅] 목록 — 받은 웹 오더(#1001 · #1002 · #1003) · 상태 · 손님 · 브랜치 · SO 번호
+[✅] 상세 — 손님 · 브랜치 · 줄 · 까닭 · 경고 · Shopify 관리자 링크
+[✅] Open SO → so.html 이 그 SO 를 연다(wo v1 은 첫 화면으로 갔다 → wo v1a 고침)
+[✅] 손님 여럿(email_multiple · #1003) → 고르기 → 1 분 안에 SO-25082(그 오더는 tools resolve-customer 로 풀었다 — 화면 손님 고르기 단추의 실물은 ⬜ 다음 겹침 오더 때)
+[ ] 못 찾은 줄 고르기(Line → SKU · 빼기 ack) — 실물 오더 없음(DB 는 ord-1a2 T7 이 증명)
+[ ] 지금 처리(Process waiting now · 열쇠 shopify) — received 오더가 cron 보다 먼저 있을 때
+so.html(so v5r)
+[ ] Ctrl+F5 · 헤더 빌드 「2026-10-10 · so v5r」 — 기록에 없음
+[✅] 목록 Channel 칸 「Warehouse · Shopify」(웹 오더) · 필터 Shopify (web) → 웹 오더 셋(SO-25080 · 25081 · 25082)
+[ ] 상세 칩 「From Shopify · #ref」 → Web Orders 의 그 오더(shopify-orders.html?so=<so id>) — 기록에 없음
+[✅] SO-25081 Asung - Edmonton(배송지 AB · 판정 430) · GST · SO-25082 Total 「no tax rule」(배송지 주 없음 · 설계대로 · draft + confirm_blocked)
+시험 스토어 실물(so-module §60-d)
+[✅] #1001 → SO-25080 confirmed(새 손님 TEST IMS Shopify · 시스템이 만들고 검토 완료 · 판정 432) → Shopify Available 줄어듦 → Shopify 취소 → 자동 취소(18 초)
+[✅] #1002 메모 고침 → 경고 updated_after_so · SO 무접촉
+[✅] 주기 확인 두 번째 → skipped_same(ord-1b3)
+⚠️ 경고 tax_mismatch 는 시험 스토어가 세금을 안 걷어서 — 결함 아님
+남은 사람 몫 — asung.ca 웹 결제 오더 운임 판정(so-module 미룬 191) · 시험 오더 · SO 정리(미룬 195)
+```
+
 ---
 
 ## 8. 로그인 · 계정
