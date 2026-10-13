@@ -95,7 +95,7 @@
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-10-13 · wo v2a";   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-10-13 · wo v2b";   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;
@@ -209,7 +209,7 @@ async function openDetail(id){
   document.querySelectorAll("#rows tr[data-id]").forEach(tr => tr.classList.toggle("pick", tr.dataset.id === id));
   const box = document.getElementById("detail");
   box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
-  const [o, ln, dm] = await Promise.all([
+  const [o, dm, ln] = await Promise.all([   // wo v2b — 질의 순서와 같게(v2a 는 ln · dm 이 뒤바뀌어 상세가 안 열렸다)
     sb.from("shop_order_list").select("*").eq("id", id).maybeSingle(),
     sb.from("shop_order").select("delivery_method").eq("id", id).maybeSingle(),   // wo v2a — 판정 454(뷰에 없는 칸)
     sb.from("shop_order_line").select("line_no,sku,name,quantity,list_price,discount_amount,unit_price,product_id,match,so_line_id").eq("shop_order_id", id).order("line_no"),
