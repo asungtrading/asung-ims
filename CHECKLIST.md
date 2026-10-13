@@ -977,7 +977,7 @@ so v3 — Finalize 창
 [ ] Order = so.html?so=번호 링크 · Product = SKU(pack_factor 가 1보다 크면 ×N) + 이름 · Supplier 가 없으면 「no default supplier」 · Open = 열린 수량 + 「of 주문 수량」 · Waiting = 「N d」
 [ ] Stock(열린 줄만): 「arrived」(초록) 또는 「not yet」(회색) + 「here N · 창고이름 N · 창고이름 N」 — ⭐ [v1.1] available_other 는 숫자가 아니라 {창고 이름: 가용 EA} 라 **다른 창고를 이름별로** 보인다(v1 은 「other NaN」이었다) · 없으면 「—」
 [ ] State: 열린 줄은 「open」 · 무상 줄이면 「free — we owe it」 · 끝난 줄은 회색으로 taken over · proceeded · expired · cancelled · merged + 이어받은 SO 링크 + (no longer wanted 가 있을 때) 「taken N · no longer wanted N」
-[ ] 표 밑 안내문 — Arrived 의 뜻 · 「Here = … then each other branch by name (EA)」 · 「Mail notices are still sent from Cin7」
+[ ] 표 밑 안내문 — Arrived 의 뜻 · 「Here = … then each other branch by name (EA)」 · ~~「Mail notices are still sent from Cin7」~~ → [2026-10-13] bo v3a e7409fd 에서 뺌(원칙 1 · 7-zl)
 [ ] 맞는 줄이 없으면 「No backorders match.」(오류 아님) · 창구 오류면 빨간 문장
 [ ] 페이지 100줄 · ← → · 「a–b / total」 · 필터를 바꾸면 첫 페이지로
 [ ] Clear → 모든 필터 비움 · State 는 Open · 손님은 All customers · How it ended 숨김 · 무상 줄 거르기도 풀림
@@ -1945,6 +1945,43 @@ so.html(so v5r)
 [✅] 주기 확인 두 번째 → skipped_same(ord-1b3)
 ⚠️ 경고 tax_mismatch 는 시험 스토어가 세금을 안 걷어서 — 결함 아님
 남은 사람 몫 — asung.ca 웹 결제 오더 운임 판정(so-module 미룬 191) · 시험 오더 · SO 정리(미룬 195)
+```
+
+---
+
+## 7-zl. 2026-10-13 — Shopify ⑤ 오더 상태 화면 · 운송사 · 픽업 칩 (so v5s 716397d · so v5s1 f5ac4ab · set v2 · wo v2 · bo v3a e7409fd · wo v2a 4a242e3 · wo v2b 8402402 · asung-wms ful-1a be5688c · ful-2 113df27 · ful-1b 021ecc6 · ful-1c 4c476b2 · ful-2c 20ec11d · cron jobid 49 · 판정 436 ~ 456 · so-module §62)
+
+```
+⭐⭐ 규칙 — 같은 정보를 그리는 자리를 grep 으로 다 센다(좁은 목록 rowTags · 넓은 목록 줄 · 상세 머리 · 가족 표) — so v5s 가 좁은 목록에만 꼬리표를 넣어 넓은 목록에 칩이 안 붙었다(Caleb 「상세 화면에서는 칩이 붙었는데, 전체 오더 화면에는 안붙었어」 · v5s1 · so-module §62-d 3)
+⭐⭐ 규칙 — Promise.all 에 질의 자리를 더하면 받는 이름의 순서를 질의 순서와 하나씩 대조한다 — wo v2a 가 둘째 자리에 질의를 넣고 이름은 셋째에 붙여 모든 오더 상세가 Loading 에서 멈췄다(lines.filter is not a function · 문법 검사로 안 잡힘 · wo v2b · §62-d 4)
+⭐  운송사는 표에서만 고른다(판정 436 · 450) — Pickup · Delivery 면 송장 칸 잠김 · carrier 면 송장 필수(모든 SO · 판정 452) · Shopify 로 가는 SO 는 운송사 필수 · Shopify 픽업 오더에 carrier 는 거절
+⭐  픽업 칩 = 채널 warehouse ∧ 운송사 종류 pickup ∧ 출고됨 — 찾아감 없으면 waiting for pickup · 있으면 picked up · counter · pos 는 없음(판정 455) · 기본 거르기 Open 은 fulfilled 를 빼므로 거르기 「Waiting for pickup」 으로 본다(so-module 미룬 216)
+⭐  Ready 뒤 손님이 배송을 원하면 취소하고 다시 주문(판정 456 · 짓는 것 없음)
+✅ = Caleb 화면 확인(2026-10-13 · 테스트 DB · 시험 스토어 · docs-1013b 에 적힌 것만) · [ ] = 아직 또는 기록 없음
+so.html(so v5s · v5s1)
+[ ] Ctrl+F5 · 헤더 빌드 「so v5s1」 — 기록에 없음
+[ ] Ship & invoice 창 Carrier 고르기(표의 켜진 행) · Pickup · Delivery 면 송장 잠김 · 송장 여럿(쉼표 · 줄바꿈) — 기록에 없음
+[ ] 초안 머리 Carrier 고르기(so_header_update carrier_id) · 상세 Carrier 줄 — 기록에 없음
+[ ] Fix tracking…(출고된 carrier 오더 · 운송사 · 송장만 · 종류 바꾸기 거절 · 메일 없음) — 화면 실물 기록 없음(#1002 고침은 창구로 · §62-c)
+[ ] Picked up 단추(찾아감 · Shopify 오더면 Shopify 「Picked up on …」 · 메일 없음) — 화면 실물 기록 없음
+[ ] 좁은 목록 꼬리표 waiting for pickup · picked up — 기록에 없음
+[✅] 넓은 목록 Status 칸에도 꼬리표(v5s1 · Caleb 화면 시험)
+[ ] 거르기 「Waiting for pickup」 — 기록에 없음
+settings.html(set v2)
+[✅] Carrier 표 — 더하기(시험 운송사 「Test Freight」) · 끄기(꺼짐 확인 is_active f · 2026-10-13 18:52:25 UTC)
+[ ] 이름 고치기 · 종류는 못 바꿈 · master 쓰기 없는 직원은 읽기만 — 기록에 없음
+shopify-orders.html(wo v2 · v2a · v2b)
+[ ] 경고 코드 15(발송 · 픽업 · 송장 · 픽업 받기)가 글로 보인다 — 개별 기록 없음
+[✅] 픽업 오더 #1008 의 Branch 칸 「customer picks up here」(wo v2a · shop_order.delivery_method)
+[✅] 오더 상세가 다시 열린다(wo v2b · v2a 결함 고침)
+so-backorders.html(bo v3a)
+[ ] 표 밑 안내문에 「Mail notices are still sent from Cin7」 가 없다 — 기록에 없음
+시험 스토어 실물(so-module §62-c — DB · EF 실물 · 화면을 거친 것인지는 위 줄마다)
+[✅] #1002 carrier + 송장 둘 → Edmonton 으로 옮김 · 발송 메일 · #1004 Delivery → 메일 없음 · #1005 백오더 두 번째 발송
+[✅] #1007 Ready for pickup → Picked up(메일 없음) · #1008 픽업 오더 받기(confirmed · Pickup · HST ON) · 이미 Ready 받아 적기(ful-2c)
+[✅] 메아리 없음(지연 0.12 · 0.49 · 0.51 s) · #1006 Shopify 취소 → 자동 취소
+⚠️ 경고 tax_mismatch 는 시험 스토어가 세금을 안 걷어서 — 결함 아님
+남은 사람 몫 — UPS 가 Shopify 운송사 목록에 있는지(미룬 218) · ImsLoadCustomer(GAS) 원본(미룬 219) · write_order_edits(441 짓는 차수)
 ```
 
 ---
