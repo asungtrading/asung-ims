@@ -95,7 +95,7 @@
    ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
    ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-07 · bo v3";   // 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-13 · bo v3a";   // 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -192,7 +192,7 @@ async function load(){
   html += `</tbody></table>
     <div class="sosub">Pre-orders are confirmed orders waiting for stock that has not come in yet — they are listed while open, never expire and are never taken over by a new order (ruling 9); arrived and proceed work the same way.
       Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder or pre-order was made (adjustments and returns do not count).
-      Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here. Mail notices are still sent from Cin7, so this screen does not show them yet.</div>`;
+      Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here. Arrival email notices are not recorded on this screen yet.</div>`;
   box.innerHTML = html;
   box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no); });
   pager(data);

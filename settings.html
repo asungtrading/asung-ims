@@ -20,12 +20,16 @@
   thead th{position:sticky;top:0}
   .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;
     font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+  .pomodal[hidden]{display:none}   /* set v2 — 운송사 고치기 창 */
+  .pobox{max-width:560px}
+  .hint{font-size:12px;color:var(--muted);margin:-4px 0 10px}
 </style>
 </head>
 <body>
 
 <header>
   <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
   <span class="sp"></span>
   <span class="who" id="who"></span>
   <button title="Main menu">☰ Menu</button>
@@ -40,6 +44,7 @@
         <h2 id="tblName">—</h2>
         <span class="pill" id="tblNote"></span>
         <span class="sp"></span>
+        <button class="pobtn go" id="addRow" hidden>+ Add carrier</button>
         <label><input type="checkbox" id="onlyActive"> Active only</label>
         <input type="search" id="q" placeholder="Search">
         <span class="range" id="range"></span>
@@ -51,13 +56,16 @@
   </main>
 </div>
 
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
+const SET_BUILD = "2026-10-13 · set v2";   // 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
-   Settings — ref_ 여덟 표 보기 (읽기 전용)
+   Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
 
    ⚠️ 표마다 칸이 다르다 — information_schema 실측(2026-09-15) 기준. 기억으로 쓰지 않는다.
@@ -100,11 +108,18 @@ const TABLES = [
     cols:[ C("name","Name",{mono:1}),
            { key:"warehouse", label:"Warehouse", get:r => r.ref_warehouse ? r.ref_warehouse.name : "" },
            C("zone","Zone"), C("is_staging","Staging",{bool:1}), C_ACTIVE ] },
+
+  /* set v2 — 판정 436 · 450: 운송사 — Ship & invoice 에서 고른다 · 종류가 손님 메일 · 송장을 정한다 */
+  { t:"ref_carrier",      label:"Carrier",      note:"Picked at Ship & invoice — the kind decides email and tracking",
+    edit:"carrier", order:"name",
+    cols:[ C("name","Name"), { key:"kind", label:"Kind", get:r => KIND_LBL[r.kind] || r.kind },
+           C("shopify_company","Shopify name",{dim:1}), C("tracking_url_template","Tracking link",{mono:1,dim:1}), C_ACTIVE ] },
 ];
+const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
 function C(key, label, o){ return Object.assign({ key, label }, o||{}); }
 
-let sb=null, cur=TABLES[0], q="", onlyActive=false, counts={};
+let sb=null, cur=TABLES[0], q="", onlyActive=false, counts={}, rows=[];
 const pg = imsPage(100);
 
 /* ── 그리기 ───────────────────────────────────────────── */
@@ -131,6 +146,7 @@ function cellHtml(col, row){
 async function load(){
   document.getElementById("tblName").textContent = cur.label;   // ⭐ ref_ 는 화면에 보이지 않는다
   document.getElementById("tblNote").textContent = cur.note || "";
+  document.getElementById("addRow").hidden = !(cur.edit && canEdit());   // set v2
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
   drawNav();
 
@@ -148,27 +164,79 @@ async function load(){
     return;
   }
   counts[cur.t] = pg.total; drawNav();
+  rows = data || [];   // set v2 — 고치기 창이 읽는다
+  const ed = cur.edit && canEdit();
 
   if(!data.length){
     document.getElementById("body").innerHTML = '<div class="msg">No rows match.</div>';
   } else {
-    const head = cur.cols.map(c=>`<th>${c.label}</th>`).join("");
-    const rows = data.map(r =>
+    const head = cur.cols.map(c=>`<th>${c.label}</th>`).join("") + (ed ? "<th></th>" : "");
+    const trs = data.map(r =>
       "<tr>" + cur.cols.map(c=>{
         const cls = [c.num?"num":"", c.mono?"mono":"", c.dim?"dim":""].filter(Boolean).join(" ");
         return `<td class="${cls}">${cellHtml(c,r)}</td>`;
-      }).join("") + "</tr>").join("");
+      }).join("") + (ed ? `<td><button class="pobtn" data-edit="${esc(r.id)}">Edit</button></td>` : "") + "</tr>").join("");
     document.getElementById("body").innerHTML =
-      `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+      `<table><thead><tr>${head}</tr></thead><tbody>${trs}</tbody></table>`;
+    document.querySelectorAll("[data-edit]").forEach(b => { b.onclick = () => openCarrier(rows.find(x => x.id === b.dataset.edit)); });
   }
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, load);
+}
+
+/* ── set v2 — 운송사 더하기 · 고치기(판정 436 · 450) ──────────
+   ⚠️ 종류는 만든 뒤 못 바꾼다 · 끄기 = is_active false(지우지 않는다) · 성공 판정 = .select() 1 행 */
+const canEdit = () => imsAuth.canWrite("master");
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+function openCarrier(r){
+  const isNew = !r; r = r || { name:"", kind:"carrier", shopify_company:"", tracking_url_template:"", is_active:true };
+  document.getElementById("modalBox").innerHTML = `
+    <h4>${isNew ? "Add a carrier" : "Edit carrier — " + esc(r.name)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Name</label><input id="cName" type="search" autocomplete="off" value="${esc(r.name || "")}" placeholder="e.g. Canpar"></div>
+      <div class="frow"><label>Kind</label><select id="cKind" ${isNew ? "" : "disabled"}>
+        ${Object.keys(KIND_LBL).map(k => `<option value="${k}" ${k === r.kind ? "selected" : ""}>${esc(KIND_LBL[k])}</option>`).join("")}</select></div>
+      ${isNew ? "" : '<div class="hint">The kind cannot change — it decides what old orders did. Switch this one off and add a new one instead.</div>'}
+      <div id="cCarrierOnly">
+        <div class="frow"><label>Shopify name</label><input id="cShop" type="search" autocomplete="off" value="${esc(r.shopify_company || "")}" placeholder="exactly as in Shopify's carrier list, e.g. Canada Post"></div>
+        <div class="hint">Leave empty if Shopify does not know this carrier — the tracking number still goes out, without a link unless you give one below.</div>
+        <div class="frow"><label>Tracking link</label><input id="cUrl" type="search" autocomplete="off" value="${esc(r.tracking_url_template || "")}" placeholder="https://…{number}"></div>
+        <div class="hint">{number} is replaced by each tracking number. Leave empty when Shopify knows the carrier.</div>
+      </div>
+      <div class="frow"><label>Active</label><input id="cAct" type="checkbox" style="flex:0" ${r.is_active ? "checked" : ""}> <span>Off = not offered at Ship & invoice (old orders keep the name)</span></div>
+      <div id="cMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="cCancel">Cancel</button>
+      <button class="pobtn go" id="cSave">Save</button>
+    </div>`;
+  document.getElementById("modal").hidden = false;
+  const kindSync = () => { document.getElementById("cCarrierOnly").hidden = document.getElementById("cKind").value !== "carrier"; };
+  document.getElementById("cKind").onchange = kindSync; kindSync();
+  document.getElementById("cCancel").onclick = modalClose;
+  document.getElementById("cSave").onclick = async () => {
+    const msg = document.getElementById("cMsg"), kind = document.getElementById("cKind").value, name = document.getElementById("cName").value.trim();
+    if(!name){ msg.className = "err"; msg.textContent = "Give the carrier a name."; return; }
+    const row = { name, is_active: document.getElementById("cAct").checked,
+      shopify_company: kind === "carrier" ? (document.getElementById("cShop").value.trim() || null) : null,
+      tracking_url_template: kind === "carrier" ? (document.getElementById("cUrl").value.trim() || null) : null };
+    if(isNew) row.kind = kind;
+    msg.className = ""; msg.textContent = "Saving…";
+    const res = isNew ? await sb.from("ref_carrier").insert(row).select("id")
+                      : await sb.from("ref_carrier").update(row).eq("id", r.id).select("id");
+    if(res.error){ msg.className = "err"; msg.textContent = res.error.message; return; }
+    if(!res.data || res.data.length !== 1){ msg.className = "err"; msg.textContent = "Nothing was saved — you may not have the right to change the carrier list."; return; }
+    modalClose(); await load();
+  };
 }
 
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   imsHeader(me);
+  document.getElementById("buildTag").textContent = SET_BUILD;   // set v2
+  document.getElementById("addRow").onclick = () => openCarrier(null);
+  if(new URLSearchParams(location.search).get("t") === "carrier") cur = TABLES.find(x => x.t === "ref_carrier");   // set v2 — ?t=carrier
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
   await load();

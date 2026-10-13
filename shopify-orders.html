@@ -95,7 +95,7 @@
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-10-10 · wo v1a";   // 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-10-13 · wo v2";   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;
@@ -134,6 +134,22 @@ const WARN_LBL = {
   cancel_needs_review: "Cancelled in Shopify — the sales order was not cancelled",
   cancel_failed: "Cancel failed — cancel the sales order by hand",
   lines_resolved: "Lines picked by staff",
+  /* wo v2 — ⑤ 발송 · 픽업(ful-2a · 1b · 1c) */
+  fulfill_failed: "Shipping was not sent to Shopify after 5 tries — check the order in Shopify",
+  fulfill_cut: "Shopify had fewer items left to ship than IMS shipped — the rest was not sent",
+  fulfill_location_mismatch: "Shopify kept its own location for this shipment — check the location in Shopify",
+  fulfill_nothing_left: "Shopify had nothing left to ship — someone may have fulfilled it in Shopify",
+  fulfilled_in_shopify: "Fulfilled in Shopify by hand — not by IMS",
+  refunded_in_shopify: "Refunded in Shopify — make a credit note in IMS if needed",
+  pickup_failed: "Picked up was not sent to Shopify — press Mark as picked up in Shopify",
+  pickup_not_sent: "Shopify was never told this order is ready for pickup — press Mark as picked up in Shopify",
+  tracking_fix_failed: "Tracking fix was not sent to Shopify — fix the tracking in Shopify",
+  pickup_tax_from_location: "Pickup order — tax taken from the pickup branch (no customer address)",
+  pickup_tax_unknown: "Pickup order — no province for tax; pick a tax rule on the sales order",
+  pickup_carrier_missing: "Pickup order — Pickup is not on the carrier list; carrier left empty",
+  pickup_locations_differ: "Pickup at more than one location — needs review",
+  pickup_location_unpaired: "Pickup location has no IMS warehouse pair — needs review",
+  delivery_mixed: "Part shipping, part pickup — needs review",
 };
 function warnHtml(w){
   const lbl = WARN_LBL[w.code] || w.code;
