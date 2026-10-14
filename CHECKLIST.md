@@ -1984,6 +1984,41 @@ so-backorders.html(bo v3a)
 남은 사람 몫 — UPS 가 Shopify 운송사 목록에 있는지(미룬 218) · ImsLoadCustomer(GAS) 원본(미룬 219) · write_order_edits(441 짓는 차수)
 ```
 
+## 7-zm. 2026-10-14 — 화면 안 A(Web Orders 를 SO 로) · 경고 확인함 · 결제 상태 (wo v3 8d84c68 · so v5t b00ae2b · v5t1 8dc844a · v5t2 3eb0f63 · inv v2e c8d0a8d · wo v4 25bbeba · inv v2e1 3c61b75 · wo v4a · so v5t3 2e1a3cf · so v5t4 · wo v4b 7482e4b · asung-wms ful-4b5 4a54ee1 · ful-5a a283ff9 · pay-1a 1971887 · pay-2a · 2b 9afa520 · cron jobid 51 · 52 · 53 · 판정 466 ~ 469 · so-module §63)
+
+```
+⭐⭐ 규칙 — 같은 정보를 그리는 자리를 다 센다(재발) — inv v2e 가 좁은 목록 꼬리표를 날짜 줄 끝에 붙여 말줄임에 가려졌다(→ v2e1 따로 한 줄) · so v5t 가 확인함 뒤 목록 꼬리표를 다시 안 채웠다(→ v5t2)
+⭐  판정 466 — IMS 가 refund_due 로 시킨 환불을 직원이 Shopify 에서 하면 refund_due 가 「처리됨」(초록 · settled) · refunded_in_shopify 는 안 붙는다
+⭐  판정 467 — 웹 오더 경고마다 Mark checked / Reopen(지우지 않는다 · 누가 · 언제 · 메모) · 확인함은 회색 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 처리됨은 못 바꾼다 · 열린 refund_due 는 메모 필수
+⭐  판정 468 — 결제는 IMS 에서만 · 직원이 Shopify 에서 Mark as paid 를 하면 경고 「Marked paid in Shopify」(paid_in_shopify)
+⭐  판정 469 — IMS 에서 다 결제되면(뭉치에 열린 오더 없음 · 살아 있는 인보이스 남은 돈 0) IMS 가 Shopify 를 Paid 로 · AUTHORIZED 는 안 건드린다 · Paid 뒤 다시 미수면 경고 shopify_paid_ims_owed
+⭐  Total 대조는 Shopify ordered · refunded · kept 와 IMS 로(처음 주문 금액이 아니다 — so v5t1)
+⭐  「Process waiting now」 = 받은 오더(Waiting)를 SO 로 만드는 cron(1 분)을 지금 돌리는 단추 · Shopify 에서 당겨오는 단추가 아니다 · 손님은 받기 단계가 저절로 만든다
+✅ = Caleb 화면 확인(2026-10-14 · 테스트 DB · 시험 스토어 · 커밋 글 · docs-1014 에 적힌 것만) · [ ] = 아직 또는 기록 없음
+shopify-orders.html(wo v3 · v4 · v4a · v4b)
+[✅] wo v3 — 경고마다 Mark checked / Reopen · 처리됨 refund_due 초록(#1012 시험 통과 · asung-wms a283ff9 커밋 글)
+[ ] 목록 숫자 · 거르기가 열린 경고만 센다 — 개별 기록 없음
+[✅] 이름표 refund_due · order_edit_failed · shopify_qty_removed(wo v3) · paid_in_shopify(wo v4a) · shopify_paid_ims_owed · mark_paid_failed(wo v4b) — wo v4a · v4b 확인: paid_in_shopify 가 사람 말로 보임(2026-10-14 Caleb 화면 시험 · 나머지 이름표는 개별 기록 없음)
+[✅] wo v4 — 상세 Totals 가 SO 화면과 같다(ordered · refunded · kept) · SO 가 생긴 오더 머리 아래 「handled on SO-…」 — #1012 「handled on SO-25091」 · Totals ordered · refunded · kept · #1009 total 1.49(2026-10-14 Caleb 화면 시험)
+[ ] Web Orders 는 SO 가 안 된 것의 받은 편지함(기본 Open) — 기록에 없음
+so.html(so v5t ~ v5t4)
+[ ] Ctrl+F5 · 헤더 빌드 「so v5t4」 — 기록에 없음
+[✅] so v5t — SO 상세 Shopify 칸(웹 번호 · 스토어 · 받은 상태 · 결제 상태 · 합계 · 배송 · 시각 · 경고 + Mark checked / Reopen · Open web order · Open in Shopify) · 형제 SO 도 뭉치로 — SO-25091 Shopify #1012 칸 · 목록 「3 web warnings」 · Mark checked → 2 open · SO-25091a 뭉치로 같은 칸 · Open web order → Web Orders #1012(2026-10-14 Caleb 화면 시험)
+[✅] so v5t1 — Total 을 ordered · refunded · kept vs IMS 로(Caleb 화면 시험 SO-25091 · 2.98 vs 1.68 에서 드러나 고침) — 「ordered 2.98 · refunded 2.98 · kept 0.00 — IMS 1.68 · differs by 1.68 · 2 refunds」(2026-10-14 Caleb 화면 시험)
+[✅] so v5t2 — 확인함 · 다시 열기 뒤 좁은 · 넓은 목록 꼬리표도 다시 채움(Caleb 화면 시험 — 상세 2 open · 좁은 목록 3 web warnings 에서 드러나 고침) — Mark checked 뒤 상세 1 open · 좁은 · 넓은 목록 · Web Orders 꼬리표 함께 「1 web warning」(2026-10-14 Caleb 화면 시험)
+[✅] so v5t3 · v5t4 — 이름표 paid_in_shopify · Paid in Shopify 줄(IMS 가 표시한 시각 · 아직이면 까닭 · ready · AUTHORIZED · 환불) — v5t3: #1005 Mark as paid → 「Marked paid in Shopify … IMS: 3.36」 · updated_after_so 안 붙음 · v5t4: SO-25086 「Marked paid by IMS 12:55」 · SO-25084 「Paid — not marked by IMS」 · SO-25083 「Not yet — invoice 60059 owes 3.36」(2026-10-14 Caleb 화면 시험)
+[ ] 목록 「N web warnings」 꼬리표(열린 경고만) — 개별 기록 없음
+so-invoices.html(inv v2e · v2e1)
+[✅] inv v2e — 넓은 · 좁은 목록 web #… 꼬리표(형제 포함) · 상세 Web order 줄(웹 번호 링크 · 스토어 · Shopify 결제 상태) · 검색이 오더 ref 로 찾는다 — 넓은 목록 web #… · 60061(SO-25084a) web #1005 · 상세 Web order #1005 · Shopify: Pending(2026-10-14 Caleb 화면 시험)
+[✅] inv v2e1 — 좁은 목록 web 꼬리표가 따로 한 줄(Caleb 화면 시험에서 드러나 고침) — 좁은 목록 web 꼬리표 따로 한 줄 · 검색 1012 → 60065(2026-10-14 Caleb 화면 시험)
+시험 스토어 실물(so-module §63-c — DB · EF 실물 · 화면을 거친 것인지는 위 줄마다)
+[✅] #1012 ③-b Unfulfilled 1 환불(CANCEL) → removed 1 · gap 0 · refund_due settled · ③-c 반품 환불(RETURN) → removed 1 그대로(상한) · refunded_in_shopify 하나 더
+[✅] #1005 Shopify Mark as paid → paid_in_shopify · ims_remaining 3.36(형제 인보이스 합) · updated_after_so 없음
+[✅] #1007 IMS 결제 1.68(60062) → 스캔 → paid_drain → Shopify PAID(「Asung IMS manually marked $1.49 CAD as paid」 · 손님 메일 없음) → 웹훅 받기 뒤 경고 0
+⚠️ 결제는 IMS 에서만 — 시험이 아니면 Shopify 에서 Mark as paid 를 누르지 않는다(판정 468 ①)
+남은 것 — 판정 후보 470(Shopify Restock 이 Shopify 재고만 올림) · Backorders 탭 재구성(464 · 465 · 미룬 220) · 백오더 입고 알림 이관(미룬 221)
+```
+
 ---
 
 ## 8. 로그인 · 계정
