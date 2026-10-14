@@ -2019,6 +2019,24 @@ so-invoices.html(inv v2e · v2e1)
 남은 것 — 판정 후보 470(Shopify Restock 이 Shopify 재고만 올림) · Backorders 탭 재구성(464 · 465 · 미룬 220) · 백오더 입고 알림 이관(미룬 221)
 ```
 
+### 7-zm-2. 2026-10-14 오후 — 카드 캡처 이름표 (so v5t5 · wo v4c 26db7ef · asung-wms pay-3a 760c0d7 · stk-r1 45a1e15 · 판정 470 ~ 472 · so-module §63-h)
+
+```
+⭐  판정 470 — SO 가 생긴 뒤 Shopify 카드 캡처(gateway 가 manual 아님)는 받기가 IMS 결제로 적는다 · 정보 「card_payment_recorded」 는 처리됨(열린 경고 아님) · 적지 못하면 「card_payment_failed」(손으로 Take a payment)
+⚠️ 카드 캡처 오더에 직원이 Take a payment 를 하지 않는다 — 받기가 이미 적었거나 곧 적는다(같은 돈 두 번)
+⭐  판정 472 — Shopify 에서 Restock(환불 · 취소)이 생기면 그 SKU 를 IMS 값으로 다시 보낸다(화면 변화 없음 · 「Send stock now」 는 family 단위)
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+shopify-orders.html(wo v4c) · so.html(so v5t5)
+[ ] 이름표 card_payment_recorded — 처리됨(초록)으로 사람 말로 보인다 — 화면 확인 기록 없음 · SO-25094(#1015)에서 볼 것
+[ ] 이름표 card_payment_failed — 사람 말로 보인다(열린 경고) — 화면 확인 기록 없음 · 실물 없음(시험 재료는 검증 파일에만)
+[ ] SO-25094 목록 꼬리표 · Shopify 칸 경고 수가 card_payment_recorded 를 열린 경고로 세지 않는다 — 기록 없음
+시험 스토어 실물(so-module §63-h-2 — DB · EF 실물)
+[✅] #1015 Bogus 13.49 Capture → IMS 결제 13.49(shopify · 보증금 SO-25094) · card_payment_recorded · paid_in_shopify 없음 · 재받기에 두 번 안 적음
+[✅] #1013 Shopify 취소(Restock) → ANN01005 Toronto +1 → 1 분 뒤 IMS 값 0 · SO-25092 자동 취소
+⚠️ 시험 스토어 결제 캡처는 Manually 로 둔다(aone 과 같은 조건 · 판정 471)
+남은 것 — ⑦ gateway 가르기(미룬 230 · 조건 셋 전에) · aone 첫 PayPal 오더 확인(231) · Backorders 탭 재구성(220)
+```
+
 ---
 
 ## 8. 로그인 · 계정
