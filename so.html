@@ -57,6 +57,15 @@
   /* surcharge-3 — 줄의 관세 부가 요금 칸(판정 227 · 묶음 1) */
   .scc{font-size:12px;line-height:1.35;white-space:nowrap}
   .scc .u{color:var(--muted);font-size:11.5px}
+  /* so v5t — 화면 안 A: 웹 오더(Shopify) 칸 · 경고 확인함(판정 467 · Web Orders wo v3 와 같은 모양) */
+  .webbox{padding:4px 14px 12px}
+  .webbox .wact{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
+  .wwarn{border:1px solid #fedf89;background:#fffaeb;border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:12.5px}
+  .wwarn.done{border-color:#abefc6;background:#ecfdf3}
+  .wwarn.checked{border-color:var(--line);background:#f7f8fa;color:#667085}
+  .wwarn .wstate{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;font-size:11.5px}
+  .wwarn .wstate .pobtn{padding:2px 9px;font-size:11.5px}
+  .pobox textarea.acknote{min-height:70px;font-family:inherit;font-size:13px}
 </style>
 </head>
 <body>
@@ -164,7 +173,7 @@
    ⚠️ 쓰기는 전부 창구(RPC)다 — SO 표는 select 만 열려 있다. 오류 문장은 DB 가 「… nothing was saved」로 준다 — 그대로 보인다.
    ⚠️ 화면 글자는 영어 · 날짜 기본값은 torontoToday() · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const SO_BUILD = "2026-10-13 · so v5s1";   // 대화 Claude — Caleb 「상세 화면에서는 칩이 붙었는데, 전체 오더 화면에는 안붙었어」: 넓은 목록은 rowTags 가 아니라 줄을 따로 그린다 → Status 칸 상태 칩 옆에 waiting for pickup · picked up ← so v5s: 대화 Claude — ful-3a(판정 436 · 437 · 438 · 443 · 452 · 455 · ful-1c 4c476b2): Ship & invoice 의 Carrier 를 운송사 표(ref_carrier)에서 고르기(carrier_id · 비움 = carrier_id "" + carrier "") · Pickup · Delivery 면 송장 칸 잠김 · 송장 여럿 = 쉼표 · 초안 머리에 Carrier 고르기(so_header_update carrier_id) · 상세 Carrier 줄(이름 · 송장 · 표에 없는 옛 글자 표시) · Fix tracking…(so_tracking_fix 미리 보기 → 저장 · 종류는 못 바꿈) · Picked up 단추(so_picked_up · Shopify 오더면 Shopify 에도 · 메일 없음) · 목록 꼬리표 waiting for pickup · picked up(채널 warehouse · 운송사 종류 pickup · shipped_at) · 상태 거르기 「Waiting for pickup」(carrier!inner) · 경고 pickup_not_sent ← so v5r: 대화 Claude — 판정 435: 웹 오더는 채널 Warehouse 그대로 · 들어온 길(intake shopify)을 보인다 — 목록 Channel 칸 「Warehouse · Shopify」 · 태그 · 채널 필터에 Shopify (web)(= intake shopify) · 상세 칩 「From Shopify · #ref」(누르면 Web Orders) ← so v5q: 대화 Claude — Caleb 「Finalize-ship & invoice를 그냥 ship & invoice로 바꾸자」: 오피스가 누르는 단추 · 창 제목 · 확인 · 안내 글자를 Ship & invoice 로(창고의 Finalize · 상태 Finalized · 창구 so_finalize · 함수 이름은 그대로 — Finalized = 준비 끝 · Ship & invoice = 손을 떠남 → Fulfilled) ← so v5p · 대화 Claude — Caleb 「시간이 아니라 day 여도 좋아」: 걸린 시간을 토론토 달력 날짜 차이(일)로 — 같은 날 「same day」 초록 · 1 ~ 3 일 호박 · 3 일 넘음 빨강 ← so v5o(시간 · 일) · 대화 Claude — Caleb 「fulfilled date 옆에 컬러 글씨로 오더부터 출고까지 걸린 총 시간」: Fulfilled 날짜 옆 작은 색 글자 = created_at → closed_at 경과(시간 · 일) · 하루 안 초록 · 1 ~ 3 일 호박 · 3 일 넘음 빨강(문턱은 대화 Claude 안 · 바꿀 수 있다) · 마우스 = 만든 시각 → 끝난 시각 ← so v5n · 대화 Claude — Caleb 「SO 에 fulfilled date」: 넓은 목록 Ordered 옆 Fulfilled 열 = closed_at 의 토론토 날짜(Finalize 가 shipped → fulfilled 로 끝낼 때 찍힌다 · 인보이스 발행일과 같은 순간) · fulfilled 일 때만(취소의 closed_at 은 안 보인다) ← so v5m · 대화 Claude — Caleb 「SO 에 invoice 번호 컬럼 · 검색도 invoice 번호로 — 손님이 인보이스 번호로 전화한다 · Sales Orders 가 메인 화면」: 넓은 목록 Invoice 열(SO 옆 · 살아 있는 인보이스 번호 · 누르면 Sales Invoices) · 좁은 목록 줄에도 · 검색칸이 인보이스 번호도 찾는다(so_invoice_list invoice_number ilike → so_ids → or() 에 id.in · 취소된 인보이스 번호로도 찾힌다 · 50 개까지) ← so v5l · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Overdue · Paid) · 열린 인보이스(so_invoice_list is_open — 남은 돈 > 0)만 먼저 읽어 오더 id 를 고른다(열린 것은 늘 적다) · Paid = fulfilled 이면서 열린 인보이스에 없는 오더(id not in) · 좁은 목록도 같은 질의 · 결제 태그(fillPay)와 같은 판정 ← so v5k · 대화 Claude — Caleb 「shipped 는 없어도 되지 않을까」: 정상 흐름은 Finalize 가 shipped 를 건너뛰어 곧장 fulfilled(정본 §17 · 판정 1) · shipped 는 인보이스를 취소했을 때만(재고는 나갔는데 살아 있는 인보이스가 없다 — 다시 발행할 차례) ⇒ 상태 거르기에서 Shipped 를 뺀다(Open 에 든다) · 칩 글자 「Invoice cancelled」 · 색 빨강 계열 주황(사무실 손) · 뜻 글 고침(앞 판 「waiting for payment」 는 틀렸다 — 돈은 Fulfilled + 결제 태그) ← so v5j · 대화 Claude — Caleb 「status 와 SO 번호의 순서를 PO 와 같게」: 넓은 목록 첫 열 Status · 둘째 열 SO ← so v5i(결제 태그) · 대화 Claude — Caleb 「payment status 는 split 같은 라인으로 · SO 도 마찬가지」: 목록의 SO 번호 옆에 결제 태그(테두리) — 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · overdue Nd(빨강) · 판정은 뷰 so_invoice_list(remaining · days_overdue · so_ids 겹침 · 취소 인보이스 제외) · 한 쪽에 한 번 · 그린 뒤 채운다 ← so v5h 2026-10-07 · 대화 Claude — 판정 359(Caleb 「지금 단계로 가고 색으로 표시 · 라인 말고 색을 채워」): SO 상태 칩을 단계별 채운 색으로(Draft 회색 · Confirmed 파랑 · Released to WMS · Working 보라 = 창고 차례 · Finalized 주황 = 사무실이 Finalize 할 차례 · Shipped 청록 · Fulfilled 초록 · Cancelled 빨강) — 머리 · 넓은 목록 · 좁은 목록 · 가족 표 같은 함수 · 인보이스 상태 등 모르는 값은 옛 칩 · Caleb 「브랜치별 필터」: 넓은 목록에 Branch 거르기(location_id · 좁은 목록도 같은 질의) ← so v5g 2026-10-07 · 대화 Claude — Caleb 「Confirmed 뒤 Close 를 또 눌러야 한다 · Release to WMS 의 OK 가 필요할까」: 확정 결과에 알릴 것(나뉜 오더 · 백오더 · 프리오더 · 보류 · 이어받은 백오더 · 경고)이 없으면 창을 저절로 닫고 다시 그린다 · 있으면 지금처럼 남긴다 · Release to WMS 는 확인 창 없이 바로(Recall 로 되돌릴 수 있다) · 확정 결과의 「Backorders taken over」 가 비었을 때 JSON 글자가 보이던 것 → 있을 때만 줄마다 읽는 글로 ← so v5f 2026-10-07 · 대화 Claude — 운임 할인 화면(판정 352 · 353 · 356 · 357-7 · fr-1 20261007171939): Add/Edit a charge 창에 할인(없음 · % · $ — so_charge_set p_discount_pct · p_discount_amount · 고치기도 전체 모양) · Charges 표에 Discount · Net 열 · Finalize 전 창고 오더의 운임에 「estimate」 · 합계 칸 Freight discount · Finalize 창의 운임 줄에도 할인(바뀐 것만 보냄 · 열쇠 없음 = 그대로 · "" = 지움) · 미리 보기에 순액 ← so v5e 2026-10-07 · 대화 Claude — Caleb 화면 시험 SO-25067: Finalize 미리 보기가 손대지 않은 운임(Freight 10)을 「No freight line.」 으로 보였다(화면은 바뀐 운임만 보내고 미리 보기는 보낸 것만 그렸다) → 오더에 있는 운임 + 바뀐 값 + 새 줄을 합쳐 「Charges on the invoice」 로 · 바뀐 것 · 새 것 · 그대로 표시 ← so v5d 2026-10-07 · 대화 Claude — Caleb 「freight 이 중복으로 들어간다 — 확정 전에 넣은 대략 운임이 출고 때 고쳐져야 하는데 새로 하나 만들어진다」: Finalize 창이 오더에 이미 있는 운임 줄(견적)을 칸에 미리 채우고 고치면 그 줄을 고친다(so_finalize charges[].charge_id · 서버 길은 원래 있었다 · 화면만 늘 새 줄을 보냈다) · 설명 · 계정은 그대로 넘긴다 · 새 줄 칸은 따로 하나(비우면 없음) ← so v5c 2026-10-07 · 대화 Claude — 판정 350(Caleb 「세일즈 오더 화면에도 오더 토탈 금액」 · 안 A): 넓은 목록 Total 열 · 좁은 목록 오른쪽 위 금액 = 오더 화면 Total 과 같은 숫자(세금 포함 · 나간 뒤 보낸 수량) · 읽기 창구 so_totals_many(p_so_ids) 한 번(20261007161321 so-tot-1 · 한 쪽 100 줄) · 그린 뒤 채운다 · 세금 규칙 없음 = 「no tax rule」 ← so v5b 2026-10-07 · 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
+const SO_BUILD = "2026-10-14 · so v5t";   // 대화 Claude — 화면 안 A(웹 오더를 SO 로 합친다) 첫 판: 웹 오더 SO 상세에 「Shopify」 칸(웹 번호 · 스토어 · 받은 상태 · Shopify 결제 상태 · Shopify 합계 vs IMS 합계 · 배송 방식 · 받은/처리 시각 · 경고 + Mark checked / Reopen(판정 467 · shop_order_warning_ack) · Open web order · Open in Shopify) · 목록 웹 오더 줄에 열린 경고 수 꼬리표(open_warning_count · 판정 467) ← so v5s1:   // 대화 Claude — Caleb 「상세 화면에서는 칩이 붙었는데, 전체 오더 화면에는 안붙었어」: 넓은 목록은 rowTags 가 아니라 줄을 따로 그린다 → Status 칸 상태 칩 옆에 waiting for pickup · picked up ← so v5s: 대화 Claude — ful-3a(판정 436 · 437 · 438 · 443 · 452 · 455 · ful-1c 4c476b2): Ship & invoice 의 Carrier 를 운송사 표(ref_carrier)에서 고르기(carrier_id · 비움 = carrier_id "" + carrier "") · Pickup · Delivery 면 송장 칸 잠김 · 송장 여럿 = 쉼표 · 초안 머리에 Carrier 고르기(so_header_update carrier_id) · 상세 Carrier 줄(이름 · 송장 · 표에 없는 옛 글자 표시) · Fix tracking…(so_tracking_fix 미리 보기 → 저장 · 종류는 못 바꿈) · Picked up 단추(so_picked_up · Shopify 오더면 Shopify 에도 · 메일 없음) · 목록 꼬리표 waiting for pickup · picked up(채널 warehouse · 운송사 종류 pickup · shipped_at) · 상태 거르기 「Waiting for pickup」(carrier!inner) · 경고 pickup_not_sent ← so v5r: 대화 Claude — 판정 435: 웹 오더는 채널 Warehouse 그대로 · 들어온 길(intake shopify)을 보인다 — 목록 Channel 칸 「Warehouse · Shopify」 · 태그 · 채널 필터에 Shopify (web)(= intake shopify) · 상세 칩 「From Shopify · #ref」(누르면 Web Orders) ← so v5q: 대화 Claude — Caleb 「Finalize-ship & invoice를 그냥 ship & invoice로 바꾸자」: 오피스가 누르는 단추 · 창 제목 · 확인 · 안내 글자를 Ship & invoice 로(창고의 Finalize · 상태 Finalized · 창구 so_finalize · 함수 이름은 그대로 — Finalized = 준비 끝 · Ship & invoice = 손을 떠남 → Fulfilled) ← so v5p · 대화 Claude — Caleb 「시간이 아니라 day 여도 좋아」: 걸린 시간을 토론토 달력 날짜 차이(일)로 — 같은 날 「same day」 초록 · 1 ~ 3 일 호박 · 3 일 넘음 빨강 ← so v5o(시간 · 일) · 대화 Claude — Caleb 「fulfilled date 옆에 컬러 글씨로 오더부터 출고까지 걸린 총 시간」: Fulfilled 날짜 옆 작은 색 글자 = created_at → closed_at 경과(시간 · 일) · 하루 안 초록 · 1 ~ 3 일 호박 · 3 일 넘음 빨강(문턱은 대화 Claude 안 · 바꿀 수 있다) · 마우스 = 만든 시각 → 끝난 시각 ← so v5n · 대화 Claude — Caleb 「SO 에 fulfilled date」: 넓은 목록 Ordered 옆 Fulfilled 열 = closed_at 의 토론토 날짜(Finalize 가 shipped → fulfilled 로 끝낼 때 찍힌다 · 인보이스 발행일과 같은 순간) · fulfilled 일 때만(취소의 closed_at 은 안 보인다) ← so v5m · 대화 Claude — Caleb 「SO 에 invoice 번호 컬럼 · 검색도 invoice 번호로 — 손님이 인보이스 번호로 전화한다 · Sales Orders 가 메인 화면」: 넓은 목록 Invoice 열(SO 옆 · 살아 있는 인보이스 번호 · 누르면 Sales Invoices) · 좁은 목록 줄에도 · 검색칸이 인보이스 번호도 찾는다(so_invoice_list invoice_number ilike → so_ids → or() 에 id.in · 취소된 인보이스 번호로도 찾힌다 · 50 개까지) ← so v5l · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Overdue · Paid) · 열린 인보이스(so_invoice_list is_open — 남은 돈 > 0)만 먼저 읽어 오더 id 를 고른다(열린 것은 늘 적다) · Paid = fulfilled 이면서 열린 인보이스에 없는 오더(id not in) · 좁은 목록도 같은 질의 · 결제 태그(fillPay)와 같은 판정 ← so v5k · 대화 Claude — Caleb 「shipped 는 없어도 되지 않을까」: 정상 흐름은 Finalize 가 shipped 를 건너뛰어 곧장 fulfilled(정본 §17 · 판정 1) · shipped 는 인보이스를 취소했을 때만(재고는 나갔는데 살아 있는 인보이스가 없다 — 다시 발행할 차례) ⇒ 상태 거르기에서 Shipped 를 뺀다(Open 에 든다) · 칩 글자 「Invoice cancelled」 · 색 빨강 계열 주황(사무실 손) · 뜻 글 고침(앞 판 「waiting for payment」 는 틀렸다 — 돈은 Fulfilled + 결제 태그) ← so v5j · 대화 Claude — Caleb 「status 와 SO 번호의 순서를 PO 와 같게」: 넓은 목록 첫 열 Status · 둘째 열 SO ← so v5i(결제 태그) · 대화 Claude — Caleb 「payment status 는 split 같은 라인으로 · SO 도 마찬가지」: 목록의 SO 번호 옆에 결제 태그(테두리) — 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · overdue Nd(빨강) · 판정은 뷰 so_invoice_list(remaining · days_overdue · so_ids 겹침 · 취소 인보이스 제외) · 한 쪽에 한 번 · 그린 뒤 채운다 ← so v5h 2026-10-07 · 대화 Claude — 판정 359(Caleb 「지금 단계로 가고 색으로 표시 · 라인 말고 색을 채워」): SO 상태 칩을 단계별 채운 색으로(Draft 회색 · Confirmed 파랑 · Released to WMS · Working 보라 = 창고 차례 · Finalized 주황 = 사무실이 Finalize 할 차례 · Shipped 청록 · Fulfilled 초록 · Cancelled 빨강) — 머리 · 넓은 목록 · 좁은 목록 · 가족 표 같은 함수 · 인보이스 상태 등 모르는 값은 옛 칩 · Caleb 「브랜치별 필터」: 넓은 목록에 Branch 거르기(location_id · 좁은 목록도 같은 질의) ← so v5g 2026-10-07 · 대화 Claude — Caleb 「Confirmed 뒤 Close 를 또 눌러야 한다 · Release to WMS 의 OK 가 필요할까」: 확정 결과에 알릴 것(나뉜 오더 · 백오더 · 프리오더 · 보류 · 이어받은 백오더 · 경고)이 없으면 창을 저절로 닫고 다시 그린다 · 있으면 지금처럼 남긴다 · Release to WMS 는 확인 창 없이 바로(Recall 로 되돌릴 수 있다) · 확정 결과의 「Backorders taken over」 가 비었을 때 JSON 글자가 보이던 것 → 있을 때만 줄마다 읽는 글로 ← so v5f 2026-10-07 · 대화 Claude — 운임 할인 화면(판정 352 · 353 · 356 · 357-7 · fr-1 20261007171939): Add/Edit a charge 창에 할인(없음 · % · $ — so_charge_set p_discount_pct · p_discount_amount · 고치기도 전체 모양) · Charges 표에 Discount · Net 열 · Finalize 전 창고 오더의 운임에 「estimate」 · 합계 칸 Freight discount · Finalize 창의 운임 줄에도 할인(바뀐 것만 보냄 · 열쇠 없음 = 그대로 · "" = 지움) · 미리 보기에 순액 ← so v5e 2026-10-07 · 대화 Claude — Caleb 화면 시험 SO-25067: Finalize 미리 보기가 손대지 않은 운임(Freight 10)을 「No freight line.」 으로 보였다(화면은 바뀐 운임만 보내고 미리 보기는 보낸 것만 그렸다) → 오더에 있는 운임 + 바뀐 값 + 새 줄을 합쳐 「Charges on the invoice」 로 · 바뀐 것 · 새 것 · 그대로 표시 ← so v5d 2026-10-07 · 대화 Claude — Caleb 「freight 이 중복으로 들어간다 — 확정 전에 넣은 대략 운임이 출고 때 고쳐져야 하는데 새로 하나 만들어진다」: Finalize 창이 오더에 이미 있는 운임 줄(견적)을 칸에 미리 채우고 고치면 그 줄을 고친다(so_finalize charges[].charge_id · 서버 길은 원래 있었다 · 화면만 늘 새 줄을 보냈다) · 설명 · 계정은 그대로 넘긴다 · 새 줄 칸은 따로 하나(비우면 없음) ← so v5c 2026-10-07 · 대화 Claude — 판정 350(Caleb 「세일즈 오더 화면에도 오더 토탈 금액」 · 안 A): 넓은 목록 Total 열 · 좁은 목록 오른쪽 위 금액 = 오더 화면 Total 과 같은 숫자(세금 포함 · 나간 뒤 보낸 수량) · 읽기 창구 so_totals_many(p_so_ids) 한 번(20261007161321 so-tot-1 · 한 쪽 100 줄) · 그린 뒤 채운다 · 세금 규칙 없음 = 「no tax rule」 ← so v5b 2026-10-07 · 대화 Claude — 다시 매기기(판정 346 · 349 · dsc-4e 20261007142513 — 깃발은 초안에만 · 초안을 떠나면 지워진다): 목록 · 넓은 목록에 「reprice」 이름표(초안 ∧ reprice_suggested_at) · 상태 거르기 「Draft — reprice suggested」 · 경고 글을 원인 전부(딜 · 제품 브랜드 · 카테고리 · 태그 · 주문일 · 티어 · 할인)로 + 언제부터 · 깃발이 서 있으면 Reprice 단추를 눈에 띄게 ← so v5a 2026-10-07 · 대화 Claude — 할인 표시 묶음 1(미룬 120 · 판정 283 · 284 · 298 · 312 · 329): 머리에 Coupon 줄(초안 · sales — so_coupon_apply(p_so_id, p_code) · so_coupon_remove(p_so_id) · 20261006204146 dsc-3b · so_detail.coupon {code · deal_name · pct · expires_on · status won|lost|manual_overrides|invalid · reason}) · Order discount 출처 이름표(rule · 딜 이름 / coupon 코드 / set by hand) · 잠김 표시(so.order_discount_locked_at · 판정 312) · 규칙이 더 큰 경우 수치(so_detail.order_discount_rule) · 줄 표 Net unit 칸(오더 할인 % 가 있을 때만 · 그릴 때 계산 · 판정 284) · Price from 에 set discount · 딜 이름 · 경고 글 셋 ← so v4c1 2026-10-06 · 붙여넣기 결과의 not for sale 줄에서 Note 칸이 판정 글을 되풀이했다(CRO00327_not_for_sale — …) → 비움 ← so v4c 대화 Claude — dsc-1(판정 281 · 293): 붙여넣기 · 찾아 고르기 결과에 「from set SET × n → BASE × m」 꼬리표 · 새 판정 not_sellable · 요약 줄에 converted · not for sale 수 · Include sets 안내 글 · WARN set_converted_to_base ← so v4b1 Put back 상자의 글씨가 너무 컸다(Caleb 화면 시험 SO-25035) → 제목 13px · 설명 12px ←   // 대화 Claude — asm-3b2(판정 246 · asm 묶음 2 · 4): Finalize 미리 보기 · 결과에 「Put back」 목록(구성품 픽을 통째 콤보로 줄인 몫 · SKU · 칸 · 수량) · 결과 줄의 콤보 묶어 그리기 · Divide 는 콤보 줄에만 입력(구성품은 따라간다) · Merge 미리 보기의 콤보 표시와 따로 둔 까닭(differs_in · 옛 화면은 없는 열쇠 kept_apart_by 를 읽어 한 번도 안 보였다) ← so v4a asm-3b1(판정 244 · 248 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 들여 그린다(구성품은 수량 · 값 · 지우기 칸 없음 — 콤보 줄만 고친다) · 초안의 줄마다 가용(so_lines_available · 콤보 줄 = 통째 콤보 수 · 판정 248) · 줄 더하기 창의 콤보 가용 = 구성품으로 · 확정 미리 보기 · 붙여 넣기 결과에 콤보 표시 ← so sc v1.1 대화 Claude — Finalize 의 Surcharges 칸: 줄의 옛 값을 속성에 encodeURIComponent 로(esc 는 큰따옴표를 막지 않아 data-o 가 잘려 미리 보기가 JSON.parse 에서 멈췄다 · Caleb 화면 시험 SO-25020) ← so sc v1 대화 Claude — surcharge-3(판정 227 ~ 230 · surcharge-3 묶음 1 ~ 8): 줄 표 Surcharge 열 · 줄 고르기 + Set surcharge… · 합계 Surcharge · Finalize 에서 고치기 ← 「so thumb v1」 대화 Claude — 판정 208 · 213: Lines 표 · Add a line 후보 목록의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「so v3.1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「so v3」(2026-09-28)   // 오피스 판 2 — Finalize 창(wms_so_handoff 팔렛 · 부족분 · 운임 · 택배사 · 미리 보기 → so_finalize) · v2.5 = 판정 17 글자 · 시각 줄 · Finalized 필터(판정 46)
 console.log("so.html build:", SO_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -254,6 +263,7 @@ function rowTags(r){
   { const ps = pickupState(r); if(ps) t.push(PICK_TAG[ps]); }   // so v5s — 판정 455
   if(r.status === "draft" && r.reprice_suggested_at) t.push(REPRICE_TAG);   // so v5b
   t.push(`<span data-pay="${r.id}"></span>`);   // so v5i — 결제 태그 자리(fillPay 가 채운다)
+  if(r.intake === "shopify") t.push(`<span data-web="${r.id}"></span>`);   // so v5t — 웹 오더 열린 경고 수(fillWeb 가 채운다)
   return t.join(" ");
 }
 
@@ -409,7 +419,7 @@ async function loadWide(){
     </tr></thead><tbody>${data.map(r => `
       <tr data-id="${r.id}">
         <td>${stChip(r.status)}${r.closed_reason ? ` <span class="dim" style="font-size:11.5px">${esc(r.closed_reason)}</span>` : ""}${r.status === "draft" && r.reprice_suggested_at ? " " + REPRICE_TAG : ""}${pickupState(r) ? " " + PICK_TAG[pickupState(r)] : ""}</td>
-        <td><span class="mono">${esc(r.so_number)}</span> ${r.split_from_id ? '<span class="tag">split</span>' : ""}<span data-pay="${r.id}"></span></td>
+        <td><span class="mono">${esc(r.so_number)}</span> ${r.split_from_id ? '<span class="tag">split</span>' : ""}<span data-pay="${r.id}"></span>${r.intake === "shopify" ? `<span data-web="${r.id}"></span>` : ""}</td>
         <td class="mono" data-inv="${r.id}"></td>
         <td>${esc(chLbl(r))}</td>
         <td>${dim(r.order_date)}</td>
@@ -425,6 +435,7 @@ async function loadWide(){
   pgW.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
   fillTotals(data.map(r => r.id), box);   // so v5c — 그린 뒤 채운다
   fillPay(data.map(r => r.id), box);      // so v5i
+  fillWeb(data.filter(r => r.intake === "shopify").map(r => r.id), box);   // so v5t
 }
 /* so v5i — 결제 태그: 이 쪽 오더가 든 살아 있는 인보이스(so_invoice_list · so_ids 겹침) · 판정(남은 돈 · 연체 일수)은 뷰가 한다 · 화면은 글자만 고른다 */
 async function fillPay(ids, scope){
@@ -447,6 +458,98 @@ async function fillPay(ids, scope){
       : rem < tot - 0.004 ? `<span class="tag disc" title="Invoice ${esc(nums)} — ${money(rem)} still owed">partly paid</span>`
       : `<span class="tag" title="Invoice ${esc(nums)} — ${money(rem)} still owed">unpaid</span>`);
   });
+}
+/* so v5t — 화면 안 A · 판정 467: 웹 오더 줄의 열린 경고 수(shop_order_list.open_warning_count — 처리됨 · 확인함 제외) · 웹 오더가 가리키는 SO(shop_order.so_id = 처음 만든 SO)에만 붙는다 */
+async function fillWeb(ids, scope){
+  if(!ids.length) return;
+  const { data, error } = await sb.from("shop_order_list").select("so_id,name,open_warning_count").in("so_id", ids);
+  if(error){ console.warn("web order tags:", error.message); return; }
+  const by = {}; (data || []).forEach(x => { by[x.so_id] = x; });
+  scope.querySelectorAll("[data-web]").forEach(el => {
+    const x = by[el.dataset.web], n = x ? Number(x.open_warning_count) || 0 : 0;
+    el.innerHTML = n ? ` <span class="tag disc" title="Web order ${esc(x.name || "")} — ${n} open warning${n === 1 ? "" : "s"} · open the order to check">${n} web warning${n === 1 ? "" : "s"}</span>` : "";
+  });
+}
+/* so v5t — 웹 오더 경고 이름표(Web Orders wo v3 의 WARN_LBL 과 같은 글 · 두 화면이 같은 말을 한다 — 하나를 고치면 다른 쪽도) */
+const WEB_WARN = {
+  discount_mismatch: "Discount differs from IMS rules",
+  list_price_mismatch: "List price differs from IMS",
+  tax_mismatch: "Tax differs from Shopify",
+  order_discount_dropped: "IMS order discount not applied (Shopify price kept)",
+  freight_not_applied: "Freight not added (decided at shipping)",
+  confirm_blocked: "Not confirmed — needs a fix on the sales order",
+  updated_after_so: "Changed in Shopify after the sales order was made",
+  cancelled_in_shopify: "Cancelled in Shopify — check the sales order",
+  auto_cancelled: "Sales order cancelled automatically",
+  cancel_needs_review: "Cancelled in Shopify — the sales order was not cancelled",
+  cancel_failed: "Cancel failed — cancel the sales order by hand",
+  lines_resolved: "Lines picked by staff",
+  fulfill_failed: "Shipping was not sent to Shopify after 5 tries — check the order in Shopify",
+  fulfill_cut: "Shopify had fewer items left to ship than IMS shipped — the rest was not sent",
+  fulfill_location_mismatch: "Shopify kept its own location for this shipment — check the location in Shopify",
+  fulfill_nothing_left: "Shopify had nothing left to ship — someone may have fulfilled it in Shopify",
+  fulfilled_in_shopify: "Fulfilled in Shopify by hand — not by IMS",
+  refunded_in_shopify: "Refunded in Shopify — make a credit note in IMS if needed",
+  pickup_failed: "Picked up was not sent to Shopify — press Mark as picked up in Shopify",
+  pickup_not_sent: "Shopify was never told this order is ready for pickup — press Mark as picked up in Shopify",
+  tracking_fix_failed: "Tracking fix was not sent to Shopify — fix the tracking in Shopify",
+  pickup_tax_from_location: "Pickup order — tax taken from the pickup branch (no customer address)",
+  pickup_tax_unknown: "Pickup order — no province for tax; pick a tax rule on the sales order",
+  pickup_carrier_missing: "Pickup order — Pickup is not on the carrier list; carrier left empty",
+  pickup_locations_differ: "Pickup at more than one location — needs review",
+  pickup_location_unpaired: "Pickup location has no IMS warehouse pair — needs review",
+  delivery_mixed: "Part shipping, part pickup — needs review",
+  refund_due: "Paid in Shopify, but IMS will not ship part of it — refund that part in Shopify",
+  order_edit_failed: "IMS could not take the unshippable items off the Shopify order — fix the order in Shopify",
+  shopify_qty_removed: "IMS can ship items that were already taken off the Shopify order — Shopify was not changed back",
+};
+const WEB_ST = { received: "Waiting", needs_review: "Needs review", created: "Sales order made", cancelled: "Cancelled", error: "Error" };
+const WEB_PAY = { PAID: "Paid", PENDING: "Pending", AUTHORIZED: "Authorized", PARTIALLY_PAID: "Partially paid", PARTIALLY_REFUNDED: "Partially refunded", REFUNDED: "Refunded", VOIDED: "Voided", EXPIRED: "Expired" };
+let WEB_STORES = null;   // shop_store_list — Open in Shopify 주소(shop_domain) · 한 번 읽고 둔다
+async function loadWebStores(){
+  if(WEB_STORES) return WEB_STORES;
+  const r = await sb.from("shop_store_list").select("id,code,label,shop_domain");
+  WEB_STORES = Object.fromEntries(((r && r.data) || []).map(x => [x.id, x]));
+  return WEB_STORES;
+}
+function webAdminUrl(w){
+  const st = (WEB_STORES || {})[w.store_id]; if(!st) return "";
+  const h = String(st.shop_domain || "").replace(/\.myshopify\.com$/i, ""), m = String(w.shopify_order_gid || "").match(/(\d+)$/);
+  return h && m ? `https://admin.shopify.com/store/${encodeURIComponent(h)}/orders/${m[1]}` : "";
+}
+function webWarnHtml(w, i, soId, canAck){   // i = 배열 자리(0 부터) · 창구는 1 부터
+  const lbl = WEB_WARN[w.code] || w.code;
+  let extra = "";
+  if(w.code === "discount_mismatch") extra = ` — ${esc(w.sku || "")}: Shopify ${esc(String(w.shopify_pct ?? ""))} % · IMS ${esc(String(w.ims_pct ?? ""))} %`;
+  else if(w.code === "tax_mismatch") extra = ` — IMS ${money(w.ims)} · Shopify ${money(w.shopify)}`;
+  const settled = !!w.settled_at, checked = !settled && !!w.acked_at;
+  const done = settled || w.code === "auto_cancelled" || w.code === "lines_resolved";
+  let state = "";
+  if(settled) state = `<span class="on">Settled automatically</span> <span class="dim">${esc(imsTs(w.settled_at))}${Array.isArray(w.settled_refunds) && w.settled_refunds.length ? " · by the refund in Shopify" : ""}</span>`;
+  else if(checked) state = `<span>Checked by ${esc(w.acked_by_name || "staff")} · ${esc(imsTs(w.acked_at))}</span>${w.acked_note ? `<span>— ${esc(w.acked_note)}</span>` : ""}${canAck ? `<button class="pobtn" data-wreopen="${i + 1}" data-wso="${esc(soId)}">Reopen</button>` : ""}`;
+  else if(canAck && !done) state = `<button class="pobtn" data-wack="${i + 1}" data-wso="${esc(soId)}">Mark checked</button>`;
+  return `<div class="wwarn ${done ? "done" : checked ? "checked" : ""}" title="${esc(w.code)}"><b>${esc(lbl)}</b>${extra}${w.message && !extra ? `<div class="dim" style="font-size:11.5px;margin-top:2px">${esc(w.message)}</div>` : ""}${w.at ? ` <span class="dim" style="font-size:11px">${esc(imsTs(w.at))}</span>` : ""}${state ? `<div class="wstate">${state}</div>` : ""}</div>`;
+}
+/* so v5t — 판정 467: 웹 오더 경고 하나를 확인함 / 다시 열기(shop_order_warning_ack · 자리 + code + at 대조는 창구가 한다) */
+function webAck(w, ord, ack){
+  const x = (w.warnings || [])[ord - 1]; if(!x) return;
+  const needNote = ack && x.code === "refund_due";
+  modalOpen(`<h4>${ack ? "Mark checked" : "Reopen"} — web order ${esc(w.name || "")}</h4>
+    <div class="pbody"><div style="font-size:13px;line-height:1.6;margin-bottom:10px"><b>${esc(WEB_WARN[x.code] || x.code)}</b>${x.at ? ` <span class="dim">${esc(imsTs(x.at))}</span>` : ""}</div>
+      ${ack ? `<label class="dim" style="font-size:12px" for="ackNote">${needNote ? "Why is the refund not being made in Shopify? (required)" : "Note (optional)"}</label>
+      <textarea class="acknote" id="ackNote" autocomplete="off" placeholder="${needNote ? "e.g. customer agreed to store credit instead" : "What was done about it"}"></textarea>` : `<div class="dim" style="font-size:12.5px">The warning goes back to open and counts again.</div>`}
+      <div id="ackErr"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="ackGo">${ack ? "Mark checked" : "Reopen"}</button></div>`);
+  wireModalClose();
+  document.getElementById("ackGo").onclick = async () => {
+    const noteEl = document.getElementById("ackNote"), note = noteEl ? noteEl.value.trim() : "";
+    if(needNote && !note){ document.getElementById("ackErr").innerHTML = '<div class="msg err">Write why first.</div>'; return; }
+    const go = document.getElementById("ackGo"); go.disabled = true;
+    const { error } = await sb.rpc("shop_order_warning_ack", { p_shop_order_id: w.id, p_ord: ord, p_code: x.code, p_at: x.at || null, p_ack: ack, p_note: note || null });
+    if(error){ go.disabled = false; document.getElementById("ackErr").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    modalClose();
+    if(curId) loadDetail(curId);
+  };
 }
 /* so v5c — 판정 350: 목록 금액은 서버 한 곳(so_totals_many · so_detail 의 totals 와 같은 값 · 검증 so-tot-1) · 화면이 더하지 않는다 */
 async function fillTotals(ids, scope){
@@ -488,6 +591,7 @@ async function loadList(){
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, loadList);
   fillTotals(data.map(r => r.id), document.getElementById("rows"));   // so v5c
   fillPay(data.map(r => r.id), document.getElementById("rows"));      // so v5i
+  fillWeb(data.filter(r => r.intake === "shopify").map(r => r.id), document.getElementById("rows"));   // so v5t
 }
 
 /* 형제·병합 사이 이동 — 모체 번호를 검색칸에 넣어 한 뭉치가 목록에 보이게(po.html gotoPo 선례) */
@@ -1895,6 +1999,22 @@ async function loadDetail(id){
     ]);
     WMS = { names: names || {}, review: (rv && rv.data) || null, fin: (fz && fz.data) || null };
   }
+  /* so v5t — 화면 안 A: 웹 오더 SO 면 그 웹 오더(shop_order_list · so_id = 처음 만든 SO 라 형제 · 합쳐진 오더는 뭉치 id 로 찾는다) */
+  let WEB = [];
+  if(so0 && so0.intake === "shopify"){
+    const famIds = [...new Set(((fam && fam.data) || []).map(r => r.so_id).concat([so0.id]).filter(Boolean))];
+    const [wl] = await Promise.all([
+      sb.from("shop_order_list").select("id,store_id,store_code,shopify_order_gid,name,status,financial_status,subtotal,total_discounts,total_shipping,total_tax,total,currency_code,location_name,warnings,warning_count,open_warning_count,received_at,processed_at,shopify_cancelled_at,so_id,so_number").in("so_id", famIds),
+      loadWebStores(),
+    ]);
+    if(wl.error) console.warn("web order:", wl.error.message);
+    WEB = (wl && wl.data) || [];
+    if(WEB.length){
+      const dm = await sb.from("shop_order").select("id,delivery_method").in("id", WEB.map(w => w.id));
+      const byId = Object.fromEntries(((dm && dm.data) || []).map(x => [x.id, x.delivery_method]));
+      WEB.forEach(w => { w.delivery_method = byId[w.id] || ""; });
+    }
+  }
   if(seq !== detailSeq) return;
   if(d.error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(d.error.message)}</div></div>`; return; }
   if(!d.data || !d.data.so){ box.innerHTML = '<div class="card"><div class="msg">That sales order is gone.</div></div>'; return; }
@@ -2182,6 +2302,29 @@ async function loadDetail(id){
   const balRows = Array.isArray(data.customer_balance) ? data.customer_balance : (data.customer_balance ? [data.customer_balance] : []);
   const balHtml = balRows.map(b => `<tr><td class="mono">${esc(b.currency_code || "")}</td><td class="num">${money(b.received)}</td><td class="num">${money(b.owed_credit)}</td><td class="num">${money(b.reserved_deposit)}</td><td class="num">${money(b.available)}</td><td class="num">${money(b.open_invoices_due)}</td></tr>`);
 
+  /* so v5t — 「Shopify」 칸(화면 안 A) · 합계 대조는 이 오더만(갈라진 형제는 따로 돈을 받는다) */
+  const webCard = WEB.map(w => {
+    const url = webAdminUrl(w), cur2 = w.currency_code && w.currency_code !== "CAD" ? " " + esc(w.currency_code) : "";
+    const ims = Number(t.order_total_with_tax), shp = Number(w.total), diff = isFinite(ims) && isFinite(shp) ? Math.round((ims - shp) * 100) / 100 : null;
+    const warns = Array.isArray(w.warnings) ? w.warnings : [];
+    const dlv = w.delivery_method === "PICK_UP" ? `Customer picks up${w.location_name ? " at " + esc(w.location_name) : ""}` : w.delivery_method === "MIXED" ? "Part shipping, part pickup" : w.delivery_method === "SHIPPING" ? "Shipping" : '<span class="dim">—</span>';
+    const rows = [
+      ["Web order", `<span class="mono"><b>${esc(w.name || "")}</b></span> <span class="dim">${esc(w.store_code || "")} · ${esc(WEB_ST[w.status] || w.status || "")}</span>`],
+      ["Payment in Shopify", `${esc(WEB_PAY[w.financial_status] || w.financial_status || "—")}${w.shopify_cancelled_at ? ` <span class="tag off">cancelled in Shopify ${esc(imsTs(w.shopify_cancelled_at))}</span>` : ""}`],
+      ["Total", `Shopify <b>${money(w.total)}</b>${cur2} · IMS <b>${money(t.order_total_with_tax)}</b>${diff !== null && Math.abs(diff) >= 0.01 ? ` <span class="tag disc" title="IMS total minus Shopify total${famRows.length > 1 ? " — this order only; split-off orders are not included" : ""}">differs by ${money(Math.abs(diff))}</span>` : diff !== null ? ' <span class="on">✓</span>' : ""}<div class="dim" style="font-size:11.5px">Shopify: subtotal ${money(w.subtotal)} · discounts ${money(w.total_discounts)} · shipping ${money(w.total_shipping)} · tax ${money(w.total_tax)}${famRows.length > 1 ? " · IMS is this order only" : ""}</div>`],
+      ["Delivery", dlv],
+      ["Received", `${esc(imsTs(w.received_at))}${w.processed_at ? ` <span class="dim">· processed ${esc(imsTs(w.processed_at))}</span>` : ""}`],
+    ];
+    return `<div class="card">
+      <h3 class="ims-sec" data-sec="">Shopify <span class="n">${esc(w.name || "")}</span></h3>
+      <div class="webbox">
+        <div class="wact"><a class="pobtn" href="shopify-orders.html?id=${encodeURIComponent(w.id)}" style="text-decoration:none;color:inherit" title="Open on Web Orders">Open web order</a>${url ? `<a class="pobtn" href="${esc(url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">Open in Shopify</a>` : ""}</div>
+        ${kvTbl(rows)}
+        ${warns.length ? `<h4 style="margin:12px 0 8px;font-size:13px">Warnings <span class="dim" style="font-weight:400">${Number(w.open_warning_count) || 0} open · ${warns.length} in all</span></h4>${warns.map((x, i) => webWarnHtml(x, i, w.id, canSales())).join("")}` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
   if(seq !== detailSeq) return;
   box.innerHTML = `
     <div class="card">
@@ -2197,6 +2340,7 @@ async function loadDetail(id){
       ${stats}
       <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
     </div>
+    ${webCard}
 
     ${tbl("Lines", (data.lines || []).filter(l => !l.combo_line_id).length,
       (ed ? [['<input type="checkbox" id="scAll" title="Pick every line that can carry a surcharge">', ""]] : []).concat([["#","num"],["Product",""],["Qty","num"]]).concat(shownQty ? [["Qty out","num"],["Stock",""]] : [])
@@ -2225,6 +2369,8 @@ async function loadDetail(id){
   thumbFill(box);   // 판정 208 — 이 오더의 SKU 를 한 번에(기다리지 않는다)
 
   box.querySelectorAll("[data-goto]").forEach(a => { a.onclick = () => gotoSo(a.dataset.goto, a.dataset.gid || null); });
+  box.querySelectorAll("[data-wack]").forEach(b => { b.onclick = () => { const w = WEB.find(x => x.id === b.dataset.wso); if(w) webAck(w, Number(b.dataset.wack), true); }; });          // so v5t — 판정 467
+  box.querySelectorAll("[data-wreopen]").forEach(b => { b.onclick = () => { const w = WEB.find(x => x.id === b.dataset.wso); if(w) webAck(w, Number(b.dataset.wreopen), false); }; });
   box.querySelectorAll("[data-head]").forEach(el => { el.onchange = () => { if(el.value !== el.dataset.prev) saveHead(el); }; });
   box.querySelectorAll("[data-act]").forEach(b => {
     b.onclick = () => {
