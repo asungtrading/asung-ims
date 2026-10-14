@@ -27,6 +27,11 @@
   .reason{border:1px solid #f5c2c0;background:#fef3f2;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px}
   .warn{border:1px solid #fedf89;background:#fffaeb;border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:12.5px}
   .warn.done{border-color:#abefc6;background:#ecfdf3}
+  .warn.checked{border-color:var(--line);background:#f7f8fa;color:#667085}
+  .warn.checked b{font-weight:600}
+  .warn .wstate{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;font-size:11.5px}
+  .warn .wstate .pobtn{padding:2px 9px;font-size:11.5px}
+  .acknote{width:100%;min-height:70px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;box-sizing:border-box}
   .cands{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .pomodal[hidden]{display:none}
   .pobox input[type=search],.pobox input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
@@ -59,7 +64,7 @@
         <option value="error">Error</option>
         <option value="created">Done (order made)</option>
         <option value="cancelled">Cancelled</option>
-        <option value="warn">Done with warnings</option>
+        <option value="warn">Done with open warnings</option>
         <option value="all">All</option>
       </select>
       <select id="fStore" title="Store"><option value="">All stores</option></select>
@@ -89,13 +94,16 @@
    판정 363 ~ 372 · 430 ~ 435 · DB ord-1a1 901e4c7 · 1a2 98b92bd · EF ord-1b · 1b2 7eeaf3a · 1b3 e425d3e
    읽기: 뷰 shop_order_list(받은 오더 · 상태 · 손님 · 브랜치 · SO · 까닭 reasons · 경고 warnings) · 표 shop_order_line(줄 · match) · 뷰 shop_store_list(Shopify 주소)
    쓰기: shop_order_resolve_customer(p_shop_order_id, p_customer_id, p_commit) — sales · 미리 보기(false) → 저장(true)
+         ⭐ wo v3: shop_order_warning_ack(p_shop_order_id, p_ord, p_code, p_at, p_ack, p_note) — sales · 경고 하나를 「확인함」/다시 열기(판정 467 · ful-5a 20261014141305)
+           원소 찾기 = 자리(1 부터) + code + at — 옛 목록으로 누르면 「changed elsewhere — reload」 · 처리됨(settled_at · 판정 466)은 거부 · 열린 refund_due 는 note 필수
+           뷰 open_warning_count = 처리됨 · 확인함을 뺀 수(목록 숫자 · 「open warnings」 거르기가 쓴다) · warning_count 는 전체 수 그대로
          shop_order_resolve_lines(p_shop_order_id, p_choices, p_commit, p_ack) — sales · p_choices = [{line_no, sku} | {line_no, drop:true}] · 경고 열쇠 drop:<line_no> 를 ack
          EF shopify {action:'orders_drain'} — 「Process waiting now」(권한 shopify · 없으면 단추를 숨긴다 · 기다리면 cron 이 1 분 안에 한다)
    ⭐ 받은 오더 → SO 는 시스템이 만든다(화면은 SO 를 만들지 않는다) · 풀린 오더(received)는 다음 분 cron(ims-orders-drain)이 처리한다
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-10-13 · wo v2b";   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-10-14 · wo v3";   // 대화 Claude — 판정 467: 경고마다 Mark checked / Reopen(shop_order_warning_ack) · 처리됨(refund_due settled · 판정 466)은 초록 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 경고 이름표 셋(refund_due · order_edit_failed · shopify_qty_removed — ful-4a) ← wo v2b:   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;
@@ -150,14 +158,45 @@ const WARN_LBL = {
   pickup_locations_differ: "Pickup at more than one location — needs review",
   pickup_location_unpaired: "Pickup location has no IMS warehouse pair — needs review",
   delivery_mixed: "Part shipping, part pickup — needs review",
+  /* wo v3 — ⑤ 나가지 않을 몫(ful-4a · 4b · 판정 457 ~ 462 · 466) */
+  refund_due: "Paid in Shopify, but IMS will not ship part of it — refund that part in Shopify",
+  order_edit_failed: "IMS could not take the unshippable items off the Shopify order — fix the order in Shopify",
+  shopify_qty_removed: "IMS can ship items that were already taken off the Shopify order — Shopify was not changed back",
 };
-function warnHtml(w){
+function warnHtml(w, i, canAck){   // wo v3 — i = 배열 자리(0 부터) · 창구는 1 부터 받는다
   const lbl = WARN_LBL[w.code] || w.code;
   let extra = "";
   if(w.code === "discount_mismatch") extra = ` — ${esc(w.sku || "")}: Shopify ${esc(String(w.shopify_pct ?? ""))} % · IMS ${esc(String(w.ims_pct ?? ""))} %`;
   else if(w.code === "tax_mismatch") extra = ` — IMS ${money(w.ims)} · Shopify ${money(w.shopify)}`;
-  const done = w.code === "auto_cancelled" || w.code === "lines_resolved";
-  return `<div class="warn ${done ? "done" : ""}" title="${esc(w.code)}"><b>${esc(lbl)}</b>${extra}${w.message && !extra ? `<div class="dim" style="font-size:11.5px;margin-top:2px">${esc(w.message)}</div>` : ""}${w.at ? ` <span class="dim" style="font-size:11px">${esc(imsTs(w.at))}</span>` : ""}</div>`;
+  const settled = !!w.settled_at, checked = !settled && !!w.acked_at;
+  const done = settled || w.code === "auto_cancelled" || w.code === "lines_resolved";
+  let state = "";
+  if(settled) state = `<span class="on">Settled automatically</span> <span class="dim">${esc(imsTs(w.settled_at))}${Array.isArray(w.settled_refunds) && w.settled_refunds.length ? " · by the refund in Shopify" : ""}</span>`;
+  else if(checked) state = `<span>Checked by ${esc(w.acked_by_name || "staff")} · ${esc(imsTs(w.acked_at))}</span>${w.acked_note ? `<span>— ${esc(w.acked_note)}</span>` : ""}${canAck ? `<button class="pobtn" data-wreopen="${i + 1}">Reopen</button>` : ""}`;
+  else if(canAck && !done) state = `<button class="pobtn" data-wack="${i + 1}">Mark checked</button>`;
+  return `<div class="warn ${done ? "done" : checked ? "checked" : ""}" title="${esc(w.code)}"><b>${esc(lbl)}</b>${extra}${w.message && !extra ? `<div class="dim" style="font-size:11.5px;margin-top:2px">${esc(w.message)}</div>` : ""}${w.at ? ` <span class="dim" style="font-size:11px">${esc(imsTs(w.at))}</span>` : ""}${state ? `<div class="wstate">${state}</div>` : ""}</div>`;
+}
+/* wo v3 — 판정 467: 경고 하나를 확인함 / 다시 열기 · 원소는 자리 + code + at 으로 찾는다(창구가 대조한다) */
+function ackWarning(r, warns, ord, ack){
+  const w = warns[ord - 1]; if(!w) return;
+  const lbl = WARN_LBL[w.code] || w.code;
+  const needNote = ack && w.code === "refund_due";
+  modalOpen(`<h4>${ack ? "Mark checked" : "Reopen"} — ${esc(r.name || "")}</h4>
+    <div class="pbody"><div style="font-size:13px;line-height:1.6;margin-bottom:10px"><b>${esc(lbl)}</b>${w.at ? ` <span class="dim">${esc(imsTs(w.at))}</span>` : ""}</div>
+      ${ack ? `<label class="dim" style="font-size:12px" for="ackNote">${needNote ? "Why is the refund not being made in Shopify? (required)" : "Note (optional)"}</label>
+      <textarea class="acknote" id="ackNote" autocomplete="off" placeholder="${needNote ? "e.g. customer agreed to store credit instead" : "What was done about it"}"></textarea>` : `<div class="dim" style="font-size:12.5px">The warning goes back to open and counts again.</div>`}
+      <div id="ackErr"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="ackGo">${ack ? "Mark checked" : "Reopen"}</button></div>`);
+  wireModalClose();
+  document.getElementById("ackGo").onclick = async () => {
+    const noteEl = document.getElementById("ackNote"), note = noteEl ? noteEl.value.trim() : "";
+    if(needNote && !note){ document.getElementById("ackErr").innerHTML = '<div class="msg err">Write why first.</div>'; return; }
+    const go = document.getElementById("ackGo"); go.disabled = true;
+    const { error } = await sb.rpc("shop_order_warning_ack", { p_shop_order_id: r.id, p_ord: ord, p_code: w.code, p_at: w.at || null, p_ack: ack, p_note: note || null });
+    if(error){ go.disabled = false; document.getElementById("ackErr").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    modalClose();
+    await load(); await openDetail(r.id);
+  };
 }
 
 function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
@@ -166,10 +205,10 @@ function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]
 
 /* ── 목록 ─────────────────────────────────────────── */
 function query(){
-  let q = sb.from("shop_order_list").select("id,store_id,store_code,name,status,shopify_created_at,email,customer_name,location_name,so_id,so_number,so_status,total,currency_code,reason_count,warning_count,unmatched_count,received_at,is_test", { count: "exact" });
+  let q = sb.from("shop_order_list").select("id,store_id,store_code,name,status,shopify_created_at,email,customer_name,location_name,so_id,so_number,so_status,total,currency_code,reason_count,warning_count,open_warning_count,unmatched_count,received_at,is_test", { count: "exact" });
   const st = document.getElementById("fState").value;
   if(st === "open") q = q.in("status", ["needs_review", "received", "error"]);
-  else if(st === "warn") q = q.eq("status", "created").gt("warning_count", 0);
+  else if(st === "warn") q = q.eq("status", "created").gt("open_warning_count", 0);   // wo v3 — 판정 467: 열린 경고만
   else if(st !== "all") q = q.eq("status", st);
   const store = document.getElementById("fStore").value; if(store) q = q.eq("store_id", store);
   const t = document.getElementById("fQ").value.trim().replace(/[,()]/g, " ");
@@ -197,7 +236,7 @@ async function load(){
         <td>${dim(r.location_name)}</td>
         <td>${r.so_number ? `<span class="mono">${esc(r.so_number)}</span> <span class="dim" style="font-size:11.5px">${esc(r.so_status || "")}</span>` : '<span class="dim">—</span>'}</td>
         <td class="num">${money(r.total, r.currency_code)}</td>
-        <td style="font-size:12px">${r.reason_count ? `<span class="chip bad">${r.reason_count} to pick</span>` : ""}${r.warning_count ? ` <span class="chip warn">${r.warning_count} warning${r.warning_count === 1 ? "" : "s"}</span>` : ""}</td>
+        <td style="font-size:12px">${r.reason_count ? `<span class="chip bad">${r.reason_count} to pick</span>` : ""}${r.open_warning_count ? ` <span class="chip warn" title="${esc(String(r.warning_count))} in all · ${esc(String(r.warning_count - r.open_warning_count))} checked or settled">${r.open_warning_count} open warning${r.open_warning_count === 1 ? "" : "s"}</span>` : r.warning_count ? ` <span class="dim" style="font-size:11.5px">${r.warning_count} checked</span>` : ""}</td>
       </tr>`).join("")}</tbody></table>`;
   box.querySelectorAll("[data-id]").forEach(tr => { tr.onclick = () => openDetail(tr.dataset.id); });
 }
@@ -260,12 +299,14 @@ async function openDetail(id){
       </tr>`).join("")}</tbody></table>
       ${can && r.status === "needs_review" && badLines.length ? `<div style="margin-top:8px"><button class="pobtn go" id="saveLines">Save line choices</button> <span class="dim" style="font-size:11.5px">Type the right SKU, or tick leave out. The order is made without left-out lines.</span></div>` : ""}
     </div>
-    ${warns.length ? `<div class="wosec"><h4>Warnings</h4>${warns.map(warnHtml).join("")}</div>` : ""}
+    ${warns.length ? `<div class="wosec"><h4>Warnings <span class="dim" style="font-weight:400">${r.open_warning_count || 0} open · ${warns.length} in all</span></h4>${warns.map((w, i) => warnHtml(w, i, can)).join("")}</div>` : ""}
   </div>`;
 
   box.querySelectorAll("[data-pickcust]").forEach(b => { b.onclick = () => resolveCustomer(r, b.dataset.pickcust, b.dataset.cname); });
   box.querySelectorAll("[data-searchcust]").forEach(b => { b.onclick = () => searchCustomer(r); });
   const sl = document.getElementById("saveLines"); if(sl) sl.onclick = () => resolveLines(r);
+  box.querySelectorAll("[data-wack]").forEach(b => { b.onclick = () => ackWarning(r, warns, Number(b.dataset.wack), true); });      // wo v3 — 판정 467
+  box.querySelectorAll("[data-wreopen]").forEach(b => { b.onclick = () => ackWarning(r, warns, Number(b.dataset.wreopen), false); });
 }
 
 /* ── 손님 고르기 — 미리 보기 → 저장 ── */
