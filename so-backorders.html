@@ -36,13 +36,18 @@
   .bofoot button:disabled{opacity:.4;cursor:default}
   /* Arrivals — 왼쪽 입고 · 오른쪽 기다리는 손님(판정 485 ④ · 488) */
   .arr{display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:14px;align-items:start}
-  @media (max-width:1100px){ .arr{grid-template-columns:1fr} }
+  @media (max-width:1400px){ .arr{grid-template-columns:1fr} }   /* v4a — 110% 확대라 1100 은 노트북 폭에서 안 걸렸다(Caleb 화면 시험) */
   .arr .card{min-width:0}
   .alist{max-height:calc(100vh - 260px);overflow:auto}
   .alist tbody tr{cursor:pointer}
   .alist tbody tr.cur td{background:#eef2ff}
+  .alist td.rcv .dim{white-space:nowrap}   /* v4a — 날짜 · 입고 수가 접혔다 */
+  .ready .rhead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .ready .rhead .ttl{font-size:14px;font-weight:600}
+  .ready .rhead .dim{font-size:12px}
+  .ready .rbody{max-height:360px;overflow:auto}
   .apane .ahead{padding:12px 14px;border-bottom:1px solid var(--line)}
-  .apane .ahead h3{margin:0;font-size:15px}
+  .apane .ahead .atitle{font-size:15px;font-weight:600;color:var(--ink)}   /* v4a — 공통 .card h3(대문자 · 고정폭 · 밑줄)를 피한다 */
   .apane .ahead .dim{font-size:12px}
   tr.other td{color:#8a93a3;background:#fcfcfd}
   tr.other td a.lnk{color:#6b7686}
@@ -96,6 +101,7 @@
       </div>
       <div class="sosub" id="aRule" style="border-top:0">Loading…</div>
     </div>
+    <div class="card ready" id="aReady" style="margin-bottom:14px"><div class="msg">Loading…</div></div>
     <div class="arr">
       <div class="card">
         <div class="alist" id="aRows"><div class="msg">Loading…</div></div>
@@ -192,7 +198,8 @@
 /* ─────────────────────────────────────────────────────────────
    Backorders — 백오더 화면 (bo v4 · 2026-10-14 · 대화 Claude · 판정 485 ~ 489)
    탭 셋 — 처음 열리는 탭은 Arrivals(판정 489 · ?tab=insights|all 로 바로)
-     Arrivals  ④ 입고 → 기다리는 손님 → 진행
+     Arrivals  ⓪ (v4a · 판정 490) 맨 위 Ready to ship now — so_backorder_ready(p_filters) (20261015024520 bo-2b) · 입고와 상관없이 지금 보낼 수 있는 백오더 · 프리오더
+               ④ 입고 → 기다리는 손님 → 진행
                읽기 so_backorder_arrivals(p_filters) · so_backorder_waiting(p_product_id, p_location_id)  (asung-wms 20261015015435 bo-2 · 347 · 256 행)
                ⭐ 같은 창고 손님이 위 · 다른 창고 손님은 아래 회색 + 「Other branch」(판정 488 — 진행 전에 트랜스퍼 · 창고 바꾸기)
                ⭐ can_fill 은 미리 보기 셈(같은 창고 · 오래 기다린 줄부터) — 진행 창구가 그때 다시 계산한다
@@ -206,7 +213,7 @@
    ⚠️ 셈은 DB 가 한다 — 화면이 다시 계산하지 마라(가용 · 입고 · 수요 · 금액)
    ⚠️ 입고 알림 메일은 아직 IMS 가 보내지 않는다(이관은 다음 차수) — 이 화면에 알림 기록 칸이 없다
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-14 · bo v4";   // 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-14 · bo v4a";   // 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -294,10 +301,11 @@ function aFilters(){
   return f;
 }
 async function aLoad(){
+  rLoad();   // v4a — 판정 490: 지금 보낼 수 있는 백오더(입고와 상관없이)
   const box = document.getElementById("aRows");
   box.innerHTML = '<div class="msg">Loading…</div>';
   const { data, error } = await sb.rpc("so_backorder_arrivals", { p_filters: aFilters() });
-  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("aRule").textContent = ""; return; }
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("aRule").textContent = ""; aPager({ rows: [], total: 0 }); aDrawPane(null); return; }   // v4a — 오류 때 옛 범위가 남았다
   const rows = data.rows || [];
   document.getElementById("aRule").innerHTML =
     `Received ${data.period_from ? esc(data.period_from) : "from the start"} — ${data.period_to ? esc(data.period_to) : "today"} · `
@@ -316,7 +324,7 @@ async function aLoad(){
         <td><span class="mono">${esc(r.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div>
           <div class="dim" style="font-size:11px">${esc(r.supplier_name || "supplier unknown")}${r.supplier_basis === "product_default" ? ' <span class="tag" title="This receipt has no purchase order — the product\'s default supplier is shown">default supplier</span>' : ""}</div></td>
         <td>${dim(r.location_name)}</td>
-        <td class="num">${qty(r.received_base)}<div class="dim" style="font-size:11px">${esc(r.last_received_on || "")}${Number(r.receipts_n) > 1 ? ` · ${esc(r.receipts_n)} receipts` : ""}</div></td>
+        <td class="num rcv">${qty(r.received_base)}<div class="dim" style="font-size:11px">${esc(r.last_received_on || "")}</div>${Number(r.receipts_n) > 1 ? `<div class="dim" style="font-size:11px">${esc(r.receipts_n)} receipts</div>` : ""}</td>
         <td class="num">${qty(r.available_now_base)}</td>
         <td class="num">${Number(ws.lines) ? `${qty(ws.qty_base)}<div class="dim" style="font-size:11px">${esc(ws.customers)} cust.</div>` : '<span class="dim">0</span>'}</td>
         <td class="num">${Number(wo.lines) ? `<span class="neutral">${qty(wo.qty_base)}</span><div class="dim" style="font-size:11px">${esc(wo.customers)} cust.</div>` : '<span class="dim">0</span>'}</td>
@@ -357,28 +365,10 @@ async function aWaiting(){
   if(error){ aDrawPane(`<div class="msg err">${esc(error.message)}</div>`); return; }
   const rows = data.rows || [], ws = data.waiting_same || {}, wo = data.waiting_other || {};
   const same = rows.filter(r => r.same_location), other = rows.filter(r => !r.same_location);
-  const row = (r) => {
-    const contact = [r.contact_email ? `<a href="mailto:${esc(r.contact_email)}">${esc(r.contact_email)}</a>` : "",
-                     r.contact_phone ? esc(r.contact_phone) : "", r.contact_mobile ? esc(r.contact_mobile) + " (mobile)" : ""].filter(Boolean).join(" · ");
-    const kindTag = r.kind === "preorder" ? ' <span class="tag disc" title="A confirmed order waiting for stock that had not come in yet">Pre-order</span>' : "";
-    const canGo = isMgr() && r.can_proceed && r.same_location;
-    const why = !r.same_location ? "This order ships from another branch — transfer the stock or change the order's branch first"
-              : !r.can_proceed ? `Only a confirmed order can proceed (this one is ${r.so_status})`
-              : !isMgr() ? "Managers proceed backorders" : "";
-    return `<tr class="${r.same_location ? "" : "other"}">
-      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a>${kindTag}
-        <div class="dim" style="font-size:11px">ordered ${esc(r.order_date || "")}</div></td>
-      <td>${esc(r.customer_name || "")}${r.contact_name ? `<div class="ctc">${esc(r.contact_name)}</div>` : ""}${contact ? `<div class="ctc">${contact}</div>` : '<div class="ctc">no default contact</div>'}</td>
-      <td class="num">${esc(r.days_waiting ?? "")}${r.days_waiting !== null && r.days_waiting !== undefined ? "d" : ""}</td>
-      <td class="num">${qty(r.qty_open)}${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.qty_base)} EA</div>` : ""}${r.via_combo ? '<div class="dim" style="font-size:11px">in a combo</div>' : ""}</td>
-      <td class="num">${r.same_location ? (Number(r.can_fill_base) > 0 ? `<b>${qty(r.can_fill_units)}</b>${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.can_fill_base)} EA</div>` : ""}` : '<span class="dim">0</span>') : '<span class="tag" title="Ruling 488 — shown so nobody is missed; it needs a transfer or a branch change before it can proceed">Other branch · ' + esc(r.location_name || "") + "</span>"}</td>
-      <td>${canGo ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" data-others="${esc(r.order_other_skus || 0)}" title="Reserve what is in stock now for this order (manager)">proceed</button>` : `<span class="dim" style="font-size:11px" title="${esc(why)}">—</span>`}
-        ${r.proceed_moves_other_skus ? `<div class="warnline" title="Proceed takes the whole order">+${esc(r.order_other_skus)} other SKU${Number(r.order_other_skus) === 1 ? "" : "s"} on this order</div>` : ""}</td>
-    </tr>`;
-  };
+  const row = (r) => waitRow(r, false);
   aDrawPane(`
     <div class="ahead">
-      <h3><span class="mono">${esc(data.sku || "")}</span> at ${esc(data.location_name || "")}</h3>
+      <div class="atitle"><span class="mono">${esc(data.sku || "")}</span> at ${esc(data.location_name || "")}</div>
       <div class="dim">${esc(data.product_name || "")}</div>
     </div>
     <div class="stats">
@@ -392,6 +382,52 @@ async function aWaiting(){
       : '<div class="msg">Nobody is waiting for this SKU now.</div>'}
     <div class="sosub">Can fill is a preview: stock here is shared out to the longest-waiting lines first. Proceed works on a whole order — every open backorder and pre-order line on that order is reserved if stock is here, not only this SKU — and re-checks stock when you press it. Customers at other branches are listed so nobody is missed; move the stock or change the order's branch before proceeding.</div>`);
   document.querySelectorAll("#aPane [data-proceed]").forEach(b => {
+    b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, Number(b.dataset.others) || 0);
+  });
+}
+
+function waitRow(r, showProduct){
+    const contact = [r.contact_email ? `<a href="mailto:${esc(r.contact_email)}">${esc(r.contact_email)}</a>` : "",
+                     r.contact_phone ? esc(r.contact_phone) : "", r.contact_mobile ? esc(r.contact_mobile) + " (mobile)" : ""].filter(Boolean).join(" · ");
+    const kindTag = r.kind === "preorder" ? ' <span class="tag disc" title="A confirmed order waiting for stock that had not come in yet">Pre-order</span>' : "";
+    const canGo = isMgr() && r.can_proceed && r.same_location;
+    const why = !r.same_location ? "This order ships from another branch — transfer the stock or change the order's branch first"
+              : !r.can_proceed ? `Only a confirmed order can proceed (this one is ${r.so_status})`
+              : !isMgr() ? "Managers proceed backorders" : "";
+    return `<tr class="${r.same_location ? "" : "other"}">
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a>${kindTag}
+        <div class="dim" style="font-size:11px">ordered ${esc(r.order_date || "")}</div></td>
+      ${showProduct ? `<td><span class="mono">${esc(r.stock_sku || r.sku || "")}</span>${r.is_combo ? ' <span class="tag" title="Counted in whole combos — every component is here">combo</span>' : ""}${r.arrived_in_period ? ' <span class="tag disc" title="Stock for this came in during the last 30 days — also listed under the arrival below">came in recently</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(r.stock_name || r.product_name || "")}</div><div class="dim" style="font-size:11px">here now ${qty(r.available_now_base)} EA</div></td>` : ""}
+      <td>${esc(r.customer_name || "")}${r.contact_name ? `<div class="ctc">${esc(r.contact_name)}</div>` : ""}${contact ? `<div class="ctc">${contact}</div>` : '<div class="ctc">no default contact</div>'}</td>
+      <td class="num">${esc(r.days_waiting ?? "")}${r.days_waiting !== null && r.days_waiting !== undefined ? "d" : ""}</td>
+      <td class="num">${qty(r.qty_open)}${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.qty_base)} EA</div>` : ""}${r.via_combo ? '<div class="dim" style="font-size:11px">in a combo</div>' : ""}</td>
+      <td class="num">${r.same_location ? (Number(r.can_fill_base) > 0 ? `<b>${qty(r.can_fill_units)}</b>${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.can_fill_base)} EA</div>` : ""}` : '<span class="dim">0</span>') : '<span class="tag" title="Ruling 488 — shown so nobody is missed; it needs a transfer or a branch change before it can proceed">Other branch · ' + esc(r.location_name || "") + "</span>"}</td>
+      <td>${canGo ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" data-others="${esc(r.order_other_skus || 0)}" title="Reserve what is in stock now for this order (manager)">proceed</button>` : `<span class="dim" style="font-size:11px" title="${esc(why)}">—</span>`}
+        ${r.proceed_moves_other_skus ? `<div class="warnline" title="Proceed takes the whole order">+${esc(r.order_other_skus)} other SKU${Number(r.order_other_skus) === 1 ? "" : "s"} on this order</div>` : ""}</td>
+    </tr>`;
+  }
+
+/* v4a — 판정 490: 지금 보낼 수 있는 백오더 — 입고와 상관없이 그 오더 창고에 가용이 있어 can_fill > 0 인 confirmed 오더의 열린 백오더 · 프리오더 줄
+   읽기 so_backorder_ready(p_filters) (asung-wms 20261015024520 bo-2b) · 거르기는 Arrivals 의 창고 · 공급처(제품 기본) · 브랜드 · SKU 를 같이 쓴다(받은 날은 안 씀) */
+async function rLoad(){
+  const box = document.getElementById("aReady");
+  const f = { limit: 100 };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("location_id", val("aLoc")); put("supplier_id", val("aSup")); put("brand_id", val("aBrand")); put("sku", val("aSku").trim());
+  const { data, error } = await sb.rpc("so_backorder_ready", { p_filters: f });
+  if(error){ box.innerHTML = `<div class="rhead"><span class="ttl">Ready to ship now</span></div><div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data.rows || [], total = Number(data.total ?? rows.length);
+  const orders = data.orders ?? new Set(rows.map(r => r.so_id)).size;
+  if(!rows.length){
+    box.innerHTML = `<div class="rhead"><span class="ttl">Ready to ship now</span><span class="dim">Nothing that customers are waiting for can ship from stock right now.</span></div>`;
+    return;
+  }
+  box.innerHTML = `<div class="rhead"><span class="ttl">Ready to ship now</span>
+      <span class="dim">${esc(total)} line${total === 1 ? "" : "s"} on ${esc(orders)} order${Number(orders) === 1 ? "" : "s"} — stock is in the order's branch now, whether or not it came in recently</span></div>
+    <div class="rbody"><table><thead><tr><th>Order</th><th>Product</th><th>Customer</th><th class="num">Waiting</th><th class="num">Open</th><th class="num">Can fill</th><th></th></tr></thead>
+      <tbody>${rows.map(r => waitRow(r, true)).join("")}</tbody></table></div>
+    ${total > rows.length ? `<div class="sosub">Showing the first ${rows.length} of ${total} lines — narrow with the filters above.</div>` : ""}`;
+  box.querySelectorAll("[data-proceed]").forEach(b => {
     b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, Number(b.dataset.others) || 0);
   });
 }
@@ -431,7 +467,7 @@ async function iLoad(){
   document.getElementById("iStats").innerHTML = `
     <div class="stat">SKUs on backorder now<b>${qty(sh.stock_sku_open_backorder)}</b><span class="ssub">${pct(sh.pct_open)} of ${qty(sh.stock_sku_active)} active SKUs</span></div>
     <div class="stat">SKUs backordered in period<b>${qty(sh.stock_sku_backordered_in_period)}</b><span class="ssub">${pct(sh.pct_in_period)} of active SKUs</span></div>
-    <div class="stat">Ordered<b>${money(ls.ordered_amount)}</b><span class="ssub">${qty(ls.ordered_orders)} confirmed order${Number(ls.ordered_orders) === 1 ? "" : "s"}</span></div>
+    <div class="stat">Ordered<b>${money(ls.ordered_amount)}</b><span class="ssub">${qty(ls.ordered_orders)} confirmed order${Number(ls.ordered_orders) === 1 ? "" : "s"}${f.sku || f.brand_id || f.supplier_id ? " · these SKUs only" : ""}</span></div>
     <div class="stat">Could not ship on time<b>${money(ls.backordered_amount)}</b><span class="ssub">${qty(ls.backordered_qty)} units went on backorder</span></div>
     <div class="stat loss">Lost sales<b>${money(ls.lost_amount)}</b><span class="ssub">${pct(ls.pct_of_ordered)} of ordered · ${qty(ls.lost)} units</span></div>`;
   const warn = [];
@@ -439,7 +475,7 @@ async function iLoad(){
   if(Array.isArray(ls.currencies) && ls.currencies.length > 1) warn.push(`<span class="chip bad" title="Amounts in different currencies are added together here">Currencies mixed: ${esc(ls.currencies.join(", "))}</span>`);
   if(data.truncated) warn.push('<span class="chip bad" title="The SKU list stopped at 1,000 backorder groups — narrow the filters">SKU list incomplete — narrow the filters</span>');
   document.getElementById("iBasis").innerHTML = `
-    <span>Lost sales = what was lost during ${esc(per.label)} ÷ orders confirmed during ${esc(per.label)}. Each lost piece counts on the day it was lost.</span>
+    <span>Lost sales = what was lost during ${esc(per.label)} ÷ orders confirmed during ${esc(per.label)}${f.sku || f.brand_id || f.supplier_id ? " for the same SKUs" : ""}. Each lost piece counts on the day it was lost. Lines marked as not real demand are left out of both lost sales and could-not-ship.</span>
     <span class="chips">
       <span class="chip" title="The customer re-ordered less than was waiting">No longer wanted ${money(lb.unwanted)} · ${qty(lq.unwanted)}</span>
       <span class="chip" title="Closed after waiting too long">Expired ${money(lb.expired)} · ${qty(lq.expired)}</span>
