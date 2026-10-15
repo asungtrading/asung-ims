@@ -1,18 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-ims-mode="ims">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Backorders · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
-  /* 이 화면에만 있는 것 — 백오더는 「줄」이 단위라 목록 한 장(상세 칸 없음) · 모달은 so 화면들과 같은 모양 */
+  /* 이 화면에만 있는 것 — 탭 셋(bo v4 · 판정 485 · 489) · 백오더는 「줄」이 단위 · 모달은 so 화면들과 같은 모양 */
   .bowrap{padding:14px;display:flex;flex-direction:column;gap:14px}
+  .botabs{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .seg button{border:0;background:#fff;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--muted);font-weight:600}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:#3b5bdb;color:#fff}
+  .botabs .hint{font-size:12px;color:var(--muted)}
   .bofilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
   .bofilt select,.bofilt input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
   .bofilt .sp{flex:1}
   .bofilt .dash{color:var(--muted);font-size:12px}
   .bofilt .cust{min-width:220px}
+  .bofilt label.ck{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted)}
   .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
   .bosum{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
   tr.grp td{background:#fafbfd;font-weight:600;font-size:12.5px}
@@ -27,6 +34,30 @@
   .bofoot .sp{flex:1}
   .bofoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
   .bofoot button:disabled{opacity:.4;cursor:default}
+  /* Arrivals — 왼쪽 입고 · 오른쪽 기다리는 손님(판정 485 ④ · 488) */
+  .arr{display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:14px;align-items:start}
+  @media (max-width:1100px){ .arr{grid-template-columns:1fr} }
+  .arr .card{min-width:0}
+  .alist{max-height:calc(100vh - 260px);overflow:auto}
+  .alist tbody tr{cursor:pointer}
+  .alist tbody tr.cur td{background:#eef2ff}
+  .apane .ahead{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .apane .ahead h3{margin:0;font-size:15px}
+  .apane .ahead .dim{font-size:12px}
+  tr.other td{color:#8a93a3;background:#fcfcfd}
+  tr.other td a.lnk{color:#6b7686}
+  .ctc{font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-all}
+  .ctc a{color:inherit}
+  .warnline{font-size:11.5px;color:var(--warn);margin-top:3px}
+  /* Insights — ① ② ③ (판정 485 · 486 · 487) */
+  .stat .ssub{display:block;font-size:11px;color:var(--muted);margin-top:2px;font-family:inherit;font-weight:400}
+  .stat.loss b{color:var(--bad)}
+  .basis{padding:8px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .ilist tbody tr{cursor:pointer}
+  .flagf{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fafbfd;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .flagf select,.flagf input{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
+  .flagf input{flex:1;min-width:180px}
+  .pobox.wide{width:min(1100px,96vw);max-width:96vw}
 </style>
 </head>
 <body>
@@ -41,42 +72,114 @@
 </header>
 
 <div class="bowrap">
-  <div class="card">
-    <div class="bofilt">
-      <select id="fState" title="State">
-        <option value="open">Open</option>
-        <option value="ended">Ended (backorders)</option>
-        <option value="all">All</option>
-      </select>
-      <select id="fKind" title="Backorder or pre-order">
-        <option value="">Backorders and pre-orders</option><option value="backorder">Backorders only</option><option value="preorder">Pre-orders only</option>
-      </select>
-      <select id="fLoc" title="Branch"><option value="">All branches</option></select>
-      <button class="pobtn cust" id="fCust" title="Pick a customer">All customers</button>
-      <select id="fSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
-      <select id="fBrand" title="Brand"><option value="">All brands</option></select>
-      <input type="search" id="fSku" placeholder="SKU starts with" style="width:150px">
-      <select id="fArr" title="Stock arrived since the backorder">
-        <option value="">Arrived — any</option><option value="true">Arrived since</option><option value="false">Not arrived yet</option>
-      </select>
-      <input type="date" id="fFrom" title="Ordered from"><span class="dash">—</span><input type="date" id="fTo" title="Ordered to">
-      <select id="fEnd" title="How it ended" hidden>
-        <option value="">Ended — any way</option>
-        <option value="superseded">Taken over by a new order</option>
-        <option value="proceeded">Proceeded (stock reserved)</option>
-        <option value="expired">Expired</option>
-        <option value="cancelled">Cancelled</option>
-        <option value="merged">Merged</option>
-      </select>
-      <button class="pobtn" id="fClear">Clear</button>
+  <div class="botabs">
+    <div class="seg" id="tabs">
+      <button data-tab="arrivals" title="Stock that came in and the customers waiting for it">Arrivals</button>
+      <button data-tab="insights" title="How much we lose to backorders and which SKUs keep missing">Insights</button>
+      <button data-tab="all" title="Every backorder and pre-order line">All backorders</button>
     </div>
-    <div class="bosum" id="sum"><span class="dim">Loading…</span></div>
-    <div id="rows"><div class="msg">Loading…</div></div>
-    <div class="bofoot">
-      <span class="range" id="range"></span><span class="sp"></span>
-      <button id="prev">←</button><button id="next">→</button>
-    </div>
+    <span class="hint" id="tabHint"></span>
   </div>
+
+  <!-- ══ Arrivals ══════════════════════════════════════ -->
+  <section id="paneArrivals" hidden>
+    <div class="card" style="margin-bottom:14px">
+      <div class="bofilt">
+        <select id="aLoc" title="Branch the stock came into"><option value="">All branches</option></select>
+        <select id="aSup" title="Supplier of the receipt"><option value="">All suppliers</option><option value="none">Supplier unknown</option></select>
+        <select id="aBrand" title="Brand"><option value="">All brands</option></select>
+        <input type="search" id="aSku" placeholder="SKU starts with" style="width:150px" autocomplete="off">
+        <input type="date" id="aFrom" title="Received from"><span class="dash">—</span><input type="date" id="aTo" title="Received to">
+        <label class="ck" title="Also list stock that came in with nobody waiting for it"><input type="checkbox" id="aAll"> Include arrivals nobody waits for</label>
+        <span class="sp"></span>
+        <button class="pobtn" id="aClear">Clear</button>
+      </div>
+      <div class="sosub" id="aRule" style="border-top:0">Loading…</div>
+    </div>
+    <div class="arr">
+      <div class="card">
+        <div class="alist" id="aRows"><div class="msg">Loading…</div></div>
+        <div class="bofoot"><span class="range" id="aRange"></span><span class="sp"></span><button id="aPrev">←</button><button id="aNext">→</button></div>
+      </div>
+      <div class="card apane" id="aPane"><div class="msg">Pick an arrival on the left to see who is waiting for it.</div></div>
+    </div>
+  </section>
+
+  <!-- ══ Insights ══════════════════════════════════════ -->
+  <section id="paneInsights" hidden>
+    <div class="card">
+      <div class="bofilt">
+        <select id="iPer" title="Period">
+          <option value="month">This month</option>
+          <option value="d30">Last 30 days</option>
+          <option value="d90">Last 90 days</option>
+          <option value="year">This year</option>
+          <option value="all">All time</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <span id="iCustom" hidden><input type="date" id="iFrom" title="From"><span class="dash"> — </span><input type="date" id="iTo" title="To"></span>
+        <select id="iLoc" title="Branch"><option value="">All branches</option></select>
+        <select id="iSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
+        <select id="iBrand" title="Brand"><option value="">All brands</option></select>
+        <input type="search" id="iSku" placeholder="SKU starts with" style="width:150px" autocomplete="off">
+        <select id="iSort" title="Sort the SKU list">
+          <option value="lost_amount">Sort: lost sales $</option>
+          <option value="lost">Sort: lost units</option>
+          <option value="customers_waiting">Sort: customers waiting</option>
+          <option value="repeat_asks">Sort: asked again</option>
+          <option value="days_waiting_max">Sort: longest wait</option>
+          <option value="open_backorder">Sort: open backorder</option>
+          <option value="demand_then">Sort: demand</option>
+        </select>
+        <span class="sp"></span>
+        <button class="pobtn" id="iClear">Clear</button>
+      </div>
+      <div class="stats" id="iStats"><span class="dim">Loading…</span></div>
+      <div class="basis" id="iBasis"></div>
+      <div class="ilist" id="iRows"><div class="msg">Loading…</div></div>
+      <div class="sosub" id="iFoot"></div>
+    </div>
+  </section>
+
+  <!-- ══ All backorders (bo v3a 그대로) ═══════════════════ -->
+  <section id="paneAll" hidden>
+    <div class="card">
+      <div class="bofilt">
+        <select id="fState" title="State">
+          <option value="open">Open</option>
+          <option value="ended">Ended (backorders)</option>
+          <option value="all">All</option>
+        </select>
+        <select id="fKind" title="Backorder or pre-order">
+          <option value="">Backorders and pre-orders</option><option value="backorder">Backorders only</option><option value="preorder">Pre-orders only</option>
+        </select>
+        <select id="fLoc" title="Branch"><option value="">All branches</option></select>
+        <button class="pobtn cust" id="fCust" title="Pick a customer">All customers</button>
+        <select id="fSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
+        <select id="fBrand" title="Brand"><option value="">All brands</option></select>
+        <input type="search" id="fSku" placeholder="SKU starts with" style="width:150px" autocomplete="off">
+        <select id="fArr" title="Stock arrived since the backorder">
+          <option value="">Arrived — any</option><option value="true">Arrived since</option><option value="false">Not arrived yet</option>
+        </select>
+        <input type="date" id="fFrom" title="Ordered from"><span class="dash">—</span><input type="date" id="fTo" title="Ordered to">
+        <select id="fEnd" title="How it ended" hidden>
+          <option value="">Ended — any way</option>
+          <option value="superseded">Taken over by a new order</option>
+          <option value="proceeded">Proceeded (stock reserved)</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="merged">Merged</option>
+        </select>
+        <button class="pobtn" id="fClear">Clear</button>
+      </div>
+      <div class="bosum" id="sum"><span class="dim">Loading…</span></div>
+      <div id="rows"><div class="msg">Loading…</div></div>
+      <div class="bofoot">
+        <span class="range" id="range"></span><span class="sp"></span>
+        <button id="prev">←</button><button id="next">→</button>
+      </div>
+    </div>
+  </section>
 </div>
 
 <div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
@@ -87,15 +190,23 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   Backorders — 백오더 화면 1판 (2026-09-25 · 대화 Claude)
-   읽기: so_backorder_list(p_filters jsonb) — 분류 여덟 · 무상 줄(owed) · 창고별 가용 · 손님·제품·주문일 순 (asung-wms 20260924153856 · 정본 §15 ③c)
-   쓰기: so_backorder_proceed(p_so_id, p_commit) — manager · 미리 보기(false) → 진행(true) · 재고가 들어온 백오더를 지금 잡는다
-   ⭐ 백오더는 「줄」이 단위다 — 오더를 나눈 형제(SO-25001a)의 열린 backorder 예약 + 끝난 장부 줄
-   ⭐ 입고됨(arrived) = 백오더가 생긴 뒤 그 창고에 po_in 이나 다른 창고에서 온 트랜스퍼가 있었다(조정 · 반품 · 조립 · 출발 없는 도착은 안 셈 · 판정 6·7)
-   ⚠️ 알림(notified)은 아직 IMS 가 쓰지 않는다 — 입고 메일은 GAS 가 Cin7 에서 보낸다. 「—」는 「안 보냈다」가 아니다
-   ⚠️ 가용 · 입고 판정 · 이어받기는 DB 가 한다 — 화면이 다시 계산하지 마라
+   Backorders — 백오더 화면 (bo v4 · 2026-10-14 · 대화 Claude · 판정 485 ~ 489)
+   탭 셋 — 처음 열리는 탭은 Arrivals(판정 489 · ?tab=insights|all 로 바로)
+     Arrivals  ④ 입고 → 기다리는 손님 → 진행
+               읽기 so_backorder_arrivals(p_filters) · so_backorder_waiting(p_product_id, p_location_id)  (asung-wms 20261015015435 bo-2 · 347 · 256 행)
+               ⭐ 같은 창고 손님이 위 · 다른 창고 손님은 아래 회색 + 「Other branch」(판정 488 — 진행 전에 트랜스퍼 · 창고 바꾸기)
+               ⭐ can_fill 은 미리 보기 셈(같은 창고 · 오래 기다린 줄부터) — 진행 창구가 그때 다시 계산한다
+               ⭐ 진행은 오더 한 장 전부(proceed_moves_other_skus) — 그 오더의 다른 백오더 · 프리오더 줄도 함께 잡힌다
+     Insights  ① 백오더 SKU 비중 · ② 잃은 세일 규모 · ③ 반복해서 못 대는 SKU
+               읽기 so_backorder_overview(p_filters) (20261015015435:58 · bo-1c c6b3cc8 재발행) · 줄 상세 so_backorder_demand(p_filters) (20261015005345:40)
+               ⭐ ② = 기간 안에 잃은 것 ÷ 기간 안 확정 주문(판정 486 · 잃은 몫마다 제 날짜) · 「백오더가 된 금액」 = 덩어리마다 처음 바로 못 보낸 몫(판정 487)
+               ⭐ ③ 의 기간은 「그 기간에 처음 주문된 백오더」(order_from/to → 덩어리 첫 주문일) — ② 와 뜻이 다르다(화면이 밝힌다)
+               쓰기 so_demand_flag_set(p_line_ids, p_reason, p_note) · so_demand_flag_clear(p_line_ids) (20261014234811:289 · 348 · manager · 판정 478)
+     All       bo v3a 목록 그대로 — so_backorder_list(p_filters) · so_backorder_proceed(p_so_id, p_commit)
+   ⚠️ 셈은 DB 가 한다 — 화면이 다시 계산하지 마라(가용 · 입고 · 수요 · 금액)
+   ⚠️ 입고 알림 메일은 아직 IMS 가 보내지 않는다(이관은 다음 차수) — 이 화면에 알림 기록 칸이 없다
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-13 · bo v3a";   // 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-14 · bo v4";   // 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -110,6 +221,11 @@ let owedOnly = false;
 const qty = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
   : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+/* bo v4 — 금액(CAD · 할인 뒤 단가 × 수량 · 세금 · 운임 · 오더 할인 제외 — bo-1c amount_rule) */
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc("$" + Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const pct = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 2 }) + "%");
 /* v1.1 — available_other 는 숫자가 아니라 {창고 이름: 가용 EA} 모양이다(Caleb 화면 시험 2026-09-25 · 「other NaN」) */
 function otherTxt(o){
   if(o === null || o === undefined) return '<span class="dim">—</span>';
@@ -119,6 +235,341 @@ function otherTxt(o){
 }
 const END_LBL = { superseded: "taken over", proceeded: "proceeded", expired: "expired", cancelled: "cancelled", merged: "merged" };
 
+function torontoToday(){
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+function addDays(iso, n){
+  const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+const val = (id) => document.getElementById(id).value;
+
+/* ══ 탭 ══════════════════════════════════════════════ */
+const TABS = { arrivals: "paneArrivals", insights: "paneInsights", all: "paneAll" };
+const TAB_HINT = {
+  arrivals: "What came in, who is waiting for it, and what can go out now.",
+  insights: "How much we lose to backorders and which SKUs keep missing.",
+  all: "Every backorder and pre-order line.",
+};
+const started = { arrivals: false, insights: false, all: false };
+let curTab = "arrivals";
+function showTab(t){
+  if(!TABS[t]) t = "arrivals";
+  curTab = t;
+  Object.entries(TABS).forEach(([k, id]) => { document.getElementById(id).hidden = k !== t; });
+  document.querySelectorAll("#tabs [data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  document.getElementById("tabHint").textContent = TAB_HINT[t];
+  const u = new URL(location.href);
+  if(t === "arrivals") u.searchParams.delete("tab"); else u.searchParams.set("tab", t);
+  history.replaceState(null, "", u.toString());
+  if(!started[t]){
+    started[t] = true;
+    if(t === "arrivals") aLoad();
+    if(t === "insights") iLoad();
+    if(t === "all") load();
+  }
+}
+function reloadCurrent(){
+  if(curTab === "arrivals"){ aLoad(); return; }
+  if(curTab === "insights"){ iLoad(); return; }
+  load();
+}
+
+/* ══ Arrivals ═════════════════════════════════════════ */
+let aOffset = 0, aSel = null;   // aSel = { pid, loc }
+const A_PAGE = 200;
+function aFilters(){
+  const f = { limit: A_PAGE, offset: aOffset };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("location_id", val("aLoc"));
+  put("supplier_id", val("aSup"));
+  put("brand_id", val("aBrand"));
+  put("sku", val("aSku").trim());
+  put("received_from", val("aFrom"));
+  put("received_to", val("aTo"));
+  if(document.getElementById("aAll").checked) f.include_no_waiting = true;
+  return f;
+}
+async function aLoad(){
+  const box = document.getElementById("aRows");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("so_backorder_arrivals", { p_filters: aFilters() });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("aRule").textContent = ""; return; }
+  const rows = data.rows || [];
+  document.getElementById("aRule").innerHTML =
+    `Received ${data.period_from ? esc(data.period_from) : "from the start"} — ${data.period_to ? esc(data.period_to) : "today"} · `
+    + `${esc(Number(data.total || 0).toLocaleString())} arrival${Number(data.total) === 1 ? "" : "s"}${data.include_no_waiting ? "" : " with customers waiting"}. `
+    + `Quantities are in EA. Supplier = the receipt's purchase order, or the product's default supplier for receipts that have no purchase order.`;
+  if(!rows.length){
+    box.innerHTML = `<div class="msg">${data.include_no_waiting ? "Nothing came in during this period." : "Nothing came in for a waiting customer during this period. Widen the dates, or tick \"Include arrivals nobody waits for\"."}</div>`;
+    aPager(data); aDrawPane(null); return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th>Product</th><th>Branch</th><th class="num">Received</th><th class="num">Here now</th><th class="num">Waiting here</th><th class="num">Elsewhere</th><th class="num">Can fill</th>
+    </tr></thead><tbody>${rows.map(r => {
+      const ws = r.waiting_same_location || {}, wo = r.waiting_other_locations || {};
+      const cur = aSel && aSel.pid === r.product_id && aSel.loc === r.location_id;
+      return `<tr data-pid="${esc(r.product_id)}" data-loc="${esc(r.location_id)}" class="${cur ? "cur" : ""}">
+        <td><span class="mono">${esc(r.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div>
+          <div class="dim" style="font-size:11px">${esc(r.supplier_name || "supplier unknown")}${r.supplier_basis === "product_default" ? ' <span class="tag" title="This receipt has no purchase order — the product\'s default supplier is shown">default supplier</span>' : ""}</div></td>
+        <td>${dim(r.location_name)}</td>
+        <td class="num">${qty(r.received_base)}<div class="dim" style="font-size:11px">${esc(r.last_received_on || "")}${Number(r.receipts_n) > 1 ? ` · ${esc(r.receipts_n)} receipts` : ""}</div></td>
+        <td class="num">${qty(r.available_now_base)}</td>
+        <td class="num">${Number(ws.lines) ? `${qty(ws.qty_base)}<div class="dim" style="font-size:11px">${esc(ws.customers)} cust.</div>` : '<span class="dim">0</span>'}</td>
+        <td class="num">${Number(wo.lines) ? `<span class="neutral">${qty(wo.qty_base)}</span><div class="dim" style="font-size:11px">${esc(wo.customers)} cust.</div>` : '<span class="dim">0</span>'}</td>
+        <td class="num">${Number(r.can_fill_now_base) > 0 ? `<b>${qty(r.can_fill_now_base)}</b>` : '<span class="dim">0</span>'}</td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+  box.querySelectorAll("tbody tr[data-pid]").forEach(tr => {
+    tr.onclick = () => {
+      aSel = { pid: tr.dataset.pid, loc: tr.dataset.loc };
+      box.querySelectorAll("tbody tr.cur").forEach(x => x.classList.remove("cur"));
+      tr.classList.add("cur");
+      aWaiting();
+    };
+  });
+  aPager(data);
+  if(aSel && rows.some(r => r.product_id === aSel.pid && r.location_id === aSel.loc)) aWaiting();
+  else { aSel = null; aDrawPane(null); }
+}
+function aPager(data){
+  const n = (data.rows || []).length, total = Number(data.total || 0);
+  const a = total ? aOffset + 1 : 0, b = Math.min(aOffset + n, total);
+  document.getElementById("aRange").textContent = `${a.toLocaleString()}–${b.toLocaleString()} / ${total.toLocaleString()}`;
+  const p = document.getElementById("aPrev"), x = document.getElementById("aNext");
+  p.disabled = aOffset === 0; x.disabled = aOffset + A_PAGE >= total;
+  p.onclick = () => { if(aOffset > 0){ aOffset = Math.max(0, aOffset - A_PAGE); aLoad(); } };
+  x.onclick = () => { aOffset += A_PAGE; aLoad(); };
+}
+const aRefilter = () => { aOffset = 0; aLoad(); };
+function aDrawPane(html){
+  document.getElementById("aPane").innerHTML = html || '<div class="msg">Pick an arrival on the left to see who is waiting for it.</div>';
+}
+async function aWaiting(){
+  if(!aSel) return;
+  aDrawPane('<div class="msg">Loading…</div>');
+  const sel = aSel;
+  const { data, error } = await sb.rpc("so_backorder_waiting", { p_product_id: sel.pid, p_location_id: sel.loc });
+  if(aSel !== sel) return;   // 그 사이 다른 줄을 골랐다
+  if(error){ aDrawPane(`<div class="msg err">${esc(error.message)}</div>`); return; }
+  const rows = data.rows || [], ws = data.waiting_same || {}, wo = data.waiting_other || {};
+  const same = rows.filter(r => r.same_location), other = rows.filter(r => !r.same_location);
+  const row = (r) => {
+    const contact = [r.contact_email ? `<a href="mailto:${esc(r.contact_email)}">${esc(r.contact_email)}</a>` : "",
+                     r.contact_phone ? esc(r.contact_phone) : "", r.contact_mobile ? esc(r.contact_mobile) + " (mobile)" : ""].filter(Boolean).join(" · ");
+    const kindTag = r.kind === "preorder" ? ' <span class="tag disc" title="A confirmed order waiting for stock that had not come in yet">Pre-order</span>' : "";
+    const canGo = isMgr() && r.can_proceed && r.same_location;
+    const why = !r.same_location ? "This order ships from another branch — transfer the stock or change the order's branch first"
+              : !r.can_proceed ? `Only a confirmed order can proceed (this one is ${r.so_status})`
+              : !isMgr() ? "Managers proceed backorders" : "";
+    return `<tr class="${r.same_location ? "" : "other"}">
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a>${kindTag}
+        <div class="dim" style="font-size:11px">ordered ${esc(r.order_date || "")}</div></td>
+      <td>${esc(r.customer_name || "")}${r.contact_name ? `<div class="ctc">${esc(r.contact_name)}</div>` : ""}${contact ? `<div class="ctc">${contact}</div>` : '<div class="ctc">no default contact</div>'}</td>
+      <td class="num">${esc(r.days_waiting ?? "")}${r.days_waiting !== null && r.days_waiting !== undefined ? "d" : ""}</td>
+      <td class="num">${qty(r.qty_open)}${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.qty_base)} EA</div>` : ""}${r.via_combo ? '<div class="dim" style="font-size:11px">in a combo</div>' : ""}</td>
+      <td class="num">${r.same_location ? (Number(r.can_fill_base) > 0 ? `<b>${qty(r.can_fill_units)}</b>${Number(r.base_per_unit) !== 1 ? `<div class="dim" style="font-size:11px">${qty(r.can_fill_base)} EA</div>` : ""}` : '<span class="dim">0</span>') : '<span class="tag" title="Ruling 488 — shown so nobody is missed; it needs a transfer or a branch change before it can proceed">Other branch · ' + esc(r.location_name || "") + "</span>"}</td>
+      <td>${canGo ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" data-others="${esc(r.order_other_skus || 0)}" title="Reserve what is in stock now for this order (manager)">proceed</button>` : `<span class="dim" style="font-size:11px" title="${esc(why)}">—</span>`}
+        ${r.proceed_moves_other_skus ? `<div class="warnline" title="Proceed takes the whole order">+${esc(r.order_other_skus)} other SKU${Number(r.order_other_skus) === 1 ? "" : "s"} on this order</div>` : ""}</td>
+    </tr>`;
+  };
+  aDrawPane(`
+    <div class="ahead">
+      <h3><span class="mono">${esc(data.sku || "")}</span> at ${esc(data.location_name || "")}</h3>
+      <div class="dim">${esc(data.product_name || "")}</div>
+    </div>
+    <div class="stats">
+      <div class="stat">Here now<b>${qty(data.available_now_base)}</b></div>
+      <div class="stat">Waiting here<b>${qty(ws.qty_base)}</b><span class="ssub">${esc(ws.customers || 0)} customer${Number(ws.customers) === 1 ? "" : "s"} · ${esc(ws.lines || 0)} line${Number(ws.lines) === 1 ? "" : "s"}</span></div>
+      <div class="stat">Can fill now<b>${qty(data.can_fill_now_base)}</b><span class="ssub">EA, longest wait first</span></div>
+      ${Number(wo.lines) ? `<div class="stat warn">Other branches<b>${qty(wo.qty_base)}</b><span class="ssub">${esc(wo.customers)} customer${Number(wo.customers) === 1 ? "" : "s"}</span></div>` : ""}
+    </div>
+    ${rows.length ? `<table><thead><tr><th>Order</th><th>Customer</th><th class="num">Waiting</th><th class="num">Open</th><th class="num">Can fill</th><th></th></tr></thead>
+      <tbody>${same.map(row).join("")}${other.length ? `<tr class="grp"><td colspan="6">Waiting at other branches</td></tr>${other.map(row).join("")}` : ""}</tbody></table>`
+      : '<div class="msg">Nobody is waiting for this SKU now.</div>'}
+    <div class="sosub">Can fill is a preview: stock here is shared out to the longest-waiting lines first. Proceed works on a whole order — every open backorder and pre-order line on that order is reserved if stock is here, not only this SKU — and re-checks stock when you press it. Customers at other branches are listed so nobody is missed; move the stock or change the order's branch before proceeding.</div>`);
+  document.querySelectorAll("#aPane [data-proceed]").forEach(b => {
+    b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, Number(b.dataset.others) || 0);
+  });
+}
+
+/* ══ Insights ═════════════════════════════════════════ */
+function iPeriod(){
+  const t = torontoToday(), p = val("iPer");
+  if(p === "month") return { from: t.slice(0, 8) + "01", to: t, label: "this month" };
+  if(p === "d30") return { from: addDays(t, -29), to: t, label: "the last 30 days" };
+  if(p === "d90") return { from: addDays(t, -89), to: t, label: "the last 90 days" };
+  if(p === "year") return { from: t.slice(0, 4) + "-01-01", to: t, label: "this year" };
+  if(p === "custom") return { from: val("iFrom") || null, to: val("iTo") || null, label: "the chosen dates" };
+  return { from: null, to: null, label: "all time" };
+}
+function iFilters(){
+  const per = iPeriod();
+  const f = { sort: val("iSort"), limit: 200 };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("order_from", per.from); put("order_to", per.to);
+  put("location_id", val("iLoc"));
+  put("supplier_id", val("iSup"));
+  put("brand_id", val("iBrand"));
+  put("sku", val("iSku").trim());
+  return { f, per };
+}
+let iLast = null;
+async function iLoad(){
+  const box = document.getElementById("iRows");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  document.getElementById("iStats").innerHTML = '<span class="dim">Loading…</span>';
+  const { f, per } = iFilters();
+  const { data, error } = await sb.rpc("so_backorder_overview", { p_filters: f });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("iStats").innerHTML = ""; document.getElementById("iBasis").innerHTML = ""; return; }
+  iLast = { data, f, per };
+  const sh = data.share || {}, ls = data.lost_sales || {};
+  const lb = ls.lost_amount_by || {}, lq = ls.lost_by || {};
+  document.getElementById("iStats").innerHTML = `
+    <div class="stat">SKUs on backorder now<b>${qty(sh.stock_sku_open_backorder)}</b><span class="ssub">${pct(sh.pct_open)} of ${qty(sh.stock_sku_active)} active SKUs</span></div>
+    <div class="stat">SKUs backordered in period<b>${qty(sh.stock_sku_backordered_in_period)}</b><span class="ssub">${pct(sh.pct_in_period)} of active SKUs</span></div>
+    <div class="stat">Ordered<b>${money(ls.ordered_amount)}</b><span class="ssub">${qty(ls.ordered_orders)} confirmed order${Number(ls.ordered_orders) === 1 ? "" : "s"}</span></div>
+    <div class="stat">Could not ship on time<b>${money(ls.backordered_amount)}</b><span class="ssub">${qty(ls.backordered_qty)} units went on backorder</span></div>
+    <div class="stat loss">Lost sales<b>${money(ls.lost_amount)}</b><span class="ssub">${pct(ls.pct_of_ordered)} of ordered · ${qty(ls.lost)} units</span></div>`;
+  const warn = [];
+  if(Number(ls.lost_price_missing) > 0) warn.push(`<span class="chip warn" title="Some lost lines have no price — they count in units but not in $">${esc(ls.lost_price_missing)} lost line${Number(ls.lost_price_missing) === 1 ? "" : "s"} without a price</span>`);
+  if(Array.isArray(ls.currencies) && ls.currencies.length > 1) warn.push(`<span class="chip bad" title="Amounts in different currencies are added together here">Currencies mixed: ${esc(ls.currencies.join(", "))}</span>`);
+  if(data.truncated) warn.push('<span class="chip bad" title="The SKU list stopped at 1,000 backorder groups — narrow the filters">SKU list incomplete — narrow the filters</span>');
+  document.getElementById("iBasis").innerHTML = `
+    <span>Lost sales = what was lost during ${esc(per.label)} ÷ orders confirmed during ${esc(per.label)}. Each lost piece counts on the day it was lost.</span>
+    <span class="chips">
+      <span class="chip" title="The customer re-ordered less than was waiting">No longer wanted ${money(lb.unwanted)} · ${qty(lq.unwanted)}</span>
+      <span class="chip" title="Closed after waiting too long">Expired ${money(lb.expired)} · ${qty(lq.expired)}</span>
+      <span class="chip" title="The order or line was cancelled">Cancelled ${money(lb.cancelled)} · ${qty(lq.cancelled)}</span>
+      <span class="chip" title="Taken off the order when it was finalized">Removed ${money(lb.removed)} · ${qty(lq.removed)}</span>
+      ${warn.join("")}
+    </span>`;
+  const rows = data.rows || [];
+  if(!rows.length){
+    box.innerHTML = `<div class="msg">No backorders were first ordered during ${esc(per.label)}${f.location_id || f.supplier_id || f.brand_id || f.sku ? " with these filters" : ""}.</div>`;
+    document.getElementById("iFoot").textContent = "";
+    return;
+  }
+  box.innerHTML = `<table><thead><tr>
+      <th class="num">#</th><th>Product</th><th>Supplier</th>
+      <th class="num">Waiting now</th><th class="num">Customers</th><th class="num">Asked again</th><th class="num">Longest wait</th>
+      <th class="num">Wanted</th><th class="num">Sold</th><th class="num">Lost</th><th class="num">Open</th><th>Last stock in</th>
+    </tr></thead><tbody>${rows.map(r => `<tr data-pid="${esc(r.product_id)}">
+      <td class="num dim">${esc(r.rank)}</td>
+      <td><span class="mono">${esc(r.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div><div class="dim" style="font-size:11px">${esc(r.brand_name || "")}</div></td>
+      <td>${r.supplier_name ? esc(r.supplier_name) : '<span class="dim">no default supplier</span>'}</td>
+      <td class="num">${Number(r.customers_waiting) ? `<b>${esc(r.customers_waiting)}</b>` : '<span class="dim">0</span>'}</td>
+      <td class="num">${esc(r.customers_in_period)}</td>
+      <td class="num">${Number(r.repeat_asks) ? `${esc(r.repeat_asks)}<div class="dim" style="font-size:11px">${esc(r.repeat_customers)} cust.</div>` : '<span class="dim">0</span>'}</td>
+      <td class="num">${r.days_waiting_max !== null && r.days_waiting_max !== undefined ? esc(r.days_waiting_max) + "d" : '<span class="dim">—</span>'}${r.days_waiting_avg !== null && r.days_waiting_avg !== undefined ? `<div class="dim" style="font-size:11px">avg ${esc(r.days_waiting_avg)}d</div>` : ""}</td>
+      <td class="num">${qty(r.demand_then)}</td>
+      <td class="num">${qty(r.sold)}</td>
+      <td class="num">${Number(r.lost) ? `<b>${money(r.lost_amount)}</b><div class="dim" style="font-size:11px">${qty(r.lost)} units</div>` : '<span class="dim">0</span>'}${Number(r.flagged) ? `<div class="dim" style="font-size:11px">${qty(r.flagged)} flagged</div>` : ""}</td>
+      <td class="num">${Number(r.open_backorder) ? `${qty(r.open_backorder)}<div class="dim" style="font-size:11px">${money(r.open_backorder_amount)}</div>` : '<span class="dim">0</span>'}</td>
+      <td>${r.last_receipt_on ? esc(r.last_receipt_on) : '<span class="dim">never</span>'}${r.no_receipt_since_first_ask ? '<div><span class="tag off" title="No stock has come in since the first customer asked for it">nothing in since first ask</span></div>' : ""}</td>
+    </tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("tbody tr[data-pid]").forEach(tr => {
+    const r = rows.find(x => x.product_id === tr.dataset.pid);
+    tr.onclick = () => openSkuDetail(r);
+  });
+  document.getElementById("iFoot").innerHTML =
+    `SKU list = backorders first ordered during ${esc(per.label)} (a different date than lost sales above). Waiting now and longest wait count today's open backorders. `
+    + `Asked again = the customer ordered the SKU again while still waiting. Wanted = sold + lost + in progress + open. Click a SKU to see its orders${isMgr() ? " and mark lost sales that were not real demand" : ""}.`
+    + (Number(data.total_skus) > rows.length ? ` Showing the first ${rows.length.toLocaleString()} of ${Number(data.total_skus).toLocaleString()} SKUs.` : "");
+}
+
+const FLAG_LBL = { staff_error: "Staff error", duplicate: "Duplicate entry", test: "Test", other: "Other" };
+async function openSkuDetail(r){
+  if(!r) return;
+  modalOpen(`
+    <h4><span class="mono">${esc(r.sku || "")}</span> — ${esc(r.product_name || "")}</h4>
+    <div class="pbody"><div id="sdOut"><div class="msg">Loading…</div></div><div id="sdMsg" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+  document.getElementById("modalBox").classList.add("wide");
+  wireModalClose();
+  let changed = false;
+  const closeBtn = document.querySelector('#modalBox [data-m="close"]');
+  closeBtn.onclick = () => { modalClose(); if(changed) iLoad(); };
+  const draw = async () => {
+    const base = iLast ? iLast.f : {};
+    const f = { product_id: r.product_id, limit: 200 };
+    ["order_from", "order_to", "location_id", "supplier_id", "brand_id"].forEach(k => { if(base[k]) f[k] = base[k]; });
+    const { data, error } = await sb.rpc("so_backorder_demand", { p_filters: f });
+    const out = document.getElementById("sdOut");
+    if(!out) return;
+    if(error){ out.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    const cl = data.rows || [];
+    if(!cl.length){ out.innerHTML = '<div class="msg">No backorders for this SKU with these filters.</div>'; return; }
+    let html = `<table><thead><tr><th>Order</th><th>State</th><th class="num">Ordered</th><th class="num">Sold</th><th class="num">Lost</th><th class="num">In progress</th><th class="num">Open</th><th>Not real demand</th></tr></thead><tbody>`;
+    cl.forEach(c => {
+      html += `<tr class="grp"><td colspan="8">${esc(c.customer_name || "")} · ${esc(c.location_name || "")} — wanted ${qty(c.demand_then)}, sold ${qty(c.sold)}, lost ${qty(c.lost)}${c.lost_amount !== null && c.lost_amount !== undefined ? " (" + money(c.lost_amount) + ")" : ""}</td></tr>`;
+      (c.lines || []).forEach(l => {
+        const lbk = l.lost_by || {};
+        const lostTxt = Number(l.lost) ? [["no longer wanted", lbk.unwanted], ["expired", lbk.expired], ["cancelled", lbk.cancelled], ["removed", lbk.removed]]
+            .filter(x => Number(x[1])).map(x => `${qty(x[1])} ${x[0]}`).join(", ") : "";
+        const fl = l.flag;
+        let flagCell;
+        if(fl){
+          flagCell = `<span class="tag disc" title="${esc((fl.note || "") + (fl.flagged_at ? " · " + new Date(fl.flagged_at).toLocaleString("sv-SE", { timeZone: "America/Toronto" }).slice(0, 16) : ""))}">${esc(FLAG_LBL[fl.reason] || fl.reason)}</span>`
+            + (isMgr() ? ` <button class="xbtn" data-unflag="${esc(l.line_id)}" title="Count this line as demand again">unmark</button>` : "");
+        } else if(Number(l.lost) > 0 && isMgr()){
+          flagCell = `<button class="xbtn" data-flag="${esc(l.line_id)}" data-lbl="${esc(l.so_number + " line " + l.line_no)}" title="Take this lost sale out of the demand count (staff error, duplicate entry, test …)">mark…</button>`;
+        } else flagCell = '<span class="dim">—</span>';
+        html += `<tr>
+          <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(l.so_number)}">${esc(l.so_number)}</a> <span class="dim">#${esc(l.line_no)}</span><div class="dim" style="font-size:11px">${esc(l.order_date || "")}${l.sku !== r.sku ? " · " + esc(l.sku || "") : ""}</div></td>
+          <td>${esc(l.so_status || "")}</td>
+          <td class="num">${qty(l.ordered)}${Number(l.transferred) ? `<div class="dim" style="font-size:11px">${qty(l.transferred)} moved on</div>` : ""}</td>
+          <td class="num">${qty(l.sold)}</td>
+          <td class="num">${Number(l.lost) ? qty(l.lost) : '<span class="dim">0</span>'}${lostTxt ? `<div class="dim" style="font-size:11px">${lostTxt}</div>` : ""}</td>
+          <td class="num">${Number(l.in_progress) ? qty(l.in_progress) : '<span class="dim">0</span>'}</td>
+          <td class="num">${Number(l.open_backorder) ? qty(l.open_backorder) : '<span class="dim">0</span>'}</td>
+          <td>${flagCell}</td>
+        </tr>`;
+      });
+    });
+    html += `</tbody></table>
+      <div class="sohint" style="margin-top:8px">"Moved on" = taken over by a later order or merged into another — counted there, not here. Marking a line as not real demand takes its lost units out of both wanted and lost; orders, stock and the web store are not touched.</div>`;
+    out.innerHTML = html;
+    out.querySelectorAll("[data-flag]").forEach(b => { b.onclick = () => flagForm(b); });
+    out.querySelectorAll("[data-unflag]").forEach(b => {
+      b.onclick = async () => {
+        b.disabled = true;
+        const res = await sb.rpc("so_demand_flag_clear", { p_line_ids: [b.dataset.unflag] });
+        if(res.error){ say("sdMsg", "err", res.error.message); b.disabled = false; return; }
+        changed = true; say("sdMsg", "on", "Counted as demand again."); draw();
+      };
+    });
+  };
+  const flagForm = (b) => {
+    document.querySelectorAll("#sdOut .flagf").forEach(x => x.remove());
+    const tr = b.closest("tr");
+    const holder = document.createElement("tr");
+    holder.className = "flagrow";
+    holder.innerHTML = `<td colspan="8"><div class="flagf">
+        <span>Not real demand — ${esc(b.dataset.lbl)}:</span>
+        <select id="sfReason"><option value="">Pick a reason…</option><option value="staff_error">Staff error</option><option value="duplicate">Duplicate entry</option><option value="test">Test</option><option value="other">Other</option></select>
+        <input type="text" id="sfNote" placeholder="Note (needed for Other)" autocomplete="off">
+        <button class="pobtn go" id="sfSave">Mark</button><button class="pobtn" id="sfCancel">Cancel</button>
+      </div></td>`;
+    tr.after(holder);
+    document.getElementById("sfCancel").onclick = () => holder.remove();
+    document.getElementById("sfSave").onclick = async () => {
+      const reason = val("sfReason"), note = document.getElementById("sfNote").value.trim();
+      if(!reason){ say("sdMsg", "err", "Pick a reason first."); return; }
+      if(reason === "other" && !note){ say("sdMsg", "err", "Write a note for Other."); return; }
+      document.getElementById("sfSave").disabled = true;
+      const res = await sb.rpc("so_demand_flag_set", { p_line_ids: [b.dataset.flag], p_reason: reason, p_note: note || null });
+      if(res.error){ say("sdMsg", "err", res.error.message); document.getElementById("sfSave").disabled = false; return; }
+      changed = true; say("sdMsg", "on", "Marked as not real demand."); draw();
+    };
+  };
+  draw();
+}
+
+/* ══ All backorders (bo v3a) ═══════════════════════════ */
 function filters(){
   const f = { state: document.getElementById("fState").value, limit: PAGE, offset: offset };
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
@@ -194,7 +645,7 @@ async function load(){
       Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder or pre-order was made (adjustments and returns do not count).
       Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here. Arrival email notices are not recorded on this screen yet.</div>`;
   box.innerHTML = html;
-  box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no); });
+  box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, 0); });
   pager(data);
 }
 function pager(data){
@@ -208,7 +659,7 @@ function pager(data){
 const refilter = () => { offset = 0; load(); };
 
 /* ══ 모달 ══════════════════════════════════════════════ */
-function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalOpen(html){ const b = document.getElementById("modalBox"); b.classList.remove("wide"); b.innerHTML = html; document.getElementById("modal").hidden = false; }
 function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
 document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
 function wireModalClose(){ document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; }); }
@@ -246,11 +697,12 @@ function openCustPick(){
 }
 
 /* 진행 — manager · 그 백오더 오더(형제)가 지금 잡을 수 있는 만큼 잡는다 · 못 잡은 몫은 다시 백오더로 이어진다
-   ⭐ 미리 보기는 창구가 트랜잭션 안에서 돌리고 되돌린다(P0777) — 아무것도 안 쓴다 */
-async function openProceed(soId, soNo){
+   ⭐ 미리 보기는 창구가 트랜잭션 안에서 돌리고 되돌린다(P0777) — 아무것도 안 쓴다
+   bo v4 — others: Arrivals 에서 연 진행이 이 SKU 말고도 그 오더의 열린 백오더 · 프리오더 줄 수(proceed_moves_other_skus) · 끝나면 지금 탭을 다시 읽는다 */
+async function openProceed(soId, soNo, others){
   modalOpen(`
     <h4>Proceed ${esc(soNo)} — reserve stock that is here now</h4>
-    <div class="pbody"><div id="prOut"><div class="msg">Checking…</div></div><div id="prMsg" style="margin-top:10px;font-size:12.5px"></div></div>
+    <div class="pbody">${Number(others) > 0 ? `<div class="warnline" style="margin-bottom:8px">This order has ${esc(others)} other SKU${Number(others) === 1 ? "" : "s"} waiting — proceed reserves every line on the order that has stock here, not only the one you picked.</div>` : ""}<div id="prOut"><div class="msg">Checking…</div></div><div id="prMsg" style="margin-top:10px;font-size:12.5px"></div></div>
     <div class="pfoot"><span class="sp"></span>
       <button class="pobtn" data-m="close">Cancel</button>
       <button class="pobtn go" id="prGo" disabled>Proceed</button>
@@ -272,7 +724,7 @@ async function openProceed(soId, soNo){
   /* v1.3 — 잡힐 것이 없으면 진행을 막는다(Caleb 2026-09-25 · 「스탁이 들어오면 자동으로 reserve 한다고 오해」) · Proceed 는 기다려 주지 않는다 */
   const ls = data.lines || [];
   if(ls.length && !ls.some(l => Number(l.allocated) > 0)){
-    say("prMsg", "err", "Nothing can be reserved yet — there is no stock for these lines in this warehouse. Proceed does not wait for stock: press it again after stock arrives (the Stock column shows \"arrived\" when a receipt or transfer lands).");
+    say("prMsg", "err", "Nothing can be reserved yet — there is no stock for these lines in this warehouse. Proceed does not wait for stock: press it again after stock arrives.");
     return;
   }
   document.getElementById("prGo").disabled = false;
@@ -283,7 +735,7 @@ async function openProceed(soId, soNo){
     draw(r.data, true);
     say("prMsg", "on", "Proceeded.");
     const cl = document.querySelector('#modalBox [data-m="close"]');
-    cl.textContent = "Close"; cl.onclick = () => { modalClose(); load(); };
+    cl.textContent = "Close"; cl.onclick = () => { modalClose(); reloadCurrent(); };
   };
 }
 
@@ -300,9 +752,35 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
   ]);
   const fill = (id, rows) => { const s = document.getElementById(id); s.insertAdjacentHTML("beforeend", (rows || []).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("")); };
-  fill("fLoc", wh.data); fill("fSup", sup.data); fill("fBrand", br.data);
+  ["fLoc", "aLoc", "iLoc"].forEach(i => fill(i, wh.data));
+  ["fSup", "aSup", "iSup"].forEach(i => fill(i, sup.data));
+  ["fBrand", "aBrand", "iBrand"].forEach(i => fill(i, br.data));
   [wh, sup, br].forEach(r => { if(r.error) console.warn("list load failed:", r.error.message); });
 
+  /* 탭 */
+  document.querySelectorAll("#tabs [data-tab]").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+
+  /* Arrivals 거르기 */
+  ["aLoc", "aSup", "aBrand", "aFrom", "aTo", "aAll"].forEach(i => { document.getElementById(i).onchange = aRefilter; });
+  imsQ("#aSku", aRefilter);
+  document.getElementById("aClear").onclick = () => {
+    ["aLoc", "aSup", "aBrand", "aSku", "aFrom", "aTo"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("aAll").checked = false;
+    aRefilter();
+  };
+
+  /* Insights 거르기 */
+  document.getElementById("iPer").onchange = () => { document.getElementById("iCustom").hidden = val("iPer") !== "custom"; iLoad(); };
+  ["iFrom", "iTo", "iLoc", "iSup", "iBrand", "iSort"].forEach(i => { document.getElementById(i).onchange = iLoad; });
+  imsQ("#iSku", iLoad);
+  document.getElementById("iClear").onclick = () => {
+    ["iLoc", "iSup", "iBrand", "iSku", "iFrom", "iTo"].forEach(i => document.getElementById(i).value = "");
+    document.getElementById("iPer").value = "month"; document.getElementById("iCustom").hidden = true;
+    document.getElementById("iSort").value = "lost_amount";
+    iLoad();
+  };
+
+  /* All backorders 거르기 (bo v3a) */
   const endSel = document.getElementById("fEnd");
   document.getElementById("fState").onchange = () => { endSel.hidden = document.getElementById("fState").value === "open"; refilter(); };
   ["fKind","fLoc","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
@@ -315,14 +793,16 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
     refilter();
   };
-  /* ?customer=<uuid> · ?sku=ABC 로 들어오면 그 조건으로 */
+  /* ?customer=<uuid> · ?sku=ABC 로 들어오면 All 탭에서 그 조건으로(bo v3a 의 링크 모양 그대로) · ?tab=arrivals|insights|all */
   const pc = imsParam("customer"), ps = imsParam("sku");
+  let tab = imsParam("tab") || "arrivals";
   if(ps) document.getElementById("fSku").value = ps;
   if(pc){
     const { data } = await sb.from("customer").select("id,name").eq("id", pc).maybeSingle();
     if(data){ custId = data.id; custName = data.name; document.getElementById("fCust").textContent = custName; }
   }
-  load();
+  if((pc || ps) && !imsParam("tab")) tab = "all";
+  showTab(tab);
 });
 </script>
 </body>
