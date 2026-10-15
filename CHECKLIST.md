@@ -951,7 +951,7 @@ so v3 — Finalize 창
 
 ---
 
-## 7-j. `so-backorders.html` — 백오더 (2026-09-25 밤 신설 · 대화 Claude · 「2026-09-25 · bo v1」 → v1.1(다른 창고 가용을 이름별로) → v1.2(무상 줄 필터 칸 없앰 · 요약 숫자로 거른다) → **v1.3**(잡힐 것 없으면 진행 막힘))
+## 7-j. `so-backorders.html` — 백오더 (→ [2026-10-14] bo v4 · v4a 탭 셋으로 재구성 — **7-zn** · 아래 v1 ~ v3a 항목은 옛 판의 기록) (2026-09-25 밤 신설 · 대화 Claude · 「2026-09-25 · bo v1」 → v1.1(다른 창고 가용을 이름별로) → v1.2(무상 줄 필터 칸 없앰 · 요약 숫자로 거른다) → **v1.3**(잡힐 것 없으면 진행 막힘))
 
 뒷단: 읽기 RPC `so_backorder_list(p_filters jsonb)` — 분류 여덟 · 무상 줄(owed) · 창고별 가용 · 손님 · 제품 · 주문일 순(asung-wms `20260924153856` · 정본 §15 ③c) ·
 쓰기 RPC `so_backorder_proceed(p_so_id, p_commit)` — manager · 미리 보기(false) → 진행(true) — 정본 §15.
@@ -2027,14 +2027,43 @@ so-invoices.html(inv v2e · v2e1)
 ⭐  판정 472 — Shopify 에서 Restock(환불 · 취소)이 생기면 그 SKU 를 IMS 값으로 다시 보낸다(화면 변화 없음 · 「Send stock now」 는 family 단위)
 ✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
 shopify-orders.html(wo v4c) · so.html(so v5t5)
-[ ] 이름표 card_payment_recorded — 처리됨(초록)으로 사람 말로 보인다 — 화면 확인 기록 없음 · SO-25094(#1015)에서 볼 것
+[✅] 이름표 card_payment_recorded — 처리됨(초록)으로 사람 말로 보인다 — [2026-10-14 · docs-1014c] SO-25094 화면 확인(office 인계서 §4-3 「SO-25094 화면 확인됨」 · Caleb 화면 시험에서 so v5t6 e59f262 가 나왔다)
 [ ] 이름표 card_payment_failed — 사람 말로 보인다(열린 경고) — 화면 확인 기록 없음 · 실물 없음(시험 재료는 검증 파일에만)
 [ ] SO-25094 목록 꼬리표 · Shopify 칸 경고 수가 card_payment_recorded 를 열린 경고로 세지 않는다 — 기록 없음
 시험 스토어 실물(so-module §63-h-2 — DB · EF 실물)
 [✅] #1015 Bogus 13.49 Capture → IMS 결제 13.49(shopify · 보증금 SO-25094) · card_payment_recorded · paid_in_shopify 없음 · 재받기에 두 번 안 적음
 [✅] #1013 Shopify 취소(Restock) → ANN01005 Toronto +1 → 1 분 뒤 IMS 값 0 · SO-25092 자동 취소
 ⚠️ 시험 스토어 결제 캡처는 Manually 로 둔다(aone 과 같은 조건 · 판정 471)
-남은 것 — ⑦ gateway 가르기(미룬 230 · 조건 셋 전에) · aone 첫 PayPal 오더 확인(231) · Backorders 탭 재구성(220)
+남은 것 — ⑦ gateway 가르기(미룬 230 · 조건 셋 전에) · aone 첫 PayPal 오더 확인(231) · Backorders 탭 재구성(220 → ✅ 7-zn)
+```
+
+### 7-zm-3. 2026-10-14 오후 — 카드 캡처 Paid 줄 · 웹 운임 견적 (so v5t6 e59f262 · so v5t7 · wo v4d 0de7561 · asung-wms frt-1a 7d2a16a · 판정 473 · so-module §64)
+
+```
+⭐  판정 473 — asung.ca(asung 종류 스토어)의 Shopify 운임 > 0 이면 SO 운임 줄에 견적으로 · Ship & invoice 에서 실제 운임으로 고친다 · 정보 freight_estimate_from_shopify(처리됨)
+⚠️ aone 운임 「확정」(판정 369)은 코드 표지가 없다 — 지금은 aone 운임도 Ship & invoice 에서 고칠 수 있다(so-module 미룬 236)
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+so.html(so v5t6 · v5t7) · shopify-orders.html(wo v4d)
+[✅] so v5t6 — 카드 캡처로 Paid 면 Paid in Shopify 줄이 「Card captured in Shopify — recorded in IMS automatically」(SO-25094 · office 인계서 §4-3 「SO-25094 화면 확인됨」)
+[ ] so v5t7 — SO-25095 화면: Charges 의 Standard 12.00 에 estimate 꼬리표 · Shopify 칸 초록 「Shopify freight … estimate」 — Caleb 할 일(office 인계서 §6) · 기록 없음
+[ ] wo v4d — 이름표 freight_estimate_from_shopify 가 처리됨(초록)으로 사람 말로 보인다 — 기록 없음
+```
+
+### 7-zn. 2026-10-14 밤 — Backorders 탭 재구성 (bo v4 2b10305 · bo v4a af83c94 · asung-wms bo-1a dee6d70 · bo-1c c6b3cc8 · bo-1d 089d94b · bo-2 a183aef · bo-2b 08cfc25 · 판정 474 ~ 492 · so-module §64)
+
+```
+⭐  판정 485 — 탭의 목적 넷: ① 백오더 SKU 비중 ② 잃은 세일 규모 ③ 반복해서 못 대는 SKU ④ 입고 → 소통 · 전환 · 판정 489 — 탭 셋 Arrivals(기본) · Insights · All backorders
+⭐  수요 · 금액은 DB 하나(so_backorder_demand · overview)가 센다 — 화면이 다시 계산하지 않는다 · 진행(Proceed)은 오더 한 장 전부(proceed_moves_other_skus 경고)
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+so-backorders.html(bo v4 → v4a)
+[✅] bo v4 화면 시험(Caleb 2026-10-14 밤 · 9 걸음) — 결함 넷(Received 칸 접힘 · 오른쪽 머리 대문자 · 오류 때 범위 남음 · 좁은 창에서 안 쌓임 — 110% 확대라 1100px 기준이 안 걸림) + DB 시간 초과(include_no_waiting) → bo-2b · bo v4a 로 고침
+[✅] bo v4a — Arrivals 맨 위 Ready to ship now 세 줄(SO-25035a · SO-25046a · SO-25068 · 판정 490)
+[✅] bo v4a — Include arrivals nobody waits for 를 켜도 시간 초과 없음(1,117 행)
+[✅] 「진짜 수요 아님」 표식 달기 · 떼기(SO-25032a #5 Test → 잃은 세일 $2,072.99 → $1,069.67 → 떼고 되돌아옴 · so_demand_flag 에 뗀 행 1 남음 · 판정 478)
+[ ] Proceed(Arrivals 오른쪽 · Ready to ship now) — 되돌릴 수 없어 시험하지 않음(so-module 미룬 241)
+[ ] 판정 491 — 표식을 단 동안 Insights 「Could not ship on time」 도 준다(기대 $4,206.40 → $3,203.08 · 이번 달) — bo-2b 뒤 화면 기록 없음
+[ ] 판정 492 — SKU · 브랜드 · 공급처로 거르면 Insights 의 Ordered 도 준다(MOR2654) — bo-2b 뒤 화면 기록 없음
+남은 것 — 백오더 입고 알림 IMS 이관(미룬 221) · 상태 칩(479 ~ 481 · 235) · 품절 구간(474 · 234) · 합치기 후보 목록의 백오더 표시(240) · SO 상세 「이어받아 닫힘 → SO-…」(242)
 ```
 
 ---
