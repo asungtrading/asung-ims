@@ -63,6 +63,42 @@
   .flagf select,.flagf input{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
   .flagf input{flex:1;min-width:180px}
   .pobox.wide{width:min(1100px,96vw);max-width:96vw}
+  /* Emails — 백오더 입고 알림 메일(bo v5 · 판정 493 ~ 518 · mail-1a ~ 4a) */
+  .mban{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;border:1px solid var(--line);background:#fafbfd}
+  .mban.off{background:#fff8e6;border-color:#ecdcb4;color:var(--warn)}
+  .mban.test{background:#eef2ff;border-color:#c9d3ff;color:#2f3f8f}
+  .mban.bad{background:#fdecec;border-color:#f3d3cf;color:var(--bad)}
+  .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;margin-bottom:14px}
+  .whcard .whhead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .whcard .whhead .ttl{font-size:14px;font-weight:600}
+  .whcard .whhead .dim{font-size:12px}
+  .whcard .whbody{padding:10px 14px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+  .whcard .kv{display:flex;gap:10px}
+  .whcard .kv .k{color:var(--muted);min-width:112px;flex:none}
+  .whcard .whfoot{padding:8px 14px 12px}
+  .mhead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .mhead .ttl{font-size:14px;font-weight:600}
+  .mhead .dim{font-size:12px}
+  .mlist tbody tr{cursor:pointer}
+  .mlist tbody tr:hover td{background:#fafbfd}
+  tr.terr td{background:#fdf3f2}
+  .st-sent{color:var(--good);font-weight:600}
+  .st-fail{color:var(--bad);font-weight:600}
+  .st-unk{color:var(--warn);font-weight:700}
+  .st-wait{color:#4b5565;font-weight:600}
+  .st-cxl{color:var(--muted)}
+  .runchip{display:inline-flex;align-items:center;gap:6px;border:1px solid #c9d3ff;background:#eef2ff;border-radius:999px;padding:3px 6px 3px 11px;font-size:12px;color:#2f3f8f}
+  .runchip button{border:0;background:none;cursor:pointer;color:#2f3f8f;font-size:13px;padding:0 4px}
+  .mmeta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;margin-bottom:12px}
+  .mmeta .k{color:var(--muted)}
+  .mframe{width:100%;height:440px;border:1px solid var(--line);border-radius:10px;background:#fff}
+  .mtext{white-space:pre-wrap;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:440px;overflow:auto;background:#fafbfd;margin:0}
+  .mact{border:1px solid #ecdcb4;background:#fffbf0;border-radius:10px;padding:12px;margin-bottom:12px}
+  .mact p{margin:0 0 8px;font-size:12.5px}
+  .mact textarea{width:100%;min-height:54px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;box-sizing:border-box}
+  .mact .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .msec{font-size:13px;font-weight:600;margin:14px 0 6px}
+  .notice{font-size:11px;margin-top:3px}
 </style>
 </head>
 <body>
@@ -82,6 +118,7 @@
       <button data-tab="arrivals" title="Stock that came in and the customers waiting for it">Arrivals</button>
       <button data-tab="insights" title="How much we lose to backorders and which SKUs keep missing">Insights</button>
       <button data-tab="all" title="Every backorder and pre-order line">All backorders</button>
+      <button data-tab="mail" title="Arrival emails to customers — what goes out next, what went out, and what needs a check">Emails</button>
     </div>
     <span class="hint" id="tabHint"></span>
   </div>
@@ -186,6 +223,43 @@
       </div>
     </div>
   </section>
+
+  <!-- ══ Emails (bo v5 · 판정 493 ~ 518) ══════════════════ -->
+  <section id="paneMail" hidden>
+    <div id="mBanner"></div>
+    <div class="mgrid" id="mWh"><div class="card"><div class="msg">Loading…</div></div></div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="mhead"><span class="ttl">Runs</span><span class="dim">One run per branch on each scheduled morning. Pick a run to see its emails below.</span></div>
+      <div class="bofilt">
+        <select id="mLoc" title="Branch"><option value="">All branches</option></select>
+        <input type="date" id="mFrom" title="Run date from"><span class="dash">—</span><input type="date" id="mTo" title="Run date to">
+        <label class="ck" title="Runs that failed, emails that failed or whose result is unknown, and summaries that did not reach Chat"><input type="checkbox" id="mProb"> Only runs with a problem</label>
+        <span class="sp"></span>
+        <button class="pobtn" id="mClear">Clear</button>
+      </div>
+      <div class="mlist" id="mRuns"><div class="msg">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="mhead"><span class="ttl">Emails</span><span id="mRunChip"></span></div>
+      <div class="bofilt">
+        <select id="mStatus" title="Status">
+          <option value="">Every status</option>
+          <option value="unknown">Result unknown — needs a check</option>
+          <option value="failed">Failed</option>
+          <option value="queued">Waiting to send</option>
+          <option value="sending">Sending</option>
+          <option value="sent">Sent</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <select id="mMLoc" title="Branch"><option value="">All branches</option></select>
+        <input type="date" id="mMFrom" title="Created from"><span class="dash">—</span><input type="date" id="mMTo" title="Created to">
+        <span class="sp"></span>
+        <button class="pobtn" id="mMClear">Clear</button>
+      </div>
+      <div class="mlist" id="mMails"><div class="msg">Loading…</div></div>
+      <div class="bofoot"><span class="range" id="mRange"></span><span class="sp"></span><button id="mPrev">←</button><button id="mNext">→</button></div>
+    </div>
+  </section>
 </div>
 
 <div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
@@ -211,9 +285,13 @@
                쓰기 so_demand_flag_set(p_line_ids, p_reason, p_note) · so_demand_flag_clear(p_line_ids) (20261014234811:289 · 348 · manager · 판정 478)
      All       bo v3a 목록 그대로 — so_backorder_list(p_filters) · so_backorder_proceed(p_so_id, p_commit)
    ⚠️ 셈은 DB 가 한다 — 화면이 다시 계산하지 마라(가용 · 입고 · 수요 · 금액)
-   ⚠️ 입고 알림 메일은 아직 IMS 가 보내지 않는다(이관은 다음 차수) — 이 화면에 알림 기록 칸이 없다
+     Emails    (bo v5 · 판정 493 ~ 518) 입고 알림 메일 — 창고마다 다음 회차 · 지금 돌면(mail_backorder_preview · 1c) · 회차 목록 mail_runs_list · 메일 목록 mail_outbox_list · 상세 mail_outbox_detail
+               설정 읽기 mail_settings(4a · 켜짐 · 시험 돌려 보내기 · 일정 tz) · 단추 셋 mail_outbox_close_sent · retry · cancel(p_id, p_note · 판정 514 · 516 manager 이상 — 단추는 창구의 can_* 칸으로만)
+               ⭐ 본문 HTML 은 sandbox iframe(srcdoc · 스크립트 없음)으로만 보인다(4a 이견 6)
+     All       줄마다 알림 상태(notified_state · notified_at — 1c so_backorder_notice_state · 열린 백오더 줄만)
+   ⭐ 화면은 권한 · 셈을 다시 짜지 않는다 — 누를 수 있는지는 창구가 준 can_* · 보낼 것은 미리 보기 창구가
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-14 · bo v4a";   // 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-16 · bo v5";   // 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -255,13 +333,14 @@ function addDays(iso, n){
 const val = (id) => document.getElementById(id).value;
 
 /* ══ 탭 ══════════════════════════════════════════════ */
-const TABS = { arrivals: "paneArrivals", insights: "paneInsights", all: "paneAll" };
+const TABS = { arrivals: "paneArrivals", insights: "paneInsights", all: "paneAll", mail: "paneMail" };
 const TAB_HINT = {
   arrivals: "What came in, who is waiting for it, and what can go out now.",
   insights: "How much we lose to backorders and which SKUs keep missing.",
   all: "Every backorder and pre-order line.",
+  mail: "Arrival emails to customers — what goes out next, what went out, and what needs a check.",
 };
-const started = { arrivals: false, insights: false, all: false };
+const started = { arrivals: false, insights: false, all: false, mail: false };
 let curTab = "arrivals";
 function showTab(t){
   if(!TABS[t]) t = "arrivals";
@@ -277,11 +356,13 @@ function showTab(t){
     if(t === "arrivals") aLoad();
     if(t === "insights") iLoad();
     if(t === "all") load();
+    if(t === "mail") mLoad();
   }
 }
 function reloadCurrent(){
   if(curTab === "arrivals"){ aLoad(); return; }
   if(curTab === "insights"){ iLoad(); return; }
+  if(curTab === "mail"){ mLoad(); return; }
   load();
 }
 
@@ -660,6 +741,7 @@ async function load(){
     const st = open
       ? (r.kind === "preorder" ? '<span class="tag disc" title="A confirmed order waiting for stock that has not come in yet — never expires or gets taken over">Pre-order</span> ' : "")   // bo v3
         + (r.owed ? '<span class="tag disc">free — we owe it</span>' : '<span class="tag">open</span>')
+        + noticeTxt(r)   // bo v5 — 줄의 알림 상태(1c)
       : `<span class="tag">${esc(END_LBL[r.end_kind] || r.end_kind || "ended")}</span>`
         + (r.taken_by_so_number ? ` <a class="lnk mono" href="so.html?so=${encodeURIComponent(r.taken_by_so_number)}">${esc(r.taken_by_so_number)}</a>` : "")
         + (Number(r.qty_unwanted) ? `<div class="dim" style="font-size:11px">taken ${qty(r.qty_taken)} · no longer wanted ${qty(r.qty_unwanted)}</div>` : "");
@@ -679,7 +761,8 @@ async function load(){
   html += `</tbody></table>
     <div class="sosub">Pre-orders are confirmed orders waiting for stock that has not come in yet — they are listed while open, never expire and are never taken over by a new order (ruling 9); arrived and proceed work the same way.
       Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder or pre-order was made (adjustments and returns do not count).
-      Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here. Arrival email notices are not recorded on this screen yet.</div>`;
+      Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here.
+      Under the state you see the arrival email for that line: each backorder line is emailed once at most; "before IMS emails" means the line was waiting before IMS started sending, so any email came from the old system. The Emails tab has the details.</div>`;
   box.innerHTML = html;
   box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, 0); });
   pager(data);
@@ -693,6 +776,254 @@ function pager(data){
   n.onclick = () => { offset += PAGE; load(); };
 }
 const refilter = () => { offset = 0; load(); };
+
+/* ══ Emails (bo v5 · 판정 493 ~ 518) ═══════════════════ */
+let WH = [], mCfg = {}, mOffset = 0, mRun = null;   // mRun = { id, label }
+const M_PAGE = 100;
+const DAY = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];   // ISO 요일 1 ~ 7(mail-1a 일정 키)
+const M_ST = {
+  queued: ['<span class="st-wait">waiting to send</span>', "Waiting for its turn to go out."],
+  sending: ['<span class="st-wait">sending</span>', "Being sent right now."],
+  sent: ['<span class="st-sent">sent</span>', "Gmail accepted it."],
+  failed: ['<span class="st-fail">failed</span>', "Gmail refused it. The line goes out again with the next run by itself."],
+  unknown: ['<span class="st-unk">result unknown</span>', "The send was cut off, so we do not know if it went out. A manager checks and closes it."],
+  cancelled: ['<span class="st-cxl">cancelled</span>', "Not sent and not sent again."],
+};
+const mSt = (s) => (M_ST[s] ? M_ST[s][0] : esc(s || ""));
+const SKIP_LBL = { no_email: "no email on file", bad_shape: "email not usable", paused: "alerts turned off", customer_inactive: "inactive customer" };
+const BASIS_LBL = { receipt: "came in — half or more of the line", full: "whole line in stock" };
+const NOTICE_LBL = {
+  queued: "email waiting to send", sent: "emailed", unknown: "email — result unknown", failed: "email failed — goes again next run",
+  cancelled: "email cancelled", not_sent: "not emailed yet", unknown_pre_ims: "before IMS emails",
+};
+function noticeTxt(r){
+  if(!r.notified_state) return "";
+  const cls = r.notified_state === "sent" ? "on" : (r.notified_state === "unknown" || r.notified_state === "failed") ? "off" : "dim";
+  const when = r.notified_at && (r.notified_state === "sent" || r.notified_state === "queued" || r.notified_state === "unknown") ? " " + fmtTs(r.notified_at) : "";
+  return `<div class="notice ${cls}" title="Arrival email for this line">${esc(NOTICE_LBL[r.notified_state] || r.notified_state)}${when}</div>`;
+}
+function whTz(locId){
+  try{ const sch = JSON.parse(mCfg.mail_backorder_schedule?.value || "{}"); return sch[locId]?.tz || "America/Toronto"; }catch(e){ return "America/Toronto"; }
+}
+function fmtTs(ts, tz){
+  if(!ts) return '<span class="dim">—</span>';
+  return esc(new Date(ts).toLocaleString("en-CA", { timeZone: tz || "America/Toronto", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }));
+}
+const tzName = (tz) => tz === "America/Edmonton" ? "Edmonton time" : tz === "America/Toronto" ? "Toronto time" : tz;
+
+async function mLoad(){
+  await mSettingsLoad();
+  mBanner();
+  mWhLoad();
+  mRunsLoad();
+  mMailsLoad();
+}
+async function mSettingsLoad(){
+  const { data, error } = await sb.rpc("mail_settings");
+  mCfg = {};
+  if(error){ console.warn("mail_settings:", error.message); return; }
+  (data || []).forEach(r => { mCfg[r.key] = r; });
+}
+function mBanner(){
+  const box = document.getElementById("mBanner");
+  if(!mCfg.mail_enabled){ box.innerHTML = ""; return; }
+  const on = mCfg.mail_enabled.value === "on", red = (mCfg.mail_redirect_to?.value || "").trim();
+  let h = "";
+  if(!on) h += `<div class="mban off"><b>Emails are off.</b> Runs do not start and nothing goes out until an admin turns them on in Settings.</div>`;
+  if(red) h += `<div class="mban test"><b>Test mode.</b> Every email goes to ${esc(red)} instead of the customer, with the customer's address in the subject.</div>`;
+  box.innerHTML = h;
+}
+function schedTxt(locId){
+  try{
+    const s = JSON.parse(mCfg.mail_backorder_schedule?.value || "{}")[locId];
+    if(!s) return null;
+    const h = Number(s.hour), hh = ((h + 11) % 12) + 1, ap = h < 12 ? "AM" : "PM";
+    return `${(s.days || []).map(d => DAY[d] || d).join(" and ")} at ${hh}:00 ${ap} (${tzName(s.tz)})`;
+  }catch(e){ return null; }
+}
+async function mWhLoad(){
+  const box = document.getElementById("mWh");
+  if(!WH.length){ box.innerHTML = '<div class="card"><div class="msg">No active branches.</div></div>'; return; }
+  box.innerHTML = WH.map(w => `<div class="card whcard" id="wh_${esc(w.id)}"><div class="whhead"><span class="ttl">${esc(w.name)}</span></div><div class="msg">Loading…</div></div>`).join("");
+  await Promise.all(WH.map(async (w) => {
+    const el = document.getElementById("wh_" + w.id);
+    const sched = schedTxt(w.id), tz = whTz(w.id);
+    if(!sched){
+      el.innerHTML = `<div class="whhead"><span class="ttl">${esc(w.name)}</span></div><div class="whbody"><span class="dim">No email schedule for this branch — no runs and no emails.</span></div>`;
+      return;
+    }
+    const { data, error } = await sb.rpc("mail_backorder_preview", { p_location_id: w.id });
+    if(error){
+      el.innerHTML = `<div class="whhead"><span class="ttl">${esc(w.name)}</span><span class="dim">${esc(sched)}</span></div><div class="msg err">${esc(error.message)}</div>`;
+      return;
+    }
+    const t = data.totals || {};
+    const nMails = Number(t.mails ?? (data.mails || []).length), nLines = Number(t.lines ?? 0), nSkip = Number(t.skipped_customers ?? (data.skipped || []).length);
+    const pctv = data.min_fill_pct ?? mCfg.mail_backorder_min_fill_pct?.value;
+    el.innerHTML = `
+      <div class="whhead"><span class="ttl">${esc(w.name)}</span><span class="dim">${esc(sched)}</span></div>
+      <div class="whbody">
+        <div class="kv"><span class="k">Next run</span><span>${data.next_run_at ? fmtTs(data.next_run_at, tz) : '<span class="dim">not scheduled</span>'}</span></div>
+        <div class="kv"><span class="k">Last run</span><span>${data.last_run_at ? fmtTs(data.last_run_at, tz) : '<span class="dim">none yet</span>'}</span></div>
+        <div class="kv"><span class="k">If it ran now</span><span><b>${esc(nMails)}</b> email${nMails === 1 ? "" : "s"} · ${esc(nLines)} line${nLines === 1 ? "" : "s"}${nSkip ? ` · <span class="off">${esc(nSkip)} customer${nSkip === 1 ? "" : "s"} skipped</span>` : ""}</span></div>
+        <div class="dim" style="font-size:11.5px">Stock that came in is emailed when ${esc(pctv ?? 50)}% or more of a line can ship. Other stock (returns, adjustments, counts) is emailed only when the whole line can ship. Each line is emailed once.</div>
+      </div>
+      <div class="whfoot"><button class="pobtn" data-prev="${esc(w.id)}">See who would get an email</button></div>`;
+    el.querySelector("[data-prev]").onclick = () => mPreviewOpen(w, data, tz);
+  }));
+}
+function mLinesTable(lines, withBasis){
+  return `<table><thead><tr><th>Order</th><th>SKU</th><th>Product</th><th class="num">Backordered</th><th class="num">Ready now</th><th class="num">In stock</th>${withBasis ? "<th>Why</th>" : ""}</tr></thead><tbody>${
+    (lines || []).map(l => `<tr>
+      <td class="mono">${esc(l.so_number || "")}${l.line_no ? `<span class="dim"> #${esc(l.line_no)}</span>` : ""}</td>
+      <td class="mono">${esc(l.sku || "")}</td><td>${esc(l.product_name || "")}</td>
+      <td class="num">${qty(l.qty_open)}</td><td class="num">${qty(l.can_fill_units)}</td><td class="num">${qty(l.available_units)}</td>
+      ${withBasis ? `<td>${esc(BASIS_LBL[l.basis] || l.basis || "")}</td>` : ""}</tr>`).join("")}</tbody></table>`;
+}
+function mPreviewOpen(w, data, tz){
+  const mails = data.mails || [], skipped = data.skipped || [];
+  modalOpen(`
+    <h4>${esc(w.name)} — who would get an email if the run started now</h4>
+    <div class="pbody">
+      <div class="sohint" style="margin:0 0 10px">Nothing is sent from here. The real run is ${data.next_run_at ? fmtTs(data.next_run_at, tz) : "not scheduled"}, and it uses the stock at that moment.${data.receipt_since ? ` Stock counts as "came in" if it was received after ${fmtTs(data.receipt_since, tz)}.` : ""}</div>
+      ${mails.length ? mails.map(m => `<div class="msec">${esc(m.customer_name || "")} <span class="dim" style="font-weight:400">${esc(m.to || m.to_address || "")}</span></div>${mLinesTable(m.lines, true)}`).join("") : '<div class="msg">No email would go out.</div>'}
+      ${skipped.length ? `<div class="msec">Skipped</div><table><thead><tr><th>Customer</th><th>Why</th><th class="num">Lines</th></tr></thead><tbody>${skipped.map(k => `<tr><td>${esc(k.customer_name || "")}</td><td>${esc(SKIP_LBL[k.reason] || k.reason || "")}</td><td class="num">${esc((k.lines || []).length)}</td></tr>`).join("")}</tbody></table>
+        <div class="sohint">To email a skipped customer, fix the email on their default contact, or have a manager turn their backorder alerts back on, on the Customers screen.</div>` : ""}
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+  document.getElementById("modalBox").classList.add("wide");
+  wireModalClose();
+}
+
+function mRunsFilters(){
+  const f = { limit: 50, offset: 0 };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("location_id", val("mLoc")); put("from", val("mFrom")); put("to", val("mTo"));
+  if(document.getElementById("mProb").checked) f.problems = true;
+  return f;
+}
+async function mRunsLoad(){
+  const box = document.getElementById("mRuns");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("mail_runs_list", { p_filters: mRunsFilters() });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const runs = data.runs || [], errs = (data.tick_errors || []).filter(e => !e.resolved_at);
+  if(!runs.length && !errs.length){ box.innerHTML = `<div class="msg">${document.getElementById("mProb").checked ? "No problems." : "No runs yet."}</div>`; return; }
+  const skipTxt = (o) => { const e = Object.entries(o || {}).filter(([, n]) => Number(n) > 0); return e.length ? e.map(([k, n]) => `${esc(n)} ${esc(SKIP_LBL[k] || k)}`).join(", ") : '<span class="dim">—</span>'; };
+  const n0 = (v) => Number(v) ? esc(v) : '<span class="dim">0</span>';
+  let h = `<table><thead><tr><th>Date</th><th>Branch</th><th class="num">Emails</th><th class="num">Sent</th><th class="num">Failed</th><th class="num">Unknown</th><th class="num">Waiting</th><th class="num">Cancelled</th><th>Skipped</th><th>Chat</th></tr></thead><tbody>`;
+  errs.forEach(e => {
+    h += `<tr class="terr"><td>${esc(e.run_on)}</td><td>${esc(e.location_name || "")}</td><td colspan="8"><span class="st-fail">Run failed</span> — ${esc(e.message || "")} <span class="dim">(${esc(e.attempts)} tr${Number(e.attempts) === 1 ? "y" : "ies"}, last ${fmtTs(e.last_at, whTz(e.location_id))}) · it tries again every hour today</span></td></tr>`;
+  });
+  runs.forEach(r => {
+    const chat = r.chat_posted_at ? '<span class="on">posted</span>' : r.chat_error ? `<span class="off" title="${esc(r.chat_error)}">not posted</span>` : '<span class="dim">waiting</span>';
+    h += `<tr data-run="${esc(r.run_id)}" data-lbl="${esc(r.run_on + " · " + (r.location_name || ""))}" title="Show this run's emails">
+      <td>${esc(r.run_on)}</td><td>${esc(r.location_name || "")}${r.tick_error && !r.tick_error.resolved_at ? ' <span class="st-fail">failed once</span>' : ""}</td>
+      <td class="num">${esc(r.mails)}</td><td class="num">${n0(r.sent)}</td>
+      <td class="num">${Number(r.failed) ? `<span class="st-fail">${esc(r.failed)}</span>` : n0(0)}</td>
+      <td class="num">${Number(r.unknown) ? `<span class="st-unk">${esc(r.unknown)}</span>` : n0(0)}</td>
+      <td class="num">${n0(r.queued)}</td><td class="num">${n0(r.cancelled)}</td>
+      <td>${skipTxt(r.skipped)}</td><td>${chat}</td></tr>`;
+  });
+  h += "</tbody></table>";
+  box.innerHTML = h;
+  box.querySelectorAll("[data-run]").forEach(tr => { tr.onclick = () => { mRun = { id: tr.dataset.run, label: tr.dataset.lbl }; mOffset = 0; mMailsLoad(); document.getElementById("mMails").scrollIntoView({ behavior: "smooth", block: "start" }); }; });
+}
+
+function mMailsFilters(){
+  const f = { limit: M_PAGE, offset: mOffset };
+  const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
+  put("status", val("mStatus")); put("location_id", val("mMLoc")); put("from", val("mMFrom")); put("to", val("mMTo"));
+  if(mRun) f.run_id = mRun.id;
+  return f;
+}
+async function mMailsLoad(){
+  const chip = document.getElementById("mRunChip");
+  chip.innerHTML = mRun ? `<span class="runchip">Run ${esc(mRun.label)} <button id="mRunX" title="Show emails of every run">✕</button></span>` : "";
+  if(mRun) document.getElementById("mRunX").onclick = () => { mRun = null; mOffset = 0; mMailsLoad(); };
+  const box = document.getElementById("mMails");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("mail_outbox_list", { p_filters: mMailsFilters() });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("mRange").textContent = ""; return; }
+  const ms = data.mails || [];
+  if(!ms.length){ box.innerHTML = '<div class="msg">No emails match.</div>'; mPager(data); return; }
+  box.innerHTML = `<table><thead><tr><th>Created</th><th>Branch</th><th>Customer</th><th>Orders</th><th class="num">Lines</th><th>To</th><th>Status</th><th class="num">Tries</th></tr></thead><tbody>${
+    ms.map(m => `<tr data-mail="${esc(m.id)}" title="Open this email">
+      <td>${fmtTs(m.created_at)}</td><td>${esc(m.location_name || "")}</td><td>${esc(m.customer_name || "")}</td>
+      <td class="mono" style="font-size:12px">${(m.so_numbers || []).map(esc).join(", ")}</td><td class="num">${esc(m.line_count)}</td>
+      <td style="font-size:12px">${esc(m.to_address || "")}${m.original_to ? `<div class="dim" style="font-size:11px">instead of ${esc(m.original_to)}</div>` : ""}</td>
+      <td>${mSt(m.status)}${m.last_error && m.status !== "sent" ? `<div class="dim" style="font-size:11px">${esc(String(m.last_error).slice(0, 80))}</div>` : ""}</td>
+      <td class="num">${esc(m.attempts)}</td></tr>`).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-mail]").forEach(tr => { tr.onclick = () => mDetailOpen(tr.dataset.mail); });
+  mPager(data);
+}
+function mPager(data){
+  const n = (data.mails || []).length, tot = data.total || 0;
+  const a = tot ? mOffset + 1 : 0, b = Math.min(mOffset + n, tot);
+  document.getElementById("mRange").textContent = `${a.toLocaleString()}–${b.toLocaleString()} / ${tot.toLocaleString()}`;
+  const p = document.getElementById("mPrev"), x = document.getElementById("mNext");
+  p.disabled = mOffset === 0; x.disabled = mOffset + M_PAGE >= tot;
+  p.onclick = () => { if(mOffset > 0){ mOffset = Math.max(0, mOffset - M_PAGE); mMailsLoad(); } };
+  x.onclick = () => { mOffset += M_PAGE; mMailsLoad(); };
+}
+
+const EV_LBL = { queued: "queued", claimed: "picked up to send", sent: "sent", failed: "failed", unknown: "result unknown", retry: "will try again", stale_recovered: "send was cut off", close_sent: "closed as sent", resend: "sent again", cancel: "cancelled" };
+async function mDetailOpen(id){
+  modalOpen(`<h4>Email</h4><div class="pbody"><div class="msg">Loading…</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+  document.getElementById("modalBox").classList.add("wide");
+  wireModalClose();
+  const { data: m, error } = await sb.rpc("mail_outbox_detail", { p_id: id });
+  if(error){ document.querySelector("#modalBox .pbody").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const acts = [];
+  if(m.can_close_sent) acts.push(["close", "Close as sent", "I found it in the ims@asung.ca Sent folder."]);
+  if(m.can_retry) acts.push(["retry", "Send again", "It is not in the ims@asung.ca Sent folder."]);
+  if(m.can_cancel) acts.push(["cancel", "Cancel", "The customer does not need this email. The line will not be emailed again."]);
+  const actBox = acts.length ? `<div class="mact">
+      <p><b>${m.status === "unknown" ? "We do not know if this email went out." : "This email has not gone out yet."}</b> ${m.status === "unknown" ? "Before you press a button, open the ims@asung.ca Sent folder and look for it: closing it as sent when it did not go means the customer never hears; sending again when it did go means they get it twice." : ""}</p>
+      <textarea id="mNote" placeholder="What did you check? (required)"></textarea>
+      <div class="btns">${acts.map(a => `<button class="pobtn${a[0] === "close" ? " go" : ""}" data-act="${a[0]}" title="${esc(a[2])}">${esc(a[1])}</button>`).join("")}</div>
+      <div id="mActMsg" style="font-size:12.5px;margin-top:6px"></div>
+    </div>` : "";
+  const evs = m.events || [];
+  document.querySelector("#modalBox h4").textContent = m.subject || "Email (not written yet)";
+  document.querySelector("#modalBox .pbody").innerHTML = `
+    ${actBox}
+    <div class="mmeta">
+      <span class="k">Status</span><span>${mSt(m.status)} <span class="dim" style="font-size:12px">${esc(M_ST[m.status] ? M_ST[m.status][1] : "")}</span></span>
+      <span class="k">Customer</span><span>${esc(m.customer_name || "")} <span class="dim">· ${esc(m.location_name || "")}</span></span>
+      <span class="k">To</span><span>${esc(m.to_address || "")}${m.original_to ? ` <span class="dim">— test mode, instead of ${esc(m.original_to)}</span>` : ""}</span>
+      <span class="k">From</span><span>${esc(m.from_name || "")} &lt;${esc(m.from_address || "")}&gt;${m.reply_to ? ` <span class="dim">· replies go to ${esc(m.reply_to)}</span>` : ""}</span>
+      <span class="k">Created</span><span>${fmtTs(m.created_at)}</span>
+      ${m.sent_at ? `<span class="k">Sent</span><span>${fmtTs(m.sent_at)}</span>` : ""}
+      ${m.next_attempt_at && (m.status === "queued") ? `<span class="k">Next try</span><span>${fmtTs(m.next_attempt_at)}</span>` : ""}
+      <span class="k">Tries</span><span>${esc(m.attempts)}</span>
+      ${m.last_error ? `<span class="k">Last error</span><span class="off" style="font-weight:400">${esc(m.last_error)}</span>` : ""}
+    </div>
+    <div class="msec">Lines in this email</div>
+    <table><thead><tr><th>Order</th><th>SKU</th><th>Product</th><th class="num">Backordered</th><th class="num">Ready now</th><th class="num">In stock</th><th>Why</th><th>Line now</th></tr></thead><tbody>${
+      (m.lines || []).map(l => `<tr><td class="mono">${esc(l.so_number || "")}<span class="dim"> #${esc(l.line_no ?? "")}</span></td><td class="mono">${esc(l.sku || "")}</td><td>${esc(l.product_name || "")}</td>
+        <td class="num">${qty(l.qty_open)}</td><td class="num">${qty(l.can_fill_units)}</td><td class="num">${qty(l.available_units)}</td>
+        <td>${esc(BASIS_LBL[l.basis] || l.basis || "")}</td><td>${l.released_at ? '<span class="dim">released — goes again next run</span>' : esc(NOTICE_LBL[l.notice_state] || l.notice_state || "")}</td></tr>`).join("")}</tbody></table>
+    <div class="msec">What the customer sees</div>
+    ${m.body_html ? `<div style="margin-bottom:6px"><button class="pobtn" id="mBodyTog">Show plain text</button></div><iframe class="mframe" id="mFrame" sandbox="" referrerpolicy="no-referrer" srcdoc="${esc(m.body_html)}"></iframe><pre class="mtext" id="mText" hidden>${esc(m.body_text || "")}</pre>`
+      : m.body_text ? `<pre class="mtext">${esc(m.body_text)}</pre>` : '<div class="msg">Not written yet — the email is written at the moment it is sent.</div>'}
+    <div class="msec">History</div>
+    ${evs.length ? `<table><thead><tr><th>When</th><th>What</th><th>Who</th><th>Note</th></tr></thead><tbody>${evs.map(e => `<tr><td>${fmtTs(e.at)}</td><td>${esc(EV_LBL[e.action] || e.action || "")}${e.from_status || e.to_status ? ` <span class="dim">${esc(e.from_status || "")} → ${esc(e.to_status || "")}</span>` : ""}</td><td>${esc(e.staff_name || "system")}</td><td>${esc(e.note || "")}</td></tr>`).join("")}</tbody></table>` : '<div class="dim" style="font-size:12.5px">Nothing yet.</div>'}`;
+  const tog = document.getElementById("mBodyTog");
+  if(tog) tog.onclick = () => { const f = document.getElementById("mFrame"), t = document.getElementById("mText"); const showText = !f.hidden; f.hidden = showText; t.hidden = !showText; tog.textContent = showText ? "Show as the customer sees it" : "Show plain text"; };
+  document.querySelectorAll("#modalBox [data-act]").forEach(b => { b.onclick = () => mResolve(b.dataset.act, m.id); });
+}
+async function mResolve(act, id){
+  const note = (document.getElementById("mNote")?.value || "").trim();
+  if(!note){ say("mActMsg", "err", "Say what you checked first — the note is required."); return; }
+  const fn = { close: "mail_outbox_close_sent", retry: "mail_outbox_retry", cancel: "mail_outbox_cancel" }[act];
+  document.querySelectorAll("#modalBox [data-act]").forEach(b => { b.disabled = true; });
+  say("mActMsg", "", "Saving…");
+  const { error } = await sb.rpc(fn, { p_id: id, p_note: note });
+  if(error){ say("mActMsg", "err", error.message); document.querySelectorAll("#modalBox [data-act]").forEach(b => { b.disabled = false; }); return; }
+  mRunsLoad(); mMailsLoad();
+  mDetailOpen(id);
+}
 
 /* ══ 모달 ══════════════════════════════════════════════ */
 function modalOpen(html){ const b = document.getElementById("modalBox"); b.classList.remove("wide"); b.innerHTML = html; document.getElementById("modal").hidden = false; }
@@ -788,7 +1119,8 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
   ]);
   const fill = (id, rows) => { const s = document.getElementById(id); s.insertAdjacentHTML("beforeend", (rows || []).map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("")); };
-  ["fLoc", "aLoc", "iLoc"].forEach(i => fill(i, wh.data));
+  ["fLoc", "aLoc", "iLoc", "mLoc", "mMLoc"].forEach(i => fill(i, wh.data));
+  WH = wh.data || [];   // bo v5 — Emails 탭의 창고 칸
   ["fSup", "aSup", "iSup"].forEach(i => fill(i, sup.data));
   ["fBrand", "aBrand", "iBrand"].forEach(i => fill(i, br.data));
   [wh, sup, br].forEach(r => { if(r.error) console.warn("list load failed:", r.error.message); });
@@ -829,7 +1161,13 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
     refilter();
   };
-  /* ?customer=<uuid> · ?sku=ABC 로 들어오면 All 탭에서 그 조건으로(bo v3a 의 링크 모양 그대로) · ?tab=arrivals|insights|all */
+  /* Emails 거르기 (bo v5) */
+  ["mLoc", "mFrom", "mTo", "mProb"].forEach(i => { document.getElementById(i).onchange = mRunsLoad; });
+  document.getElementById("mClear").onclick = () => { ["mLoc", "mFrom", "mTo"].forEach(i => document.getElementById(i).value = ""); document.getElementById("mProb").checked = false; mRunsLoad(); };
+  ["mStatus", "mMLoc", "mMFrom", "mMTo"].forEach(i => { document.getElementById(i).onchange = () => { mOffset = 0; mMailsLoad(); }; });
+  document.getElementById("mMClear").onclick = () => { ["mStatus", "mMLoc", "mMFrom", "mMTo"].forEach(i => document.getElementById(i).value = ""); mRun = null; mOffset = 0; mMailsLoad(); };
+
+  /* ?customer=<uuid> · ?sku=ABC 로 들어오면 All 탭에서 그 조건으로(bo v3a 의 링크 모양 그대로) · ?tab=arrivals|insights|all|mail */
   const pc = imsParam("customer"), ps = imsParam("sku");
   let tab = imsParam("tab") || "arrivals";
   if(ps) document.getElementById("fSku").value = ps;
