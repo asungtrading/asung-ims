@@ -18,10 +18,13 @@
   .xs:hover{background:#f2f4f8}
   /* 폼 — .cf 한 줄(라벨 + 입력) · .cgrid 두 칸 */
   .cf{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-  .cf > label{width:150px;flex:0 0 150px;font-size:12.5px;color:var(--muted)}
+  .cf > label{width:130px;flex:0 0 130px;font-size:12.5px;color:var(--muted)}
   .cf input[type=text],.cf input[type=number],.cf input[type=email],.cf select,.cf textarea{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;min-width:0}
   .cf textarea{min-height:52px}
-  .cgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .cgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 18px}   /* cs v4a — 긴 선택지(계정 「_61_ Accounts Receivable (A/R)」)가 칸을 밀어 창에 가로 막대가 생겼다(Caleb 2026-10-16) · minmax(0,1fr) 로 칸이 내용보다 좁아질 수 있게 */
+  .cgrid > .cf{min-width:0}
+  .cf select{width:100%;max-width:100%;text-overflow:ellipsis}
+  @media (max-width:860px){ .cgrid{grid-template-columns:minmax(0,1fr)} }
   .csect{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;border-top:1px solid var(--line);padding-top:10px}
   .csect:first-child{border-top:0;margin-top:0;padding-top:0}
   .cnote{font-size:12px;color:var(--muted);line-height:1.5;margin:4px 0 10px}
@@ -111,7 +114,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-16 · cs v4";   // 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-16 · cs v4a";   // 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
