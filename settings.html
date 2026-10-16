@@ -23,6 +23,25 @@
   .pomodal[hidden]{display:none}   /* set v2 — 운송사 고치기 창 */
   .pobox{max-width:560px}
   .hint{font-size:12px;color:var(--muted);margin:-4px 0 10px}
+  /* set v3 — Backorder emails(판정 493 ~ 518 · mail_settings) */
+  .mset{display:flex;flex-direction:column}
+  .mrow{display:grid;grid-template-columns:200px 1fr;gap:6px 18px;padding:14px 16px;border-top:1px solid var(--line)}
+  .mrow:first-child{border-top:0}
+  .mrow .lbl{font-weight:600;font-size:13.5px}
+  .mrow .lbl .who{display:block;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:3px}
+  .mrow .ctl{display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .mrow .line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .mrow input[type=text],.mrow input[type=number],.mrow select{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:13px}
+  .mrow input[type=text]{width:320px;max-width:100%}
+  .mrow .note{font-size:12px;color:var(--muted)}
+  .mrow .res{font-size:12.5px}
+  .whs{display:flex;flex-direction:column;gap:8px}
+  .wh{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+  .wh .wn{min-width:170px;font-weight:600}
+  .wh label{display:inline-flex;gap:4px;align-items:center;font-size:12.5px}
+  .bigstate{font-size:15px;font-weight:700}
+  .bigstate.on{color:var(--good)} .bigstate.off{color:var(--bad)}
+  @media (max-width:720px){ .mrow{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -63,7 +82,7 @@
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
 <script>
-const SET_BUILD = "2026-10-13 · set v2";   // 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-16 · set v3";   // 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -114,6 +133,9 @@ const TABLES = [
     edit:"carrier", order:"name",
     cols:[ C("name","Name"), { key:"kind", label:"Kind", get:r => KIND_LBL[r.kind] || r.kind },
            C("shopify_company","Shopify name",{dim:1}), C("tracking_url_template","Tracking link",{mono:1,dim:1}), C_ACTIVE ] },
+
+  /* set v3 — 판정 493 ~ 518: 백오더 입고 알림 메일 설정(표가 아니라 설정 칸 일곱 — mail_settings) */
+  { t:"mail", label:"Backorder emails", note:"Arrival emails to customers — on/off, sender, schedule", custom:"mail", nocount:1 },
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
@@ -146,6 +168,8 @@ function cellHtml(col, row){
 async function load(){
   document.getElementById("tblName").textContent = cur.label;   // ⭐ ref_ 는 화면에 보이지 않는다
   document.getElementById("tblNote").textContent = cur.note || "";
+  ["onlyActive", "q", "range", "prev", "next"].forEach(id => { const el = document.getElementById(id); (el.closest("label") || el).hidden = !!cur.custom; });   // set v3
+  if(cur.custom === "mail"){ document.getElementById("addRow").hidden = true; drawNav(); await loadMail(); return; }
   document.getElementById("addRow").hidden = !(cur.edit && canEdit());   // set v2
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
   drawNav();
@@ -230,6 +254,88 @@ function openCarrier(r){
   };
 }
 
+
+/* ── set v3 — Backorder emails(판정 493 ~ 518 · mail-1a 의 키 일곱 · mail-4a mail_settings) ──────────
+   ⚠️ 판정은 DB 가 한다 — 바꿀 수 있나는 can_edit(admin 키 · master 키 · guard 와 같은 함수) · 값 모양 검사도 guard
+   ⚠️ 저장 = inv_config 의 그 키 한 행 update · 성공 판정 = .select() 1 행(set v2 선례) */
+const DAYS = [[1,"Mon"],[2,"Tue"],[3,"Wed"],[4,"Thu"],[5,"Fri"],[6,"Sat"],[7,"Sun"]];
+const TZS = [["America/Toronto","Toronto time"],["America/Edmonton","Edmonton time"]];
+let mRows = {}, mWh = [];
+async function loadMail(){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const [st, wh] = await Promise.all([ sb.rpc("mail_settings"), sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name") ]);
+  if(st.error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(st.error.message)}</div>`; return; }
+  mRows = {}; (st.data || []).forEach(r => { mRows[r.key] = r; });
+  mWh = wh.data || [];
+  const R = (k) => mRows[k] || { key: k, value: "", can_edit: false };
+  const who = (r) => r.updated_at ? `<span class="who">Changed ${esc(imsTs(r.updated_at))}${r.updated_by_name ? " by " + esc(r.updated_by_name) : ""}</span>` : "";
+  const lock = (r) => r.can_edit ? "" : `<span class="note">Only ${r.edit_level === "admin" ? "an admin" : "a manager with the master permission"} can change this.</span>`;
+  const en = R("mail_enabled"), red = R("mail_redirect_to"), fr = R("mail_backorder_from"), fn = R("mail_backorder_from_name"), rt = R("mail_backorder_reply_to"), sc = R("mail_backorder_schedule"), pc = R("mail_backorder_min_fill_pct");
+  let sched = {}; try{ sched = JSON.parse(sc.value || "{}"); }catch(e){ sched = {}; }
+  const on = en.value === "on";
+  const txt = (r, id, ph) => `<div class="line"><input type="text" id="${id}" autocomplete="off" placeholder="${esc(ph || "")}" ${r.can_edit ? "" : "disabled"}>${r.can_edit ? `<button class="pobtn" data-save="${esc(r.key)}" data-in="${id}">Save</button>` : ""}<span class="res" id="res_${esc(r.key)}"></span></div>`;
+  body.innerHTML = `<div class="mset">
+    <div class="mrow"><div class="lbl">Emails${who(en)}</div><div class="ctl">
+      <div class="line"><span class="bigstate ${on ? "on" : "off"}">${on ? "On" : "Off"}</span>${en.can_edit ? `<button class="pobtn${on ? "" : " go"}" id="enTog">${on ? "Turn off" : "Turn on"}</button>` : ""}<span class="res" id="res_mail_enabled"></span></div>
+      <span class="note">${on ? "Runs start on the scheduled mornings and emails go out." : "No runs start and nothing goes out. Emails that are already waiting stay waiting until this is on."}</span>${lock(en)}</div></div>
+    <div class="mrow"><div class="lbl">Test mode — send every email to${who(red)}</div><div class="ctl">
+      ${txt(red, "inRed", "empty = real customers")}
+      <span class="note">When an address is here, every email goes to it instead of the customer, and the customer's address goes in the subject. Leave it empty for real customers. In the test database it cannot be empty while emails are on, and it must be an @asung.ca address.</span>${lock(red)}</div></div>
+    <div class="mrow"><div class="lbl">Sent from${who(fr)}</div><div class="ctl">${txt(fr, "inFrom", "notifications@asung.ca")}<span class="note">The address customers see. It has to be set up in the ims@asung.ca mailbox as a "Send mail as" address, or Gmail refuses it.</span>${lock(fr)}</div></div>
+    <div class="mrow"><div class="lbl">Sender name${who(fn)}</div><div class="ctl">${txt(fn, "inName", "Asung Trading")}${lock(fn)}</div></div>
+    <div class="mrow"><div class="lbl">Replies go to${who(rt)}</div><div class="ctl">${txt(rt, "inReply", "info@asung.ca")}<span class="note">When a customer presses Reply. Empty = replies go to the "sent from" address.</span>${lock(rt)}</div></div>
+    <div class="mrow"><div class="lbl">Schedule${who(sc)}</div><div class="ctl">
+      <div class="whs">${mWh.map(w => { const x = sched[w.id]; return `<div class="wh" data-wh="${esc(w.id)}">
+        <span class="wn">${esc(w.name)}</span>
+        <label><input type="checkbox" class="whOn" ${x ? "checked" : ""} ${sc.can_edit ? "" : "disabled"}> Send for this branch</label>
+        ${DAYS.map(([d, l]) => `<label><input type="checkbox" class="whDay" value="${d}" ${x && (x.days || []).includes(d) ? "checked" : ""} ${sc.can_edit ? "" : "disabled"}>${l}</label>`).join("")}
+        <select class="whHour" ${sc.can_edit ? "" : "disabled"}>${Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${x && Number(x.hour) === h ? "selected" : (!x && h === 9 ? "selected" : "")}>${((h + 11) % 12) + 1}:00 ${h < 12 ? "AM" : "PM"}</option>`).join("")}</select>
+        <select class="whTz" ${sc.can_edit ? "" : "disabled"}>${TZS.map(([z, l]) => `<option value="${z}" ${(x ? x.tz : (/edmonton/i.test(w.name) ? "America/Edmonton" : "America/Toronto")) === z ? "selected" : ""}>${l}</option>`).join("")}</select>
+      </div>`; }).join("")}</div>
+      <div class="line">${sc.can_edit ? '<button class="pobtn" id="schSave">Save schedule</button>' : ""}<span class="res" id="res_mail_backorder_schedule"></span></div>
+      <span class="note">Each branch runs once on each checked morning at that hour in its own time. If the server misses the hour, the run still happens later that day. Holidays are not skipped.</span>${lock(sc)}</div></div>
+    <div class="mrow"><div class="lbl">Part of a line that came in${who(pc)}</div><div class="ctl">
+      <div class="line"><input type="number" id="inPct" min="1" max="100" step="1" style="width:90px" ${pc.can_edit ? "" : "disabled"}> % or more of the backordered quantity${pc.can_edit ? `<button class="pobtn" data-save="mail_backorder_min_fill_pct" data-in="inPct">Save</button>` : ""}<span class="res" id="res_mail_backorder_min_fill_pct"></span></div>
+      <span class="note">When stock comes in (a purchase receipt or a transfer from another branch) and the customer's share is at least this much of the line, they get the email. Stock from returns, adjustments or counts is emailed only when the whole line can ship. Each line is emailed once.</span>${lock(pc)}</div></div>
+  </div>`;
+  /* 값은 속성이 아니라 DOM 으로(customers 선례 · 따옴표) */
+  [["inRed", red], ["inFrom", fr], ["inName", fn], ["inReply", rt], ["inPct", pc]].forEach(([id, r]) => { const el = document.getElementById(id); if(el) el.value = r.value || ""; });
+  body.querySelectorAll("[data-save]").forEach(b => { b.onclick = () => mSave(b.dataset.save, document.getElementById(b.dataset.in).value.trim()); });
+  const tg = document.getElementById("enTog");
+  if(tg) tg.onclick = () => {
+    const goingOn = !on;
+    const warn = goingOn
+      ? ((red.value || "").trim() ? `Turn emails on? Test mode is set, so every email goes to ${red.value.trim()}.` : "Turn emails on? Real customers will get emails from the next scheduled morning.")
+      : "Turn emails off? No runs will start until they are turned on again.";
+    if(!confirm(warn)) return;
+    mSave("mail_enabled", goingOn ? "on" : "off");
+  };
+  const ss = document.getElementById("schSave");
+  if(ss) ss.onclick = () => {
+    const out = {};
+    let bad = "";
+    body.querySelectorAll("[data-wh]").forEach(row => {
+      if(!row.querySelector(".whOn").checked) return;
+      const days = [...row.querySelectorAll(".whDay:checked")].map(x => Number(x.value));
+      if(!days.length) bad = "Pick at least one day for each branch that sends — or untick \u201cSend for this branch\u201d.";
+      out[row.dataset.wh] = { tz: row.querySelector(".whTz").value, days, hour: Number(row.querySelector(".whHour").value) };
+    });
+    if(bad){ const r = document.getElementById("res_mail_backorder_schedule"); r.className = "res err"; r.textContent = bad; return; }
+    mSave("mail_backorder_schedule", JSON.stringify(out));
+  };
+}
+async function mSave(key, value){
+  const res = document.getElementById("res_" + key);
+  if(res){ res.className = "res"; res.textContent = "Saving…"; }
+  const { data, error } = await sb.from("inv_config").update({ value }).eq("key", key).select("key");
+  if(error){ if(res){ res.className = "res err"; res.textContent = error.message; } return; }
+  if(!data || data.length !== 1){ if(res){ res.className = "res err"; res.textContent = "Nothing was saved — you may not have the right to change this."; } return; }
+  await loadMail();
+  const r2 = document.getElementById("res_" + key);
+  if(r2){ r2.className = "res on"; r2.textContent = "Saved."; }
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
@@ -237,6 +343,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("buildTag").textContent = SET_BUILD;   // set v2
   document.getElementById("addRow").onclick = () => openCarrier(null);
   if(new URLSearchParams(location.search).get("t") === "carrier") cur = TABLES.find(x => x.t === "ref_carrier");   // set v2 — ?t=carrier
+  if(new URLSearchParams(location.search).get("t") === "mail") cur = TABLES.find(x => x.t === "mail");   // set v3 — ?t=mail
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
   await load();
