@@ -111,7 +111,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-06 · cs v3";   // 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-16 · cs v4";   // 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -352,6 +352,10 @@ async function loadDetail(id){
     (ko.data || []).forEach(x => { kidOpen[x.customer_id] = (kidOpen[x.customer_id] || 0) + 1; });
   }
   const cnm = await namesOf([r.parent_id, r.default_bill_to_customer_id, r.default_ship_to_customer_id].concat(kids.map(k => k.default_bill_to_customer_id)));
+  /* cs v4 — 백오더 알림 메일 스위치(판정 507 · 517 — 보기 sales · 바꾸기 manager 이상 · 판정은 창구의 can_edit) */
+  const bmq = await sb.rpc("customer_backorder_mail", { p_customer_id: id });
+  if(bmq.error) console.warn("customer_backorder_mail:", bmq.error.message);
+  const bmOn = bmq.data ? bmq.data.backorder_mail !== false : r.backorder_mail !== false, bmEdit = !!(bmq.data && bmq.data.can_edit);
   if(seq !== detailSeq) return;
   cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0, kids, billName: cnm[r.default_bill_to_customer_id] ? cnm[r.default_bill_to_customer_id].name : "" };
 
@@ -366,6 +370,8 @@ async function loadDetail(id){
     ...(r.default_ship_to_customer_id ? [["Ship to", `<a class="lk" data-open="${esc(r.default_ship_to_customer_id)}">${esc(cnm[r.default_ship_to_customer_id] ? cnm[r.default_ship_to_customer_id].name : "(unknown)")}</a>`]] : []),
     ["Split invoice by store", yn(r.invoice_split_by_store, false)],
     ["Default warehouse", dim(r.default_location_name)], ["Tax rule", dim(r.tax_rule)], ["Tax number", dim(r.tax_number)],
+    ["Backorder emails", (bmOn ? '<span class="on">on</span> <span class="dim">— gets an email when backordered items can ship</span>' : '<span class="off">off</span> <span class="dim">— no backorder arrival emails</span>')
+      + (bmEdit ? ` <button class="xs" id="bmBtn">${bmOn ? "Turn off" : "Turn on"}</button>` : ' <span class="dim" style="font-size:11.5px">(a manager can change this)</span>')],
     ["Parent", (r.parent_id ? `<a class="lk" data-open="${esc(r.parent_id)}">${esc(cnm[r.parent_id] ? cnm[r.parent_id].name : "(unknown)")}</a>` : '<span class="dim">—</span>')
       + (isMaster && !kids.length ? ` <button class="xs" id="parBtn">${r.parent_id ? "Change" : "Set parent"}</button>` : "")
       + (isMaster && r.parent_id ? ` <button class="xs" id="detBtn">Detach</button>` : "")],
@@ -408,6 +414,8 @@ async function loadDetail(id){
   box.querySelectorAll("[data-det]").forEach(b => { b.onclick = () => detach(kids[+b.dataset.det], r.id, r.name); });
   box.querySelectorAll("[data-open]").forEach(a => { a.onclick = () => openCustomer(a.dataset.open); });
   if($("revBtn")) $("revBtn").onclick = doReview;
+  if($("bmBtn")) $("bmBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "backorder_mail", value: String(!bmOn), old: String(bmOn) }],
+    bmOn ? `Turn off backorder emails for ${r.name} — they will not hear when backordered items can ship` : `Turn on backorder emails for ${r.name}`);
   if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], r.is_active ? "Deactivate " + r.name : "Activate " + r.name);
   if($("addAddr")) $("addAddr").onclick = () => openAddr(null);
   if($("addCont")) $("addCont").onclick = () => openCont(null);
