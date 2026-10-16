@@ -2064,6 +2064,26 @@ so-backorders.html(bo v4 → v4a)
 [ ] 판정 491 — 표식을 단 동안 Insights 「Could not ship on time」 도 준다(기대 $4,206.40 → $3,203.08 · 이번 달) — bo-2b 뒤 화면 기록 없음
 [ ] 판정 492 — SKU · 브랜드 · 공급처로 거르면 Insights 의 Ordered 도 준다(MOR2654) — bo-2b 뒤 화면 기록 없음
 남은 것 — 백오더 입고 알림 IMS 이관(미룬 221) · 상태 칩(479 ~ 481 · 235) · 품절 구간(474 · 234) · 합치기 후보 목록의 백오더 표시(240) · SO 상세 「이어받아 닫힘 → SO-…」(242)
+→ [2026-10-16] 미룬 221 — IMS 쪽 섰다 · 아래 7-zo
+```
+
+
+### 7-zo. 2026-10-15 ~ 10-16 — IMS 메일 · 백오더 입고 알림 화면 (bo v5 8fae856 · cs v4 83a479f · cs v4a a220435 · set v3 16b1b71 · asung-wms mail-1a 3f53bd6 · 1b c4438f0 · 1c 5e782fa · 2a 29b78d3 · 2b 9605417 · mail-3 e6b7079 · 4a 1e6ca6e · 4c 942bce2 · 판정 493 ~ 519 · so-module §65)
+
+```
+⭐  판정 493 — IMS 메일은 회사 Google Workspace(Gmail API) · 계정 ims@ · From notifications@ · Reply-To info@(510 · 511) · 첫 사용자 = 백오더 입고 알림 · 월 · 목 9 시 그 창고 시각(503) · 손님 × 창고 한 통 · 줄마다 한 번(497 · 505)
+⭐  화면은 판정을 다시 짜지 않는다 — 단추 칸(can_close_sent · can_retry · can_cancel · can_edit)은 DB 창구가 준다(mail_outbox_list · detail · customer_backorder_mail · mail_settings · 판정 516 · 517)
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+so-backorders.html(bo v5) · customers.html(cs v4 → v4a) · settings.html(set v3)
+[✅] Backorders → Emails 탭(회차 · 메일 목록 · 상세 · unknown 단추 셋 — manager 이상 · 판정 514 · 516)
+[✅] All backorders 의 알림 상태 칸(so_backorder_notice_state · 판정 497 · 509)
+[✅] Customers 상세 Backorder emails 줄(customer.backorder_mail · 바꾸기 manager 이상 · 판정 507 · 517)
+[✅] cs v4a — Edit · New 창 가로 막대 없애기
+[✅] Settings → Backorder emails(키 일곱 · 켜기 · 돌려 보내기 admin · 나머지 master)
+[✅] 첫 실제 발송(테스트 · 10-16 11:02 토론토 · 돌려 보내기 caleb@) — 2 통 도착(From Asung Trading <notifications@asung.ca> · Reply-To info@ · 제목 [TEST → …] · HTML 표) · Chat [TEST] 요약 · Gmail Updates 탭
+[ ] 월 10-19 9:07(토론토) 실전 연습 — 회차 · 메일 · Chat 요약 · Emails 탭 · 실패면 Chat ⚠️(판정 518)
+[ ] 메일 본문 HTML 은 sandbox iframe 으로만(상세) — 화면 확인 기록 없음
+남은 것 — 운영 전환 mail-5(GAS BackorderedItemEmail 정지와 IMS 켜기 같은 날 · 미룬 244) · 컷오버 열린 백오더 · 첫날 몰림(243) · 매니저 ims@ 메일함 위임(245) · Settings 「Changed」 시각(246)
 ```
 
 ---
