@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v3 · 2026-10-19 · 대화 Claude · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -163,6 +163,16 @@
     document.body.appendChild(ov);
     return ov;
   }
+  /* doc v3a — 화면 아래 잠깐 뜨는 안내(창을 닫은 뒤 「보냈다」를 알린다) */
+  function toast(text) {
+    css();
+    const t = document.createElement("div");
+    t.setAttribute("role", "status");
+    t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,.25)";
+    t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
   const MAIL_KINDS = ["final_invoice", "credit_note", "sales_order", "ship_ready"];
   async function mailDialog(sb, kind, ref, opts) {
     const o = opts || {};
@@ -206,8 +216,8 @@
       const { data, error } = await sb.rpc("doc_mail_send", args);
       if (error) { msg("er", error.message); send.disabled = false; return; }
       done = data;
-      msg("ok", "Queued — it goes out within a minute or two.");
-      send.textContent = "Sent"; ov.querySelector('[data-x="close"]').textContent = "Close";
+      close();
+      toast("Email queued — it goes out within a minute or two.");   // doc v3a — 기다리지 않는다
       if (typeof o.onDone === "function") { try { o.onDone(data); } catch (e) { console.warn(e); } }
     };
     return done;
