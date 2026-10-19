@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 (doc v1a · 2026-10-19 · 대화 Claude · Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 (doc v2 · 2026-10-19 · 대화 Claude · 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -77,5 +77,61 @@
     return d;
   }
 
-  window.imsDoc = { loadRenderer, render, frame, data, shipReadySample, KINDS, KIND_LBL };
+
+  /* ── doc v2 — 인쇄 ──────────────────────────────────────────
+     쓰는 판(doc_config.active[kind]) → doc_template_get → doc_data → 그리기 → 숨은 iframe 에서 브라우저 인쇄
+     ⚠️ iframe sandbox = allow-same-origin(바깥에서 print 를 부르려고) + allow-modals(인쇄 창) — allow-scripts 는 없다(판의 스크립트는 돌지 않는다)
+     ⚠️ 문서가 여럿(ship_ready 묶음 둘)이면 한 장씩 차례로 인쇄 창을 연다
+     ⚠️ 판이 없으면 「Settings → Documents」 로 보낸다 — 판 없이 아무것도 찍지 않는다 */
+  async function findInvoiceId(sb, number) {
+    const { data, error } = await sb.from("so_invoice").select("id").eq("invoice_number", String(number)).limit(1);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) throw new Error("Invoice " + number + " was not found.");
+    return data[0].id;
+  }
+  function printHtml(html) {
+    return new Promise((resolve) => {
+      const f = document.createElement("iframe");
+      f.setAttribute("sandbox", "allow-same-origin allow-modals");
+      f.setAttribute("aria-hidden", "true");
+      f.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0";
+      let fired = false;   // onload 가 두 번 와도 인쇄 창은 한 번
+      f.onload = () => {
+        if (fired) return; fired = true;
+        setTimeout(() => {
+          try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { console.warn("print:", e); }
+          setTimeout(() => { f.remove(); resolve(); }, 800);
+        }, 120);
+      };
+      f.srcdoc = html;
+      document.body.appendChild(f);
+    });
+  }
+  async function printDoc(sb, kind, ref) {
+    if (!KIND_LBL[kind]) throw new Error("Unknown document " + kind);
+    let r = Object.assign({}, ref || {});
+    if (r.invoice_number && !r.invoice_id) { r.invoice_id = await findInvoiceId(sb, r.invoice_number); delete r.invoice_number; }
+    const cf = await sb.rpc("doc_config");
+    if (cf.error) throw new Error(cf.error.message);
+    const act = ((cf.data || {}).active || {})[kind];
+    if (!act) throw new Error("No layout is in use for the " + KIND_LBL[kind].toLowerCase() + " yet — an admin sets one in Settings → Documents.");
+    const tg = await sb.rpc("doc_template_get", { p_template_id: act.template_id });
+    if (tg.error) throw new Error(tg.error.message);
+    if (!tg.data || !tg.data.body) throw new Error("The layout in use was not found — check Settings → Documents.");
+    const d = await data(sb, kind, r);
+    const docs = (d && d.docs) || [];
+    if (!docs.length) throw new Error("There is nothing to print.");
+    for (const doc of docs) await printHtml(await render(tg.data.body, doc));
+    return { printed: docs.length, version: act.version, groups: d.groups || null };
+  }
+  /* 단추 하나에 붙이는 도우미 — 누르는 동안 막고 · 실패는 alert 로 */
+  async function printBtn(btn, sb, kind, ref) {
+    const old = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "Preparing…"; }
+    try { return await printDoc(sb, kind, ref); }
+    catch (e) { alert("Could not print — " + e.message); return null; }
+    finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
+  }
+
+  window.imsDoc = { loadRenderer, render, frame, data, shipReadySample, printDoc, printBtn, printHtml, KINDS, KIND_LBL };
 })();
