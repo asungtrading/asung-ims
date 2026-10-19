@@ -41,6 +41,27 @@
   .wh label{display:inline-flex;gap:4px;align-items:center;font-size:12.5px}
   .bigstate{font-size:15px;font-weight:700}
   .bigstate.on{color:var(--good)} .bigstate.off{color:var(--bad)}
+  /* set v4 — Documents(판정 521 ~ 526 · doc-1a · 1b1 · 1b2) */
+  .dl{display:flex;flex-direction:column;gap:3px;font-size:12.5px;font-weight:600}
+  .dl input[type=text],.dl input[type=search],.dl textarea,.dl select{font-weight:400}
+  .mrow textarea{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:inherit;font-size:13px;width:100%;max-width:760px}
+  .dbrs{display:flex;gap:12px;flex-wrap:wrap}
+  .dbr{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;min-width:300px}
+  .dbr label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+  .dbr input{width:100% !important}
+  .dbrh{font-weight:700;font-size:13px}
+  .dlogo{max-height:60px;max-width:260px;border:1px solid var(--line);border-radius:8px;padding:6px;background:#fff}
+  .dtabs{display:flex;gap:6px;flex-wrap:wrap}
+  .dtab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .dtab.cur{background:#eef3ff;border-color:#3b5bdb;color:#3b5bdb}
+  table.dver{border-collapse:collapse;font-size:12.5px;max-width:860px}
+  table.dver td,table.dver th{padding:6px 8px;border-top:1px solid var(--line);text-align:left}
+  table.dver td.dact{display:flex;gap:6px}
+  .dbody{font-family:var(--mono);font-size:12px;line-height:1.4;max-width:100% !important}
+  .dchk{border-radius:10px;padding:9px 12px;font-size:12.5px;max-width:760px}
+  .dchk.ok{background:#ecfdf3;border:1px solid #abefc6} .dchk.bad{background:#fef3f2;border:1px solid #fecdca}
+  .dchkh{font-weight:700;margin-bottom:4px} .dchk ul{margin:4px 0 0 18px;padding:0}
+  .dtog{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;margin-right:14px}
   @media (max-width:720px){ .mrow{grid-template-columns:1fr} }
 </style>
 </head>
@@ -81,8 +102,9 @@
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
+<script src="ims-doc.js"></script>
 <script>
-const SET_BUILD = "2026-10-16 · set v3";   // 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-19 · set v4";   // 대화 Claude — doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -136,6 +158,9 @@ const TABLES = [
 
   /* set v3 — 판정 493 ~ 518: 백오더 입고 알림 메일 설정(표가 아니라 설정 칸 일곱 — mail_settings) */
   { t:"mail", label:"Backorder emails", note:"Arrival emails to customers — on/off, sender, schedule", custom:"mail", nocount:1 },
+
+  /* set v4 — 판정 521 ~ 526: 문서(인보이스 · 크레딧 노트 · SO · Ship Ready · Internal) — 회사 글 · 판 · 미리 보기 · 문서 글 */
+  { t:"docs", label:"Documents", note:"Invoices, credit notes, sales orders — company details, layouts, preview", custom:"docs", nocount:1 },
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
@@ -170,6 +195,7 @@ async function load(){
   document.getElementById("tblNote").textContent = cur.note || "";
   ["onlyActive", "q", "range", "prev", "next"].forEach(id => { const el = document.getElementById(id); (el.closest("label") || el).hidden = !!cur.custom; });   // set v3
   if(cur.custom === "mail"){ document.getElementById("addRow").hidden = true; drawNav(); await loadMail(); return; }
+  if(cur.custom === "docs"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDocs(); return; }   // set v4
   document.getElementById("addRow").hidden = !(cur.edit && canEdit());   // set v2
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
   drawNav();
@@ -336,6 +362,260 @@ async function mSave(key, value){
   if(r2){ r2.className = "res on"; r2.textContent = "Saved."; }
 }
 
+/* ── set v4 — Documents(판정 521 ~ 526 · doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043) ──────────
+   ⚠️ 판정은 DB 가 한다 — 판 올리기 · 쓰기 = doc_config().can_publish(판정 522 · ims_can_doc_template) · 글 고치기 = can_edit_text(판정 525 · master)
+   ⚠️ 판 검사의 정본은 doc_template_upload(p_commit false) — 화면은 결과를 그리기만 한다
+   ⚠️ 회사 글 = inv_config 의 키 한 행 update(guard 가 검사 · 성공 = .select() 1 행 · set v3 선례) · 문서 글 = rpc doc_setting_set
+   ⚠️ 미리 보기는 sandbox iframe(ims-doc.js) — 판의 스크립트는 돌지 않는다 */
+const DOC_DATE_FMTS = ["DDMONYYYY", "DD Mon YYYY", "YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "Mon DD, YYYY"];
+const DOC_REF_LBL = { final_invoice: "Invoice no.", internal_receipt: "Invoice no.", ship_ready: "Invoice no. (sample)", credit_note: "Credit note no.", sales_order: "SO no." };
+let dCfg = null, dKind = "final_invoice", dVers = [], dDraft = "", dDraftNote = "", dCheck = null, dPrevRef = "";
+
+async function loadDocs(){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const [cf, vl] = await Promise.all([ sb.rpc("doc_config"), sb.rpc("doc_template_list", { p_kind: null }) ]);
+  if(cf.error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(cf.error.message)}</div>`; return; }
+  if(vl.error){ body.innerHTML = `<div class="msg err">Could not load the layout versions — ${esc(vl.error.message)}</div>`; return; }
+  dCfg = cf.data || {}; dVers = vl.data || [];
+  const ed = !!dCfg.can_edit_text, pub = !!dCfg.can_publish;
+  const co = dCfg.company || {};
+  const brs = Array.isArray(dCfg.branches) ? dCfg.branches : [];
+  const br = (code) => brs.find(b => b.code === code) || { code, label: code === "TOR" ? "Toronto" : "Edmonton", line1: "", line2: "", phone: "", email: "" };
+  const dis = ed ? "" : "disabled";
+  const logoUrl = co.logo_path ? `${dCfg.public_base_url || ""}/storage/v1/object/public/doc-brand/${encodeURI(co.logo_path)}` : "";
+  const brBox = (b) => `<div class="dbr" data-br="${esc(b.code)}">
+      <div class="dbrh">${esc(b.code === "TOR" ? "Toronto" : "Edmonton")}</div>
+      <label>Label <input type="text" class="bLabel" autocomplete="off" ${dis}></label>
+      <label>Street <input type="text" class="bLine1" autocomplete="off" ${dis}></label>
+      <label>City · province · postal <input type="text" class="bLine2" autocomplete="off" ${dis}></label>
+      <label>Phone <input type="text" class="bPhone" autocomplete="off" ${dis}></label>
+      <label>Email <input type="text" class="bEmail" autocomplete="off" ${dis}></label>
+    </div>`;
+  body.innerHTML = `<div class="mset">
+    <div class="mrow"><div class="lbl">Company — on every document<span class="who">${ed ? "You can change these." : "Only an admin, a supervisor or someone with the master permission can change these."}</span></div><div class="ctl">
+      <div class="line"><label class="dl">Name <input type="text" id="dcName" autocomplete="off" ${dis}></label></div>
+      <div class="line"><label class="dl">HST no. <input type="text" id="dcHst" autocomplete="off" ${dis}></label><label class="dl">Website <input type="text" id="dcWeb" autocomplete="off" ${dis}></label></div>
+      <div class="dbrs">${brBox(br("TOR"))}${brBox(br("EDM"))}</div>
+      <span class="note">Both branches print at the top of every document. A branch with no street is left out.</span>
+      <label class="dl">Terms &amp; conditions <textarea id="dcTerms" rows="5" ${dis}></textarea></label>
+      <div class="line"><label class="dl">Date format <select id="dcDate" ${dis}>${DOC_DATE_FMTS.map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join("")}</select></label></div>
+      <div class="line">${ed ? '<button class="pobtn go" id="dcSave">Save company details</button>' : ""}<span class="res" id="res_dc"></span></div>
+    </div></div>
+    <div class="mrow"><div class="lbl">Logo<span class="who">PNG or JPEG · up to 2 MB</span></div><div class="ctl">
+      <div class="line">${logoUrl ? `<img class="dlogo" src="${esc(logoUrl)}" alt="Current logo">` : '<span class="note">No logo — the company name prints instead.</span>'}</div>
+      ${ed ? `<div class="line"><input type="file" id="dcLogo" accept="image/png,image/jpeg"><button class="pobtn" id="dcLogoUp">Upload logo</button>${co.logo_path ? '<button class="pobtn" id="dcLogoOff">Remove logo</button>' : ""}<span class="res" id="res_logo"></span></div>` : ""}
+    </div></div>
+    <div class="mrow"><div class="lbl">Document</div><div class="ctl">
+      <div class="dtabs">${imsDoc.KINDS.map(k => `<button class="dtab${k === dKind ? " cur" : ""}" data-kind="${k}">${esc(imsDoc.KIND_LBL[k])}</button>`).join("")}</div>
+    </div></div>
+    <div id="dKindBox"></div>
+  </div>`;
+  /* 값은 속성이 아니라 DOM 으로(따옴표 · set v3 선례) */
+  const setv = (id, v) => { const el = document.getElementById(id); if(el) el.value = v == null ? "" : v; };
+  setv("dcName", co.name); setv("dcHst", co.hst); setv("dcWeb", co.website); setv("dcTerms", co.terms); setv("dcDate", dCfg.date_format || "DDMONYYYY");
+  body.querySelectorAll("[data-br]").forEach(box => { const b = br(box.dataset.br);
+    box.querySelector(".bLabel").value = b.label || ""; box.querySelector(".bLine1").value = b.line1 || ""; box.querySelector(".bLine2").value = b.line2 || "";
+    box.querySelector(".bPhone").value = b.phone || ""; box.querySelector(".bEmail").value = b.email || ""; });
+  const sv = document.getElementById("dcSave"); if(sv) sv.onclick = () => dSaveCompany(co, brs);
+  const lu = document.getElementById("dcLogoUp"); if(lu) lu.onclick = dUploadLogo;
+  const lo = document.getElementById("dcLogoOff"); if(lo) lo.onclick = async () => { if(!confirm("Remove the logo? Documents will print the company name instead.")) return; const ok = await dCfgSave("doc_logo_path", "", "res_logo"); if(ok) await loadDocs(); };
+  body.querySelectorAll("[data-kind]").forEach(b => { b.onclick = () => { if(dKind !== b.dataset.kind){ dKind = b.dataset.kind; dDraft = ""; dDraftNote = ""; dCheck = null; } loadDocs(); }; });
+  drawKind();
+}
+
+async function dCfgSave(key, value, resId){
+  const res = document.getElementById(resId);
+  const { data, error } = await sb.from("inv_config").update({ value }).eq("key", key).select("key");
+  if(error){ if(res){ res.className = "res err"; res.textContent = `${key}: ${error.message}`; } return false; }
+  if(!data || data.length !== 1){ if(res){ res.className = "res err"; res.textContent = "Nothing was saved — you may not have the right to change this."; } return false; }
+  return true;
+}
+
+async function dSaveCompany(co, brs){
+  const res = document.getElementById("res_dc");
+  const g = (id) => document.getElementById(id).value;
+  const branches = [...document.querySelectorAll("[data-br]")].map(box => ({ code: box.dataset.br,
+    label: box.querySelector(".bLabel").value.trim(), line1: box.querySelector(".bLine1").value.trim(), line2: box.querySelector(".bLine2").value.trim(),
+    phone: box.querySelector(".bPhone").value.trim(), email: box.querySelector(".bEmail").value.trim() }));
+  const want = [ ["doc_company_name", g("dcName").trim(), co.name], ["doc_hst", g("dcHst").trim(), co.hst], ["doc_website", g("dcWeb").trim(), co.website],
+                 ["doc_terms", g("dcTerms").replace(/\s+$/, ""), co.terms], ["doc_date_format", g("dcDate"), dCfg.date_format] ];
+  const brOld = JSON.stringify(["TOR", "EDM"].map(c => { const b = brs.find(x => x.code === c) || {}; return { code: c, label: b.label || "", line1: b.line1 || "", line2: b.line2 || "", phone: b.phone || "", email: b.email || "" }; }));
+  const brNew = JSON.stringify(branches);
+  const todo = want.filter(([, v, old]) => v !== (old == null ? "" : old));
+  if(brNew !== brOld) todo.push(["doc_branches", brNew, null]);
+  if(!todo.length){ res.className = "res"; res.textContent = "No changes to save."; return; }
+  res.className = "res"; res.textContent = "Saving…";
+  for(const [k, v] of todo){ if(!(await dCfgSave(k, v, "res_dc"))) return; }   // 하나라도 실패하면 거기서 멈춘다(앞의 것은 저장됨 — 문장에 키 이름이 나온다)
+  await loadDocs();
+  const r2 = document.getElementById("res_dc"); if(r2){ r2.className = "res on"; r2.textContent = `Saved (${todo.length}).`; }
+}
+
+async function dUploadLogo(){
+  const res = document.getElementById("res_logo"), f = document.getElementById("dcLogo").files[0];
+  if(!f){ res.className = "res err"; res.textContent = "Pick a PNG or JPEG file first."; return; }
+  if(!/^image\/(png|jpeg)$/.test(f.type)){ res.className = "res err"; res.textContent = "Only PNG or JPEG."; return; }
+  if(f.size > 2 * 1024 * 1024){ res.className = "res err"; res.textContent = "The file is over 2 MB."; return; }
+  const path = `logo-${Date.now()}.${f.type === "image/png" ? "png" : "jpg"}`;   // 새 이름 — 캐시된 옛 로고가 보이지 않게
+  res.className = "res"; res.textContent = "Uploading…";
+  const up = await sb.storage.from("doc-brand").upload(path, f, { contentType: f.type, upsert: false });
+  if(up.error){ res.className = "res err"; res.textContent = up.error.message; return; }
+  if(await dCfgSave("doc_logo_path", path, "res_logo")) await loadDocs();
+}
+
+function drawKind(){
+  const box = document.getElementById("dKindBox"); if(!box) return;
+  const ed = !!dCfg.can_edit_text, pub = !!dCfg.can_publish;
+  const st = (dCfg.settings || {})[dKind] || {};
+  const act = (dCfg.active || {})[dKind];
+  const vers = dVers.filter(v => v.kind === dKind);
+  const dis = ed ? "" : "disabled";
+  const tog = (key, label, def) => { const on = (st[key] == null ? def : st[key] === "true"); return `<label class="dtog"><input type="checkbox" data-tog="${key}" ${on ? "checked" : ""} ${dis}> ${label}</label>`; };
+  box.innerHTML = `
+    <div class="mrow"><div class="lbl">Layout in use</div><div class="ctl">
+      <div class="line"><span class="bigstate ${act ? "on" : "off"}">${act ? "Version " + esc(String(act.version)) : "None yet"}</span>${act ? `<span class="note">since ${esc(imsTs(act.set_at))}</span>` : '<span class="note">This document cannot print until a layout is in use.</span>'}</div>
+      ${vers.length ? `<table class="dver"><thead><tr><th>Version</th><th>Note</th><th>Uploaded</th><th>Checks</th><th></th></tr></thead><tbody>${vers.map(v => `<tr>
+        <td class="mono">v${esc(String(v.version))}${v.is_active ? ' <span class="pill">in use</span>' : ""}</td>
+        <td>${esc(v.note || "")}</td><td class="dim">${esc(imsTs(v.uploaded_at))}${v.uploaded_by_name ? " · " + esc(v.uploaded_by_name) : ""}</td>
+        <td>${v.ok ? "Passed" : '<span class="err">Failed</span>'}</td>
+        <td class="dact"><button class="pobtn" data-vopen="${esc(v.id)}">Open</button>${pub && v.ok && !v.is_active ? `<button class="pobtn go" data-vuse="${esc(v.id)}" data-vno="${esc(String(v.version))}">Use this version</button>` : ""}</td></tr>`).join("")}</tbody></table>` : '<span class="note">No versions uploaded yet.</span>'}
+    </div></div>
+    <div class="mrow"><div class="lbl">Layout file<span class="who">${pub ? "Check → preview → save → use. Saving does not change what prints until you press Use this version." : "Only an admin, or a supervisor with the Document templates key, can upload or switch layouts."}</span></div><div class="ctl">
+      ${pub ? '<div class="line"><input type="file" id="dFile" accept=".html,.htm,text/html"><span class="note">or paste below</span></div>' : ""}
+      <textarea id="dBody" rows="10" class="mono dbody" spellcheck="false" placeholder="${pub ? "Paste a layout here, or open a version above" : "Open a version above to read it"}"></textarea>
+      ${pub ? `<div class="line"><input type="text" id="dNote" autocomplete="off" placeholder="What changed (shown in the version list)" style="width:420px"><button class="pobtn" id="dChk">Check</button><button class="pobtn go" id="dSaveV" ${dCheck && dCheck.ok ? "" : "disabled"}>Save as new version</button><span class="res" id="res_dv"></span></div>` : ""}
+      <div id="dChkOut"></div>
+    </div></div>
+    <div class="mrow"><div class="lbl">Preview<span class="who">${dKind === "ship_ready" ? "Ship Ready is filled at Ship &amp; invoice — here an issued invoice stands in." : "Uses a real document. Nothing is saved or sent."}</span></div><div class="ctl">
+      <div class="line"><label class="dl">${esc(DOC_REF_LBL[dKind])} <input type="search" id="dRef" autocomplete="off" style="width:170px"></label>
+        <button class="pobtn" id="dPrevBox">Preview the layout in the box</button>${act ? '<button class="pobtn" id="dPrevAct">Preview the layout in use</button>' : ""}<span class="res" id="res_prev"></span></div>
+      <div id="dPrev"></div>
+    </div></div>
+    <div class="mrow"><div class="lbl">Wording &amp; columns<span class="who">${ed ? "Saved one by one." : "Only an admin, a supervisor or someone with the master permission can change these."}</span></div><div class="ctl">
+      <label class="dl">Title <input type="text" id="dsTitle" autocomplete="off" ${dis}></label>
+      <div class="line">${tog("show_upc", "UPC column", true)}${tog("show_comment", "Line comments", true)}${tog("show_charge_code", "Account code on freight lines", false)}</div>
+      ${dKind === "internal_receipt" ? "" : `<label class="dl">Email subject <input type="text" id="dsSubj" autocomplete="off" ${dis}></label>
+      <label class="dl">Email message <textarea id="dsBody" rows="5" ${dis}></textarea></label>
+      <span class="note">You can use the same {{names}} as the layout, e.g. {{invoice.number}}. Emails with documents arrive in a later version.</span>`}
+      <div class="line">${ed ? '<button class="pobtn go" id="dsSave">Save wording &amp; columns</button>' : ""}<span class="res" id="res_ds"></span></div>
+    </div></div>`;
+  const ta = document.getElementById("dBody"); ta.value = dDraft;
+  if(!pub) ta.readOnly = true;
+  ta.oninput = () => { dDraft = ta.value; dCheck = null; const s = document.getElementById("dSaveV"); if(s) s.disabled = true; document.getElementById("dChkOut").innerHTML = ""; };
+  const nt = document.getElementById("dNote"); if(nt){ nt.value = dDraftNote; nt.oninput = () => { dDraftNote = nt.value; }; }
+  document.getElementById("dsTitle").value = st.title || "";
+  const sj = document.getElementById("dsSubj"); if(sj) sj.value = st.mail_subject || "";
+  const sb2 = document.getElementById("dsBody"); if(sb2) sb2.value = st.mail_body || "";
+  document.getElementById("dRef").value = dPrevRef;
+  document.getElementById("dRef").oninput = (e) => { dPrevRef = e.target.value; };
+  const fi = document.getElementById("dFile");
+  if(fi) fi.onchange = async () => { const f = fi.files[0]; if(!f) return; dDraft = await f.text(); ta.value = dDraft; dCheck = null; document.getElementById("dChkOut").innerHTML = ""; document.getElementById("dSaveV").disabled = true; };
+  const ck = document.getElementById("dChk"); if(ck) ck.onclick = dRunCheck;
+  const sv = document.getElementById("dSaveV"); if(sv) sv.onclick = dSaveVersion;
+  if(dCheck) dDrawCheck();
+  box.querySelectorAll("[data-vopen]").forEach(b => { b.onclick = async () => {
+    const { data, error } = await sb.rpc("doc_template_get", { p_template_id: b.dataset.vopen });
+    if(error || !data){ alert(error ? error.message : "That version was not found."); return; }
+    dDraft = data.body || ""; dDraftNote = ""; dCheck = null; drawKind();
+  }; });
+  box.querySelectorAll("[data-vuse]").forEach(b => { b.onclick = async () => {
+    if(!confirm(`Use version ${b.dataset.vno} for every ${imsDoc.KIND_LBL[dKind].toLowerCase()} from now on? Documents already printed or sent do not change.`)) return;
+    const { error } = await sb.rpc("doc_template_publish", { p_template_id: b.dataset.vuse });
+    if(error){ alert(error.message); return; }
+    await loadDocs();
+  }; });
+  document.getElementById("dPrevBox").onclick = () => dPreview(document.getElementById("dBody").value, "the layout in the box");
+  const pa = document.getElementById("dPrevAct"); if(pa) pa.onclick = async () => {
+    const { data, error } = await sb.rpc("doc_template_get", { p_template_id: act.template_id });
+    if(error || !data){ const r = document.getElementById("res_prev"); r.className = "res err"; r.textContent = error ? error.message : "The layout in use was not found."; return; }
+    dPreview(data.body, "version " + act.version);
+  };
+  const ss = document.getElementById("dsSave"); if(ss) ss.onclick = () => dSaveWording(st);
+}
+
+async function dRunCheck(){
+  const res = document.getElementById("res_dv"), body = document.getElementById("dBody").value;
+  if(!body.trim()){ res.className = "res err"; res.textContent = "There is no layout to check."; return; }
+  res.className = "res"; res.textContent = "Checking…";
+  const { data, error } = await sb.rpc("doc_template_upload", { p_kind: dKind, p_body: body, p_note: null, p_commit: false });
+  if(error){ res.className = "res err"; res.textContent = error.message; return; }
+  dCheck = Object.assign({ next_version: data.next_version }, data.check || {});
+  res.textContent = "";
+  dDrawCheck();
+  document.getElementById("dSaveV").disabled = !dCheck.ok;
+}
+function dDrawCheck(){
+  const out = document.getElementById("dChkOut"); if(!out || !dCheck) return;
+  const lines = (a) => (a || []).map(p => typeof p === "string" ? p : (p.message || JSON.stringify(p)) + (p.tag ? ` — ${p.tag}` : ""));
+  const pr = lines(dCheck.problems), wa = lines(dCheck.warnings);
+  out.innerHTML = `<div class="dchk ${dCheck.ok ? "ok" : "bad"}">
+    <div class="dchkh">${dCheck.ok ? `Passed — this would be saved as version ${esc(String(dCheck.next_version || ""))}.` : "Not accepted — fix these and check again:"}</div>
+    ${pr.length ? `<ul>${pr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${wa.length ? `<div class="note">Warnings:</div><ul>${wa.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+  </div>`;
+}
+async function dSaveVersion(){
+  const res = document.getElementById("res_dv"), body = document.getElementById("dBody").value, note = (document.getElementById("dNote").value || "").trim();
+  if(!note){ res.className = "res err"; res.textContent = "Say what changed in one line — it shows in the version list."; return; }
+  res.className = "res"; res.textContent = "Saving…";
+  const { data, error } = await sb.rpc("doc_template_upload", { p_kind: dKind, p_body: body, p_note: note, p_commit: true });
+  if(error){ res.className = "res err"; res.textContent = error.message; return; }
+  if(!data || !data.committed){ dCheck = Object.assign({ next_version: data && data.next_version }, (data && data.check) || {}); dDrawCheck(); res.className = "res err"; res.textContent = "Not saved — the checks did not pass."; return; }
+  dDraftNote = ""; dCheck = null;
+  await loadDocs();
+  const r2 = document.getElementById("res_dv"); if(r2){ r2.className = "res on"; r2.textContent = `Saved as version ${data.version}. It is not in use until you press Use this version.`; }
+}
+
+async function dFindRef(kind, raw){
+  const v = String(raw || "").trim(); if(!v) throw new Error(`Type a ${DOC_REF_LBL[kind].toLowerCase()} to preview with.`);
+  if(kind === "credit_note"){
+    const { data, error } = await sb.from("so_credit").select("id").eq("credit_number", v).limit(1);
+    if(error) throw new Error(error.message); if(!data.length) throw new Error(`No credit note ${v}.`); return { credit_id: data[0].id };
+  }
+  if(kind === "sales_order"){
+    const n = /^\d+$/.test(v) ? "SO-" + v : v.toUpperCase();
+    const { data, error } = await sb.from("so").select("id").eq("so_number", n).limit(1);
+    if(error) throw new Error(error.message); if(!data.length) throw new Error(`No sales order ${n}.`); return { so_id: data[0].id };
+  }
+  const { data, error } = await sb.from("so_invoice").select("id").eq("invoice_number", v).limit(1);
+  if(error) throw new Error(error.message); if(!data.length) throw new Error(`No invoice ${v}.`); return { invoice_id: data[0].id };
+}
+async function dPreview(body, what){
+  const res = document.getElementById("res_prev"), box = document.getElementById("dPrev");
+  if(!String(body || "").trim()){ res.className = "res err"; res.textContent = "There is no layout in the box — paste one or open a version."; return; }
+  res.className = "res"; res.textContent = "Loading…";
+  try{
+    const ref = await dFindRef(dKind, document.getElementById("dRef").value);
+    const dk = dKind === "ship_ready" ? "final_invoice" : dKind;
+    const d = await imsDoc.data(sb, dk, ref);
+    let doc = (d && d.docs && d.docs[0]) || null;
+    if(!doc) throw new Error("The document came back empty.");
+    if(dKind === "ship_ready") doc = imsDoc.shipReadySample(doc);
+    const html = await imsDoc.render(body, doc);
+    imsDoc.frame(box, html, { title: "Preview — " + what });
+    res.className = "res on"; res.textContent = `Showing ${what}.`;
+  }catch(e){ res.className = "res err"; res.textContent = e.message; box.innerHTML = ""; }
+}
+
+async function dSaveWording(st){
+  const res = document.getElementById("res_ds");
+  const want = [["title", document.getElementById("dsTitle").value.trim()]];
+  document.querySelectorAll("[data-tog]").forEach(c => want.push([c.dataset.tog, c.checked ? "true" : "false"]));
+  const sj = document.getElementById("dsSubj"); if(sj) want.push(["mail_subject", sj.value.trim()]);
+  const bd = document.getElementById("dsBody"); if(bd) want.push(["mail_body", bd.value.replace(/\s+$/, "")]);
+  const defs = { show_upc: "true", show_comment: "true", show_charge_code: "false" };
+  const todo = want.filter(([k, v]) => v !== (st[k] == null ? (defs[k] || "") : st[k]) && !(k === "title" && v === "" && st[k] == null));
+  if(!todo.length){ res.className = "res"; res.textContent = "No changes to save."; return; }
+  if(todo.some(([k, v]) => k === "title" && v === "")){ res.className = "res err"; res.textContent = "The title cannot be empty once set — type the title you want."; return; }
+  res.className = "res"; res.textContent = "Saving…";
+  for(const [k, v] of todo){
+    const { error } = await sb.rpc("doc_setting_set", { p_kind: dKind, p_key: k, p_value: v });
+    if(error){ res.className = "res err"; res.textContent = `${k}: ${error.message}`; return; }
+  }
+  await loadDocs();
+  const r2 = document.getElementById("res_ds"); if(r2){ r2.className = "res on"; r2.textContent = `Saved (${todo.length}).`; }
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
@@ -344,6 +624,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   document.getElementById("addRow").onclick = () => openCarrier(null);
   if(new URLSearchParams(location.search).get("t") === "carrier") cur = TABLES.find(x => x.t === "ref_carrier");   // set v2 — ?t=carrier
   if(new URLSearchParams(location.search).get("t") === "mail") cur = TABLES.find(x => x.t === "mail");   // set v3 — ?t=mail
+  if(new URLSearchParams(location.search).get("t") === "docs") cur = TABLES.find(x => x.t === "docs");   // set v4 — ?t=docs
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
   await load();
