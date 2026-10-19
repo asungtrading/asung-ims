@@ -2086,6 +2086,33 @@ so-backorders.html(bo v5) · customers.html(cs v4 → v4a) · settings.html(set 
 남은 것 — 운영 전환 mail-5(GAS BackorderedItemEmail 정지와 IMS 켜기 같은 날 · 미룬 244) · 컷오버 열린 백오더 · 첫날 몰림(243) · 매니저 ims@ 메일함 위임(245) · Settings 「Changed」 시각(246)
 ```
 
+
+### 7-zp. 2026-10-19 — 문서 템플릿 · 인쇄 · 문서 메일 화면 (set v4 a822932 · set v4a · ims-doc v1a d0fc272 · ims-doc v2 · inv v2f · cr v2e · pos v1.9 · so v5t8 43a09cb · ims-doc v3 · cs v4b · inv v2g · cr v2f · so v5t9 bff4bd5 · ims-doc v3a d87f1c8 · asung-wms doc-1a 31c39cd · 1b1 dc3aa77 · 1b2 aedd043 · 1c 75f03cb · doc-2 de276c8 · doc-3a 58e459e · doc-3b 2485e04 · 판정 521 ~ 530 · so-module §66)
+
+```
+⭐  컷오버 2026-11-01(일) 아침에 반드시 = 문서 템플릿 · 최종 인보이스 메일 · 발주앱(판정 521) — 앞 둘은 테스트에서 섰다
+⭐  판(배치)은 DB doc_template 이 정본 · 직원은 글과 켜고 끄기만(안 A) · 판 바꾸기 = 대화 Claude 가 새 판을 통째로 → Check → Preview → Save → Use this version(스킬 asung-doc §1)
+⭐  화면은 판정을 다시 짜지 않는다 — 값의 꼴 · 0 이면 빈칸 · Due 는 doc_data 가 · 메일 받는 이 · 제목 · 본문은 doc_mail_send 미리 보기가 준다
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+settings.html(set v4 · v4a) · ims-doc.js(v1a → v2 → v3 → v3a) · so-invoices.html(inv v2f · v2g) · so-credits.html(cr v2e · v2f) · pos.html(v1.9) · so.html(v5t8 · v5t9) · customers.html(cs v4b)
+[✅] Settings → Documents — 회사 글 · 지점 둘(판정 524) · 로고 · 날짜 꼴 DDMONYYYY · 문서 다섯 탭 · 판 목록 · Check · Preview · Save · Use this version
+[✅] Mustache 를 ims-doc.js 안에(set v4a · ims-doc v1a — cdnjs 에서는 window.Mustache 가 서지 않았다)
+[✅] Print invoice(인보이스 60009 · 판 v5 · 두 지점 머리 · Bill to · Ship to 나란히 · Due 528)
+[✅] 문서 메일 끝에서 끝(테스트 · 60009 → caleb@ · From Asung Trading <info@asung.ca> · PDF 첨부 · cron 57 → 55)
+[ ] Ship Ready 인쇄 · Email Ship Ready…(packed 오더가 필요 · PDF 먼저)
+[ ] Email order…(SO 메일) · 크레딧 Email to customer…
+[ ] POS 끝낸 판매 Print invoice
+[ ] Print delivery receipt(internal_receipt · 「INTERNAL USE ONLY」)
+[ ] 인보이스 · 크레딧 Note 고치기 → 인쇄 Notes 에 나온다(판정 526)
+[ ] Send 뒤 창 바로 닫힘 · 아래 안내 4 초 · Emails 칸 새로 그림(ims-doc v3a d87f1c8 배포 뒤)
+[ ] Customers 상세 Final invoice emails 줄 — 켜기 · 끄기는 manager 이상(판정 529 · cs v4b)
+[ ] 콤보 줄 · 단가가 실제로 바뀌는 다시 매기기의 Ship Ready(so-module 미룬 253 → 동료 테스트 가이드 장면)
+[ ] so_finalize 운임 고침이 description 키를 안 보내면 설명을 지운다(미룬 254 — 화면이 키를 보내는지)
+Caleb 할 일 — 컷오버 전 Customers 에서 자동 메일 손님(몇십 명) final_invoice_mail 켜기 · 시험 모드 비우기(mail_redirect_to)는 mail-5 운영 전환 때
+남은 것 — 운영 전환(GOTENBERG_* 운영 비밀 · cron 57 · 판 다섯 · 회사 글 · 로고를 운영 DB 로 · 미룬 256 · 257) · 드라이브 · QuickBooks(미룬 260) · include_in_email(미룬 249)
+비밀(이름만 · 테스트 Supabase) — GOTENBERG_URL · GOTENBERG_USER · GOTENBERG_PASS(asung-wms tools/gotenberg-secrets.sh) · 화면에는 비밀이 없다(anon 키 + 로그인 · EF doc 은 직원 JWT)
+```
+
 ---
 
 ## 8. 로그인 · 계정
