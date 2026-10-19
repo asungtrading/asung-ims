@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 (doc v2 · 2026-10-19 · 대화 Claude · 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v3 · 2026-10-19 · 대화 Claude · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -133,5 +133,123 @@
     finally { if (btn) { btn.disabled = false; btn.textContent = old; } }
   }
 
-  window.imsDoc = { loadRenderer, render, frame, data, shipReadySample, printDoc, printBtn, printHtml, KINDS, KIND_LBL };
+
+  /* ── doc v3 — 문서 메일(판정 529 · 530 · doc-3a · 3b) ───────────────
+     mailDialog: doc_mail_send(p_commit false) 미리 보기 → 받는 주소 · 제목 · 본문 고치기 → 보내기(p_commit true)
+       ship_ready 는 먼저 EF doc 으로 PDF 를 만들고 그 doc_file_id 를 넘긴다(일꾼은 ship_ready 를 못 만든다)
+     mailList: doc_mail_list → 보낸 메일 · 건너뛴 자동 메일 · 아직 안 나간 것은 취소(doc_mail_cancel · 메모 필수)
+     ⚠️ 판정은 DB 가 한다 — 화면은 창구가 돌려준 글을 그린다 */
+  function h(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  function css() {
+    if (document.getElementById("imsDocCss")) return;
+    const st = document.createElement("style"); st.id = "imsDocCss";
+    st.textContent = ".idm{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;z-index:9999;padding:48px 12px;overflow:auto}"
+      + ".idm .bx{background:#fff;border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}"
+      + ".idm h4{margin:0;padding:14px 18px;border-bottom:1px solid #e3e7ee;font-size:15px}"
+      + ".idm .bd{padding:14px 18px;display:flex;flex-direction:column;gap:10px;font-size:13px}"
+      + ".idm label{display:flex;flex-direction:column;gap:3px;font-weight:600;font-size:12.5px}"
+      + ".idm input,.idm textarea{font:inherit;font-weight:400;border:1px solid #d5dae2;border-radius:9px;padding:7px 9px}"
+      + ".idm .ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid #e3e7ee}"
+      + ".idm .nt{font-size:12px;color:#5b6472}.idm .wn{background:#fff7e6;border:1px solid #f5d38a;border-radius:9px;padding:8px 10px;font-size:12.5px}"
+      + ".idm .er{color:#b42318}.idm .ok{color:#067647}"
+      + ".idml table{width:100%;border-collapse:collapse;font-size:12.5px}.idml th,.idml td{text-align:left;padding:6px 8px;border-top:1px solid #e3e7ee;vertical-align:top}"
+      + ".idml .st{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;border:1px solid #d5dae2}"
+      + ".idml .st.sent{background:#ecfdf3;border-color:#abefc6}.idml .st.failed,.idml .st.unknown{background:#fef3f2;border-color:#fecdca}.idml .st.cancelled{color:#8a94a6}";
+    document.head.appendChild(st);
+  }
+  function overlay(inner) {
+    css();
+    const ov = document.createElement("div"); ov.className = "idm"; ov.innerHTML = '<div class="bx">' + inner + "</div>";
+    document.body.appendChild(ov);
+    return ov;
+  }
+  const MAIL_KINDS = ["final_invoice", "credit_note", "sales_order", "ship_ready"];
+  async function mailDialog(sb, kind, ref, opts) {
+    const o = opts || {};
+    if (MAIL_KINDS.indexOf(kind) < 0) { alert("This document is not emailed to customers."); return null; }
+    const ov = overlay('<h4>Email the ' + h(KIND_LBL[kind].toLowerCase()) + '</h4><div class="bd"><div class="nt">Preparing…</div></div>'
+      + '<div class="ft"><button class="pobtn" data-x="close">Cancel</button><button class="pobtn go" data-x="send" disabled>Send</button></div>');
+    const bd = ov.querySelector(".bd"), send = ov.querySelector('[data-x="send"]');
+    let done = null;
+    const close = () => { ov.remove(); };
+    ov.querySelector('[data-x="close"]').onclick = close;
+    const pv = await sb.rpc("doc_mail_send", { p_kind: kind, p_ref: ref, p_commit: false });
+    if (pv.error) { bd.innerHTML = '<div class="er">' + h(pv.error.message) + "</div>"; return null; }
+    const p = pv.data || {};
+    bd.innerHTML = '<div class="nt">From <b>' + h(p.from_name || "") + "</b> &lt;" + h(p.from || "") + "&gt;" + (p.reply_to ? " · replies go to " + h(p.reply_to) : "") + "</div>"
+      + (p.redirect_to ? '<div class="wn">Test mode — this email goes to <b>' + h(p.redirect_to) + "</b>, not to the customer.</div>" : "")
+      + '<label>To <input type="search" autocomplete="off" data-f="to"></label>'
+      + '<label>Subject <input type="search" autocomplete="off" data-f="subject"></label>'
+      + '<label>Message <textarea rows="7" data-f="body"></textarea></label>'
+      + '<div class="nt">The PDF of this ' + h(KIND_LBL[kind].toLowerCase()) + " is attached, made with the layout in use. The email goes out within a minute or two.</div>"
+      + '<div data-x="msg"></div>';
+    bd.querySelector('[data-f="to"]').value = p.to || "";
+    bd.querySelector('[data-f="subject"]').value = p.subject || "";
+    bd.querySelector('[data-f="body"]').value = p.body || "";
+    send.disabled = false;
+    const msg = (cls, t) => { const m = bd.querySelector('[data-x="msg"]'); m.className = cls; m.textContent = t; };
+    send.onclick = async () => {
+      const to = bd.querySelector('[data-f="to"]').value.trim(), subject = bd.querySelector('[data-f="subject"]').value.trim(), body = bd.querySelector('[data-f="body"]').value;
+      if (!to) { msg("er", "Type the address to send to."); return; }
+      send.disabled = true; msg("nt", "Sending…");
+      let fileId = null;
+      if (kind === "ship_ready") {
+        msg("nt", "Making the PDF…");
+        const r = await sb.functions.invoke("doc", { body: { action: "render", kind, ref, reason: "send" } });
+        const files = (r.data && r.data.files) || [];
+        if (r.error || !files.length) { msg("er", "Could not make the PDF — " + ((r.data && r.data.error) || (r.error && r.error.message) || "no file came back") + ". Nothing was sent."); send.disabled = false; return; }
+        if (files.length > 1) { msg("er", "This makes " + files.length + " invoices — email each order on its own. Nothing was sent."); send.disabled = false; return; }
+        fileId = files[0].doc_file_id;
+      }
+      const args = { p_kind: kind, p_ref: ref, p_commit: true, p_to: to, p_subject: subject, p_body: body };
+      if (fileId) args.p_doc_file_id = fileId;
+      const { data, error } = await sb.rpc("doc_mail_send", args);
+      if (error) { msg("er", error.message); send.disabled = false; return; }
+      done = data;
+      msg("ok", "Queued — it goes out within a minute or two.");
+      send.textContent = "Sent"; ov.querySelector('[data-x="close"]').textContent = "Close";
+      if (typeof o.onDone === "function") { try { o.onDone(data); } catch (e) { console.warn(e); } }
+    };
+    return done;
+  }
+  const ST_LBL = { waiting_pdf: "making PDF", queued: "waiting to send", sending: "sending", sent: "sent", failed: "failed", unknown: "result unknown", cancelled: "cancelled" };
+  const SKIP_LBL = { no_email: "No automatic email — the customer has no email address", reissue: "No automatic email — this invoice was reissued", error: "Automatic email could not be prepared" };
+  async function mailList(sb, kind, ref, box) {
+    if (!box) return;
+    css(); box.classList.add("idml");
+    const { data, error } = await sb.rpc("doc_mail_list", { p_kind: kind, p_ref: ref });
+    if (error) { box.innerHTML = '<div class="msg err">' + h(error.message) + "</div>"; return; }
+    const ms = (data && data.mails) || [], sk = (data && data.skipped) || [];
+    const ts = (s) => (typeof window.imsTs === "function" ? window.imsTs(s) : (s || ""));
+    let out = "";
+    if (ms.length) out += "<table><thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th><th>By</th><th></th></tr></thead><tbody>" + ms.map((m) =>
+      "<tr><td>" + h(ts(m.sent_at || m.created_at)) + "</td><td>" + h(m.original_to || m.to) + (m.original_to && m.to && m.original_to !== m.to ? '<div class="dim" style="font-size:11.5px">test mode → ' + h(m.to) + "</div>" : "") + "</td>"
+      + "<td>" + h(m.subject) + "</td><td><span class=\"st " + h(m.status) + "\">" + h(ST_LBL[m.status] || m.status) + "</span>" + (m.last_error && m.status !== "sent" ? '<div class="dim" style="font-size:11.5px">' + h(m.last_error) + "</div>" : "") + "</td>"
+      + "<td>" + (m.auto ? "automatic" : h(m.created_by_name || "")) + "</td>"
+      + "<td>" + (m.status === "waiting_pdf" || m.status === "queued" ? '<button class="xbtn" data-mcancel="' + h(m.outbox_id) + '" title="Stop this email">Cancel</button>' : "") + "</td></tr>").join("") + "</tbody></table>";
+    if (sk.length) out += sk.map((k) => '<div class="dim" style="font-size:12px;margin-top:6px">' + h(SKIP_LBL[k.reason] || k.reason) + (k.detail ? " — " + h(k.detail) : "") + " · " + h(ts(k.created_at)) + "</div>").join("");
+    box.innerHTML = out || '<div class="msg">No emails yet.</div>';
+    box.querySelectorAll("[data-mcancel]").forEach((b) => { b.onclick = async () => {
+      const note = prompt("Why stop this email? (required)"); if (note === null) return;
+      if (!note.trim()) { alert("A reason is required."); return; }
+      const r = await sb.rpc("doc_mail_cancel", { p_outbox_id: b.dataset.mcancel, p_note: note.trim() });
+      if (r.error) { alert(r.error.message); return; }
+      mailList(sb, kind, ref, box);
+    }; });
+  }
+  /* 메모 고치기 창(인보이스 · 크레딧 메모 — 판정 526) — onSave(text) 가 오류 글을 돌려주면 창에 그대로 */
+  function noteDialog(title, current, onSave) {
+    const ov = overlay("<h4>" + h(title) + '</h4><div class="bd"><label>Note on the document (customers see it) <textarea rows="5" maxlength="2000" data-f="n"></textarea></label><div class="nt">Up to 2,000 characters. Leave it empty to remove the note.</div><div data-x="msg"></div></div>'
+      + '<div class="ft"><button class="pobtn" data-x="close">Cancel</button><button class="pobtn go" data-x="save">Save note</button></div>');
+    ov.querySelector('[data-f="n"]').value = current || "";
+    ov.querySelector('[data-x="close"]').onclick = () => ov.remove();
+    ov.querySelector('[data-x="save"]').onclick = async () => {
+      const m = ov.querySelector('[data-x="msg"]'); m.className = "nt"; m.textContent = "Saving…";
+      const err = await onSave(ov.querySelector('[data-f="n"]').value);
+      if (err) { m.className = "er"; m.textContent = err; return; }
+      ov.remove();
+    };
+  }
+
+  window.imsDoc = { loadRenderer, render, frame, data, shipReadySample, printDoc, printBtn, printHtml, mailDialog, mailList, noteDialog, KINDS, KIND_LBL };
 })();

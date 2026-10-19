@@ -116,7 +116,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-10-19 · inv v2f";   // 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-10-19 · inv v2g";   // 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -431,6 +431,7 @@ async function loadDetail(id){
   acts.push('<button class="pobtn" data-act="wide">&lsaquo; All invoices</button>');
   if(live && Number(v.remaining) > 0) acts.push('<button class="pobtn go" data-act="pay">Take a payment…</button>');
   acts.push('<button class="pobtn" data-act="print" title="Print or save as PDF with the invoice layout in use">Print invoice</button>');   // inv v2f
+  if(live) acts.push('<button class="pobtn" data-act="mail" title="Email this invoice to the customer with the PDF attached">Email to customer…</button>');   // inv v2g
   acts.push('<button class="pobtn" data-act="printint" title="The internal receipt for a local delivery — the driver gets it signed">Print delivery receipt</button>');   // inv v2f
   /* v1.2 — 이 인보이스에서 크레딧 노트를 낸다(Credit Notes 화면이 준비물을 읽고 연다 · manager) */
   if(live && isMgr()) acts.push(`<a class="pobtn" href="so-credits.html?inv=${encodeURIComponent(v.id)}" style="text-decoration:none">Raise a credit note…</a>`);
@@ -451,7 +452,7 @@ async function loadDetail(id){
       : webOrders.length ? [["Web order", webOrders.map(o => `<span class="mono">${esc(o.ref || "")}</span>`).join(" · ") + ' <span class="dim">(web order record not found)</span>']] : []),   // inv v2e
   ];
   const kvR = [
-    ["Note",         dim(v.note)],
+    ["Note",         dim(v.note) + (live ? ' <button class="xbtn" data-act="note" title="The note prints on the invoice">Edit</button>' : "")],   // inv v2g
     ["Created",      imsTs(v.created_at)],
     ["Cancelled",    v.cancelled_at ? imsTs(v.cancelled_at) + (v.cancel_note ? ` <span class="dim">${esc(v.cancel_note)}</span>` : "") : '<span class="dim">—</span>'],
   ];
@@ -600,11 +601,13 @@ async function loadDetail(id){
     ${hist.length ? tbl("Other invoices for these orders", hist.length, [["Invoice",""],["Status",""],["Issued",""],["Total","num"],["Orders",""],["",""]], hist,
       "Earlier or later invoices for the same orders — a cancelled invoice and its reissue.") : ""}
 
+    <div class="card"><h3 class="ims-sec">Emails</h3><div id="docMails"><div class="msg">Loading…</div></div></div>
     ${bal.length ? tbl("Customer balance", 1, [["Currency",""],["Money on account","num"],["Credit owed","num"],["Held for orders","num"],["Available","num"],["Open invoices due","num"]], bal,
       "The bill-to customer's balance in this currency.") : ""}
   `;
 
   box.querySelectorAll("[data-goinv]").forEach(a => { a.onclick = () => gotoInv(a.dataset.goinv); });
+  imsDoc.mailList(sb, "final_invoice", { invoice_id: v.id }, document.getElementById("docMails"));   // inv v2g
   box.querySelectorAll("[data-detach]").forEach(bt => { bt.onclick = () => detachPayment(bt.dataset.detach, bt.dataset.lbl); });
   box.querySelectorAll("[data-act]").forEach(bt => {
     bt.onclick = () => {
@@ -616,6 +619,8 @@ async function loadDetail(id){
       if(a === "reissue") reissueInvoice();
       if(a === "print")    imsDoc.printBtn(bt, sb, "final_invoice", { invoice_id: v.id });      // inv v2f
       if(a === "printint") imsDoc.printBtn(bt, sb, "internal_receipt", { invoice_id: v.id });   // inv v2f
+      if(a === "mail")     imsDoc.mailDialog(sb, "final_invoice", { invoice_id: v.id }, { onDone: () => imsDoc.mailList(sb, "final_invoice", { invoice_id: v.id }, document.getElementById("docMails")) });   // inv v2g
+      if(a === "note")     imsDoc.noteDialog("Invoice " + v.invoice_number + " — note", v.note || "", async (t) => { const r = await sb.rpc("so_invoice_note_set", { p_invoice_id: v.id, p_note: t }); if(r.error) return r.error.message; await reloadHere(); return null; });   // inv v2g
     };
   });
 }
