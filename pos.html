@@ -118,7 +118,7 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-19 · pos v1.9";   // 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-19 · pos v1.10";   // 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
@@ -286,10 +286,38 @@ function openFind(prefill){
   setTimeout(() => { const i = document.getElementById("fdQ"); if(i) i.focus(); }, 30);
 }
 
+/* ── pos v1.10 — 손님 막대의 돈(판정 536 · 10번: 손님이 쓸 수 있는 우리 쪽 크레딧 · 신용 한도 아님) ──
+   ⚠️ 셈은 DB — 크레딧 = so_detail.customer_balance.available(청구처 · 그 통화 · 받아 둔 돈 + 크레딧 − 예약) · 연체 = so_invoice_ar_summary(청구처) 의 그 통화 행
+   ⚠️ 보이기만 — Finish 를 막지 않는다(판정 5) · 결제조건에 Net days 가 없는 인보이스는 연체로 세지 않는다(due_unknown) */
+async function fillBal(d){
+  const el = () => document.getElementById("custBal");
+  const s = d.so || {}, b = d.customer_balance || null, cid = s.bill_to_customer_id || s.customer_id;
+  const parts = [];
+  if(b){
+    parts.push(`<span class="chip ${Number(b.available) > 0 ? "good" : ""}" title="Money on account plus open credit notes, less deposits held for other orders — it can pay this sale">Credit ${money(b.available)}</span>`);
+    if(Number(b.open_invoices) > 0) parts.push(`<span class="chip" title="Invoices not fully paid yet">Open invoices ${esc(b.open_invoices)} · ${money(b.open_invoices_due)}</span>`);
+  }
+  if(el()) el().innerHTML = parts.join("");
+  if(!cid) return;
+  const { data, error } = await sb.rpc("so_invoice_ar_summary", { p_customer_id: cid });
+  if(error || !data || curId !== s.id) return;
+  const row = (data.currencies || []).find(x => x.currency_id === s.currency_id);
+  if(row && Number(row.overdue_count) > 0) parts.push(`<span class="chip bad" title="Past the due date of the payment term">Overdue ${esc(row.overdue_count)} · ${money(row.overdue_total)}</span>`);
+  if(el()) el().innerHTML = parts.join("");
+}
+
 /* ── 줄 고치기(초안에서만 · 확정 뒤는 다시 열어야) ── */
-async function setQty(lineId, v){
+async function setQty(lineId, v, old){
   const n = Number(v);
   if(!(n > 0)){ return removeLine(lineId); }
+  /* pos v1.10 — 판정 547: 늘릴 때만 이 가게 창고의 가용과 대 본다(오타 100 → 1000 이 그대로 나가 재고가 음수가 되지 않게) · 읽기가 실패하면 막지 않는다 */
+  if(old !== undefined && n > Number(old)){
+    const la = await sb.rpc("so_lines_available", { p_so_id: curId });
+    const row = !la.error && (la.data || []).find(x => x.line_id === lineId);
+    if(row && row.available_units !== null && row.available_units !== undefined && Number(row.available_units) < n){
+      if(!confirm(`Only ${Number(row.available_units).toLocaleString("en-CA")} available in this store's warehouse (on hand minus what other orders hold). Sell ${n.toLocaleString("en-CA")} anyway?`)){ await openSale(curId); return; }
+    }
+  }
   const { error } = await sb.rpc("so_line_update", { p_line_id: lineId, p_patch: { qty_ordered: n } });
   if(error){ alert(error.message); }
   await openSale(curId);
@@ -457,7 +485,9 @@ async function openSale(id){
   document.getElementById("soNo").textContent = s.so_number + " · " + s.status;
   document.getElementById("custBar").innerHTML = `<b>${esc(data.customer_name || "")}</b>
     <span class="dim" style="font-size:12px">${esc([s.price_tier, s.payment_term_name].filter(Boolean).join(" · "))}</span>
+    <span id="custBal" style="display:inline-flex;gap:6px;flex-wrap:wrap"></span>
     <span class="sp"></span><span class="dim" style="font-size:12px">${esc(s.location_name || "")}</span>`;
+  fillBal(data);   // pos v1.10 — 판정 536
   const sc = document.getElementById("scanIn"), fb = document.getElementById("findBtn");
   sc.disabled = !draft; fb.disabled = !draft;
   sc.placeholder = draft ? "Scan a barcode or type a SKU, then Enter" : "Confirmed — Reopen to add or change items";
@@ -476,12 +506,22 @@ async function openSale(id){
     </tr>` : `<tr>
       <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${l.is_combo ? ' <span class="tag">combo</span>' : ""}${isSale(l) ? '<span class="sale">SALE</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
         ${discNote(l)}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}${l.surcharge_label ? `<div class="dim" style="font-size:11px">+ ${esc(l.surcharge_label)} ${money(l.surcharge_unit)}/ea · ${plain(l.surcharge_total)}</div>` : ""}</div></div></td>
-      <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <b class="mono">${qty(l.qty_ordered)}</b> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
+      <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <input class="mono" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" data-qin="${l.id}" data-q="${esc(l.qty_ordered)}" value="${esc(l.qty_ordered)}" title="Type the quantity, then Enter" style="width:64px;text-align:right;border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-weight:700"> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
       <td class="num">${Number(l.discount_pct) > 0 && !l.free_reason && l.list_price !== null && l.list_price !== undefined && Number(l.list_price) !== Number(l.unit_price) ? `<span class="was">${plain(l.list_price)}</span>` : ""}${money(l.unit_price)}</td><td class="num">${money(l.total)}</td>
       ${draft ? `<td><button class="xbtn" data-rm="${l.id}" title="Remove">&#10005;</button></td>` : ""}
     </tr>`).join("")}</tbody></table>` : `<div class="msg">${draft ? "Scan the first item." : "No items."}</div>`;
-  document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1); });
-  document.querySelectorAll("[data-dec]").forEach(b => { b.onclick = () => setQty(b.dataset.dec, Number(b.dataset.q) - 1); });
+  document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1, Number(b.dataset.q)); });
+  document.querySelectorAll("[data-dec]").forEach(b => { b.onclick = () => setQty(b.dataset.dec, Number(b.dataset.q) - 1, Number(b.dataset.q)); });
+  /* pos v1.10 — 판정 547: 숫자 칸 · Enter 또는 칸을 떠나면 저장 · 1 이상 정수만(DB 는 소수도 받는다 — 화면이 막는다) · 0 으로 빼지 않는다(✕ 가 뺀다) */
+  document.querySelectorAll("[data-qin]").forEach(i => {
+    i.onkeydown = (e) => { if(e.key === "Enter"){ e.preventDefault(); i.blur(); } };
+    i.onchange = () => {
+      const v = i.value.trim(), old = Number(i.dataset.q);
+      if(!/^\d+$/.test(v) || Number(v) < 1){ alert("Type a whole number, 1 or more. To take the item off, press ✕."); i.value = i.dataset.q; return; }
+      if(Number(v) === old) return;
+      setQty(i.dataset.qin, Number(v), old);
+    };
+  });
   document.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => removeLine(b.dataset.rm); });
   /* 사진 — 줄 칸 채우기 · 오른쪽 위 = 방금 담은 상품 → 없으면 지금 보이던 것 → 없으면 맨 위(가장 나중) 줄 */
   thumbFill(document.getElementById("lines"));
