@@ -119,7 +119,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const RCV_BUILD = "2026-10-01 · rcv thumb v1";   // 대화 Claude — 판정 214: Received · 차이 · Count · Put away 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice basis」 ⑱-3(대화 Claude) — 판정 88 · 92 · 99 · 100 · 101: 기준 = 확정 인보이스 · Off-invoice 결정 둘(거절 없음) · 확정 반환 charges · 새 입고 = 확정 인보이스 있는 PO 만 ← ⑤-6c3 「warehouse state」(off-PO 결정 UI · 딥링크 ?receipt=&diff= · 판정 43 · 44 · 45)
+const RCV_BUILD = "2026-10-20 · rcv post-now v1";   // 대화 Claude — 판정 550 ~ 553(rcv-1b asung-wms 76d1d10): 초안에 「Post now…」(header.post_now_ok · receiving 쓰기) — 칸이 붙고 아직 안 올린 작업 줄을 골라 po_receipt_post_now 미리 보기(쓰기 0 · 가용 전후) → 「Post to stock」 · 머리에 Posted to stock 칸 · 「POSTED EARLY」 묶음 목록(header.posts) · Put away 의 올린 줄은 「in stock · batch N」(칸 · 나누기 · ↩ 없음) · Confirm 창 · 결과에 먼저 올린 몫(posted_before) · 경고 글 posted_before · cost_deferred_post_now ← rcv thumb v1: 대화 Claude — 판정 214: Received · 차이 · Count · Put away 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice basis」 ⑱-3(대화 Claude) — 판정 88 · 92 · 99 · 100 · 101: 기준 = 확정 인보이스 · Off-invoice 결정 둘(거절 없음) · 확정 반환 charges · 새 입고 = 확정 인보이스 있는 PO 만 ← ⑤-6c3 「warehouse state」(off-PO 결정 UI · 딥링크 ?receipt=&diff= · 판정 43 · 44 · 45)
 console.log("receiving.html build:", RCV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -190,7 +190,10 @@ const WARN = {
   over_counted:    "More was counted than the confirmed invoice. The extra must sit in one bin — it is decided as an off-invoice item.",
   short_counted:   "Less was counted than the confirmed invoice. The short line is kept for someone to settle.",
   /* 오피스 판 1(2026-09-28) · 판정 30 — 창고 Complete 전의 확정은 막지 않고 알린다 */
-  wms_not_completed: "The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing."
+  wms_not_completed: "The warehouse had not marked this receipt complete when it was confirmed — the count could still have been changing.",
+  /* rcv post-now v1 — 판정 550 · 553 */
+  posted_before:   "Part of this receipt is already in stock (Post now) — it is counted together with the rest when you confirm.",
+  cost_deferred_post_now: "A charge waits until this receipt is confirmed — it is then spread over everything received on the order."
 };
 const warnText = (w) => WARN[w] || w;
 
@@ -323,6 +326,7 @@ async function loadDetail(id){
   } else lastBins = {};
 
   const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All receipts</button>'];
+  if(ed && h.post_now_ok) acts.push('<button class="pobtn" data-act="postnow" title="Put what is already counted and in a bin into stock now — the rest is counted later">Post now…</button>');   // rcv post-now v1 — 판정 550
   if(ed) acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
   if(ed) acts.push('<button class="pobtn bad" data-act="del">Delete</button>');
   acts.push(`<button class="pobtn" data-act="po">Open ${esc(h.po_number || "PO")}</button>`);
@@ -347,6 +351,7 @@ async function loadDetail(id){
         <div class="g"><b>${qty(t.counted)}</b><span>Counted</span></div>
         <div class="g ${toPlace > 0 ? "bad" : "ok"}"><b>${qty(toPlace)}</b><span>To place</span></div>
         <div class="g"><b>${esc(t.counted_lines)} / ${esc(t.lines)}</b><span>Lines counted</span></div>
+        ${Number(t.posted) > 0 ? `<div class="g ok"><b>${qty(t.posted)}</b><span>Posted to stock · ${esc(t.posted_batches || 0)} batch${Number(t.posted_batches) === 1 ? "" : "es"}</span></div>` : ""}
         <div class="g ${Number(t.over_lines) > 0 ? "bad" : ""}"><b>${esc(t.over_lines ?? 0)} / ${esc(t.short_lines ?? 0)}</b><span>Lines over · short of the invoice</span></div>
       </div>
       <div class="invsub"><div class="invgrid">${kvTbl([
@@ -361,7 +366,7 @@ async function loadDetail(id){
         ["CONFIRMED", h.confirmed_at
           ? `${esc(h.confirmed_by_name || "—")} <span class="dim">${imsTs(h.confirmed_at)}</span>` : "—"],
         ["WAREHOUSE WORK", wmsStateLine(curWms)]   // 위 「WAREHOUSE」 는 창고 이름 · 이 줄은 창고 Complete 상태
-      ])}</div></div>
+      ].concat((h.posts || []).length ? [["POSTED EARLY", (h.posts || []).map(x => `batch ${esc(x.batch_no)} · <b>${qty(x.qty_ea)}</b> EA · ${esc(x.posted_by_name || "—")} <span class="dim">${imsTs(x.posted_at)}</span>`).join("<br>")]] : []))}</div></div>
       ${(h.po_split_to || []).length
         ? `<div class="invsub">The rest of this order carries on as ${
             (h.po_split_to || []).map(p =>
@@ -419,6 +424,7 @@ async function loadDetail(id){
       if(a === "po")   window.location.href = "po.html?po=" + encodeURIComponent(h.po_number || "");
       if(a === "del")  deleteRcv(h);
       if(a === "confirm") confirmRcv(h, t, toPlace);
+      if(a === "postnow") openPostNow(h, lines);   // rcv post-now v1
     };
   });
   box.querySelectorAll("[data-stage]").forEach(b => {
@@ -427,6 +433,67 @@ async function loadDetail(id){
 
   if(h.status !== "draft") return;
   if(stage === "count") wireCount(h, ed); else wirePutaway(h, ed);
+}
+
+/* ── Post now(rcv post-now v1 · 판정 550 ~ 553) ─────────────
+   ⭐ 다 세지 못한 입고에서 센 몫부터 재고로 — 칸이 붙고 아직 안 올린 작업 줄만 고른다(줄 통째 · 일부만이면 Put away 의 Split 먼저)
+   ⭐ 미리 보기(p_commit false · 쓰기 0) → 같은 줄로 「Post to stock」 · 단가 · 가용 · 막기 문장은 DB 그대로
+   ⭐ 입고 · PO 는 열린 채 · short · 차이는 마지막 Confirm 에서만 · 올린 줄은 바꿀 수 없다(실수는 재고 조정) · 운임 · 관세는 Confirm 때 전체에 나뉜다(판정 553) */
+function openPostNow(h, lines){
+  const rows = [];
+  (lines || []).forEach(l => (l.work || []).forEach(w => { if(w.bin_id && !w.post_id && Number(w.qty_ea) > 0) rows.push({ id: w.id, sku: l.sku, name: l.product_name, qty: w.qty_ea, bin: w.bin }); }));
+  modalOpen(`
+    <h4>Post now — ${esc(h.receipt_number)}</h4>
+    <div class="pbody">
+      <div class="invsub" style="margin:0 0 8px">Put what is already counted and in a bin into stock now, so it can be sold. The receipt and ${esc(h.po_number || "the order")} stay open — count the rest and Confirm as usual. Differences (short · over) are worked out only at Confirm, on the whole count. A posted row cannot be changed here afterwards — a mistake is fixed with a stock adjustment.</div>
+      ${rows.length ? `<table><thead><tr><th></th><th>Item</th><th>Bin</th><th class="num">Qty</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td><input type="checkbox" data-pn="${r.id}" checked></td>
+          <td><div class="lnth">${thumbOf(r.sku)}<div><span class="mono">${esc(r.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(r.name || "")}</div></div></div></td>
+          <td class="mono">${esc(r.bin || "")}</td><td class="num">${qty(r.qty)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="invsub">Only rows with a bin can be posted. To post part of a row, split it in Put away first.</div>` : '<div class="msg">Nothing to post — count and put a row in a bin first.</div>'}
+      <div id="pnOut" style="margin-top:10px"></div>
+      <div id="pnMsg" style="margin-top:8px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="pnChk" ${rows.length ? "" : "disabled"}>Check</button>
+      <button class="pobtn go" id="pnGo" disabled>Post to stock</button>
+    </div>`);
+  document.querySelectorAll('#modalBox [data-m="close"]').forEach(b => { b.onclick = modalClose; });
+  let key = null;
+  const picked = () => Array.from(document.querySelectorAll("#modalBox [data-pn]:checked")).map(c => c.dataset.pn);
+  const stale = () => { key = null; document.getElementById("pnGo").disabled = true; document.getElementById("pnOut").innerHTML = ""; };
+  document.querySelectorAll("#modalBox [data-pn]").forEach(c => { c.onchange = stale; });
+  document.getElementById("pnChk").onclick = async () => {
+    const ids = picked();
+    if(!ids.length){ say("pnMsg", "err", "Tick at least one row."); return; }
+    say("pnMsg", "", "Checking…");
+    const { data, error } = await sb.rpc("po_receipt_post_now", { p_receipt_id: h.id, p_lines: ids, p_commit: false });
+    if(error){ say("pnMsg", "err", error.message); stale(); return; }
+    key = JSON.stringify(ids);
+    const av = data.availability || [];
+    document.getElementById("pnOut").innerHTML = `
+      <div class="invsub" style="margin:0 0 6px">Batch ${esc(data.batch_no ?? "")} · ${qty(data.qty_ea)} EA in ${esc(data.rows ?? ids.length)} row(s) will go into stock.</div>
+      ${av.length ? `<table><thead><tr><th>Item</th><th class="num">Posting</th><th class="num">Available now</th><th class="num">Available after</th></tr></thead><tbody>
+        ${av.map(a => `<tr><td class="mono">${esc(a.sku || "")}</td><td class="num">${qty(a.post_qty)}</td><td class="num">${qty(a.available_now)}</td><td class="num"><b>${qty(a.available_after)}</b></td></tr>`).join("")}
+      </tbody></table>` : ""}
+      ${(data.lines || []).some(x => x.cost_basis || x.basis) ? `<div class="invsub">Cost: ${(data.lines || []).map(x => `${esc(x.sku || "")} ${esc(x.cost_basis || x.basis || "")}${x.invoice_number ? " " + esc(x.invoice_number) : ""}`).join(" · ")}</div>` : ""}
+      ${(data.warnings || []).length ? `<div class="invsub">${(data.warnings || []).map(w => "⚠ " + esc(warnText(w))).join(" · ")}</div>` : ""}`;
+    say("pnMsg", "on", "Check done — nothing has been saved yet.");
+    document.getElementById("pnGo").disabled = false;
+  };
+  document.getElementById("pnGo").onclick = async () => {
+    const ids = picked();
+    if(!key || JSON.stringify(ids) !== key){ say("pnMsg", "err", "Check again first — the rows changed."); stale(); return; }
+    document.getElementById("pnGo").disabled = true;
+    say("pnMsg", "", "Posting…");
+    const { data, error } = await sb.rpc("po_receipt_post_now", { p_receipt_id: h.id, p_lines: ids, p_commit: true });
+    if(error){ say("pnMsg", "err", error.message); return; }
+    modalClose();
+    alert(`Batch ${data.batch_no} — ${qtyPlain(data.qty_ea)} EA went into stock. The receipt stays open: count the rest and Confirm.`);
+    reload();
+  };
 }
 
 /* ── Confirm ───────────────────────────────────────────
@@ -460,6 +527,7 @@ async function confirmRcv(h, t, toPlace){
      splits the order — the invoice already did — and the order closes. */
   const lines = [`Confirm ${h.receipt_number}?`, ""];
   lines.push(`${qtyPlain(t.counted)} counted will be received into stock, up to what the confirmed invoice expects.`);
+  if(Number(t.posted) > 0) lines.push(`${qtyPlain(t.posted)} of it is already in stock (Post now · ${t.posted_batches || 0} batch(es)) — only the rest goes in now; differences are worked out on the whole count.`);   // rcv post-now v1
   if(Number(t.short_lines) > 0) lines.push(`${t.short_lines} line(s) short of the invoice — kept as a difference for someone to settle.`);
   if(Number(t.over_lines) > 0) lines.push(`${t.over_lines} line(s) over the invoice — the extra becomes an off-invoice item (it must sit in one bin) for the office to decide.`);
   lines.push(`${h.po_number || "The order"} closes on confirm.`);
@@ -483,6 +551,7 @@ async function confirmRcv(h, t, toPlace){
      off the books, sitting in a bin nobody has accounted for. Say that out loud here;
      the difference queue is the only other place it appears. */
   if(Number(lg.qty_posted) > 0) done.push(`${qtyPlain(lg.qty_posted)} went into stock.`);
+  { const pb = data.posted_before || {}; if(Number(pb.qty) > 0) done.push(`${qtyPlain(pb.qty)} had already gone in earlier with Post now (${pb.batches} batch(es)).`); }   // rcv post-now v1
   if(Number(lg.qty_excess) > 0)
     done.push(`${qtyPlain(lg.qty_excess)} more than the invoice arrived — it is in the bin as an off-invoice item, not in the books until it is decided below.`);
   if(po.number_before && po.number_after && po.number_before !== po.number_after)
@@ -993,7 +1062,10 @@ function putawayTable(lines, ed){
         ${lb ? `<div class="lastbin">Last time: <b>${esc(lb.bin)}</b>
                  <span class="dim">· ${esc(lb.received_on)}</span></div>` : ""}</div></div></td>
       <td class="num">${qty(l.counted)}</td>
-      <td>${(l.work || []).map(w => `<div class="wrow">
+      <td>${(l.work || []).map(w => w.post_id ? `<div class="wrow">
+            <span class="mono">${qty(w.qty_ea)}</span> <span class="binbtn" style="cursor:default">${esc(w.bin || "")}</span>
+            <span class="tag" title="Posted to stock early (Post now) — it can no longer be moved or changed here; fix a mistake with a stock adjustment">in stock · batch ${esc(w.batch_no ?? "")}</span>
+          </div>` : `<div class="wrow">
             <span class="mono">${qty(w.qty_ea)}</span>
             <button class="binbtn ${w.bin_id ? "" : "none"}" data-bin="${w.id}"
               data-binid="${w.bin_id || ""}">${w.bin_id ? esc(w.bin) : "choose a bin"}</button>
