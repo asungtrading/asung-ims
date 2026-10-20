@@ -128,7 +128,7 @@
   .reportrow .rep.on{background:#a86e12;border-color:#a86e12;color:#fff}
   .reportrow .rep:disabled{opacity:.55;cursor:default}
 
-  .list{display:none;flex-direction:column;gap:8px}
+  .list{display:none;flex-direction:column;gap:8px;padding-bottom:140px}   /* pa v1.6b — Caleb 화면 시험: 리스트 뷰 마지막 줄이 아래에 붙은 단추 칸(.foot · sticky)에 가렸다 → 끝까지 내리면 단추 칸 위로 올라오게 여유 */
   .searchbar{display:flex;gap:8px;margin:0 0 10px}
   .searchbar input{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;font-size:13.5px;background:#fff}
   .searchbar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,90,240,.12)}
@@ -309,7 +309,7 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-10-05 · pa v1.6a";   // 「for combo」 꼬리표 폭 = 글자 폭(픽 화면과 같은 고침) ←   // asm-3c(판정 244 · 249 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○」 · 목록 맨 위에 콤보마다 「Combo ○○ — n of m complete」(구성품이 다 찬 콤보 수 = min(verified ÷ (combo_qty × pack_factor))) · 줄 순서 · 스캔 흐름은 그대로(판정 249 Caleb 「첫째안으로 가자」) ← pa v1.5 rep-close-2(판정 58 묶음 1) — 픽을 넘겨 채울 때 「Found it?」 창 하나(찾았나 + 어느 칸 · 기본 = 픽 계획 칸) · 채운 줄에 「Found · 칸」 표시 · 완료 창구가 신고를 found_at_pack · 몇 개 · 칸으로 닫는다(rep-close-1) ← pa v1.4 // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+const WK_BUILD="2026-10-20 · pa v1.6b";   // 대화 Claude — Caleb 화면 시험(리스트 뷰 마지막 줄이 아래 단추 칸에 가림): 목록 아래 여유 140px · 스캔 칸 포커스 되돌리기가 화면을 위로 끌어올리지 않게(focus preventScroll) ←   // 「for combo」 꼬리표 폭 = 글자 폭(픽 화면과 같은 고침) ←   // asm-3c(판정 244 · 249 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○」 · 목록 맨 위에 콤보마다 「Combo ○○ — n of m complete」(구성품이 다 찬 콤보 수 = min(verified ÷ (combo_qty × pack_factor))) · 줄 순서 · 스캔 흐름은 그대로(판정 249 Caleb 「첫째안으로 가자」) ← pa v1.5 rep-close-2(판정 58 묶음 1) — 픽을 넘겨 채울 때 「Found it?」 창 하나(찾았나 + 어느 칸 · 기본 = 픽 계획 칸) · 채운 줄에 「Found · 칸」 표시 · 완료 창구가 신고를 found_at_pack · 몇 개 · 칸으로 닫는다(rep-close-1) ← pa v1.4 // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, whById={}, staffName={};
@@ -666,7 +666,7 @@ function renderQueue(){
     };
   });
   if(me && document.getElementById("listView").style.display!=="none"){
-    const os=document.getElementById("orderScan"); if(os && document.activeElement!==os) os.focus();
+    const os=document.getElementById("orderScan"); if(os && document.activeElement!==os) os.focus({ preventScroll: true });
   }
 }
 document.getElementById("orderScan").addEventListener("keydown",async e=>{
@@ -1637,7 +1637,7 @@ document.getElementById("backBtn").onclick=async ()=>{
 };
 
 /* keep scan focus */
-function focusScan(){ if(frozen) return; if(document.getElementById("packView").style.display!=="none"){const s=document.getElementById("scan"); const a=document.activeElement; if(a===s)return; if(a&&(a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA")&&a!==s)return; s.focus();} }
+function focusScan(){ if(frozen) return; if(document.getElementById("packView").style.display!=="none"){const s=document.getElementById("scan"); const a=document.activeElement; if(a===s)return; if(a&&(a.tagName==="INPUT"||a.tagName==="SELECT"||a.tagName==="TEXTAREA")&&a!==s)return; s.focus({ preventScroll: true });} }
 document.getElementById("scan").addEventListener("blur",()=>{setTimeout(focusScan,60);});
 document.addEventListener("click",e=>{ if(document.getElementById("packView").style.display==="none")return; if(e.target.tagName==="SELECT"||e.target.tagName==="OPTION")return; setTimeout(focusScan,0); });
 
