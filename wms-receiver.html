@@ -372,7 +372,7 @@
    ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
    ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
-const RC_BUILD="2026-10-01 · rc v1.7";   // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
+const RC_BUILD="2026-10-19 · rc v1.8";   // 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -405,7 +405,7 @@ function tfDetailAsPo(t){
            lines:(t.lines||[]).map(l=>({ po_line_id:l.line_id, product_id:l.product_id, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, ordered:Number(l.expected_ea||0), received_before:0, counted:l.counted, work:l.work||[] })),
            diffs:[], wms:t.wms };
 }
-function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms it into stock; anything not received stays on the order."; }
+function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms what you counted into stock and the order closes — anything not counted is kept as short, and the rest cannot be received on this order later. Count everything that arrived before you complete."; }
 /* inv-basis-4 · 판정 88 ⑧ · ㉒ — 기준보다 많이 셀 때의 한 문장(± · 스캔 · Enter quantity 세 길 · PO 는 off-invoice · 트랜스퍼는 판정 74) */
 function overNote(){ return (receipt&&receipt.is_transfer) ? "Only what was sent is taken in — the office decides the rest" : "More than the invoice — the extra is put away and the office decides it (off-invoice)"; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
