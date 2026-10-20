@@ -114,7 +114,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-20 · cs v4c";   // 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-20 · cs v4d";   // 대화 Claude — Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -562,8 +562,11 @@ function openNew(){
         <div class="cf"><label>Name</label><input type="text" id="n_c_name"></div>
         <div class="cf"><label>Job title</label><input type="text" id="n_c_job_title"></div>
         <div class="cf"><label>Phone</label><input type="text" id="n_c_phone"></div>
+        <div class="cf"><label>Mobile</label><input type="text" id="n_c_mobile_phone"></div>
         <div class="cf"><label>Email</label><input type="email" id="n_c_email"></div>
+        <div class="cf"><label>Website</label><input type="text" id="n_c_website"></div>
         <div class="cf"><label>Marketing email</label><select id="n_c_consent"><option value="">Unknown</option><option value="2">Opt in</option><option value="3">Opt out</option></select></div>
+        <div class="cf"><label>Include in email</label><input type="checkbox" id="n_c_include_in_email"></div>
       </div>
       ${isMaster ? moneyFields(true) : `<div class="cnote">Price tier, discount, payment term, currency and accounts start from the defaults (Wholesale · 0% · C.B.S · CAD). A manager reviews new customers in the Action Centre and changes them if needed.</div>`}
       <div id="nMsg" class="cmsg"></div>
@@ -577,8 +580,8 @@ function openNew(){
     ["name", "display_name", "note", "tax_number", "tags", "tax_rule", "default_location_id"].forEach(f => { const v = val("f_" + f); if(v) p[f] = v; });
     const bill = readAddr("Billing"), ship = $("sameShip").checked ? (bill ? Object.assign({}, bill, { type: "Shipping" }) : null) : readAddr("Shipping");
     p.addresses = [bill, ship].filter(Boolean);
-    const cn = { name: val("n_c_name"), job_title: val("n_c_job_title"), phone: val("n_c_phone"), email: val("n_c_email") };
-    if(cn.name || cn.phone || cn.email){ const mc = val("n_c_consent"); if(mc) cn.marketing_consent = mc; p.contacts = [cn]; }
+    const cn = { name: val("n_c_name"), job_title: val("n_c_job_title"), phone: val("n_c_phone"), mobile_phone: val("n_c_mobile_phone"), email: val("n_c_email"), website: val("n_c_website"), include_in_email: val("n_c_include_in_email") };
+    if(cn.name || cn.phone || cn.mobile_phone || cn.email){ const mc = val("n_c_consent"); if(mc) cn.marketing_consent = mc; p.contacts = [cn]; }
     if(isMaster) MONEY.forEach(f => { const v = val("f_" + f); if(v === true || (v !== false && v !== "" && v !== undefined)) p[f] = v === true ? true : v; });
     return p;
   };
