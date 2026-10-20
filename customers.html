@@ -114,7 +114,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-19 · cs v4b";   // 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-20 · cs v4c";   // 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -398,7 +398,7 @@ async function loadDetail(id){
       <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ae="${i}">Edit</button> ${a.is_default_for_type ? "" : `<button class="xs" data-ad="${i}">Make default</button> `}<button class="xs" data-ao="${i}">Remove</button>` : ""}</td></tr>`);
   const cRows = cur.cont.map((t, i) => `<tr>
       <td>${dim(t.name)}${t.is_default ? ' <span class="chip good">default</span>' : ""}</td><td>${dim(t.job_title)}</td>
-      <td class="mono">${dim(t.phone)}</td><td class="mono">${dim(t.mobile_phone)}</td><td>${dim(t.email)}</td><td>${CONSENT[consentOf(t.marketing_consent)]}</td>
+      <td class="mono">${dim(t.phone)}</td><td class="mono">${dim(t.mobile_phone)}</td><td>${dim(t.email)}</td><td>${dim(t.website)}</td><td>${CONSENT[consentOf(t.marketing_consent)]}</td><td>${t.include_in_email ? '<span class="on">✓</span>' : '<span class="dim">—</span>'}</td>
       <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ce="${i}">Edit</button> ${t.is_default ? "" : `<button class="xs" data-cd="${i}">Make default</button> `}<button class="xs" data-co="${i}">Remove</button>` : ""}</td></tr>`);
   const tbl = (title, n, head, rows, addId) => `<div class="card"><h3>${title} <span class="n">${n}</span>${canWrite ? ` <button class="xs" id="${addId}" style="float:right">+ Add</button>` : ""}</h3>
       ${rows.length ? `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>` : '<div class="msg">None.</div>'}</div>`;
@@ -408,7 +408,7 @@ async function loadDetail(id){
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
     ${storesCard(r, kids, kidOpen, cnm)}
     ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr")}
-    ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Marketing", ""], cRows, "addCont")}`;
+    ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Website", "Marketing", "Include in email", ""], cRows, "addCont")}`;
 
   $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
   $("toWide").onclick = showWide;
@@ -527,7 +527,7 @@ function generalFields(){
       <div class="cf"><label>Default warehouse</label><select id="f_default_location_id">${opts(refs.warehouses, "id", x => x.name, "", "— none —")}</select></div>
       <div class="cf"><label>Tax number</label><input type="text" id="f_tax_number"></div>
       <div class="cf"><label>Tags</label><input type="text" id="f_tags"></div>
-      <div class="cf"><label>Tax rule (shown)</label><input type="text" id="f_tax_rule"></div>
+      <div class="cf"><label>Tax rule (shown)</label><select id="f_tax_rule">${opts(refs.taxes || [], "name", x => x.name + (x.rate_pct !== null && x.rate_pct !== undefined ? " · " + Number(x.rate_pct) + "%" : ""), "", "— none —")}</select></div>
     </div>
     <div class="cf"><label>Note</label><textarea id="f_note"></textarea></div>`;
 }
@@ -595,7 +595,8 @@ function openEdit(){
       ${isMaster ? moneyFields(false) : `<div class="cnote">Money terms (tier, discount, payment term, currency, accounts) are changed by a manager.</div>`}
       <div id="eMsg" class="cmsg"></div></div>
     <div class="pfoot"><span class="sp"></span><button class="pobtn" id="eCancel">Cancel</button><button class="pobtn go" id="eGo">Save</button></div>`);
-  ["name", "display_name", "note", "tax_number", "tags", "tax_rule"].forEach(f => { $("f_" + f).value = sv(r[f]); });
+  ["name", "display_name", "note", "tax_number", "tags"].forEach(f => { $("f_" + f).value = sv(r[f]); });
+  ensureVal("f_tax_rule", r.tax_rule, r.tax_rule);   // cs v4c — 고르기 · 목록에 없는 옛 값은 남긴다
   ensureVal("f_default_location_id", r.default_location_id, r.default_location_name);
   if(isMaster){
     ensureVal("f_price_tier", r.price_tier, r.price_tier);
@@ -696,15 +697,16 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   canWrite = isMaster || imsAuth.canWrite("sales");
   $("newBtn").hidden = !canWrite; $("newBtn").onclick = openNew;
   $("wnewBtn").hidden = !canWrite; $("wnewBtn").onclick = openNew;
-  const [t, p, c, a, w] = await Promise.all([
+  const [t, p, c, a, w, tx] = await Promise.all([
     sb.from("ref_price_tier").select("name,purpose,is_active").eq("purpose", "sale").eq("is_active", true).order("name"),
     sb.from("ref_payment_term").select("id,name").eq("is_active", true).order("name"),
     sb.from("ref_currency").select("id,code").eq("is_active", true).order("code"),
     sb.from("ref_account").select("id,code,name").eq("is_active", true).order("code"),
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.from("ref_tax_rule").select("name,rate_pct").eq("is_active", true).eq("direction", "sale").order("name"),   // cs v4c — 판매 세금 규칙(POS 와 같은 질의)
   ]);
   await loadFamily();
-  refs.tiers = t.data || []; refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.warehouses = w.data || [];
+  refs.tiers = t.data || []; refs.terms = p.data || []; refs.currencies = c.data || []; refs.accounts = a.data || []; refs.warehouses = w.data || []; refs.taxes = tx.data || [];
   // 필터 값은 한 벌 — 좁은 목록 칸과 넓은 목록 칸이 같은 값을 쓴다(products 와 같다)
   $("onlyActive").onchange = e => { onlyActive = e.target.checked; pg.reset(); loadList(); };
   $("onlyNew").onchange = e => { onlyNew = e.target.checked; pg.reset(); loadList(); };
