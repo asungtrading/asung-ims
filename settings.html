@@ -104,7 +104,7 @@
 <script src="ims-auth.js"></script>
 <script src="ims-doc.js"></script>
 <script>
-const SET_BUILD = "2026-10-19 · set v4a";   // 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-19 · set v5";   // 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -118,22 +118,22 @@ const C_ACTIVE = { key:"is_active", label:"Active", bool:1 };
 const C_SOURCE = { key:"source",    label:"Source", mono:1, dim:1 };
 
 const TABLES = [
-  { t:"ref_brand",        label:"Brand",        note:"Product brands",
+  { t:"ref_brand",        label:"Brand",        note:"Product brands", edit:"ref", noun:"brand",   // set v5
     cols:[ C("name","Name") , C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
-  { t:"ref_category",     label:"Category",     note:"Product categories",
+  { t:"ref_category",     label:"Category",     note:"Product categories", edit:"ref", noun:"category",   // set v5
     cols:[ C("name","Name"), C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
-  { t:"ref_unit",         label:"Unit",         note:"Units of measure",
+  { t:"ref_unit",         label:"Unit",         note:"Units of measure", edit:"ref", noun:"unit",   // set v5
     cols:[ C("name","Name"), C_ACTIVE, C_SOURCE, C("note","Note",{dim:1}) ] },
 
   { t:"ref_currency",     label:"Currency",     note:"Natural key is code",
     search:["code","name"], order:"code",
     cols:[ C("code","Code",{mono:1}), C("name","Name"), C("symbol","Symbol",{mono:1}), C_ACTIVE, C_SOURCE ] },
 
-  { t:"ref_payment_term", label:"Payment Term", note:"Cin7 Duration is the discount window, not the due date",
+  { t:"ref_payment_term", label:"Payment Term", note:"Cin7 Duration is the discount window, not the due date", edit:"ref", noun:"payment term",   // set v5
     cols:[ C("name","Name"), C("net_days","Net days",{num:1}), C("discount_days","Disc. days",{num:1}),
-           C("discount_percent","Disc. %",{num:1}), C("is_split","Split",{bool:1}), C_ACTIVE ] },
+           C("discount_percent","Disc. %",{num:1}), C("is_split","Split",{bool:1}), C_ACTIVE, C_SOURCE ] },
 
   { t:"ref_account",      label:"Account",      note:"Cin7 refers to accounts by Code",
     search:["code","name"], order:"code",
@@ -144,11 +144,11 @@ const TABLES = [
     cols:[ C("name","Name"), C("city","City"), C("state_province","Province"), C("country","Country"),
            C("is_default","Default",{bool:1}), C_ACTIVE ] },
 
-  { t:"ref_bin",          label:"Bin",          note:"2,675 rows — above the 1,000-row cap",
+  { t:"ref_bin",          label:"Bin",          note:"2,675 rows — above the 1,000-row cap", edit:"ref", noun:"bin",   // set v5
     select:"*, ref_warehouse(name)",
     cols:[ C("name","Name",{mono:1}),
            { key:"warehouse", label:"Warehouse", get:r => r.ref_warehouse ? r.ref_warehouse.name : "" },
-           C("zone","Zone"), C("is_staging","Staging",{bool:1}), C_ACTIVE ] },
+           C("zone","Zone"), C("is_staging","Staging",{bool:1}), C_ACTIVE, C_SOURCE ] },
 
   /* set v2 — 판정 436 · 450: 운송사 — Ship & invoice 에서 고른다 · 종류가 손님 메일 · 송장을 정한다 */
   { t:"ref_carrier",      label:"Carrier",      note:"Picked at Ship & invoice — the kind decides email and tracking",
@@ -197,6 +197,7 @@ async function load(){
   if(cur.custom === "mail"){ document.getElementById("addRow").hidden = true; drawNav(); await loadMail(); return; }
   if(cur.custom === "docs"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDocs(); return; }   // set v4
   document.getElementById("addRow").hidden = !(cur.edit && canEdit());   // set v2
+  document.getElementById("addRow").textContent = "+ Add " + (cur.noun || "carrier");   // set v5
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
   drawNav();
 
@@ -225,10 +226,13 @@ async function load(){
       "<tr>" + cur.cols.map(c=>{
         const cls = [c.num?"num":"", c.mono?"mono":"", c.dim?"dim":""].filter(Boolean).join(" ");
         return `<td class="${cls}">${cellHtml(c,r)}</td>`;
-      }).join("") + (ed ? `<td><button class="pobtn" data-edit="${esc(r.id)}">Edit</button></td>` : "") + "</tr>").join("");
+      }).join("") + (ed ? (cur.edit === "ref"
+        ? `<td><button class="pobtn" data-ract="${esc(r.id)}">${r.is_active ? "Switch off" : "Switch on"}</button></td>`   // set v5 — 판정 538: 고치기 없음 · 끄기/켜기만
+        : `<td><button class="pobtn" data-edit="${esc(r.id)}">Edit</button></td>`) : "") + "</tr>").join("");
     document.getElementById("body").innerHTML =
       `<table><thead><tr>${head}</tr></thead><tbody>${trs}</tbody></table>`;
     document.querySelectorAll("[data-edit]").forEach(b => { b.onclick = () => openCarrier(rows.find(x => x.id === b.dataset.edit)); });
+    document.querySelectorAll("[data-ract]").forEach(b => { b.onclick = () => refToggle(rows.find(x => x.id === b.dataset.ract)); });   // set v5
   }
 
   pg.render({ range:"#range", prev:"#prev", next:"#next" }, load);
@@ -280,6 +284,106 @@ function openCarrier(r){
   };
 }
 
+
+/* ── set v5 — 마스터 만들기 · 끄기 · 켜기(fb-0 1번 · 판정 534 · 538) ──────────
+   ⚠️ 이름 바꾸기 없음(판정 538) — 고치기 창이 없다 · 줄 단추는 Switch off / Switch on 하나
+      (원장 bin · 세트 단위 · 결제조건 기본값 「Due on receipt」 · 제품 · 공급처 · 손님의 brand_name · payment_term_name 이 이름 글자로 이어져 있다 · fb-0 회신 1번 (다))
+   ⚠️ 새 행은 source:'manual' 을 꼭 보낸다 — 기본값이 'cin7' 이라 안 보내면 Cin7 행처럼 보인다(fb-0 회신 1번 (가))
+   ⚠️ 같은 이름 검사는 대소문자 무시 — DB 유니크(name · bin 은 warehouse_id + name)는 대소문자를 가린다
+   ⚠️ 문은 DB 가 한다 — RLS insert/update = ims_can_write('master')(20260917235000_ims_rls_write_gate.sql) · 성공 판정 = .select() 1 행(set v2 선례)
+   ⚠️ 적재와의 충돌(ImsRefLoad · 이름 upsert · payment term · bin 은 is_active 를 보낸다)은 GAS 쪽에서 고친다(ref-load-1) */
+const REF_NAME_HINT = {
+  ref_brand:        "It cannot be renamed later — check the spelling first.",
+  ref_category:     "It cannot be renamed later — check the spelling first.",
+  ref_unit:         "It cannot be renamed later. A set's unit is its pack number — a 12-pack set uses the unit 12.",
+  ref_payment_term: "It cannot be renamed later — customers and suppliers show this name.",
+  ref_bin:          "It cannot be renamed later — use the spelling on the shelf label, e.g. A090203.",
+};
+function likeExact(v){ return v.replace(/[\\%_]/g, m => "\\" + m); }   // ilike 를 「대소문자 무시 같음」으로 — 와일드카드 글자를 막는다
+function refErr(e){
+  if(!e) return "";
+  if(e.code === "42501") return "You don't have the right to change this list — it needs the master permission.";
+  if(e.code === "23505") return "That name already exists — switch off \"Active only\" and search for it; you can switch it on instead.";
+  return e.message;
+}
+async function openRef(){
+  const t = cur.t, noun = cur.noun;
+  let whs = [];
+  if(t === "ref_bin"){
+    const w = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+    if(w.error){ alert("Could not load the warehouses — " + w.error.message); return; }
+    whs = w.data || [];
+  }
+  const row = (label, input, hint) => `<div class="frow"><label>${label}</label>${input}</div>${hint ? `<div class="hint">${hint}</div>` : ""}`;
+  let html = "";
+  if(t === "ref_bin") html += row("Warehouse", `<select id="rWh"><option value="">— pick a warehouse —</option>${whs.map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")}</select>`);
+  html += row("Name", `<input id="rName" type="search" autocomplete="off">`, esc(REF_NAME_HINT[t] || ""));
+  if(t === "ref_payment_term"){
+    html += row("Net days", `<input id="rNet" type="number" min="0" step="1" style="width:110px;flex:0 0 110px" placeholder="e.g. 30">`, "Days until the invoice is due — 0 = due on the invoice date. Overdue is counted from this, so it cannot be empty.");
+    html += row("Discount days", `<input id="rDd" type="number" min="0" step="1" style="width:110px;flex:0 0 110px" placeholder="optional">`, "Early-payment discount window, e.g. 10 for 2% 10 Net 30. Leave both discount boxes empty when there is no discount.");
+    html += row("Discount %", `<input id="rDp" type="number" min="0" max="100" step="0.01" style="width:110px;flex:0 0 110px" placeholder="optional">`);
+    html += row("Split", `<input id="rSplit" type="checkbox" style="flex:0"> <span>Paid in parts, e.g. 50% COD &amp; 50% Net 30 — Net days is the later part</span>`);
+  }
+  if(t === "ref_bin") html += row("Staging", `<input id="rStg" type="checkbox" style="flex:0"> <span>A staging spot (dock, receiving area), not a shelf</span>`);
+  html += row("Note", `<input id="rNote" type="search" autocomplete="off" placeholder="optional">`);
+  document.getElementById("modalBox").innerHTML = `
+    <h4>Add a ${esc(noun)}</h4>
+    <div class="pbody">${html}
+      <div class="hint">Nothing here can be deleted. If it is no longer needed, switch it off — records that already use it keep it.</div>
+      <div id="rMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="rCancel">Cancel</button>
+      <button class="pobtn go" id="rSave">Add</button>
+    </div>`;
+  document.getElementById("modal").hidden = false;
+  document.getElementById("rName").focus();
+  document.getElementById("rCancel").onclick = modalClose;
+  document.getElementById("rSave").onclick = async () => {
+    const msg = document.getElementById("rMsg"), bad = (m) => { msg.className = "err"; msg.textContent = m; };
+    const name = document.getElementById("rName").value.trim().replace(/\s+/g, " ");
+    if(!name) return bad("Give it a name.");
+    const out = { name, source: "manual", is_active: true, note: document.getElementById("rNote").value.trim() || null };
+    if(t === "ref_bin"){
+      const wh = document.getElementById("rWh").value;
+      if(!wh) return bad("Pick the warehouse this bin is in.");
+      out.warehouse_id = wh; out.is_staging = document.getElementById("rStg").checked;
+    }
+    if(t === "ref_payment_term"){
+      const net = document.getElementById("rNet").value.trim(), dd = document.getElementById("rDd").value.trim(), dp = document.getElementById("rDp").value.trim();
+      if(!/^\d+$/.test(net)) return bad("Net days is needed — a whole number of days, 0 or more.");
+      if(dd !== "" && !/^\d+$/.test(dd)) return bad("Discount days must be a whole number of days.");
+      if(dp !== "" && !(Number(dp) > 0 && Number(dp) <= 100)) return bad("Discount % must be more than 0 and at most 100.");
+      if((dd === "") !== (dp === "")) return bad("Give both the discount days and the discount %, or leave both empty.");
+      if(dd !== "" && Number(dd) > Number(net)) return bad("Discount days cannot be longer than Net days.");
+      out.net_days = Number(net); out.discount_days = dd === "" ? null : Number(dd); out.discount_percent = dp === "" ? null : Number(dp);
+      out.is_split = document.getElementById("rSplit").checked;
+    }
+    msg.className = ""; msg.textContent = "Checking…";
+    let dq = sb.from(t).select("id,name,is_active").ilike("name", likeExact(name)).limit(3);
+    if(t === "ref_bin") dq = dq.eq("warehouse_id", out.warehouse_id);
+    const d = await dq;
+    if(d.error) return bad(d.error.message);
+    if(d.data && d.data.length){
+      const x = d.data[0];
+      return bad(`"${x.name}" already exists${t === "ref_bin" ? " in this warehouse" : ""}${x.is_active ? "." : " but is switched off — untick \"Active only\", find it and switch it on instead."}`);
+    }
+    msg.textContent = "Saving…";
+    const res = await sb.from(t).insert(out).select("id");
+    if(res.error) return bad(refErr(res.error));
+    if(!res.data || res.data.length !== 1) return bad("Nothing was saved — you may not have the right to change this list.");
+    modalClose(); q = name; document.getElementById("q").value = name; pg.reset(); await load();
+  };
+}
+async function refToggle(r){
+  if(!r) return;
+  const off = r.is_active;
+  if(off && !confirm(`Switch off ${cur.noun} "${r.name}"?\n\nNothing is deleted — records that already use it keep it.${cur.t === "ref_bin" ? " Make sure nothing is still put away in this bin." : " New products, suppliers and orders can no longer pick it."}`)) return;
+  const res = await sb.from(cur.t).update({ is_active: !off }).eq("id", r.id).select("id");
+  if(res.error){ alert(refErr(res.error)); return; }
+  if(!res.data || res.data.length !== 1){ alert("Nothing was saved — you may not have the right to change this list."); return; }
+  await load();
+}
 
 /* ── set v3 — Backorder emails(판정 493 ~ 518 · mail-1a 의 키 일곱 · mail-4a mail_settings) ──────────
    ⚠️ 판정은 DB 가 한다 — 바꿀 수 있나는 can_edit(admin 키 · master 키 · guard 와 같은 함수) · 값 모양 검사도 guard
@@ -621,7 +725,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   imsHeader(me);
   document.getElementById("buildTag").textContent = SET_BUILD;   // set v2
-  document.getElementById("addRow").onclick = () => openCarrier(null);
+  document.getElementById("addRow").onclick = () => (cur.edit === "ref" ? openRef() : openCarrier(null));   // set v5
   if(new URLSearchParams(location.search).get("t") === "carrier") cur = TABLES.find(x => x.t === "ref_carrier");   // set v2 — ?t=carrier
   if(new URLSearchParams(location.search).get("t") === "mail") cur = TABLES.find(x => x.t === "mail");   // set v3 — ?t=mail
   if(new URLSearchParams(location.search).get("t") === "docs") cur = TABLES.find(x => x.t === "docs");   // set v4 — ?t=docs
