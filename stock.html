@@ -56,6 +56,19 @@
   .expact{margin-top:8px}
   /* stk v1e — 세일 라벨(채운 빨강) */
   .salet{display:inline-block;background:#e03131;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;white-space:nowrap;cursor:help;font-family:inherit}
+  /* stk v2 — 예약 목록 · Both · 금액 */
+  .rsv{border:0;background:none;padding:0;font:inherit;color:#3b5bdb;cursor:pointer;font-variant-numeric:tabular-nums}
+  .rsv:hover{text-decoration:underline}
+  td.av .rsv{font-weight:700}
+  .nums div.click{cursor:pointer}
+  .nums div.click:hover{border-color:#3b5bdb}
+  .nums div.click b{color:#3b5bdb}
+  #wide th.grp{text-align:center;border-bottom:1px solid var(--line)}
+  #wide td.wsep,#wide th.wsep{border-left:1px solid var(--line)}
+  .valt{padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .valt table{margin-top:6px;width:auto}
+  .lqm{color:#a86400;cursor:help;margin-left:2px}
+  .obr{margin-top:10px;font-size:12.5px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 </style>
 </head>
 <body>
@@ -73,13 +86,17 @@
   <div class="card">
     <div class="wfilt">
       <select id="wwh" title="Branch"></select>
-      <input type="search" id="wq" placeholder="Search SKU, name or brand">
+      <input type="search" id="wq" placeholder="Search SKU, name, brand or barcode" autocomplete="off">
       <select id="wbrand"><option value="">All brands</option></select>
       <select id="wcat"><option value="">All categories</option></select>
+      <select id="wsup" title="Products bought from this supplier (default or not)"><option value="">All suppliers</option></select>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wzero"> Show zero stock</label>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wsale"> On sale</label>
       <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn" id="wvalBtn" hidden title="Add up the stock value of every product that matches these filters">Stock value total</button>
     </div>
+    <div id="wvalBox" class="valt" hidden></div>
     <div id="wrows" class="scroll"><div class="msg">Loading…</div></div>
     <div class="foot">
       <span class="range" id="wrange"></span><span class="sp"></span>
@@ -91,7 +108,7 @@
 <div class="wrap" id="wrapBox" hidden>
   <section class="list" id="listPanel">
     <div class="top">
-      <input type="search" id="q" placeholder="Search SKU, name or brand">
+      <input type="search" id="q" placeholder="Search SKU, name, brand or barcode" autocomplete="off">
       <div class="opts"><label><input type="checkbox" id="zero"> Show zero stock</label> <label><input type="checkbox" id="sale"> On sale</label></div>
     </div>
     <div class="rows" id="rows"><div class="msg">Loading…</div></div>
@@ -114,16 +131,26 @@
      stk_availability(p_warehouse_id, p_q, p_brand_id, p_category_id, p_include_zero, p_limit, p_offset) → 줄 + total
      stk_bins(p_product_id, p_warehouse_id) · stk_movements(p_product_id, p_warehouse_id, p_from, p_to, p_max)
    ⭐ 판정 값(가용)은 창구가 낸다 — 화면은 셈하지 않고 그린다(§39-d 1) · 원가는 어디에도 없다(판정 262)
-   ⭐ 판정 257 한 화면 두 모드(판정 243) · ?id=<product_id>&wh=<warehouse_id>
+   ⭐ 판정 257 한 화면 두 모드(판정 243) · ?id=<product_id>&wh=<warehouse_id>(stk v2 · 목록이 Both 면 &lw=both · 넓은 목록은 ?wh=both)
    ⭐ 판정 261 · 266 기본은 다섯 숫자 모두 0 인 줄 숨김 · 「Show zero stock」 · 세트 sku 검색은 낱개 줄 + 세트 표시(267)
    ⭐ 판정 263 누적 잔고는 그날 마지막 줄(is_day_end)에만 · 270 상쇄 줄은 흐리게(합치지 않는다) · 272 IN_TRANSIT 중간 줄은 창구가 내지 않는다
    ⭐ 사진은 쪽마다 product_image_primary(p_skus) 한 번(세트 → 부모 사진)
+   ⭐ stk v2(asung-wms stk-av-1 20261020232704 · 3ed5753 · 판정 566 · 567 · 570 · 571 · 575 · 578):
+     stk_availability(…, p_sale_only, p_supplier_id) — p_warehouse_id null = Both(평평한 열 = 합 · by_warehouse[] 창고별 · 이름 순 — 화면은 순서가 아니라 warehouse_id 로 찾는다) · 바코드 정확 일치
+     stk_reserved(p_product_id, p_warehouse_id) → {so[] · so_total · trf[] · trf_total · customer_name_visible} — Allocated · Transfer res. 를 누르면
+     stk_value_many(p_product_ids, p_warehouse_id) · stk_value_total(p_warehouse_id, p_q, p_brand_id, p_category_id, p_supplier_id, p_sale_only) — 원가 열쇠(ims_can_view_cost)가 있을 때만 부른다 · 없으면 칸 · 단추 자체를 그리지 않는다
+     Both 에서는 Bin 칸이 없다(bin 은 브랜치마다) · 상세 · 펼침은 브랜치 하나(dwh)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-07 · stk v1e";   // 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-20 · stk v2";   // 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
 let WHS = [], wh = "", q = "", brand = "", cat = "", zero = false;
+let sup = "", dwh = "", DEF = "", canCost = false, pageVals = {}, wideCols = 13;   // stk v2 — wh = 목록의 창고(BOTH 가능) · dwh = 상세 · 펼침의 창고(언제나 하나)
+const BOTH = "both";
+const isBoth = () => wh === BOTH;
+const listWh = () => isBoth() ? null : wh;
+const money = (v) => "$" + Number(v || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 let saleOnly = false;   // stk v1e
 let curId = null, detailSeq = 0;
 const PAGE = 100;
@@ -133,7 +160,7 @@ const BUCKET = "product-images";
 const $ = (id) => document.getElementById(id);
 const n0 = (v) => v === null || v === undefined ? "" : Number(v).toLocaleString("en-CA", { maximumFractionDigits: 3 });
 function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
-function whName(id){ const w = WHS.find(x => x.id === id); return w ? w.name : ""; }
+function whName(id){ const w = WHS.find(x => x.id === id); return w ? w.name : (id === BOTH ? "Both branches" : ""); }
 function numTd(v, cls){ const x = Number(v || 0); return `<td class="num ${cls || ""}${x < 0 ? " neg" : ""}">${x === 0 ? '<span class="dim">0</span>' : n0(x)}</td>`; }
 function setMark(r){
   if(!r.matched_set_sku || String(q || "").trim().toUpperCase() !== String(r.matched_set_sku).toUpperCase()) return "";   // 세트 sku 를 정확히 쳤을 때만(넓은 검색에서는 펼침의 Sets 로)
@@ -153,7 +180,7 @@ async function photosFor(skus){
 /* ── bin — 쪽마다 한 번(stk_bins_many · 판정 273) · 결과에 없는 제품 = 빈 칸 · bin '' = (no bin) ── */
 async function binsFor(pids){
   const out = {};
-  if(!pids.length) return out;
+  if(!pids.length || isBoth()) return out;   // stk v2 — bin 은 브랜치마다 · Both 에는 Bin 칸이 없다
   const { data, error } = await sb.rpc("stk_bins_many", { p_product_ids: pids, p_warehouse_id: wh });
   if(error){ out.__err = error.message; return out; }
   (data || []).forEach(x => { (out[x.product_id] = out[x.product_id] || []).push(x); });   // 창구가 qty desc 로 준다
@@ -165,12 +192,35 @@ function binCell(list){
   return show.join(" · ") + (list.length > 3 ? ` <span class="dim">+${list.length - 3}</span>` : "");
 }
 const thumb = (url) => url ? `<img class="th" src="${esc(url)}" alt="" loading="lazy">` : '<span class="th ph">—</span>';
+/* ── stk v2 금액 — 쪽마다 한 번(stk_value_many · 원가 열쇠가 있을 때만) · Both 는 창고 줄을 더한다 ── */
+async function valuesFor(pids, whid){
+  const out = {};
+  if(!canCost || !pids.length) return out;
+  const { data, error } = await sb.rpc("stk_value_many", { p_product_ids: pids, p_warehouse_id: whid });
+  if(error){ out.__err = error.message; return out; }
+  (data || []).forEach(x => { const o = out[x.product_id] = out[x.product_id] || { v: 0, q: 0 }; o.v += Number(x.remaining_value || 0); o.q += Number(x.layer_qty_ea || 0); });
+  return out;
+}
+function valTd(vl, pid, onHand){
+  if(!canCost) return "";
+  const o = vl[pid];
+  if(!o) return '<td class="num"><span class="dim">0</span></td>';
+  const off = Number(o.q) !== Number(onHand || 0)
+    ? `<span class="lqm" title="Cost layers hold ${n0(o.q)} EA — on hand is ${n0(onHand || 0)} EA. The value follows the layers.">*</span>` : "";
+  return `<td class="num" title="Layer quantity ${n0(o.q)} EA">${o.v === 0 ? '<span class="dim">0</span>' : money(o.v)}${off}</td>`;
+}
+/* ── stk v2 예약 수 — 0 보다 크면 누를 수 있다(stk_reserved) ── */
+function rsvTd(v, kind, pid, whid){
+  const x = Number(v || 0);
+  if(x <= 0) return numTd(v);
+  return `<td class="num"><button class="rsv" data-rsv="${kind}" data-pid="${esc(pid)}" data-rwh="${esc(whid)}" title="${kind === "so" ? "Show the sales orders holding this stock" : "Show the transfers holding this stock"}">${n0(x)}</button></td>`;
+}
 
 /* ── 창구 한 쪽 ─────────────────────────────────────── */
 function avail(off){
   return sb.rpc("stk_availability", {
-    p_warehouse_id: wh, p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null,
-    p_include_zero: zero, p_limit: PAGE, p_offset: off, p_sale_only: saleOnly,
+    p_warehouse_id: listWh(), p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null,
+    p_include_zero: zero, p_limit: PAGE, p_offset: off, p_sale_only: saleOnly, p_supplier_id: sup || null,   // stk v2
   });
 }
 /* stk v1e — 세일 라벨 · 설명(판정 361) */
@@ -199,7 +249,7 @@ function syncCtl(){
   $("q").value = q; $("wq").value = q;
   $("zero").checked = zero; $("wzero").checked = zero;
   $("sale").checked = saleOnly; $("wsale").checked = saleOnly;   // stk v1e
-  $("wwh").value = wh; $("wbrand").value = brand; $("wcat").value = cat;
+  $("wwh").value = wh; $("wbrand").value = brand; $("wcat").value = cat; $("wsup").value = sup;   // stk v2
 }
 
 /* ── 두 모드(판정 257 · 243) ─────────────────────────── */
@@ -212,36 +262,110 @@ function showWide(){
 }
 async function openProduct(id){
   curId = id; syncCtl();
+  if(!isBoth()) dwh = wh; else if(!WHS.some(x => x.id === dwh)) dwh = DEF;   // stk v2 — 상세는 언제나 브랜치 하나
   $("wide").hidden = true; $("wrapBox").hidden = false; $("listPanel").hidden = false;
-  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id) + "&wh=" + encodeURIComponent(wh));
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id) + "&wh=" + encodeURIComponent(dwh) + (isBoth() ? "&lw=both" : ""));
   loadList(lOff); await loadDetail(id);
 }
 
 async function loadWide(off){
   wOff = off; const seq = ++wideSeq;
   $("wrows").innerHTML = '<div class="msg">Loading…</div>';
+  if($("wvalBox").dataset.key !== filtKey()) $("wvalBox").hidden = true;   // stk v2 — 거르기가 바뀌면 옛 합계를 숨긴다
   const { data, error } = await avail(off);
   if(seq !== wideSeq) return;
   if(error){ $("wrows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
-  const [ph, bn] = await Promise.all([photosFor(rows.map(r => r.sku)), binsFor(rows.map(r => r.product_id))]);
+  const pids = rows.map(r => r.product_id);
+  const [ph, bn, vl] = await Promise.all([photosFor(rows.map(r => r.sku)), binsFor(pids), valuesFor(pids, listWh())]);   // 받는 이름 순서 = 질의 순서
   if(seq !== wideSeq) return;
-  pageRows = {}; rows.forEach(r => { pageRows[r.product_id] = r; }); pageBins = bn;
-  $("wrows").innerHTML = rows.length ? `<table><thead><tr><th></th><th></th><th>SKU</th><th>Name</th><th>Brand</th><th>Bin</th>
+  pageRows = {}; rows.forEach(r => { pageRows[r.product_id] = r; }); pageBins = bn; pageVals = vl;
+  const both = isBoth();
+  const valTh = canCost ? `<th class="num"${both ? ' rowspan="2"' : ""} title="Remaining value of the cost layers (FIFO)">Value</th>` : "";
+  wideCols = (both ? 5 + WHS.length * 4 + 3 : 13) + (canCost ? 1 : 0);
+  const head = both
+    ? `<tr><th rowspan="2"></th><th rowspan="2"></th><th rowspan="2">SKU</th><th rowspan="2">Name</th><th rowspan="2">Brand</th>
+        ${WHS.map(w => `<th class="grp wsep" colspan="4">${esc(w.name)}</th>`).join("")}
+        <th class="num wsep" rowspan="2">On order</th><th class="num" rowspan="2">In transit</th>${valTh}<th rowspan="2">Last movement</th></tr>
+       <tr>${WHS.map(() => `<th class="num wsep">On hand</th><th class="num">Allocated</th><th class="num">Transfer res.</th><th class="num">Available</th>`).join("")}</tr>`
+    : `<tr><th></th><th></th><th>SKU</th><th>Name</th><th>Brand</th><th>Bin</th>
       <th class="num">On hand</th><th class="num">Allocated</th><th class="num">Transfer res.</th><th class="num">Available</th>
-      <th class="num">On order</th><th class="num">In transit</th><th>Last movement</th></tr></thead><tbody>
+      <th class="num">On order</th><th class="num">In transit</th>${valTh}<th>Last movement</th></tr>`;
+  const cellsOf = (r) => both
+    ? WHS.map(w => { const e = (r.by_warehouse || []).find(x => x.warehouse_id === w.id) || {};
+        return numTd(e.on_hand, "wsep") + rsvTd(e.sales_allocated, "so", r.product_id, w.id) + rsvTd(e.transfer_reserved, "trf", r.product_id, w.id) + numTd(e.available, "av"); }).join("")
+      + numTd(r.on_order, "wsep") + numTd(r.in_transit)
+    : `<td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
+      ${numTd(r.on_hand)}${rsvTd(r.sales_allocated, "so", r.product_id, wh)}${rsvTd(r.transfer_reserved, "trf", r.product_id, wh)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}`;
+  $("wrows").innerHTML = rows.length ? `<table><thead>${head}</thead><tbody>
     ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
       <td style="width:22px"><button class="car" data-car="${esc(r.product_id)}" title="Show sets, bins and recent movements">&#9656;</button></td>
       <td>${thumb(ph[r.sku])}</td><td class="mono">${esc(r.sku)}</td><td class="nmc">${esc(r.name)}${saleTag(r)}${r.is_active ? "" : ' <span class="tag off">inactive</span>'}${setMark(r)}</td>
-      <td>${dim(r.brand_name)}</td><td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
-      ${numTd(r.on_hand)}${numTd(r.sales_allocated)}${numTd(r.transfer_reserved)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}
+      <td>${dim(r.brand_name)}</td>${cellsOf(r)}${valTd(vl, r.product_id, r.on_hand)}
       <td>${r.last_event_on ? esc(r.last_event_on) : '<span class="dim">—</span>'}</td></tr>`).join("")}</tbody></table>`
     : `<div class="msg">No stock matches${zero ? "" : " — turn on “Show zero stock” to see empty lines"}.</div>`;
   if(bn.__err) $("wrows").insertAdjacentHTML("afterbegin", `<div class="msg err">Bins: ${esc(bn.__err)}</div>`);
+  if(vl.__err) $("wrows").insertAdjacentHTML("afterbegin", `<div class="msg err">Value: ${esc(vl.__err)}</div>`);
   $("wrows").querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openProduct(tr.dataset.id); });
   $("wrows").querySelectorAll("[data-car]").forEach(b => { b.onclick = (e) => { e.stopPropagation(); toggleExp(b); }; });
+  $("wrows").querySelectorAll("[data-rsv]").forEach(b => { b.onclick = (e) => { e.stopPropagation(); toggleRsv(b); }; });   // stk v2
   fillSaleHints($("wrows"));   // stk v1e
   pager("wrange", "wprev", "wnext", off, total, loadWide);
+}
+/* ── stk v2 예약 목록 — 넓은 목록의 줄 밑 · 상세 카드가 같이 쓴다 ── */
+function toggleRsv(btn){
+  const tr = btn.closest("tr"), key = btn.dataset.rsv + ":" + btn.dataset.rwh, nx = tr.nextElementSibling;
+  if(nx && nx.classList.contains("exp")){
+    nx.remove();
+    const car = tr.querySelector("[data-car]"); if(car) car.innerHTML = "&#9656;";
+    if(nx.dataset.rsv === key) return;
+  }
+  tr.insertAdjacentHTML("afterend", `<tr class="exp" data-rsv="${esc(key)}"><td colspan="${wideCols}"><div class="msg">Loading…</div></td></tr>`);
+  fillRsv(btn.dataset.pid, btn.dataset.rwh, btn.dataset.rsv, tr.nextElementSibling.firstElementChild);
+}
+async function fillRsv(pid, whid, kind, cell){
+  const { data, error } = await sb.rpc("stk_reserved", { p_product_id: pid, p_warehouse_id: whid });
+  if(!cell.isConnected) return;
+  cell.innerHTML = error ? `<div class="msg err">${esc(error.message)}</div>` : rsvHtml(data || {}, kind, whid);
+}
+function rsvHtml(d, kind, whid){
+  const wn = esc(d.warehouse || whName(whid));
+  const qtyCell = (x) => `<td class="num">${n0(x.qty)}${Number(x.pack_factor) !== 1 ? ` <span class="dim">×${n0(x.pack_factor)}</span>` : ""}</td><td class="num">${n0(x.qty_ea)}</td>`;
+  if(kind === "so"){
+    const rows = d.so || [], cust = d.customer_name_visible === true;
+    if(!rows.length) return `<div class="msg">No sales order is holding this stock at ${wn}.</div>`;
+    return `<div class="exph">Allocated to sales orders — ${wn}</div>
+      <table><thead><tr><th>Sales order</th><th>Status</th>${cust ? "<th>Customer</th>" : ""}<th>Line SKU</th><th class="num">Qty</th><th class="num">EA</th><th>Allocated</th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td><a class="lk" href="so.html?so=${encodeURIComponent(x.so_number)}">${esc(x.so_number)}</a></td><td>${dim(x.status)}</td>${cust ? `<td>${dim(x.customer_name)}</td>` : ""}
+        <td class="mono">${esc(x.line_sku)}</td>${qtyCell(x)}<td>${imsTs(x.allocated_at)}</td></tr>`).join("")}</tbody></table>
+      <div class="dim" style="font-size:11.5px;margin-top:4px">Total ${n0(d.so_total)} EA${cust ? "" : " · customer names show only for people with Sales access"}.</div>`;
+  }
+  const rows = d.trf || [];
+  if(!rows.length) return `<div class="msg">No transfer is holding this stock at ${wn}.</div>`;
+  return `<div class="exph">Held for transfers out of ${wn}</div>
+    <table><thead><tr><th>Transfer</th><th>Status</th><th>Route</th><th>Line SKU</th><th class="num">Qty</th><th class="num">EA</th><th>Confirmed</th></tr></thead><tbody>
+    ${rows.map(x => `<tr><td><a class="lk" href="transfers.html?id=${encodeURIComponent(x.transfer_id)}">${esc(x.transfer_number)}</a></td><td>${dim(x.status)}</td>
+      <td>${esc(x.from_warehouse || "")} &rarr; ${esc(x.to_warehouse || "")}</td><td class="mono">${esc(x.line_sku)}</td>${qtyCell(x)}<td>${imsTs(x.confirmed_at)}</td></tr>`).join("")}</tbody></table>
+    <div class="dim" style="font-size:11.5px;margin-top:4px">Total ${n0(d.trf_total)} EA.</div>`;
+}
+/* ── stk v2 금액 합계 — 단추로만(≈ 1 초) · 거르기는 목록과 같다 ── */
+const filtKey = () => JSON.stringify([wh, q, brand, cat, sup, saleOnly]);
+async function loadValTotal(){
+  const box = $("wvalBox"), key = filtKey();
+  box.hidden = false; box.dataset.key = key;
+  box.innerHTML = '<span class="dim">Adding up stock value…</span>';
+  const { data, error } = await sb.rpc("stk_value_total", {
+    p_warehouse_id: listWh(), p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null, p_supplier_id: sup || null, p_sale_only: saleOnly,
+  });
+  if(box.dataset.key !== key) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data || [];
+  const sum = rows.reduce((a, x) => ({ p: a.p + Number(x.products || 0), q: a.q + Number(x.layer_qty_ea || 0), v: a.v + Number(x.remaining_value || 0) }), { p: 0, q: 0, v: 0 });
+  box.innerHTML = `<b>Stock value</b> <span class="dim">— remaining value of the cost layers (FIFO) for every product that matches these filters, shown in the list or not</span>
+    <table><thead><tr><th>Branch</th><th class="num">Products</th><th class="num">Layer qty (EA)</th><th class="num">Value</th></tr></thead><tbody>
+    ${rows.map(x => `<tr><td>${esc(x.warehouse)}</td><td class="num">${n0(x.products)}</td><td class="num">${n0(x.layer_qty_ea)}</td><td class="num"><b>${money(x.remaining_value)}</b></td></tr>`).join("")}
+    ${rows.length > 1 ? `<tr><td><b>Total</b></td><td class="num">${n0(sum.p)}</td><td class="num">${n0(sum.q)}</td><td class="num"><b>${money(sum.v)}</b></td></tr>` : ""}</tbody></table>
+    ${sup ? '<div class="dim" style="margin-top:4px">Products bought from more than one supplier count under each of them, so supplier totals can overlap.</div>' : ""}`;
 }
 async function loadList(off){
   lOff = off; const seq = ++listSeq;
@@ -278,17 +402,26 @@ async function loadDetail(id){
   if(seq !== detailSeq) return;
   if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Product not found")}</div></div>`; return; }
   const pr = p.data;
-  const [a, b, ph] = await Promise.all([
-    sb.rpc("stk_availability", { p_warehouse_id: wh, p_q: pr.sku, p_brand_id: null, p_category_id: null, p_include_zero: true, p_limit: 500, p_offset: 0 }),   // 같은 sku 를 품은 다른 sku 가 앞에 와도 잡히게 상한까지
-    sb.rpc("stk_bins", { p_product_id: id, p_warehouse_id: wh }),
+  const [a, b, ph, v] = await Promise.all([
+    sb.rpc("stk_availability", { p_warehouse_id: null, p_q: pr.sku, p_brand_id: null, p_category_id: null, p_include_zero: true, p_limit: 500, p_offset: 0 }),   // 같은 sku 를 품은 다른 sku 가 앞에 와도 잡히게 상한까지 · stk v2: Both 한 번으로 이 브랜치(타일)와 다른 브랜치(아래 줄)를 함께
+    sb.rpc("stk_bins", { p_product_id: id, p_warehouse_id: dwh }),
     photosFor([pr.sku]),
+    valuesFor([id], dwh),
   ]);
   if(seq !== detailSeq) return;
   const r = (a.data || []).find(x => x.product_id === id) || null;
+  const bw = r ? ((r.by_warehouse || []).find(x => x.warehouse_id === dwh) || null) : null;   // 이 브랜치 숫자 — 순서가 아니라 id 로
+  const others = r ? (r.by_warehouse || []).filter(x => x.warehouse_id !== dwh) : [];
   const bins = b.data || [];
-  const seg = WHS.map(w => `<button data-wh="${esc(w.id)}" class="${w.id === wh ? "on" : ""}">${esc(w.name)}</button>`).join("");
+  const seg = WHS.map(w => `<button data-wh="${esc(w.id)}" class="${w.id === dwh ? "on" : ""}">${esc(w.name)}</button>`).join("");
   const big = ph[pr.sku] ? `<img class="bigph" src="${esc(ph[pr.sku])}" alt="">` : '<span class="bigph th ph" style="width:120px;height:120px">No photo</span>';
-  const tile = (label, v, hi) => `<div class="${hi ? "hi" : ""}"><span>${label}</span><b class="${Number(v || 0) < 0 ? "neg" : ""}">${n0(v || 0)}</b></div>`;
+  const tile = (label, v, hi, kind) => { const go = kind && Number(v || 0) > 0;   // stk v2 — Allocated · Transfer res. 는 누르면 목록
+    return `<div class="${hi ? "hi" : ""}${go ? " click" : ""}"${go ? ` data-tile="${kind}" title="Show what is holding this stock"` : ""}><span>${label}</span><b class="${Number(v || 0) < 0 ? "neg" : ""}">${n0(v || 0)}</b></div>`; };
+  const vo = v[id];
+  const valTile = !canCost ? "" : v.__err ? `<div title="${esc(v.__err)}"><span>Value</span><b class="neg" style="font-size:13px">error</b></div>`
+    : `<div title="Remaining value of the cost layers (FIFO) · layer quantity ${n0(vo ? vo.q : 0)} EA"><span>Value</span><b style="font-size:15px">${money(vo ? vo.v : 0)}</b></div>`;
+  const nTiles = canCost ? 8 : 7;
+  const obr = others.length ? `<div class="obr"><span class="dim">Other branches:</span>${others.map(o => `<button class="xs" data-owh="${esc(o.warehouse_id)}" title="Switch to this branch">${esc(o.warehouse)} — on hand ${n0(o.on_hand)} · available <b>${n0(o.available)}</b></button>`).join("")}</div>` : "";
   box.innerHTML = `
     <div class="card"><div class="phead">${big}
       <div style="flex:1;min-width:0">
@@ -296,17 +429,18 @@ async function loadDetail(id){
         <div class="dim" style="margin-top:2px"><span class="mono">${esc(pr.sku)}</span>${pr.brand_name ? " · " + esc(pr.brand_name) : ""}${pr.category_name ? " · " + esc(pr.category_name) : ""}${pr.is_active ? "" : ' <span class="tag off">inactive</span>'}</div>
         <div class="acts">${navBtns()} <span class="seg" id="whSeg">${seg}</span></div>
       </div></div>
-      ${a.error ? `<div class="msg err">${esc(a.error.message)}</div>` : `<div class="nums">
-        ${tile("On hand", r && r.on_hand)}${tile("Allocated", r && r.sales_allocated)}${tile("Transfer res.", r && r.transfer_reserved)}
-        ${tile("Available", r && r.available, true)}${tile("On order", r && r.on_order)}${tile("In transit", r && r.in_transit)}
-        <div><span>Last movement</span><b style="font-size:13px">${r && r.last_event_on ? esc(r.last_event_on) : "—"}</b></div></div>`}
+      ${a.error ? `<div class="msg err">${esc(a.error.message)}</div>` : `<div class="nums" style="grid-template-columns:repeat(${nTiles},minmax(0,1fr))">
+        ${tile("On hand", bw && bw.on_hand)}${tile("Allocated", bw && bw.sales_allocated, false, "so")}${tile("Transfer res.", bw && bw.transfer_reserved, false, "trf")}
+        ${tile("Available", bw && bw.available, true)}${tile("On order", bw && bw.on_order)}${tile("In transit", bw && bw.in_transit)}${valTile}
+        <div><span>Last movement</span><b style="font-size:13px">${bw && bw.last_event_on ? esc(bw.last_event_on) : "—"}</b></div></div>${obr}`}
+      <div id="rsvBox" hidden style="margin-top:12px"></div>
     </div>
     <div class="card"><h3>Bins <span class="n">${bins.length}</span></h3>
       ${b.error ? `<div class="msg err">${esc(b.error.message)}</div>` : bins.length ? `<table><thead><tr><th>Bin</th><th>Zone</th><th class="num">Qty</th><th>Last movement</th></tr></thead><tbody>
         ${bins.map(x => `<tr class="${x.bin_is_active === false ? "rev" : ""}"><td class="mono">${x.bin ? esc(x.bin) : '<span class="dim">(no bin)</span>'}${x.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}</td>
           <td>${dim(x.bin_zone)}</td>${numTd(x.qty)}<td>${x.last_event_on ? esc(x.last_event_on) : ""}</td></tr>`).join("")}</tbody></table>` : '<div class="msg">No stock in any bin at this branch.</div>'}
     </div>
-    <div class="card"><h3>Movements — ${esc(whName(wh))}</h3>
+    <div class="card"><h3>Movements — ${esc(whName(dwh))}</h3>
       <div class="mvf">From <input type="date" id="mvFrom"> To <input type="date" id="mvTo"> <button class="xs" id="mvGo">Apply</button> <button class="xs" id="mvAll">All</button>
         <button class="xs" id="mvOrd" title="Switch between oldest first and newest first">${mvOrdLabel()}</button>
         <span class="dim">Balance is shown at the end of each day.</span></div>
@@ -314,7 +448,15 @@ async function loadDetail(id){
     </div>`;
   $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
   $("toWide").onclick = showWide;
-  $("whSeg").querySelectorAll("[data-wh]").forEach(bt => { bt.onclick = () => { wh = bt.dataset.wh; lOff = 0; openProduct(id); }; });
+  const goWh = (x) => { dwh = x; if(!isBoth()){ wh = x; lOff = 0; } openProduct(id); };   // stk v2 — 목록이 Both 면 목록은 그대로 · 상세만 바꾼다
+  $("whSeg").querySelectorAll("[data-wh]").forEach(bt => { bt.onclick = () => goWh(bt.dataset.wh); });
+  box.querySelectorAll("[data-owh]").forEach(bt => { bt.onclick = () => goWh(bt.dataset.owh); });
+  box.querySelectorAll("[data-tile]").forEach(el => { el.onclick = () => {
+    const rb = $("rsvBox"), k = el.dataset.tile;
+    if(!rb.hidden && rb.dataset.kind === k){ rb.hidden = true; rb.dataset.kind = ""; return; }
+    rb.hidden = false; rb.dataset.kind = k; rb.innerHTML = '<div class="msg">Loading…</div>';
+    fillRsv(id, dwh, k, rb);
+  }; });
   $("mvFrom").value = mvFrom; $("mvTo").value = mvTo;
   $("mvGo").onclick = () => { mvFrom = $("mvFrom").value; mvTo = $("mvTo").value; loadMoves(id, seq); };
   $("mvAll").onclick = () => { mvFrom = ""; mvTo = ""; $("mvFrom").value = ""; $("mvTo").value = ""; loadMoves(id, seq); };
@@ -328,27 +470,28 @@ function docCell(m){
 }
 
 /* ── 캐럿 펼침(stk v1c) — Sets · Bins(bin 캐럿) · 최근 Movements ── */
-const EXP_COLS = 13;
 function toggleExp(btn){
   const tr = btn.closest("tr"), id = btn.dataset.car, nx = tr.nextElementSibling;
-  if(nx && nx.classList.contains("exp")){ nx.remove(); btn.innerHTML = "&#9656;"; return; }
+  if(nx && nx.classList.contains("exp")){ nx.remove(); if(!nx.dataset.rsv){ btn.innerHTML = "&#9656;"; return; } }   // stk v2 — 예약 목록이 열려 있었으면 닫고 펼침을 연다
   btn.innerHTML = "&#9662;";
-  tr.insertAdjacentHTML("afterend", `<tr class="exp"><td colspan="${EXP_COLS}"><div class="msg">Loading…</div></td></tr>`);
+  tr.insertAdjacentHTML("afterend", `<tr class="exp"><td colspan="${wideCols}"><div class="msg">Loading…</div></td></tr>`);
   fillExp(id, tr.nextElementSibling.firstElementChild);
 }
 async function fillExp(id, cell){
   const r = pageRows[id]; if(!r) return;
-  const myWh = wh;
-  const [st, mv] = await Promise.all([
+  const lw = wh, myWh = isBoth() ? (WHS.some(x => x.id === dwh) ? dwh : DEF) : wh;   // stk v2 — Both 면 bin · 움직임은 상세의 브랜치(dwh) 하나로
+  const [st, mv, bq] = await Promise.all([
     sb.from("product").select("sku,pack_factor,is_active").eq("parent_product_id", id).order("pack_factor"),
     sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: myWh, p_from: null, p_to: null, p_max: 2000 }),
+    isBoth() ? sb.rpc("stk_bins", { p_product_id: id, p_warehouse_id: myWh }) : Promise.resolve(null),
   ]);
-  if(!cell.isConnected || myWh !== wh) return;
-  const sets = st.data || [], moves = mv.data || [], bins = pageBins[id] || [];
-  const av = Math.max(0, Math.floor(Number(r.available || 0)));
+  if(!cell.isConnected || lw !== wh) return;
+  const sets = st.data || [], moves = mv.data || [], bins = bq ? (bq.data || []) : (pageBins[id] || []);
+  const bwx = isBoth() ? ((r.by_warehouse || []).find(x => x.warehouse_id === myWh) || {}) : r;
+  const av = Math.max(0, Math.floor(Number(bwx.available || 0)));
   const setsHtml = sets.length
     ? sets.map(x => `<span class="mono${x.is_active ? "" : " dim"}">${esc(x.sku)}</span> <span class="dim">(×${n0(x.pack_factor)})</span>`).join(" · ")
-      + `<div class="dim" style="margin-top:4px">Available ${n0(av)} EA = ${sets.filter(x => Number(x.pack_factor) > 0).map(x => `${Math.floor(av / Number(x.pack_factor))} × ${n0(x.pack_factor)}`).join(" · ")}</div>`
+      + `<div class="dim" style="margin-top:4px">Available ${n0(av)} EA${isBoth() ? ` at ${esc(whName(myWh))}` : ""} = ${sets.filter(x => Number(x.pack_factor) > 0).map(x => `${Math.floor(av / Number(x.pack_factor))} × ${n0(x.pack_factor)}`).join(" · ")}</div>`
     : '<span class="dim">No sets — sold as single units only.</span>';
   const binsHtml = bins.length ? `<table><thead><tr><th></th><th>Bin</th><th>Zone</th><th class="num">Qty</th></tr></thead><tbody>
       ${bins.map((b, i) => `<tr data-bi="${i}"><td style="width:22px"><button class="car" data-bincar="${i}" title="Show movements in this bin">&#9656;</button></td>
@@ -384,7 +527,7 @@ async function fillExp(id, cell){
 async function loadMoves(id, seq){
   const box = $("mvBox"); if(!box) return;
   box.innerHTML = '<div class="msg">Loading…</div>';
-  const { data, error } = await sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: wh, p_from: mvFrom || null, p_to: mvTo || null, p_max: 2000 });
+  const { data, error } = await sb.rpc("stk_movements", { p_product_id: id, p_warehouse_id: dwh, p_from: mvFrom || null, p_to: mvTo || null, p_max: 2000 });
   if(seq !== detailSeq) return;
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   mvRows = data || [];
@@ -413,29 +556,42 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client; me = meData;
   imsHeader(me);
   $("buildTag").textContent = STK_BUILD;
-  const [w, br, ct] = await Promise.all([
+  const [w, br, ct, sp, cc] = await Promise.all([
     sb.from("ref_warehouse").select("id,name,is_default").eq("is_active", true).order("name"),
     sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
     sb.from("ref_category").select("id,name").eq("is_active", true).order("name"),
+    sb.from("supplier").select("id,name").eq("is_active", true).order("name"),   // stk v2 — 공급처 거르기(판정 570)
+    sb.rpc("ims_can_view_cost"),                                                // stk v2 — 원가 열쇠(판정 567 · 578) · 없으면 Value 칸 · 합계 단추를 그리지 않는다
   ]);
   WHS = (w.data || []).filter(x => x.name !== "IN_TRANSIT");
   const def = WHS.find(x => x.is_default) || WHS[0];
-  $("wwh").innerHTML = WHS.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+  DEF = def ? def.id : "";
+  canCost = !cc.error && cc.data === true;
+  $("wwh").innerHTML = WHS.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("")
+    + (WHS.length > 1 ? `<option value="${BOTH}">Both branches</option>` : "");   // 판정 571
   $("wbrand").insertAdjacentHTML("beforeend", (br.data || []).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(""));
   $("wcat").insertAdjacentHTML("beforeend", (ct.data || []).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(""));
+  if(sp.error) $("wsup").hidden = true;
+  else $("wsup").insertAdjacentHTML("beforeend", (sp.data || []).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join(""));
+  $("wvalBtn").hidden = !canCost;
   const want = new URLSearchParams(location.search);
-  wh = (want.get("wh") && WHS.some(x => x.id === want.get("wh"))) ? want.get("wh") : (def ? def.id : "");
+  const okWh = (x) => !!x && WHS.some(y => y.id === x);
+  dwh = okWh(want.get("wh")) ? want.get("wh") : DEF;
+  if(want.get("id")) wh = (want.get("lw") === BOTH && WHS.length > 1) ? BOTH : dwh;
+  else wh = (want.get("wh") === BOTH && WHS.length > 1) ? BOTH : dwh;
   // 거르기 값은 한 벌 — 넓은 목록 칸과 좁은 목록 칸이 같은 값을 쓴다
   $("wwh").onchange = e => { wh = e.target.value; showWide(wOff = 0); };
   $("wbrand").onchange = e => { brand = e.target.value; loadWide(0); };
   $("wcat").onchange = e => { cat = e.target.value; loadWide(0); };
+  $("wsup").onchange = e => { sup = e.target.value; loadWide(0); };   // stk v2
+  $("wvalBtn").onclick = loadValTotal;
   $("wzero").onchange = e => { zero = e.target.checked; loadWide(0); };
   $("zero").onchange = e => { zero = e.target.checked; loadList(0); };
   $("wsale").onchange = e => { saleOnly = e.target.checked; loadWide(0); };   // stk v1e
   $("sale").onchange = e => { saleOnly = e.target.checked; loadList(0); };
   imsQ("#wq", v => { q = v; loadWide(0); });
   imsQ("#q", v => { q = v; loadList(0); });
-  $("wclear").onclick = () => { q = ""; brand = ""; cat = ""; zero = false; saleOnly = false; syncCtl(); loadWide(0); };
+  $("wclear").onclick = () => { q = ""; brand = ""; cat = ""; sup = ""; zero = false; saleOnly = false; syncCtl(); loadWide(0); };
   if(!wh){ $("wrows").innerHTML = '<div class="msg err">No active branch.</div>'; $("wide").hidden = false; return; }
   if(want.get("id")) await openProduct(want.get("id"));
   else showWide();
