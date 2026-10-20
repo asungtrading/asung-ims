@@ -104,7 +104,7 @@
 <script src="ims-auth.js"></script>
 <script src="ims-doc.js"></script>
 <script>
-const SET_BUILD = "2026-10-19 · set v5a";   // 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-20 · set v5b";   // 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -388,7 +388,7 @@ async function refToggle(r){
 
 /* ── set v3 — Backorder emails(판정 493 ~ 518 · mail-1a 의 키 일곱 · mail-4a mail_settings) ──────────
    ⚠️ 판정은 DB 가 한다 — 바꿀 수 있나는 can_edit(admin 키 · master 키 · guard 와 같은 함수) · 값 모양 검사도 guard
-   ⚠️ 저장 = inv_config 의 그 키 한 행 update · 성공 판정 = .select() 1 행(set v2 선례) */
+   ⚠️ 저장 = 창구 ims_config_set(rls-2 · 판정 572 ~ 574 · 직원은 inv_config 를 읽기만) · old = 화면이 본 값 · 성공 = !error */
 const DAYS = [[1,"Mon"],[2,"Tue"],[3,"Wed"],[4,"Thu"],[5,"Fri"],[6,"Sat"],[7,"Sun"]];
 const TZS = [["America/Toronto","Toronto time"],["America/Edmonton","Edmonton time"]];
 let mRows = {}, mWh = [];
@@ -459,9 +459,9 @@ async function loadMail(){
 async function mSave(key, value){
   const res = document.getElementById("res_" + key);
   if(res){ res.className = "res"; res.textContent = "Saving…"; }
-  const { data, error } = await sb.from("inv_config").update({ value }).eq("key", key).select("key");
+  const old = mRows[key] ? (mRows[key].value ?? null) : null;   // set v5b — 화면이 본 값(그 사이 바뀌면 창구가 거부)
+  const { error } = await sb.rpc("ims_config_set", { p_key: key, p_value: value, p_old: old });
   if(error){ if(res){ res.className = "res err"; res.textContent = error.message; } return; }
-  if(!data || data.length !== 1){ if(res){ res.className = "res err"; res.textContent = "Nothing was saved — you may not have the right to change this."; } return; }
   await loadMail();
   const r2 = document.getElementById("res_" + key);
   if(r2){ r2.className = "res on"; r2.textContent = "Saved."; }
@@ -470,7 +470,7 @@ async function mSave(key, value){
 /* ── set v4 — Documents(판정 521 ~ 526 · doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043) ──────────
    ⚠️ 판정은 DB 가 한다 — 판 올리기 · 쓰기 = doc_config().can_publish(판정 522 · ims_can_doc_template) · 글 고치기 = can_edit_text(판정 525 · master)
    ⚠️ 판 검사의 정본은 doc_template_upload(p_commit false) — 화면은 결과를 그리기만 한다
-   ⚠️ 회사 글 = inv_config 의 키 한 행 update(guard 가 검사 · 성공 = .select() 1 행 · set v3 선례) · 문서 글 = rpc doc_setting_set
+   ⚠️ 회사 글 = 창구 ims_config_set(rls-2 · 값 검사는 guard 그대로 · old = 화면이 본 값) · 문서 글 = rpc doc_setting_set
    ⚠️ 미리 보기는 sandbox iframe(ims-doc.js) — 판의 스크립트는 돌지 않는다 */
 const DOC_DATE_FMTS = ["DDMONYYYY", "DD Mon YYYY", "YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "Mon DD, YYYY"];
 const DOC_REF_LBL = { final_invoice: "Invoice no.", internal_receipt: "Invoice no.", ship_ready: "Invoice no. (sample)", credit_note: "Credit note no.", sales_order: "SO no." };
@@ -524,16 +524,15 @@ async function loadDocs(){
     box.querySelector(".bPhone").value = b.phone || ""; box.querySelector(".bEmail").value = b.email || ""; });
   const sv = document.getElementById("dcSave"); if(sv) sv.onclick = () => dSaveCompany(co, brs);
   const lu = document.getElementById("dcLogoUp"); if(lu) lu.onclick = dUploadLogo;
-  const lo = document.getElementById("dcLogoOff"); if(lo) lo.onclick = async () => { if(!confirm("Remove the logo? Documents will print the company name instead.")) return; const ok = await dCfgSave("doc_logo_path", "", "res_logo"); if(ok) await loadDocs(); };
+  const lo = document.getElementById("dcLogoOff"); if(lo) lo.onclick = async () => { if(!confirm("Remove the logo? Documents will print the company name instead.")) return; const ok = await dCfgSave("doc_logo_path", "", "res_logo", co.logo_path ?? null); if(ok) await loadDocs(); };
   body.querySelectorAll("[data-kind]").forEach(b => { b.onclick = () => { if(dKind !== b.dataset.kind){ dKind = b.dataset.kind; dDraft = ""; dDraftNote = ""; dCheck = null; } loadDocs(); }; });
   drawKind();
 }
 
-async function dCfgSave(key, value, resId){
+async function dCfgSave(key, value, resId, old){
   const res = document.getElementById(resId);
-  const { data, error } = await sb.from("inv_config").update({ value }).eq("key", key).select("key");
+  const { error } = await sb.rpc("ims_config_set", { p_key: key, p_value: value, p_old: old === undefined ? null : old });   // set v5b — old 없으면 null(검사 안 함)
   if(error){ if(res){ res.className = "res err"; res.textContent = `${key}: ${error.message}`; } return false; }
-  if(!data || data.length !== 1){ if(res){ res.className = "res err"; res.textContent = "Nothing was saved — you may not have the right to change this."; } return false; }
   return true;
 }
 
@@ -551,7 +550,7 @@ async function dSaveCompany(co, brs){
   if(brNew !== brOld) todo.push(["doc_branches", brNew, null]);
   if(!todo.length){ res.className = "res"; res.textContent = "No changes to save."; return; }
   res.className = "res"; res.textContent = "Saving…";
-  for(const [k, v] of todo){ if(!(await dCfgSave(k, v, "res_dc"))) return; }   // 하나라도 실패하면 거기서 멈춘다(앞의 것은 저장됨 — 문장에 키 이름이 나온다)
+  for(const [k, v, old] of todo){ if(!(await dCfgSave(k, v, "res_dc", old))) return; }   // set v5b — old = 화면이 본 값(doc_branches 는 null)   // 하나라도 실패하면 거기서 멈춘다(앞의 것은 저장됨 — 문장에 키 이름이 나온다)
   await loadDocs();
   const r2 = document.getElementById("res_dc"); if(r2){ r2.className = "res on"; r2.textContent = `Saved (${todo.length}).`; }
 }
@@ -565,7 +564,7 @@ async function dUploadLogo(){
   res.className = "res"; res.textContent = "Uploading…";
   const up = await sb.storage.from("doc-brand").upload(path, f, { contentType: f.type, upsert: false });
   if(up.error){ res.className = "res err"; res.textContent = up.error.message; return; }
-  if(await dCfgSave("doc_logo_path", path, "res_logo")) await loadDocs();
+  if(await dCfgSave("doc_logo_path", path, "res_logo", (dCfg && dCfg.company) ? (dCfg.company.logo_path ?? null) : null)) await loadDocs();
 }
 
 function drawKind(){
