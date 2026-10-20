@@ -80,7 +80,7 @@
          응답 {ok, shop{name, myshopifyDomain, currencyCode}, locations[{id, name, isActive, paired_warehouse}], scopes[], missing_scopes[], warnings[{code, …}], cost, ms}
    ⭐ 위치 대조는 GID 로만(이름은 표시) · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const SS_BUILD = "2026-10-10 · ss v2";   // 대화 Claude — 판정 427 · 428 · shop-pol(asung-wms 8cd08a7): 「Sell when out of stock」(oos_policy continue = Allow · deny = Don't allow) 목록 · 상세 · 만들기/고치기 · 바꾸면 그 스토어의 켜진 상품이 다시 보내진다는 안내 · 「Send tags」(send_tags) 목록 · 상세에 읽기만(창구에 아직 없다 — 켜기는 관리자 SQL) ← ss v1a: 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
+const SS_BUILD = "2026-10-20 · ss v3";   // 대화 Claude — link-1c(판정 420 · 555 ~ 563 · asung-wms link-1a 5d38ef2 · link-1b 8e083d1): 스토어 상세에 「Link existing products」 — Read products from Shopify(EF link_read → link_poll 되풀이) · 판 목록 · Plan(shop_link_plan · 숫자 · 까닭) · Show lines(거르기 · CSV) · Apply links(미리 보기 → version 으로 저장) · 「Push linked products」(shop_link_remaining 브랜드별 · shop_link_push_batch 미리 보기 → Send) · 문 shopify 쓰기 ← ss v2: 대화 Claude — 판정 427 · 428 · shop-pol(asung-wms 8cd08a7): 「Sell when out of stock」(oos_policy continue = Allow · deny = Don't allow) 목록 · 상세 · 만들기/고치기 · 바꾸면 그 스토어의 켜진 상품이 다시 보내진다는 안내 · 「Send tags」(send_tags) 목록 · 상세에 읽기만(창구에 아직 없다 — 켜기는 관리자 SQL) ← ss v1a: 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
 console.log("shopify-stores.html build:", SS_BUILD);
 
 let sb = null, isAdmin = false, canCheck = false, onlyActive = true;
@@ -179,12 +179,15 @@ function renderDetail(){
       </tr>`).join("")}</tbody></table>`
       : '<div class="msg">No pairs yet — press Check connection to see the store\'s Shopify locations, then pair each one with a warehouse.</div>'}
     <div id="pingBox">${ping ? pingHtml(s, ping) : ""}</div>
+    ${lkHtml(s)}
   </div>`;
   const pb = document.getElementById("pingBtn"); if(pb) pb.onclick = () => runPing(s);
   const eb = document.getElementById("editBtn"); if(eb) eb.onclick = () => openForm(s);
   const tb = document.getElementById("tglBtn"); if(tb) tb.onclick = () => openToggle(s);
   box.querySelectorAll("[data-unpair]").forEach(b => { b.onclick = () => openUnpair(s, locs.find(l => l.shopify_location_gid === b.dataset.unpair)); });
   wirePingBox(s);
+  lkWire(s);   // ss v3
+  if(canCheck && lkRuns[s.code] === undefined){ lkRuns[s.code] = null; lkLoad(s).then(() => { if(pickedCode === s.code) renderDetail(); }); }
 }
 
 /* ── Check connection(ping) ──────────────────────── */
@@ -371,6 +374,206 @@ function openUnpair(s, l){
       <div id="ssMsg" class="ssmsg"></div></div>${foot("Unpair")}`);
   document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
   wireTwoStep(() => [{ op: "location_off", store_code: s.code, shopify_location_gid: l.shopify_location_gid, old: l.warehouse_id }], afterSave(s.code), true);
+}
+
+
+/* ══ ss v3 — 기존 Shopify 상품을 SKU 로 잇기(판정 420 · 555 ~ 563 · asung-wms link-1a 5d38ef2 · link-1b 8e083d1) ══════
+   순서  ① Read products(EF link_read → link_poll 을 more 가 끝날 때까지 되풀이 · cron 없음)
+         ② Plan(shop_link_plan · 판 번호 version) → 결과 숫자 · 까닭 · 줄 목록 · CSV
+         ③ Apply links(shop_link_apply 미리 보기 → 사람이 본 version 으로 저장 · 큐 없음 · hash 심음 · 재고는 바로 IMS 값 563)
+         ④ Push in batches(shop_link_remaining · shop_link_push_batch — 브랜드별 미리 보기 → 보내기 · 200 개까지 · 555)
+   ⭐ 판정은 DB 가 한다 — 화면은 그리기만 · 막기 문장은 창구 그대로 · 문은 shopify 쓰기(canCheck) */
+const LK_DEC = { link: ["on", "link"], link_off: ["neutral", "link, send off"], block: ["off", "blocked"], report: ["dim", "report only"] };
+const LK_WHY = {
+  no_sku: "a variant has no SKU", dup_sku: "the same SKU is on two Shopify products", not_in_ims: "a SKU is not in IMS",
+  shape_mismatch: "Shopify layout differs from the IMS family (556)", set_not_sellable: "a set that is not sold as a set",
+  partial_family: "only part of the IMS family — push adds/removes variants (557)", option_name_diff: "option names differ — IMS names win",
+  sku_case: "SKU differs only in upper/lower case", no_ims_images: "IMS has no photo — Shopify photos are kept (559)",
+  inactive: "inactive in IMS", discontinued: "discontinued in IMS", already_linked: "already linked",
+  already_linked_other: "the IMS item is linked to another Shopify product", gid_linked_elsewhere: "this Shopify product is linked to another IMS item",
+  draft: "Draft in Shopify — linked with send off (558)", archived: "Archived in Shopify — linked with send off (562)",
+  status_unknown: "unknown Shopify status", no_variants: "no variants",
+};
+const lkWhy = (c) => LK_WHY[c] || c;
+let lkRuns = {}, lkSel = {}, lkFilter = {};
+async function lkInvoke(body){
+  const { data, error } = await sb.functions.invoke("shopify", { body });
+  if(!error) return data || { ok: false, error: "No answer from the server." };
+  try { return await error.context.json(); } catch(e) { return { ok: false, error: error.message }; }
+}
+async function lkLoad(s){
+  const r = await sb.from("shop_link_run").select("id,status,version,item_count,loaded_count,bulk_status,bulk_error,started_at,planned_at,applied_at")
+    .eq("store_id", s.id).order("started_at", { ascending: false }).limit(5);
+  lkRuns[s.code] = r.error ? { error: r.error.message } : (r.data || []);
+  if(!lkSel[s.code] && !r.error && (r.data || []).length) lkSel[s.code] = r.data[0].id;
+}
+function lkHtml(s){
+  if(!canCheck) return "";
+  const runs = lkRuns[s.code];
+  const cur = Array.isArray(runs) ? runs.find(x => x.id === lkSel[s.code]) : null;
+  return `<div class="ssbar" style="border-top:1px solid var(--line)"><h3>Link existing products</h3><span class="dim" style="font-size:12px">Shopify products ↔ IMS products, by SKU — before the first push</span><span class="sp"></span>
+      ${s.is_active ? '<button class="pobtn go" id="lkRead">Read products from Shopify</button>' : ""}</div>
+    <div class="res">
+      ${runs && runs.error ? `<div class="err">${esc(runs.error)}</div>` : ""}
+      ${Array.isArray(runs) && runs.length ? `<table><thead><tr><th>Read</th><th>Status</th><th class="num">Products</th><th>Plan</th><th>Applied</th><th></th></tr></thead><tbody>
+        ${runs.map(x => `<tr class="${x.id === lkSel[s.code] ? "pick" : ""}" data-lkrun="${escA(x.id)}" style="cursor:pointer">
+          <td>${imsTs(x.started_at)}</td><td>${esc(x.status)}${x.bulk_status && x.status === "reading" ? ` <span class="dim">· ${esc(x.bulk_status)}</span>` : ""}${x.bulk_error ? `<div class="off" style="font-size:11.5px">${esc(String(x.bulk_error).slice(0, 120))}</div>` : ""}</td>
+          <td class="num">${esc(x.item_count ?? x.loaded_count ?? "")}</td><td>${x.planned_at ? `v${esc(x.version)} <span class="dim">${imsTs(x.planned_at)}</span>` : '<span class="dim">—</span>'}</td>
+          <td>${x.applied_at ? imsTs(x.applied_at) : '<span class="dim">—</span>'}</td><td></td></tr>`).join("")}</tbody></table>`
+        : '<div class="dim">Nothing read yet. Read products first — it only reads Shopify, nothing is changed there.</div>'}
+      <div id="lkMsg" class="ssmsg"></div>
+      <div id="lkBox">${cur ? lkRunActs(cur) : ""}</div>
+      <div id="lkItems"></div>
+    </div>
+    <div class="ssbar" style="border-top:1px solid var(--line)"><h3>Push linked products</h3><span class="dim" style="font-size:12px">linked but not sent yet — send brand by brand (555)</span><span class="sp"></span>
+      <button class="pobtn" id="lkRemain">Show what is left</button></div>
+    <div class="res" id="lkPush"></div>`;
+}
+function lkRunActs(x){
+  if(x.status === "reading") return `<button class="pobtn go" data-lk="poll">Continue reading</button> <span class="dim">Shopify is preparing the product list — this keeps loading it.</span>`;
+  if(x.status === "read" || x.status === "planned") return `<button class="pobtn go" data-lk="plan">${x.status === "planned" ? "Plan again" : "Plan"}</button>${x.status === "planned" ? ` <button class="pobtn" data-lk="items">Show lines</button> <button class="pobtn go" data-lk="apply">Apply links (v${esc(x.version)})…</button>` : ""}`;
+  if(x.status === "applied") return `<span class="on">Applied ${imsTs(x.applied_at)}</span> <button class="pobtn" data-lk="items">Show lines</button> <span class="dim">— to read again, press Read products.</span>`;
+  return `<span class="dim">${esc(x.status)}</span>`;
+}
+function lkWire(s){
+  const box = document.getElementById("detail");
+  const rb = document.getElementById("lkRead"); if(rb) rb.onclick = () => lkRead(s, false);
+  box.querySelectorAll("[data-lkrun]").forEach(tr => { tr.onclick = () => { lkSel[s.code] = tr.dataset.lkrun; renderDetail(); }; });
+  box.querySelectorAll("[data-lk]").forEach(b => { b.onclick = () => {
+    const runs = lkRuns[s.code] || [], x = runs.find(r => r.id === lkSel[s.code]); if(!x) return;
+    const a = b.dataset.lk;
+    if(a === "poll") lkPoll(s, x.id);
+    if(a === "plan") lkPlan(s, x);
+    if(a === "items") lkItems(s, x);
+    if(a === "apply") lkApply(s, x);
+  }; });
+  const rm = document.getElementById("lkRemain"); if(rm) rm.onclick = () => lkRemaining(s);
+}
+const lkSay = (cls, html) => { const m = document.getElementById("lkMsg"); if(m){ m.className = "ssmsg " + (cls || ""); m.innerHTML = html; } };
+async function lkRead(s, restart){
+  lkSay("", "Asking Shopify for the product list…");
+  const d = await lkInvoke({ action: "link_read", store: s.code, restart: !!restart });
+  if(!d.ok){
+    if(d.run_id && !restart && d.status !== "cancelled"){   // 409 = 이 스토어에 읽는 중인 판이 있다(502 는 status cancelled 로 온다)
+      if(confirm(`A read is already running for this store.\n\n${d.error || ""}\n\nStart again? (the old read is set aside — Shopify finishes it on its own)`)) return lkRead(s, true);
+      lkSel[s.code] = d.run_id; await lkLoad(s); renderDetail(); return;
+    }
+    lkSay("err", esc(d.error || "Could not start reading.")); return;
+  }
+  lkSel[s.code] = d.run_id; await lkLoad(s); renderDetail();
+  await lkPoll(s, d.run_id);
+}
+async function lkPoll(s, runId){
+  for(let i = 0; i < 200; i++){
+    const d = await lkInvoke({ action: "link_poll", run: runId });
+    if(!d.ok){ lkSay("err", esc(d.error || "Reading failed.")); break; }
+    lkSay("", d.status === "read"
+      ? `<span class="on">Read ${esc(d.item_count)} product(s).</span>${d.parse && (d.parse.bad_json || d.parse.orphans) ? ` <span class="off">⚠ ${esc(d.parse.bad_json)} unreadable line(s) · ${esc(d.parse.orphans)} orphan(s)</span>` : ""} Now press Plan.`
+      : `Reading… Shopify ${esc(d.bulk_status || "")}${d.object_count ? ` · ${esc(d.object_count)} objects` : ""}${d.loaded ? ` · loaded ${esc(d.loaded)}` : ""}`);
+    if(!d.more) break;
+    await new Promise(r => setTimeout(r, 3000));
+    if(!document.getElementById("lkMsg")) return;   // 다른 스토어로 옮겼다 — 다시 열면 Continue reading
+  }
+  await lkLoad(s); renderDetail();
+}
+async function lkPlan(s, x){
+  lkSay("", "Planning…");
+  const { data, error } = await sb.rpc("shop_link_plan", { p_run_id: x.id });
+  if(error){ lkSay("err", esc(error.message)); return; }
+  await lkLoad(s); renderDetail();
+  const c = data.counts || {}, rs = data.reasons || {};
+  lkSay("", `Plan v${esc(data.version)} · ${esc(data.items)} product(s): `
+    + Object.keys(LK_DEC).filter(k => c[k]).map(k => `<span class="chip">${esc(LK_DEC[k][1])} ${esc(c[k])}</span>`).join("")
+    + (Object.keys(rs).length ? `<div style="margin-top:4px">${Object.keys(rs).map(k => `<span class="chip" title="${escA(k)}">${esc(lkWhy(k))} · ${esc(rs[k])}</span>`).join("")}</div>` : ""));
+  const nx = (lkRuns[s.code] || []).find(r => r.id === x.id); if(nx) lkItems(s, nx);
+}
+async function lkItems(s, x){
+  const box = document.getElementById("lkItems"); if(!box) return;
+  box.innerHTML = '<div class="dim">Loading lines…</div>';
+  const all = [];
+  for(let from = 0; ; from += 1000){
+    const r = await sb.from("shop_link_item").select("id,shopify_product_gid,handle,title,status,variants,decision,reasons,changes,ims_family_id,ims_product_id,applied_at")
+      .eq("run_id", x.id).order("handle").range(from, from + 999);
+    if(r.error){ box.innerHTML = `<div class="err">${esc(r.error.message)}</div>`; return; }
+    all.push(...(r.data || [])); if((r.data || []).length < 1000) break;
+  }
+  const f = lkFilter[s.code] || "";
+  const shown = all.filter(it => !f || it.decision === f || (it.reasons || []).includes(f));
+  const skus = (it) => (it.variants || []).map(v => v.sku).filter(Boolean);
+  const opts = ["", "link", "link_off", "block", "report"].concat([...new Set(all.flatMap(it => it.reasons || []))].sort());
+  box.innerHTML = `<div style="display:flex;gap:8px;align-items:center;margin:8px 0">
+      <select class="sel" id="lkF">${opts.map(o => `<option value="${escA(o)}" ${o === f ? "selected" : ""}>${o ? esc(LK_DEC[o] ? LK_DEC[o][1] : lkWhy(o)) : "All lines"}</option>`).join("")}</select>
+      <span class="dim">${shown.length} of ${all.length}</span><span class="sp"></span><button class="pobtn" id="lkCsv">Download CSV</button></div>
+    <div style="max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>Shopify product</th><th>Status</th><th>SKUs</th><th>Decision</th><th>Why</th></tr></thead><tbody>
+    ${shown.slice(0, 500).map(it => { const d = LK_DEC[it.decision] || ["dim", it.decision || ""]; const ch = it.changes || {}; return `<tr>
+      <td>${esc(it.title || "")}<div class="dim mono" style="font-size:11px">${esc(it.handle || "")}</div></td>
+      <td>${esc(it.status || "")}</td>
+      <td class="mono" style="font-size:11.5px">${skus(it).slice(0, 6).map(esc).join("<br>")}${skus(it).length > 6 ? `<br><span class="dim">+${skus(it).length - 6}</span>` : ""}</td>
+      <td><span class="${d[0]}">${esc(d[1])}</span>${it.applied_at ? ' <span class="dim">· applied</span>' : ""}</td>
+      <td style="font-size:12px">${(it.reasons || []).map(r => esc(lkWhy(r))).join("<br>")}${(ch.variants_to_add || []).length ? `<div class="dim">adds ${esc(ch.variants_to_add.join(", "))}</div>` : ""}${(ch.not_in_ims || []).length ? `<div class="off">not in IMS: ${esc(ch.not_in_ims.join(", "))}</div>` : ""}</td>
+    </tr>`; }).join("") || '<tr><td colspan="5" class="dim">No lines.</td></tr>'}</tbody></table></div>
+    ${shown.length > 500 ? '<div class="dim">Showing the first 500 — download the CSV for all.</div>' : ""}`;
+  document.getElementById("lkF").onchange = (e) => { lkFilter[s.code] = e.target.value; lkItems(s, x); };
+  document.getElementById("lkCsv").onclick = () => {
+    const q = (v) => `"${String(v === null || v === undefined ? "" : v).replace(/"/g, '""')}"`;
+    const rows = [["shopify_product_gid", "handle", "title", "status", "skus", "decision", "reasons"].join(",")]
+      .concat(all.map(it => [it.shopify_product_gid, it.handle, it.title, it.status, skus(it).join(" "), it.decision, (it.reasons || []).join(" ")].map(q).join(",")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.join("\n")], { type: "text/csv" }));
+    a.download = `link-${s.code}-v${x.version || 0}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+}
+async function lkApply(s, x){
+  lkSay("", "Checking the plan…");
+  const { data, error } = await sb.rpc("shop_link_apply", { p_run_id: x.id, p_commit: false, p_run_version: x.version });
+  if(error){ lkSay("err", esc(error.message)); return; }
+  modalOpen(`<h4>Apply links — ${esc(s.label)} · plan v${esc(x.version)}</h4>
+    <div class="pbody"><div style="font-size:13px;line-height:1.6">
+      <b>${esc(data.linked)}</b> product(s) linked with send on · <b>${esc(data.linked_off)}</b> linked with send off (Draft · Archived) · ${esc(data.skipped)} skipped (blocked or report only) · ${esc(data.variants)} variant(s).</div>
+      <div class="dim" style="margin-top:8px;font-size:12.5px;line-height:1.5">Nothing is pushed to Shopify now — product details go later, brand by brand (Push linked products). <b>Stock is sent right away</b> for products linked with send on (563), so IMS stock should be right today. Blocked lines are not touched; fix them and read again.</div>
+      <div id="ssMsg" class="ssmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="lkGo">Apply links</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  document.getElementById("lkGo").onclick = async () => {
+    const g = document.getElementById("lkGo"); g.disabled = true;
+    const m = document.getElementById("ssMsg"); m.textContent = "Applying…";
+    const r = await sb.rpc("shop_link_apply", { p_run_id: x.id, p_commit: true, p_run_version: x.version });
+    if(r.error){ m.className = "ssmsg err"; m.textContent = r.error.message; g.disabled = false; return; }
+    modalClose(); await lkLoad(s); renderDetail();
+    lkSay("", `<span class="on">Linked ${esc(r.data.linked)} · send off ${esc(r.data.linked_off)}.</span> Stock queue ${esc(r.data.stock_queue_open ?? 0)} · product push queue ${esc(r.data.push_queue_open ?? 0)}. Next: Push linked products.`);
+  };
+}
+async function lkRemaining(s){
+  const box = document.getElementById("lkPush"); if(!box) return;
+  box.innerHTML = '<div class="dim">Counting…</div>';
+  const { data, error } = await sb.rpc("shop_link_remaining", { p_store_id: s.id });
+  if(error){ box.innerHTML = `<div class="err">${esc(error.message)}</div>`; return; }
+  const bb = data.by_brand || [];
+  box.innerHTML = `<div><b>${esc(data.total)}</b> linked product(s) not sent yet <span class="dim">(${esc(data.families)} families · ${esc(data.products)} products)</span></div>
+    ${bb.length ? `<div style="max-height:320px;overflow:auto;margin-top:6px"><table><thead><tr><th>Brand</th><th class="num">Left</th><th></th></tr></thead><tbody>
+      ${bb.map(b => `<tr><td>${esc(b.brand_name || "(no brand)")}</td><td class="num">${esc(b.remaining)}</td>
+        <td><button class="pobtn" data-lkb="${escA(b.brand_id || "")}" data-lkbn="${escA(b.brand_name || "(no brand)")}" ${b.brand_id ? "" : "disabled title=\"Products with no brand — set a brand first\""}>Send…</button></td></tr>`).join("")}</tbody></table></div>` : ""}
+    <div class="dim" style="margin-top:6px;font-size:12px">Sending pushes IMS product details (title, description, price, photos, tags, variants) to Shopify, up to 200 at a time. Products changed in IMS meanwhile are sent on their own.</div>`;
+  box.querySelectorAll("[data-lkb]").forEach(b => { b.onclick = () => lkPushBrand(s, b.dataset.lkb, b.dataset.lkbn); });
+}
+async function lkPushBrand(s, brandId, brandName){
+  const filter = { brand_id: [brandId] };
+  const { data, error } = await sb.rpc("shop_link_push_batch", { p_store_id: s.id, p_filter: filter, p_commit: false, p_limit: 200 });
+  if(error){ alert(error.message); return; }
+  modalOpen(`<h4>Send ${esc(brandName)} — ${esc(s.label)}</h4>
+    <div class="pbody"><div style="font-size:13px"><b>${esc(data.picked)}</b> product(s) will be sent${Number(data.remaining_before) > Number(data.picked) ? ` (of ${esc(data.remaining_before)} left in total)` : ""}.</div>
+      <div style="max-height:260px;overflow:auto;margin-top:8px"><table><tbody>${(data.items || []).slice(0, 200).map(it => `<tr><td class="mono">${esc(it.sku || "")}</td><td>${esc(it.name || "")}</td><td class="dim">${esc(it.kind || "")}</td></tr>`).join("")}</tbody></table></div>
+      <div class="dim" style="margin-top:8px;font-size:12.5px">They go into the push queue and reach Shopify over the next minutes (about 20 a minute). Shopify photos are replaced by IMS photos (560) unless IMS has none (559).</div>
+      <div id="ssMsg" class="ssmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="lkPGo" ${Number(data.picked) ? "" : "disabled"}>Send ${esc(data.picked)}</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  document.getElementById("lkPGo").onclick = async () => {
+    const g = document.getElementById("lkPGo"); g.disabled = true;
+    const r = await sb.rpc("shop_link_push_batch", { p_store_id: s.id, p_filter: filter, p_commit: true, p_limit: 200 });
+    if(r.error){ const m = document.getElementById("ssMsg"); m.className = "ssmsg err"; m.textContent = r.error.message; g.disabled = false; return; }
+    modalClose(); await lkRemaining(s);
+    alert(`${r.data.queued} product(s) queued for Shopify · ${r.data.remaining_after} left.`);
+  };
 }
 
 /* ── 시작 ─────────────────────────────────────────── */
