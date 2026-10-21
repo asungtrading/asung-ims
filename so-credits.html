@@ -123,7 +123,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ IMS 인보이스의 크레딧 + cr v3: 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1 20261021194405) · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-21 · cr v3";   // 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-21 · cr v4";   // 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -156,7 +156,7 @@ const price = (v) => (v === null || v === undefined || v === "")
   ? '<span class="dim">—</span>'
   : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 4 }));
 const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
-const REASON = { customer_return: "Customer return", damaged: "Damaged", billing_error: "Billing error", other: "Other" };
+const REASON = { customer_return: "Customer return", damaged: "Damaged", billing_error: "Billing error", price_adjustment: "Price adjustment", other: "Other" };   // cr v4 — 판정 612
 const NOREST = { damaged: "Damaged", b_grade: "B-grade", not_returned: "Not returned", other: "Other" };
 const SRC = { manual: "by hand", auto: "auto" };
 const binOf = (v) => (v && typeof v === "object") ? (v.bin || v.name || "") : (v || "");
@@ -351,7 +351,32 @@ function prodRow(l){
       ${stockCell(c.restock_bin_default)}
     </tr>`).join("");
 }
-const CR_KIND = { order_discount: "order discount", freight_discount: "freight discount", restocking_fee: "restocking fee" };   // cr v2c — 줄 종류 글자 한 곳
+const CR_KIND = { order_discount: "order discount", freight_discount: "freight discount", restocking_fee: "restocking fee", price_adjustment: "price adjustment" };   // cr v2c — 줄 종류 글자 한 곳
+/* cr v4 — 가격 조정 줄 그리기(판정 603 · 613): 수량 = qty_adjusted · 단가 = 「낸 단가 → 새 단가」 · 재고 없음 */
+const isAdj = (l) => l.kind === "price_adjustment";
+const lnQty = (l) => isAdj(l) ? qty(l.qty_adjusted) : qty(l.qty_returned);
+const lnUnit = (l) => isAdj(l) ? `${price(l.unit_price_before)} → ${price(l.unit_price_after)}<div class="dim" style="font-size:11px">${price(l.unit_price)} each</div>` : price(l.unit_price);
+const tiersText = (ts) => (ts || []).filter(t => Number(t.qty) > 0).map(t => `${qty(t.qty)} @ ${price(t.unit_price)}${t.paid ? "" : " <span class=\"dim\">adjusted</span>"}`).join(" · ");
+function adjRow(l){
+  const a = l.adjust;
+  if(!a) return "";
+  const open = (a.tiers || []).some(t => Number(t.qty) > 0);
+  return `<tr data-adj="${l.so_invoice_line_id}">
+      <td><span class="mono">${esc(l.sku || "")}</span><div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></td>
+      <td class="num">${qty(a.qty_sold)}</td>
+      <td class="num">${price(a.paid_unit_price)}${Number(a.order_discount_pct) ? `<div class="dim" style="font-size:11px">${price(a.gross_unit_price)} − ${esc(Number(a.order_discount_pct))}% order discount</div>` : ""}</td>
+      <td style="font-size:12px">${open ? tiersText(a.tiers) : '<span class="dim">all returned</span>'}${(a.adjustments || []).length ? `<div class="dim" style="font-size:11px">before: ${a.adjustments.map(x => `${esc(x.credit_number)} ${qty(x.qty)} × ${price(x.unit_price_before)} → ${price(x.unit_price_after)}`).join(" · ")}</div>` : ""}</td>
+      <td class="num"><input class="qin" type="number" step="any" min="0" data-aq ${open ? "" : "disabled"}></td>
+      <td class="num"><input class="qin" type="number" step="0.0001" min="0" data-anp placeholder="new price" ${open ? "" : "disabled"}></td>
+    </tr>`;
+}
+/* ⚠️ 나누기는 입력 도우미일 뿐 — 서버가 「새 단가보다 비싼 가장 낮은 층」에서 한 줄씩 떼고 한도를 검사한다(crn-2 이견 6 · 7) */
+function splitAdj(tiers, q, np){
+  const out = []; let left = q;
+  const ts = (tiers || []).filter(t => Number(t.qty) > 0 && Number(t.unit_price) > np).sort((x, y) => Number(x.unit_price) - Number(y.unit_price));
+  for(const t of ts){ if(left <= 0) break; const take = Math.min(left, Number(t.qty)); out.push(take); left = Math.round((left - take) * 1e6) / 1e6; }
+  return { parts: out, left: left };
+}
 function drawForm(){
   mode = "inv";
   const v = prep.invoice, wh = prep.warehouse || {}, fee = prep.restock_fee || {};
@@ -381,6 +406,11 @@ function drawForm(){
     ${prods.some(l => Array.isArray(l.combo_components)) ? '<div class="sohint">A combo comes back whole: type the number of combos on the combo line, then pick for each component where it goes. If only one item of a combo is the problem, do not return the combo — use Other adjustment below (amount only, no stock).</div>' : ""}
     <div class="sohint">Back to stock uses the bin the product sits in now (usual bin first). Not restocked keeps the goods out of stock and records why. Unit price and tax come from the invoice.</div>
     ${scs.length ? `<div class="sohint">Surcharge on this invoice comes back by itself with the quantity you return — added automatically, it cannot be typed: ${scs.map(l => `<span class="mono">${esc(l.sku || "")}</span> ${esc(l.description || "")} ${price(l.unit_price)}/ea${Number(l.amount_credited) ? ` <span class="dim">(${money(l.amount_credited)} already credited)</span>` : ""}`).join(" · ")}</div>` : ""}
+
+    ${prods.some(l => l.adjust) ? `<h5 class="sec">Price adjustment — past sale price</h5>
+    <table><thead><tr><th>Item</th><th class="num">Sold</th><th class="num">Paid</th><th>Price levels now</th><th class="num">Adjust</th><th class="num">New unit price</th></tr></thead>
+    <tbody>${prods.map(l => adjRow(l)).join("")}</tbody></table>
+    <div class="sohint">The customer keeps the goods and gets back the difference: (paid − new price) × quantity, plus its tax. No stock moves. Paid = the price after the order discount. If some of this line comes back later, the adjusted units come back first, at the new price. Pick the reason Price adjustment when the note has only price adjustments.</div>` : ""}
 
     ${chgs.length ? `<h5 class="sec">Freight and charges</h5>
     <table><thead><tr><th>Charge</th><th class="num">On invoice</th><th class="num">Already credited</th><th class="num">Credit</th></tr></thead>
@@ -439,6 +469,18 @@ function buildP(){
     else { ln.not_restocked_reason = mode; const n = tr.querySelector("[data-nrn]").value.trim(); if(n) ln.not_restocked_note = n; }
     lines.push(ln);
   });
+  let adjBad = "";
+  document.querySelectorAll("#nwBody tr[data-adj]").forEach(tr => {   // cr v4 — 가격 조정(판정 603)
+    const aq = Number(tr.querySelector("[data-aq]").value), npRaw = tr.querySelector("[data-anp]").value.trim();
+    if(!(aq > 0) && npRaw === "") return;
+    const l = (prep.lines || []).find(x => x.so_invoice_line_id === tr.dataset.adj) || {};
+    if(!(aq > 0)){ adjBad = adjBad || `${l.sku || ""}: type how many units to adjust.`; return; }
+    if(npRaw === ""){ adjBad = adjBad || `${l.sku || ""}: type the new unit price.`; return; }
+    const np = Number(npRaw), sp = splitAdj((l.adjust || {}).tiers, aq, np);
+    if(sp.left > 0){ adjBad = adjBad || `${l.sku || ""}: only ${aq - sp.left} unit(s) are priced above ${np} — adjust at most that many.`; return; }
+    sp.parts.forEach(n => lines.push({ kind: "price_adjustment", so_invoice_line_id: tr.dataset.adj, qty: n, new_unit_price: np }));
+  });
+  if(adjBad){ say("nwMsg", "err", adjBad); return null; }
   document.querySelectorAll("#nwBody tr[data-cl]").forEach(tr => {
     const a = Number(tr.querySelector("[data-camt]").value);
     if(a > 0) lines.push({ kind: "freight", so_invoice_line_id: tr.dataset.cl, amount: a });
@@ -466,7 +508,7 @@ function buildP(){
 async function runIssue(commit){
   const p = mode === "ref" ? buildRefP() : buildP();
   if(!p) return;
-  if(!p.lines.length){ say("nwMsg", "err", "Put a quantity on at least one product, a freight amount or an adjustment."); return; }
+  if(!p.lines.length){ say("nwMsg", "err", "Put a quantity on at least one product, a price adjustment, a freight amount or an adjustment."); return; }
   say("nwMsg", "", commit ? "Issuing…" : "Checking…");
   document.getElementById("isGo").disabled = true;
   const { data, error } = await sb.rpc("so_credit_issue", { p: p, p_commit: commit });
@@ -483,9 +525,9 @@ async function runIssue(commit){
       <table><thead><tr><th>Kind</th><th>Item</th><th class="num">Qty</th><th>Stock</th><th class="num">Unit</th><th class="num">Amount</th><th class="num">Tax</th></tr></thead>
       <tbody>${(data.lines || []).map(l => `<tr${l.combo_parent_line_no ? ' class="comp"' : ""}>
         <td>${esc(CR_KIND[l.kind] || l.kind || "")}</td><td>${l.combo_parent_line_no ? '<span class="cind">↳</span>' : ""}<span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""} <span class="dim">${esc(l.description || "")}</span></td>
-        <td class="num">${qty(l.qty_returned)}</td>
-        <td>${Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : l.kind === "surcharge" ? '<span class="dim">added automatically</span>' : ""}</td>
-        <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td><td class="num">${money(l.tax_amount)}</td></tr>`).join("")}</tbody></table>
+        <td class="num">${lnQty(l)}</td>
+        <td>${isAdj(l) ? '<span class="dim">price only — no stock</span>' : Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>`) : l.kind === "surcharge" ? '<span class="dim">added automatically</span>' : ""}</td>
+        <td class="num">${lnUnit(l)}</td><td class="num">${money(l.amount)}</td><td class="num">${money(l.tax_amount)}</td></tr>`).join("")}</tbody></table>
       <div class="socols">
         <div class="stat" title="Products, freight and other lines before discounts and fees">Lines<b>${money(t.lines_amount)}</b></div>
         ${Number(t.freight_discount_amount) ? `<div class="stat">Freight discount<b>−${money(Math.abs(Number(t.freight_discount_amount)))}</b></div>` : ""}
@@ -511,6 +553,8 @@ async function runIssue(commit){
 let TAXR = [];
 const WARN_TEXT = {
   manual_unit_price: "Unit prices were typed by hand — check them against the paper invoice",
+  reason_not_price_adjustment: "This note has only price adjustments — the reason should be Price adjustment",   // cr v4
+  reason_price_adjustment_with_returns: "The reason is Price adjustment but goods are coming back too — check the reason",
 };
 function warnText(w){
   const s = String(w || "");
@@ -563,6 +607,14 @@ function refRow(){
       ${stockCell(null)}
     </tr>`;
 }
+function refAdjRow(){   // cr v4
+  return `<tr data-ra>
+      <td><input class="tin" data-rsku placeholder="SKU" style="width:130px"></td>
+      <td class="num"><input class="qin" type="number" step="any" min="0" data-rq></td>
+      <td class="num"><input class="qin" type="number" step="0.0001" min="0" data-rpaid placeholder="paid"></td>
+      <td class="num"><input class="qin" type="number" step="0.0001" min="0" data-rnew placeholder="new"></td>
+    </tr>`;
+}
 function wireRefRows(){
   document.querySelectorAll("#refRows [data-mode]").forEach(s => {
     if(s.dataset.w) return; s.dataset.w = "1";
@@ -573,7 +625,7 @@ function wireRefRows(){
       stale();
     };
   });
-  document.querySelectorAll("#refRows input").forEach(el => { if(!el.dataset.w){ el.dataset.w = "1"; el.addEventListener("change", stale); } });
+  document.querySelectorAll("#refRows input, #refAdjRows input").forEach(el => { if(!el.dataset.w){ el.dataset.w = "1"; el.addEventListener("change", stale); } });
 }
 function drawRefForm(){
   document.getElementById("refRest").innerHTML = `
@@ -597,6 +649,12 @@ function drawRefForm(){
     <div style="margin-top:6px"><button class="pobtn" id="refAdd">+ Add a line</button></div>
     <div class="sohint">Unit price = the price on the paper invoice, before tax. Back to stock uses the bin the product sits in now when you leave the bin empty. The cost of goods that come back is the product's current average cost.</div>
 
+    <h5 class="sec">Price adjustment — past sale price</h5>
+    <table><thead><tr><th>SKU</th><th class="num">Units</th><th class="num">Unit price paid</th><th class="num">New unit price</th></tr></thead>
+    <tbody id="refAdjRows">${refAdjRow()}</tbody></table>
+    <div style="margin-top:6px"><button class="pobtn" id="refAdjAdd">+ Add a line</button></div>
+    <div class="sohint">The customer keeps the goods and gets back (paid − new price) × units, plus tax. No stock moves. The system cannot check these numbers — copy them from the paper invoice.</div>
+
     <h5 class="sec">Other adjustment</h5>
     <div class="frow"><label>Description</label><input id="fOthD" class="sofield" placeholder="e.g. freight on that invoice"></div>
     <div class="frow"><label>Amount</label><input id="fOthA" class="qin" type="number" step="0.01" min="0"> <select id="fOthAcc" class="sofield">${acctOpts("— account")}</select></div>
@@ -608,6 +666,7 @@ function drawRefForm(){
       <button class="pobtn go" id="isGo" disabled>Issue credit note</button>`;
   wireModalClose();
   wireRefRows();
+  document.getElementById("refAdjAdd").onclick = () => { document.getElementById("refAdjRows").insertAdjacentHTML("beforeend", refAdjRow()); wireRefRows(); stale(); };   // cr v4
   document.getElementById("refAdd").onclick = () => { document.getElementById("refRows").insertAdjacentHTML("beforeend", refRow()); wireRefRows(); stale(); };
   document.querySelectorAll("#refRest > .frow input, #refRest > .frow select").forEach(el => el.addEventListener("change", stale));
   document.getElementById("pvGo").onclick = () => runIssue(false);
@@ -632,6 +691,15 @@ function buildRefP(){
     if(m === "bin"){ const b = tr.querySelector("[data-bin]").value.trim(); if(b) ln.restock_bin = b; }
     else { ln.not_restocked_reason = m; const n = tr.querySelector("[data-nrn]").value.trim(); if(n) ln.not_restocked_note = n; }
     lines.push(ln);
+  });
+  document.querySelectorAll("#refAdjRows tr[data-ra]").forEach(tr => {   // cr v4 — 참조 크레딧 가격 조정(손 줄)
+    const sku = tr.querySelector("[data-rsku]").value.trim(), qv = Number(tr.querySelector("[data-rq]").value);
+    const pr = tr.querySelector("[data-rpaid]").value.trim(), nw = tr.querySelector("[data-rnew]").value.trim();
+    if(!sku && !(qv > 0) && pr === "" && nw === "") return;
+    if(!sku){ bad = bad || "A price adjustment line has no SKU."; return; }
+    if(!(qv > 0)){ bad = bad || `${sku}: type how many units to adjust.`; return; }
+    if(pr === "" || nw === ""){ bad = bad || `${sku}: type both the price paid and the new price.`; return; }
+    lines.push({ kind: "price_adjustment", sku: sku, qty: qv, paid_unit_price: Number(pr), new_unit_price: Number(nw) });
   });
   if(bad){ say("nwMsg", "err", bad); return null; }
   const oa = Number(document.getElementById("fOthA").value);
@@ -783,9 +851,9 @@ async function loadDetail(id){
   const lines = (data.lines || []).map(l => `<tr${l.combo_credit_line_id ? ' class="comp"' : ""}>
       <td class="num">${esc(l.line_no)}</td><td>${esc(CR_KIND[l.kind] || l.kind || "")}</td>
       <td><div class="lnth">${l.combo_credit_line_id ? '<span class="cind">↳</span>' : ""}${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}${l.combo_credit_line_id && l.combo_qty ? ` · ${esc(qty(l.combo_qty))} per combo` : ""}</div></div></div></td>
-      <td class="num">${l.kind === "product" || l.kind === "surcharge" ? qty(l.qty_returned) : ""}</td>
-      <td>${Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
-      <td class="num">${price(l.unit_price)}</td><td class="num">${money(l.amount)}</td>
+      <td class="num">${l.kind === "product" || l.kind === "surcharge" || isAdj(l) ? lnQty(l) : ""}</td>
+      <td>${isAdj(l) ? '<span class="dim">price only — no stock</span>' : Array.isArray(l.combo_components) ? '<span class="dim">components below</span>' : l.kind === "product" ? (l.restock_bin ? `back to <span class="mono">${esc(l.restock_bin)}</span>` : `<span class="neutral">not restocked · ${esc(NOREST[l.not_restocked_reason] || l.not_restocked_reason || "")}</span>${l.not_restocked_note ? ` <span class="dim">${esc(l.not_restocked_note)}</span>` : ""}`) : ""}</td>
+      <td class="num">${lnUnit(l)}</td><td class="num">${money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
       <td><span class="mono">${esc(l.account_code || "")}</span>${l.account_code && ACCT_NAME[l.account_code] ? ` <span class="dim" style="font-size:11px">${esc(ACCT_NAME[l.account_code])}</span>` : ""}</td>
     </tr>`);
