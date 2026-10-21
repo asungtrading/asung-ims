@@ -123,7 +123,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-10-08 · tf tx v1";   // 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-10-21 · tf cost v1";   // 대화 Claude — rls-3b(ada71fa · 판정 580): 원가 열쇠 없으면 inv_transfer_detail 의 freight.posted_cad · charges[].posted_cad · lines[].carried.* 가 null → On stock cost 칸 「—」(경고 색 없음 · title) · Carried cost · Posted 칸 「—」 + title(옛 판은 n0(null)=0 으로 「0.00」 + 틀린 warn) ← tf tx v1 · 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -337,6 +337,7 @@ async function loadDetail(id){
       ? "Decide each one below." : "Someone with the Stock adjustments key decides each one."}</div>`;
 
   const frTot = n0(fr.total_cad), frPost = n0(fr.posted_cad);
+  const costHidden = fr.posted_cad === null;   // rls-3b — 원가 열쇠 없음(0 이 아니다)
   const gap = `<div class="gap">
       <div class="g"><b>${esc(lines.length)}</b><span>Lines</span></div>
       <div class="g"><b>${qty(totReq)}</b><span>Asked (EA)</span></div>
@@ -345,7 +346,7 @@ async function loadDetail(id){
       <div class="g ${totTran > 0 && s === "received" ? "warn" : ""}"><b>${left ? qty(totTran) : '<span class="dim">—</span>'}</b><span>In transit (EA)</span></div>
       <div class="g ${totLost > 0 ? "bad" : ""}"><b>${qty(totLost)}</b><span>Lost (EA)</span></div>
       <div class="g"><b>${money(frTot)}</b><span>Freight (CAD)</span></div>
-      <div class="g ${frTot !== frPost ? "warn" : ""}"><b>${money(frPost)}</b><span>On stock cost (CAD)</span></div>
+      <div class="g ${!costHidden && frTot !== frPost ? "warn" : ""}"${costHidden ? ' title="Hidden — needs the Inventory cost permission (Staff)"' : ""}><b>${costHidden ? '<span class="dim">—</span>' : money(frPost)}</b><span>On stock cost (CAD)</span></div>
     </div>`;
 
   box.innerHTML = `
@@ -402,7 +403,9 @@ function linesTable(lines, ed, s){
     </tr></thead><tbody>${lines.map(l => {
       const it = inTransit(l);
       const c = l.carried || {};
-      const carriedTxt = n0(c.total) !== 0
+      const carriedTxt = c.total === null
+        ? '<span class="dim" title="Hidden — needs the Inventory cost permission (Staff)">—</span>'
+        : n0(c.total) !== 0
         ? `${money(c.total)}<div class="sub">${n0(c.in_transit) ? "in transit " + money(c.in_transit) + " · " : ""}${n0(c.arrived) ? "arrived " + money(c.arrived) : ""}${n0(c.returned) ? " · returned " + money(c.returned) : ""}</div>`
         : '<span class="dim">—</span>';
       return `<tr>
@@ -476,7 +479,7 @@ function freightCard(fr, h){
           <td>${chgChip(c.status)}</td>
           <td class="num" title="Before tax ${esc(Number(c.total_amount || 0).toFixed(2))} · tax ${esc(Number(c.tax_amount || 0).toFixed(2))}">${money(c.total_with_tax ?? c.total_amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
           <td class="num">${money(c.amount)} <span class="sub">${esc(c.currency_code || "")}</span></td>
-          <td class="num">${money(c.posted_cad)}${n0(c.layers) ? `<div class="sub">${esc(c.layers)} layer${n0(c.layers) === 1 ? "" : "s"}</div>` : ""}</td>
+          <td class="num">${c.posted_cad === null ? '<span class="dim" title="Hidden — needs the Inventory cost permission (Staff)">—</span>' : money(c.posted_cad)}${n0(c.layers) ? `<div class="sub">${esc(c.layers)} layer${n0(c.layers) === 1 ? "" : "s"}</div>` : ""}</td>
           <td><button class="pobtn" data-chg="${esc(c.charge_id)}">Open</button></td>
         </tr>`).join("")}</tbody></table>`
       : `<div class="msg">No charges yet.${canWrite && h.status !== "draft" && h.status !== "cancelled" ? " Use “Add freight charge” when the carrier's bill comes in." : ""}</div>`}
