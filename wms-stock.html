@@ -74,6 +74,8 @@
   .sub table{width:100%;border-collapse:collapse;font-size:12.5px}
   .sub th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);text-align:left;padding:3px 4px;font-weight:700}
   .sub td{padding:4px;border-top:1px solid var(--line)}
+  .sub td.nw,.sub td.mono{white-space:nowrap}   /* ws v1a — 날짜 · 문서 번호 · bin 이 좁은 칸에서 두 줄로 꺾였다 */
+  .sub .tw{overflow-x:auto}
   .sub td.r,.sub th.r{text-align:right;font-family:var(--mono)}
   .sub .t{font-family:var(--mono);font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:4px}
   .sub .foot{font-size:11.5px;color:var(--mut);margin-top:4px}
@@ -126,7 +128,7 @@
    ⭐ Every number comes from the database — this screen does not count (ruling 262 for cost: only stk_value_*).
    ⚠️ Screen state lives in memory only.
    ───────────────────────────────────────────────────────────── */
-const WS_BUILD = "2026-10-20 · ws v1";   // 대화 Claude — WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
+const WS_BUILD = "2026-10-20 · ws v1a";   // 대화 Claude — ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
 console.log("wms-stock.html build:", WS_BUILD);
 
 let sb = null, me = null, canCost = false;
@@ -273,24 +275,24 @@ function rsvHtml(d, kind){
   if(kind === "so"){
     const rows = d.so || [];
     if(!rows.length) return '<div class="dimt" style="font-size:12px">No sales order is holding this stock.</div>';
-    return `<div class="t">Allocated to sales orders</div><table><thead><tr><th>Sales order</th><th>Status</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
-      ${rows.map(x => `<tr><td class="mono">${esc(x.so_number)}</td><td>${dim(x.status)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table>
+    return `<div class="t">Allocated to sales orders</div><div class="tw"><table><thead><tr><th>Sales order</th><th>Status</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td class="mono">${esc(x.so_number)}</td><td>${dim(x.status)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table></div>
       <div class="foot">Total ${n0(d.so_total)} EA</div>`;
   }
   const rows = d.trf || [];
   if(!rows.length) return '<div class="dimt" style="font-size:12px">No transfer is holding this stock.</div>';
-  return `<div class="t">Held for transfers out</div><table><thead><tr><th>Transfer</th><th>Status</th><th>To</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
-    ${rows.map(x => `<tr><td class="mono">${esc(x.transfer_number)}</td><td>${dim(x.status)}</td><td>${dim(x.to_warehouse)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table>
+  return `<div class="t">Held for transfers out</div><div class="tw"><table><thead><tr><th>Transfer</th><th>Status</th><th>To</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
+    ${rows.map(x => `<tr><td class="mono">${esc(x.transfer_number)}</td><td>${dim(x.status)}</td><td>${dim(x.to_warehouse)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table></div>
     <div class="foot">Total ${n0(d.trf_total)} EA</div>`;
 }
 function mvHtml(rows){
   const recent = rows.slice().reverse().slice(0, 10);   // 창구는 오래된 것부터 · 최근 10
   if(!recent.length) return '<div class="dimt" style="font-size:12px">No movements.</div>';
   return `<div class="t">Recent movements${rows.length > 10 ? ` <span style="text-transform:none;letter-spacing:0;font-weight:600">(latest 10 of ${rows.length})</span>` : ""}</div>
-    <table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="r">In</th><th class="r">Out</th></tr></thead><tbody>
-    ${recent.map(m => `<tr${m.is_reversal ? ' style="color:var(--mut-2)"' : ""}><td>${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}</td>
+    <div class="tw"><table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="r">In</th><th class="r">Out</th></tr></thead><tbody>
+    ${recent.map(m => `<tr${m.is_reversal ? ' style="color:var(--mut-2)"' : ""}><td class="nw">${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}</td>
       <td class="mono">${m.doc_number ? esc(m.doc_number) : ""}</td><td class="mono">${m.bin ? esc(m.bin) : ""}</td>
-      <td class="r">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="r">${m.qty_out ? n0(m.qty_out) : ""}</td></tr>`).join("")}</tbody></table>
+      <td class="r">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="r">${m.qty_out ? n0(m.qty_out) : ""}</td></tr>`).join("")}</tbody></table></div>
     <div class="foot">Opening stock from the starting count is not listed as a movement here.</div>`;
 }
 
