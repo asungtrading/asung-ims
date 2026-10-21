@@ -372,7 +372,7 @@
    ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
    ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
-const RC_BUILD="2026-10-19 · rc v1.8";   // 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
+const RC_BUILD="2026-10-21 · rc v1.9";   // 대화 Claude — rcv-3(asung-wms 103865e · 판정 598 ~ 600): 남은 몫이 있는 확정은 PO 를 열어 둔다 → Complete 안내를 그 뜻으로 · 확정 창에 오피스와 같은 안내(po_receipt_keep_open 미리 보기: short 줄 · 「PO stays open — N can still be received」 / 「closes」 · 되돌릴 수 없음) · 확정 뒤 po_kept_open / po_closed 를 글로 · 확정 스위치 주석 정정(열쇠 8 명) ← rc v1.8: 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -405,7 +405,7 @@ function tfDetailAsPo(t){
            lines:(t.lines||[]).map(l=>({ po_line_id:l.line_id, product_id:l.product_id, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, ordered:Number(l.expected_ea||0), received_before:0, counted:l.counted, work:l.work||[] })),
            diffs:[], wms:t.wms };
 }
-function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms what you counted into stock and the order closes — anything not counted is kept as short, and the rest cannot be received on this order later. Count everything that arrived before you complete."; }
+function completeNote(){ return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms what you counted into stock. Anything not counted is kept as short — the order stays open so the rest can be received on it later, until the office settles it as not coming. Count everything that arrived before you complete."; }
 /* inv-basis-4 · 판정 88 ⑧ · ㉒ — 기준보다 많이 셀 때의 한 문장(± · 스캔 · Enter quantity 세 길 · PO 는 off-invoice · 트랜스퍼는 판정 74) */
 function overNote(){ return (receipt&&receipt.is_transfer) ? "Only what was sent is taken in — the office decides the rest" : "More than the invoice — the extra is put away and the office decides it (off-invoice)"; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
@@ -1940,10 +1940,23 @@ async function finishReceipt(){
     exitToList();
   }catch(e){ if(/more than one bin/i.test(rpcMsg(e))) alert(rpcMsg(e)); toast("Completion failed: "+rpcMsg(e),true); bD.disabled=false; }   // 판정 100(inv-basis-6): 두 칸 거부 문장은 길어 토스트(2.2초)로는 못 읽는다 — 그 문장만 alert 로도
 }
-/* 확정 스위치(판정 27 B) — 화면 값 wms_receiving_confirm 이 있는 사람에게만 단추가 보인다(지금은 아무에게도 없다). 창고 Complete 뒤에만. */
+/* 확정 스위치(판정 27 B) — 화면 값 wms_receiving_confirm 이 있는 사람에게만 단추가 보인다(2026-10-21 rcv-2 실측: 열쇠가 있는 직원 8 명 · 옛 주석 「아무에게도 없다」는 틀렸다). 창고 Complete 뒤에만. 판정 600 — 확정 창은 오피스와 같은 안내를 보인다. */
 document.getElementById("confirmBtn").onclick=async ()=>{
   if(!receipt||!receiptClosed||!canConfirm()) return;
-  if(!confirm(`Confirm ${receipt.receipt_number} into stock?\nThis writes the stock ledger and cannot be undone here.`)) return;
+  /* rc v1.9 · 판정 600 — 확정 전 미리 보기(po_receipt_keep_open · 이 초안에서 센 것을 뺀 남은 몫) · 실패해도 확정은 막지 않는다 */
+  const nq=v=>Number(v||0).toLocaleString("en-CA",{maximumFractionDigits:3});
+  let pv=null;
+  if(receipt.po_id){ try{ const r=await sb.rpc("po_receipt_keep_open",{p_po_id:receipt.po_id,p_receipt_id:receipt.id}); if(!r.error) pv=r.data; }catch(_){} }
+  const msg=[`Confirm ${receipt.receipt_number} into stock?`];
+  if(pv){
+    const sh=(pv.lines||[]).filter(l=>Number(l.remaining)>0);
+    if(sh.length){ msg.push("",`${sh.length} line(s) short of the invoice — kept as a difference for the office:`); sh.slice(0,12).forEach(l=>msg.push(`  ${l.sku||"?"} — ${nq(l.remaining)} not counted`)); if(sh.length>12) msg.push(`  … and ${sh.length-12} more`); }
+    msg.push("", pv.after_confirm==="stays_open"
+      ? `${receipt.po_number} stays open — ${nq(pv.remaining_ea)} can still be received on it later.`
+      : `${receipt.po_number} closes on confirm — nothing more is expected on it.`);
+  }
+  msg.push("","This writes the stock ledger and cannot be undone here.");
+  if(!confirm(msg.join("\n"))) return;
   try{
     const {data,error}=await sb.rpc("wms_recv_confirm",{p_receipt_id:receipt.id});
     if(error) throw error;
@@ -1953,7 +1966,10 @@ document.getElementById("confirmBtn").onclick=async ()=>{
     if(Array.isArray(ch.posted)&&ch.posted.length) note+="\nFreight/duty added to cost ("+ch.posted.length+" charge"+(ch.posted.length>1?"s":"")+")";
     if(Array.isArray(ch.errors)&&ch.errors.length) note+="\nFreight/duty could not be added — the office will check";
     if(offN) note+="\n"+offN+" line(s) more than the invoice — off-invoice, the office decides";
-    alert(receipt.receipt_number+" confirmed."+note+(data&&data.warnings&&data.warnings.length?"\n\nNotes: "+data.warnings.join(", "):""));
+    const po=(data&&data.po)||{}, wn=((data&&data.warnings)||[]).filter(w=>w!=="po_kept_open"&&w!=="po_closed");   // rc v1.9
+    if(po.kept_open) note+="\n"+(po.number_after||receipt.po_number)+" stays open — "+Number(po.remaining_ea||0).toLocaleString("en-CA")+" can still be received";
+    else if(po.status==="closed") note+="\n"+(po.number_after||receipt.po_number)+" is closed";
+    alert(receipt.receipt_number+" confirmed."+note+(wn.length?"\n\nNotes: "+wn.join(", "):""));
     exitToList();
   }catch(e){ toast("Confirm failed: "+rpcMsg(e),true); }
 };
