@@ -121,9 +121,9 @@
          so_credit_attach(sales) · so_credit_detach · so_credit_cancel(manager)
    ⚠️⚠️ 크레딧 남은 금액 = so_credit_remaining 한 곳 · 「더 돌려받을 수 있는 수량」 · 돌려놓을 칸 기본 = so_credit_prepare(발행 창구와 같은 식) — 화면이 다시 계산하지 마라
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
-   ⭐ 이번 판은 IMS 인보이스의 반품만(Caleb 2026-09-25) — Cin7 판매 반품은 전환 전 다음 판 · 환불은 Customer Payments 의 Refund
+   ⭐ IMS 인보이스의 크레딧 + cr v3: 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1 20261021194405) · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-19 · cr v2f";   // 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-21 · cr v3";   // 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -169,7 +169,7 @@ function crChip(r){
 
 function baseQuery(){
   let qry = sb.from("so_credit_list").select(
-    "id,credit_number,status,issued_on,customer_name,currency_code,reason,invoice_number,cin7_invoice_number,total,applied_to_invoices,refunded,remaining,invoice_numbers_applied",
+    "id,credit_number,status,issued_on,customer_name,currency_code,reason,invoice_number,ref_invoice_number,total,applied_to_invoices,refunded,remaining,invoice_numbers_applied",
     { count: "exact" });
   if(stFilter === "open")           qry = qry.eq("status", "issued").gt("remaining", 0);
   else if(stFilter === "issued")    qry = qry.eq("status", "issued");
@@ -211,7 +211,7 @@ async function loadWide(){
         <td>${crChip(r)}</td>
         <td>${dim(r.issued_on)}</td>
         <td>${esc(r.customer_name || "")}</td>
-        <td class="mono">${dim(r.invoice_number || r.cin7_invoice_number)}</td>
+        <td class="mono">${r.invoice_number ? esc(r.invoice_number) : r.ref_invoice_number ? `${esc(r.ref_invoice_number)} <span class="dim" style="font-family:inherit">ref</span>` : '<span class="dim">—</span>'}</td>
         <td>${esc(REASON[r.reason] || r.reason || "")}</td>
         <td class="num">${money(r.total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
         <td class="num">${Number(r.applied_to_invoices) ? money(r.applied_to_invoices) : '<span class="dim">—</span>'}</td>
@@ -231,7 +231,7 @@ async function loadList(){
       <span class="l">
         <div class="pn">${esc(r.credit_number)}</div>
         <div class="sn">${esc(r.customer_name || "")}</div>
-        <div class="sn">${esc(r.issued_on || "")}${r.invoice_number ? " · for " + esc(r.invoice_number) : ""}</div>
+        <div class="sn">${esc(r.issued_on || "")}${r.invoice_number ? " · for " + esc(r.invoice_number) : r.ref_invoice_number ? " · ref " + esc(r.ref_invoice_number) : ""}</div>
       </span>
       <span class="r">
         <div class="amt">${money(r.total)}</div>
@@ -282,15 +282,15 @@ const acctOpts = (blank) => `<option value="">${esc(blank)}</option>` + ACCT_ALL
       product{so_invoice_line_id, qty_returned, restock_bin | not_restocked_reason(+note)} · freight{so_invoice_line_id, amount}
       restocking_fee{pct | amount ≤ 0, account_id} · other{amount, description, account_id}
    ⭐ 미리 보기(p_commit false)는 아무것도 쓰지 않는다 · 같은 p 로 발행(true) */
-let prep = null;
+let prep = null, mode = "inv", refCust = null;   // cr v3 — mode "inv"(IMS 인보이스) | "ref"(참조 번호)
 function openNew(invoiceId){
-  prep = null;
+  prep = null; mode = "inv"; refCust = null;
   modalOpen(`
     <h4>New credit note — from a sales invoice</h4>
     <div class="pbody" id="nwBody">
       <input type="search" id="nwQ" placeholder="Invoice number · customer · SO number" autocomplete="off">
       <div class="pick" id="nwList"><div class="msg">Type to search issued invoices.</div></div>
-      <div class="sohint">Returns of goods sold through Cin7 (before the switch-over) come in the next version.</div>
+      <div class="sohint" style="margin-top:10px">No IMS invoice for this sale (for example an invoice from before the switch-over)? <button class="pobtn" id="nwRef">Credit with a reference number…</button></div>
     </div>
     <div class="pfoot"><span id="nwMsg" style="font-size:12.5px"></span><span class="sp"></span>
       <button class="pobtn" data-m="close">Cancel</button>
@@ -310,6 +310,7 @@ function openNew(invoiceId){
     box.querySelectorAll("[data-iid]").forEach(el => { el.onclick = () => loadPrep(el.dataset.iid); });
   };
   imsQ("#nwQ", draw);
+  document.getElementById("nwRef").onclick = () => openRef();
   if(invoiceId) loadPrep(invoiceId);
 }
 
@@ -352,6 +353,7 @@ function prodRow(l){
 }
 const CR_KIND = { order_discount: "order discount", freight_discount: "freight discount", restocking_fee: "restocking fee" };   // cr v2c — 줄 종류 글자 한 곳
 function drawForm(){
+  mode = "inv";
   const v = prep.invoice, wh = prep.warehouse || {}, fee = prep.restock_fee || {};
   const prods = (prep.lines || []).filter(l => l.kind === "product");
   const chgs  = (prep.lines || []).filter(l => l.kind === "charge");
@@ -462,7 +464,8 @@ function buildP(){
 }
 
 async function runIssue(commit){
-  const p = buildP();
+  const p = mode === "ref" ? buildRefP() : buildP();
+  if(!p) return;
   if(!p.lines.length){ say("nwMsg", "err", "Put a quantity on at least one product, a freight amount or an adjustment."); return; }
   say("nwMsg", "", commit ? "Issuing…" : "Checking…");
   document.getElementById("isGo").disabled = true;
@@ -473,9 +476,10 @@ async function runIssue(commit){
     if(data && data.credit_id) openCr(data.credit_id); else showWide();
     return;
   }
-  const t = data.totals || {}, fs = data.fee_suggested;
+  const t = data.totals || {}, fs = data.fee_suggested, og = data.origin || {};
   document.getElementById("pvOut").innerHTML = `
     <div class="card" style="padding:10px 14px">
+      ${mode === "ref" ? refPvHead(og) : ""}
       <table><thead><tr><th>Kind</th><th>Item</th><th class="num">Qty</th><th>Stock</th><th class="num">Unit</th><th class="num">Amount</th><th class="num">Tax</th></tr></thead>
       <tbody>${(data.lines || []).map(l => `<tr${l.combo_parent_line_no ? ' class="comp"' : ""}>
         <td>${esc(CR_KIND[l.kind] || l.kind || "")}</td><td>${l.combo_parent_line_no ? '<span class="cind">↳</span>' : ""}<span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""} <span class="dim">${esc(l.description || "")}</span></td>
@@ -492,10 +496,170 @@ async function runIssue(commit){
       </div>
       ${Number(t.freight_discount_amount) && !Number(t.total) ? '<div class="sohint" style="margin-top:8px">Nothing comes back to the customer — the freight discount cancels the freight (free shipping). The note still reverses freight sales and the freight discount in the books.</div>' : ""}
       ${fs ? `<div class="sohint" style="margin-top:8px">Suggested restocking fee: ${money(fs.amount)} (${esc(fs.pct)}% · ${esc(fs.days_since_invoice)} days after the invoice). Tick Charge a fee above to include it.</div>` : ""}
-      ${(data.warnings || []).length ? `<div class="sowarn" style="padding-left:0">${data.warnings.map(w => `<span class="chip warn">⚠ ${esc(w)}</span>`).join("")}</div>` : ""}
+      ${(data.warnings || []).length ? `<div class="sowarn" style="padding-left:0">${data.warnings.map(w => `<span class="chip warn">⚠ ${esc(warnText(w))}</span>`).join("")}</div>` : ""}
     </div>`;
   say("nwMsg", "", "Nothing is saved until you press Issue credit note.");
   document.getElementById("isGo").disabled = false;
+}
+
+/* ══ cr v3 — 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1) ══════════
+   ⭐ 입력 = so_credit_issue p { customer_id, ref{invoice_number(필수), order_number?, invoice_date?}, tax_rule?(비우면 손님 기본 배송지 규칙 제안),
+      warehouse_id?(비우면 손님 기본 창고), reason, note, issued_on, lines[] }
+      product{sku, qty_returned, unit_price(종이 인보이스의 단가), restock_bin | not_restocked_reason(+note)} · other{amount, description, account_id}
+   ⚠️ 단가 · 수량은 시스템이 확인해 주지 못한다(IMS 에 그 판매가 없다) — 미리 보기가 늘 manual_unit_price 경고를 낸다
+   ⚠️ 원가는 되짚지 않는다 — 발행 순간 그 제품의 평균 원가부터(서버) · 미리 보기에 원가 예상 없음 */
+let TAXR = [];
+const WARN_TEXT = {
+  manual_unit_price: "Unit prices were typed by hand — check them against the paper invoice",
+};
+function warnText(w){
+  const s = String(w || "");
+  if(WARN_TEXT[s]) return WARN_TEXT[s];
+  if(s.startsWith("reference_seen:")) return "Already credited on this reference number for the same product: " + s.slice(15) + " — check it is not a double credit";
+  if(s.startsWith("origin_sale_untraced:")){ const x = s.split(":"); return `${x[1] || ""}: cost taken from ${x[2] === "layer_avg" ? "the current average" : (x[2] || "stock")} (the original sale is not traced)`; }
+  return s;
+}
+function openRef(){
+  prep = null; mode = "ref"; refCust = null;
+  modalOpen(`
+    <h4>New credit note — without an IMS invoice (reference number)</h4>
+    <div class="pbody" id="nwBody">
+      <div class="sowarn" style="padding-left:0"><span class="chip warn">⚠ The system cannot check prices or quantities here — copy them from the paper invoice.</span></div>
+      <h5 class="sec">Customer</h5>
+      <input type="search" id="cpQ" placeholder="Customer name" autocomplete="off">
+      <div class="pick" id="cpList"><div class="msg">Type to search.</div></div>
+      <div id="refRest"></div>
+    </div>
+    <div class="pfoot"><span id="nwMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+    </div>`, true);
+  wireModalClose();
+  const draw = async (t) => {
+    const box = document.getElementById("cpList");
+    if(!box) return;
+    if(!t){ box.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const { data, error } = await sb.from("customer").select("id,name,currency_code,default_location_name")
+      .eq("is_active", true).ilike("name", `%${t}%`).order("name").limit(60);
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    box.innerHTML = data.length ? data.map(r => `<div class="prow" data-cid="${r.id}">${esc(r.name)}
+        <div class="dim" style="font-size:11.5px">${esc([r.currency_code, r.default_location_name].filter(Boolean).join(" · "))}</div></div>`).join("")
+      : '<div class="msg">No active customer matches.</div>';
+    box.querySelectorAll("[data-cid]").forEach(el => {
+      el.onclick = () => {
+        box.querySelectorAll(".prow").forEach(p => p.classList.toggle("on2", p === el));
+        const first = !refCust;
+        refCust = data.find(x => x.id === el.dataset.cid);
+        if(first) drawRefForm(); else { const n = document.getElementById("refCustName"); if(n) n.textContent = refCust.name; stale(); }
+      };
+    });
+  };
+  imsQ("#cpQ", draw);
+}
+function refRow(){
+  return `<tr data-rl>
+      <td><input class="tin" data-sku placeholder="SKU" style="width:130px"></td>
+      <td class="num"><input class="qin" type="number" step="any" min="0" data-q></td>
+      <td class="num"><input class="qin" type="number" step="0.0001" min="0" data-up placeholder="paid"></td>
+      ${stockCell(null)}
+    </tr>`;
+}
+function wireRefRows(){
+  document.querySelectorAll("#refRows [data-mode]").forEach(s => {
+    if(s.dataset.w) return; s.dataset.w = "1";
+    s.onchange = () => {
+      const tr = s.closest("tr");
+      tr.querySelector("[data-bin]").hidden = s.value !== "bin";
+      tr.querySelector("[data-nrn]").hidden = s.value === "bin";
+      stale();
+    };
+  });
+  document.querySelectorAll("#refRows input").forEach(el => { if(!el.dataset.w){ el.dataset.w = "1"; el.addEventListener("change", stale); } });
+}
+function drawRefForm(){
+  document.getElementById("refRest").innerHTML = `
+    <div class="socols"><div class="stat">Customer<b id="refCustName" style="font-family:inherit;font-size:14px">${esc(refCust.name)}</b><span class="dim" style="font-size:11px">${esc(refCust.currency_code || "")}</span></div></div>
+
+    <h5 class="sec">Original invoice</h5>
+    <div class="frow"><label>Reference number</label><input id="fRefNo" class="sofield" placeholder="the invoice number on the paper — required"></div>
+    <div class="frow"><label>Invoice date</label><input id="fRefDate" class="sofield" type="date" max="${torontoToday()}"></div>
+    <div class="frow"><label>Order number</label><input id="fRefOrd" class="sofield" placeholder="optional — kept for the record"></div>
+
+    <h5 class="sec">Credit note</h5>
+    <div class="frow"><label>Reason</label><select id="fReason" class="sofield">${Object.entries(REASON).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
+    <div class="frow"><label>Note</label><input id="fNote" class="sofield" placeholder="required when the reason is Other"></div>
+    <div class="frow"><label>Credit date</label><input id="fDate" class="sofield" type="date" value="${torontoToday()}" max="${torontoToday()}"></div>
+    <div class="frow"><label>Goods come back to</label><select id="fWh" class="sofield"><option value="">Customer's default branch</option>${WHS.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="frow"><label>Tax rule</label><select id="fTax" class="sofield"><option value="">Suggest from the customer's default ship-to</option>${TAXR.map(r => `<option value="${esc(r.name)}">${esc(r.name)}${r.rate_pct !== null && r.rate_pct !== undefined ? " · " + esc(Number(r.rate_pct)) + "%" : ""}</option>`).join("")}</select></div>
+
+    <h5 class="sec">Products</h5>
+    <table><thead><tr><th>SKU</th><th class="num">Return</th><th class="num">Unit price paid</th><th>Back to stock</th></tr></thead>
+    <tbody id="refRows">${refRow()}${refRow()}${refRow()}</tbody></table>
+    <div style="margin-top:6px"><button class="pobtn" id="refAdd">+ Add a line</button></div>
+    <div class="sohint">Unit price = the price on the paper invoice, before tax. Back to stock uses the bin the product sits in now when you leave the bin empty. The cost of goods that come back is the product's current average cost.</div>
+
+    <h5 class="sec">Other adjustment</h5>
+    <div class="frow"><label>Description</label><input id="fOthD" class="sofield" placeholder="e.g. freight on that invoice"></div>
+    <div class="frow"><label>Amount</label><input id="fOthA" class="qin" type="number" step="0.01" min="0"> <select id="fOthAcc" class="sofield">${acctOpts("— account")}</select></div>
+
+    <div id="pvOut" style="margin-top:14px"></div>`;
+  document.querySelector("#modalBox .pfoot").innerHTML = `<span id="nwMsg" style="font-size:12.5px"></span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn" id="pvGo">Preview</button>
+      <button class="pobtn go" id="isGo" disabled>Issue credit note</button>`;
+  wireModalClose();
+  wireRefRows();
+  document.getElementById("refAdd").onclick = () => { document.getElementById("refRows").insertAdjacentHTML("beforeend", refRow()); wireRefRows(); stale(); };
+  document.querySelectorAll("#refRest > .frow input, #refRest > .frow select").forEach(el => el.addEventListener("change", stale));
+  document.getElementById("pvGo").onclick = () => runIssue(false);
+  document.getElementById("isGo").onclick = () => runIssue(true);
+}
+function buildRefP(){
+  if(!refCust){ say("nwMsg", "err", "Pick the customer first."); return null; }
+  const refNo = document.getElementById("fRefNo").value.trim();
+  if(!refNo){ say("nwMsg", "err", "Type the reference number (the invoice number on the paper)."); return null; }
+  const lines = [];
+  let bad = "";
+  document.querySelectorAll("#refRows tr[data-rl]").forEach(tr => {
+    const sku = tr.querySelector("[data-sku]").value.trim();
+    const qv = Number(tr.querySelector("[data-q]").value);
+    const upRaw = tr.querySelector("[data-up]").value.trim();
+    if(!sku && !(qv > 0) && upRaw === "") return;
+    if(!sku){ bad = bad || "A product line has no SKU."; return; }
+    if(!(qv > 0)){ bad = bad || `${sku}: type the quantity coming back.`; return; }
+    if(upRaw === ""){ bad = bad || `${sku}: type the unit price from the paper invoice.`; return; }
+    const m = tr.querySelector("[data-mode]").value;
+    const ln = { kind: "product", sku: sku, qty_returned: qv, unit_price: Number(upRaw) };
+    if(m === "bin"){ const b = tr.querySelector("[data-bin]").value.trim(); if(b) ln.restock_bin = b; }
+    else { ln.not_restocked_reason = m; const n = tr.querySelector("[data-nrn]").value.trim(); if(n) ln.not_restocked_note = n; }
+    lines.push(ln);
+  });
+  if(bad){ say("nwMsg", "err", bad); return null; }
+  const oa = Number(document.getElementById("fOthA").value);
+  if(oa > 0) lines.push({ kind: "other", amount: oa, description: document.getElementById("fOthD").value.trim() || null, account_id: document.getElementById("fOthAcc").value || null });
+  const ref = { invoice_number: refNo };
+  const rd = document.getElementById("fRefDate").value, ro = document.getElementById("fRefOrd").value.trim();
+  if(rd) ref.invoice_date = rd;
+  if(ro) ref.order_number = ro;
+  const p = {
+    issued_on: document.getElementById("fDate").value || null,
+    reason: document.getElementById("fReason").value,
+    note: document.getElementById("fNote").value.trim() || null,
+    customer_id: refCust.id,
+    ref: ref,
+    lines: lines,
+  };
+  const wh = document.getElementById("fWh").value, tx = document.getElementById("fTax").value;
+  if(wh) p.warehouse_id = wh;
+  if(tx) p.tax_rule = tx;
+  return p;
+}
+function refPvHead(og){
+  const src = og.tax_rule_source === "ship_to" ? "suggested from the customer's default ship-to" : og.tax_rule_source === "given" ? "picked by you" : "";
+  return `<div class="socols" style="margin:0 0 10px">
+      <div class="stat">Reference<b class="mono">${esc(og.ref_invoice_number || "")}</b><span class="dim" style="font-size:11px">${esc([og.ref_invoice_date, og.ref_order_number].filter(Boolean).join(" · "))}</span></div>
+      <div class="stat" style="border:2px solid #f0b429;border-radius:10px;padding:6px 10px">Tax rule<b style="font-family:inherit;font-size:15px">${esc(og.tax_rule || "—")}${og.rate_pct !== null && og.rate_pct !== undefined ? " · " + esc(Number(og.rate_pct)) + "%" : ""}</b><span class="dim" style="font-size:11px">${esc(src)}</span></div>
+    </div>
+    <div class="sowarn" style="padding-left:0"><span class="chip warn" style="font-size:13px">⚠ Prices typed by hand — no IMS invoice to check them against</span></div>`;
 }
 
 /* 붙이기 — 이 크레딧의 남은 몫을 그 손님의 열린 인보이스(같은 통화)에 · sales */
@@ -587,7 +751,7 @@ async function loadDetail(id){
     ["Customer",     esc(v.customer_name || "")],
     ["Issued",       dim(v.issued_on) + (v.issued_by_name ? ` <span class="dim">${esc(v.issued_by_name)}</span>` : "")],
     ["For invoice",  v.invoice_number ? `<a class="lnk mono" href="so-invoices.html?inv=${encodeURIComponent(v.invoice_number)}">${esc(v.invoice_number)}</a>${v.origin_invoice_on ? ` <span class="dim">${esc(v.origin_invoice_on)}</span>` : ""}`
-                                       : (v.cin7_invoice_number ? `<span class="mono">${esc(v.cin7_invoice_number)}</span> <span class="dim">Cin7</span>` : '<span class="dim">—</span>')],
+                                       : (c.ref_invoice_number ? `<span class="mono">${esc(c.ref_invoice_number)}</span> <span class="dim">ref${[c.ref_invoice_date, c.ref_order_number].filter(Boolean).length ? " · " + esc([c.ref_invoice_date, c.ref_order_number].filter(Boolean).join(" · ")) : ""}</span>` : '<span class="dim">—</span>')],
     ["Reason",       esc(REASON[v.reason] || v.reason || "")],
     ["Goods back to", dim(v.warehouse_name)],
   ];
@@ -663,7 +827,7 @@ async function loadDetail(id){
     </div>
 
     ${tbl("Lines", lines.length, [["#","num"],["Kind",""],["Item",""],["Qty","num"],["Stock",""],["Unit","num"],["Amount","num"],["Tax","num"],["Account",""]], lines,
-      "Unit price and tax come from the invoice. The fee is negative — it reduces what we owe.")}
+      (c.ref_invoice_number ? "No IMS invoice — unit prices were typed from the paper invoice; tax is the rule on this credit." : "Unit price and tax come from the invoice.") + " The fee is negative — it reduces what we owe.")}
 
     ${tbl("Used on", allocs.length, [["Where",""],["Amount","num"],["How",""],["When",""],["",""]], allocs,
       "Applied to an invoice lowers what the customer owes there. A refund pays the credit out as money (Customer Payments).")}
@@ -672,7 +836,7 @@ async function loadDetail(id){
       "Same customer and currency, oldest first.") : ""}
 
     ${ledg.length ? tbl("Stock back", ledg.length, [["Date",""],["SKU",""],["Warehouse",""],["Bin",""],["Qty","num"]], ledg,
-      "Ledger rows this credit note wrote — goods back into the bins, with their cost restored.") : ""}
+      (c.ref_invoice_number ? "Ledger rows this credit note wrote — goods back into the bins, at the product's average cost (no original sale to trace)." : "Ledger rows this credit note wrote — goods back into the bins, with their cost restored.")) : ""}
 
     <div class="card"><h3 class="ims-sec">Emails</h3><div id="docMails"><div class="msg">Loading…</div></div></div>
     ${bal.length ? tbl("Customer balance", 1, [["Currency",""],["Money on account","num"],["Credit owed","num"],["Held for orders","num"],["Available","num"],["Open invoices due","num"]], bal,
@@ -708,10 +872,12 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     if(isMgr()) bt.onclick = () => openNew(null); else bt.hidden = true;
   });
 
-  const [wh, ac] = await Promise.all([
+  const [wh, ac, tx] = await Promise.all([
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
     sb.from("ref_account").select("id,code,name,is_active").order("code"),
+    sb.from("ref_tax_rule").select("name,rate_pct").eq("is_active", true).eq("direction", "sale").order("name"),   // cr v3
   ]);
+  TAXR = tx.data || [];
   WHS = wh.data || [];
   (ac.data || []).forEach(a => { ACCT_NAME[a.code] = a.name; });
   ACCT_ALL = (ac.data || []).filter(a => a.is_active);
