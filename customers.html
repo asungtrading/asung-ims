@@ -114,7 +114,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-20 · cs v4d";   // 대화 Claude — Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-20 · cs v4e";   // 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -371,7 +371,10 @@ async function loadDetail(id){
     ["A/R account", `<span class="mono">${dim(r.ar_account_code)}</span>`], ["Sale account", `<span class="mono">${dim(r.sale_account_code)}</span>`],
     ["Bill to", billLabel(r.default_bill_to_customer_id, r.parent_id, cnm) + (isMaster ? ` <button class="xs" id="billBtn">Change</button>` : "")],
     ...(r.default_ship_to_customer_id ? [["Ship to", `<a class="lk" data-open="${esc(r.default_ship_to_customer_id)}">${esc(cnm[r.default_ship_to_customer_id] ? cnm[r.default_ship_to_customer_id].name : "(unknown)")}</a>`]] : []),
-    ["Split invoice by store", yn(r.invoice_split_by_store, false)],
+    ["Split invoice by store", (r.invoice_split_by_store === true   // cs v4e — 「·」 대신 On · Off + 뜻(인계 10-20 §4-5)
+      ? '<span class="on">on</span> <span class="dim">— when orders for several stores are shipped &amp; invoiced together, each store gets its own invoice · Bill to stays this head office</span>'
+      : '<span class="off">off</span> <span class="dim">— orders shipped &amp; invoiced together go on one invoice</span>')
+      + ' <div class="dim" style="font-size:11.5px">Switched on the head-office customer. It only splits the number of invoices — it does not change who is billed.</div>'],
     ["Default warehouse", dim(r.default_location_name)], ["Tax rule", dim(r.tax_rule)], ["Tax number", dim(r.tax_number)],
     ["Backorder emails", (bmOn ? '<span class="on">on</span> <span class="dim">— gets an email when backordered items can ship</span>' : '<span class="off">off</span> <span class="dim">— no backorder arrival emails</span>')
       + (bmEdit ? ` <button class="xs" id="bmBtn">${bmOn ? "Turn off" : "Turn on"}</button>` : ' <span class="dim" style="font-size:11.5px">(a manager can change this)</span>')],
@@ -510,7 +513,7 @@ function moneyFields(isNewForm){
       <div class="cf"><label>Currency</label><select id="f_currency_id">${opts(refs.currencies, "id", x => x.code, "", blank)}</select></div>
       <div class="cf"><label>A/R account</label><select id="f_ar_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
       <div class="cf"><label>Sale account</label><select id="f_sale_account_id">${opts(refs.accounts, "id", x => x.code + " " + x.name, "", blank)}</select></div>
-      <div class="cf"><label>Split invoice by store</label><input type="checkbox" id="f_invoice_split_by_store"></div>
+      <div class="cf"><label>Split invoice by store</label><input type="checkbox" id="f_invoice_split_by_store"> <span class="dim" style="font-size:11.5px">On the head office — one invoice per store when several stores ship &amp; invoice together · Bill to stays the head office</span></div>
     </div>`;
 }
 /* 고르기 칸에 지금 값을 넣는다 — 목록에 없으면(꺼진 참조 · 예 Net30) 「(current)」 줄을 더해 그대로 보인다 · 그래야 안 바꾼 칸이 바뀐 것으로 읽히지 않는다 */
