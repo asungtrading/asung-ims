@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en" data-ims-mode="wms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Stock Lookup · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* ws v1(대화 Claude · 2026-10-20) — 새 WMS 화면. 모양은 wms-mover.html(mv v2.3)의 카드 · 스캔 칸을 본떴다.
+     헤더 · 로그인 · 메뉴 · 탭 줄은 IMS 공통(ims-ui.css · ims-auth.js). */
+  :root{
+    --ink:#12161c; --line:#e5e9ef; --paper:#f7f8fa; --card:#ffffff; --mut:#6b7686; --mut-2:#9aa4b2;
+    --accent:#2f6df6; --ok:#16a34a; --warn:#d9820a; --warn-bg:#fdf6ec; --danger:#dc2626; --danger-bg:#fdecec;
+    --radius:12px; --shadow:0 1px 2px rgba(16,22,30,.04),0 4px 16px rgba(16,22,30,.05);
+    --mono:ui-monospace,"SF Mono","DM Mono",Menlo,monospace;
+    --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;overscroll-behavior:none}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--mut-2)}
+  .dot.on{background:var(--ok)} .dot.err{background:var(--danger)}
+
+  main{max-width:760px;margin:0 auto;padding:16px}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .ttl{font-family:var(--mono);font-weight:800;font-size:17px}
+  .top .sp{flex:1}
+  .top label{font-size:12.5px;display:flex;align-items:center;gap:5px;color:var(--mut)}
+
+  .scanin{width:100%;border:2px solid var(--accent);border-radius:12px;padding:14px 16px;font:inherit;font-size:16px;font-family:var(--mono);letter-spacing:.02em;background:#fff}
+  .scanin:focus{outline:none;box-shadow:0 0 0 4px rgba(47,109,246,.15)}
+  .scanhint{font-size:11.5px;color:var(--mut);font-family:var(--mono);margin:6px 2px 0;display:flex;align-items:center;gap:6px}
+  .scanhint .live{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.4s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .err{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--danger-bg);color:var(--danger);font-size:13px}
+  .empty{padding:18px 14px;color:var(--mut);font-size:13px;text-align:center}
+  .more{font-size:12px;color:var(--mut);text-align:center;margin:10px 0}
+
+  .pc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px 14px;margin-top:12px}
+  .pc.off{opacity:.75}
+  .ph{display:flex;gap:12px;align-items:flex-start}
+  .ph img,.ph .noimg{width:64px;height:64px;object-fit:cover;border-radius:10px;background:#f2f4f8;flex:0 0 64px}
+  .ph .noimg{display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--mut)}
+  .ph .grow{flex:1;min-width:0}
+  .sku{font-family:var(--mono);font-weight:800;font-size:17px}
+  .nm{font-size:13.5px;margin-top:1px}
+  .br{font-size:12px;color:var(--mut)}
+  .setm{font-size:12px;color:#a86400;font-family:var(--mono);margin-top:3px}
+  .salet{display:inline-block;background:#e03131;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;white-space:nowrap;font-family:var(--sans);vertical-align:middle}
+  .offt{display:inline-block;border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:0 7px;font-size:11px;margin-left:6px}
+
+  .whs{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;margin-top:10px}
+  .wb{border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+  .wb.mine{border-color:#bcd0f6;background:#f8faff}
+  .wb .wn{font-family:var(--mono);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;gap:6px;align-items:center}
+  .wb .wn .sp{flex:1}
+  .nums{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px}
+  .nums .n{display:flex;flex-direction:column;min-width:52px}
+  .nums .n b{font-family:var(--mono);font-size:16px}
+  .nums .n span{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+  .nums .n.av b{font-size:20px;color:var(--ok)}
+  .nums .n.av.zero b{color:var(--danger)}
+  .nums .n b.neg{color:var(--danger)}
+  .nums button.n{border:0;background:none;padding:0;font:inherit;text-align:left;cursor:pointer}
+  .nums button.n b{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+  .bins{margin-top:8px;font-size:12.5px;display:flex;flex-wrap:wrap;gap:6px}
+  .bin{font-family:var(--mono);font-weight:700;background:#f2f4f8;border-radius:7px;padding:3px 8px}
+  .bin .q{color:var(--mut);font-weight:600;margin-left:4px}
+  .bin.offb{color:var(--mut-2)}
+  .val{font-size:12px;color:var(--mut);margin-top:6px}
+  .val b{color:var(--ink);font-family:var(--mono)}
+  .mini{border:1px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-size:12px;font-weight:700;padding:5px 9px;cursor:pointer;color:var(--mut)}
+  .sub{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+  .sub table{width:100%;border-collapse:collapse;font-size:12.5px}
+  .sub th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);text-align:left;padding:3px 4px;font-weight:700}
+  .sub td{padding:4px;border-top:1px solid var(--line)}
+  .sub td.r,.sub th.r{text-align:right;font-family:var(--mono)}
+  .sub .t{font-family:var(--mono);font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:4px}
+  .sub .foot{font-size:11.5px;color:var(--mut);margin-top:4px}
+  .mono{font-family:var(--mono)}
+  .dimt{color:var(--mut)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <span class="dot" id="dot" title="Connection"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button title="Warehouse map" onclick="window.open('https://tools.asung.ca/warehousemap.html','_blank','noopener')">🗺 Map</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main id="app" style="display:none">
+  <div class="top">
+    <span class="ttl">Stock Lookup</span>
+    <span class="sp"></span>
+    <label><input type="checkbox" id="zero" checked> Show zero stock</label>
+  </div>
+  <input class="scanin" id="scan" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan a barcode, or type a SKU or name…">
+  <div class="scanhint"><span class="live"></span><span id="hint">Scan or type — both branches are shown</span></div>
+  <div id="err" class="err" hidden></div>
+  <div id="out"><div class="empty">Scan a product to see its stock.</div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Stock Lookup — the warehouse scans or types a product and sees its stock in every branch.
+   Read only. Nothing on this screen changes stock.
+
+   Windows (asung-wms stk-1 · stk-2 · stk-av-1 20261020232704 3ed5753 · all definer · door = logged in + active staff · ruling 268):
+     stk_availability(p_warehouse_id null = both branches, p_q, …, p_include_zero, p_limit) — a barcode that matches exactly finds its product
+       (a set barcode finds the single-unit line + matched_set_*) · by_warehouse[] per branch — found by warehouse_id, never by position
+     stk_bins_many(p_product_ids, p_warehouse_id) — once per branch per search
+     stk_reserved(p_product_id, p_warehouse_id) — tap Allocated / Transfer res. ⭐ customer names are NEVER drawn here (warehouse screen),
+       whatever the person's keys are — only the SO number, status and quantity
+     stk_movements(p_product_id, p_warehouse_id, …) — Recent movements
+     stk_value_many — only when ims_can_view_cost() is true (rulings 567 · 575 · 578) · without the key the value line is not drawn at all
+   ⭐ Every number comes from the database — this screen does not count (ruling 262 for cost: only stk_value_*).
+   ⚠️ Screen state lives in memory only.
+   ───────────────────────────────────────────────────────────── */
+const WS_BUILD = "2026-10-20 · ws v1";   // 대화 Claude — WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
+console.log("wms-stock.html build:", WS_BUILD);
+
+let sb = null, me = null, canCost = false;
+let WHS = [], MINE = [];                  // WHS = 활성 브랜치(이름 순) · MINE = 이 사람이 일하는 브랜치 id(없으면 전부)
+let seq = 0, lastQ = "";
+const LIMIT = 30;
+const BUCKET = "product-images";
+const $ = (id) => document.getElementById(id);
+const n0 = (v) => v === null || v === undefined ? "" : Number(v).toLocaleString("en-CA", { maximumFractionDigits: 3 });
+const money = (v) => "$" + Number(v || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
+function setConn(s){ const d = $("dot"); d.className = "dot " + (s === "ok" ? "on" : s === "err" ? "err" : ""); }
+function showErr(m){ const e = $("err"); if(!m){ e.hidden = true; e.textContent = ""; return; } e.hidden = false; e.textContent = m; }
+const EV = {
+  opening: "Opening balance", po_in: "Purchase receipt", sale_out: "Sale", credit_in: "Credit note (return)",
+  transfer_out: "Transfer out", transfer_in: "Transfer in", adjust: "Adjustment", adjust_existing: "Adjustment", adjust_new: "Adjustment (new)",
+  manual_reversal: "Correction", assembly_in: "Assembly in", assembly_out: "Assembly out",
+};
+const evLabel = (t) => EV[t] || String(t || "").replace(/_/g, " ").replace(/^./, c => c.toUpperCase());
+
+/* ── 찾기 — 두 브랜치 한 번(stk_availability · p_warehouse_id null) ── */
+async function search(v){
+  const qv = String(v || "").trim();
+  lastQ = qv;
+  const my = ++seq;
+  showErr("");
+  if(qv.length < 2){ $("out").innerHTML = '<div class="empty">Scan a product to see its stock.</div>'; return; }
+  $("out").innerHTML = '<div class="empty">Looking…</div>';
+  const { data, error } = await sb.rpc("stk_availability", {
+    p_warehouse_id: null, p_q: qv, p_brand_id: null, p_category_id: null,
+    p_include_zero: $("zero").checked, p_limit: LIMIT, p_offset: 0,
+  });
+  if(my !== seq) return;
+  if(error){ setConn("err"); $("out").innerHTML = ""; showErr(error.message); return; }
+  setConn("ok");
+  const rows = data || [], total = rows.length ? Number(rows[0].total) : 0;
+  if(!rows.length){
+    $("out").innerHTML = `<div class="empty">Nothing found for <b class="mono">${esc(qv)}</b>${$("zero").checked ? "" : " — tick “Show zero stock” to include empty products"}.</div>`;
+    return;
+  }
+  const pids = rows.map(r => r.product_id);
+  const [ph, bins, vals] = await Promise.all([photosFor(rows.map(r => r.sku)), binsAll(pids), valuesFor(pids)]);   // 받는 이름 순서 = 질의 순서
+  if(my !== seq) return;
+  $("out").innerHTML = rows.map(r => card(r, ph, bins, vals)).join("")
+    + (total > rows.length ? `<div class="more">Showing ${rows.length} of ${total.toLocaleString("en-CA")} — scan or type more to narrow it down.</div>` : "");
+  if(bins.__err) showErr("Bins: " + bins.__err);
+  else if(vals.__err) showErr("Value: " + vals.__err);
+  bindCards();
+}
+async function photosFor(skus){
+  const out = {};
+  if(!skus.length) return out;
+  const { data } = await sb.rpc("product_image_primary", { p_skus: skus });
+  (data || []).forEach(x => { if(x.storage_path) out[x.sku] = photoUrl(x.storage_path); });
+  return out;
+}
+/* bin — 브랜치마다 한 번 · out[warehouse_id][product_id] = [{bin, qty, bin_is_active}] (창구가 qty desc 로 준다) */
+async function binsAll(pids){
+  const out = {};
+  const res = await Promise.all(WHS.map(w => sb.rpc("stk_bins_many", { p_product_ids: pids, p_warehouse_id: w.id })));
+  res.forEach((r, i) => {
+    if(r.error){ out.__err = r.error.message; return; }
+    const m = out[WHS[i].id] = {};
+    (r.data || []).forEach(x => { (m[x.product_id] = m[x.product_id] || []).push(x); });
+  });
+  return out;
+}
+/* 금액 — 원가 열쇠가 있을 때만 · out[product_id][warehouse_id] = {v, q} */
+async function valuesFor(pids){
+  const out = {};
+  if(!canCost || !pids.length) return out;
+  const { data, error } = await sb.rpc("stk_value_many", { p_product_ids: pids, p_warehouse_id: null });
+  if(error){ out.__err = error.message; return out; }
+  (data || []).forEach(x => { (out[x.product_id] = out[x.product_id] || {})[x.warehouse_id] = { v: Number(x.remaining_value || 0), q: Number(x.layer_qty_ea || 0) }; });
+  return out;
+}
+
+/* ── 카드 ── */
+function card(r, ph, bins, vals){
+  const img = ph[r.sku] ? `<img src="${esc(ph[r.sku])}" alt="" loading="lazy">` : '<span class="noimg">No photo</span>';
+  const sale = r.sale_pct !== null && r.sale_pct !== undefined ? `<span class="salet">Sale ${esc(Number(r.sale_pct))}%${r.sale_conditional ? "*" : ""}</span>` : "";
+  const setm = r.matched_set_sku
+    ? `<div class="setm">Set ${esc(r.matched_set_sku)} = ×${n0(r.matched_set_pack_factor)} single units${r.matched_set_count > 1 ? ` (+${r.matched_set_count - 1} more set${r.matched_set_count > 2 ? "s" : ""})` : ""} — numbers below are single units</div>` : "";
+  const order = WHS.slice().sort((a, b) => (MINE.includes(b.id) ? 1 : 0) - (MINE.includes(a.id) ? 1 : 0));   // 내 브랜치 먼저
+  const blocks = order.map(w => {
+    const e = (r.by_warehouse || []).find(x => x.warehouse_id === w.id) || {};
+    const av = Number(e.available || 0);
+    const tap = (v, kind, label) => Number(v || 0) > 0
+      ? `<button class="n" data-rsv="${kind}" data-pid="${esc(r.product_id)}" data-wh="${esc(w.id)}" title="Show what is holding this stock"><b>${n0(v)}</b><span>${label}</span></button>`
+      : `<div class="n"><b class="dimt">0</b><span>${label}</span></div>`;
+    const num = (v, label) => `<div class="n"><b class="${Number(v || 0) < 0 ? "neg" : Number(v || 0) === 0 ? "dimt" : ""}">${n0(v || 0)}</b><span>${label}</span></div>`;
+    const bl = ((bins[w.id] || {})[r.product_id]) || [];
+    const binHtml = bl.length
+      ? bl.map(x => `<span class="bin${x.bin_is_active === false ? " offb" : ""}">${x.bin ? esc(x.bin) : "(no bin)"}<span class="q">${n0(x.qty)}</span></span>`).join("")
+      : '<span class="dimt">No bin</span>';
+    const vo = canCost && vals[r.product_id] ? vals[r.product_id][w.id] : null;
+    const valHtml = canCost && !vals.__err
+      ? `<div class="val">Value <b>${money(vo ? vo.v : 0)}</b>${vo && vo.q !== Number(e.on_hand || 0) ? ` <span title="The value follows the cost layers">· layers ${n0(vo.q)} EA</span>` : ""}</div>` : "";
+    return `<div class="wb${MINE.includes(w.id) ? " mine" : ""}">
+      <div class="wn"><span>${esc(w.name)}</span><span class="sp"></span><button class="mini" data-mv="1" data-pid="${esc(r.product_id)}" data-wh="${esc(w.id)}">Recent movements</button></div>
+      <div class="nums">
+        <div class="n av${av <= 0 ? " zero" : ""}"><b>${n0(av)}</b><span>Available</span></div>
+        ${num(e.on_hand, "On hand")}${tap(e.sales_allocated, "so", "Allocated")}${tap(e.transfer_reserved, "trf", "Transfer res.")}
+        ${num(e.on_order, "On order")}${num(e.in_transit, "In transit")}
+      </div>
+      <div class="bins">${binHtml}</div>${valHtml}
+      <div class="subbox"></div>
+    </div>`;
+  }).join("");
+  return `<div class="pc${r.is_active ? "" : " off"}">
+    <div class="ph">${img}<div class="grow">
+      <div class="sku">${esc(r.sku)}${sale}${r.is_active ? "" : '<span class="offt">inactive</span>'}</div>
+      <div class="nm">${esc(r.name)}</div>
+      <div class="br">${esc([r.brand_name, r.category_name].filter(Boolean).join(" · "))}${r.last_event_on ? ` · last movement ${esc(r.last_event_on)}` : ""}</div>
+      ${setm}
+    </div></div>
+    <div class="whs">${blocks}</div>
+  </div>`;
+}
+function bindCards(){
+  $("out").querySelectorAll("[data-rsv]").forEach(b => { b.onclick = () => openSub(b, "rsv"); });
+  $("out").querySelectorAll("[data-mv]").forEach(b => { b.onclick = () => openSub(b, "mv"); });
+}
+/* 한 브랜치 칸 밑의 작은 표 — 같은 단추를 다시 누르면 닫는다 */
+async function openSub(btn, what){
+  const box = btn.closest(".wb").querySelector(".subbox");
+  const key = what + ":" + (btn.dataset.rsv || "") + ":" + btn.dataset.pid;
+  if(box.dataset.key === key){ box.dataset.key = ""; box.innerHTML = ""; return; }
+  box.dataset.key = key;
+  box.innerHTML = '<div class="sub"><div class="dimt" style="font-size:12px">Loading…</div></div>';
+  if(what === "rsv"){
+    const { data, error } = await sb.rpc("stk_reserved", { p_product_id: btn.dataset.pid, p_warehouse_id: btn.dataset.wh });
+    if(box.dataset.key !== key) return;
+    box.innerHTML = `<div class="sub">${error ? `<div class="err">${esc(error.message)}</div>` : rsvHtml(data || {}, btn.dataset.rsv)}</div>`;
+  } else {
+    const { data, error } = await sb.rpc("stk_movements", { p_product_id: btn.dataset.pid, p_warehouse_id: btn.dataset.wh, p_from: null, p_to: null, p_max: 2000 });
+    if(box.dataset.key !== key) return;
+    box.innerHTML = `<div class="sub">${error ? `<div class="err">${esc(error.message)}</div>` : mvHtml(data || [])}</div>`;
+  }
+}
+/* ⭐ 손님 이름은 그리지 않는다(창고 화면) — 창구가 이름을 보내도 쓰지 않는다 */
+function rsvHtml(d, kind){
+  const qty = (x) => `<td class="r">${n0(x.qty)}${Number(x.pack_factor) !== 1 ? ` <span class="dimt">×${n0(x.pack_factor)}</span>` : ""}</td><td class="r">${n0(x.qty_ea)}</td>`;
+  if(kind === "so"){
+    const rows = d.so || [];
+    if(!rows.length) return '<div class="dimt" style="font-size:12px">No sales order is holding this stock.</div>';
+    return `<div class="t">Allocated to sales orders</div><table><thead><tr><th>Sales order</th><th>Status</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
+      ${rows.map(x => `<tr><td class="mono">${esc(x.so_number)}</td><td>${dim(x.status)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table>
+      <div class="foot">Total ${n0(d.so_total)} EA</div>`;
+  }
+  const rows = d.trf || [];
+  if(!rows.length) return '<div class="dimt" style="font-size:12px">No transfer is holding this stock.</div>';
+  return `<div class="t">Held for transfers out</div><table><thead><tr><th>Transfer</th><th>Status</th><th>To</th><th>Line SKU</th><th class="r">Qty</th><th class="r">EA</th></tr></thead><tbody>
+    ${rows.map(x => `<tr><td class="mono">${esc(x.transfer_number)}</td><td>${dim(x.status)}</td><td>${dim(x.to_warehouse)}</td><td class="mono">${esc(x.line_sku)}</td>${qty(x)}</tr>`).join("")}</tbody></table>
+    <div class="foot">Total ${n0(d.trf_total)} EA</div>`;
+}
+function mvHtml(rows){
+  const recent = rows.slice().reverse().slice(0, 10);   // 창구는 오래된 것부터 · 최근 10
+  if(!recent.length) return '<div class="dimt" style="font-size:12px">No movements.</div>';
+  return `<div class="t">Recent movements${rows.length > 10 ? ` <span style="text-transform:none;letter-spacing:0;font-weight:600">(latest 10 of ${rows.length})</span>` : ""}</div>
+    <table><thead><tr><th>Date</th><th>Type</th><th>Document</th><th>Bin</th><th class="r">In</th><th class="r">Out</th></tr></thead><tbody>
+    ${recent.map(m => `<tr${m.is_reversal ? ' style="color:var(--mut-2)"' : ""}><td>${esc(m.occurred_on)}</td><td>${esc(evLabel(m.event_type))}</td>
+      <td class="mono">${m.doc_number ? esc(m.doc_number) : ""}</td><td class="mono">${m.bin ? esc(m.bin) : ""}</td>
+      <td class="r">${m.qty_in ? n0(m.qty_in) : ""}</td><td class="r">${m.qty_out ? n0(m.qty_out) : ""}</td></tr>`).join("")}</tbody></table>
+    <div class="foot">Opening stock from the starting count is not listed as a movement here.</div>`;
+}
+
+/* ── 시작 ── */
+imsAuth.start({}, async (client, meData) => {   // 열쇠 없음 = WMS 에 들어올 수 있는 직원 누구나(창구 문 = 활성 직원 · 판정 268)
+  sb = client; me = meData;
+  imsHeader(me);
+  $("buildTag").textContent = WS_BUILD;
+  $("app").style.display = "block";
+  const [w, cc] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
+    sb.rpc("ims_can_view_cost"),
+  ]);
+  if(w.error){ setConn("err"); showErr(w.error.message); return; }
+  setConn("ok");
+  WHS = (w.data || []).filter(x => x.name !== "IN_TRANSIT");
+  canCost = !cc.error && cc.data === true;
+  const acc = (me && me.access) || imsAuth.access || {};
+  MINE = Array.isArray(acc.warehouses) && acc.warehouses.length ? acc.warehouses : [];
+  if(!WHS.length){ showErr("No active branch."); return; }
+
+  const scan = $("scan");
+  scan.addEventListener("keydown", e => {   // 스캐너는 끝에 Enter — 기다리지 않고 바로 찾는다 · 글자는 남기고 골라 둔다(다음 스캔이 덮어쓴다)
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    search(scan.value); scan.select();
+  });
+  imsQ(scan, v => { if(v !== lastQ) search(v); }, 450);   // 손으로 칠 때 — 멈추면 찾는다
+  $("zero").onchange = () => { if(lastQ) search(lastQ); scan.focus(); };
+  const q0 = imsParam("q");
+  if(q0){ scan.value = q0; search(q0); }
+  scan.focus();
+});
+</script>
+</body>
+</html>

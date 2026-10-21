@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v7";     // [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v8";     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -108,6 +108,7 @@
     ["Fulfillment","wms-fulfillment.html","fulfillment","wms",true,"warehouse"],
     ["Receiving","wms-receiver.html","wms_receiving","wms",true,"warehouse"],
     ["Bin Moves","wms-mover.html","stock_move","wms",true,"warehouse"],
+    ["Stock Lookup","wms-stock.html",null,"wms",true,"warehouse"],   // nav v8(2026-10-20 · ws v1 · stk-av-1 3ed5753) — 스캔 · 입력으로 두 브랜치 재고 · bin · 예약(손님 이름 없음) · 열쇠 없음 = WMS 에 들어올 수 있는 직원 누구나(창구 문 = 활성 직원 · 판정 268 · 569)
     ["WMS Admin","wms-admin.html","wms_manage","wms",true,"warehouse"],
   ];
   const modeDefs=[["ims","IMS"],["wms","WMS"],["pos","POS"]];     // 순서 = 모드 단추 순서 = firstScreen() 의 우선순위 (판정 163)
