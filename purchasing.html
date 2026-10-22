@@ -796,7 +796,7 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-10-22 · pur v1a';   // v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-10-22 · pur v1b';   // v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -889,8 +889,8 @@ async function purLoadStock(){
   let rows = first.data || [];
   const total = rows.length ? Number(rows[0].total) : 0;
   const offs = []; for(let o = PAGE; o < total; o += PAGE) offs.push(o);
-  for(let i = 0; i < offs.length; i += 8){                               // v1a — 4 → 8 개씩
-    const part = await Promise.all(offs.slice(i, i + 8).map(o => sb.rpc('stk_availability', args(o))));
+  for(let i = 0; i < offs.length; i += 4){                               // v1b — 4 개씩(v1 그대로) · v1a 의 8 개씩은 DB 시간 초과
+    const part = await Promise.all(offs.slice(i, i + 4).map(o => sb.rpc('stk_availability', args(o))));
     part.forEach(r => { if(r.error) throw new Error('stk_availability: ' + r.error.message); rows = rows.concat(r.data || []); });
   }
   const st = {};
@@ -4830,7 +4830,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   } catch(e) {
     hideLoading();
     console.error('IMS 데이터 로드 실패:', e);
-    alert('IMS 데이터 로드 실패: ' + e.message + '\n\n(구매 권한(purchasing)이 있어야 열립니다)');
+    alert('IMS 데이터 로드 실패: ' + e.message + '\n\n' + (/timeout/i.test(e.message || '') ? '(DB 가 시간 안에 답하지 못했습니다 — 권한 문제가 아닙니다 · 잠시 뒤 다시 열어 보세요)' : '(구매 권한(purchasing)이 있어야 열립니다)'));
     return;
   }
   if(PUR.bqPending) showLoading('판매 데이터 쿼리 중...'); else hideLoading();
