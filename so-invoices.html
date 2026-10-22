@@ -65,6 +65,7 @@
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
       <button class="pobtn" id="wcsv" onclick="exportWide(this)" title="Download every row that matches these filters as a spreadsheet (CSV)">↓ CSV</button>
+      <button class="pobtn" id="wcsvl" onclick="exportWideLines(this)" title="Download the line items of every invoice that matches these filters — one row per line">↓ Lines CSV</button>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
     <div class="foot">
@@ -118,7 +119,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-10-22 · inv csv v1";   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-10-22 · inv csv v2";   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -205,6 +206,36 @@ function exportWide(btn){
     all.forEach(r => rows.push([r.invoice_number, csvPlain(invChip(r)), r.issued_on || "", r.due_on || "", csvNum(r.days_overdue), r.bill_to_name || r.customer_name || "",
       r.so_numbers || "", r.channel || "", csvNum(r.total), csvNum(r.paid), csvNum(r.credited), csvNum(r.remaining), r.currency_code || ""]));
     csvDownload(`sales-invoices-${csvDay()}.csv`, rows);
+  });
+}
+/* inv csv v2 — 줄 내보내기: 거른 인보이스(모든 쪽) → 그 인보이스들의 so_invoice_line(200 개씩 · 1,000 줄씩) · 오더 번호는 so_invoice_order 에서
+   ⭐ 줄 종류(kind)를 그대로 둔다 — 제품 · 운임 · 오더 할인 · surcharge 등이 한 표에 나온다(인보이스 합계를 다시 맞춰 볼 수 있게) */
+async function exportWideLines(btn){
+  return csvRun(btn, async () => {
+    const invs = await csvAllPages(baseQuery, btn);
+    if(!invs.length){ alert("No invoices match — nothing to download."); return; }
+    const byInv = {}; invs.forEach(r => { byInv[r.id] = r; });
+    const ids = invs.map(r => r.id), lines = [], ordNo = {};
+    for(let i = 0; i < ids.length; i += 200){
+      const part = ids.slice(i, i + 200);
+      const ls = await csvAllPages(() => sb.from("so_invoice_line")
+        .select("invoice_id,invoice_order_id,line_no,kind,sku,description,unit,pack_factor,qty,list_price,discount_pct,discount_source,unit_price,amount,tax_amount,account_code")
+        .in("invoice_id", part).order("invoice_id").order("line_no"), null);
+      lines.push(...ls);
+      const ords = await sb.from("so_invoice_order").select("id,so_number").in("invoice_id", part);
+      if(ords.error) throw new Error("orders: " + ords.error.message);
+      (ords.data || []).forEach(o => { ordNo[o.id] = o.so_number; });
+      btn.textContent = `Preparing… ${lines.length} lines`;
+    }
+    if(!lines.length){ alert("These invoices have no lines."); return; }
+    const order = {}; invs.forEach((r, k) => { order[r.id] = k; });
+    lines.sort((a, b) => (order[a.invoice_id] - order[b.invoice_id]) || (Number(a.line_no) - Number(b.line_no)));
+    const rows = [["Invoice","Status","Issued","Customer","Order","Line","Kind","SKU","Description","Unit","Pack factor","Qty","List","Disc %","Discount from","Unit price","Amount","Tax","Account","Currency"]];
+    lines.forEach(l => { const r = byInv[l.invoice_id] || {};
+      rows.push([r.invoice_number || "", csvPlain(invChip(r)), r.issued_on || "", r.bill_to_name || r.customer_name || "", ordNo[l.invoice_order_id] || "",
+        csvNum(l.line_no), l.kind || "", l.sku || "", l.description || "", l.unit || "", csvNum(l.pack_factor), csvNum(l.qty), csvNum(l.list_price), csvNum(l.discount_pct),
+        l.discount_source || "", csvNum(l.unit_price), csvNum(l.amount), csvNum(l.tax_amount), l.account_code || "", r.currency_code || ""]); });
+    csvDownload(`sales-invoice-lines-${csvDay()}.csv`, rows);
   });
 }
 function baseQuery(){
