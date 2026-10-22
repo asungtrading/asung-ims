@@ -103,7 +103,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-10-08 · chg tx v1";   // 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-10-22 · chg gone v1";   // 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -167,6 +167,7 @@ function docErr(error){
 
 /* ── Two modes ─────────────────────────────────────── */
 function showWide(){
+  if(location.search) history.replaceState(null, "", location.pathname);   // gone v1 — 목록이면 주소의 ?… 를 지운다
   curId = null; detailSeq++;
   document.getElementById("wide").hidden = false;
   document.getElementById("detail").hidden = true;
@@ -243,7 +244,7 @@ async function loadDetail(id){
   const { data, error } = await sb.rpc("po_charge_detail", { p_charge_id: id });
   if(seq !== detailSeq) return;
   if(error){ box.innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
-  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That charge is gone.</div></div>'; return; }
+  if(!data){ box.innerHTML = '<div class="card"><div class="msg">That charge is gone — it was deleted, or the link is old.<div style="margin-top:12px"><button class="pobtn" onclick="showWide()">‹ Back to the list</button></div></div></div>'; return; }
 
   const h = data.header, m = data.money || {};
   /* ⚠️ Only a draft can be edited. Confirming says "lay this split down on cost", and the
