@@ -796,11 +796,12 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-10-22 · pur v1';   // 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-10-22 · pur v1a';   // v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
   supId: {}, setMap: {}, whs: [], canCost: false, costLoaded: false, skuLinks: [], ovHist: {}, ovLoaded: {}, basePromise: null,
+  headPromise: null, t0: 0, tIms: null, tBq: null, imsParts: {}, bqParts: {}, bqPending: false,
 };
 const purNum = v => (v === null || v === undefined || v === '') ? 0 : (parseFloat(v) || 0);
 function purToday(){ return new Intl.DateTimeFormat('en-CA', { timeZone:'America/Toronto', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()); }
@@ -838,36 +839,48 @@ function purSumBy(rows, keyFn, qtyKeys, make){
   });
   return Array.from(m.values());
 }
+/* v1a — 시간 재기(초 · 소수 한 자리) */
+function purSec(t){ return Math.round((performance.now() - t) / 100) / 10; }
+function purTimed(bag, k, p){ const t = performance.now(); return Promise.resolve(p).then(v => { bag[k] = purSec(t); return v; }); }
+/* v1a — 머리(설정 · 세트 지도)를 먼저 따로 세운다: BigQuery 는 이것만 기다린다(경계 날짜 · 접기) · 나머지(마스터 · 창고 · 재고 · 원가 열쇠)는 동시에 */
+function purLoadHead(){
+  return Promise.all([
+    purTimed(PUR.imsParts, 'settings', purRpc('pur_settings', {})),
+    purTimed(PUR.imsParts, 'set_map', purRpc('pur_set_map', {})),
+  ]).then(([st, setmap]) => {
+    PUR.boundary = st.boundary_date ? String(st.boundary_date).slice(0, 10) : '2026-11-01';
+    if(st.defaults) Object.keys(PUR.defaults).forEach(k => { if(st.defaults[k] !== undefined && st.defaults[k] !== null) PUR.defaults[k] = Number(st.defaults[k]); });
+    const w = st.weights || {};
+    S.wmaW1 = Number(w.w1) || PUR.defaults.w1; S.wmaW2 = Number(w.w2) || PUR.defaults.w2; S.wmaW3 = Number(w.w3) || PUR.defaults.w3;
+    S.settings = {};
+    (st.supplier_settings || []).forEach(x => {
+      const o = {};
+      ['leadtime','target','cycle','lt_sigma'].forEach(k => { if(x[k] !== null && x[k] !== undefined) o[k] = Number(x[k]); });
+      S.settings[x.name] = o;
+      PUR.supId[x.name] = x.supplier_id;
+    });
+    PUR.skuLinks = (st.sku_links || []).map(l => ({ oldSku: l.oldSku, newSku: l.newSku }));
+    PUR.setMap = {};
+    (setmap.rows || []).forEach(r => { (PUR.setMap[r.set_sku] = PUR.setMap[r.set_sku] || []).push({ base: r.base_sku, factor: purNum(r.factor) || 1 }); });
+  });
+}
 async function purLoadBase(){
-  const [st, master, setmap, wh] = await Promise.all([
-    purRpc('pur_settings', {}),
-    purRpc('pur_supplier_skus', {}),
-    purRpc('pur_set_map', {}),
-    sb.from('ref_warehouse').select('id,name').eq('is_active', true).order('name'),
+  PUR.headPromise = purLoadHead();                                       // ⚠️ 첫 await 앞 — 부른 자리에서 곧바로 선다(BigQuery 가 이것을 기다린다)
+  const [master, wh, , canCost] = await Promise.all([
+    purTimed(PUR.imsParts, 'master', purRpc('pur_supplier_skus', {})),
+    purTimed(PUR.imsParts, 'warehouse', sb.from('ref_warehouse').select('id,name').eq('is_active', true).order('name')),
+    purTimed(PUR.imsParts, 'stock', purLoadStock()),
+    purRpc('ims_can_view_cost', {}).then(v => !!v, () => false),
+    PUR.headPromise,                                                     // 설정의 supId 를 먼저 · 마스터의 supId 가 그 위에(v1 순서)
   ]);
   if(wh.error) throw new Error('ref_warehouse: ' + wh.error.message);
   PUR.whs = wh.data || [];
-  PUR.boundary = st.boundary_date ? String(st.boundary_date).slice(0, 10) : '2026-11-01';
-  if(st.defaults) Object.keys(PUR.defaults).forEach(k => { if(st.defaults[k] !== undefined && st.defaults[k] !== null) PUR.defaults[k] = Number(st.defaults[k]); });
-  const w = st.weights || {};
-  S.wmaW1 = Number(w.w1) || PUR.defaults.w1; S.wmaW2 = Number(w.w2) || PUR.defaults.w2; S.wmaW3 = Number(w.w3) || PUR.defaults.w3;
-  S.settings = {};
-  (st.supplier_settings || []).forEach(x => {
-    const o = {};
-    ['leadtime','target','cycle','lt_sigma'].forEach(k => { if(x[k] !== null && x[k] !== undefined) o[k] = Number(x[k]); });
-    S.settings[x.name] = o;
-    PUR.supId[x.name] = x.supplier_id;
-  });
-  PUR.skuLinks = (st.sku_links || []).map(l => ({ oldSku: l.oldSku, newSku: l.newSku }));
   MASTER = {};
   (master.rows || []).forEach(r => {
     MASTER[r.sku] = { name: r.product_name || '', brand: r.brand || '—', supplier: r.supplier_name || '—', supplier_id: r.supplier_id, product_id: r.product_id };
     if(r.supplier_name) PUR.supId[r.supplier_name] = r.supplier_id;
   });
-  PUR.setMap = {};
-  (setmap.rows || []).forEach(r => { (PUR.setMap[r.set_sku] = PUR.setMap[r.set_sku] || []).push({ base: r.base_sku, factor: purNum(r.factor) || 1 }); });
-  await purLoadStock();
-  try{ PUR.canCost = !!(await purRpc('ims_can_view_cost', {})); }catch(e){ PUR.canCost = false; }
+  PUR.canCost = canCost;
 }
 async function purLoadStock(){
   const PAGE = 500, args = o => ({ p_warehouse_id: null, p_include_zero: false, p_limit: PAGE, p_offset: o });
@@ -876,8 +889,8 @@ async function purLoadStock(){
   let rows = first.data || [];
   const total = rows.length ? Number(rows[0].total) : 0;
   const offs = []; for(let o = PAGE; o < total; o += PAGE) offs.push(o);
-  for(let i = 0; i < offs.length; i += 4){
-    const part = await Promise.all(offs.slice(i, i + 4).map(o => sb.rpc('stk_availability', args(o))));
+  for(let i = 0; i < offs.length; i += 8){                               // v1a — 4 → 8 개씩
+    const part = await Promise.all(offs.slice(i, i + 8).map(o => sb.rpc('stk_availability', args(o))));
     part.forEach(r => { if(r.error) throw new Error('stk_availability: ' + r.error.message); rows = rows.concat(r.data || []); });
   }
   const st = {};
@@ -1446,11 +1459,27 @@ async function runBQQuery(sql){
 //  - 선형 트렌드
 //  - 백오더 (order_details 기반)
 // ═══════════════════════════════════════════════════════
+/* v1a — 초록 배너 끝에 걸린 시간 · 마우스를 올리면 갈래마다 */
+function purTimeTag(){
+  const bn = document.getElementById('bq-banner');
+  if(!bn) return;
+  const fmt = o => Object.keys(o).map(k => k + ' ' + o[k] + 's').join(' · ');
+  const tip = 'IMS: ' + fmt(PUR.imsParts) + ' | BigQuery: ' + fmt(PUR.bqParts);
+  const span = document.createElement('span');
+  span.style.cssText = 'color:var(--text2);margin-left:8px;cursor:help';
+  span.title = tip;
+  span.textContent = '· 걸린 시간 IMS ' + (PUR.tIms === null ? '—' : PUR.tIms + '초') + ' · BigQuery ' + (PUR.tBq === null ? '—' : PUR.tBq + '초');
+  bn.appendChild(span);
+  console.log('[pur v1a 시간] ' + tip);
+}
 async function loadSalesDataFromBQ(){
+  const tB0 = performance.now();
+  PUR.bqPending = true; PUR.bqParts = {};
+  const imsGate = p => p ? p.catch(() => { throw new Error('IMS_FAIL'); }) : null;   // IMS 가 실패하면 그쪽이 알린다 — 여기서는 조용히
   try {
-    if(PUR.basePromise) await PUR.basePromise;                            // pur-2: IMS 기본(경계 · 세트 지도 · 재고 · 마스터)을 먼저
+    if(PUR.headPromise) await imsGate(PUR.headPromise);                  // v1a: 머리(경계 · 세트 지도)만 기다리고 쿼리를 띄운다 — 재고 · 마스터는 쿼리와 동시에
     const B = PUR.boundary || '2026-11-01';
-    showLoading('판매 데이터 쿼리 중...');
+    showLoading(PUR.tIms === null ? 'IMS 데이터 · 판매 데이터 읽는 중...' : '판매 데이터 쿼리 중...');
     updateBQStatus('load','판매 데이터 로딩 중...');
 
     // ── Supplier SKU 마스터 쿼리: purchase_history + sales brand 조인
@@ -1663,15 +1692,18 @@ async function loadSalesDataFromBQ(){
     // pur-2: 재고(dateSQL · stockSQL) · 공급처 목록(supplierSkuSQL)은 IMS 가 시작 때 읽었다 — BigQuery 로 안 부른다
     //        백오더는 경계 전 BigQuery · 경계부터 IMS(11-01 부터 열린 백오더는 IMS 에만 있다)
     const today = purToday(), useImsBo = today >= B;
+    const BT = PUR.bqParts;
     const [aduRowsBQ, seaRowsBQ, boRowsBQ, orderAduRows, deadRowsBQ, imsSales, imsBo] = await Promise.all([
-      runBQQuery(aduSQL),
-      runBQQuery(seaSQL),
-      useImsBo ? Promise.resolve([]) : runBQQuery(boSQL),
-      runBQQuery(orderAduSQL),
-      runBQQuery(deadSQL).catch(e => { console.warn('[dead stock] 쿼리 실패:', e.message); return []; }),
-      purImsSales(),
-      useImsBo ? purImsBackorders() : Promise.resolve([]),
+      purTimed(BT, 'adu', runBQQuery(aduSQL)),
+      purTimed(BT, 'sea', runBQQuery(seaSQL)),
+      useImsBo ? Promise.resolve([]) : purTimed(BT, 'bo', runBQQuery(boSQL)),
+      purTimed(BT, 'orderAdu', runBQQuery(orderAduSQL)),
+      purTimed(BT, 'dead', runBQQuery(deadSQL).catch(e => { console.warn('[dead stock] 쿼리 실패:', e.message); return []; })),
+      purTimed(BT, 'ims_sales', purImsSales()),
+      useImsBo ? purTimed(BT, 'ims_bo', purImsBackorders()) : Promise.resolve([]),
     ]);
+    PUR.tBq = purSec(tB0);
+    if(PUR.basePromise) await imsGate(PUR.basePromise);                  // v1a: 줄을 셈하려면 마스터 · 재고가 있어야 한다
     const dateRows = [{ latest_date: today }], stockRows = [], supplierSkuRows = [];
     void dateSQL; void stockSQL; void supplierSkuSQL;
     // ── 판정 605 — BigQuery 줄의 세트 · 콤보를 낱개로 접고(× 계수) · 경계부터의 IMS 판매(이미 낱개)를 합친다
@@ -1877,6 +1909,7 @@ async function loadSalesDataFromBQ(){
 
     const skuCount = Object.keys(S.salesData).length;
     updateBQStatus('ok', `BQ 연결됨 — ${skuCount}개 SKU`);
+    purTimeTag();
     hideLoading();
 
     recompute();
@@ -1885,11 +1918,14 @@ async function loadSalesDataFromBQ(){
 
   } catch(err) {
     hideLoading();
+    if(err.message === 'IMS_FAIL') return;                               // v1a: IMS 실패는 시작 자리가 이미 알렸다
     // TOKEN_EXPIRED는 runBQQuery에서 배너로 이미 처리됨 — alert 생략
     if(err.message !== 'TOKEN_EXPIRED'){
       updateBQStatus('warn','연결 실패: '+err.message);
       alert('BigQuery 연결 오류: '+err.message);
     }
+  } finally {
+    PUR.bqPending = false;
   }
 }
 
@@ -4753,22 +4789,51 @@ function hideLoading(){ document.getElementById('loading').classList.remove('sho
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
+/* v1a — 구글 토큰이 있으면 BigQuery 를 곧바로(IMS 읽기와 동시에) · 없으면 'bar'(연결 막대는 IMS 기본 뒤 · 경계 날짜가 든다) */
+function purStartBQ(){
+  checkOAuthCallback();
+  if(S.accessToken) return 'started';
+  // localStorage에서 토큰 복원 (sessionStorage 구버전도 폴백 처리)
+  const savedToken = localStorage.getItem('bq_token') || sessionStorage.getItem('bq_token');
+  const savedExpire = parseInt(localStorage.getItem('bq_token_expire') || '0');
+  if(savedToken){
+    if(savedExpire && Date.now() > savedExpire){
+      // 이미 만료된 토큰: 조용히 제거하고 수동 연결 대기
+      localStorage.removeItem('bq_token');
+      localStorage.removeItem('bq_token_expire');
+      sessionStorage.removeItem('bq_token');
+      updateBQStatus('warn', '토큰 만료 — 재연결 필요');
+      document.getElementById('bq-banner').className = 'banner warn';
+      document.getElementById('bq-banner').innerHTML =
+        '🔑 저장된 BQ 토큰이 만료됐어요. <a onclick="connectBQ()">재연결 →</a>';
+      return 'expired';
+    }
+    S.accessToken = savedToken;
+    updateBQStatus('load', '저장된 토큰으로 연결 중...');
+    loadSalesDataFromBQ();
+    return 'started';
+  }
+  return 'bar';
+}
 imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client;
   const bt = document.getElementById('buildTag'); if(bt) bt.textContent = PUR_BUILD;
   document.getElementById('pur-root').hidden = false;
   purFitHeader();
   showLoading('IMS 데이터 읽는 중...');
+  PUR.t0 = performance.now();
   PUR.basePromise = purLoadBase();
+  const bqStart = purStartBQ();                                          // v1a: IMS 기본을 기다리지 않는다
   try {
     await PUR.basePromise;
+    PUR.tIms = purSec(PUR.t0);
   } catch(e) {
     hideLoading();
     console.error('IMS 데이터 로드 실패:', e);
     alert('IMS 데이터 로드 실패: ' + e.message + '\n\n(구매 권한(purchasing)이 있어야 열립니다)');
     return;
   }
-  hideLoading();
+  if(PUR.bqPending) showLoading('판매 데이터 쿼리 중...'); else hideLoading();
   loadWMASettings();
   buildNav();
   renderTable();
@@ -4782,27 +4847,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   checkStockFreshness(today);
   purImportOffer();
   purLoadCost();
-  checkOAuthCallback();
-
-  // localStorage에서 토큰 복원 (sessionStorage 구버전도 폴백 처리)
-  const savedToken = localStorage.getItem('bq_token') || sessionStorage.getItem('bq_token');
-  const savedExpire = parseInt(localStorage.getItem('bq_token_expire') || '0');
-  if(savedToken && !S.accessToken){
-    if(savedExpire && Date.now() > savedExpire){
-      // 이미 만료된 토큰: 조용히 제거하고 수동 연결 대기
-      localStorage.removeItem('bq_token');
-      localStorage.removeItem('bq_token_expire');
-      sessionStorage.removeItem('bq_token');
-      updateBQStatus('warn', '토큰 만료 — 재연결 필요');
-      document.getElementById('bq-banner').className = 'banner warn';
-      document.getElementById('bq-banner').innerHTML =
-        '🔑 저장된 BQ 토큰이 만료됐어요. <a onclick="connectBQ()">재연결 →</a>';
-    } else {
-      S.accessToken = savedToken;
-      updateBQStatus('load', '저장된 토큰으로 연결 중...');
-      loadSalesDataFromBQ();
-    }
-  } else if(!S.accessToken){
+  if(bqStart === 'bar'){
     // 판정 616 A — 경계 전 판매 이력은 각자 구글 로그인으로 BigQuery 에서 읽는다 · 없으면 추천 발주를 세지 않는다
     purBar('pur-bq-bar', '🔑 지난 판매 이력(' + (PUR.boundary || '2026-11-01') + ' 전)은 BigQuery 에 있습니다 — 구글(@asung.ca)로 연결해야 추천 발주가 계산됩니다. <button onclick="connectBQ()">Google 연결 →</button>', true);
   }
