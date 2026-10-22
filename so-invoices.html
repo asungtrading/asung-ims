@@ -119,7 +119,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-10-22 · inv csv v3";   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-10-22 · inv csv v4";   // v4 — Caleb 「모양과 내용이 별로 · 아이템이 많아지면 쓰기 어렵다 · 바코드도」: Invoice CSV 를 한 표(한 줄 = 인보이스 줄 하나 · 인보이스 · 오더 칸 되풀이 · 끝에 합계 줄)로 · Barcode 칸(대표 → 없으면 첫 활성 바코드) · 목록 Lines CSV 에도 Barcode ←   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -208,29 +208,44 @@ function exportWide(btn){
     csvDownload(`sales-invoices-${csvDay()}.csv`, rows);
   });
 }
-/* inv csv v3 — 인보이스 하나: 구역 셋(Invoice 머리 · Orders · Lines) · so_invoice_detail 이 이미 준 것(cur)만 쓴다 — 다시 묻지 않는다 */
-function exportOneInvoice(){
+/* inv csv v4 — 바코드: SKU → 제품 → product_barcode(활성 · 대표 먼저 · 없으면 첫 것) · 200 개씩 · 실패해도 내보내기는 멈추지 않는다(칸이 빈다) */
+async function barcodesForSkus(skus){
+  const out = {}, want = [...new Set(skus.filter(Boolean))];
+  try {
+    for(let i = 0; i < want.length; i += 200){
+      const part = want.slice(i, i + 200);
+      const pr = await sb.from("product").select("id,sku").in("sku", part);
+      if(pr.error) throw new Error(pr.error.message);
+      const idSku = {}; (pr.data || []).forEach(p => { idSku[p.id] = p.sku; });
+      const ids = Object.keys(idSku); if(!ids.length) continue;
+      const bc = await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", ids).eq("is_active", true);
+      if(bc.error) throw new Error(bc.error.message);
+      (bc.data || []).sort((a, b) => (b.is_primary === true) - (a.is_primary === true)).forEach(b => { const k = idSku[b.product_id]; if(k && !out[k]) out[k] = b.barcode; });
+    }
+  } catch(e){ console.warn("[barcodes] " + e.message); }
+  return out;
+}
+/* inv csv v4 — 인보이스 하나 = 한 표: 한 줄 = 인보이스 줄 하나 · 앞 칸에 인보이스 · 오더 정보를 되풀이(거르기 · 정렬 · 피벗이 그대로 된다) · 끝에 합계 줄
+   ⭐ so_invoice_detail 이 이미 준 것(cur) + 바코드만 새로 묻는다 */
+async function exportOneInvoice(){
   if(!cur || !cur.invoice) return;
   const v = cur.invoice, ords = cur.orders || [], lines = (cur.lines || []).slice().sort((a, b) => Number(a.line_no) - Number(b.line_no));
-  const addr = (o, p) => [o[p + "line1"], o[p + "line2"], o[p + "city"], o[p + "state_province"], o[p + "postal_code"], o[p + "country"]].filter(Boolean).join(", ");
-  const ordNo = {}; ords.forEach(o => { ordNo[o.id] = o.so_number; });
-  const rows = [];
-  rows.push(["Invoice", v.invoice_number]);
-  rows.push(["Status", csvPlain(invChip(v))]);
-  rows.push(["Issued", v.issued_on || ""], ["Due", v.due_on || ""], ["Payment term", v.payment_term_name || ""]);
-  rows.push(["Bill to", v.bill_to_name || v.customer_name || ""], ["Bill-to address", addr(v, "bill_to_")]);
-  rows.push(["Currency", v.currency_code || ""]);
-  [["Lines", v.lines_amount], ["Order discount", v.order_discount_amount], ["Charges", v.charges_amount], ["Taxable", v.taxable_amount], ["Tax", v.tax_amount],
-   ["Total", v.total], ["Paid", v.paid], ["Credited", v.credited], ["Still owed", v.remaining]].forEach(x => { if(x[1] !== undefined) rows.push([x[0], csvNum(x[1])]); });
-  if(v.note) rows.push(["Note", v.note]);
+  const byOrd = {}; ords.forEach(o => { byOrd[o.id] = o; });
+  const bc = await barcodesForSkus(lines.map(l => l.sku));
+  const rows = [["Invoice","Issued","Due","Customer","Order","Customer PO","Ship to","Line","Kind","SKU","Barcode","Description","Qty","Unit","Pack factor","List","Disc %","Unit price","Amount","Tax","Amount incl. tax"]];
+  let sa = 0, st = 0;
+  lines.forEach(l => {
+    const o = byOrd[l.invoice_order_id] || {}, amt = Number(l.amount || 0), tax = Number(l.tax_amount || 0);
+    sa += amt; st += tax;
+    rows.push([v.invoice_number, v.issued_on || "", v.due_on || "", v.bill_to_name || v.customer_name || "", o.so_number || "", o.ref || "", o.ship_to_company || o.store_name || "",
+      csvNum(l.line_no), l.kind || "", l.sku || "", bc[l.sku] || "", l.description || "", csvNum(l.qty), l.unit || "", csvNum(l.pack_factor),
+      csvNum(l.list_price), csvNum(l.discount_pct), csvNum(l.unit_price), csvNum(l.amount), csvNum(l.tax_amount), Math.round((amt + tax) * 100) / 100]);
+  });
   rows.push([]);
-  rows.push(["Order","Customer PO / reference","Channel","Ship to","Ship-to contact","Ship-to phone","Ship-to address","Tax rule","Tax %","Lines","Order discount","Charges","Tax","Total"]);
-  ords.forEach(o => rows.push([o.so_number, o.ref || "", o.channel || "", o.ship_to_company || o.store_name || "", o.ship_to_contact || "", o.ship_to_phone || "", addr(o, "ship_to_"),
-    o.tax_rule || "", csvNum(o.rate_pct), csvNum(o.lines_amount), csvNum(o.order_discount_amount), csvNum(o.charges_amount), csvNum(o.tax_amount), csvNum(o.total)]));
-  rows.push([]);
-  rows.push(["Order","Line","Kind","SKU","Description","Unit","Pack factor","Qty","List","Disc %","Discount from","Unit price","Amount","Tax","Account"]);
-  lines.forEach(l => rows.push([ordNo[l.invoice_order_id] || "", csvNum(l.line_no), l.kind || "", l.sku || "", l.description || "", l.unit || "", csvNum(l.pack_factor), csvNum(l.qty),
-    csvNum(l.list_price), csvNum(l.discount_pct), l.discount_source || "", csvNum(l.unit_price), csvNum(l.amount), csvNum(l.tax_amount), l.account_code || ""]));
+  rows.push(Array(17).fill("").concat(["Lines total", Math.round(sa * 100) / 100, Math.round(st * 100) / 100, Math.round((sa + st) * 100) / 100]));   // Unit price 칸에 글 · Amount · Tax · incl. tax 칸에 합
+  [["Invoice total", v.total], ["Paid", v.paid], ["Credited", v.credited], ["Still owed", v.remaining]].forEach(x => {
+    if(x[1] !== undefined && x[1] !== null) rows.push(Array(19).fill("").concat([x[0], csvNum(x[1])]));
+  });
   csvDownload(`${v.invoice_number}-${csvDay()}.csv`, rows);
 }
 /* inv csv v2 — 줄 내보내기: 거른 인보이스(모든 쪽) → 그 인보이스들의 so_invoice_line(200 개씩 · 1,000 줄씩) · 오더 번호는 so_invoice_order 에서
@@ -255,10 +270,11 @@ async function exportWideLines(btn){
     if(!lines.length){ alert("These invoices have no lines."); return; }
     const order = {}; invs.forEach((r, k) => { order[r.id] = k; });
     lines.sort((a, b) => (order[a.invoice_id] - order[b.invoice_id]) || (Number(a.line_no) - Number(b.line_no)));
-    const rows = [["Invoice","Status","Issued","Customer","Order","Line","Kind","SKU","Description","Unit","Pack factor","Qty","List","Disc %","Discount from","Unit price","Amount","Tax","Account","Currency"]];
+    const bc = await barcodesForSkus(lines.map(l => l.sku));   // inv csv v4
+    const rows = [["Invoice","Status","Issued","Customer","Order","Line","Kind","SKU","Barcode","Description","Unit","Pack factor","Qty","List","Disc %","Discount from","Unit price","Amount","Tax","Account","Currency"]];
     lines.forEach(l => { const r = byInv[l.invoice_id] || {};
       rows.push([r.invoice_number || "", csvPlain(invChip(r)), r.issued_on || "", r.bill_to_name || r.customer_name || "", ordNo[l.invoice_order_id] || "",
-        csvNum(l.line_no), l.kind || "", l.sku || "", l.description || "", l.unit || "", csvNum(l.pack_factor), csvNum(l.qty), csvNum(l.list_price), csvNum(l.discount_pct),
+        csvNum(l.line_no), l.kind || "", l.sku || "", bc[l.sku] || "", l.description || "", l.unit || "", csvNum(l.pack_factor), csvNum(l.qty), csvNum(l.list_price), csvNum(l.discount_pct),
         l.discount_source || "", csvNum(l.unit_price), csvNum(l.amount), csvNum(l.tax_amount), l.account_code || "", r.currency_code || ""]); });
     csvDownload(`sales-invoice-lines-${csvDay()}.csv`, rows);
   });
@@ -721,7 +737,7 @@ async function loadDetail(id){
       if(a === "reissue") reissueInvoice();
       if(a === "print")    imsDoc.printBtn(bt, sb, "final_invoice", { invoice_id: v.id });      // inv v2f
       if(a === "printint") imsDoc.printBtn(bt, sb, "internal_receipt", { invoice_id: v.id });   // inv v2f
-      if(a === "csvinv")   exportOneInvoice();   // inv csv v3
+      if(a === "csvinv")   { bt.disabled = true; exportOneInvoice().finally(() => { bt.disabled = false; }); }   // inv csv v4
       if(a === "mail")     imsDoc.mailDialog(sb, "final_invoice", { invoice_id: v.id }, { onDone: () => imsDoc.mailList(sb, "final_invoice", { invoice_id: v.id }, document.getElementById("docMails")) });   // inv v2g
       if(a === "note")     imsDoc.noteDialog("Invoice " + v.invoice_number + " — note", v.note || "", async (t) => { const r = await sb.rpc("so_invoice_note_set", { p_invoice_id: v.id, p_note: t }); if(r.error) return r.error.message; await reloadHere(); return null; });   // inv v2g
     };
