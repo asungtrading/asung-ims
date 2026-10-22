@@ -2115,6 +2115,33 @@ Caleb 할 일 — 컷오버 전 Customers 에서 자동 메일 손님(몇십 명
 
 ---
 
+### 7-zq. 2026-10-21 오후 ~ 10-22 — 참조 크레딧 · 가격 조정 · Reorder Planner · anon 거두기 (cr v3 e9f0991 · cr v4 42bb9d4 · v4a ae95ccf · pur v1 cceb46f(+ ims-auth.js nav v9) · asung-wms crn-1 b902498 · crn-2 456e61f · pur-1 f8fe69d · pur-1b ce3503e · grt-1a 2dccb5f · 판정 602 ~ 618 · so-module §70)
+
+```
+⭐  확인 OK 수(적용된 테스트 DB = 11-01 메인 · 판정 617) — crn-1 OK 11 · crn-2 OK 17 · pur-1 OK 17(Z1 고친 검증) · pur-1b OK 7 · grt-1a OK 7(기대값을 6 으로 잘못 셌던 것 · §70-e 7)
+⭐  컷오버 = Asung-IMS 승격(617) — 「운영 DB 에 적용」 은 없다 · anon 은 public 의 모든 표 · 뷰 · 시퀀스에서 권한 0(618 · grt-1a) · 로그인한 사람 · service_role 의 넓은 몫은 컷오버 뒤
+✅ = Caleb 화면 확인 · [ ] = 아직 또는 기록 없음
+so-credits.html(cr v3 → v4 → v4a) · purchasing.html(pur v1 · Reorder Planner) · ims-auth.js(nav v9 · 메뉴 줄)
+[ ] cr v3 — 「Credit with a reference number…」 창: 손님 · 참조 번호(필수) · 날짜 · 세금 = 기본 배송지 규칙이 미리 골라짐 · 바꿀 수 있음 · 배송지 없는 손님은 거부 글로 고르라 · 미리 보기에 「manual unit price」 경고 크게 · 같은 참조 번호 두 번째는 reference_seen 경고
+[ ] cr v3 — 참조 크레딧 발행 · GST 5%(AB 배송지 손님 · 세율이 손님 규칙을 따르는지) · 크레딧 노트 인쇄에 참조 번호가 invoice_number 자리에
+[ ] cr v4 · v4a — Price adjustment 표(「Qty to adjust」 · 낸 단가는 서버가 · 9.49 → 7.99 · 층이 둘이면 줄이 저절로 나뉨 · 검사는 서버 거부 글 그대로) · 2.00 each 조정 · 사유 Price adjustment · 사유가 어긋나면 경고만
+[ ] cr v4 — 조정 뒤 같은 줄 반품: 환급이 새 단가(7.99)부터 · 두 층에 걸치면 설명 「(7 × 7.99 + 3 × 9.99)」 · 조정 크레딧을 먼저 취소하면 「cancel those first」
+[ ] pur v1 — Reorder Planner 열림(purchasing 보기) · 구글 로그인(각자 계정 · 616 A · OAuth 클라이언트에 ims.asung.ca 등록 뒤) · BigQuery(경계 전) + IMS(경계부터) 가 합쳐져 추천 표가 선다 · 공급처 고르기 · 재고 금액 칸은 원가 열쇠 없으면 「—」
+[ ] pur v1 — 「IMS 로 옮기기…」 막대: Caleb PC 의 설정 넷 미리 보기(못 찾은 공급처 이름 목록) → 실행 → 다시 눌러도 새로 쓰는 것 0 · 공급처 설정 · 가중치 · SKU 연결 · 오버라이드 이력이 pur_settings 로 돌아옴
+[ ] pur v1 — 발주 초안(po_create + po_lines_paste 로 DRAFT PO) · 세트 판매가 낱개 수요에 든다(605) · 백오더 칸(IMS 열린 백오더만)
+[ ] grt-1a ① 로그아웃 상태에서 index.html — 로그인 카드가 뜨고 콘솔에 42501 없음
+[ ] grt-1a ② 로그인 — 첫 화면으로 이동 · 「Access check failed」 없음
+[ ] grt-1a ③ WMS Packer — 픽 완료 오더로 박스 만들기(wms_pack_tasks insert) · 포장 · 완료
+[ ] grt-1a ④ WMS Picker — 웨이브 시작 · 픽 · 완료(wms_waves · wms_pick_tasks update)
+[ ] grt-1a ⑤ Stock Adjustments — 목록 · 상세 · 미리 보기(inv_adjust*)
+[ ] grt-1a ⑥ Transfers — 목록 · 상세 · 정산(inv_transfer*)
+[ ] grt-1a ⑦ 인보이스 PDF 메일 링크 하나 — doc EF 가 사용자 JWT 없이도 문서를 내주는지(anon 키만으로 표를 안 치므로 영향 0 이어야 한다 · 안 봤다)
+판정 거리(Caleb) — wms_legacy 스키마 48 객체의 anon 전권(618 은 public 만 · PostgREST 노출 스키마인지 대시보드에서) · 함수 기본 권한 f 의 anon=X 를 거둘지 · po_discount_save/delete 의 p_target='supplier' 갈래(supplier_discount 쓰기 권한 없음 · 지금 화면은 안 부른다)
+남은 것 — 607 고정 단가(pur-3) · 발주앱 두 탭 · 616 B(이력을 IMS 로 · 컷오버 뒤) · 고객 포털 BigQuery → IMS · BigQuery supplier_name 뜻 확인 · pur_sales_agg(응답이 무거워지면)
+```
+
+---
+
 ## 8. 로그인 · 계정
 
 ```
