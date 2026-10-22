@@ -124,7 +124,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ IMS 인보이스의 크레딧 + cr v3: 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1 20261021194405) · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-22 · cr csv v1";   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-22 · cr csv v2";   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 크레딧 상세 ↓ Credit CSV(한 줄 = 크레딧 줄 · Barcode · 끝에 합계) ← 2026-10-22 · cr csv v1 ·   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -842,6 +842,49 @@ async function cancelCredit(){
 }
 
 /* ══ 상세 ═══════════════════════════════════════════════ */
+/* csv v2 — 바코드: SKU → 제품 → product_barcode(활성 · 대표 먼저 · 없으면 첫 것) · 200 개씩 · 실패해도 내보내기는 멈추지 않는다(칸이 빈다) */
+async function barcodesForSkus(skus){
+  const out = {}, want = [...new Set(skus.filter(Boolean))];
+  try {
+    for(let i = 0; i < want.length; i += 200){
+      const part = want.slice(i, i + 200);
+      const pr = await sb.from("product").select("id,sku").in("sku", part);
+      if(pr.error) throw new Error(pr.error.message);
+      const idSku = {}; (pr.data || []).forEach(p => { idSku[p.id] = p.sku; });
+      const ids = Object.keys(idSku); if(!ids.length) continue;
+      const bc = await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", ids).eq("is_active", true);
+      if(bc.error) throw new Error(bc.error.message);
+      (bc.data || []).sort((a, b) => (b.is_primary === true) - (a.is_primary === true)).forEach(b => { const k = idSku[b.product_id]; if(k && !out[k]) out[k] = b.barcode; });
+    }
+  } catch(e){ console.warn("[barcodes] " + e.message); }
+  return out;
+}
+/* cr csv v2 — 크레딧 하나 = 한 표(인보이스 CSV 와 같은 꼴): 한 줄 = 크레딧 줄 하나 · 앞 칸에 크레딧 정보 되풀이 · Barcode · 끝에 합계 · so_credit_detail 이 준 것(cur)만 */
+async function exportOneCredit(){
+  if(!cur || !cur.credit_row) return;
+  const v = cur.credit_row, c = cur.credit || {}, lines = (cur.lines || []).slice().sort((a, b) => Number(a.line_no) - Number(b.line_no));
+  const bc = await barcodesForSkus(lines.map(l => l.sku));
+  const forInv = v.invoice_number || (c.ref_invoice_number ? c.ref_invoice_number + " (ref)" : "");
+  const head = ["Credit","Status","Issued","Customer","For invoice","Reason","Line","Kind","SKU","Barcode","Description","Qty","Unit price","Was","Now","Back to","Amount","Tax","Amount incl. tax","Account"];
+  const rows = [head];
+  lines.forEach(l => {
+    const adj = l.kind === "price_adjustment", amt = Number(l.amount || 0), tax = Number(l.tax_amount || 0);
+    rows.push([v.credit_number || "", csvPlain(crChip(v)), v.issued_on || "", v.customer_name || "", forInv, REASON[v.reason] || v.reason || "",
+      csvNum(l.line_no), CR_KIND[l.kind] || l.kind || "", l.sku || "", bc[l.sku] || "", l.description || l.product_name || "",
+      csvNum(adj ? l.qty_adjusted : l.qty_returned), csvNum(l.unit_price), adj ? csvNum(l.unit_price_before) : "", adj ? csvNum(l.unit_price_after) : "",
+      adj ? "price only — no stock" : (l.kind === "product" ? (l.restock_bin || l.not_restocked_reason || "") : ""),
+      csvNum(l.amount), csvNum(l.tax_amount), Math.round((amt + tax) * 100) / 100, l.account_code || ""]);
+  });
+  const at = head.indexOf("Amount incl. tax");
+  const foot = (lbl, val) => { if(val === null || val === undefined) return; const r = Array(at - 1).fill(""); r.push(lbl, csvNum(val)); rows.push(r); };
+  rows.push([]);
+  foot("Lines", v.lines_amount); if(Number(c.order_discount_amount)) foot("Order discount", -Math.abs(Number(c.order_discount_amount)));
+  if(Number(c.freight_discount_amount)) foot("Freight discount", -Math.abs(Number(c.freight_discount_amount)));
+  foot("Fee", v.fee_amount); if(Number(v.surcharge_amount)) foot("Surcharge", v.surcharge_amount);
+  foot("Tax", v.tax_amount); foot("Total", v.total); foot("Applied to invoices", v.applied_to_invoices); foot("Refunded", v.refunded);
+  if(v.status === "issued") foot("Remaining", v.remaining);
+  csvDownload(`${v.credit_number || "credit"}-${csvDay()}.csv`, rows);
+}
 async function loadDetail(id){
   const seq = ++detailSeq;
   const box = document.getElementById("detail");
@@ -862,6 +905,7 @@ async function loadDetail(id){
   if(live && Number(v.remaining) > 0)
     acts.push('<a class="pobtn" href="so-payments.html" title="Pay the credit out as a refund — Refund… on Customer Payments (manager)" style="text-decoration:none">Refund on Customer Payments →</a>');
   acts.push('<button class="pobtn" data-act="print" title="Print or save as PDF with the credit note layout in use">Print credit note</button>');   // cr v2e
+  acts.push('<button class="pobtn" data-act="csvcr" title="Download this credit note — every line — as a spreadsheet (CSV)">↓ Credit CSV</button>');   // cr csv v2
   if(live) acts.push('<button class="pobtn" data-act="mail" title="Email this credit note to the customer with the PDF attached">Email to customer…</button>');   // cr v2f
   if(live && isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel credit note…</button>');
 
@@ -971,6 +1015,7 @@ async function loadDetail(id){
       if(a === "attach") openAttach();
       if(a === "cancel") cancelCredit();
       if(a === "print")  imsDoc.printBtn(bt, sb, "credit_note", { credit_id: v.id });   // cr v2e
+      if(a === "csvcr")  { bt.disabled = true; exportOneCredit().finally(() => { bt.disabled = false; }); }   // cr csv v2
       if(a === "mail")   imsDoc.mailDialog(sb, "credit_note", { credit_id: v.id }, { onDone: () => imsDoc.mailList(sb, "credit_note", { credit_id: v.id }, document.getElementById("docMails")) });   // cr v2f
       if(a === "note")   imsDoc.noteDialog("Credit note " + (v.credit_number || "") + " — note", v.note || "", async (t) => { const r = await sb.rpc("so_credit_note_set", { p_credit_id: v.id, p_note: t }); if(r.error) return r.error.message; await reloadHere(); return null; });   // cr v2f
     };

@@ -120,7 +120,7 @@
    ⭐ 환불은 붙일 돈이 아니다 — remaining 이 비어 있고, 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9)
    ⭐ held_for_orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다) — 발행 순간 저절로 붙는다
    ───────────────────────────────────────────────────────────── */
-const PAY_BUILD = "2026-10-22 · pay csv v1";// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
+const PAY_BUILD = "2026-10-22 · pay csv v2";   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
 console.log("so-payments.html build:", PAY_BUILD);
 
 function torontoToday() {
@@ -477,6 +477,23 @@ async function voidPayment(){
 }
 
 /* ══ 상세 ═══════════════════════════════════════════════ */
+/* pay csv v2 — 결제 하나 = 한 표: 한 줄 = 붙은 인보이스 하나(떼어 낸 것도 · Detached 칸) · 앞 칸에 결제 정보 되풀이 · 끝에 합계 · so_payment_detail 이 준 것(cur)만 */
+function exportOnePayment(){
+  if(!cur || !cur.payment) return;
+  const v = cur.payment, al = cur.allocations || [];
+  const head = ["Payment date","Status","Kind","Customer","Method","Reference","Account","Amount","Currency","Invoice","Invoice status","Applied","Invoice total","How","Attached at","Detached at","Detach note"];
+  const rows = [head];
+  const base = [v.paid_on || "", csvPlain(payChip(v)), v.kind || "", v.customer_name || "", csvPlain(mLabel(v.method)), v.reference || "",
+    csvPlain(acctLabel(v.account_code, v.account_name)), v.kind === "refund" ? -Number(v.amount || 0) : csvNum(v.amount), v.currency_code || ""];
+  if(!al.length) rows.push(base.concat(["", "", "", "", "", "", "", ""]));
+  al.forEach(a => rows.push(base.concat([a.invoice_number || "", a.invoice_status || "", csvNum(a.amount), csvNum(a.invoice_total), SRC[a.source] || a.source || "",
+    a.created_at ? csvPlain(imsTs(a.created_at)) : "", a.voided_at ? csvPlain(imsTs(a.voided_at)) : "", a.void_note || ""])));
+  const at = head.indexOf("Applied");
+  const foot = (lbl, val) => { if(val === null || val === undefined) return; const r = Array(at - 1).fill(""); r.push(lbl, csvNum(val)); rows.push(r); };
+  rows.push([]);
+  foot("Amount", v.amount); foot("Attached", v.attached); foot("Not attached", v.remaining);
+  csvDownload(`payment-${v.paid_on || ""}-${String(v.reference || v.id || "").replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 30)}.csv`, rows);
+}
 async function loadDetail(id){
   const seq = ++detailSeq;
   const box = document.getElementById("detail");
@@ -496,6 +513,7 @@ async function loadDetail(id){
   const canAttach = active && !isRefund && Number(v.remaining) > 0 && (data.open_invoices || []).some(i => Number(i.remaining) > 0);
   if(canAttach) acts.push('<button class="pobtn go" data-act="attach">Attach to invoices…</button>');
   if(active && isMgr()) acts.push(`<button class="pobtn" data-act="void">Void ${isRefund ? "refund" : "payment"}…</button>`);
+  acts.push('<button class="pobtn" data-act="csvpay" title="Download this payment and where it went (invoices) as a spreadsheet (CSV)">↓ Payment CSV</button>');   // pay csv v2
 
   const kvL = [
     ["Customer",   esc(v.customer_name || "")],
@@ -593,6 +611,7 @@ async function loadDetail(id){
       if(a === "wide")   showWide();
       if(a === "attach") openAttach();
       if(a === "void")   voidPayment();
+      if(a === "csvpay") exportOnePayment();   // pay csv v2
     };
   });
 }
