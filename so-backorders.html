@@ -214,6 +214,7 @@
           <option value="merged">Merged</option>
         </select>
         <button class="pobtn" id="fClear">Clear</button>
+        <button class="pobtn" id="fCsv" onclick="exportAll(this)" title="Download every line that matches these filters as a spreadsheet (CSV)">↓ CSV</button>
       </div>
       <div class="bosum" id="sum"><span class="dim">Loading…</span></div>
       <div id="rows"><div class="msg">Loading…</div></div>
@@ -291,7 +292,7 @@
      All       줄마다 알림 상태(notified_state · notified_at — 1c so_backorder_notice_state · 열린 백오더 줄만)
    ⭐ 화면은 권한 · 셈을 다시 짜지 않는다 — 누를 수 있는지는 창구가 준 can_* · 보낼 것은 미리 보기 창구가
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-10-16 · bo v5";   // 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-10-22 · bo csv v1";   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-16 · bo v5: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 
 let sb = null, me = null, rank = 0;
@@ -687,6 +688,60 @@ async function openSkuDetail(r){
 }
 
 /* ══ All backorders (bo v3a) ═══════════════════════════ */
+/* ── csv v1 · 판정 628 — 목록 내보내기(CSV · UTF-8 BOM 이라 엑셀에서 바로 열린다 · 지금 거르기 그대로 · 모든 쪽) ── */
+function csvCell(v){
+  if(v === null || v === undefined) return "";
+  const t = String(v);
+  return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function csvDownload(name, rows){
+  const txt = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const csvPlain = (h) => String(h === null || h === undefined ? "" : h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const csvDay = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Toronto" });
+const csvNum = (v) => (v === null || v === undefined || v === "") ? "" : Number(v);
+/* ⭐ 목록 질의를 1,000 씩(Data API 한 번 한도) 끝까지 · 5 만 줄에서 멈춘다 */
+async function csvAllPages(makeQuery, btn){
+  const all = [];
+  for(let from = 0; ; from += 1000){
+    const { data, error } = await makeQuery().range(from, from + 999);
+    if(error) throw new Error(error.message);
+    all.push(...(data || []));
+    if(btn) btn.textContent = `Preparing… ${all.length}`;
+    if(!data || data.length < 1000 || all.length >= 50000) break;
+  }
+  return all;
+}
+async function csvRun(btn, fn){
+  const label = btn.textContent; btn.disabled = true; btn.textContent = "Preparing…";
+  try { await fn(); } catch(e){ alert("Download failed: " + e.message); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+/* bo csv v1 — All backorders 탭: so_backorder_list 를 PAGE 씩 끝까지(같은 거르기 · offset 만 바꾼다) */
+function exportAll(btn){
+  return csvRun(btn, async () => {
+    const all = []; let total = null;
+    for(let off = 0; off < 50000; off += PAGE){
+      const f = filters(); f.limit = PAGE; f.offset = off;
+      const { data, error } = await sb.rpc("so_backorder_list", { p_filters: f });
+      if(error) throw new Error(error.message);
+      const rs = (data && data.rows) || []; all.push(...rs); total = data ? Number(data.total) : 0;
+      btn.textContent = `Preparing… ${all.length}`;
+      if(rs.length < PAGE || (total && all.length >= total)) break;
+    }
+    if(!all.length){ alert("Nothing matches — nothing to download."); return; }
+    const rows = [["Customer","Order","Ordered","SKU","Pack factor","Product","Combo","Supplier","Brand","Branch","Kind","State","Ended how","Taken by","Open qty","Ordered qty","Days waiting","Arrived","Available here","Free — we owe it"]];
+    all.forEach(r => rows.push([r.customer_name || "", r.so_number || "", r.order_date || "", r.sku || "", csvNum(r.pack_factor), r.product_name || "", r.is_combo ? "combo" : "",
+      r.supplier_name || "", r.brand_name || "", r.location_name || "", r.kind || "", r.state || "", r.state === "open" ? "" : (END_LBL[r.end_kind] || r.end_kind || ""),
+      r.taken_by_so_number || "", csvNum(r.qty_open), csvNum(r.qty_ordered), csvNum(r.days_waiting), r.state === "open" ? (r.arrived ? "yes" : "no") : "",
+      r.state === "open" ? csvNum(r.available_here) : "", r.owed ? "yes" : ""]));
+    csvDownload(`backorders-${csvDay()}.csv`, rows);
+  });
+}
 function filters(){
   const f = { state: document.getElementById("fState").value, limit: PAGE, offset: offset };
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };

@@ -62,6 +62,7 @@
       <input type="search" id="wq" placeholder="Reference · customer · invoice · SO number · note">
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
+      <button class="pobtn" id="wcsv" onclick="exportWide(this)" title="Download every row that matches these filters as a spreadsheet (CSV)">↓ CSV</button>
       <button class="pobtn" id="wrefund">Refund…</button>
       <button class="pobtn go" id="wnew">+ Record a payment</button>
     </div>
@@ -119,7 +120,7 @@
    ⭐ 환불은 붙일 돈이 아니다 — remaining 이 비어 있고, 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9)
    ⭐ held_for_orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다) — 발행 순간 저절로 붙는다
    ───────────────────────────────────────────────────────────── */
-const PAY_BUILD = "2026-09-25 · pay v1";
+const PAY_BUILD = "2026-10-22 · pay csv v1";// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
 console.log("so-payments.html build:", PAY_BUILD);
 
 function torontoToday() {
@@ -160,6 +161,50 @@ function leftCell(r){
   return Number(r.remaining) > 0 ? `<span class="neutral">${money(r.remaining)}</span>` : '<span class="dim">0.00</span>';
 }
 
+/* ── csv v1 · 판정 628 — 목록 내보내기(CSV · UTF-8 BOM 이라 엑셀에서 바로 열린다 · 지금 거르기 그대로 · 모든 쪽) ── */
+function csvCell(v){
+  if(v === null || v === undefined) return "";
+  const t = String(v);
+  return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function csvDownload(name, rows){
+  const txt = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const csvPlain = (h) => String(h === null || h === undefined ? "" : h).replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+const csvDay = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Toronto" });
+const csvNum = (v) => (v === null || v === undefined || v === "") ? "" : Number(v);
+/* ⭐ 목록 질의를 1,000 씩(Data API 한 번 한도) 끝까지 · 5 만 줄에서 멈춘다 */
+async function csvAllPages(makeQuery, btn){
+  const all = [];
+  for(let from = 0; ; from += 1000){
+    const { data, error } = await makeQuery().range(from, from + 999);
+    if(error) throw new Error(error.message);
+    all.push(...(data || []));
+    if(btn) btn.textContent = `Preparing… ${all.length}`;
+    if(!data || data.length < 1000 || all.length >= 50000) break;
+  }
+  return all;
+}
+async function csvRun(btn, fn){
+  const label = btn.textContent; btn.disabled = true; btn.textContent = "Preparing…";
+  try { await fn(); } catch(e){ alert("Download failed: " + e.message); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+function exportWide(btn){
+  return csvRun(btn, async () => {
+    const all = await csvAllPages(baseQuery, btn);
+    if(!all.length){ alert("No payments match — nothing to download."); return; }
+    const rows = [["Paid on","Status","Kind","Customer","Method","Reference","Account","Amount","Attached","Not attached","Invoices","For orders","Currency"]];
+    all.forEach(r => rows.push([r.paid_on || "", csvPlain(payChip(r)), r.kind || "", r.customer_name || "", csvPlain(mLabel(r.method)), r.reference || "",
+      csvPlain(acctLabel(r.account_code, r.account_name)), r.amount === null || r.amount === undefined ? "" : (r.kind === "refund" ? -Number(r.amount) : Number(r.amount)),
+      csvNum(r.attached), csvNum(r.remaining), r.invoice_numbers || "", r.target_so_numbers || "", r.currency_code || ""]));
+    csvDownload(`customer-payments-${csvDay()}.csv`, rows);
+  });
+}
 function baseQuery(){
   let qry = sb.from("so_payment_list").select(
     "id,kind,status,paid_on,method,reference,amount,currency_code,customer_id,customer_name,account_code,account_name,attached,remaining,held_for_orders,refund_credit_covered,refund_from_account,invoice_numbers,target_so_numbers",
