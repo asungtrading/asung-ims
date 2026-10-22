@@ -791,12 +791,12 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    ⭐ 계산 코드는 그대로 — 바뀌는 것은 「어디서 읽느냐 · 어디에 쓰느냐」 뿐(po-module §10-d)
    · 판매: 경계 날짜(pur_ims_sales_from · 2026-11-01) 전 = BigQuery(각자 구글 로그인 · 판정 616 A) · 경계부터 = IMS pur_sales_daily
      둘 다 낱개 기준(판정 605 — BigQuery 줄은 pur_set_map 으로 세트 × 계수 · 콤보 구성품으로 접는다)
-   · 재고 = IMS stk_availability(실시간) · 원가 = stk_value_many(원가 열쇠가 있을 때만 · 판정 608)
+   · 재고 = IMS pur_stock()(실시간 · v1c · pur-1c — 옛 판은 stk_availability 쪽 나눔) · 원가 = stk_value_many(원가 열쇠가 있을 때만 · 판정 608)
    · 공급처 목록 = IMS pur_supplier_skus · 백오더 = 경계 전 BigQuery · 경계부터 IMS pur_backorders
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-10-22 · pur v1b';   // v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-10-22 · pur v1c';   // v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -883,27 +883,13 @@ async function purLoadBase(){
   PUR.canCost = canCost;
 }
 async function purLoadStock(){
-  const PAGE = 500, args = o => ({ p_warehouse_id: null, p_include_zero: false, p_limit: PAGE, p_offset: o });
-  const first = await sb.rpc('stk_availability', args(0));
-  if(first.error) throw new Error('stk_availability: ' + first.error.message);
-  let rows = first.data || [];
-  const total = rows.length ? Number(rows[0].total) : 0;
-  const offs = []; for(let o = PAGE; o < total; o += PAGE) offs.push(o);
-  for(let i = 0; i < offs.length; i += 4){                               // v1b — 4 개씩(v1 그대로) · v1a 의 8 개씩은 DB 시간 초과
-    const part = await Promise.all(offs.slice(i, i + 4).map(o => sb.rpc('stk_availability', args(o))));
-    part.forEach(r => { if(r.error) throw new Error('stk_availability: ' + r.error.message); rows = rows.concat(r.data || []); });
-  }
+  // v1c — pur-1c pur_stock() 한 번(쪽 없음) · 접기(창고 이름에 edmonton → edm · 그 밖 → tor · alloc = 판매 할당 + 트랜스퍼 예약)는 DB 가 한다
+  //        stk_availability 를 쪽마다 부르면 쪽마다 전체를 다시 세어 16 쪽 = 55 ~ 134 s · 8 쪽 동시 = statement timeout(v1a)
+  const d = await purRpc('pur_stock', {});
+  const br = b => ({ qoh: purNum(b && b.qoh), alloc: purNum(b && b.alloc), oo: purNum(b && b.oo), it: purNum(b && b.it), avail: purNum(b && b.avail) });
   const st = {};
-  rows.forEach(r => {
-    const e = { toronto:{qoh:0,alloc:0,oo:0,it:0,avail:0}, edmonton:{qoh:0,alloc:0,oo:0,it:0,avail:0}, product_id: r.product_id };
-    (r.by_warehouse || []).forEach(w => {
-      // 지금 규칙 그대로 — 창고 이름에 edmonton 이 있으면 edmonton · 아니면 toronto(Asung Trading Inc.)
-      const b = e[String(w.warehouse || '').toLowerCase().includes('edmonton') ? 'edmonton' : 'toronto'];
-      b.qoh += purNum(w.on_hand); b.alloc += purNum(w.sales_allocated) + purNum(w.transfer_reserved);
-      b.oo += purNum(w.on_order); b.it += purNum(w.in_transit); b.avail += purNum(w.available);
-    });
-    st[r.sku] = e;
-  });
+  ((d && d.rows) || []).forEach(r => { st[r.sku] = { toronto: br(r.tor), edmonton: br(r.edm), product_id: r.product_id }; });
+  PUR.stockWhs = (d && d.warehouses) || [];
   STOCK = st;
 }
 /* 판정 608 — 원가 열쇠가 있을 때만 · 없으면 unit_cost 가 비어 재고가치 칸이 — 로 그려진다 */
@@ -1470,7 +1456,7 @@ function purTimeTag(){
   span.title = tip;
   span.textContent = '· 걸린 시간 IMS ' + (PUR.tIms === null ? '—' : PUR.tIms + '초') + ' · BigQuery ' + (PUR.tBq === null ? '—' : PUR.tBq + '초');
   bn.appendChild(span);
-  console.log('[pur v1a 시간] ' + tip);
+  console.log('[pur 시간 · ' + PUR_BUILD + '] ' + tip);
 }
 async function loadSalesDataFromBQ(){
   const tB0 = performance.now();
