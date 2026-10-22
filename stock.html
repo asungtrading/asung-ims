@@ -95,6 +95,7 @@
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
       <button class="pobtn" id="wvalBtn" hidden title="Add up the stock value of every product that matches these filters">Stock value total</button>
+      <button class="pobtn" id="wcsv" title="Download every product that matches these filters as a spreadsheet (CSV)">↓ CSV</button>
     </div>
     <div id="wvalBox" class="valt" hidden></div>
     <div id="wrows" class="scroll"><div class="msg">Loading…</div></div>
@@ -141,7 +142,7 @@
      stk_value_many(p_product_ids, p_warehouse_id) · stk_value_total(p_warehouse_id, p_q, p_brand_id, p_category_id, p_supplier_id, p_sale_only) — 원가 열쇠(ims_can_view_cost)가 있을 때만 부른다 · 없으면 칸 · 단추 자체를 그리지 않는다
      Both 에서는 Bin 칸이 없다(bin 은 브랜치마다) · 상세 · 펼침은 브랜치 하나(dwh)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-20 · stk v2";   // 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-22 · stk csv v1";   // 대화 Claude — stkx-1(판정 628): ↓ CSV — stk_availability_export 한 번(지금 거르기 · 한 행 jsonb · Max rows 1000 을 피한다) · 화면과 같은 칸(Both 면 창고마다 넷 · 한 창고면 Bin) · Value 는 원가 열쇠가 있을 때만(stk_value_many 500 씩) ← 2026-10-20 · stk v2: 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -216,6 +217,71 @@ function rsvTd(v, kind, pid, whid){
   return `<td class="num"><button class="rsv" data-rsv="${kind}" data-pid="${esc(pid)}" data-rwh="${esc(whid)}" title="${kind === "so" ? "Show the sales orders holding this stock" : "Show the transfers holding this stock"}">${n0(x)}</button></td>`;
 }
 
+/* ── stk csv v1 · 판정 628 · stkx-1 — 내보내기(CSV · UTF-8 BOM) ──
+   ⭐ stk_availability_export 한 번 = 목록과 같은 거르기 · 모든 줄(한 행 jsonb 라 Data API 의 1,000 줄 한도에 안 걸린다 · 2 ~ 3 초)
+   ⭐ 칸 = 화면 그대로 — Both 면 창고마다 On hand · Allocated · Transfer res. · Available · 한 창고면 Bin(그 창고 칸 전부 · 「칸 (수량)」)
+   ⭐ Value 는 원가 열쇠가 있을 때만(판정 567 · 575 · 608) · stk_value_many 500 씩 · 레이어 수량이 On hand 와 다르면 Layer qty 칸으로 보인다 */
+function csvCell(v){
+  if(v === null || v === undefined) return "";
+  const t = String(v);
+  return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+function csvDownload(name, rows){
+  const txt = "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const csvNum = (v) => (v === null || v === undefined || v === "") ? "" : Number(v);
+async function exportStock(btn){
+  const label = btn.textContent; btn.disabled = true; btn.textContent = "Preparing…";
+  try {
+    const { data, error } = await sb.rpc("stk_availability_export", {
+      p_warehouse_id: listWh(), p_q: q || null, p_brand_id: brand || null, p_category_id: cat || null,
+      p_include_zero: zero, p_sale_only: saleOnly, p_supplier_id: sup || null,
+    });
+    if(error) throw new Error(error.message);
+    const rows0 = (data && data.rows) || [];
+    if(!rows0.length){ alert("No products match — nothing to download."); return; }
+    if(data.truncated) alert(`More than 20,000 rows match — only the first ${rows0.length} are in the file. Narrow the filter to get the rest.`);
+    const both = isBoth(), pids = rows0.map(r => r.product_id);
+    btn.textContent = `Preparing… ${rows0.length}`;
+    const bins = {}, vals = {};
+    for(let i = 0; i < pids.length; i += 500){
+      const part = pids.slice(i, i + 500);
+      const [b, v] = await Promise.all([
+        both ? Promise.resolve({ data: [] }) : sb.rpc("stk_bins_many", { p_product_ids: part, p_warehouse_id: wh }),
+        canCost ? sb.rpc("stk_value_many", { p_product_ids: part, p_warehouse_id: listWh() }) : Promise.resolve({ data: [] }),
+      ]);
+      if(b.error) throw new Error("bins: " + b.error.message);
+      if(v.error) throw new Error("value: " + v.error.message);
+      (b.data || []).forEach(x => { (bins[x.product_id] = bins[x.product_id] || []).push(x); });
+      (v.data || []).forEach(x => { const o = vals[x.product_id] = vals[x.product_id] || { v: 0, q: 0 }; o.v += Number(x.remaining_value || 0); o.q += Number(x.layer_qty_ea || 0); });
+      btn.textContent = `Preparing… ${Math.min(i + 500, pids.length)} / ${pids.length}`;
+    }
+    const head = ["SKU","Name","Brand","Category","Active"]
+      .concat(both ? WHS.flatMap(w => [`${w.name} on hand`, `${w.name} allocated`, `${w.name} transfer res.`, `${w.name} available`])
+                   : ["Bin","On hand","Allocated","Transfer res.","Available"])
+      .concat(["On order","In transit"]).concat(canCost ? ["Value","Layer qty (EA)"] : []).concat(["Last movement","On sale %"]);
+    const out = [head];
+    rows0.forEach(r => {
+      const base = [r.sku, r.name || "", r.brand_name || "", r.category_name || "", r.is_active === false ? "no" : "yes"];
+      const mid = both
+        ? WHS.flatMap(w => { const e = (r.by_warehouse || []).find(x => x.warehouse_id === w.id) || {};
+            return [csvNum(e.on_hand || 0), csvNum(e.sales_allocated || 0), csvNum(e.transfer_reserved || 0), csvNum(e.available || 0)]; })
+        : [(bins[r.product_id] || []).map(x => `${x.bin || "(no bin)"} (${Number(x.qty || 0)})`).join("; "),
+           csvNum(r.on_hand || 0), csvNum(r.sales_allocated || 0), csvNum(r.transfer_reserved || 0), csvNum(r.available || 0)];
+      const vl = vals[r.product_id];
+      out.push(base.concat(mid).concat([csvNum(r.on_order || 0), csvNum(r.in_transit || 0)])
+        .concat(canCost ? [vl ? Math.round(vl.v * 100) / 100 : 0, vl ? vl.q : 0] : [])
+        .concat([r.last_event_on || "", r.sale_pct === null || r.sale_pct === undefined ? "" : Number(r.sale_pct)]));
+    });
+    const day = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Toronto" });
+    csvDownload(`stock-${both ? "both" : (whName(wh) || "branch").replace(/[^A-Za-z0-9]+/g, "-")}-${day}.csv`, out);
+  } catch(e){ alert("Download failed: " + e.message); }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
 /* ── 창구 한 쪽 ─────────────────────────────────────── */
 function avail(off){
   return sb.rpc("stk_availability", {
@@ -585,6 +651,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("wcat").onchange = e => { cat = e.target.value; loadWide(0); };
   $("wsup").onchange = e => { sup = e.target.value; loadWide(0); };   // stk v2
   $("wvalBtn").onclick = loadValTotal;
+  $("wcsv").onclick = () => exportStock($("wcsv"));   // stk csv v1
   $("wzero").onchange = e => { zero = e.target.checked; loadWide(0); };
   $("zero").onchange = e => { zero = e.target.checked; loadList(0); };
   $("wsale").onchange = e => { saleOnly = e.target.checked; loadWide(0); };   // stk v1e
