@@ -124,7 +124,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ IMS 인보이스의 크레딧 + cr v3: 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1 20261021194405) · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-10-22 · cr csv v3";   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · cr csv v2 ·   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 크레딧 상세 ↓ Credit CSV(한 줄 = 크레딧 줄 · Barcode · 끝에 합계) ← 2026-10-22 · cr csv v1 ·   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-10-23 · cr v5";   // 대화 Claude — bgr-1d(3d0d7fe) · 1e(87a00e5) · 판정 640 · 649 · 650 · 651: 「not restocked」 고르기에서 b_grade 를 뺀다(옛 줄 표시는 그대로) · B급으로 판 줄에 Final sale 꼬리표 · 그 줄의 칸 기본 = 그 B급 칸(B-grade 꼬리표) · B급 칸이 사라졌으면 알림 · 크레딧 창 아래 이 창고의 B급 칸 이름(상자 상한 반품을 바로 B급 칸으로 · 650) · 경고 final_sale · bgrade_bin_gone 글 · Final sale 줄이 있으면 Issue 때 「Issue anyway?」 확인(막지 않는다) ← cr csv v3:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · cr csv v2 ·   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 크레딧 상세 ↓ Credit CSV(한 줄 = 크레딧 줄 · Barcode · 끝에 합계) ← 2026-10-22 · cr csv v1 ·   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -328,7 +328,7 @@ const acctOpts = (blank) => `<option value="">${esc(blank)}</option>` + ACCT_ALL
       product{so_invoice_line_id, qty_returned, restock_bin | not_restocked_reason(+note)} · freight{so_invoice_line_id, amount}
       restocking_fee{pct | amount ≤ 0, account_id} · other{amount, description, account_id}
    ⭐ 미리 보기(p_commit false)는 아무것도 쓰지 않는다 · 같은 p 로 발행(true) */
-let prep = null, mode = "inv", refCust = null;   // cr v3 — mode "inv"(IMS 인보이스) | "ref"(참조 번호)
+let prep = null, mode = "inv", refCust = null, lastWarn = [], BGBIN = [];   // cr v5 — lastWarn = 마지막 미리 보기의 경고(Issue 때 Final sale 확인) · BGBIN = B급 칸(이름 안내)   // cr v3 — mode "inv"(IMS 인보이스) | "ref"(참조 번호)
 function openNew(invoiceId){
   prep = null; mode = "inv"; refCust = null;
   modalOpen(`
@@ -374,15 +374,15 @@ async function loadPrep(invoiceId){
 /* cr v2(판정 245 · 묶음 7) — 상품 줄 하나 · 콤보면 그 아래 구성품마다 「돌아갈 칸 · 안 돌아옴」 줄(수량은 콤보 수 × 콤보 하나에 든 수 — 서버가 센다) */
 function stockCell(def){
   return `<td style="white-space:nowrap">
-        <select class="sofield" data-mode><option value="bin">to bin</option>${Object.entries(NOREST).map(([k, x]) => `<option value="${k}">not restocked · ${x}</option>`).join("")}</select>
-        <input class="tin" data-bin value="${esc(binOf(def))}" placeholder="bin" style="width:110px">
+        <select class="sofield" data-mode><option value="bin">to bin</option>${Object.entries(NOREST).filter(([k]) => k !== "b_grade").map(([k, x]) => `<option value="${k}">not restocked · ${x}</option>`).join("")}</select>
+        <input class="tin" data-bin value="${esc(binOf(def))}" placeholder="bin" style="width:110px">${def && def.is_bgrade ? ' <span class="tag" title="Sold as B-grade — it goes back into its B-grade bin">B-grade</span>' : ""}
         <input class="tin" data-nrn placeholder="note" style="width:120px" hidden>
       </td>`;
 }
 function prodRow(l){
   const main = `<tr data-pl="${l.so_invoice_line_id}">
       <td class="num">${esc(l.line_no)}</td>
-      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
+      <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku || "")}</span>${Number(l.pack_factor) > 1 ? ` <span class="dim">×${esc(l.pack_factor)}</span>` : ""}${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""}${l.final_sale ? ' <span class="chip warn" title="Sold as B-grade — no return, no refund">Final sale</span>' : ""}${l.restock_bgrade_bin_gone ? ' <span class="dim" style="font-size:11px">· its B-grade bin is gone — regular bin</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.description || "")}</div></div></div></td>
       <td class="num">${qty(l.qty_sold)}</td><td class="num">${Number(l.qty_credited) ? qty(l.qty_credited) : '<span class="dim">0</span>'}</td>
       <td class="num">${qty(l.qty_returnable)}</td>
       <td class="num">${price(l.unit_price)}<div class="dim" style="font-size:11px">${esc(l.rate_pct !== null && l.rate_pct !== undefined ? Number(l.rate_pct) + "% tax" : "")}</div></td>
@@ -451,6 +451,8 @@ function drawForm(){
     <tbody>${prods.map(l => prodRow(l)).join("") || '<tr><td colspan="8" class="dim">No product lines on this invoice.</td></tr>'}</tbody></table>
     ${prods.some(l => Array.isArray(l.combo_components)) ? '<div class="sohint">A combo comes back whole: type the number of combos on the combo line, then pick for each component where it goes. If only one item of a combo is the problem, do not return the combo — use Other adjustment below (amount only, no stock).</div>' : ""}
     <div class="sohint">Back to stock uses the bin the product sits in now (usual bin first). Not restocked keeps the goods out of stock and records why. Unit price and tax come from the invoice.</div>
+    ${prods.some(l => l.final_sale) ? '<div class="sowarn"><span class="chip warn">⚠ A line marked Final sale was sold as B-grade — no return, no refund. Credit it only as an exception; it goes back into its B-grade bin.</span></div>' : ""}
+    <div class="sohint" id="bgHint"></div>
     ${scs.length ? `<div class="sohint">Surcharge on this invoice comes back by itself with the quantity you return — added automatically, it cannot be typed: ${scs.map(l => `<span class="mono">${esc(l.sku || "")}</span> ${esc(l.description || "")} ${price(l.unit_price)}/ea${Number(l.amount_credited) ? ` <span class="dim">(${money(l.amount_credited)} already credited)</span>` : ""}`).join(" · ")}</div>` : ""}
 
     ${prods.some(l => l.adjust) ? `<h5 class="sec">Price adjustment — past sale price</h5>
@@ -491,10 +493,23 @@ function drawForm(){
     };
   });
   document.querySelectorAll("#nwBody input, #nwBody select").forEach(el => { if(!el.dataset.mode) el.addEventListener("change", stale); });
+  { const fw = document.getElementById("fWh"); if(fw) fw.addEventListener("change", fillBgHint); }   // cr v5
+  lastWarn = []; fillBgHint();   // cr v5
   document.getElementById("pvGo").onclick = () => runIssue(false);
   document.getElementById("isGo").onclick = () => runIssue(true);
 }
 function stale(){ const b = document.getElementById("isGo"); if(b) b.disabled = true; }
+/* cr v5 — 판정 650: 상자가 상한 반품은 바로 B급 칸으로 받을 수 있다 — 그 창고의 B급 칸 이름을 알려 준다(칸 칸에 그 이름을 친다 · 값은 B-grade Stock 에서) */
+async function fillBgHint(){
+  const el = () => document.getElementById("bgHint");
+  if(!el()) return;
+  if(!BGBIN.length){ const r = await sb.from("ref_bin").select("name,warehouse_id").eq("is_bgrade", true).eq("is_active", true).order("name"); BGBIN = (r && r.data) || []; }
+  const wh = (document.getElementById("fWh") || {}).value;
+  const mine = BGBIN.filter(b => b.warehouse_id === wh);
+  if(el()) el().innerHTML = mine.length
+    ? `Damaged package but the item is fine? Type a B-grade bin as the bin to take it back as B-grade: ${mine.map(b => `<span class="mono">${esc(b.name)}</span>`).join(" · ")}. If the bin has no price for it yet, set one in B-grade Stock.`
+    : "";
+}
 
 function buildP(){
   const lines = [];
@@ -555,6 +570,10 @@ async function runIssue(commit){
   const p = mode === "ref" ? buildRefP() : buildP();
   if(!p) return;
   if(!p.lines.length){ say("nwMsg", "err", "Put a quantity on at least one product, a price adjustment, a freight amount or an adjustment."); return; }
+  if(commit && lastWarn.some(w => String(w).startsWith("final_sale:"))){   // cr v5 — 판정 640: 막지 않는다 · 묻기만
+    const skus = lastWarn.filter(w => String(w).startsWith("final_sale:")).map(w => String(w).slice(11)).join(", ");
+    if(!confirm(`Final sale — ${skus} was sold as B-grade: no return, no refund.\n\nIssue this credit note anyway?`)) return;
+  }
   say("nwMsg", "", commit ? "Issuing…" : "Checking…");
   document.getElementById("isGo").disabled = true;
   const { data, error } = await sb.rpc("so_credit_issue", { p: p, p_commit: commit });
@@ -564,6 +583,7 @@ async function runIssue(commit){
     if(data && data.credit_id) openCr(data.credit_id); else showWide();
     return;
   }
+  lastWarn = data.warnings || [];   // cr v5
   const t = data.totals || {}, fs = data.fee_suggested, og = data.origin || {};
   document.getElementById("pvOut").innerHTML = `
     <div class="card" style="padding:10px 14px">
@@ -607,6 +627,8 @@ const WARN_TEXT = {
 function warnText(w){
   const s = String(w || "");
   if(WARN_TEXT[s]) return WARN_TEXT[s];
+  if(s.startsWith("final_sale:")) return s.slice(11) + " was sold as B-grade — Final sale, no return, no refund. Issue only as an exception";   // cr v5 — 판정 640
+  if(s.startsWith("bgrade_bin_gone:")) return s.slice(16) + ": its B-grade bin is switched off or gone — it goes back to a regular bin";   // cr v5 — bgr-1d
   if(s.startsWith("restock_fee_window:")) return s.slice(19) + " days since the original invoice — a restocking fee may apply (not added automatically)";   // cr v4b
   if(s.startsWith("inactive_bin:")) return "Bin " + s.slice(13) + " is turned off — goods would go back into an inactive bin";   // cr v4b
   if(s.startsWith("reference_seen:")) return "Already credited on this reference number for the same product: " + s.slice(15) + " — check it is not a double credit";
