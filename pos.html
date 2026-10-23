@@ -118,7 +118,7 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-20 · pos v1.11";   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-23 · pos v1.12";   // 대화 Claude — bgr-1c(c60eb9e) · 1d(3d0d7fe) · 판정 633 · 634 ② · 635 · 644 · 646 · 647 · 648: 초안 줄의 「B」 단추 = 그 줄을 B급으로(so_line_bgrade_set · 칸이 여럿이면 고르는 창 · 값 없는 칸은 고를 수 없음 · 수량이 2 이상이면 몇 개가 B급인지 물어 나머지는 정상 줄로 남긴다 — so_line_update + so_line_add p_force_new) · B급 줄은 「B-grade · 칸 · Final sale」 표시 · ✎ 없음(값은 B급 칸이 정한다) · 「✕B」 = 정상으로 되돌리기(so_line_bgrade_clear) · 장부보다 많으면 확인(over_bgrade_stock · so_lines_available 의 B급 가용) · surcharge 는 DB 가 비운다 ← pos v1.11:   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
@@ -135,6 +135,7 @@ function discNote(l){
   const pct = Number(l.discount_pct);
   /* pos v1.11 — 판정 546: 누가 · 언제 손으로 정했나(ln-1 이전 줄은 비어 있다) */
   const by = l.price_set_at ? ` · ${l.price_set_by_name ? "by " + esc(l.price_set_by_name) + " · " : ""}${esc(imsTs(l.price_set_at))}` : "";
+  if(l.is_bgrade_line) return `<div class="dsc">B-grade${l.bgrade_bin ? " · bin " + esc(l.bgrade_bin) : ""} · Final sale — no return, no refund</div>`;   // pos v1.12 — 판정 633 · 640
   if(l.free_reason) return `<div class="dsc">free · ${esc(l.free_reason)}</div>`;
   if(l.price_override) return `<div class="dsc">price set by hand${by}</div>`;
   if(!pct) return "";
@@ -318,7 +319,10 @@ async function setQty(lineId, v, old){
     const la = await sb.rpc("so_lines_available", { p_so_id: curId });
     const row = !la.error && (la.data || []).find(x => x.line_id === lineId);
     if(row && row.available_units !== null && row.available_units !== undefined && Number(row.available_units) < n){
-      if(!confirm(`Only ${Number(row.available_units).toLocaleString("en-CA")} available in this store's warehouse (on hand minus what other orders hold). Sell ${n.toLocaleString("en-CA")} anyway?`)){ await openSale(curId); return; }
+      const msg = row.bgrade_bin_id   /* pos v1.12 — 판정 647: B급 줄은 그 B급 칸의 가용 · 막지 않는다 */
+        ? `The books have only ${Number(row.available_units).toLocaleString("en-CA")} B-grade in bin ${row.bgrade_bin || ""}. Sell ${n.toLocaleString("en-CA")} anyway? (The bin goes below 0 — count it later.)`
+        : `Only ${Number(row.available_units).toLocaleString("en-CA")} available in this store's warehouse (on hand minus what other orders hold). Sell ${n.toLocaleString("en-CA")} anyway?`;
+      if(!confirm(msg)){ await openSale(curId); return; }
     }
   }
   const { error } = await sb.rpc("so_line_update", { p_line_id: lineId, p_patch: { qty_ordered: n } });
@@ -360,6 +364,65 @@ function openLinePrice(l){
     return go({ discount_pct: n });
   };
   const rs = document.getElementById("lpReset"); if(rs) rs.onclick = () => go({ discount_pct: "" });
+}
+/* ── pos v1.12 — B급(판정 633 · 634 ② · 644 · 647) ─────────────────────────
+   ⭐ 원래 바코드로 찍힌 정상 줄을 「B」 로 B급 줄로 바꾼다 — 값은 그 B급 칸의 값(최종 · 손님 할인 · 딜 · 오더 할인 · surcharge 없음 · DB 가 한다)
+   ⭐ 칸이 하나면 바로 · 여럿이면 so_line_bgrade_set 이 action choose + 후보(칸 · 값 · 수량)를 돌려준다(저장 안 함) → 고르는 창
+   ⭐ 줄 수량이 2 이상이면 몇 개가 B급인지 묻는다 — 전부가 아니면 정상 줄 수량을 줄이고(so_line_update) 그 수만큼 새 줄(so_line_add p_force_new) → 그 줄을 B급으로
+   ⚠️ 값 없는 B급 · 죽은 값 · POS 밖 오더는 DB 가 거부(글 그대로) · 장부보다 많으면 확인만(over_bgrade_stock · 막지 않는다 · 판정 647) */
+async function askBgrade(l){
+  if(!l) return;
+  const q = Number(l.qty_ordered);
+  if(q > 1){
+    const a = prompt(`How many of these ${q} × ${l.sku} are B-grade (damaged package)?`, "1");
+    if(a === null) return;
+    const n = Number(String(a).trim());
+    if(!/^\d+$/.test(String(a).trim()) || n < 1 || n > q){ alert(`Type a whole number from 1 to ${q}.`); return; }
+    if(n < q){
+      const u = await sb.rpc("so_line_update", { p_line_id: l.id, p_patch: { qty_ordered: q - n } });
+      if(u.error){ alert(u.error.message); await openSale(curId); return; }
+      const ad = await sb.rpc("so_line_add", { p_so_id: curId, p_product_id: l.product_id, p_qty: n, p_force_new: true });
+      if(ad.error || !ad.data || !ad.data.line){ alert(ad.error ? ad.error.message : "Could not add the B-grade line."); await openSale(curId); return; }
+      return setBgrade(ad.data.line.id, null);
+    }
+  }
+  return setBgrade(l.id, null);
+}
+async function setBgrade(lineId, binId){
+  const { data, error } = await sb.rpc("so_line_bgrade_set", { p_line_id: lineId, p_bin_id: binId || null });
+  if(error){ alert(error.message); await openSale(curId); return; }
+  if(data && data.action === "choose") return openBgChoose(data);
+  modalClose();
+  if(data && (data.warnings || []).includes("over_bgrade_stock")){
+    const ln = data.line || {};
+    if(!confirm(`The books have only ${Number(data.bin_qty || 0).toLocaleString("en-CA")} B-grade ${ln.sku || ""} in bin ${data.bin || ""}. Sell ${Number(ln.qty_ordered || 0).toLocaleString("en-CA")} anyway?\n\n(The bin goes below 0 — count it later.)`)){
+      if(data.action === "merged"){   /* 앞서 있던 B급 줄에 합쳐졌다 — 되돌리기(✕B)는 그 줄 전부를 정상으로 돌리므로 수량은 사람이 고친다 */
+        alert("It was added to the B-grade line already on this sale. Lower that line's quantity if it should not be sold.");
+        await openSale(curId); return;
+      }
+      return clearBgrade(ln.id || lineId);
+    }
+  }
+  await openSale(curId);
+}
+function openBgChoose(d){
+  const cs = d.candidates || [];
+  modalOpen(`
+    <h4>Which B-grade bin? — <span class="mono">${esc(d.sku || "")}</span></h4>
+    <div class="pbody">
+      <div class="dim" style="font-size:12.5px;margin-bottom:8px">${esc(d.message || "This item is in more than one B-grade bin. Pick the one it came from — each bin has its own price.")}</div>
+      <div class="pick">${cs.map(c => c.has_price
+        ? `<div class="prow" data-bgbin="${esc(c.bin_id)}"><span class="mono">${esc(c.bin)}</span> · <b>${money(c.price)}</b> <span class="dim">· ${qty(c.qty)} in the bin</span></div>`
+        : `<div class="prow" style="cursor:default;opacity:.6"><span class="mono">${esc(c.bin)}</span> · <span class="off">no B-grade price — ask a manager</span> <span class="dim">· ${qty(c.qty)} in the bin</span></div>`).join("")}</div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
+  wireModalClose();
+  document.querySelectorAll("[data-bgbin]").forEach(el => { el.onclick = () => setBgrade(d.line_id, el.dataset.bgbin); });
+}
+async function clearBgrade(lineId){
+  const { error } = await sb.rpc("so_line_bgrade_clear", { p_line_id: lineId });
+  if(error){ alert(error.message); }
+  await openSale(curId);
 }
 async function removeLine(lineId){
   const { error } = await sb.rpc("so_line_remove", { p_line_id: lineId });
@@ -543,10 +606,10 @@ async function openSale(id){
       <td><div class="cin">↳ <span class="mono">${esc(l.sku)}</span> ${esc(l.product_name || "")} · ${esc(qty(l.combo_qty))} per combo</div></td>
       <td class="num" style="font-size:12px">${qty(l.qty_ordered)}</td><td></td><td></td>${draft ? "<td></td>" : ""}
     </tr>` : `<tr>
-      <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${l.is_combo ? ' <span class="tag">combo</span>' : ""}${isSale(l) ? '<span class="sale">SALE</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
+      <td class="itm" data-hsku="${esc(l.sku)}" data-hname="${esc(l.product_name || "")}"><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${l.is_combo ? ' <span class="tag">combo</span>' : ""}${l.is_bgrade_line ? ' <span class="tag">B-grade</span>' : ""}${isSale(l) ? '<span class="sale">SALE</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div>
         ${discNote(l)}${l.no_price ? '<div class="off" style="font-size:11px">no price</div>' : ""}${l.surcharge_label ? `<div class="dim" style="font-size:11px">+ ${esc(l.surcharge_label)} ${money(l.surcharge_unit)}/ea · ${plain(l.surcharge_total)}</div>` : ""}</div></div></td>
       <td class="num">${draft ? `<button class="xbtn" data-dec="${l.id}" data-q="${esc(l.qty_ordered)}">−</button> <input class="mono" type="number" min="1" step="1" inputmode="numeric" autocomplete="off" data-qin="${l.id}" data-q="${esc(l.qty_ordered)}" value="${esc(l.qty_ordered)}" title="Type the quantity, then Enter" style="width:64px;text-align:right;border:1px solid var(--line);border-radius:8px;padding:4px 6px;font-weight:700"> <button class="xbtn" data-inc="${l.id}" data-q="${esc(l.qty_ordered)}">+</button>` : qty(l.qty_ordered)}</td>
-      <td class="num">${Number(l.discount_pct) > 0 && !l.free_reason && l.list_price !== null && l.list_price !== undefined && Number(l.list_price) !== Number(l.unit_price) ? `<span class="was">${plain(l.list_price)}</span>` : ""}${money(l.unit_price)}${draft && !l.free_reason ? ` <button class="xbtn" data-px="${l.id}" title="Set the price or a discount for this item">✎</button>` : ""}</td><td class="num">${money(l.total)}</td>
+      <td class="num">${Number(l.discount_pct) > 0 && !l.free_reason && l.list_price !== null && l.list_price !== undefined && Number(l.list_price) !== Number(l.unit_price) ? `<span class="was">${plain(l.list_price)}</span>` : ""}${money(l.unit_price)}${draft && !l.free_reason && !l.is_bgrade_line ? ` <button class="xbtn" data-px="${l.id}" title="Set the price or a discount for this item">✎</button>` : ""}${draft && !l.free_reason && !l.is_combo ? (l.is_bgrade_line ? ` <button class="xbtn" data-bgx="${l.id}" title="Back to a regular item at the regular price">✕B</button>` : ` <button class="xbtn" data-bg="${l.id}" title="Sell as B-grade — damaged package, from a B-grade bin, final sale">B</button>`) : ""}</td><td class="num">${money(l.total)}</td>
       ${draft ? `<td><button class="xbtn" data-rm="${l.id}" title="Remove">&#10005;</button></td>` : ""}
     </tr>`).join("")}</tbody></table>` : `<div class="msg">${draft ? "Scan the first item." : "No items."}</div>`;
   document.querySelectorAll("[data-inc]").forEach(b => { b.onclick = () => setQty(b.dataset.inc, Number(b.dataset.q) + 1, Number(b.dataset.q)); });
@@ -563,6 +626,8 @@ async function openSale(id){
   });
   document.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => removeLine(b.dataset.rm); });
   document.querySelectorAll("[data-px]").forEach(b => { b.onclick = () => openLinePrice((cur.lines || []).find(l => l.id === b.dataset.px)); });   // pos v1.11
+  document.querySelectorAll("[data-bg]").forEach(b => { b.onclick = () => askBgrade((cur.lines || []).find(l => l.id === b.dataset.bg)); });   // pos v1.12
+  document.querySelectorAll("[data-bgx]").forEach(b => { b.onclick = () => clearBgrade(b.dataset.bgx); });   // pos v1.12
   /* 사진 — 줄 칸 채우기 · 오른쪽 위 = 방금 담은 상품 → 없으면 지금 보이던 것 → 없으면 맨 위(가장 나중) 줄 */
   thumbFill(document.getElementById("lines"));
   eagerThumbs("lines");
