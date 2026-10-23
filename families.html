@@ -20,6 +20,17 @@
   #wide tr.off td{color:var(--muted)}
   #wide .wfilt .flt{flex:0 1 170px;min-width:120px}
   .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
+  /* fam v5a — 창 안의 입력칸(.sofield 는 공통 css 에 없어 브라우저 기본 진한 테두리가 나왔다 · Add member · Options · New family 창 모두) */
+  .pobox input.sofield,.pobox input[type=search]{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:12.5px;color:var(--ink);background:#fff;min-width:0;box-sizing:border-box}
+  .pobox input.sofield:focus,.pobox input[type=search]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12)}
+  .pobox input.sofield::placeholder,.pobox input[type=search]::placeholder{color:#a3acb9}
+  /* New family 창 — 라벨 폭 · 옵션 셋을 한 줄 격자로(넘쳐 가로 스크롤이 생겼다) · 안내는 선 없는 옅은 상자 */
+  .nfw .frow label{min-width:96px}
+  .nfw .axes{flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .nfw .hint{font-size:12px;color:var(--muted);background:#f7f8fa;border-radius:8px;padding:8px 10px;margin:2px 0 14px;line-height:1.45}
+  .nfw h5{margin:4px 0 8px;font-size:12.5px}
+  .nfw #nfMem table{font-size:12.5px}
+  .nfw #nfMem .msg{padding:14px 0;text-align:center}
 </style>
 </head>
 <body>
@@ -42,8 +53,9 @@
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
+      <button class="pobtn" id="wprod" title="Open the Products screen">Products</button>
+      <button class="pobtn" id="wnewfamNew" hidden title="Opens the New family window on the Products screen — for SKUs that do not exist yet">New family (new SKUs)</button>
       <button class="pobtn go" id="wnewfam" hidden>New family from existing SKUs</button>
-      <a class="lnk" href="products.html" style="font-size:12.5px">Products</a>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
     <div class="foot">
@@ -101,7 +113,7 @@
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-const FAM_BUILD = "fam v5";   // 대화 Claude — fam-new-1(판정 652 · 653): 넓은 목록의 「New family from existing SKUs」 — 머리(이름 · SKU 비우면 첫 SKU + FAM · 옵션 축 이름 1 ~ 3 · 메모 · 브랜드 · 분류 · 단위는 첫 SKU 에서) + 구성원(찾아 넣기 · SKU 마다 옵션 값) → product_family_from_skus 검사 → 확인(다른 family 에서 옮김 · 옛 family 가 빔) → 저장 → 새 family 열기 · Shopify 안내 한 줄 ← fam v4:   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
+const FAM_BUILD = "fam v5b";   // 대화 Claude — Caleb 「링크를 두자 · product 로 넘어가는 링크는 글자로만 되어 있어서 통일성이 없어」: 넓은 목록 오른쪽을 단추 셋으로 — Products(글자 링크였다) · New family (new SKUs)(products.html?new=family → Products 의 New family 창 · 판정 200 · master 쓰기만 보임) · New family from existing SKUs · 동작 무변 ← fam v5a: 대화 Claude — Caleb 「레이아웃이 좀 별로네 · 라인이 너무 강해서」: .sofield 가 공통 css 에 없어 브라우저 기본 테두리 → 이 화면 <style> 에 창 안 입력칸 꼴(Add member · Options · New family 모두) · New family 창 옵션 셋을 격자 한 줄(가로 넘침 · Option 3 잘림) · 안내는 선 없는 옅은 상자 · 동작 무변 ← fam v5: 대화 Claude — fam-new-1(판정 652 · 653): 넓은 목록의 「New family from existing SKUs」 — 머리(이름 · SKU 비우면 첫 SKU + FAM · 옵션 축 이름 1 ~ 3 · 메모 · 브랜드 · 분류 · 단위는 첫 SKU 에서) + 구성원(찾아 넣기 · SKU 마다 옵션 값) → product_family_from_skus 검사 → 확인(다른 family 에서 옮김 · 옛 family 가 빔) → 저장 → 새 family 열기 · Shopify 안내 한 줄 ← fam v4:   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
 let sb=null, q="", axis="", brand="", onlyActive=true, curId=null, canEdit=false;   // fam v4 — canEdit = master 쓰기
 const pg = imsPage(100);
 
@@ -402,17 +414,17 @@ function openNewFamily(){
   const st = { name: "", sku: "", ax: ["", "", ""], note: "", mem: [] };   // mem = [{id, sku, name, fam, opts:[]}]
   const axes = () => st.ax.map(x => x.trim()).filter((x, i, a) => x && (i === 0 || a[i - 1]));
   showModal(`<h4>New family from existing SKUs</h4>
-    <div class="pbody" style="max-height:70vh;overflow:auto">
+    <div class="pbody nfw" style="max-height:70vh;overflow:auto">
       <div class="frow"><label>Family name</label><input class="sofield" id="nfName" style="flex:1" autocomplete="off" placeholder="e.g. Shea Curl Cream"></div>
       <div class="frow"><label>Family SKU</label><input class="sofield" id="nfSku" style="flex:1" autocomplete="off" placeholder="leave blank = first SKU + FAM"></div>
-      <div class="frow"><label>Option 1</label><input class="sofield" id="nfA0" autocomplete="off" placeholder="e.g. Color"> <label style="width:auto">Option 2</label><input class="sofield" id="nfA1" autocomplete="off" placeholder="optional"> <label style="width:auto">Option 3</label><input class="sofield" id="nfA2" autocomplete="off" placeholder="optional"></div>
+      <div class="frow"><label>Options</label><div class="axes"><input class="sofield" id="nfA0" autocomplete="off" placeholder="Option 1 — e.g. Color"><input class="sofield" id="nfA1" autocomplete="off" placeholder="Option 2 (optional)"><input class="sofield" id="nfA2" autocomplete="off" placeholder="Option 3 (optional)"></div></div>
       <div class="frow"><label>Note</label><input class="sofield" id="nfNote" style="flex:1" autocomplete="off"></div>
-      <div class="note">Brand, category and unit come from the first SKU. Each member needs its own option value${""}s — two members cannot have the same values.</div>
-      <h5 style="margin:12px 0 6px">Members</h5>
+      <div class="hint">Brand, category and unit come from the first SKU. Each member needs its own option value${""}s — two members cannot have the same values.</div>
+      <h5>Members</h5>
       <input type="search" id="nfQ" placeholder="Find a SKU or product name to add" autocomplete="off" style="width:100%">
       <div id="nfHits" style="max-height:180px;overflow:auto;margin-top:6px;border:1px solid var(--line);border-radius:10px" hidden></div>
       <div id="nfMem" style="margin-top:8px"></div>
-      <div class="note" style="margin-top:8px">A SKU already in another family moves out of it into this one — you will be asked to confirm. If that old family is on Shopify, the SKU drops from that Shopify product until this new family is listed.</div>
+      <div class="hint" style="margin:12px 0 0">A SKU already in another family moves out of it into this one — you will be asked to confirm. If that old family is on Shopify, the SKU drops from that Shopify product until this new family is listed.</div>
     </div>
     <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="nfGo">Check and create</button></div>`);
   document.querySelector('#modalBox [data-m="close"]').onclick = closeModal;
@@ -479,6 +491,8 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   imsHeader(me);
   canEdit = imsAuth.canWrite("master");   // fam v4 — product_update 의 문(ims_require_write master)
   { const nf = document.getElementById("wnewfam"); if(canEdit){ nf.hidden = false; nf.onclick = openNewFamily; } }   // fam v5
+  document.getElementById("wprod").onclick = () => { location.href = "products.html"; };   // fam v5b — 글자 링크 → 단추(같은 줄의 단추와 같은 꼴)
+  { const nn = document.getElementById("wnewfamNew"); if(canEdit){ nn.hidden = false; nn.onclick = () => { location.href = "products.html?new=family"; }; } }   // fam v5b — 새 SKU 로 새 family 는 Products 의 창(판정 200) · 문만 하나 더
   document.getElementById("buildTag").textContent = FAM_BUILD;
   document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); clearDetail(); loadList(); };
   document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); clearDetail(); loadList(); };
