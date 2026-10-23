@@ -42,6 +42,7 @@
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
+      <button class="pobtn go" id="wnewfam" hidden>New family from existing SKUs</button>
       <a class="lnk" href="products.html" style="font-size:12.5px">Products</a>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
@@ -100,7 +101,7 @@
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-const FAM_BUILD = "fam v4";   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
+const FAM_BUILD = "fam v5";   // 대화 Claude — fam-new-1(판정 652 · 653): 넓은 목록의 「New family from existing SKUs」 — 머리(이름 · SKU 비우면 첫 SKU + FAM · 옵션 축 이름 1 ~ 3 · 메모 · 브랜드 · 분류 · 단위는 첫 SKU 에서) + 구성원(찾아 넣기 · SKU 마다 옵션 값) → product_family_from_skus 검사 → 확인(다른 family 에서 옮김 · 옛 family 가 빔) → 저장 → 새 family 열기 · Shopify 안내 한 줄 ← fam v4:   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
 let sb=null, q="", axis="", brand="", onlyActive=true, curId=null, canEdit=false;   // fam v4 — canEdit = master 쓰기
 const pg = imsPage(100);
 
@@ -375,6 +376,98 @@ function openOptions(fam, axes, m, onDone){
   document.querySelector('#modalBox [data-m="close"]').onclick = closeModal;
   document.getElementById("foGo").onclick = () => famRun([{ op: "family_option", sku: m.sku, options: readOpts(), old: old }], onDone);
 }
+/* ══ fam v5 — 기존 SKU 들로 새 family(판정 652 · 653 · product_family_from_skus) ══
+   ⭐ 흐름은 famRun 과 같다 — 검사(p_commit false) → 막기면 보이고 끝 · 경고면 확인 → 저장(p_ack = 경고 key)
+   ⭐ 다른 family 에 든 SKU 는 옮긴다(경고 moves_from_family) · 옛 family 가 비면 따로 경고(old_family_emptied · 머리는 남는다)
+   ⚠️ 브랜드 · 분류 · 단위는 보내지 않는다 — DB 가 첫 SKU 의 값을 쓴다 · 머리 SKU 를 비우면 첫 SKU + FAM(판정 182) */
+async function famRunNew(fam, items, onDone){
+  showModal('<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>');
+  const r1 = await sb.rpc("product_family_from_skus", { p_family: fam, p_items: items, p_commit: false, p_ack: [] });
+  if(r1.error){ famResult({ error: r1.error.message }); return; }
+  const d1 = r1.data || {};
+  if((d1.blocks || []).length){ famResult(d1); return; }
+  const commit = async (ack) => {
+    showModal('<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>');
+    const r2 = await sb.rpc("product_family_from_skus", { p_family: fam, p_items: items, p_commit: true, p_ack: ack });
+    if(r2.error){ famResult({ error: r2.error.message }); return; }
+    const d2 = r2.data || {};
+    if(d2.committed){ closeModal(); await onDone(d2); return; }
+    if((d2.blocks || []).length){ famResult(d2); return; }
+    famResult(d2, () => commit((d2.warnings || []).map(w => w.key)));
+  };
+  if(!(d1.warnings || []).length) return commit([]);
+  famResult(d1, () => commit(d1.warnings.map(w => w.key)));
+}
+function openNewFamily(){
+  const st = { name: "", sku: "", ax: ["", "", ""], note: "", mem: [] };   // mem = [{id, sku, name, fam, opts:[]}]
+  const axes = () => st.ax.map(x => x.trim()).filter((x, i, a) => x && (i === 0 || a[i - 1]));
+  showModal(`<h4>New family from existing SKUs</h4>
+    <div class="pbody" style="max-height:70vh;overflow:auto">
+      <div class="frow"><label>Family name</label><input class="sofield" id="nfName" style="flex:1" autocomplete="off" placeholder="e.g. Shea Curl Cream"></div>
+      <div class="frow"><label>Family SKU</label><input class="sofield" id="nfSku" style="flex:1" autocomplete="off" placeholder="leave blank = first SKU + FAM"></div>
+      <div class="frow"><label>Option 1</label><input class="sofield" id="nfA0" autocomplete="off" placeholder="e.g. Color"> <label style="width:auto">Option 2</label><input class="sofield" id="nfA1" autocomplete="off" placeholder="optional"> <label style="width:auto">Option 3</label><input class="sofield" id="nfA2" autocomplete="off" placeholder="optional"></div>
+      <div class="frow"><label>Note</label><input class="sofield" id="nfNote" style="flex:1" autocomplete="off"></div>
+      <div class="note">Brand, category and unit come from the first SKU. Each member needs its own option value${""}s — two members cannot have the same values.</div>
+      <h5 style="margin:12px 0 6px">Members</h5>
+      <input type="search" id="nfQ" placeholder="Find a SKU or product name to add" autocomplete="off" style="width:100%">
+      <div id="nfHits" style="max-height:180px;overflow:auto;margin-top:6px;border:1px solid var(--line);border-radius:10px" hidden></div>
+      <div id="nfMem" style="margin-top:8px"></div>
+      <div class="note" style="margin-top:8px">A SKU already in another family moves out of it into this one — you will be asked to confirm. If that old family is on Shopify, the SKU drops from that Shopify product until this new family is listed.</div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="nfGo">Check and create</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = closeModal;
+  const drawMem = () => {
+    const box = document.getElementById("nfMem"); if(!box) return;
+    const ax = axes();
+    if(!st.mem.length){ box.innerHTML = '<div class="msg">No members yet — find SKUs above.</div>'; return; }
+    box.innerHTML = `<table><thead><tr><th>SKU</th><th>Name</th>${ax.map(a => `<th>${esc(a)}</th>`).join("")}<th></th></tr></thead><tbody>${st.mem.map((m, i) => `<tr>
+        <td class="mono">${esc(m.sku)}${i === 0 ? ' <span class="tag" title="The family takes its brand, category and unit from this SKU">first</span>' : ""}</td>
+        <td>${esc(m.name || "")}${m.fam ? `<div class="off" style="font-size:11.5px">moves out of ${esc(m.fam)}</div>` : ""}</td>
+        ${ax.map((a, j) => `<td><input class="sofield" data-nfo="${i}:${j}" value="${esc(m.opts[j] || "")}" style="width:110px" autocomplete="off"></td>`).join("")}
+        <td><button class="xbtn" data-nfrm="${i}" title="Remove">&#10005;</button></td></tr>`).join("")}</tbody></table>`;
+    box.querySelectorAll("[data-nfo]").forEach(inp => { inp.oninput = () => { const [i, j] = inp.dataset.nfo.split(":").map(Number); st.mem[i].opts[j] = inp.value; }; });
+    box.querySelectorAll("[data-nfrm]").forEach(b => { b.onclick = () => { st.mem.splice(Number(b.dataset.nfrm), 1); drawMem(); }; });
+  };
+  [0, 1, 2].forEach(i => { document.getElementById("nfA" + i).oninput = (e) => { st.ax[i] = e.target.value; drawMem(); }; });
+  const hits = document.getElementById("nfHits");
+  const draw = async (t) => {
+    if(!t){ hits.hidden = true; return; }
+    hits.hidden = false;
+    const tt = String(t).replace(/[,()"\\]/g, "%");
+    const { data, error } = await sb.from("product").select("id,sku,name,family_id,parent_product_id,is_active")
+      .is("parent_product_id", null).eq("is_active", true).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
+    if(error){ hits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    hits.innerHTML = (data || []).length ? data.map(p => `<div class="row" data-nfp="${esc(p.id)}" style="padding:7px 10px;border-bottom:1px solid #f1f3f7;cursor:pointer">
+        <span class="mono">${esc(p.sku)}</span> <span class="dim" style="font-size:12px">${esc(p.name || "")}</span>${p.family_id ? ' <span class="tag">in a family</span>' : ""}${st.mem.some(m => m.id === p.id) ? ' <span class="tag">added</span>' : ""}</div>`).join("")
+      : '<div class="msg">No active single product matches.</div>';
+    hits.querySelectorAll("[data-nfp]").forEach(el => { el.onclick = async () => {
+      const p = data.find(x => x.id === el.dataset.nfp);
+      if(!p || st.mem.some(m => m.id === p.id)) return;
+      let fam = "";
+      if(p.family_id){ const f = await sb.from("product_family").select("sku,name").eq("id", p.family_id).maybeSingle(); fam = f.data ? `${f.data.name} (${f.data.sku})` : "another family"; }
+      st.mem.push({ id: p.id, sku: p.sku, name: p.name, fam: fam, opts: [] });
+      document.getElementById("nfQ").value = ""; hits.hidden = true; drawMem();
+      document.getElementById("nfQ").focus();
+    }; });
+  };
+  imsQ("#nfQ", draw);
+  drawMem();
+  setTimeout(() => { const i = document.getElementById("nfName"); if(i) i.focus(); }, 30);
+  document.getElementById("nfGo").onclick = () => {
+    const name = document.getElementById("nfName").value.trim();
+    const ax = axes();
+    if(!name){ alert("Type the family name."); return; }
+    if(!ax.length){ alert("Type at least the Option 1 name (e.g. Color)."); return; }
+    if(!st.mem.length){ alert("Add at least one SKU."); return; }
+    const fam = { name: name, option1_name: ax[0] };
+    if(ax[1]) fam.option2_name = ax[1];
+    if(ax[2]) fam.option3_name = ax[2];
+    const sku = document.getElementById("nfSku").value.trim(); if(sku) fam.sku = sku;
+    const note = document.getElementById("nfNote").value.trim(); if(note) fam.note = note;
+    const items = st.mem.map(m => ({ sku: m.sku, options: ax.map((a, j) => String(m.opts[j] || "").trim()) }));
+    famRunNew(fam, items, async (d) => { const id = d.family && d.family.id; if(id) await openFamily(id); else showWide(); });
+  };
+}
 function leaveFamily(fam, m, onDone){
   if(!m) return;
   if(!confirm(`Take ${m.sku} out of family ${fam.sku}?\n\nIt stays a product on its own (stock, prices and orders are not touched). Its option values are cleared. On Shopify, the next push of this family drops the variant.`)) return;
@@ -385,6 +478,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   imsHeader(me);
   canEdit = imsAuth.canWrite("master");   // fam v4 — product_update 의 문(ims_require_write master)
+  { const nf = document.getElementById("wnewfam"); if(canEdit){ nf.hidden = false; nf.onclick = openNewFamily; } }   // fam v5
   document.getElementById("buildTag").textContent = FAM_BUILD;
   document.getElementById("axis").onchange = e => { axis = e.target.value; pg.reset(); clearDetail(); loadList(); };
   document.getElementById("brand").onchange = e => { brand = e.target.value.trim(); pg.reset(); clearDetail(); loadList(); };
