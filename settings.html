@@ -104,7 +104,7 @@
 <script src="ims-auth.js"></script>
 <script src="ims-doc.js"></script>
 <script>
-const SET_BUILD = "2026-10-23 · set v7";   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-23 · set v7a";   // 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -567,6 +567,7 @@ async function mSave(key, value){
 const DOC_DATE_FMTS = ["DDMONYYYY", "DD Mon YYYY", "YYYY-MM-DD", "MM/DD/YYYY", "DD/MM/YYYY", "Mon DD, YYYY"];
 const DOC_REF_LBL = { final_invoice: "Invoice no.", internal_receipt: "Invoice no.", ship_ready: "Invoice no. (sample)", credit_note: "Credit note no.", sales_order: "SO no." };
 let dCfg = null, dKind = "final_invoice", dVers = [], dDraft = "", dDraftNote = "", dCheck = null, dPrevRef = "";
+let dVerAll = false;   // set v7a — 옛 판 펼침(탭을 바꾸면 다시 접힌다)
 
 async function loadDocs(){
   const body = document.getElementById("body");
@@ -617,7 +618,7 @@ async function loadDocs(){
   const sv = document.getElementById("dcSave"); if(sv) sv.onclick = () => dSaveCompany(co, brs);
   const lu = document.getElementById("dcLogoUp"); if(lu) lu.onclick = dUploadLogo;
   const lo = document.getElementById("dcLogoOff"); if(lo) lo.onclick = async () => { if(!confirm("Remove the logo? Documents will print the company name instead.")) return; const ok = await dCfgSave("doc_logo_path", "", "res_logo", co.logo_path ?? null); if(ok) await loadDocs(); };
-  body.querySelectorAll("[data-kind]").forEach(b => { b.onclick = () => { if(dKind !== b.dataset.kind){ dKind = b.dataset.kind; dDraft = ""; dDraftNote = ""; dCheck = null; } loadDocs(); }; });
+  body.querySelectorAll("[data-kind]").forEach(b => { b.onclick = () => { if(dKind !== b.dataset.kind){ dKind = b.dataset.kind; dDraft = ""; dDraftNote = ""; dCheck = null; dVerAll = false; } loadDocs(); }; });
   drawKind();
 }
 
@@ -665,16 +666,21 @@ function drawKind(){
   const st = (dCfg.settings || {})[dKind] || {};
   const act = (dCfg.active || {})[dKind];
   const vers = dVers.filter(v => v.kind === dKind);
+  /* set v7a — 쓰는 판과 판 번호가 가장 높은 둘만 늘 보인다(되돌리기에 쓰는 바로 앞 판 · 쓰다 만 새 판) · 나머지는 접는다 */
+  const keep = new Set(vers.slice().sort((a, b) => Number(b.version) - Number(a.version)).slice(0, 2).map(v => v.id));
+  vers.forEach(v => { if(v.is_active) keep.add(v.id); });
+  const nHidden = vers.filter(v => !keep.has(v.id)).length;
+  const versShown = dVerAll ? vers : vers.filter(v => keep.has(v.id));
   const dis = ed ? "" : "disabled";
   const tog = (key, label, def) => { const on = (st[key] == null ? def : st[key] === "true"); return `<label class="dtog"><input type="checkbox" data-tog="${key}" ${on ? "checked" : ""} ${dis}> ${label}</label>`; };
   box.innerHTML = `
     <div class="mrow"><div class="lbl">Layout in use</div><div class="ctl">
       <div class="line"><span class="bigstate ${act ? "on" : "off"}">${act ? "Version " + esc(String(act.version)) : "None yet"}</span>${act ? `<span class="note">since ${esc(imsTs(act.set_at))}</span>` : '<span class="note">This document cannot print until a layout is in use.</span>'}</div>
-      ${vers.length ? `<table class="dver"><thead><tr><th>Version</th><th>Note</th><th>Uploaded</th><th>Checks</th><th></th></tr></thead><tbody>${vers.map(v => `<tr>
+      ${vers.length ? `<table class="dver"><thead><tr><th>Version</th><th>Note</th><th>Uploaded</th><th>Checks</th><th></th></tr></thead><tbody>${versShown.map(v => `<tr>
         <td class="mono">v${esc(String(v.version))}${v.is_active ? ' <span class="pill">in use</span>' : ""}</td>
         <td>${esc(v.note || "")}</td><td class="dim">${esc(imsTs(v.uploaded_at))}${v.uploaded_by_name ? " · " + esc(v.uploaded_by_name) : ""}</td>
         <td>${v.ok ? "Passed" : '<span class="err">Failed</span>'}</td>
-        <td class="dact"><button class="pobtn" data-vopen="${esc(v.id)}">Open</button>${pub && v.ok && !v.is_active ? `<button class="pobtn go" data-vuse="${esc(v.id)}" data-vno="${esc(String(v.version))}">Use this version</button>` : ""}</td></tr>`).join("")}</tbody></table>` : '<span class="note">No versions uploaded yet.</span>'}
+        <td class="dact"><button class="pobtn" data-vopen="${esc(v.id)}">Open</button>${pub && v.ok && !v.is_active ? `<button class="pobtn go" data-vuse="${esc(v.id)}" data-vno="${esc(String(v.version))}">Use this version</button>` : ""}</td></tr>`).join("")}</tbody></table>${nHidden ? `<div class="line"><button class="pobtn" id="dVerMore">${dVerAll ? "Hide older versions" : `Show ${nHidden} older version${nHidden > 1 ? "s" : ""}`}</button><span class="note">Older versions are kept — nothing is deleted.</span></div>` : ""}` : '<span class="note">No versions uploaded yet.</span>'}
     </div></div>
     <div class="mrow"><div class="lbl">Layout file<span class="who">${pub ? "Check → preview → save → use. Saving does not change what prints until you press Use this version." : "Only an admin, or a supervisor with the Document templates key, can upload or switch layouts."}</span></div><div class="ctl">
       ${pub ? '<div class="line"><input type="file" id="dFile" accept=".html,.htm,text/html"><span class="note">or paste below</span></div>' : ""}
@@ -709,6 +715,7 @@ function drawKind(){
   const ck = document.getElementById("dChk"); if(ck) ck.onclick = dRunCheck;
   const sv = document.getElementById("dSaveV"); if(sv) sv.onclick = dSaveVersion;
   if(dCheck) dDrawCheck();
+  { const mv = document.getElementById("dVerMore"); if(mv) mv.onclick = () => { dVerAll = !dVerAll; drawKind(); }; }   // set v7a
   box.querySelectorAll("[data-vopen]").forEach(b => { b.onclick = async () => {
     const { data, error } = await sb.rpc("doc_template_get", { p_template_id: b.dataset.vopen });
     if(error || !data){ alert(error ? error.message : "That version was not found."); return; }
