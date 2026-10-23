@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="ims-ui.css">
 <style>
   /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .chip · .tag · .kv · #wide · .wfilt · .foot) */
+  .bgm{margin-left:5px;font-size:11px;color:var(--warn);font-weight:600;white-space:nowrap}   /* stk bg v1 — 판정 641 */
   .list{width:340px;flex:0 0 340px}
   .list .rows{max-height:calc(100vh - 250px)}
   .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -142,7 +143,7 @@
      stk_value_many(p_product_ids, p_warehouse_id) · stk_value_total(p_warehouse_id, p_q, p_brand_id, p_category_id, p_supplier_id, p_sale_only) — 원가 열쇠(ims_can_view_cost)가 있을 때만 부른다 · 없으면 칸 · 단추 자체를 그리지 않는다
      Both 에서는 Bin 칸이 없다(bin 은 브랜치마다) · 상세 · 펼침은 브랜치 하나(dwh)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-22 · stk csv v1a";   // v1a — Caleb 「bin 괄호 안에 있는 재고는 csv에서는 없었으면」: Bin 칸은 칸 이름만 ←   // 대화 Claude — stkx-1(판정 628): ↓ CSV — stk_availability_export 한 번(지금 거르기 · 한 행 jsonb · Max rows 1000 을 피한다) · 화면과 같은 칸(Both 면 창고마다 넷 · 한 창고면 Bin) · Value 는 원가 열쇠가 있을 때만(stk_value_many 500 씩) ← 2026-10-20 · stk v2: 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-23 · stk bg v1";   // 대화 Claude — bgr-1a(e73c83c · 판정 641): On hand 는 B급을 뺀 값(DB) · 그 옆에 「+N B」(by_warehouse[].bgrade · 수량만) · 상세에 B-grade 타일(누르면 B-grade Stock) · 칸 표의 B급 칸에 B-grade 꼬리표(ref_bin.is_bgrade 를 시작 때 한 번) ← stk csv v1a:   // v1a — Caleb 「bin 괄호 안에 있는 재고는 csv에서는 없었으면」: Bin 칸은 칸 이름만 ←   // 대화 Claude — stkx-1(판정 628): ↓ CSV — stk_availability_export 한 번(지금 거르기 · 한 행 jsonb · Max rows 1000 을 피한다) · 화면과 같은 칸(Both 면 창고마다 넷 · 한 창고면 Bin) · Value 는 원가 열쇠가 있을 때만(stk_value_many 500 씩) ← 2026-10-20 · stk v2: 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -163,6 +164,12 @@ const n0 = (v) => v === null || v === undefined ? "" : Number(v).toLocaleString(
 function photoUrl(path){ return `${window.IMS_CONFIG.SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`; }
 function whName(id){ const w = WHS.find(x => x.id === id); return w ? w.name : (id === BOTH ? "Both branches" : ""); }
 function numTd(v, cls){ const x = Number(v || 0); return `<td class="num ${cls || ""}${x < 0 ? " neg" : ""}">${x === 0 ? '<span class="dim">0</span>' : n0(x)}</td>`; }
+/* stk bg v1 — 판정 641: On hand 는 B급 칸을 뺀 값(DB) · B급 수량은 옆에 「+N B」 로 따로(가용에 안 든다) */
+let BGBINS = new Set();
+const bgOf = (r, w) => { const e = (r.by_warehouse || []).find(x => x.warehouse_id === w); return Number((e && e.bgrade) || 0); };
+const bgMark = (n) => n ? `<span class="bgm" title="${esc(n0(n))} more in B-grade bins — not in On hand or Available, sold at the POS only">+${esc(n0(n))} B</span>` : "";
+function ohTd(v, bg, cls){ const x = Number(v || 0); return `<td class="num ${cls || ""}${x < 0 ? " neg" : ""}">${x === 0 ? '<span class="dim">0</span>' : n0(x)}${bgMark(bg)}</td>`; }
+const bgTag = (id) => id && BGBINS.has(id) ? ' <span class="tag">B-grade</span>' : "";
 function setMark(r){
   if(!r.matched_set_sku || String(q || "").trim().toUpperCase() !== String(r.matched_set_sku).toUpperCase()) return "";   // 세트 sku 를 정확히 쳤을 때만(넓은 검색에서는 펼침의 Sets 로)
   const more = r.matched_set_count > 1 ? ` (+${r.matched_set_count - 1} more)` : "";
@@ -359,10 +366,10 @@ async function loadWide(off){
       <th class="num">On order</th><th class="num">In transit</th>${valTh}<th>Last movement</th></tr>`;
   const cellsOf = (r) => both
     ? WHS.map(w => { const e = (r.by_warehouse || []).find(x => x.warehouse_id === w.id) || {};
-        return numTd(e.on_hand, "wsep") + rsvTd(e.sales_allocated, "so", r.product_id, w.id) + rsvTd(e.transfer_reserved, "trf", r.product_id, w.id) + numTd(e.available, "av"); }).join("")
+        return ohTd(e.on_hand, Number(e.bgrade || 0), "wsep") + rsvTd(e.sales_allocated, "so", r.product_id, w.id) + rsvTd(e.transfer_reserved, "trf", r.product_id, w.id) + numTd(e.available, "av"); }).join("")
       + numTd(r.on_order, "wsep") + numTd(r.in_transit)
     : `<td style="white-space:nowrap">${binCell(bn[r.product_id])}</td>
-      ${numTd(r.on_hand)}${rsvTd(r.sales_allocated, "so", r.product_id, wh)}${rsvTd(r.transfer_reserved, "trf", r.product_id, wh)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}`;
+      ${ohTd(r.on_hand, bgOf(r, wh))}${rsvTd(r.sales_allocated, "so", r.product_id, wh)}${rsvTd(r.transfer_reserved, "trf", r.product_id, wh)}${numTd(r.available, "av")}${numTd(r.on_order)}${numTd(r.in_transit)}`;
   $("wrows").innerHTML = rows.length ? `<table><thead>${head}</thead><tbody>
     ${rows.map(r => `<tr data-id="${esc(r.product_id)}" class="${r.is_active ? "" : "off"}" style="cursor:pointer">
       <td style="width:22px"><button class="car" data-car="${esc(r.product_id)}" title="Show sets, bins and recent movements">&#9656;</button></td>
@@ -486,7 +493,9 @@ async function loadDetail(id){
   const vo = v[id];
   const valTile = !canCost ? "" : v.__err ? `<div title="${esc(v.__err)}"><span>Value</span><b class="neg" style="font-size:13px">error</b></div>`
     : `<div title="Remaining value of the cost layers (FIFO) · layer quantity ${n0(vo ? vo.q : 0)} EA"><span>Value</span><b style="font-size:15px">${money(vo ? vo.v : 0)}</b></div>`;
-  const nTiles = canCost ? 8 : 7;
+  const bgN = bw ? Number(bw.bgrade || 0) : 0;   // stk bg v1
+  const bgTile = bgN ? `<div class="click" data-bgt="1" title="Stock in B-grade bins — not in On hand or Available, sold at the POS only. Open B-grade Stock."><span>B-grade</span><b>${n0(bgN)}</b></div>` : "";
+  const nTiles = (canCost ? 8 : 7) + (bgN ? 1 : 0);
   const obr = others.length ? `<div class="obr"><span class="dim">Other branches:</span>${others.map(o => `<button class="xs" data-owh="${esc(o.warehouse_id)}" title="Switch to this branch">${esc(o.warehouse)} — on hand ${n0(o.on_hand)} · available <b>${n0(o.available)}</b></button>`).join("")}</div>` : "";
   box.innerHTML = `
     <div class="card"><div class="phead">${big}
@@ -497,13 +506,13 @@ async function loadDetail(id){
       </div></div>
       ${a.error ? `<div class="msg err">${esc(a.error.message)}</div>` : `<div class="nums" style="grid-template-columns:repeat(${nTiles},minmax(0,1fr))">
         ${tile("On hand", bw && bw.on_hand)}${tile("Allocated", bw && bw.sales_allocated, false, "so")}${tile("Transfer res.", bw && bw.transfer_reserved, false, "trf")}
-        ${tile("Available", bw && bw.available, true)}${tile("On order", bw && bw.on_order)}${tile("In transit", bw && bw.in_transit)}${valTile}
+        ${tile("Available", bw && bw.available, true)}${tile("On order", bw && bw.on_order)}${tile("In transit", bw && bw.in_transit)}${bgTile}${valTile}
         <div><span>Last movement</span><b style="font-size:13px">${bw && bw.last_event_on ? esc(bw.last_event_on) : "—"}</b></div></div>${obr}`}
       <div id="rsvBox" hidden style="margin-top:12px"></div>
     </div>
     <div class="card"><h3>Bins <span class="n">${bins.length}</span></h3>
       ${b.error ? `<div class="msg err">${esc(b.error.message)}</div>` : bins.length ? `<table><thead><tr><th>Bin</th><th>Zone</th><th class="num">Qty</th><th>Last movement</th></tr></thead><tbody>
-        ${bins.map(x => `<tr class="${x.bin_is_active === false ? "rev" : ""}"><td class="mono">${x.bin ? esc(x.bin) : '<span class="dim">(no bin)</span>'}${x.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}</td>
+        ${bins.map(x => `<tr class="${x.bin_is_active === false ? "rev" : ""}"><td class="mono">${x.bin ? esc(x.bin) : '<span class="dim">(no bin)</span>'}${x.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}${bgTag(x.bin_id)}</td>
           <td>${dim(x.bin_zone)}</td>${numTd(x.qty)}<td>${x.last_event_on ? esc(x.last_event_on) : ""}</td></tr>`).join("")}</tbody></table>` : '<div class="msg">No stock in any bin at this branch.</div>'}
     </div>
     <div class="card"><h3>Movements — ${esc(whName(dwh))}</h3>
@@ -517,6 +526,7 @@ async function loadDetail(id){
   const goWh = (x) => { dwh = x; if(!isBoth()){ wh = x; lOff = 0; } openProduct(id); };   // stk v2 — 목록이 Both 면 목록은 그대로 · 상세만 바꾼다
   $("whSeg").querySelectorAll("[data-wh]").forEach(bt => { bt.onclick = () => goWh(bt.dataset.wh); });
   box.querySelectorAll("[data-owh]").forEach(bt => { bt.onclick = () => goWh(bt.dataset.owh); });
+  box.querySelectorAll("[data-bgt]").forEach(el => { el.onclick = () => { location.href = "stock-bgrade.html?wh=" + encodeURIComponent(dwh); }; });   // stk bg v1
   box.querySelectorAll("[data-tile]").forEach(el => { el.onclick = () => {
     const rb = $("rsvBox"), k = el.dataset.tile;
     if(!rb.hidden && rb.dataset.kind === k){ rb.hidden = true; rb.dataset.kind = ""; return; }
@@ -561,7 +571,7 @@ async function fillExp(id, cell){
     : '<span class="dim">No sets — sold as single units only.</span>';
   const binsHtml = bins.length ? `<table><thead><tr><th></th><th>Bin</th><th>Zone</th><th class="num">Qty</th></tr></thead><tbody>
       ${bins.map((b, i) => `<tr data-bi="${i}"><td style="width:22px"><button class="car" data-bincar="${i}" title="Show movements in this bin">&#9656;</button></td>
-        <td class="mono">${b.bin ? esc(b.bin) : '<span class="dim">(no bin)</span>'}${b.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}</td>
+        <td class="mono">${b.bin ? esc(b.bin) : '<span class="dim">(no bin)</span>'}${b.bin_is_active === false ? ' <span class="tag off">inactive bin</span>' : ""}${bgTag(b.bin_id)}</td>
         <td>${dim(b.bin_zone)}</td>${numTd(b.qty)}</tr>`).join("")}</tbody></table>`
     : '<div class="msg">No stock in any bin at this branch.</div>';
   const recent = moves.slice().reverse().slice(0, 20);
@@ -622,13 +632,15 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client; me = meData;
   imsHeader(me);
   $("buildTag").textContent = STK_BUILD;
-  const [w, br, ct, sp, cc] = await Promise.all([
+  const [w, br, ct, sp, cc, bgq] = await Promise.all([
     sb.from("ref_warehouse").select("id,name,is_default").eq("is_active", true).order("name"),
     sb.from("ref_brand").select("id,name").eq("is_active", true).order("name"),
     sb.from("ref_category").select("id,name").eq("is_active", true).order("name"),
     sb.from("supplier").select("id,name").eq("is_active", true).order("name"),   // stk v2 — 공급처 거르기(판정 570)
     sb.rpc("ims_can_view_cost"),                                                // stk v2 — 원가 열쇠(판정 567 · 578) · 없으면 Value 칸 · 합계 단추를 그리지 않는다
+    sb.from("ref_bin").select("id").eq("is_bgrade", true),                     // stk bg v1 — B급 칸(칸 표 꼬리표 · 판정 636)
   ]);
+  BGBINS = new Set(((bgq && bgq.data) || []).map(x => x.id));
   WHS = (w.data || []).filter(x => x.name !== "IN_TRANSIT");
   const def = WHS.find(x => x.is_default) || WHS[0];
   DEF = def ? def.id : "";

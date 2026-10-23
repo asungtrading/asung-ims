@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B-grade Stock · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* Local to this screen — shared rules live in ims-ui.css
+     (.pobtn · .pomodal/.pobox/.frow · #wide/.wfilt · .invsub · .chip · .card) */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .pobox input,.pobox select,.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
+  .pobox{max-width:720px}
+
+  .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
+  .gap .g{display:flex;flex-direction:column;gap:2px}
+  .gap .g b{font-family:var(--mono);font-size:17px;font-weight:700}
+  .gap .g span{font-size:11.5px;color:var(--muted)}
+  .gap .g.bad b{color:var(--bad)}
+  .gap .g.warn b{color:var(--warn)}
+
+  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
+  .prow:hover{background:#f7f9fc}
+  .binlist{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
+  .binbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
+  .binbtn.on{background:#eef2ff;border-color:#c7d2fe}
+  .binbtn.zero{color:var(--muted);border-style:dashed}
+  .herebins{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .calc{font-size:12.5px;margin-top:8px;padding:8px 10px;border-radius:10px;background:#f7f9fc}
+  .calc b{font-family:var(--mono)}
+  .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:8px}
+  .mtabs{display:flex;gap:6px}
+  .mtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .mtabs button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
+  td .pobtn{padding:3px 9px;font-size:12px}
+  tr.neg td{background:#fff6f5}
+  tr.noprice td{background:#fffaf0}
+  .lnth{display:flex;gap:8px;align-items:flex-start}
+  .wfilt label.chk{display:flex;gap:6px;align-items:center;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide">
+  <div class="card">
+    <div class="wfilt">
+      <select id="wwh"><option value="">All warehouses</option></select>
+      <label class="chk"><input type="checkbox" id="wnp"> No price only</label>
+      <input type="search" id="wq" placeholder="SKU · product · bin">
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn go" id="wnew" hidden>Move to B-grade</button>
+    </div>
+    <div class="gap" id="wsum"></div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+  </div>
+</section>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   B-grade Stock — damaged-package goods kept on the same SKU, in B-grade bins.
+
+   A bin is marked B-grade in Settings → Bin (master). Stock in a B-grade bin is left out
+   of On hand and every available count, is never picked for regular orders, and is sold
+   at the POS only, at its B-grade price (rulings 629 ~ 648).
+
+   ⭐ One price per SKU per B-grade bin (ruling 642). A different price goes to another
+      B-grade bin — or the whole bin is repriced and relabelled (ruling 646).
+   ⭐ A percent is "% off the Wholesale unit price" and is turned into one price in cents
+      at the moment it is entered (rulings 631 · 632 · 645).
+   ⭐ A price is live only while the bin holds that SKU. B-grade stock with no live price
+      cannot be sold at the POS (ruling 644) — those rows are listed as "No price".
+   ⭐ Moving in and out, and setting a price, use the stock-adjustment door
+      (ims_can_adjust — rulings 49 · 50 · 638). Cost does not change on a move (ruling 637).
+   ⚠️ Every number comes from the database (bgrade_stock · bgrade_move_in · bgrade_move_out ·
+      bgrade_price_set). The only sum on this screen is the % preview, and the database
+      redoes it on save.
+   ───────────────────────────────────────────────────────────── */
+
+/* ⚠️ Which build is running — the screen says its own version out loud. */
+const BG_BUILD = "2026-10-23 · bgr v1";   // 대화 Claude — bgr-1a e73c83c · bgr-1b 3230cff · bgr-1c c60eb9e(판정 629 ~ 648): 새 화면 — B급 재고 목록(bgrade_stock · 창고 · 값 없음만 · 찾기) · Move to B-grade(bgrade_move_in · 값 또는 Wholesale 에서 깎는 %) · Move back(bgrade_move_out) · Set price / Reprice(bgrade_price_set · p_reprice · 라벨 다시 붙이기 안내) · 문 = ims_can_adjust
+console.log("stock-bgrade.html build:", BG_BUILD);
+const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
+const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
+
+let sb = null, me = null, canAdj = false;
+let whs = [], allWh = [], whFilter = "", noPriceOnly = false, q = "";
+let rows = [];          // bgrade_stock rows
+let listSeq = 0;
+
+/* ⭐ Everything the fragments below read is declared up here. */
+const qty = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:3 }));
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:2 }));
+const pctTxt = (v) => esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits:4 }));
+const whName = (id) => { const w = allWh.find(x => x.id === id); return w ? w.name : ""; };
+
+function modalOpen(html){
+  document.getElementById("modalBox").innerHTML = html;
+  document.getElementById("modal").hidden = false;
+}
+function modalClose(){
+  document.getElementById("modal").hidden = true;
+  document.getElementById("modalBox").innerHTML = "";
+}
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+
+function say(where, cls, text){
+  const el = document.getElementById(where);
+  if(el){ el.className = cls; el.textContent = text; return; }
+  if(cls === "err") alert(text);
+}
+
+/* Wholesale unit price — the base for "% off" (ruling 632). The database reads the same row on save. */
+async function wholesaleOf(pid){
+  const { data, error } = await sb.from("product_price").select("price, ref_price_tier!inner(code,purpose)")
+    .eq("product_id", pid).eq("ref_price_tier.code", 1).eq("ref_price_tier.purpose", "sale").limit(1);
+  if(error || !data || !data.length) return null;
+  const n = Number(data[0].price);
+  return n > 0 ? n : null;
+}
+/* the same sum the database does — round(Wholesale × (1 − pct/100), 2) — for the preview only */
+const pctPrice = (basis, pct) => Math.round(basis * (1 - pct / 100) * 100) / 100;
+
+/* ── List ──────────────────────────────────────────── */
+async function loadList(){
+  const seq = ++listSeq;
+  const box = document.getElementById("wrows");
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("bgrade_stock", { p_warehouse_id: whFilter || null });
+  if(seq !== listSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("wsum").innerHTML = ""; return; }
+  rows = (data && data.rows) || [];
+  drawList();
+}
+function drawList(){
+  const box = document.getElementById("wrows");
+  const t = q.toLowerCase();
+  const shown = rows.filter(r => {
+    const np = !r.has_price && Number(r.qty) > 0;
+    if(noPriceOnly && !np) return false;
+    if(!t) return true;
+    return [r.sku, r.product_name, r.bin].some(x => String(x || "").toLowerCase().includes(t));
+  });
+
+  const live = rows.filter(r => Number(r.qty) > 0);
+  const units = live.reduce((a, r) => a + Number(r.qty), 0);
+  const noPrice = live.filter(r => !r.has_price).length;
+  const neg = rows.filter(r => Number(r.qty) < 0).length;
+  document.getElementById("wsum").innerHTML = `
+    <div class="g"><b>${qty(live.length)}</b><span>SKU lines in B-grade bins</span></div>
+    <div class="g"><b>${qty(units)}</b><span>units</span></div>
+    <div class="g ${noPrice ? "warn" : ""}"><b>${qty(noPrice)}</b><span>no price — cannot be sold at the POS</span></div>
+    <div class="g ${neg ? "bad" : ""}"><b>${qty(neg)}</b><span>below 0 — sold more than the book had · count the bin</span></div>`;
+
+  if(!rows.length){
+    box.innerHTML = `<div class="msg">No B-grade stock${whFilter ? " in " + esc(whName(whFilter)) : ""}.
+      ${canAdj ? "Use <b>Move to B-grade</b> to move damaged-package stock from a regular bin into a B-grade bin." : ""}
+      A bin becomes a B-grade bin in Settings → Bin (master).</div>`;
+    return;
+  }
+  if(!shown.length){ box.innerHTML = '<div class="msg">No rows match.</div>'; return; }
+
+  box.innerHTML = `<table><thead><tr>
+      ${whFilter ? "" : "<th>Warehouse</th>"}<th>Bin</th><th>SKU</th><th class="num">Qty</th>
+      <th class="num">B-grade price</th><th>How it was set</th><th class="num">Wholesale now</th><th>Set by</th>${canAdj ? "<th></th>" : ""}
+    </tr></thead><tbody>${shown.map((r, i) => {
+      const n = Number(r.qty), np = !r.has_price && n > 0;
+      const how = r.has_price
+        ? (r.pct !== null && r.pct !== undefined
+            ? `${pctTxt(r.pct)}% off Wholesale ${money(r.basis_price)}`
+            : "price entered")
+        : (n > 0 ? '<span class="chip warn">no price</span>' : '<span class="dim">—</span>');
+      const acts = [];
+      if(canAdj && n > 0) acts.push(`<button class="pobtn" data-price="${i}">${r.has_price ? "Reprice" : "Set price"}</button>`);
+      if(canAdj && n > 0) acts.push(`<button class="pobtn" data-back="${i}">Move back</button>`);
+      return `<tr class="${n < 0 ? "neg" : (np ? "noprice" : "")}">
+        ${whFilter ? "" : `<td>${esc(r.warehouse || "")}</td>`}
+        <td><span class="mono">${esc(r.bin)}</span></td>
+        <td><div class="lnth">${thumbOf(r.sku)}<div><span class="mono">${esc(r.sku)}</span>
+          <div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div></div></div></td>
+        <td class="num ${n < 0 ? "bad" : ""}">${qty(n)}</td>
+        <td class="num"><b>${r.has_price ? money(r.price) : '<span class="dim">—</span>'}</b></td>
+        <td style="font-size:12.5px">${how}</td>
+        <td class="num dim">${money(r.wholesale_now)}</td>
+        <td style="font-size:12px">${r.set_by ? esc(r.set_by) + '<div class="dim">' + imsTs(r.set_at) + "</div>" : '<span class="dim">—</span>'}</td>
+        ${canAdj ? `<td style="white-space:nowrap">${acts.join(" ")}</td>` : ""}
+      </tr>`;
+    }).join("")}</tbody></table>
+    <div class="invsub">B-grade stock is not in On hand or any available count, and is sold at the POS only.
+      A row below 0 means the POS sold more than the book had — count the bin and fix it with a stock adjustment.
+      Cost does not change when stock moves in or out of a B-grade bin.</div>`;
+  thumbFill(box);
+  box.querySelectorAll("[data-price]").forEach(b => { b.onclick = () => openPrice(shown[Number(b.dataset.price)]); });
+  box.querySelectorAll("[data-back]").forEach(b => { b.onclick = () => openBack(shown[Number(b.dataset.back)]); });
+}
+
+/* ── Price or % — one small piece both windows use ── */
+function priceFields(prefix){
+  return `
+    <div class="frow" style="margin-top:12px"><label>B-grade price</label>
+      <span class="mtabs"><button data-pm="${prefix}" data-mode="price">Price</button><button data-pm="${prefix}" data-mode="pct">% off Wholesale</button></span></div>
+    <div class="frow"><label id="${prefix}Lbl">Price</label>
+      <input id="${prefix}V" type="number" step="0.01" min="0" style="width:130px" autocomplete="off">
+      <span class="dim" id="${prefix}Hint" style="font-size:12px"></span></div>
+    <div id="${prefix}Calc" class="calc" hidden></div>`;
+}
+/* wires the tabs and the preview · returns a reader: () => ({price}|{pct}|{}) */
+function wirePrice(prefix, getBasis, onChange){
+  let mode = "price";
+  const v = document.getElementById(prefix + "V");
+  const draw = () => {
+    document.querySelectorAll(`[data-pm="${prefix}"]`).forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+    document.getElementById(prefix + "Lbl").textContent = mode === "pct" ? "% off" : "Price";
+    v.step = mode === "pct" ? "any" : "0.01";
+    const calc = document.getElementById(prefix + "Calc");
+    const basis = getBasis();
+    const hint = document.getElementById(prefix + "Hint");
+    hint.textContent = mode === "pct"
+      ? (basis ? `Wholesale ${basis.toFixed(2)} — e.g. 30 → ${pctPrice(basis, 30).toFixed(2)}` : "This SKU has no Wholesale price — enter a price instead")
+      : "In dollars and cents";
+    const n = Number(v.value);
+    if(mode === "pct" && v.value !== "" && basis && n > 0 && n < 100){
+      calc.hidden = false;
+      calc.innerHTML = `Wholesale <b>${basis.toFixed(2)}</b> − ${esc(String(n))}% → B-grade price <b>${pctPrice(basis, n).toFixed(2)}</b>`;
+    } else if(mode === "price" && v.value !== "" && n > 0 && basis){
+      calc.hidden = false;
+      calc.innerHTML = `B-grade price <b>${n.toFixed(2)}</b> · Wholesale <b>${basis.toFixed(2)}</b> (${Math.round((1 - n / basis) * 1000) / 10}% off)`;
+    } else calc.hidden = true;
+    if(onChange) onChange();
+  };
+  document.querySelectorAll(`[data-pm="${prefix}"]`).forEach(b => { b.onclick = () => { mode = b.dataset.mode; v.value = ""; draw(); }; });
+  v.addEventListener("input", draw);
+  draw();
+  return {
+    redraw: draw,
+    read: () => {
+      if(v.value === "") return {};
+      const n = Number(v.value);
+      return mode === "pct" ? { pct: n } : { price: n };
+    }
+  };
+}
+
+/* ── Move to B-grade ───────────────────────────────── */
+async function openMoveIn(){
+  const myWhs = whs.length ? whs : allWh;
+  const st = { wh: whFilter || (myWhs[0] && myWhs[0].id) || "", product_id: null, sku: "", name: "",
+               from_bin_id: null, from_bin: "", from_qty: null, to_bin_id: "", basis: null, bins: [] };
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Move to B-grade</h3>
+    <div class="frow"><label>Warehouse</label>
+      <select id="mWh">${myWhs.map(w => `<option value="${esc(w.id)}" ${w.id === st.wh ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
+    <div class="frow" style="margin-top:12px"><label>Product</label>
+      <input id="mpq" placeholder="Scan a barcode or type SKU · product name" autocomplete="off"></div>
+    <div id="mpPicked" style="font-size:12.5px;margin-top:4px"></div>
+    <div id="mpHits" class="binlist"><div class="msg">Type to search.</div></div>
+
+    <div class="frow" style="margin-top:12px"><label>From bin</label><span class="dim" style="font-size:12px" id="mFromHint">Pick the product first.</span></div>
+    <div id="mFrom"></div>
+
+    <div class="frow" style="margin-top:12px"><label>To B-grade bin</label><select id="mTo"></select></div>
+    <div id="mToNote"></div>
+
+    <div class="frow" style="margin-top:12px"><label>Quantity</label>
+      <input id="mq" type="number" step="1" min="1" style="width:130px" autocomplete="off">
+      <span class="dim" id="mqHint" style="font-size:12px">Single units</span></div>
+    ${priceFields("mp")}
+    <div class="frow"><label>Note</label><input id="mn" style="flex:1" placeholder="Optional — e.g. box crushed in receiving"></div>
+
+    <div id="mMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="mCancel">Cancel</button>
+      <button class="pobtn go" id="mSave">Move</button></div>`);
+  document.getElementById("mCancel").onclick = modalClose;
+  const pHits = document.getElementById("mpHits");
+  const pr = wirePrice("mp", () => st.basis, null);
+
+  /* the B-grade bins of this warehouse — and, once a product is picked, which already hold it at a live price */
+  const liveIn = (binId) => rows.find(r => r.bin_id === binId && r.product_id === st.product_id && Number(r.qty) > 0 && r.has_price);
+  const drawTo = () => {
+    const sel = document.getElementById("mTo");
+    const mine = st.bins.filter(b => b.warehouse_id === st.wh);
+    if(!mine.length){
+      sel.innerHTML = '<option value="">— no B-grade bin in this warehouse —</option>';
+      document.getElementById("mToNote").innerHTML = '<div class="warnbox">This warehouse has no B-grade bin yet. A master marks one in Settings → Bin.</div>';
+      st.to_bin_id = ""; return;
+    }
+    if(!mine.some(b => b.id === st.to_bin_id)) st.to_bin_id = mine[0].id;
+    sel.innerHTML = mine.map(b => {
+      const l = st.product_id ? liveIn(b.id) : null;
+      return `<option value="${esc(b.id)}" ${b.id === st.to_bin_id ? "selected" : ""}>${esc(b.name)}${l ? ` — holds ${Number(l.qty)} at ${Number(l.price).toFixed(2)}` : ""}</option>`;
+    }).join("");
+    const l = st.product_id ? liveIn(st.to_bin_id) : null;
+    document.getElementById("mToNote").innerHTML = l
+      ? `<div class="warnbox">This bin already holds <b>${qty(l.qty)}</b> of this SKU at <b>${money(l.price)}</b>. Leave the price empty to add at ${money(l.price)}.
+         A different price is refused — one price per SKU per B-grade bin: pick another B-grade bin, or reprice the bin from the list.</div>`
+      : "";
+  };
+  document.getElementById("mTo").onchange = e => { st.to_bin_id = e.target.value; drawTo(); };
+
+  /* regular bins that hold the product, by the book */
+  async function drawFrom(){
+    const box = document.getElementById("mFrom");
+    const hint = document.getElementById("mFromHint");
+    if(!st.product_id){ box.innerHTML = ""; hint.textContent = "Pick the product first."; return; }
+    const pid = st.product_id;
+    const { data, error } = await sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
+      .eq("product_id", pid).eq("warehouse_id", st.wh).not("bin_id", "is", null).order("qty", { ascending:false }).order("bin").limit(50);
+    if(st.product_id !== pid || !document.getElementById("mFrom")) return;
+    if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    const reg = (data || []).filter(r => !r.bin_is_bgrade && r.bin_is_active !== false && Number(r.qty) > 0);
+    if(!reg.length){ hint.textContent = ""; box.innerHTML = '<div class="dim" style="font-size:12px">The book has none of this SKU in a regular bin of this warehouse.</div>'; return; }
+    hint.textContent = "Where the book says it is now:";
+    if(!reg.some(r => r.bin_id === st.from_bin_id)){ st.from_bin_id = null; st.from_bin = ""; st.from_qty = null; }
+    box.innerHTML = `<div class="herebins">${reg.map(r =>
+      `<button class="binbtn ${r.bin_id === st.from_bin_id ? "on" : ""}" data-from="${esc(r.bin_id)}" data-name="${esc(r.bin)}" data-q="${esc(r.qty)}">${esc(r.bin)} · ${qty(r.qty)}</button>`).join("")}</div>`;
+    box.querySelectorAll("[data-from]").forEach(el => { el.onclick = () => {
+      st.from_bin_id = el.dataset.from; st.from_bin = el.dataset.name; st.from_qty = Number(el.dataset.q);
+      box.querySelectorAll("[data-from]").forEach(x => x.classList.toggle("on", x === el));
+      document.getElementById("mqHint").textContent = `Single units — ${st.from_bin} holds ${st.from_qty}`;
+    }; });
+  }
+
+  const showPicked = () => {
+    document.getElementById("mpPicked").innerHTML = st.product_id
+      ? `<span class="mono">${esc(st.sku)}</span> <span class="dim">${esc(st.name)}</span>${st.basis ? ` <span class="dim">· Wholesale ${st.basis.toFixed(2)}</span>` : ' <span class="dim">· no Wholesale price</span>'}`
+      : "";
+  };
+  const pickProduct = async (p) => {
+    if(p.parent_product_id){ say("mMsg", "err", `${p.sku} is a set or pack — B-grade stock is kept as the single-unit SKU. Pick the single unit.`); return; }
+    st.product_id = p.id; st.sku = p.sku; st.name = p.name || "";
+    document.getElementById("mpq").value = st.sku;
+    pHits.hidden = true;
+    say("mMsg", "", "");
+    st.basis = await wholesaleOf(p.id);
+    showPicked(); pr.redraw(); drawTo(); drawFrom();
+  };
+  const drawP = async (t) => {
+    if(!t){ pHits.innerHTML = '<div class="msg">Type to search.</div>'; return; }
+    const tt = String(t).replace(/[,()"\\]/g, "%");
+    const { data, error } = await sb.from("product").select("id,sku,name,parent_product_id")
+      .eq("is_active", true).is("parent_product_id", null).or(`sku.ilike.%${tt}%,name.ilike.%${tt}%`).order("sku").limit(40);
+    if(error){ pHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    pHits.innerHTML = data.length ? data.map(p => `<div class="prow" data-pid="${esc(p.id)}"><div class="lnth">${thumbOf(p.sku)}<div>
+        <span class="mono">${esc(p.sku)}</span><div class="dim" style="font-size:11.5px">${esc(p.name || "")}</div></div></div></div>`).join("")
+      : '<div class="msg">No active single-unit product matches.</div>';
+    pHits.querySelectorAll("[data-pid]").forEach(el => { el.onclick = () => pickProduct(data.find(x => x.id === el.dataset.pid)); });
+    thumbFill(pHits);
+  };
+  const mpq = document.getElementById("mpq");
+  imsQ(mpq, v => { pHits.hidden = false; st.product_id = null; st.basis = null; showPicked(); drawFrom(); drawTo(); drawP(v); });
+  mpq.onkeydown = async (e) => {
+    if(e.key !== "Enter") return;
+    const code = mpq.value.trim(); if(!code) return;
+    const bc = await sb.from("product_barcode").select("product:product_id!inner(id,sku,name,parent_product_id,is_active)").eq("is_active", true).eq("barcode", code).limit(2);
+    const byBc = (bc.data || []).map(x => x.product).filter(p => p && p.is_active);
+    if(byBc.length === 1){ pickProduct(byBc[0]); return; }
+    const { data } = await sb.from("product").select("id,sku,name,parent_product_id").eq("is_active", true).ilike("sku", code).limit(2);
+    if(data && data.length === 1) pickProduct(data[0]);
+  };
+  document.getElementById("mWh").onchange = e => { st.wh = e.target.value; st.from_bin_id = null; drawTo(); drawFrom(); };
+
+  /* B-grade bins — every warehouse the person can see; the select keeps this warehouse's */
+  const bb = await sb.from("ref_bin").select("id,name,warehouse_id").eq("is_bgrade", true).eq("is_active", true).order("name");
+  st.bins = (bb && bb.data) || [];
+  if(!document.getElementById("mTo")) return;
+  drawTo();
+  mpq.focus();
+
+  document.getElementById("mSave").onclick = async () => {
+    if(!st.product_id) return say("mMsg", "err", "Pick the product.");
+    if(!st.from_bin_id) return say("mMsg", "err", "Pick the regular bin it comes from.");
+    if(!st.to_bin_id) return say("mMsg", "err", "Pick the B-grade bin.");
+    const n = Number(document.getElementById("mq").value);
+    if(!(n > 0) || n !== Math.floor(n)) return say("mMsg", "err", "Quantity must be a whole number above 0.");
+    if(st.from_qty !== null && n > st.from_qty && !confirm(`${st.from_bin} holds ${st.from_qty} by the book — move ${n} anyway?`)) return;
+    const pv = pr.read();
+    if(pv.pct !== undefined && !(pv.pct > 0 && pv.pct < 100)) return say("mMsg", "err", "% off must be more than 0 and less than 100.");
+    if(pv.price !== undefined && !(pv.price > 0)) return say("mMsg", "err", "The B-grade price must be more than 0.");
+    if(pv.price === undefined && pv.pct === undefined && !liveIn(st.to_bin_id)) return say("mMsg", "err", "Enter a B-grade price, or a % off Wholesale.");
+    const line = Object.assign({ product_id: st.product_id, from_bin_id: st.from_bin_id, to_bin_id: st.to_bin_id, qty: n }, pv);
+    const b = document.getElementById("mSave"); b.disabled = true;
+    say("mMsg", "", "Moving…");
+    const { data, error } = await sb.rpc("bgrade_move_in", { p_warehouse_id: st.wh, p_lines: [line], p_note: document.getElementById("mn").value.trim() || null });
+    if(error){ b.disabled = false; return say("mMsg", "err", error.message); }
+    const p0 = (data && data.prices && data.prices[0]) || {};
+    modalClose();
+    alert(`Moved ${n} × ${st.sku} to B-grade bin ${p0.bin || ""} at ${p0.price !== undefined && p0.price !== null ? Number(p0.price).toFixed(2) : "its price"}${data && data.move_number ? " (" + data.move_number + ")" : ""}.\n\nLabel the units with the B-grade price.`);
+    await loadList();
+  };
+}
+
+/* ── Move back to a regular bin ────────────────────── */
+async function openBack(r){
+  if(!r) return;
+  const st = { to_bin_id: null, to_bin: "" };
+  modalOpen(`
+    <h3 style="margin:0 0 10px">Move back — <span class="mono">${esc(r.sku)}</span> from B-grade bin <span class="mono">${esc(r.bin)}</span></h3>
+    <div class="dim" style="font-size:12.5px">${esc(r.product_name || "")} · ${esc(r.warehouse || "")} · holds ${qty(r.qty)}${r.has_price ? " at " + money(r.price) : ""}</div>
+    <div class="frow" style="margin-top:12px"><label>Quantity</label>
+      <input id="bq" type="number" step="1" min="1" max="${esc(r.qty)}" value="${esc(r.qty)}" style="width:130px"></div>
+    <div class="frow" style="margin-top:12px"><label>To regular bin</label>
+      <input id="bbq" placeholder="Scan or type a bin" autocomplete="off"></div>
+    <div id="bHere"></div>
+    <div id="bHits" class="binlist" hidden></div>
+    <div class="dim" style="font-size:12px;margin-top:8px">Back in a regular bin the units sell at the regular price again — take the B-grade labels off.
+      Once the B-grade bin no longer holds this SKU, its B-grade price is gone.</div>
+    <div id="bMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="bCancel">Cancel</button>
+      <button class="pobtn go" id="bSave">Move back</button></div>`);
+  document.getElementById("bCancel").onclick = modalClose;
+  const bHits = document.getElementById("bHits");
+  const pickBin = (id, name) => {
+    st.to_bin_id = id; st.to_bin = name;
+    document.getElementById("bbq").value = name;
+    bHits.hidden = true;
+    document.querySelectorAll("[data-here]").forEach(x => x.classList.toggle("on", x.dataset.here === id));
+  };
+  /* where this SKU lives in regular bins now · or the last regular bin it was in (ims_last_bin skips B-grade bins) */
+  const [r1, r2] = await Promise.all([
+    sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
+      .eq("product_id", r.product_id).eq("warehouse_id", r.warehouse_id).not("bin_id", "is", null).order("qty", { ascending:false }).limit(50),
+    sb.rpc("ims_last_bin", { p_product_ids: [r.product_id], p_warehouse_id: r.warehouse_id })
+  ]);
+  if(!document.getElementById("bHere")) return;
+  const reg = ((r1 && r1.data) || []).filter(x => !x.bin_is_bgrade && x.bin_is_active !== false && Number(x.qty) !== 0);
+  const last = (r2 && !r2.error && r2.data) ? r2.data[r.product_id] : null;
+  let html = "";
+  if(reg.length) html = `<div class="dim" style="font-size:12px;margin-top:4px">Regular bins that hold it now:</div>
+      <div class="herebins">${reg.map(x => `<button class="binbtn" data-here="${esc(x.bin_id)}" data-name="${esc(x.bin)}">${esc(x.bin)} · ${qty(x.qty)}</button>`).join("")}</div>`;
+  else if(last && last.bin_id) html = `<div class="dim" style="font-size:12px;margin-top:4px">No regular bin holds it now. Last regular bin:</div>
+      <div class="herebins"><button class="binbtn zero" data-here="${esc(last.bin_id)}" data-name="${esc(last.bin)}">Last here: ${esc(last.bin)}</button></div>`;
+  document.getElementById("bHere").innerHTML = html;
+  document.querySelectorAll("[data-here]").forEach(el => { el.onclick = () => pickBin(el.dataset.here, el.dataset.name); });
+  if(reg.length === 1) pickBin(reg[0].bin_id, reg[0].bin);
+  else if(!reg.length && last && last.bin_id) pickBin(last.bin_id, last.bin);
+
+  const drawB = async (t) => {
+    let qy = sb.from("ref_bin").select("id,name,zone").eq("warehouse_id", r.warehouse_id).eq("is_active", true).eq("is_bgrade", false).neq("name", "");
+    if(t) qy = qy.ilike("name", `%${t}%`);
+    const { data, error } = await qy.order("name").limit(300);
+    if(error){ bHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    bHits.innerHTML = data.length ? data.map(b => `<div class="prow" data-bid="${esc(b.id)}" data-name="${esc(b.name)}">
+        <span class="mono">${esc(b.name)}</span>${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}</div>`).join("")
+      : '<div class="msg">No regular bin matches.</div>';
+    bHits.querySelectorAll("[data-bid]").forEach(el => { el.onclick = () => pickBin(el.dataset.bid, el.dataset.name); });
+  };
+  const bbq = document.getElementById("bbq");
+  imsQ(bbq, v => { bHits.hidden = false; st.to_bin_id = null; drawB(v); });
+
+  document.getElementById("bSave").onclick = async () => {
+    const n = Number(document.getElementById("bq").value);
+    if(!(n > 0) || n !== Math.floor(n)) return say("bMsg", "err", "Quantity must be a whole number above 0.");
+    if(n > Number(r.qty)) return say("bMsg", "err", `The bin holds ${Number(r.qty)} by the book.`);
+    const typed = bbq.value.trim();
+    if(!st.to_bin_id && !typed) return say("bMsg", "err", "Pick or type the regular bin it goes back to.");
+    const line = { product_id: r.product_id, from_bin_id: r.bin_id, qty: n };
+    if(st.to_bin_id) line.to_bin_id = st.to_bin_id; else line.to_bin = typed;
+    const b = document.getElementById("bSave"); b.disabled = true;
+    say("bMsg", "", "Moving…");
+    const { data, error } = await sb.rpc("bgrade_move_out", { p_warehouse_id: r.warehouse_id, p_lines: [line], p_note: null });
+    if(error){ b.disabled = false; return say("bMsg", "err", error.message); }
+    modalClose();
+    alert(`Moved ${n} × ${r.sku} back to ${st.to_bin || typed}${data && data.move_number ? " (" + data.move_number + ")" : ""}.\n\nTake the B-grade labels off.`);
+    await loadList();
+  };
+}
+
+/* ── Set price / Reprice ───────────────────────────── */
+async function openPrice(r){
+  if(!r) return;
+  const re = !!r.has_price;
+  const basis = r.wholesale_now !== null && r.wholesale_now !== undefined && Number(r.wholesale_now) > 0 ? Number(r.wholesale_now) : null;
+  modalOpen(`
+    <h3 style="margin:0 0 10px">${re ? "Reprice" : "Set the B-grade price"} — <span class="mono">${esc(r.sku)}</span> in <span class="mono">${esc(r.bin)}</span></h3>
+    <div class="dim" style="font-size:12.5px">${esc(r.product_name || "")} · ${esc(r.warehouse || "")} · holds ${qty(r.qty)}${re ? " · now " + money(r.price) : ""}</div>
+    ${re ? `<div class="warnbox">Every unit of this SKU in this bin takes the new price — <b>relabel all ${qty(r.qty)}</b>.
+      Lines already on a POS order keep the price they were rung up at.</div>` : ""}
+    ${priceFields("pp")}
+    <div id="pMsg" style="font-size:12.5px;margin-top:8px"></div>
+    <div class="frow" style="margin-top:10px"><span class="sp"></span>
+      <button class="pobtn" id="pCancel">Cancel</button>
+      <button class="pobtn go" id="pSave">${re ? "Reprice" : "Set price"}</button></div>`);
+  document.getElementById("pCancel").onclick = modalClose;
+  const pr = wirePrice("pp", () => basis, null);
+  document.getElementById("ppV").focus();
+  document.getElementById("pSave").onclick = async () => {
+    const pv = pr.read();
+    if(pv.price === undefined && pv.pct === undefined) return say("pMsg", "err", "Enter a price, or a % off Wholesale.");
+    if(pv.pct !== undefined && !(pv.pct > 0 && pv.pct < 100)) return say("pMsg", "err", "% off must be more than 0 and less than 100.");
+    if(pv.price !== undefined && !(pv.price > 0)) return say("pMsg", "err", "The B-grade price must be more than 0.");
+    const b = document.getElementById("pSave"); b.disabled = true;
+    const { data, error } = await sb.rpc("bgrade_price_set", {
+      p_bin_id: r.bin_id, p_product_id: r.product_id,
+      p_price: pv.price !== undefined ? pv.price : null, p_pct: pv.pct !== undefined ? pv.pct : null, p_reprice: re });
+    if(error){ b.disabled = false; return say("pMsg", "err", error.message); }
+    modalClose();
+    if(data && data.changed === false) alert(`The price is already ${Number(data.price).toFixed(2)} — nothing changed.`);
+    else if(data && data.relabel) alert(`Repriced ${r.sku} in ${r.bin}: ${Number(data.previous_price).toFixed(2)} → ${Number(data.price).toFixed(2)}.\n\nRelabel all ${Number(data.qty)} units.`);
+    else alert(`B-grade price for ${r.sku} in ${r.bin}: ${data ? Number(data.price).toFixed(2) : ""}.`);
+    await loadList();
+  };
+}
+
+/* ── Start ─────────────────────────────────────────── */
+imsAuth.start({ changePw:true, requireScreen:"stock_adjust" }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = BG_BUILD;
+
+  /* ⭐ rulings 49 · 50 · 638 — the database decides who can move and price, not the screen permission */
+  const ca = await sb.rpc("ims_can_adjust");
+  canAdj = !!(ca && ca.data === true);
+
+  const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  allWh = (wh && wh.data) || [];
+  const acc = (me && me.access) || imsAuth.access || {};
+  const allow = acc.warehouses;                    // null = every warehouse
+  whs = Array.isArray(allow) ? allWh.filter(w => allow.includes(w.id)) : allWh;
+  document.getElementById("wwh").innerHTML = '<option value="">All warehouses</option>' +
+    allWh.map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+
+  document.getElementById("wwh").onchange = e => { whFilter = e.target.value; loadList(); };
+  document.getElementById("wnp").onchange = e => { noPriceOnly = e.target.checked; drawList(); };
+  imsQ("#wq", v => { q = v; drawList(); });
+  document.getElementById("wclear").onclick = () => {
+    q = ""; whFilter = ""; noPriceOnly = false;
+    document.getElementById("wq").value = ""; document.getElementById("wwh").value = ""; document.getElementById("wnp").checked = false;
+    loadList();
+  };
+  const nw = document.getElementById("wnew");
+  if(canAdj){ nw.hidden = false; nw.onclick = openMoveIn; }
+
+  /* ?wh=<id> opens one warehouse · ?noprice=1 the No-price list */
+  const wantWh = imsParam("wh");
+  if(wantWh && allWh.some(w => w.id === wantWh)){ whFilter = wantWh; document.getElementById("wwh").value = wantWh; }
+  if(imsParam("noprice") === "1"){ noPriceOnly = true; document.getElementById("wnp").checked = true; }
+  loadList();
+});
+</script>
+</body>
+</html>
