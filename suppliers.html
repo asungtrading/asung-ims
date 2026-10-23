@@ -36,6 +36,19 @@
   #wide td.nmc{font-weight:600}
   #wide tr.off td{color:var(--muted)}
   #wide .wfilt input[type=search]{width:320px}
+  /* sup v2 — 판정 654 A: 발주 이력 카드 · 단계 칩은 po.html 과 같은 색(.post · 화면마다 복사) */
+  .post{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;line-height:1.5;color:#fff;white-space:nowrap}
+  .post.p-draft{background:#868e96}
+  .post.p-ordered{background:#3b5bdb}
+  .post.p-receiving{background:#7048e8}
+  .post.p-received{background:#e8590c}
+  .post.p-completed{background:#2f9e44}
+  .post.p-cancelled{background:#e03131}
+  .hist td{vertical-align:top}
+  .hist tr.cx td{color:var(--muted)}
+  .histfoot{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);line-height:1.5}
+  a.lk{color:#3b5bdb;cursor:pointer;text-decoration:none}
+  a.lk:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -109,7 +122,7 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-10-08 · sup tx v1a";   // 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-10-23 · sup v2";   // 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
@@ -238,6 +251,7 @@ async function loadDetail(id){
   box.innerHTML = `
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div><div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    <div id="histBox"><div class="card"><h3>Purchase history</h3><div class="msg">Loading…</div></div></div>
     ${tbl("Addresses", cur.addr.length, ["Type", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr", canWrite)}
     ${tbl("Contacts", cur.cont.length, ["Name", "Phone", "Mobile", "Email", ""], cRows, "addCont", canWrite)}
     ${tbl("Discounts", cur.disc.length, ["Seq", "Name", "Percent", ""], dRows, "addDisc", isMaster)}`;
@@ -256,6 +270,60 @@ async function loadDetail(id){
   box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ supplier_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
   box.querySelectorAll("[data-de]").forEach(b => { b.onclick = () => openDisc(cur.disc[+b.dataset.de]); });
   box.querySelectorAll("[data-do]").forEach(b => { b.onclick = () => { const x = cur.disc[+b.dataset.do]; runUpdate([{ supplier_id: r.id, op: "discount_off", discount_id: x.id }], `Remove the discount ${x.name || ""}`); }; });
+  histLoad(r, seq, HIST_N);   // sup v2 — 판정 654 A · 카드는 따로 채운다
+}
+
+/* ── sup v2 — 판정 654 A: 발주 이력 카드 ─────────
+   ⭐ IMS 의 발주만(뷰 po_list · po.html 목록과 같은 값) — 컷오버 전 발주(Cin7 · BigQuery)는 없다(po-module §11-⓪ 함의 ②) · 지난 이력은 B(deferred 301)
+   ⭐ 단계는 po.html 판정 360 과 같은 판정(저장 상태 + 뷰의 receipt_phase) · Unpaid 는 문서 단위라 더하지 않는다(po.html 과 같은 안내)
+   ⚠️ PO_STAGE · poStage · unpaidCell 은 po.html 을 복사 — 그쪽이 바뀌면 여기도 */
+const HIST_N = 20;
+const HIST_STAGE = {
+  draft: ["Draft", "The office is writing it"], ordered: ["Ordered", "Confirmed — waiting for the supplier to send"],
+  receiving: ["Receiving", "Part has arrived — the rest is still coming"], received: ["Received", "Everything arrived — the office finishes it (invoice · charges · payment · complete)"],
+  completed: ["Completed", "Done"], cancelled: ["Cancelled", "Cancelled"],
+};
+function histStage(status, received, ordered, phase){
+  if(status === "closed") return "completed";
+  if(status !== "confirmed") return status;
+  if(phase === "none") return "ordered"; if(phase === "partial") return "receiving"; if(phase === "done") return "received";
+  const rr = Number(received) || 0, o = Number(ordered) || 0;
+  return rr <= 0 ? "ordered" : (o > 0 && rr < o ? "receiving" : "received");
+}
+const histChip = (x) => { const k = histStage(x.status, x.received_qty, x.ordered_qty, x.receipt_phase), d = HIST_STAGE[k];
+  return d ? `<span class="post p-${esc(k)}" title="${esc(d[1])}">${esc(d[0])}</span>` : `<span class="chip">${esc(x.status)}</span>`; };
+const histMoney = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const histQty = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+function histUnpaid(v){
+  const n = Number(v);
+  if(n === 0) return '<span class="dim">0.00</span>';
+  if(n < 0) return `<span class="on">${histMoney(-n)} credit due</span>`;
+  return `<span class="neutral">${histMoney(n)}</span>`;
+}
+async function histLoad(r, seq, n){
+  const box = $("histBox"); if(!box) return;
+  const q = await sb.from("po_list").select("id,po_number,status,order_date,required_by,currency_code,net_total,tax_amount,line_count,ordered_qty,received_qty,receipt_phase,invoice_count,invoiced_total,unpaid_total,split_to_count", { count: "exact" })
+    .eq("supplier_id", r.id).order("order_date", { ascending: false }).order("po_number", { ascending: false }).range(0, n - 1);
+  if(seq !== detailSeq) return;
+  const head = (cnt) => `<h3>Purchase history <span class="n">${cnt}</span></h3>`;
+  if(q.error){ box.innerHTML = `<div class="card">${head("")}<div class="msg err">${esc(q.error.message)}</div></div>`; return; }
+  const rows = q.data || [], total = q.count || 0;
+  if(!rows.length){ box.innerHTML = `<div class="card">${head(0)}<div class="msg">No purchase orders in IMS yet. Purchases from before IMS are not shown here.</div></div>`; return; }
+  box.innerHTML = `<div class="card">${head(total)}
+    <table class="hist"><thead><tr><th>PO</th><th>Ordered</th><th>Status</th><th class="num">Lines</th><th class="num">Net</th><th class="num">Received</th><th class="num">Invoiced</th><th class="num">Unpaid</th></tr></thead><tbody>${rows.map(x => `
+      <tr class="${x.status === "cancelled" ? "cx" : ""}">
+        <td class="mono"><a class="lk" href="po.html?po=${encodeURIComponent(x.po_number)}" title="Open this purchase order">${esc(x.po_number)}</a>${Number(x.split_to_count) > 0 ? ' <span class="tag">split</span>' : ""}</td>
+        <td class="mono">${dim(x.order_date)}</td>
+        <td>${histChip(x)}</td>
+        <td class="num">${esc(x.line_count)}</td>
+        <td class="num">${histMoney(x.net_total)} <span class="dim">${esc(x.currency_code || "")}</span>${Number(x.tax_amount) ? `<div class="dim" style="font-size:11.5px">+ tax ${histMoney(x.tax_amount)}</div>` : ""}</td>
+        <td class="num">${Number(x.ordered_qty) ? histQty(x.received_qty) + ' <span class="dim">/ ' + histQty(x.ordered_qty) + "</span>" : '<span class="dim">—</span>'}</td>
+        <td class="num">${Number(x.invoice_count) ? histMoney(x.invoiced_total) : '<span class="dim">—</span>'}</td>
+        <td class="num">${histUnpaid(x.unpaid_total)}</td></tr>`).join("")}</tbody></table>
+    <div class="histfoot"><span>Showing ${rows.length} of ${total} · newest first · purchase orders made in IMS only (earlier history is not here yet) · Unpaid is per document, not per PO — do not add it up</span><span class="sp" style="flex:1"></span>${total > rows.length ? `<button class="xs" id="histMore">Show ${Math.min(HIST_N, total - rows.length)} more</button>` : ""}</div></div>`;
+  const m = $("histMore"); if(m) m.onclick = () => { m.disabled = true; m.textContent = "Loading…"; histLoad(r, seq, n + HIST_N); };
 }
 
 /* ── 구매 가능 — 고르면 바로 저장(master-cs-3 창구 · 되읽기) ── */
