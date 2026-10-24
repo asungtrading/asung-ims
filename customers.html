@@ -58,6 +58,19 @@
   .hist td{vertical-align:top}
   .hist tr.cx td{color:var(--muted)}
   .histfoot{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  /* cs v6 — IMS 이전 오더 */
+  .sost.s-hinv{background:#495057}
+  .hist .tag.old{color:#495057;border-color:#ced4da;background:#f1f3f5}
+  .hist td.hxc{width:26px;padding-right:0}
+  .hist .hxb{border:1px solid var(--line);background:#fff;border-radius:6px;width:22px;height:22px;line-height:18px;padding:0;cursor:pointer;font-size:11px;color:var(--muted)}
+  .hist .hxb:hover{background:#eef3ff;color:#3b5bdb}
+  .hist tr.hx > td{background:#fafbfd;padding:8px 14px 12px 40px}
+  .hist tr.hx table{width:100%;margin:2px 0 8px}
+  .hist tr.hx th{font-size:11.5px}
+  .hist tr.hx td{font-size:12.5px}
+  .hist tr.hx .sub{font-size:12px;font-weight:600;margin:6px 0 2px;color:var(--ink)}
+  .hist tr.hx .sub .dim{font-weight:400}
+  .histnote{padding:0 14px 10px;font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -126,7 +139,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-23 · cs v5";   // 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-23 · cs v6";   // 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -359,7 +372,7 @@ async function loadDetail(id){
   const staffIds = [r.created_by, r.reviewed_by, r.updated_by].filter(Boolean);
   const names = {};
   if(staffIds.length){ const s = await sb.from("ims_staff").select("id,name").in("id", staffIds); (s.data || []).forEach(x => { names[x.id] = x.name; }); }
-  const kidsQ = await sb.from("customer").select("id,name,is_active,default_bill_to_customer_id").eq("parent_id", id).order("name");   // caps-ok: 한 부모의 매장 수
+  const kidsQ = await sb.from("customer").select("id,name,is_active,default_bill_to_customer_id,currency_code").eq("parent_id", id).order("name");   // caps-ok: 한 부모의 매장 수
   const kids = kidsQ.data || [];
   const kidOpen = {};
   if(kids.length){
@@ -452,11 +465,16 @@ async function loadDetail(id){
   histLoad(r, kids, seq, HIST_N);   // cs v5 — 판정 654 A · 카드는 따로 채운다(상세가 이력을 기다리지 않게)
 }
 
-/* ── cs v5 — 판정 654 A(Caleb 「일단 A 로 하자 · B 도 짓고 싶어」): 주문 이력 카드 ─────────
-   ⭐ IMS 의 so 표만 — 컷오버 전 거래(Cin7 · BigQuery)는 없다(po-module §11-⓪ 함의 ② 「적재는 마스터만」) · 지난 이력은 B(deferred 301)
-   ⭐ 본사 손님(매장이 있다)은 매장 오더까지 · Store 칸 · 매장을 열면 그 매장 것만
-   ⭐ 금액은 서버 한 곳 so_totals_many(판정 350 · so.html 목록과 같은 값) · 화면이 더하지 않는다(총액 없음 · 건수만)
-   ⚠️ 상태 이름 · 색은 so.html SO_STATUS_LABEL · .sost 를 복사 — 그쪽이 바뀌면 여기도 */
+/* ── cs v6 — 판정 654 B · 666 · 667: 주문 이력 카드 = IMS 오더 + IMS 이전 오더 ─────────
+   ⭐ IMS = so 표 · 이전 = hist_so(Cin7 Core 시절 · 2025-11 ~ 컷오버 · 인보이스 된 오더만 · 읽기 전용 · 원장 · 잔액 · 크레딧 · 결제와 무관)
+   ⭐ 두 출처를 따로 읽고 화면이 섞는다(DB 무변 · 판정 666) — 날짜 = IMS order_date · 이전 invoice_date(없으면 order_date) · 같은 날은 번호 내림차순 · 섞는 것은 순서뿐(값을 더하지 않는다)
+   ⭐ 「Show more」 = 두 출처에서 n 개씩 다시 읽어 섞은 위 n 개 — 둘 다 같은 순서로 위 n 개를 받으니 섞은 위 n 개가 맞다
+   ⭐ 금액 — IMS 줄 = so_totals_many(세후 · 판정 350 · so.html 과 같은 값) · 이전 = hist_so.total(세전 · 적재 창구가 줄에서 더함 · 판정 667 뒤 두 적재 출처가 같은 뜻) · 뜻이 달라 머리 · 꼬리 · 칸 아래에 적는다
+   ⭐ 통화가 빈 이전 오더 = 그 오더 주인(본사 · 매장)의 currency_code — CAD 를 가정하지 않는다(hist-1 이견 4)
+   ⭐ 펼치기 = hist_so_line 바로 읽기(RLS sales · 가장 큰 오더 584 줄 · 1,000 캡 아래) · 제품 줄(product_id 있음)과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 아직 없는 SKU)을 따로
+   ⚠️ 본사 손님은 매장 오더까지(두 출처 모두 Store 칸) · 매장을 열면 그 매장 것만
+   ⚠️ 상태 이름 · 색은 so.html SO_STATUS_LABEL · .sost 를 복사 — 그쪽이 바뀌면 여기도
+   ⚠️ hist_so 를 못 읽으면(보기 문 · 오류) IMS 오더만 그리고 머리에 한 줄 — 카드 전체를 에러로 만들지 않는다 */
 const HIST_N = 20;
 const HIST_LBL = { draft: "Draft", confirmed: "Confirmed", at_wms: "Released to WMS", picking: "Working", packed: "Finalized", shipped: "Invoice cancelled", fulfilled: "Fulfilled", cancelled: "Cancelled" };
 const HIST_HINT = { draft: "The office is writing it", confirmed: "Confirmed — next: release to the warehouse", at_wms: "Warehouse's turn", picking: "Warehouse's turn",
@@ -465,20 +483,40 @@ const HIST_CH = { warehouse: "Warehouse", counter: "Counter", pos: "POS", servic
 const histChip = (s) => HIST_LBL[s] ? `<span class="sost s-${esc(s)}" title="${esc(HIST_HINT[s] || "")}">${esc(HIST_LBL[s])}</span>` : `<span class="chip">${esc(s)}</span>`;
 const histMoney = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>'
   : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const histQty = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const histUnit = (v) => (v === null || v === undefined || v === "") ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 4 }));
 async function histLoad(r, kids, seq, n){
   const box = $("histBox"); if(!box) return;
   const ids = [r.id].concat(kids.map(k => k.id));
-  const storeOf = {}; kids.forEach(k => { storeOf[k.id] = k.name; });
-  const q = await sb.from("so").select("id,so_number,status,order_date,channel,intake,ref,customer_id,currency_code,merged_into_id,split_from_id", { count: "exact" })
-    .in("customer_id", ids).order("order_date", { ascending: false }).order("so_number", { ascending: false }).range(0, n - 1);
+  const storeOf = {}, curOf = {}; curOf[r.id] = r.currency_code || "";
+  kids.forEach(k => { storeOf[k.id] = k.name; curOf[k.id] = k.currency_code || r.currency_code || ""; });
+  const [q, h] = await Promise.all([
+    sb.from("so").select("id,so_number,status,order_date,channel,intake,ref,customer_id,currency_code,merged_into_id,split_from_id", { count: "exact" })
+      .in("customer_id", ids).order("order_date", { ascending: false }).order("so_number", { ascending: false }).range(0, n - 1),
+    sb.from("hist_so").select("id,order_number,customer_id,order_date,invoice_date,invoice_number,location,currency,total,line_count,has_return", { count: "exact" })
+      .in("customer_id", ids).order("invoice_date", { ascending: false, nullsFirst: false }).order("order_number", { ascending: false }).range(0, n - 1),
+  ]);
   if(seq !== detailSeq) return;
   const head = (cnt) => `<h3>Order history <span class="n">${cnt}</span></h3>`;
   if(q.error){ box.innerHTML = `<div class="card">${head("")}<div class="msg err">${esc(q.error.message)}</div></div>`; return; }
-  const rows = q.data || [], total = q.count || 0;
-  if(!rows.length){ box.innerHTML = `<div class="card">${head(0)}<div class="msg">No orders in IMS yet${kids.length ? " (this customer or its stores)" : ""}. Orders from before IMS are not shown here.</div></div>`; return; }
+  const hErr = h.error ? h.error.message : "";
+  const imsRows = q.data || [], imsTotal = q.count || 0;
+  const oldRows = hErr ? [] : (h.data || []), oldTotal = hErr ? 0 : (h.count || 0);
+  const total = imsTotal + oldTotal;
+  const errNote = hErr ? `<div class="histnote err">Orders from before IMS could not be read — ${esc(hErr)}</div>` : "";
+  if(!imsRows.length && !oldRows.length){
+    box.innerHTML = `<div class="card">${head(0)}${errNote}<div class="msg">No orders${kids.length ? " for this customer or its stores" : ""} — none in IMS${hErr ? "" : " and none from before IMS"}.</div></div>`; return;
+  }
+  const all = imsRows.map(x => ({ src: "ims", d: x.order_date || "", no: x.so_number || "", x }))
+    .concat(oldRows.map(x => ({ src: "old", d: x.invoice_date || x.order_date || "", no: x.order_number || "", x })))
+    .sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : (a.no < b.no ? 1 : a.no > b.no ? -1 : 0))
+    .slice(0, n);
+  const shownIms = all.filter(e => e.src === "ims").map(e => e.x);
   const tot = {}; let totErr = "";
-  for(let i = 0; i < rows.length; i += 100){
-    const t = await sb.rpc("so_totals_many", { p_so_ids: rows.slice(i, i + 100).map(x => x.id) });
+  for(let i = 0; i < shownIms.length; i += 100){
+    const t = await sb.rpc("so_totals_many", { p_so_ids: shownIms.slice(i, i + 100).map(x => x.id) });
     if(t.error){ totErr = t.error.message; break; }
     (t.data || []).forEach(x => { tot[x.so_id] = x; });
   }
@@ -490,18 +528,59 @@ async function histLoad(r, kids, seq, n){
     return `<span title="${t.basis === "shipped" ? "Shipped quantities" : "Ordered quantities"} · tax included">${histMoney(t.order_total_with_tax)}</span> <span class="dim">${esc(x.currency_code || "")}</span>`;
   };
   const withStore = kids.length > 0;
-  box.innerHTML = `<div class="card">${head(total)}
-    <table class="hist"><thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Channel</th>${withStore ? "<th>Store</th>" : ""}<th>Ref</th><th class="num">Total</th></tr></thead><tbody>${rows.map(x => `
-      <tr class="${x.status === "cancelled" ? "cx" : ""}">
+  const cols = withStore ? 8 : 7;
+  const storeCell = (cid) => withStore ? `<td>${cid === r.id ? '<span class="dim">head office</span>' : esc(storeOf[cid] || "")}</td>` : "";
+  const imsRow = (x) => `
+      <tr class="${x.status === "cancelled" ? "cx" : ""}"><td class="hxc"></td>
         <td class="mono"><a class="lk" href="so.html?so=${encodeURIComponent(x.so_number)}" title="Open this order">${esc(x.so_number)}</a>${x.split_from_id ? ' <span class="tag">split</span>' : ""}${x.merged_into_id ? ' <span class="tag">merged</span>' : ""}</td>
         <td class="mono">${dim(x.order_date)}</td>
         <td>${histChip(x.status)}</td>
         <td>${esc(HIST_CH[x.channel] || x.channel || "")}${x.intake === "shopify" ? ' <span class="tag">Shopify</span>' : ""}</td>
-        ${withStore ? `<td>${x.customer_id === r.id ? '<span class="dim">head office</span>' : esc(storeOf[x.customer_id] || "")}</td>` : ""}
+        ${storeCell(x.customer_id)}
         <td>${dim(x.ref)}</td>
-        <td class="num">${totCell(x)}</td></tr>`).join("")}</tbody></table>
-    <div class="histfoot"><span>Showing ${rows.length} of ${total} · newest first · orders made in IMS only (earlier history is not here yet)</span><span class="sp" style="flex:1"></span>${total > rows.length ? `<button class="xs" id="histMore">Show ${Math.min(HIST_N, total - rows.length)} more</button>` : ""}</div></div>`;
+        <td class="num">${totCell(x)}</td></tr>`;
+  const oldRow = (x) => `
+      <tr><td class="hxc"><button class="hxb" data-hx="${esc(x.id)}" title="Show the lines of this order">▸</button></td>
+        <td class="mono">${esc(x.order_number)} <span class="tag old" title="Invoiced in Cin7 before IMS — read only, not linked to stock, balances, credits or payments">Before IMS</span></td>
+        <td class="mono">${dim(x.invoice_date || x.order_date)}</td>
+        <td><span class="sost s-hinv" title="Invoiced in Cin7 before IMS">Invoiced</span>${x.has_return ? ' <span class="tag" title="This order has return (credit note) lines">return</span>' : ""}</td>
+        <td>${dim(x.location)}</td>
+        ${storeCell(x.customer_id)}
+        <td>${x.invoice_number ? `<span class="dim" title="Cin7 invoice number">${esc(x.invoice_number)}</span>` : '<span class="dim">—</span>'}</td>
+        <td class="num"><span title="Before tax">${histMoney(x.total)}</span> <span class="dim">${esc(x.currency || curOf[x.customer_id] || "")}</span><div class="dim" style="font-size:11px">before tax</div></td></tr>
+      <tr class="hx" id="hx-${esc(x.id)}" hidden><td colspan="${cols}"><div class="msg">Loading…</div></td></tr>`;
+  const note = oldTotal ? `<div class="histnote">Orders in IMS show the total with tax. Orders from before IMS (Cin7) show the total before tax and are read only.</div>` : "";
+  box.innerHTML = `<div class="card">${head(total)}${errNote}${note}
+    <table class="hist"><thead><tr><th></th><th>Order</th><th>Date</th><th>Status</th><th>Channel</th>${withStore ? "<th>Store</th>" : ""}<th>Ref</th><th class="num">Total</th></tr></thead><tbody>${all.map(e => e.src === "ims" ? imsRow(e.x) : oldRow(e.x)).join("")}</tbody></table>
+    <div class="histfoot"><span>Showing ${all.length} of ${total} · newest first · ${imsTotal} in IMS · ${hErr ? "before IMS not read" : oldTotal + " from before IMS"}</span><span class="sp" style="flex:1"></span>${total > all.length ? `<button class="xs" id="histMore">Show ${Math.min(HIST_N, total - all.length)} more</button>` : ""}</div></div>`;
   const m = $("histMore"); if(m) m.onclick = () => { m.disabled = true; m.textContent = "Loading…"; histLoad(r, kids, seq, n + HIST_N); };
+  box.querySelectorAll("[data-hx]").forEach(b => { b.onclick = () => histLines(b, seq); });
+}
+/* 펼치기 — 한 번 읽고 접었다 폈다 · 제품 줄 / 제품에 안 이어진 줄 · 금액은 세전 */
+async function histLines(btn, seq){
+  const id = btn.dataset.hx, tr = $("hx-" + id); if(!tr) return;
+  if(!tr.hidden){ tr.hidden = true; btn.textContent = "▸"; return; }
+  tr.hidden = false; btn.textContent = "▾";
+  if(tr.dataset.done) return;
+  const cell = tr.firstElementChild;
+  const l = await sb.from("hist_so_line").select("seq,doc_type,doc_number,doc_date,sku,product_id,product_name,quantity,unit_price,total,is_return").eq("hist_so_id", id).order("seq");
+  if(seq !== detailSeq) return;
+  if(l.error){ cell.innerHTML = `<div class="msg err">${esc(l.error.message)}</div>`; return; }
+  const rows = l.data || [];
+  if(!rows.length){ cell.innerHTML = '<div class="msg">No lines.</div>'; tr.dataset.done = "1"; return; }
+  const prod = rows.filter(x => x.product_id), other = rows.filter(x => !x.product_id);
+  const ret = (x) => x.is_return ? ` <span class="tag" title="Return — credit note${x.doc_number ? " " + esc(x.doc_number) : ""}${x.doc_date ? " · " + esc(x.doc_date) : ""}">return${x.doc_number ? " · " + esc(x.doc_number) : ""}</span>` : "";
+  const pTable = prod.length ? `<div class="sub">Products <span class="dim">· ${prod.length} line${prod.length === 1 ? "" : "s"} · before tax</span></div>
+    <table><thead><tr><th>SKU</th><th>Product</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead><tbody>${prod.map(x => `
+      <tr><td class="mono"><a class="lk" href="products.html?id=${encodeURIComponent(x.product_id)}" title="Open this product">${esc(x.sku)}</a></td>
+        <td>${esc(x.product_name || "")}${ret(x)}</td>
+        <td class="num">${histQty(x.quantity)}</td><td class="num">${histUnit(x.unit_price)}</td><td class="num">${histMoney(x.total)}</td></tr>`).join("")}</tbody></table>` : "";
+  const oTable = other.length ? `<div class="sub">Other lines <span class="dim">· not linked to a product in IMS — freight, shipping, credits, discounts, or SKUs not in IMS yet · before tax</span></div>
+    <table><thead><tr><th>SKU</th><th>Description</th><th class="num">Qty</th><th class="num">Line total</th></tr></thead><tbody>${other.map(x => `
+      <tr><td class="mono">${esc(x.sku)}</td><td>${esc(x.product_name || "")}${ret(x)}</td>
+        <td class="num">${histQty(x.quantity)}</td><td class="num">${histMoney(x.total)}</td></tr>`).join("")}</tbody></table>` : "";
+  cell.innerHTML = pTable + oTable;
+  tr.dataset.done = "1";
 }
 
 /* 매장 표 — 매장이 있거나, master 가 보는 부모 없는 손님(매장을 붙일 수 있다)일 때만 */
