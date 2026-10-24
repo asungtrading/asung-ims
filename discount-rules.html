@@ -61,6 +61,16 @@
   .res .wrn li{color:var(--warn)}
   .res .chg li{color:var(--ink)}
   .codes td{font-family:var(--mono)}
+
+  /* dr v3 — 붙여 넣기 창 */
+  .pst textarea{width:100%;min-height:220px;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical}
+  .pst .help{font-size:12.5px;color:var(--muted);line-height:1.6;margin:0 0 8px}
+  .pst .help code{font-family:var(--mono);font-size:12px;background:#f4f6fa;border-radius:4px;padding:0 4px}
+  .pst .sum{font-size:12.5px;margin:0 0 8px}
+  .pst table td{vertical-align:top;font-size:12.5px}
+  .pst tr.pbad td{color:var(--bad)}
+  .pst tr.pskip td{color:var(--muted)}
+  .pst td .why{font-size:11.5px}
 </style>
 </head>
 <body>
@@ -153,7 +163,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v2";   // 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
+const DR_BUILD = "dr v3";   // 대화 Claude — 판정 668(Caleb 「line 디스카운트에 벌크로 세일 항목을」 → 세 칸 SKU · % · at least · 「가」 딜 편집 안에서): 줄 딜 편집의 「Paste lines…」 — 붙여 넣은 목록을 (% · 최소) 가 같은 것끼리 한 줄로 · 같은 % · 최소의 켜진 줄이 이미 있으면 그 줄에 더한다 · 붙여 넣은 SKU = 그 줄의 Applies to(product) · 브랜드 · 태그 · Except · 손님 규칙은 안 건드린다 · 빨간 줄(없는 SKU · % 0 ~ 100 밖 · 0.3 같은 분수 · 같은 SKU 다른 값 · 이 딜의 다른 % 줄에 이미 있음)이 하나라도 있으면 더하지 않는다 · 더한 뒤에도 저장 전(so_deal_save 미리 보기 → 확인 → 저장 그대로 · DB 무변) ← dr v2: 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;
@@ -544,7 +554,7 @@ function renderEdit(){
       <table class="ed"><thead><tr><th>#</th><th>Discount (%)</th><th>Minimum</th><th>Applies to · except</th><th></th></tr></thead><tbody>
       ${order.map(([l, i]) => lineRow(l, i, L)).join("") || '<tr><td colspan="5" class="dim">No lines.</td></tr>'}
       </tbody></table>
-      <div class="pad"><button class="pobtn" data-act="addLine">+ Add line</button>
+      <div class="pad"><button class="pobtn" data-act="addLine">+ Add line</button> <button class="pobtn" data-act="pasteLines" title="Paste many products at once — SKU, discount %, at least">Paste lines…</button>
         <span class="dim" style="font-size:12px">Lines that orders already used are turned off, not deleted. A new line takes the next free number.</span></div></div>`;
   }
 
@@ -663,6 +673,7 @@ function wireEdit(box){
     };
     else if(a === "addTier") b.onclick = () => { ed.tiers.push({ tier_no:nextTierNo(), min_amount:"", pct:"", note:null }); setDirty(); render(); };
     else if(a === "delTier") b.onclick = () => { ed.tiers.splice(i, 1); setDirty(); render(); };
+    else if(a === "pasteLines") b.onclick = () => openPaste();
     else if(a === "addLine") b.onclick = () => { ed.lines.push({ id:null, line_no:nextLineNo(), pct:"", min_qty_mode:"none", min_qty:"", note:null, is_active:true, targets:[], _new:true }); setDirty(); render(); };
     else if(a === "offLine") b.onclick = () => {
       const l = ed.lines[i];
@@ -844,6 +855,185 @@ async function saveDeal(){
     if((d2.blocks || []).length){ showCheck(d2); return; }
     showCheck(d2, () => commit((d2.warnings || []).map(w => w.key)));   // 그 사이 바뀌었다 — 새 경고를 다시 묻는다
   }
+}
+
+/* ── dr v3 — 붙여 넣어 줄 만들기(판정 668) ─────────────────
+   ⭐ 한 줄 = SKU · 할인 % · at least(비움 = 최소 없음 · 숫자 = at least N each · case = full case) · 칸 나눔 = 탭(엑셀) · 쉼표 · 공백
+   ⭐ (% · 최소) 가 같은 것끼리 한 줄 · 같은 값의 켜진 줄이 이미 있으면 그 줄에 더한다 · 새 줄 번호 = nextLineNo(꺼진 줄 포함 · 판정 342)
+   ⭐ 대상은 늘 「Applies to · product」 — 브랜드 · 태그 · Except · 손님 규칙은 건드리지 않는다
+   ⚠️ 빨간 줄이 하나라도 있으면 아무것도 더하지 않는다 · 더해도 저장 전이다(Save → so_deal_save 미리 보기 → 확인)
+   ⚠️ SKU 찾기 = 친 그대로 · 대문자 → 못 찾은 것만 한 개씩 대소문자 무시(addTarget 과 같은 ilike) · 찾기는 product 표 읽기(master 보기) */
+let pst = null;
+const PST_MAX = 2000;
+const pstNorm = v => String(v === null || v === undefined ? "" : v).replace(/[\u00A0\u2007\u202F]/g, " ").trim();
+function pstSplit(line){
+  let c;
+  if(line.includes("\t")) c = line.split("\t").map(pstNorm);
+  else if(line.includes(",")) c = line.split(",").map(pstNorm);
+  else c = pstNorm(line).split(/ +/);
+  while(c.length && c[c.length - 1] === "") c.pop();
+  return c;
+}
+function pstPct(v){
+  const t = pstNorm(v).replace(/\s/g, "");
+  if(!t) return { err: "No discount %" };
+  const hasPct = t.endsWith("%");
+  const n = Number(hasPct ? t.slice(0, -1) : t);
+  if(!Number.isFinite(n)) return { err: `Discount "${v}" is not a number` };
+  if(n <= 0 || n > 100) return { err: "Discount must be more than 0 and at most 100" };
+  if(!hasPct && n < 1) return { err: `Discount ${t} looks like a fraction — write 30 or 30% for 30 %` };
+  return { v: n };
+}
+function pstMin(v){
+  const t = pstNorm(v).toLowerCase();
+  if(!t || t === "-" || t === "—" || t === "none" || t === "0") return { mode: "none", qty: null };
+  if(t === "case" || t === "full case" || t === "fullcase") return { mode: "case", qty: null };
+  const n = Number(t.replace(/\s*(each|ea)$/, ""));
+  if(!Number.isInteger(n) || n < 1) return { err: `At least must be empty, a whole number or case (got "${v}")` };
+  return { mode: "qty", qty: n };
+}
+const pstMinText = (mode, qty) => mode === "qty" ? `at least ${qty} each` : mode === "case" ? "full case" : "none";
+const pstKey = (pct, mode, qty) => `${Number(pct)}|${mode}|${mode === "qty" ? Number(qty) : ""}`;
+async function pstFind(skus){
+  const want = Array.from(new Set(skus.flatMap(x => [x, x.toUpperCase()])));
+  const got = [];
+  for(let i = 0; i < want.length; i += 100){
+    const { data, error } = await sb.from("product").select("id,sku,name,is_active").in("sku", want.slice(i, i + 100));
+    if(error) throw error;
+    got.push(...(data || []));
+  }
+  const exact = {}, up = {};
+  got.forEach(p => { exact[p.sku] = p; const k = String(p.sku).toUpperCase(); if(!(up[k] || []).some(x => x.id === p.id)) (up[k] = up[k] || []).push(p); });
+  const miss = Array.from(new Set(skus)).filter(x => !exact[x] && !up[x.toUpperCase()]);
+  for(const x of miss.slice(0, 50)){
+    const { data, error } = await sb.from("product").select("id,sku,name,is_active").ilike("sku", x.replace(/[%_\\]/g, m => "\\" + m)).limit(2);
+    if(error) throw error;
+    if((data || []).length) up[x.toUpperCase()] = data;
+  }
+  return x => exact[x] ? [exact[x]] : (up[x.toUpperCase()] || []);
+}
+function openPaste(){ pst = { text: "", rows: null, plan: null, busy: false, err: "" }; drawPaste(); }
+async function checkPaste(){
+  const lines = pst.text.split(/\r?\n/);
+  const rows = []; let first = true;
+  lines.forEach((raw, k) => {
+    if(!pstNorm(raw)) return;
+    const c = pstSplit(raw);
+    if(first){ first = false; if(/^sku$/i.test(c[0] || "")) return; }   // 머리 줄(SKU …)은 건너뛴다
+    const r = { n: k + 1, sku: c[0] || "", errs: [], warns: [], p: null, pct: null, mode: null, qty: null, skip: "", dest: "" };
+    if(c.length < 2) r.errs.push("Needs at least a SKU and a discount %");
+    else if(c.length > 3) r.errs.push(`${c.length} columns — use three: SKU, discount %, at least`);
+    if(c.length >= 2){ const p = pstPct(c[1]); if(p.err) r.errs.push(p.err); else r.pct = p.v; }
+    const m = pstMin(c.length >= 3 ? c[2] : ""); if(m.err) r.errs.push(m.err); else { r.mode = m.mode; r.qty = m.qty; }
+    rows.push(r);
+  });
+  if(!rows.length){ pst.err = "Nothing to check — paste the list first."; drawPaste(); return; }
+  if(rows.length > PST_MAX){ pst.err = `${rows.length} rows — paste at most ${PST_MAX} at a time.`; drawPaste(); return; }
+  pst.busy = true; pst.err = ""; drawPaste();
+  let look;
+  try { look = await pstFind(rows.filter(r => r.sku).map(r => r.sku)); }
+  catch(e){ pst.busy = false; pst.err = e.message || String(e); drawPaste(); return; }
+  // 이 딜의 켜진 줄에 이미 있는 제품(Applies to · product)
+  const onLine = {};
+  ed.lines.forEach(l => { if(!l.is_active) return; l.targets.forEach(t => { if(t.kind === "include" && t.target === "product" && t.product_id) onLine[t.product_id] = l; }); });
+  const seen = {};
+  rows.forEach(r => {
+    if(!r.sku) return;
+    const hit = look(r.sku);
+    if(!hit.length){ r.errs.push("No product with this SKU"); return; }
+    if(hit.length > 1){ r.errs.push(`Several products match: ${hit.map(x => x.sku).join(", ")}`); return; }
+    r.p = hit[0];
+    if(!r.p.is_active) r.warns.push("Product is inactive");
+    if(r.errs.length) return;
+    const k = pstKey(r.pct, r.mode, r.qty);
+    const s0 = seen[r.p.id];
+    if(s0){
+      if(s0.k === k) r.skip = `Listed again (row ${s0.r.n}) — added once`;
+      else { r.errs.push(`Also on row ${s0.r.n} with ${s0.r.pct}% · ${pstMinText(s0.r.mode, s0.r.qty)}`); if(!s0.r.errs.length) s0.r.errs.push(`Also on row ${r.n} with ${r.pct}% · ${pstMinText(r.mode, r.qty)}`); }
+      return;
+    }
+    seen[r.p.id] = { r, k };
+    const l = onLine[r.p.id];
+    if(l){
+      if(pstKey(l.pct, l.min_qty_mode, l.min_qty) === k) r.skip = `Already on line ${l.line_no}`;
+      else r.errs.push(`Already on line ${l.line_no} at ${Number(l.pct)}% · ${pstMinText(l.min_qty_mode, l.min_qty)} — change or remove it there first`);
+    }
+  });
+  // 어느 줄로 가나 — 같은 (% · 최소) 의 켜진 줄, 없으면 새 줄
+  const blank = l => l._new && pstNorm(l.pct) === "" && !l.targets.length;
+  let next = ed.lines.filter(l => !blank(l)).reduce((m, l) => Math.max(m, Number(l.line_no) || 0), 0) + 1;
+  const groups = {}, order = [];
+  rows.forEach(r => {
+    if(r.errs.length || r.skip || !r.p) return;
+    const k = pstKey(r.pct, r.mode, r.qty);
+    if(!groups[k]){
+      const l = ed.lines.find(x => x.is_active && !blank(x) && pstKey(x.pct, x.min_qty_mode, x.min_qty) === k);
+      groups[k] = { k, pct: r.pct, mode: r.mode, qty: r.qty, line: l || null, line_no: l ? l.line_no : next++, rows: [] };
+      order.push(groups[k]);
+    }
+    groups[k].rows.push(r);
+    r.dest = groups[k].line ? `Line ${groups[k].line_no}` : `New line ${groups[k].line_no}`;
+  });
+  pst.rows = rows; pst.plan = order; pst.busy = false; drawPaste();
+}
+function applyPaste(){
+  const blank = l => l._new && pstNorm(l.pct) === "" && !l.targets.length;
+  ed.lines = ed.lines.filter(l => !blank(l));
+  ed.add = {};   // 줄 번호(자리)가 바뀌었을 수 있다 — 추가 칸 상태는 비운다
+  pst.plan.forEach(g => {
+    let l = g.line;
+    if(!l){ l = { id:null, line_no:g.line_no, pct:String(g.pct), min_qty_mode:g.mode, min_qty:g.mode === "qty" ? String(g.qty) : "", note:null, is_active:true, targets:[], _new:true }; ed.lines.push(l); }
+    g.rows.forEach(r => {
+      const t = { kind:"include", target:"product", product_id:r.p.id };
+      if(!l.targets.some(x => sameTarget(x, t))) l.targets.push(t);
+      ed.lab.products[r.p.id] = { sku: r.p.sku, name: r.p.name, is_active: r.p.is_active };
+    });
+  });
+  pst = null; closeModal(); setDirty(); render();
+}
+function drawPaste(){
+  const help = `<p class="help">One product per row: <code>SKU</code> · <code>discount %</code> · <code>at least</code> — copy three columns from Excel, or type them with spaces or commas.<br>
+    At least: empty = no minimum · a number = at least that many of the product on the order · <code>case</code> = full case.<br>
+    Rows with the same % and minimum become one line. If this deal already has a line with that % and minimum, they are added to it. A first row that starts with SKU is skipped.</p>`;
+  if(!pst.rows){
+    showModal(`<h4>Paste lines — ${esc(ed.head.name || "new deal")}</h4>
+      <div class="pbody pst">${help}
+        <textarea id="pstText" spellcheck="false" placeholder="ABE50408\t30%\t6&#10;AQU12603\t15%&#10;AQU12606\t15%\tcase">${esc(pst.text)}</textarea>
+        ${pst.err ? `<div class="err" style="font-size:12.5px;margin-top:6px">${esc(pst.err)}</div>` : ""}</div>
+      <div class="pfoot"><span class="dim" style="font-size:12px">Nothing is added until you check the list.</span><span class="sp"></span>
+        <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-m="check" ${pst.busy ? "disabled" : ""}>${pst.busy ? "Checking…" : "Check"}</button></div>`);
+    const box = document.getElementById("modalBox");
+    const ta = box.querySelector("#pstText");
+    ta.addEventListener("input", () => { pst.text = ta.value; });
+    if(!pst.busy) ta.focus();
+    box.querySelector('[data-m="close"]').onclick = () => { pst = null; closeModal(); };
+    box.querySelector('[data-m="check"]').onclick = () => { pst.text = ta.value; checkPaste(); };
+    return;
+  }
+  const rows = pst.rows, bad = rows.filter(r => r.errs.length), skip = rows.filter(r => !r.errs.length && r.skip), add = rows.filter(r => r.dest);
+  const nNew = pst.plan.filter(g => !g.line).length, nOld = pst.plan.length - nNew;
+  const lineTxt = pst.plan.map(g => `${g.line ? "line " + g.line_no : "new line " + g.line_no} (${Number(g.pct)}% · ${pstMinText(g.mode, g.qty)} · ${g.rows.length})`).join(" · ");
+  const sum = bad.length
+    ? `<div class="sum err">${bad.length} row${bad.length === 1 ? "" : "s"} to fix — nothing will be added until every row is right. Go back, fix them in your list, and check again.</div>`
+    : `<div class="sum">${add.length} product${add.length === 1 ? "" : "s"} go to ${pst.plan.length} line${pst.plan.length === 1 ? "" : "s"}${nOld ? ` (${nOld} existing)` : ""}: ${esc(lineTxt) || "—"}${skip.length ? ` · ${skip.length} already there or listed twice` : ""}.</div>`;
+  showModal(`<h4>Paste lines — check</h4>
+    <div class="pbody pst">${sum}
+      <table><thead><tr><th>Row</th><th>SKU</th><th>Product</th><th class="num">Discount</th><th>Minimum</th><th>Goes to</th><th>Note</th></tr></thead><tbody>
+      ${rows.map(r => `<tr class="${r.errs.length ? "pbad" : r.skip ? "pskip" : ""}">
+        <td class="mono">${esc(r.n)}</td><td class="mono">${esc(r.p ? r.p.sku : r.sku)}</td>
+        <td>${r.p ? esc(r.p.name || "") : '<span class="dim">—</span>'}</td>
+        <td class="num mono">${r.pct === null ? "—" : esc(r.pct) + "%"}</td>
+        <td>${r.mode ? esc(pstMinText(r.mode, r.qty)) : "—"}</td>
+        <td>${r.dest ? esc(r.dest) : r.skip ? "skipped" : "—"}</td>
+        <td class="why">${r.errs.map(esc).join("<br>")}${r.errs.length && (r.skip || r.warns.length) ? "<br>" : ""}${r.skip ? esc(r.skip) : ""}${r.warns.length ? `<span class="tag disc">${r.warns.map(esc).join(" · ")}</span>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>
+    <div class="pfoot"><span class="dim" style="font-size:12px">${bad.length ? "Fix the red rows first." : "Nothing is saved yet — press Save on the deal after this."}</span><span class="sp"></span>
+      <button class="pobtn" data-m="back">Back to the list</button>
+      <button class="pobtn go" data-m="apply" ${bad.length || !add.length ? "disabled" : ""}>${add.length ? `Add ${add.length} product${add.length === 1 ? "" : "s"}` : "Nothing to add"}</button></div>`);
+  const box = document.getElementById("modalBox");
+  box.querySelector('[data-m="back"]').onclick = () => { pst.rows = null; pst.plan = null; drawPaste(); };
+  const ap = box.querySelector('[data-m="apply"]');
+  if(ap && !ap.disabled) ap.onclick = () => applyPaste();
 }
 
 /* ── 쿠폰 발행 · 무효(so_coupon_issue · so_coupon_void — raise 로 거부) ── */
