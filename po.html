@@ -184,7 +184,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-24 · po docs v1";   // 대화 Claude — drive-3(판정 691 · 697 · 703 · 706 · 708): PO 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 올리기 · 열기 · 치우기 · 드라이브 상태 · 인보이스 종류면 공급처 인보이스 고르기) ← 2026-10-22 · po paste price v1: 대화 Claude — pln-1(asung-wms df5088a · 판정 624 A): Paste lines 셋째 칸 = 가격(선택 · 할인 전 단가 · PO 할인은 위에서 걸린다) · so v5u 와 같은 읽기(탭 · 쉼표 줄만 셋째 칸) · bad_price 판정 · 「your price」 표시 ← 2026-10-22 · po gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · po printed v1: 대화 Claude — 판정 621 A 를 「Create an invoice」 창에도: Printed total 이 비면 칸을 노랑으로(inv printed v1 과 같은 색 · 막지 않는다) ← po warn v1: 대화 Claude — Caleb 화면 시험: 경고가 열쇠 그대로 보였다(total_amount_missing) → po_create · po_invoice_create 경고를 사람 말로(PO_WARN · poWarn) ← po due v1: 대화 Claude — Caleb 「인보이스 날짜가 들어가면 자동적으로 due date도 그 사람의 텀 조건에 맞춰서」: Create an invoice 창에 Due date 칸 — Document date + PO 결제조건의 net_days 로 채움(날짜를 바꾸면 따라감 · 손으로 고치면 그대로 · 분할 조건 · 날 수 없음 · 조건 없음은 안내) · p_due_date 로 보냄 ← po fx v1: 대화 Claude — ⑥ 환율 차액(판정 394 · po-disc-5b): 외화 PO 의 환율 칸 아래에 「이미 원가가 잡힌 물건이 다른 환율로」 경고 + 차액(CAD) · 「Apply FX difference」 창(po_fx_cost_apply 미리 보기 → 저장) · 인보이스 환율로 원가를 세운 줄 · 핀 없는 옛 레이어는 따로 한 줄 · 환율 수정은 지금처럼 열려 있다(원가는 저절로 안 바뀐다) ← po tx v1a · 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-25 · po csv v1";   // 대화 Claude — 판정 733(Caleb 「A」 · manual-2a 이견 1 — IMS 에 PO 를 공급처에 보내는 길이 없었다 · 지금은 엑셀 · CSV 를 만들어 메일로 보낸다): 상세에 「↓ PO CSV」 — 머리(PO · 공급처 · 주문일 · 필요일 · 통화 · 결제조건) + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계 · SKU · 바코드는 ="…"(엑셀이 글자로) · 초안이 아닐 때 · 메모(note)는 내부라 넣지 않는다 · 읽기만(DB 무접촉) ← 2026-10-24 · po docs v1: 대화 Claude — drive-3(판정 691 · 697 · 703 · 706 · 708): PO 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 올리기 · 열기 · 치우기 · 드라이브 상태 · 인보이스 종류면 공급처 인보이스 고르기) ← 2026-10-22 · po paste price v1: 대화 Claude — pln-1(asung-wms df5088a · 판정 624 A): Paste lines 셋째 칸 = 가격(선택 · 할인 전 단가 · PO 할인은 위에서 걸린다) · so v5u 와 같은 읽기(탭 · 쉼표 줄만 셋째 칸) · bad_price 판정 · 「your price」 표시 ← 2026-10-22 · po gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · po printed v1: 대화 Claude — 판정 621 A 를 「Create an invoice」 창에도: Printed total 이 비면 칸을 노랑으로(inv printed v1 과 같은 색 · 막지 않는다) ← po warn v1: 대화 Claude — Caleb 화면 시험: 경고가 열쇠 그대로 보였다(total_amount_missing) → po_create · po_invoice_create 경고를 사람 말로(PO_WARN · poWarn) ← po due v1: 대화 Claude — Caleb 「인보이스 날짜가 들어가면 자동적으로 due date도 그 사람의 텀 조건에 맞춰서」: Create an invoice 창에 Due date 칸 — Document date + PO 결제조건의 net_days 로 채움(날짜를 바꾸면 따라감 · 손으로 고치면 그대로 · 분할 조건 · 날 수 없음 · 조건 없음은 안내) · p_due_date 로 보냄 ← po fx v1: 대화 Claude — ⑥ 환율 차액(판정 394 · po-disc-5b): 외화 PO 의 환율 칸 아래에 「이미 원가가 잡힌 물건이 다른 환율로」 경고 + 차액(CAD) · 「Apply FX difference」 창(po_fx_cost_apply 미리 보기 → 저장) · 인보이스 환율로 원가를 세운 줄 · 핀 없는 옛 레이어는 따로 한 줄 · 환율 수정은 지금처럼 열려 있다(원가는 저절로 안 바뀐다) ← po tx v1a · 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 /* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -1201,6 +1201,9 @@ async function loadDetail(id){
   acts.push('<button class="pobtn" data-act="wide">&lsaquo; All POs</button>');
   // ⭐ Confirm 의 뜻: 「공급사에 보낼 **수량과 라인이 정해졌다**」 — 잠금도 아니고 메일을 보내는 것도 아니다(§11-b)
   if(h.status === "draft") acts.push('<button class="pobtn go" data-act="confirm">Confirm</button>');
+  /* po csv v1 · 판정 733 — 공급처에 보낼 엑셀(CSV) · 확정된 뒤(초안은 아직 정해지지 않은 수량) · 취소된 PO 는 없음 */
+  if(h.status !== "draft" && h.status !== "cancelled" && (data.lines || []).length)
+    acts.push('<button class="pobtn" data-act="csvpo" title="Download this PO as a spreadsheet (CSV) to send to the supplier">↓ PO CSV</button>');
   if(ed){
     acts.push('<button class="pobtn" data-act="addline">Add a line</button>');
     acts.push('<button class="pobtn" data-act="paste">Paste lines</button>');
@@ -1512,6 +1515,7 @@ async function loadDetail(id){
       if(b.dataset.act === "addline") openAddLine(h);
       if(b.dataset.act === "paste")   openPaste();
       if(b.dataset.act === "confirm") setStatus(h.id, "confirmed");
+    if(b.dataset.act === "csvpo")   exportPoCsv(h, data, b);   // po csv v1
       if(b.dataset.act === "cancel")  cancelPo(h.id, h.po_number);
       if(b.dataset.act === "restore") restorePo(h.id, h.po_number);
       if(b.dataset.act === "delete")  deletePo(h.id, h.po_number);
@@ -1571,6 +1575,69 @@ let TAX_RULES = [];           // po tx v1 — 활성 purchase 세금 규칙(머�
    확정은 「공급사에 보낼 수량과 라인이 정해졌다」는 뜻이라(§11-b), 그 뒤에 납기나 창고가 바뀌면
    이미 나간 발주서와 어긋난다. */
 const HEAD_ALWAYS = ["exchange_rate", "note"];     // 확정·마감 뒤에도 연다
+
+/* ── po csv v1 · 판정 733 — 공급처에 보낼 PO CSV ──────────────────────
+   ⭐ 읽기만 — po_detail 이 준 것 그대로 · 바코드는 product → product_barcode(활성 · 대표 먼저 · so.html csv v3 와 같은 길)
+   ⭐ SKU · 공급처 SKU · 바코드는 ="…" — 엑셀이 긴 숫자를 지수 · 앞 0 빠짐으로 바꾸지 않는다
+   ⚠️ note(내부 메모) · 원가 계정 · 환율 · 입고 수량은 넣지 않는다 — 공급처에 가는 파일이다 */
+function poCsvCell(v){
+  if(v === null || v === undefined) return "";
+  const t = String(v);
+  return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+}
+const poCsvText = (v) => (v === null || v === undefined || v === "") ? "" : '="' + String(v).replace(/"/g, "") + '"';
+const poCsvNum = (v) => (v === null || v === undefined || v === "") ? "" : Number(v);
+async function poBarcodes(skus){
+  const out = {}, want = [...new Set(skus.filter(Boolean))];
+  try {
+    for(let i = 0; i < want.length; i += 200){
+      const part = want.slice(i, i + 200);
+      const pr = await sb.from("product").select("id,sku").in("sku", part);
+      if(pr.error) throw new Error(pr.error.message);
+      const idSku = {}; (pr.data || []).forEach(p => { idSku[p.id] = p.sku; });
+      const ids = Object.keys(idSku); if(!ids.length) continue;
+      const bc = await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", ids).eq("is_active", true);
+      if(bc.error) throw new Error(bc.error.message);
+      (bc.data || []).sort((a, b) => (b.is_primary === true) - (a.is_primary === true)).forEach(b => { const k = idSku[b.product_id]; if(k && !out[k]) out[k] = b.barcode; });
+    }
+  } catch(e){ console.warn("[po csv barcodes] " + e.message); }
+  return out;
+}
+async function exportPoCsv(h, data, btn){
+  const label = btn ? btn.textContent : "";
+  if(btn){ btn.disabled = true; btn.textContent = "Preparing…"; }
+  try {
+    const t = data.totals || {};
+    const lines = (data.lines || []).slice().sort((a, b) => Number(a.line_no) - Number(b.line_no));
+    const bc = await poBarcodes(lines.map(l => l.sku));
+    const rows = [];
+    rows.push(["Purchase order", h.po_number || ""]);
+    rows.push(["Supplier", h.supplier_name || ""]);
+    rows.push(["Order date", h.order_date || ""]);
+    if(h.required_by) rows.push(["Required by", h.required_by]);
+    rows.push(["Currency", h.currency_code || ""]);
+    if(h.payment_term_name) rows.push(["Payment term", h.payment_term_name]);
+    rows.push([]);
+    const head = ["Line", "SKU", "Supplier SKU", "Barcode", "Product", "Qty", "Unit price", "Amount"];
+    rows.push(head);
+    lines.forEach(l => rows.push([l.line_no, poCsvText(l.sku), poCsvText(l.supplier_sku), poCsvText(bc[l.sku]), l.product_name || "",
+      poCsvNum(l.qty_ea), poCsvNum(l.unit_price), poCsvNum(l.amount)]));
+    rows.push([]);
+    const at = head.indexOf("Amount");
+    const foot = (lbl, val) => { if(val === null || val === undefined || val === "") return; const r = Array(at - 1).fill(""); r.push(lbl, poCsvNum(val)); rows.push(r); };
+    foot("Subtotal", t.subtotal);
+    (data.discounts || []).forEach(d => { const r = Array(at - 1).fill(""); r.push("Discount " + (d.name || "") + " " + d.percent + "%", ""); rows.push(r); });
+    if(Number(t.discount_amount)) foot("Discount", -Math.abs(Number(t.discount_amount)));
+    foot("Net total", t.net_total);
+    const day = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Toronto" });
+    const txt = "\uFEFF" + rows.map(r => r.map(poCsvCell).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([txt], { type: "text/csv;charset=utf-8" }));
+    a.download = `${h.po_number || "PO"}-${day}.csv`; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  } catch(e){ alert("Could not prepare the CSV — " + e.message); }
+  finally { if(btn){ btn.disabled = false; btn.textContent = label; } }
+}
 
 function headIn(field, value, ed, type){
   if(!ed) return value === null || value === undefined || value === ""
