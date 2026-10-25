@@ -2151,7 +2151,7 @@ help.html (help v1 · 판정 725) — asung-wms docs/manual 을 main 에서 읽�
 [ ] IMS 화면 머리 Change Password 앞 **Manual** → 새 탭에 help.html (nav v11) · help.html 자신에는 Manual 이 없다
 [ ] WMS 화면 ☰ Menu 맨 끝(줄 하나 띄우고) **Manual** → 새 탭 help.html#ch-04-wms 가 4 장 머리에서 열린다 (nav v12) · WMS 머리에는 Manual · Change Password 가 없다
 [ ] English / 한국어 단추 — 고르면 바뀌고, 새로 고쳐도 고른 언어가 남는다
-[ ] 왼쪽 목차 = README Contents 표에서 링크가 걸린 장만(지금 0 · 1 · 4 장) · 장 · 절 제목을 누르면 그 자리로
+[ ] 왼쪽 목차 = README Contents 표에서 링크가 걸린 장만(지금 0 · 1 · 4 장) · 장 · 절 제목을 누르면 그 자리로 → [7-zs] 00 ~ 10 장 · 9 장 없음(742)
 [ ] 찾기 칸(Find a section) — 절 제목으로 좁혀진다
 [ ] 주소 help.html?lang=ko#sales-ship-invoice 로 열면 한국어 · 그 절에서 열린다
 [ ] 본문 없는 절은 「not written yet」 · 숨김 주석(screen · who · SCREENSHOT · rulings)은 안 보인다 · 표 · 굵게 · 목록이 그려진다
@@ -2170,6 +2170,33 @@ Result 글자 (판정 724)
 
 수수료 (판정 5 · cr v5a)
 [ ] 크레딧 새 창 — 60 일이 넘은 판매여도 **Charge a fee** 는 꺼진 채 시작 · 알림 줄과 제안 % 는 보인다 · 체크하면 수수료 줄이 미리 보기에 선다
+```
+
+### 7-zs. 2026-10-25 저녁 — PO CSV · 메뉴 · Action Centre · Settings 글 · 매뉴얼 장 (po csv v1 6eefa2b · nav v13 8fcf4d6 · ml v1.3 3205214 · set v8b a54d964 · set v8c 5693139 · so-module §76 · 판정 210 · 733 · 738 · 742)
+
+```
+PO CSV (po csv v1 · 판정 733)
+[ ] 확정(Confirm)한 PO 상세에만 **↓ PO CSV** — 초안에는 없다
+[ ] 파일 = 머리 + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계
+[ ] 엑셀로 열면 SKU · 바코드가 숫자로 바뀌지 않고 글자 그대로(="…") · 0 으로 시작하는 바코드도 그대로
+[ ] 내부 메모는 파일에 없다 · 내려받아도 PO 는 바뀌지 않는다(읽기만)
+
+메뉴 (nav v13 · 판정 210)
+[ ] Inventory ▾ 에 Supplier Products 가 없다 · 주소(supplier-products.html)로는 열린다
+
+Action Centre (ml v1.3)
+[ ] Branch 를 고르면 New customers to review 배지 숫자와 목록 줄 수가 같다
+[ ] Sold without stock 의 줄(POS 판매 포함)을 누르면 Sales Orders(so.html?so=)에서 그 오더가 열린다
+[ ] Unpaid at hand-over 는 Branch 를 골라도 모든 브랜치(알고 둔 것 — deferred 337 ①)
+
+Settings 글 (set v8b · v8c)
+[ ] Settings › Bin 표 머리 = 「Thousands of bins — search for the one you need」
+[ ] Settings › Documents › Wording & columns 안내 = 「… These are the subject and message of the email that carries this document.」
+
+매뉴얼 (help.html · asung-wms docs/manual · 판정 742)
+[ ] 왼쪽 목차 = 0 ~ 10 장(9 장 = FAQ · 10 장 = Glossary · 예전 「9 장 옮겨 오기」 는 없다)
+⭐ 장 파일 이름 고정 표 — 00-getting-started · 01-sales · 02-purchasing · 03-inventory · 04-wms(nav v12 링크) · 05-pos · 06-action-centre · 07-settings · 08-by-role · 09-faq · 10-glossary
+⭐ 앵커는 바꾸지 않는다 — 화면 「?」 단추(뒤 차수)가 help.html?lang=…#앵커 로 연다 · 파일 이름을 바꾸면 README Contents 링크만 맞추면 된다
 ```
 
 ## 8. 로그인 · 계정
