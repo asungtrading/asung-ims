@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v12";     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v13";     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -85,7 +85,7 @@
     ["Stock Availability","stock.html",null,"ims",false,"inventory"],   // stk-3(2026-10-06 · 판정 257 · 258) — 브랜치별 가용 · bin · 움직임 · 열쇠 없음 = 로그인한 직원 누구나(창구 문 = 활성 직원)
     ["Products","products.html","master","ims",false,"inventory"],
     ["Product Sheet","product-sheet.html","master","ims",false,"inventory"],
-    ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],
+    // ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],   // nav v13 — 판정 210: Product Sheet 가 서서 메뉴에서 뺐다(화면은 주소로 열린다)
     ["Families","families.html","master","ims",false,"inventory"],
     ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,"inventory"],
     ["B-grade Stock","stock-bgrade.html","stock_adjust","ims",false,"inventory"],   // nav v10(2026-10-23 · bgr v1) — B급 칸 재고 · Move to B-grade · Move back · 값 · 보기는 stock_adjust 화면 열쇠 · 옮기기 · 값은 창구 문 ims_can_adjust(판정 638)
