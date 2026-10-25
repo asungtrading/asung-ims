@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v11";     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v12";     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -508,11 +508,13 @@
       st.textContent='.ims-nav{position:absolute;z-index:2000;background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px;min-width:180px;display:none}'
         +'.ims-nav a{display:block;padding:10px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430;text-decoration:none}'
         +'.ims-nav a:hover{background:#f2f4f8}'
-        +'.ims-nav a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}';
+        +'.ims-nav a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}'
+        +'.ims-nav .sep{border-top:1px solid #e3e6eb;margin:4px 6px}';   // nav v12
       document.head.appendChild(st);
     }
     const dd=document.createElement("div"); dd.className="ims-nav";
-    dd.innerHTML=list.map(it=>`<a href="${esc(it[1])}" class="${it[1].toLowerCase()===here?"cur":""}">${esc(it[0])}</a>`).join("");
+    dd.innerHTML=list.map(it=>`<a href="${esc(it[1])}" class="${it[1].toLowerCase()===here?"cur":""}">${esc(it[0])}</a>`).join("")
+      + '<div class="sep"></div><a href="help.html#ch-04-wms" target="_blank" rel="noopener" title="Open the manual in a new tab">Manual</a>';   // nav v12 · 판정 731
     document.body.appendChild(dd);
     btn.onclick=(e)=>{
       e.stopPropagation();
