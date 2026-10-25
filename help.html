@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* help v1 — 매뉴얼 읽기 화면(판정 725) · 원고 = asung-wms docs/manual(공개 레포 · raw 로 읽는다) */
+  .hp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:0;align-items:start;min-height:calc(100vh - 60px)}
+  .hp-side{position:sticky;top:60px;max-height:calc(100vh - 70px);overflow:auto;padding:16px 14px 24px;border-right:1px solid var(--line);background:#fff}
+  .hp-lang{display:flex;gap:4px;margin-bottom:10px}
+  .hp-lang button{flex:1;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 0;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--muted)}
+  .hp-lang button.cur{background:var(--ink);border-color:var(--ink);color:#fff}
+  .hp-find{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;margin-bottom:12px}
+  .hp-toc{list-style:none;margin:0;padding:0;font-size:13px}
+  .hp-toc .ch{margin:12px 0 4px;font-weight:800;font-size:12.5px;color:var(--ink)}
+  .hp-toc .ch:first-child{margin-top:0}
+  .hp-toc a{display:block;padding:4px 8px;border-radius:6px;color:#3a4250;text-decoration:none;line-height:1.35}
+  .hp-toc a:hover{background:#f2f4f8}
+  .hp-toc a.cur{background:#eef2ff;color:var(--accent);font-weight:700}
+  .hp-toc a.todo{color:#9aa3b0}
+  .hp-main{padding:24px 32px 80px}
+  .hp-doc{max-width:760px;font-size:15px;line-height:1.65;color:#1d232c}
+  .hp-doc h1{font-size:26px;line-height:1.25;margin:8px 0 14px;padding-top:6px}
+  .hp-doc h1:not(:first-child){margin-top:56px;padding-top:28px;border-top:2px solid var(--ink)}
+  .hp-doc h2{font-size:19px;line-height:1.3;margin:36px 0 10px;padding-top:4px;scroll-margin-top:76px}
+  .hp-doc h3{font-size:16px;margin:24px 0 8px}
+  .hp-doc h4{font-size:13px;margin:18px 0 4px;color:var(--muted);font-weight:700}
+  .hp-doc p{margin:0 0 10px}
+  .hp-doc ul,.hp-doc ol{margin:0 0 12px;padding-left:24px}
+  .hp-doc li{margin:3px 0}
+  .hp-doc code{font-family:var(--mono);font-size:13px;background:#f2f4f8;border-radius:4px;padding:1px 5px}
+  .hp-doc strong{font-weight:700;color:var(--ink)}
+  .hp-doc a{color:var(--accent)}
+  .hp-doc .tblx{overflow-x:auto;margin:6px 0 14px}
+  .hp-doc table{border-collapse:collapse;font-size:13.5px;line-height:1.45;min-width:60%}
+  .hp-doc th,.hp-doc td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+  .hp-doc th{background:#f7f8fa;font-weight:700}
+  .hp-doc .todo{color:var(--muted);font-style:italic;background:#f7f8fa;border-radius:8px;padding:10px 12px}
+  .hp-doc h2.flash{animation:hpflash 1.6s ease-out}
+  @keyframes hpflash{0%{background:#fff3c4}100%{background:transparent}}
+  @media (prefers-reduced-motion:reduce){.hp-doc h2.flash{animation:none}}
+  .hp-msg{padding:24px 32px;color:var(--muted)}
+  @media (max-width:900px){
+    .hp{grid-template-columns:1fr}
+    .hp-side{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}
+    .hp-main{padding:18px 16px 60px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="hp">
+  <aside class="hp-side">
+    <div class="hp-lang" id="hpLang">
+      <button type="button" data-lang="en">English</button>
+      <button type="button" data-lang="ko">한국어</button>
+    </div>
+    <input class="hp-find" id="hpFind" type="search" autocomplete="off" placeholder="Find a section">
+    <ul class="hp-toc" id="hpToc"></ul>
+  </aside>
+  <main class="hp-main"><div class="hp-doc" id="hpDoc"><div class="hp-msg">Loading the manual…</div></div></main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js?v=help1"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   help.html — 매뉴얼 읽기 1판 (2026-10-25 · 대화 Claude · 판정 725)
+   Caleb 「그러면 화면도 지어줘. 어차피 공개레포인데 화면에서 바로 매뉴얼을 읽을 수 있게 해줘」
+   ⭐ 원고의 정본은 asung-wms docs/manual(en · ko) — 이 화면은 읽기만 한다 · 원고가 커밋 · push 되면 몇 분 안에 여기에 보인다(raw 캐시)
+   ⭐ 장 목록 = docs/manual/README.md 의 Contents 표에서 링크가 걸린 장만(새 장이 서면 README 만 고치면 된다)
+   ⭐ 주소: help.html?lang=ko#sales-confirm — 앵커(#…)는 영 · 한이 같다(check-manual-anchors.sh) · 화면의 「?」 단추(help-1)가 이 꼴로 연다
+   ⚠️ 마크다운은 원고가 쓰는 만큼만 그린다(제목 · 굵게 · 코드 · 목록 · 표 · 링크 · <a id>) — 바깥 라이브러리 없음 · 모든 글은 esc 뒤에 꾸민다(원고의 HTML 은 <a id="…"></a> 줄 말고는 글자로 보인다)
+   ⚠️ <!-- … --> 숨김 주석(screen · who · rulings · SCREENSHOT · TODO)은 그리지 않는다 · 본문 없는 절은 「not written yet」
+   ⚠️ 열쇠 null(로그인만) — 누구나 연다
+   ───────────────────────────────────────────────────────────── */
+const HP_BUILD = "2026-10-25 · help v1";
+console.log("help.html build:", HP_BUILD);
+
+const HP_RAW = "https://raw.githubusercontent.com/asungtrading/asung-wms/main/docs/manual/";
+const HP_TXT = {
+  en: { find: "Find a section", loading: "Loading the manual…", todo: "This part is not written yet.", fail: "Could not load the manual — check the connection and reload.", none: "No section matches." },
+  ko: { find: "절 찾기", loading: "매뉴얼을 불러오는 중…", todo: "아직 쓰지 않은 부분입니다.", fail: "매뉴얼을 불러오지 못했습니다 — 연결을 확인하고 새로 고침해 주세요.", none: "맞는 절이 없습니다." },
+};
+const hpStoreGet = () => { try { return localStorage.getItem("ims_help_lang"); } catch (e) { return null; } };
+const hpStoreSet = (v) => { try { localStorage.setItem("ims_help_lang", v); } catch (e) {} };
+let hpLang = (new URLSearchParams(location.search).get("lang") || hpStoreGet() || "en").toLowerCase() === "ko" ? "ko" : "en";
+const hpCache = {};   // 언어 → { chapters:[{file, title, html, sections:[{id, title, todo}]}] }
+
+/* ── 글 꾸미기(한 줄 안) — esc 먼저 · 그다음 굵게 · 코드 · 링크 ── */
+function hpInline(s) {
+  const codes = [];
+  let t = String(s).replace(/`([^`]+)`/g, (m, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+  t = esc(t).replace(/\\([*_\[\]()#|\\-])/g, (m, c) => "\u0001" + c.charCodeAt(0) + "\u0001");   // 「\*」 같은 글자 그대로 — 굵게보다 먼저 숨긴다
+  t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, label, href) => `<a href="${hpHref(href)}">${label}</a>`);
+  t = t.replace(/\u0000(\d+)\u0000/g, (m, i) => `<code>${esc(codes[+i])}</code>`);
+  t = t.replace(/\u0001(\d+)\u0001/g, (m, n) => String.fromCharCode(+n));
+  return t;
+}
+/* 원고 안 링크 → 이 화면 안 자리 · 바깥 https 는 새 탭이 아니라 그대로 */
+function hpHref(href) {
+  const h = String(href).replace(/&amp;/g, "&");
+  if (h.startsWith("#")) return esc(h);
+  const m = h.match(/^(?:\.\/)?(\d\d-[a-z0-9-]+)\.md(#[a-z0-9-]+)?$/);
+  if (m) return esc(m[2] || "#ch-" + m[1]);
+  if (/^https:\/\//i.test(h)) return esc(h);
+  return "#";
+}
+
+/* ── 한 장을 HTML 로 ── */
+function hpRender(md, file) {
+  const src = String(md).replace(/\r\n?/g, "\n").replace(/<!--[\s\S]*?-->/g, "");
+  const L = src.split("\n");
+  const out = [], sections = [];
+  let title = file, pendingId = null, i = 0, para = [], sec = null;
+  const flushPara = () => { if (para.length) { out.push(`<p>${para.map(hpInline).join("<br>")}</p>`); if (sec) sec.n++; para = []; } };
+  const isTableSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map(c => c.trim());
+  while (i < L.length) {
+    const l = L[i];
+    const anchor = l.match(/^\s*<a id="([a-z0-9-]+)"><\/a>\s*$/);
+    if (anchor) { flushPara(); pendingId = anchor[1]; i++; continue; }
+    if (/^\s*$/.test(l)) { flushPara(); i++; continue; }
+    const h = l.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      flushPara();
+      const lv = h[1].length, text = h[2].trim();
+      if (lv === 1) { title = text; out.push(`<h1 id="ch-${esc(file)}">${hpInline(text)}</h1>`); }
+      else if (lv === 2) {
+        const id = pendingId || "";
+        if (sec && sec.n === 0) out.push(`<p class="todo">${esc(HP_TXT[hpLang].todo)}</p>`);
+        sec = { id, title: text, n: 0 }; sections.push(sec);
+        out.push(`<h2${id ? ` id="${esc(id)}"` : ""}>${hpInline(text)}</h2>`);
+      } else { out.push(`<h3>${hpInline(text)}</h3>`); if (sec) sec.n++; }
+      pendingId = null; i++; continue;
+    }
+    if (/^\s*```/.test(l)) {   // 코드 덩이(README 꼴 — 장에는 드물다)
+      flushPara(); const buf = []; i++;
+      while (i < L.length && !/^\s*```/.test(L[i])) { buf.push(L[i]); i++; }
+      i++; out.push(`<pre><code>${esc(buf.join("\n"))}</code></pre>`); if (sec) sec.n++; continue;
+    }
+    if (/^\s*\|/.test(l) && i + 1 < L.length && isTableSep(L[i + 1])) {
+      flushPara();
+      const head = cells(l); i += 2; const rows = [];
+      while (i < L.length && /^\s*\|/.test(L[i])) { rows.push(cells(L[i])); i++; }
+      out.push(`<div class="tblx"><table><thead><tr>${head.map(c => `<th>${hpInline(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${hpInline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+      if (sec) sec.n++; continue;
+    }
+    const ul = l.match(/^\s*[-*]\s+(.*)$/), ol = l.match(/^\s*\d+\.\s+(.*)$/);
+    if (ul || ol) {
+      flushPara();
+      const tag = ul ? "ul" : "ol", re = ul ? /^\s*[-*]\s+(.*)$/ : /^\s*\d+\.\s+(.*)$/;
+      const items = [];
+      while (i < L.length && re.test(L[i])) {
+        let txt = L[i].match(re)[1]; i++;
+        while (i < L.length && /^\s{2,}\S/.test(L[i]) && !/^\s*[-*]\s+|^\s*\d+\.\s+/.test(L[i])) { txt += " " + L[i].trim(); i++; }   // 이어진 줄
+        const subs = [];
+        while (i < L.length && /^\s{2,}[-*]\s+/.test(L[i])) { subs.push(L[i].replace(/^\s+[-*]\s+/, "")); i++; }   // 한 단 아래 목록
+        items.push(`<li>${hpInline(txt)}${subs.length ? `<ul>${subs.map(s => `<li>${hpInline(s)}</li>`).join("")}</ul>` : ""}</li>`);
+      }
+      out.push(`<${tag}>${items.join("")}</${tag}>`); if (sec) sec.n++; continue;
+    }
+    const lab = l.match(/^\s*\*\*([^*]+)\*\*\s*$/);   // 「**What it is**」 같은 꼬리표 한 줄
+    if (lab) { flushPara(); out.push(`<h4>${hpInline(lab[1])}</h4>`); i++; continue; }
+    para.push(l.trim()); i++;
+  }
+  flushPara();
+  if (sec && sec.n === 0) out.push(`<p class="todo">${esc(HP_TXT[hpLang].todo)}</p>`);
+  sections.forEach(s => { s.todo = s.n === 0; });
+  return { file, title, html: out.join("\n"), sections };
+}
+
+/* ── 장 목록(README Contents) → 장마다 읽기 ── */
+async function hpFetch(path) {
+  const r = await fetch(HP_RAW + path, { cache: "no-cache" });
+  if (!r.ok) throw new Error(path + " — " + r.status);
+  return r.text();
+}
+async function hpLoad(lang) {
+  if (hpCache[lang]) return hpCache[lang];
+  const readme = await hpFetch("README.md");
+  const files = [];
+  readme.split("\n").forEach(l => {
+    const m = l.match(new RegExp("\\]\\(" + lang + "\\/(\\d\\d-[a-z0-9-]+)\\.md\\)"));
+    if (m && !files.includes(m[1])) files.push(m[1]);
+  });
+  const texts = await Promise.all(files.map(f => hpFetch(lang + "/" + f + ".md")));
+  const chapters = texts.map((t, k) => hpRender(t, files[k]));
+  hpCache[lang] = { chapters };
+  return hpCache[lang];
+}
+
+/* ── 그리기 ── */
+function hpDrawToc(chapters, q) {
+  const ql = String(q || "").trim().toLowerCase();
+  const parts = [];
+  chapters.forEach(c => {
+    const secs = c.sections.filter(s => s.id && (!ql || s.title.toLowerCase().includes(ql) || c.title.toLowerCase().includes(ql)));
+    if (ql && !secs.length) return;
+    parts.push(`<li class="ch"><a href="#ch-${esc(c.file)}" style="padding:0;color:inherit">${hpInline(c.title)}</a></li>`);
+    secs.forEach(s => parts.push(`<li><a href="#${esc(s.id)}" data-id="${esc(s.id)}"${s.todo ? ' class="todo"' : ""}>${hpInline(s.title)}</a></li>`));
+  });
+  document.getElementById("hpToc").innerHTML = parts.join("") || `<li class="dim" style="padding:4px 8px">${esc(HP_TXT[hpLang].none)}</li>`;
+  hpMarkCur();
+}
+function hpMarkCur() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  document.querySelectorAll("#hpToc a[data-id]").forEach(a => a.classList.toggle("cur", a.dataset.id === id));
+}
+function hpGoHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  hpMarkCur();
+  if (!id) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ block: "start" });
+  if (el.tagName === "H2") { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+}
+async function hpShow() {
+  document.documentElement.lang = hpLang;
+  document.querySelectorAll("#hpLang button").forEach(b => b.classList.toggle("cur", b.dataset.lang === hpLang));
+  document.getElementById("hpFind").placeholder = HP_TXT[hpLang].find;
+  const doc = document.getElementById("hpDoc");
+  doc.innerHTML = `<div class="hp-msg">${esc(HP_TXT[hpLang].loading)}</div>`;
+  try {
+    const { chapters } = await hpLoad(hpLang);
+    doc.innerHTML = chapters.map(c => c.html).join("\n");
+    hpDrawToc(chapters, document.getElementById("hpFind").value);
+    hpGoHash();
+  } catch (e) {
+    doc.innerHTML = `<div class="msg err">${esc(HP_TXT[hpLang].fail)} (${esc(e.message)})</div>`;
+  }
+}
+
+imsAuth.start({ changePw: true }, async (sb, me) => {
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = HP_BUILD;
+  document.querySelectorAll("#hpLang button").forEach(b => b.onclick = () => {
+    if (b.dataset.lang === hpLang) return;
+    hpLang = b.dataset.lang; hpStoreSet(hpLang);
+    const u = new URL(location.href); u.searchParams.set("lang", hpLang); history.replaceState(null, "", u);
+    hpShow();
+  });
+  let t = null;
+  document.getElementById("hpFind").addEventListener("input", e => {
+    clearTimeout(t); t = setTimeout(() => { const c = hpCache[hpLang]; if (c) hpDrawToc(c.chapters, e.target.value); }, 150);
+  });
+  window.addEventListener("hashchange", hpGoHash);
+  hpStoreSet(hpLang);
+  await hpShow();
+});
+</script>
+</body>
+</html>
