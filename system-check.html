@@ -38,6 +38,7 @@
   <div class="card"><h3>Signed in as</h3><table class="sctbl" id="meTbl"></table></div>
   <div class="card"><h3>Access</h3><table class="sctbl" id="accTbl"></table></div>
   <div class="card"><h3>Screens open to you</h3><table class="sctbl" id="scrTbl"></table></div>
+  <div class="card"><h3>Google Drive</h3><table class="sctbl" id="drvTbl"><tr><td class="dim">Checking…</td></tr></table></div>
   <div class="card"><h3>Database connection</h3><table class="sctbl" id="dbTbl"><tr><td class="dim">Checking…</td></tr></table></div>
   <div class="card"><h3>Build</h3><table class="sctbl" id="bldTbl"></table></div>
 </div>
@@ -55,7 +56,7 @@
    ⚠️ 권한은 ims_access() 의 결과(imsAuth.access)를 보여 주기만 한다 — 화면이 다시 판정하지 않는다
    ⚠️ DB 칸은 옛 index 와 같은 다섯 표의 행 수(head count) — RLS 로 0 이 나오면 「표가 비었다」가 아니라 「이 사람에게 안 보인다」일 수 있다
    ───────────────────────────────────────────────────────────── */
-const SC_BUILD = "2026-10-01 · sc v1.1";   // 대화 Claude — 갈래 이름 Action Centre(Caleb 2026-10-01) ← sc v1
+const SC_BUILD = "2026-10-24 · sc v2";   // 대화 Claude — drive-3: Google Drive 카드(drive_status · 시작 날짜 비면 경고 · 실패 목록 · Settings 로 가는 고리) ← sc v1.1 갈래 이름 Action Centre(Caleb 2026-10-01) ← sc v1
 console.log("system-check.html build:", SC_BUILD);
 
 const row = (k, v) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
@@ -99,6 +100,22 @@ imsAuth.start({ changePw: true }, async (sb, me) => {
   document.getElementById("bldTbl").innerHTML =
       row("this page", code(SC_BUILD)) + row("ims-auth.js", code(imsAuth.build))
     + row("first screen", code(imsAuth.firstScreen())) + row("loaded at", code(new Date().toString()));
+
+  // Google Drive — drive-3 · drive_status()(판정 692 · 707) · 시작 날짜가 비면 보관 PDF 가 안 생긴다는 경고
+  {
+    const { data: ds, error: de } = await sb.rpc("drive_status");
+    if (de) {
+      document.getElementById("drvTbl").innerHTML = row("status", `<span class="no">${esc(de.message)}</span>`);
+    } else {
+      const d = ds || {}, nf = (d.failed || []).length;
+      document.getElementById("drvTbl").innerHTML =
+          row("start date", d.since ? code(d.since) : '<span class="no">empty — no kept copies are made</span>')
+        + row("send to Drive", d.enabled ? '<span class="ok">on</span>' : '<span class="dim">off</span>')
+        + row("waiting", code(d.pending ?? 0))
+        + row("failed", nf ? `<span class="no">${nf}</span> — ` + (d.failed || []).slice(0, 3).map(f => esc((f.file_name || f.kind) + ": " + (f.last_error || ""))).join(" · ") : '<span class="ok">0</span>')
+        + row("settings", '<span class="sclinks"><a href="settings.html?t=drive">Settings › Google Drive</a></span>');
+    }
+  }
 
   // Database connection — 옛 index 와 같은 다섯 표 · 행 수만 센다
   const out = [];

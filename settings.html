@@ -104,7 +104,7 @@
 <script src="ims-auth.js"></script>
 <script src="ims-doc.js"></script>
 <script>
-const SET_BUILD = "2026-10-23 · set v7a";   // 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-24 · set v8";   // 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -167,6 +167,7 @@ const TABLES = [
 
   /* set v4 — 판정 521 ~ 526: 문서(인보이스 · 크레딧 노트 · SO · Ship Ready · Internal) — 회사 글 · 판 · 미리 보기 · 문서 글 */
   { t:"docs", label:"Documents", note:"Invoices, credit notes, sales orders — company details, layouts, preview", custom:"docs", nocount:1 },
+  { t:"drive", label:"Google Drive", note:"Invoices, credit notes and PO documents to the IMS Documents shared drive", custom:"drive", nocount:1 },   // set v8 — drive-3 · 판정 688 · 692 · 707
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
@@ -202,6 +203,7 @@ async function load(){
   ["onlyActive", "q", "range", "prev", "next"].forEach(id => { const el = document.getElementById(id); (el.closest("label") || el).hidden = !!cur.custom; });   // set v3
   if(cur.custom === "mail"){ document.getElementById("addRow").hidden = true; drawNav(); await loadMail(); return; }
   if(cur.custom === "docs"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDocs(); return; }   // set v4
+  if(cur.custom === "drive"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDrive(); return; }   // set v8
   document.getElementById("addRow").hidden = !(cur.edit && canEdit());   // set v2
   document.getElementById("addRow").textContent = "+ Add " + (cur.noun || "carrier");   // set v5
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
@@ -819,6 +821,73 @@ async function dSaveWording(st){
   const r2 = document.getElementById("res_ds"); if(r2){ r2.className = "res on"; r2.textContent = `Saved (${todo.length}).`; }
 }
 
+/* ── set v8 — Google Drive(drive-3 · 판정 688 · 692 · 702 · 707) ──────────
+   ⚠️ 값은 drive_status()(읽기) · 저장은 창구 ims_config_set(old = 화면이 본 값) · 바꾸기는 admin 만(판정 707 · 창구가 다시 본다)
+   ⚠️ drive_since 가 비어 있으면 보관 PDF 도 드라이브 일도 생기지 않는다 — 컷오버 날 첫 발행 전에 2026-11-01(판정 692)
+   ⚠️ drive_enabled 는 「드라이브로 올리기」만 — 보관 PDF 는 since 만 있으면 발행 직후 찍힌다(drive-1 이견 1) */
+let dSt = null;
+async function loadDrive(){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const { data, error } = await sb.rpc("drive_status");
+  if(error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(error.message)}</div>`; return; }
+  dSt = data || {};
+  const me = (window.imsAuth && imsAuth.me) || {};
+  const admin = me.role === "admin";
+  const on = !!dSt.enabled, since = dSt.since || "", root = dSt.root_id || "";
+  const lock = admin ? "" : '<span class="note">Only an admin can change this.</span>';
+  const counts = dSt.counts || {};
+  const cnt = Object.keys(counts).sort().map(k => `<span class="tag">${esc(k)} ${esc(counts[k])}</span>`).join(" ") || '<span class="dim">none yet</span>';
+  const failed = (dSt.failed || []).map(f => `<div class="note"><b>${esc(f.kind)}</b> ${esc(f.file_name || "")} — ${esc(f.last_error || "")} <span class="dim">(${esc(imsTs(f.updated_at))} · tries ${esc(f.attempts)})</span></div>`).join("");
+  body.innerHTML = `<div class="mset">
+    <div class="mrow"><div class="lbl">Start date</div><div class="ctl">
+      <div class="line"><input type="date" id="dvSince" ${admin ? "" : "disabled"}>${admin ? '<button class="pobtn" id="dvSinceSave">Save</button> <button class="pobtn" id="dvSinceClear">Clear</button>' : ""}<span class="res" id="res_drive_since"></span></div>
+      <span class="note">${since ? `Invoices and credit notes issued on or after <b>${esc(since)}</b> get a kept copy (the PDF as it looked when issued) and go to Drive. Documents uploaded on a PO or charge from this date go too.` : "<b>Empty — nothing is kept for Drive.</b> No kept copies are made and nothing is queued. On cutover day, put 2026-11-01 here before the first invoice is issued."}</span>${lock}</div></div>
+    <div class="mrow"><div class="lbl">Send to Drive</div><div class="ctl">
+      <div class="line"><span class="bigstate ${on ? "on" : "off"}">${on ? "On" : "Off"}</span>${admin ? `<button class="pobtn${on ? "" : " go"}" id="dvTog">${on ? "Turn off" : "Turn on"}</button>` : ""}<span class="res" id="res_drive_enabled"></span></div>
+      <span class="note">${on ? "Waiting files go to the shared drive every minute." : "Nothing goes to Drive. Kept copies are still made at issue (when a start date is set) and wait here until this is on."}</span>${lock}</div></div>
+    <div class="mrow"><div class="lbl">Shared drive</div><div class="ctl">
+      <div class="line"><input type="text" id="dvRoot" autocomplete="off" style="width:280px" ${admin ? "" : "disabled"}>${admin ? '<button class="pobtn" id="dvRootSave">Save</button>' : ""}${root ? ` <a class="lnk" href="https://drive.google.com/drive/folders/${esc(root)}" target="_blank" rel="noopener">Open in Drive</a>` : ""}<span class="res" id="res_drive_root_id"></span></div>
+      <span class="note">The id of the shared drive "IMS Documents" (the part after /folders/ in its address). ims@asung.ca must be a Contributor there. Change it only for a test drive.</span>${lock}</div></div>
+    <div class="mrow"><div class="lbl">Queue</div><div class="ctl">
+      <div class="line">${cnt}</div>
+      <span class="note">Waiting: ${esc(dSt.pending ?? 0)} · folders made: ${esc(dSt.folders ?? 0)}. The worker runs every minute.</span>
+      ${failed ? `<div style="margin-top:6px"><b class="off">Failed</b>${failed}</div>` : ""}</div></div>
+  </div>`;
+  document.getElementById("dvSince").value = since;
+  document.getElementById("dvRoot").value = root;
+  const b1 = document.getElementById("dvSinceSave"); if(b1) b1.onclick = () => {
+    const v = document.getElementById("dvSince").value;
+    if(!v){ const r = document.getElementById("res_drive_since"); r.className = "res err"; r.textContent = "Pick a date, or press Clear."; return; }
+    if(!confirm(`Set the start date to ${v}?\n\nInvoices and credit notes issued from this date get a kept copy for Drive.`)) return;
+    dSave("drive_since", v, since);
+  };
+  const b2 = document.getElementById("dvSinceClear"); if(b2) b2.onclick = () => {
+    if(!since){ return; }
+    if(!confirm("Clear the start date?\n\nNo kept copies are made and nothing new is queued until a date is set again.")) return;
+    dSave("drive_since", "", since);
+  };
+  const b3 = document.getElementById("dvTog"); if(b3) b3.onclick = () => {
+    const goingOn = !on;
+    if(!confirm(goingOn ? `Turn sending to Drive on?\n\nWaiting files go to ${root ? "the shared drive " + root : "the shared drive"} from the next minute.` : "Turn sending to Drive off?\n\nFiles keep waiting here until it is on again.")) return;
+    dSave("drive_enabled", goingOn ? "on" : "off", on ? "on" : "off");
+  };
+  const b4 = document.getElementById("dvRootSave"); if(b4) b4.onclick = () => {
+    const v = document.getElementById("dvRoot").value.trim();
+    if(!confirm(`Change the shared drive id to ${v}?\n\nNew folders and files go there.`)) return;
+    dSave("drive_root_id", v, root);
+  };
+}
+async function dSave(key, value, old){
+  const res = document.getElementById("res_" + key);
+  if(res){ res.className = "res"; res.textContent = "Saving…"; }
+  const { error } = await sb.rpc("ims_config_set", { p_key: key, p_value: value, p_old: old });
+  if(error){ if(res){ res.className = "res err"; res.textContent = error.message; } return; }
+  await loadDrive();
+  const r2 = document.getElementById("res_" + key);
+  if(r2){ r2.className = "res on"; r2.textContent = "Saved."; }
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
@@ -828,6 +897,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   if(new URLSearchParams(location.search).get("t") === "carrier") cur = TABLES.find(x => x.t === "ref_carrier");   // set v2 — ?t=carrier
   if(new URLSearchParams(location.search).get("t") === "mail") cur = TABLES.find(x => x.t === "mail");   // set v3 — ?t=mail
   if(new URLSearchParams(location.search).get("t") === "docs") cur = TABLES.find(x => x.t === "docs");   // set v4 — ?t=docs
+  if(new URLSearchParams(location.search).get("t") === "drive") cur = TABLES.find(x => x.t === "drive");   // set v8 — ?t=drive
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
   await load();
