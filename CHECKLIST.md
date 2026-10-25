@@ -4,6 +4,8 @@
 ⚠️ **화면을 고친 뒤에는 이 목록을 처음부터 한 번 훑는다.** 특히 공통 파일(`ims-ui.css` ·
 `ims-ui.js` · `ims-auth.js`)을 건드렸으면 **전 화면**을 본다 — 한 곳을 고치면 열여덟이(2026-09-25 밤 기준 · §0-a) 움직인다.
 
+⚠️ [2026-10-25 · so-module §75] **공통 js 를 고치면 그 js 를 부르는 화면의 `<script src=…?v=…>` 를 올린다** — 안 올리면 직원 브라우저가 옛 js 를 쥐고 있다(이번에 쓴 꼴 — `ims-ui.js?v=src1` · `ims-desc.js?v=2` · `ims-auth.js?v=help1` · 드라이브 때 `ims-podocs.js?v=1`)
+
 ⚠️ **화면을 새로 만들면 이 문서에 항목을 더한다.** 안 더하면 낡은 목록이 되고,
 낡은 목록은 「통과했다」는 거짓 안심만 준다.
 
@@ -2141,6 +2143,34 @@ so-credits.html(cr v3 → v4 → v4a) · purchasing.html(pur v1 · Reorder Plann
 ```
 
 ---
+
+### 7-zr. 2026-10-25 — 사용 매뉴얼 화면 · Cin7 글 · Result 글자 · 수수료 (help v1 · nav v11 1b335f4 · nav v12 3a6aa0a · b7c5ab9 · so cf words v1 d6b9547 · bo cf words v1 8232f6f · cr v5a b8b67bd · so-module §75 · 판정 721 ~ 725 · 731)
+
+```
+help.html (help v1 · 판정 725) — asung-wms docs/manual 을 main 에서 읽어 그린다(원고는 push 뒤에야 보인다)
+[ ] IMS 화면 머리 Change Password 앞 **Manual** → 새 탭에 help.html (nav v11) · help.html 자신에는 Manual 이 없다
+[ ] WMS 화면 ☰ Menu 맨 끝(줄 하나 띄우고) **Manual** → 새 탭 help.html#ch-04-wms 가 4 장 머리에서 열린다 (nav v12) · WMS 머리에는 Manual · Change Password 가 없다
+[ ] English / 한국어 단추 — 고르면 바뀌고, 새로 고쳐도 고른 언어가 남는다
+[ ] 왼쪽 목차 = README Contents 표에서 링크가 걸린 장만(지금 0 · 1 · 4 장) · 장 · 절 제목을 누르면 그 자리로
+[ ] 찾기 칸(Find a section) — 절 제목으로 좁혀진다
+[ ] 주소 help.html?lang=ko#sales-ship-invoice 로 열면 한국어 · 그 절에서 열린다
+[ ] 본문 없는 절은 「not written yet」 · 숨김 주석(screen · who · SCREENSHOT · rulings)은 안 보인다 · 표 · 굵게 · 목록이 그려진다
+[ ] 좁은 창(태블릿 · 폰 폭) — 목차가 본문을 가리지 않고, 가로 스크롤이 없다
+⭐ 매뉴얼 장 파일 이름 고정 — `04-wms.md`(nav v12 링크) · help.html 은 README Contents 의 링크로 장을 찾는다(README 표를 고치면 화면 목차가 바뀐다)
+
+Cin7 글 (판정 721 · 722 · b7c5ab9)
+[ ] 고객 · 공급처 · 제품 · 패밀리 · 딜 · Settings · 재고 화면에 「Cin7」 글자가 안 보인다 — 원천 값 cin7 은 「before IMS」 · 「Notes from before IMS」 · 「Last change before IMS」
+[ ] 제품 설명 카드에 Follow Cin7 again · Cin7 original · 칩 · 「매일 다시 불러온다」 안내가 없다(desc v2)
+⭐ `imsSrc`(ims-ui.js) = 원천 값을 **화면 글로만** 바꾼다 — 저장 값 · CSV · 비교 · 필터 값에는 쓰지 않는다
+
+Result 글자 (판정 724)
+[ ] so.html 확정 창 · 보류 풀기(Hold released) · 백오더 진행 창의 Result 칸 = Reserved · Partly reserved · Backordered · Preorder · On hold
+[ ] so-backorders.html Proceed 창의 Result 칸도 같은 글자
+⭐ `CF_RESULT` 는 두 화면(so.html · so-backorders.html)에 같은 표 — 바꾸면 둘 다(d6b9547 이 so-backorders 를 놓쳤다)
+
+수수료 (판정 5 · cr v5a)
+[ ] 크레딧 새 창 — 60 일이 넘은 판매여도 **Charge a fee** 는 꺼진 채 시작 · 알림 줄과 제안 % 는 보인다 · 체크하면 수수료 줄이 미리 보기에 선다
+```
 
 ## 8. 로그인 · 계정
 
