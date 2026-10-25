@@ -61,7 +61,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-10-05 · ml v1.2";   // 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
+const ML_BUILD = "2026-10-25 · ml v1.3";   // 대화 Claude — manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
@@ -84,7 +84,8 @@ async function loadBadges(){
     sb.rpc("so_stock_short_list", { p_filters: Object.assign({ unchecked_only: true }, whId ? { warehouse_id: whId } : {}) }),
     unpaidQuery(true),
     sb.rpc("so_pos_open_list", { p_location_id: whId || null }),
-    sb.from("customer_review_list").select("customer_id", { count: "exact", head: true }),
+    (whName ? sb.from("customer_review_list").select("customer_id", { count: "exact", head: true }).eq("default_location_name", whName)
+            : sb.from("customer_review_list").select("customer_id", { count: "exact", head: true })),   // ml v1.3 — 배지도 Branch 를 따른다(목록 :206 과 같은 칸)
   ]);
   if(!nc.error) badge("bNewCust", nc.count || 0);
   if(!sh.error) badge("bShort", sh.data.unchecked_count || 0);
@@ -118,7 +119,7 @@ async function showShort(box){
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const row = (r, done) => `<tr>
       <td>${dim(r.received_on)}</td>
-      <td><a class="lnk mono" href="${r.channel === "pos" ? "pos.html" : "so.html"}?so=${encodeURIComponent(r.doc_number)}">${esc(r.doc_number)}</a>${r.channel ? ` <span class="tag">${esc(r.channel)}</span>` : ""}</td>
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.doc_number)}">${esc(r.doc_number)}</a>${r.channel ? ` <span class="tag">${esc(r.channel)}</span>` : ""}</td>
       <td>${esc(r.customer_name || "")}</td>
       <td class="mono">${esc(r.sku)}</td><td>${esc(r.warehouse || "")}</td>
       <td class="num">${qty(r.qty)}</td>
