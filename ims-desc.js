@@ -4,6 +4,10 @@
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-desc.js (esc · imsTs · imsAuth 를 쓴다)
    📌 2026-10-09 · 대화 Claude · desc v1 · desc v1a(손대지 않은 Save 는 저장하지 않는다 — 비교 기준 = 편집 창이 열린 직후의 글)
    📌 2026-10-10 · desc v1b(판정 416) — card(kind, row, { readOnly }) · products.html Edit 안에서는 단추 없이 읽기만
+   📌 2026-10-25 · desc v2(판정 721 · 722 · Caleb 「컷오버와 함께 멈춰」 · 「지금 뺀다」) — 매일 다시 불러오기는 컷오버와 함께 멈춘다 ⇒
+      「Follow Cin7 again」(description_follow_cin7) · 「Cin7 original」 · 「from Cin7 / edited in IMS」 칩 · 「Follows Cin7 …」 안내 · 첫 저장 확인 창을 뺐다
+      ⭐ 데이터 모양은 그대로 — description_html null 이면 cin7_description(마지막으로 받은 글)을 보인다 · 고친 적 있으면 「Last edited … by …」
+      ⚠️ 창구 op description_follow_cin7 은 DB 에 남는다 — 부르는 화면이 없다(되살리지 마라)
 
    DB(desc-1b) 사실 — 2026-10-09 실측
      product · product_family: description_html(null = Cin7 을 따른다 · '' = 일부러 비움) · description_edited_at · description_edited_by
@@ -136,17 +140,11 @@
   function card(kind, row, o) {
     ensureStyle();
     const ro = !!(o && o.readOnly);
-    const edited = row.description_html !== null && row.description_html !== undefined;
-    const chip = edited ? '<span class="chip warn" style="text-transform:none">edited in IMS</span>'
-                        : '<span class="chip" style="text-transform:none">from Cin7</span>';
     const btns = ro ? '<span class="dim" style="margin-left:auto;font-weight:400;text-transform:none;font-size:11px;font-family:inherit">Save or Cancel first to change this</span>' : canEdit() ? `<span style="margin-left:auto;display:flex;gap:6px">
-        ${edited ? '<button class="pobtn" data-idesc="follow" title="Drop the IMS text and follow Cin7 again">Follow Cin7 again</button>' : ""}
-        ${edited ? '<button class="pobtn" data-idesc="orig" title="Show the Cin7 original next to it">Cin7 original</button>' : ""}
-        <button class="pobtn go" data-idesc="edit">Edit description</button></span>` : "";
-    return `<div class="card" data-idesc-card="${escA(kind)}"><h3 class="ims-sec" data-sec="" style="display:flex;align-items:center;gap:8px">Description ${chip}${btns}</h3>
+        <button class="pobtn go" data-idesc="edit">Edit description</button></span>` : "";   // desc v2 — Follow Cin7 again · Cin7 original · 칩을 뺐다(판정 722)
+    return `<div class="card" data-idesc-card="${escA(kind)}"><h3 class="ims-sec" data-sec="" style="display:flex;align-items:center;gap:8px">Description ${btns}</h3>
       <div class="idesc-view" data-idesc-view><span class="dim">Loading…</span></div>
-      <div class="note" data-idesc-note></div>
-      <div data-idesc-orig hidden></div></div>`;
+      <div class="note" data-idesc-note></div></div>`;
   }
 
   async function wire(root, opts) {
@@ -164,11 +162,7 @@
       : `<span class="dim">${edited && row.description_html === "" ? "Left empty on purpose in IMS." : "No description."}</span>`;
 
     const parts = [];
-    if (edited) {
-      parts.push(`Edited in IMS ${imsTs(row.description_edited_at)}<span data-idesc-who></span> — the daily Cin7 reload no longer changes it.`);
-    } else {
-      parts.push("Follows Cin7 — the daily reload keeps it up to date. Saving an edit here makes IMS the owner of this text.");
-    }
+    if (edited) parts.push(`Last edited ${imsTs(row.description_edited_at)}<span data-idesc-who></span>.`);   // desc v2
     if (shown.removed.length) parts.push(`<span style="color:var(--warn,#b54708)">Not shown (not allowed on the site): ${summarize(shown.removed)}.</span>`);
     note.innerHTML = parts.join("<br>");
 
@@ -182,15 +176,6 @@
       const a = b.dataset.idesc;
       b.onclick = async () => {
         if (a === "edit") return openEditor(opts, effective);
-        if (a === "follow") return followCin7(opts);
-        if (a === "orig") {
-          const o = el.querySelector("[data-idesc-orig]");
-          if (!o.hidden) { o.hidden = true; o.innerHTML = ""; b.textContent = "Cin7 original"; return; }
-          const c = await clean(row.cin7_description, sb);
-          o.innerHTML = `<div class="note" style="border-top:1px dashed var(--line,#d0d5dd)">Cin7 original — not used while the IMS text is kept${c.removed.length ? " · not shown: " + summarize(c.removed) : ""}</div>
-            <div class="idesc-view">${c.html.trim() ? c.html : '<span class="dim">Cin7 has no description.</span>'}</div>`;
-          o.hidden = false; b.textContent = "Hide Cin7 original";
-        }
       };
     });
   }
@@ -203,7 +188,7 @@
     const box = modal(`<h4>Description — <span class="mono">${esc(row.sku)}</span> ${esc(row.name || "")}</h4>
       <div class="pbody">
         ${first.removed.length ? `<div class="idesc-cut">Left out when this opened (not allowed on the site): ${summarize(first.removed)}.
-          Saving keeps them out. The Cin7 original is not changed.</div>` : ""}
+          Saving keeps them out.</div>` : ""}
         <div class="idesc-bar">
           <button class="pobtn" data-cmd="bold" title="Bold"><b>B</b></button>
           <button class="pobtn" data-cmd="italic" title="Italic"><i>I</i></button>
@@ -273,20 +258,11 @@
       const html = norm(r.html);
       const isEdited = row.description_html !== null && row.description_html !== undefined;
       if (html === baseline) { closeModal(); return; }   // desc v1a — 손대지 않았다 → 저장 안 함 · Cin7 을 계속 따른다(고친 적 있는 것은 그대로 IMS 글)
-      if (html === "" && !confirm("Save an empty description? The site will show none — Cin7's text is not used while the IMS text is kept.")) return;
-      if (!isEdited && !confirm("Save this description in IMS?\n\nFrom now on the daily Cin7 reload will not change it. You can go back with “Follow Cin7 again”.")) return;
+      if (html === "" && !confirm("Save an empty description? The site will show none.")) return;
       const line = Object.assign({ op: "description_set", html: html, old: isEdited ? row.description_html : null },
                                  kind === "family" ? { family_sku: row.sku } : { sku: row.sku });
       await runTwoStep(opts, [line]);
     };
-  }
-
-  async function followCin7(opts) {
-    const { kind, row } = opts;
-    if (!confirm(`Follow Cin7 again for ${row.sku}?\n\nThe text written in IMS is dropped and the Cin7 description is used. The daily reload keeps it up to date from then on.`)) return;
-    const line = Object.assign({ op: "description_follow_cin7", old: row.description_html },
-                               kind === "family" ? { family_sku: row.sku } : { sku: row.sku });
-    await runTwoStep(opts, [line]);
   }
 
   /* ── 저장 — 두 번 부르기(판정 176 · products.html runWindow 와 같은 순서) ── */

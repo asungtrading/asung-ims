@@ -133,7 +133,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
-<script src="ims-ui.js"></script>
+<script src="ims-ui.js?v=src1"></script>
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -152,7 +152,7 @@
      stk_value_many(p_product_ids, p_warehouse_id) · stk_value_total(p_warehouse_id, p_q, p_brand_id, p_category_id, p_supplier_id, p_sale_only) — 원가 열쇠(ims_can_view_cost)가 있을 때만 부른다 · 없으면 칸 · 단추 자체를 그리지 않는다
      Both 에서는 Bin 칸이 없다(bin 은 브랜치마다) · 상세 · 펼침은 브랜치 하나(dwh)
    ───────────────────────────────────────────────────────────── */
-const STK_BUILD = "2026-10-23 · stk filt v1";   // 대화 Claude — Caleb 「상단에 필터링 메뉴가 좀 어지러워」: 넓은 목록 거르기 줄을 두 덩이로 — 거르기(창고 · 검색 · 브랜드 · 카테고리 · 공급처 · Zero stock · On sale · Clear)와 행동(Stock value total · CSV · 오른쪽 끝 · 세로 선) · 고르기 넷 같은 너비 170px(긴 공급처 이름이 칸을 늘리지 않게) · 검색만 늘어남 · 「Show zero stock」 → 「Zero stock」(좁은 목록도) · 기능 · id 무변 ← stk bg v1: 대화 Claude — bgr-1a(e73c83c · 판정 641): On hand 는 B급을 뺀 값(DB) · 그 옆에 「+N B」(by_warehouse[].bgrade · 수량만) · 상세에 B-grade 타일(누르면 B-grade Stock) · 칸 표의 B급 칸에 B-grade 꼬리표(ref_bin.is_bgrade 를 시작 때 한 번) ← stk csv v1a:   // v1a — Caleb 「bin 괄호 안에 있는 재고는 csv에서는 없었으면」: Bin 칸은 칸 이름만 ←   // 대화 Claude — stkx-1(판정 628): ↓ CSV — stk_availability_export 한 번(지금 거르기 · 한 행 jsonb · Max rows 1000 을 피한다) · 화면과 같은 칸(Both 면 창고마다 넷 · 한 창고면 Bin) · Value 는 원가 열쇠가 있을 때만(stk_value_many 500 씩) ← 2026-10-20 · stk v2: 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
+const STK_BUILD = "2026-10-25 · stk filt v1a";   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 옮겨 온 이력의 원천 꼬리표 · 동작 무변 ← 2026-10-23 · stk filt v1: 대화 Claude — Caleb 「상단에 필터링 메뉴가 좀 어지러워」: 넓은 목록 거르기 줄을 두 덩이로 — 거르기(창고 · 검색 · 브랜드 · 카테고리 · 공급처 · Zero stock · On sale · Clear)와 행동(Stock value total · CSV · 오른쪽 끝 · 세로 선) · 고르기 넷 같은 너비 170px(긴 공급처 이름이 칸을 늘리지 않게) · 검색만 늘어남 · 「Show zero stock」 → 「Zero stock」(좁은 목록도) · 기능 · id 무변 ← stk bg v1: 대화 Claude — bgr-1a(e73c83c · 판정 641): On hand 는 B급을 뺀 값(DB) · 그 옆에 「+N B」(by_warehouse[].bgrade · 수량만) · 상세에 B-grade 타일(누르면 B-grade Stock) · 칸 표의 B급 칸에 B-grade 꼬리표(ref_bin.is_bgrade 를 시작 때 한 번) ← stk csv v1a:   // v1a — Caleb 「bin 괄호 안에 있는 재고는 csv에서는 없었으면」: Bin 칸은 칸 이름만 ←   // 대화 Claude — stkx-1(판정 628): ↓ CSV — stk_availability_export 한 번(지금 거르기 · 한 행 jsonb · Max rows 1000 을 피한다) · 화면과 같은 칸(Both 면 창고마다 넷 · 한 창고면 Bin) · Value 는 원가 열쇠가 있을 때만(stk_value_many 500 씩) ← 2026-10-20 · stk v2: 대화 Claude — stk-av-1 화면(판정 566 · 567 · 570 · 571 · 575 · 578): Allocated · Transfer res. 를 누르면 SO · TRF 목록(stk_reserved · 손님 이름은 sales 열쇠) · 공급처 거르기 · 창고 고르기 「Both branches」(브랜치마다 네 칸) · 바코드 검색 · 원가 열쇠가 있으면 Value 칸 · Stock value total 단추 · 상세에 다른 브랜치 숫자 ← stk v1e 2026-10-07 · 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): stk_availability p_sale_only · 줄의 sale_pct · sale_conditional → 넓은 · 좁은 목록 · 상세 머리 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 번) · 거르기 「On sale」 · ⚠️ 세트만 대상인 딜은 낱개 줄에 안 보인다(재고는 낱개 단위 · Products 화면 몫) ← stk v1d · 대화 Claude — Caleb 「날짜가 오름차순이나 내림차순으로 선택할 수 있어?」: Movements 머리에 순서 단추(Oldest first ↔ Newest first) · 화면에서 뒤집기만(잔고는 각 줄의 balance_after 그대로) · 고른 순서는 이 브라우저에 기억 ← stk v1c 2026-10-06 · 대화 Claude — stk v1c: 목록 캐럿(▸) 펼침 — Sets(전부 · 세트로 몇 개) · Bins(bin 캐럿 = 그 bin 의 사건 · 잔고 없음) · 최근 Movements · 세트 표시는 세트 sku 를 정확히 쳤을 때만 ←   // 대화 Claude — stk v1b: 넓은 목록에 Bin 칸(stk_bins_many · 판정 273 · 275 · 276) ←   // 대화 Claude — stk v1a: 사건 이름표에 adjust_existing · 목록 밖 종류는 밑줄을 띄어 보인다 ← stk v1 stk-3 첫 판
 console.log("stock.html build:", STK_BUILD);
 
 let sb = null, me = null;
@@ -551,7 +551,7 @@ async function loadDetail(id){
 /* 문서 칸 — 상세 · 펼침이 같이 쓴다 */
 function docCell(m){
   return m.doc_href ? `<a class="lk" href="${esc(m.doc_href)}">${esc(m.doc_number)}</a>`
-    : m.doc_number ? `<span class="mono">${esc(m.doc_number)}</span>${m.source && m.source !== "ims" ? `<span class="src" title="Loaded history — not an IMS document">${esc(m.source)}</span>` : ""}` : "";
+    : m.doc_number ? `<span class="mono">${esc(m.doc_number)}</span>${m.source && m.source !== "ims" ? `<span class="src" title="Loaded history — not an IMS document">${esc(imsSrc(m.source))}</span>` : ""}` : "";
 }
 
 /* ── 캐럿 펼침(stk v1c) — Sets · Bins(bin 캐럿) · 최근 Movements ── */

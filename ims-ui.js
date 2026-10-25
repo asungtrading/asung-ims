@@ -7,6 +7,7 @@
 
    담은 것
      esc / dim / yn / num       값 표시
+     imsSrc                     원천 표시 — cin7 → 「before IMS」(판정 721 · 2026-10-25)
      imsTs                      timestamptz → 토론토 시각(분까지) · ⚠️ date 칸에는 쓰지 않는다
      imsPage                    1,000행 캡을 넘지 않게 나눠 읽기(정본 §10-j 3-a)
      imsSaved                   ⚠️ update 가 RLS 에 막히면 에러가 아니라 0행이다 · ⭐ [2026-09-18] seenAt 을 주면 덮어쓰기를 막고 누가·언제 바꿨는지 돌려준다
@@ -32,6 +33,10 @@
     if (colored === false) return v ? '<span class="neutral">✓</span>' : '<span class="dim">·</span>';
     return v ? '<span class="on">✓</span>' : '<span class="off">✗</span>';
   };
+
+  /* ⭐ 2026-10-25 · 판정 721 — 원천 표시(source 칸): 'cin7' 은 화면에 「before IMS」 로 · 나머지(manual · ims · formula …)는 그대로
+     ⚠️ 화면 글 · 칩 · 칸에만 — CSV · 저장 값 · 비교(=== "manual")에는 쓰지 않는다 */
+  const imsSrc = (v) => (String(v === null || v === undefined ? "" : v).toLowerCase() === "cin7" ? "before IMS" : (v === null || v === undefined ? "" : v));
 
   const num = (v) =>
     (v === null || v === undefined || v === "") ? '<span class="dim">—</span>' : esc(v);
@@ -321,6 +326,7 @@
   window.dim = dim;
   window.yn = yn;
   window.num = num;
+  window.imsSrc = imsSrc;
   window.imsTs = imsTs;
   window.imsPage = imsPage;
   window.imsSaved = imsSaved;

@@ -190,9 +190,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
-<script src="ims-ui.js"></script>
+<script src="ims-ui.js?v=src1"></script>
 <script src="ims-auth.js"></script>
-<script src="ims-desc.js"></script>
+<script src="ims-desc.js?v=2"></script>
 <script src="ims-shop.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
@@ -211,7 +211,7 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v5e";   // 대화 Claude — Caleb 「open sheet 과 new Family 를 만드는 버튼이 전부 제각각」: Open sheet 두 곳(넓은 목록 · 좁은 목록)을 글자 링크에서 흰 단추로 · 넘기는 인자 그대로 · 좁은 목록에서는 고치는 중이면 leaveEditOk 로 먼저 묻는다 ← pr v5d: 대화 Claude — Caleb 「링크를 두자」: ?new=family 로 넘어오면 New family 창을 연다(Families 의 New family (new SKUs) 단추 · 인자는 주소에서 지움 · master 쓰기만) ← pr v5c: 대화 Claude — pset-1(52ef78c · 판정 585 ~ 589): 제품 상세 「Sets of this product」 에 Add set 단추(켜진 낱개 · 세트 아님 · 콤보 아님 · master 쓰기) → product_set_add 창(New product 의 세트 줄과 같은 칸 · 고정가는 Edit 에서만 589) · 세트가 없어도 그 카드가 보인다 · 세트 줄마다 Set SKU · 「scans as <낱개> × N · not sold alone」(판정 586 기본) · 세트 표에 Sold on its own 칸 · 막기 창의 existing_product_id(판정 587 · set_factor_exists)에 Open 단추 · New product 창도 같은 세트 줄 ← pr v5b: 대화 Claude — 판정 416: Edit 안에서도 Shopify · Description · Photos 카드가 보인다(읽기만 · 단추 없음 · 「Save or Cancel first to change this」 · 저장 전의 값이 따로 저장되는 일을 막는다) ← pr v5a: 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v5f";   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 modified」 → 「Last change before IMS」 · 머리 칩 · 가격 · 구성품 Source · 태그 마우스 글 · 설명 카드(ims-desc v2 — Follow Cin7 셋 뺌) · 동작 무변 ← pr v5e: 대화 Claude — Caleb 「open sheet 과 new Family 를 만드는 버튼이 전부 제각각」: Open sheet 두 곳(넓은 목록 · 좁은 목록)을 글자 링크에서 흰 단추로 · 넘기는 인자 그대로 · 좁은 목록에서는 고치는 중이면 leaveEditOk 로 먼저 묻는다 ← pr v5d: 대화 Claude — Caleb 「링크를 두자」: ?new=family 로 넘어오면 New family 창을 연다(Families 의 New family (new SKUs) 단추 · 인자는 주소에서 지움 · master 쓰기만) ← pr v5c: 대화 Claude — pset-1(52ef78c · 판정 585 ~ 589): 제품 상세 「Sets of this product」 에 Add set 단추(켜진 낱개 · 세트 아님 · 콤보 아님 · master 쓰기) → product_set_add 창(New product 의 세트 줄과 같은 칸 · 고정가는 Edit 에서만 589) · 세트가 없어도 그 카드가 보인다 · 세트 줄마다 Set SKU · 「scans as <낱개> × N · not sold alone」(판정 586 기본) · 세트 표에 Sold on its own 칸 · 막기 창의 existing_product_id(판정 587 · set_factor_exists)에 Open 단추 · New product 창도 같은 세트 줄 ← pr v5b: 대화 Claude — 판정 416: Edit 안에서도 Shopify · Description · Photos 카드가 보인다(읽기만 · 단추 없음 · 「Save or Cancel first to change this」 · 저장 전의 값이 따로 저장되는 일을 막는다) ← pr v5a: 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -524,7 +524,7 @@ function headChips(r){
   if(r.sellable===false) chips.push('<span class="chip">not sellable</span>');
   if(r.cin7_type) chips.push(`<span class="chip">${esc(r.cin7_type)}</span>`);
   chips.unshift(`<span data-salechip="${r.id}"></span>`); setTimeout(() => fillSaleChip(r.id), 0);   // pr v4d — 세일 칩(그린 뒤 채운다)
-  chips.push(`<span class="chip">${esc(r.source)}</span>`);
+  chips.push(`<span class="chip">${esc(imsSrc(r.source))}</span>`);
   return chips.join("");
 }
 
@@ -562,7 +562,7 @@ function renderRead(){
     ["Costing", dim(r.costing_method)],
     ["HS code", `<span class="mono">${dim(r.hs_code)}</span>`],
     ["Origin", dim(r.country_of_origin)],
-    ["Cin7 modified", `<span class="mono">${dim(r.cin7_modified_on ? String(r.cin7_modified_on).slice(0,10) : null)}</span>`],
+    ["Last change before IMS", `<span class="mono">${dim(r.cin7_modified_on ? String(r.cin7_modified_on).slice(0,10) : null)}</span>`],
   ];
 
   /* pr v4(판정 247): 낱개 · 콤보 아님 · 다른 콤보의 구성품 아님 · 켜짐 → Make combo(세트 · 구성품은 창구가 막는다 — 단추를 아예 안 보인다) */
@@ -580,7 +580,7 @@ function renderRead(){
     const x = cur.prices.find(pp => pp.tier_id === t.id && pp.is_active);
     return `<tr><td>${esc(t.name)}</td>
       <td class="num">${x ? esc(x.price) : (r.parent_product_id ? '<span class="dim">calculated</span>' : '<span class="dim">—</span>')}</td>
-      <td>${x ? esc(x.source) : ""}</td></tr>`;
+      <td>${x ? esc(imsSrc(x.source)) : ""}</td></tr>`;
   });
 
   const supAll  = cur.sup;
@@ -603,7 +603,7 @@ function renderRead(){
   const bomRows = comps.map(x => `<tr${x.c && !x.c.is_active ? ' style="opacity:.5"' : ""}>
       <td class="mono">${x.c ? `<span class="lnk" data-go="${x.c.id}">${esc(x.c.sku)}</span>` : '<span class="dim">?</span>'}</td>
       <td>${esc(x.c ? x.c.name : "")}${x.c && x.c.parent_product_id ? ` <span class="tag">set ×${esc(x.c.pack_factor)}</span>` : ""}${x.c && !x.c.is_active ? ' <span class="tag off">inactive</span>' : ""}</td>
-      <td class="num">${dim(qtyTxt(x.quantity))}</td><td class="dim" style="font-size:11.5px">${esc(x.source || "")}</td></tr>`);
+      <td class="num">${dim(qtyTxt(x.quantity))}</td><td class="dim" style="font-size:11.5px">${esc(imsSrc(x.source))}</td></tr>`);
   const usedRows = cur.usedIn.map(x => `<tr${x.p && !x.p.is_active ? ' style="opacity:.5"' : ""}>
       <td class="mono">${x.p ? `<span class="lnk" data-go="${x.p.id}">${esc(x.p.sku)}</span>` : '<span class="dim">?</span>'}</td>
       <td>${esc(x.p ? x.p.name : "")}</td><td class="num">${dim(qtyTxt(x.qty))}</td></tr>`);
@@ -704,7 +704,7 @@ const tagBox = inner => `<div style="display:flex;flex-wrap:wrap;gap:6px;align-i
 function tagCardRead(){
   const t = cur.tags;
   return `<div class="card"><h3 class="ims-sec" data-sec="">Tags <span class="n">${t.length}</span></h3>
-    ${t.length ? tagBox(t.map(x => `<span class="chip" title="source: ${escQ(x.source)}">${esc(x.tag)}</span>`).join(""))
+    ${t.length ? tagBox(t.map(x => `<span class="chip" title="source: ${escQ(imsSrc(x.source))}">${esc(x.tag)}</span>`).join(""))
                : `<div class="msg">No tags.</div>`}
     <div class="note">Discount Rules can target products by tag.</div></div>`;
 }
