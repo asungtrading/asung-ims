@@ -213,12 +213,15 @@
       판정 247(Caleb 2026-10-05 「첫째」): 구성품은 상품 Edit 와 따로 — 작은 창에서 고치고 그 창에서 저장(판정 202 의 예외 · 창구가 둘이라 반만 저장되는 일이 없게)
       ⚠️ product_bom 은 해제 · 뺀 줄을 지우지 않고 끈다 — 읽기는 is_active 줄만(꺼진 줄을 보이면 p_old 가 어긋나 changed_elsewhere)
    ───────────────────────────────────────────────────────────── */
-const PR_BUILD = "pr v5g";   // 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 759 ~ 764 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js(칸 고르기 창 · CSV) · 행 = 지금 거르기 그대로(product_export 에 product_list 와 같은 일곱 인자) · 칸 · 값은 DB 창구가 정한다(원가 칸은 원가 열쇠 · reference 등급 없음) ← pr v5f: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 modified」 → 「Last change before IMS」 · 머리 칩 · 가격 · 구성품 Source · 태그 마우스 글 · 설명 카드(ims-desc v2 — Follow Cin7 셋 뺌) · 동작 무변 ← pr v5e: 대화 Claude — Caleb 「open sheet 과 new Family 를 만드는 버튼이 전부 제각각」: Open sheet 두 곳(넓은 목록 · 좁은 목록)을 글자 링크에서 흰 단추로 · 넘기는 인자 그대로 · 좁은 목록에서는 고치는 중이면 leaveEditOk 로 먼저 묻는다 ← pr v5d: 대화 Claude — Caleb 「링크를 두자」: ?new=family 로 넘어오면 New family 창을 연다(Families 의 New family (new SKUs) 단추 · 인자는 주소에서 지움 · master 쓰기만) ← pr v5c: 대화 Claude — pset-1(52ef78c · 판정 585 ~ 589): 제품 상세 「Sets of this product」 에 Add set 단추(켜진 낱개 · 세트 아님 · 콤보 아님 · master 쓰기) → product_set_add 창(New product 의 세트 줄과 같은 칸 · 고정가는 Edit 에서만 589) · 세트가 없어도 그 카드가 보인다 · 세트 줄마다 Set SKU · 「scans as <낱개> × N · not sold alone」(판정 586 기본) · 세트 표에 Sold on its own 칸 · 막기 창의 existing_product_id(판정 587 · set_factor_exists)에 Open 단추 · New product 창도 같은 세트 줄 ← pr v5b: 대화 Claude — 판정 416: Edit 안에서도 Shopify · Description · Photos 카드가 보인다(읽기만 · 단추 없음 · 「Save or Cancel first to change this」 · 저장 전의 값이 따로 저장되는 일을 막는다) ← pr v5a: 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
+const PR_BUILD = "pr v5h";   // 대화 Claude — cost-1 화면(판정 759 · 764 · 765 · asung-wms cost-1a 20261026173000): 공급처 단가(Fixed · Latest)는 원가 열쇠가 있을 때만 — product_supplier 는 원가 아닌 칸 이름으로 읽고(cost-1b 뒤 select * · cost 는 42501) 단가는 product_supplier_costs 창구로 채운다 · 열쇠 없으면 상세 · 고치기 · 새 제품 · 새 가족 창에서 Fixed · Latest 칸 자체를 그리지도 보내지도 않는다(product_update old 검사) ← pr v5g: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 759 ~ 764 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js(칸 고르기 창 · CSV) · 행 = 지금 거르기 그대로(product_export 에 product_list 와 같은 일곱 인자) · 칸 · 값은 DB 창구가 정한다(원가 칸은 원가 열쇠 · reference 등급 없음) ← pr v5f: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 modified」 → 「Last change before IMS」 · 머리 칩 · 가격 · 구성품 Source · 태그 마우스 글 · 설명 카드(ims-desc v2 — Follow Cin7 셋 뺌) · 동작 무변 ← pr v5e: 대화 Claude — Caleb 「open sheet 과 new Family 를 만드는 버튼이 전부 제각각」: Open sheet 두 곳(넓은 목록 · 좁은 목록)을 글자 링크에서 흰 단추로 · 넘기는 인자 그대로 · 좁은 목록에서는 고치는 중이면 leaveEditOk 로 먼저 묻는다 ← pr v5d: 대화 Claude — Caleb 「링크를 두자」: ?new=family 로 넘어오면 New family 창을 연다(Families 의 New family (new SKUs) 단추 · 인자는 주소에서 지움 · master 쓰기만) ← pr v5c: 대화 Claude — pset-1(52ef78c · 판정 585 ~ 589): 제품 상세 「Sets of this product」 에 Add set 단추(켜진 낱개 · 세트 아님 · 콤보 아님 · master 쓰기) → product_set_add 창(New product 의 세트 줄과 같은 칸 · 고정가는 Edit 에서만 589) · 세트가 없어도 그 카드가 보인다 · 세트 줄마다 Set SKU · 「scans as <낱개> × N · not sold alone」(판정 586 기본) · 세트 표에 Sold on its own 칸 · 막기 창의 existing_product_id(판정 587 · set_factor_exists)에 Open 단추 · New product 창도 같은 세트 줄 ← pr v5b: 대화 Claude — 판정 416: Edit 안에서도 Shopify · Description · Photos 카드가 보인다(읽기만 · 단추 없음 · 「Save or Cancel first to change this」 · 저장 전의 값이 따로 저장되는 일을 막는다) ← pr v5a: 대화 Claude — Edit 아래 Save 줄의 안내 글이 크게 보였다(.hint 모양이 .head 안에만 묶여 있다 · Caleb 화면 시험) — 그 줄에만 모양을 붙였다 ← pr v5: 대화 Claude — shop-2c(판정 404 ~ 415): 상세에 Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · family 구성원은 family 링크만) · Edit 아래에도 Save · Cancel(미룬 163 — 아래 칸을 고치고 위 단추를 지나쳤다) ← pr v4e: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 사진 카드 위 Description 카드 — 그리기 · 편집기 · 저장은 ims-desc.js(imsDesc.card · wire) · 고치기 중에는 안 그린다 ← pr v4d: 대화 Claude — 판정 361(세일 라벨 · 세일만 거르기 · sale-1 20261007202707): 목록을 product_list 창구로(거르기 일곱 그대로 + p_sale_only · 서버가 거른다) · 넓은 · 좁은 목록 SKU 옆 「Sale 15%」(조건 있으면 *) · 마우스 = 딜 이름 · % · 기간 · 조건(so_sale_now 한 쪽 한 번) · 상세 머리 칩 · 거르기 「On sale」 ← pr v4c · 대화 Claude — 2026-10-07 Caleb 화면 시험: 태그 목록(datalist)이 이 화면을 연 동안 한 번만 읽혀 방금 붙인 태그 · 딜이 먼저 쓰는 태그가 자동 완성에 안 나왔다 ⇒ 목록 = 제품 태그 ∪ 딜 대상 태그(so_deal_target target=tag · 읽기 정책 so_deal_target_select) · 저장한 태그는 목록에 바로 더한다 ← pr v4b 대화 Claude — 2026-10-07 태그(판정 336 · 창구 product_update op tag_add {sku, tag} · tag_off {sku, tag} — 20261007003838 dsc-4b · 읽기 product_tag select(정책 product_tag_select)): 상세에 Tags 카드 · Edit 에서 붙이기(모든 태그 글자를 datalist 로 · 대소문자만 다른 글자는 기존 철자로 바꿔 다시 Add) · 떼기(✕ 표시 → Save · undo) · 서버 막기 tag_exists · tag_not_found · tag_case_conflict · 경고 tag_off_used_by_deal 은 같은 확인 창 ← pr v4a 대화 Claude — dsc-1(판정 281 · 294): Edit 에 「Sellable」 체크박스(product_update op set sellable · old · 끄기에 열린 오더 줄이 있으면 서버 경고 sellable_off_open_lines 를 확인 창에서 ack) · 칩 「not sellable」 은 그대로 ← pr v4 대화 Claude — asm-3a(판정 244 · 247 · asm 묶음 1): 콤보 정의 — Components 카드의 Edit components · 낱개 머리의 Make combo · 작은 창에서 구성품 전체 목록을 고쳐 product_bom_set(p_old · 검사 → 경고 확인 → 저장) · 켜진 줄만 읽는다 · Used in combos 카드 ← pr v3c(surcharge-4b)
 const BUCKET = "product-images";
 const MAX_PHOTO = 5 * 1024 * 1024;              // 상자 한도와 같다(img-1 · Caleb 확인 7 MB 거부)
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 let sb=null, isAdmin=false, canEdit=false, showDead=false;
+let canCost = false;   // cost-1 — 원가 열쇠(ims_can_view_cost) · 공급처 단가 칸은 이것이 참일 때만
+const PS_COLS = "id,product_id,supplier_id,supplier_sku,currency_id,last_supplied,is_default,is_active,price_formula_id,note,source,supplier(name)";   // cost-1 — 원가 아닌 칸만(cost · fixed_cost 는 창구로)
+const fval = (root, sel) => { const el = root.querySelector(sel); return el ? el.value : ""; };   // cost-1 — 열쇠 없으면 단가 칸이 없다
 let detailSeq = 0;
 let q="", onlyActive=true, kind="single", brand="", cat="", supId="", curId=null;
 let saleOnly = false;   // pr v4d
@@ -440,7 +443,7 @@ async function loadDetail(id){
   const [p, bar, sup, bom, kids, pri, img, used, tg] = await Promise.all([
     sb.from("product").select("*").eq("id", id).maybeSingle(),
     sb.from("product_barcode").select("*").eq("product_id", id).order("is_primary", {ascending:false}),
-    sb.from("product_supplier").select("*, supplier(name)").eq("product_id", id).order("is_default", {ascending:false}),
+    sb.from("product_supplier").select(PS_COLS).eq("product_id", id).order("is_default", {ascending:false}),
     sb.from("product_bom").select("*").eq("parent_product_id", id).eq("is_active", true),          // pr v4: 켜진 줄만(꺼진 줄 = 뺀 구성품 · 해제된 콤보)
     sb.from("product").select("id,sku,name,pack_factor,is_active,sellable").eq("parent_product_id", id).order("sku"),   // pr v5c: sellable — Sold on its own 칸(판정 586)
     sb.from("product_price").select("id,tier_id,price,is_active,source").eq("product_id", id),
@@ -492,7 +495,15 @@ async function loadDetail(id){
   }
 
   if(seq !== detailSeq) return;
-  cur = { r, bar: bar.data||[], sup: sup.data||[], prices: pri.data||[], kids: kids.data||[], comps, usedIn, parent, family, sibs, imgs, imgsOff, fallback, tags: tg.data||[] };
+  /* cost-1 — 단가는 창구로 · 열쇠 없으면 has_key false 라 칸이 비어 있고 화면도 칸을 그리지 않는다 */
+  const supList = sup.data || [];
+  if(canCost && supList.length){
+    const { data: cd } = await sb.rpc("product_supplier_costs", { p_product_ids: [id] });
+    const byS = {}; ((cd && cd.rows) || []).forEach(c => { byS[c.supplier_id] = c; });
+    supList.forEach(x => { const c = byS[x.supplier_id]; x.cost = c ? c.cost : null; x.fixed_cost = c ? c.fixed_cost : null; });
+  }
+  if(seq !== detailSeq) return;
+  cur = { r, bar: bar.data||[], sup: supList, prices: pri.data||[], kids: kids.data||[], comps, usedIn, parent, family, sibs, imgs, imgsOff, fallback, tags: tg.data||[] };
   render();
 }
 
@@ -592,8 +603,8 @@ function renderRead(){
   const supRows = supShow.map(x => `<tr${x.is_active ? "" : ' style="opacity:.5"'}>
       <td>${esc(x.supplier ? x.supplier.name : "")}</td>
       <td class="mono">${dim(x.supplier_sku)}</td>
-      <td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
-      <td class="num">${x.cost==null?'<span class="dim">—</span>':esc(x.cost)}</td>
+      ${canCost ? `<td class="num">${x.fixed_cost==null?'<span class="dim">—</span>':esc(x.fixed_cost)}</td>
+      <td class="num">${x.cost==null?'<span class="dim">—</span>':esc(x.cost)}</td>` : ""}
       <td class="mono">${dim(refs.cur[x.currency_id])}</td>
       <td class="mono">${dim(x.last_supplied)}</td>
       <td>${yn(x.is_default, false)}</td><td>${yn(x.is_active)}</td></tr>`);
@@ -629,7 +640,7 @@ function renderRead(){
     ${tbl("Suppliers" + (supDead && isAdmin
             ? ` <label style="font-weight:400;text-transform:none;font-size:11px;display:flex;align-items:center;gap:4px;margin-left:auto;cursor:pointer">
                  <input type="checkbox" id="showDead" ${showDead?"checked":""}> show ${supDead} inactive</label>` : ""),
-          supShow.length, ["Supplier","Supplier SKU",["Fixed","num"],["Latest","num"],"Cur","Last supplied","Default","Active"], supRows,
+          supShow.length, ["Supplier","Supplier SKU"].concat(canCost ? [["Fixed","num"],["Latest","num"]] : []).concat(["Cur","Last supplied","Default","Active"]), supRows,
           r.parent_product_id ? "None — sets are bought through the parent." : (supDead ? "None active." : "None."))}
     ${tbl("Barcodes", cur.bar.length, ["Barcode","Primary","Valid from","Active"], barRows)}
     ${tagCardRead()}
@@ -812,18 +823,18 @@ function renderEdit(){
   const supRows = supLive.map(x => `<tr>
       <td>${esc(x.supplier ? x.supplier.name : "")}</td>
       <td><input class="ein mono" data-sup="${x.supplier_id}" data-k="supplier_sku" value="${esc(x.supplier_sku||"")}"></td>
-      <td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="fixed_cost" value="${x.fixed_cost==null?"":esc(x.fixed_cost)}"></td>
-      <td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="cost" value="${x.cost==null?"":esc(x.cost)}"></td>
+      ${canCost ? `<td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="fixed_cost" value="${x.fixed_cost==null?"":esc(x.fixed_cost)}"></td>
+      <td><input class="ein sm mono" data-sup="${x.supplier_id}" data-k="cost" value="${x.cost==null?"":esc(x.cost)}"></td>` : ""}
       <td><input type="radio" name="supDef" data-supdef="${x.supplier_id}" ${x.is_default?"checked":""}></td>
       <td><label><input type="checkbox" data-supoff="${x.supplier_id}"> turn off</label></td></tr>`)
     .concat(edit.addSup.map((s, i) => `<tr><td>${esc(s.name)} <span class="newtag">new</span></td>
-      <td class="mono">${dim(s.supplier_sku)}</td><td class="num">${dim(s.fixed_cost)}</td><td class="num">${dim(s.cost)}</td>
+      <td class="mono">${dim(s.supplier_sku)}</td>${canCost ? `<td class="num">${dim(s.fixed_cost)}</td><td class="num">${dim(s.cost)}</td>` : ""}
       <td class="dim">—</td><td><button class="xbtn" data-act="supDrop" data-i="${i}">remove</button></td></tr>`));
   const supAdd = `<div class="addrow">
       <input class="ein" id="supNewName" list="supList" placeholder="Supplier">
       <input class="ein mono" id="supNewSku" placeholder="Supplier SKU">
-      <input class="ein sm mono" id="supNewFixed" placeholder="Fixed cost">
-      <input class="ein sm mono" id="supNewCost" placeholder="Cost">
+      ${canCost ? `<input class="ein sm mono" id="supNewFixed" placeholder="Fixed cost">
+      <input class="ein sm mono" id="supNewCost" placeholder="Cost">` : ""}
       <button class="pobtn" data-act="supAdd">Add</button></div>`;
 
   return `
@@ -842,7 +853,7 @@ function renderEdit(){
     </div>${heroImg()}</div></div>
     ${tbl("Sale prices", priceRows.length, ["Tier","Price"], priceRows, "No sale tiers.",
           `<div class="note">Clear a price to turn it off${isSet ? " — the set then goes back to the calculated price" : ""}.</div>`)}
-    ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU","Fixed","Latest","Default","Off"], supRows, "None.", supAdd)}
+    ${tbl("Suppliers", supLive.length + edit.addSup.length, ["Supplier","Supplier SKU"].concat(canCost ? ["Fixed","Latest"] : []).concat(["Default","Off"]), supRows, "None.", supAdd)}
     ${tbl("Barcodes", live.length + edit.addBc.length, ["Barcode","Primary","Off"], barRows, "None.", bcAdd)}
     ${tagCardEdit()}
     ${imsShop.card("product", { readOnly: true })}
@@ -1095,8 +1106,8 @@ function wireDetail(box){
         if(cur.sup.some(x => x.is_active && x.supplier_id === hit.id) || edit.addSup.some(x => x.id === hit.id)){ alert("That supplier is already on this product."); return; }
         const n = { id: hit.id, name: hit.name,
           supplier_sku: blankNull(document.getElementById("supNewSku").value),
-          fixed_cost: blankNull(document.getElementById("supNewFixed").value),
-          cost: blankNull(document.getElementById("supNewCost").value) };
+          fixed_cost: canCost ? blankNull(fval(document, "#supNewFixed")) : null,
+          cost: canCost ? blankNull(fval(document, "#supNewCost")) : null };
         keepInputs(() => edit.addSup.push(n)); return;
       }
       if(a === "supDrop"){ keepInputs(() => edit.addSup.splice(Number(el.dataset.i), 1)); return; }
@@ -1323,8 +1334,8 @@ function openProductDialog(st){
       <div class="fg">
         <label>Supplier</label><input class="ein" id="npSup" list="supList" value="${esc(st.sup)}">
         <label>Supplier SKU</label><input class="ein mono" id="npSupSku" value="${esc(st.sup_sku)}">
-        <label>Cost</label><input class="ein sm mono" id="npCost" value="${esc(st.cost)}">
-        <label>Fixed cost</label><input class="ein sm mono" id="npFixed" value="${esc(st.fixed)}">
+        ${canCost ? `<label>Cost</label><input class="ein sm mono" id="npCost" value="${esc(st.cost)}">
+        <label>Fixed cost</label><input class="ein sm mono" id="npFixed" value="${esc(st.fixed)}">` : ""}
       </div>
       <div class="sub">Sets <span class="ghost">— only the pack factor is needed · SKU becomes ${esc(st.sku || "SKU")}-N · set prices are calculated unless you fix them later in Edit</span></div>
       ${st.sets.length ? `<table class="vt"><thead><tr>${SET_HEAD}</tr></thead><tbody>${setRows}</tbody></table>` : ""}
@@ -1339,7 +1350,7 @@ function openProductDialog(st){
     st.name = b.querySelector("#npName").value; st.category_id = refId("cat", b.querySelector("#npCat").value); st.unit_id = refId("unit", b.querySelector("#npUnit").value);
     st.weight = b.querySelector("#npW").value; st.weight_unit = b.querySelector("#npWu").value; st.note = b.querySelector("#npNote").value;
     b.querySelectorAll("[data-npprice]").forEach(el => { st.prices[el.dataset.npprice] = el.value.trim(); });
-    st.sup = b.querySelector("#npSup").value; st.sup_sku = b.querySelector("#npSupSku").value; st.cost = b.querySelector("#npCost").value; st.fixed = b.querySelector("#npFixed").value;
+    st.sup = b.querySelector("#npSup").value; st.sup_sku = b.querySelector("#npSupSku").value; st.cost = fval(b, "#npCost"); st.fixed = fval(b, "#npFixed");
     b.querySelectorAll("[data-set]").forEach(el => { st.sets[Number(el.dataset.set)][el.dataset.k] = el.value; });
   };
   b.querySelector('[data-m="close"]').onclick = closeModal;
@@ -1436,8 +1447,8 @@ function openFamilyDialog(st){
       <div class="fg">
         <label>Supplier</label><input class="ein" id="nfSup" list="supList" value="${esc(st.sup)}">
         <label>Supplier SKU</label><input class="ein mono" id="nfSupSku" value="${esc(st.sup_sku)}" placeholder="leave blank to use each variant SKU">
-        <label>Cost</label><input class="ein sm mono" id="nfCost" value="${esc(st.cost)}">
-        <label>Fixed cost</label><input class="ein sm mono" id="nfFixed" value="${esc(st.fixed)}">
+        ${canCost ? `<label>Cost</label><input class="ein sm mono" id="nfCost" value="${esc(st.cost)}">
+        <label>Fixed cost</label><input class="ein sm mono" id="nfFixed" value="${esc(st.fixed)}">` : ""}
       </div>
       <div class="sub">Variants <span class="ghost">— name blank = ${adding ? esc(st.family.name) : "family name"} - value · sets = pack factors</span></div>
       <div style="overflow:auto"><table class="vt"><thead><tr><th>SKU</th>${(axes.length ? axes : ["Option"]).map(a => `<th>${esc(a)}</th>`).join("")}<th>Barcode</th>
@@ -1456,7 +1467,7 @@ function openFamilyDialog(st){
       st.ax1 = b.querySelector("#nfAx1").value; st.ax2 = b.querySelector("#nfAx2").value; st.ax3 = b.querySelector("#nfAx3").value;
       st.note = b.querySelector("#nfNote").value;
     }
-    st.sup = b.querySelector("#nfSup").value; st.sup_sku = b.querySelector("#nfSupSku").value; st.cost = b.querySelector("#nfCost").value; st.fixed = b.querySelector("#nfFixed").value;
+    st.sup = b.querySelector("#nfSup").value; st.sup_sku = b.querySelector("#nfSupSku").value; st.cost = fval(b, "#nfCost"); st.fixed = fval(b, "#nfFixed");
     b.querySelectorAll("[data-vr]").forEach(el => { st.rows[Number(el.dataset.vr)][el.dataset.k] = el.value; });
   };
   b.querySelector('[data-m="close"]').onclick = closeModal;
@@ -1614,6 +1625,7 @@ async function openCreated(pid, sku){
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client; isAdmin = (me.role === "admin");
   canEdit = imsAuth.canWrite("master");
+  try { const cc = await sb.rpc("ims_can_view_cost", {}); canCost = !cc.error && cc.data === true; } catch(err){ canCost = false; }   // cost-1
   imsHeader(me);
   document.getElementById("buildTag").textContent = PR_BUILD;
   if(canEdit){

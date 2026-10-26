@@ -56,7 +56,7 @@
    ⚠️ 권한은 ims_access() 의 결과(imsAuth.access)를 보여 주기만 한다 — 화면이 다시 판정하지 않는다
    ⚠️ DB 칸은 옛 index 와 같은 다섯 표의 행 수(head count) — RLS 로 0 이 나오면 「표가 비었다」가 아니라 「이 사람에게 안 보인다」일 수 있다
    ───────────────────────────────────────────────────────────── */
-const SC_BUILD = "2026-10-24 · sc v2";   // 대화 Claude — drive-3: Google Drive 카드(drive_status · 시작 날짜 비면 경고 · 실패 목록 · Settings 로 가는 고리) ← sc v1.1 갈래 이름 Action Centre(Caleb 2026-10-01) ← sc v1
+const SC_BUILD = "2026-10-26 · sc v2a";   // 대화 Claude — cost-1(cost-1b 뒤 product_supplier 의 cost · fixed_cost 는 authenticated 가 못 읽는다): 행 수 세기를 select("*") 대신 select("id") 로 — 다섯 표 모두 같은 꼴 ← 2026-10-24 · sc v2: 대화 Claude — drive-3: Google Drive 카드(drive_status · 시작 날짜 비면 경고 · 실패 목록 · Settings 로 가는 고리) ← sc v1.1 갈래 이름 Action Centre(Caleb 2026-10-01) ← sc v1
 console.log("system-check.html build:", SC_BUILD);
 
 const row = (k, v) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
@@ -120,7 +120,7 @@ imsAuth.start({ changePw: true }, async (sb, me) => {
   // Database connection — 옛 index 와 같은 다섯 표 · 행 수만 센다
   const out = [];
   for (const t of ["supplier", "product", "product_supplier", "ref_brand", "ims_staff"]) {
-    const { count, error } = await sb.from(t).select("*", { count: "exact", head: true });
+    const { count, error } = await sb.from(t).select("id", { count: "exact", head: true });   // cost-1
     out.push(row(t, error ? `<span class="no">${esc(error.message)}</span>`
                           : `<span class="ok">${Number(count || 0).toLocaleString()}</span> rows`));
   }

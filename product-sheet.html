@@ -126,7 +126,7 @@
    ⭐ 브랜드 · 분류 · 단위는 이름으로 친다(붙여 넣기 포함) → 화면이 id 로 맞춘다 · 못 찾으면 칸이 빨갛고 저장 안 함
    ⚠️ 한 번에 300 줄까지 불러온다 — 창구 한 번 1,000 줄(칸 하나가 한 줄) 안에 들게
    ───────────────────────────────────────────────────────────── */
-const SH_BUILD = "sheet v2b";   // 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 2 · 8): Edit 모드에 Surcharge group 열(이름으로 고르기 · 붙여 넣기 · 세트 줄은 못 고침) · 묶음 단추 Surcharge ← sheet v2a
+const SH_BUILD = "sheet v2c";   // 대화 Claude — cost-1 화면(판정 759 · 764 · asung-wms cost-1a 20261026173000): 원가 열쇠가 없으면 Fixed cost · Latest cost · Landed · GP 열과 가격 식 줄을 그리지 않는다(새 상품 모드도) · 단가는 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · 가격 식 미리 보기는 서버도 원가 열쇠를 요구한다 ← sheet v2b: 대화 Claude — surcharge-4b(판정 231 · 232 · 묶음 2 · 8): Edit 모드에 Surcharge group 열(이름으로 고르기 · 붙여 넣기 · 세트 줄은 못 고침) · 묶음 단추 Surcharge ← sheet v2a
 /* sheet v2a(2026-10-01 · price-2 · 판정 215 ~ 223 · 묶음 1 ~ 8) — Edit 모드에서 공급처로 걸러 불러오면 표 위에 「Price formula」 줄
    · 식 = 그 공급처의 저장된 식(기본이 맨 앞) 또는 숫자를 바꾼 「이번만」 식 · 칸 넷(통화 · 운임·기타 · 관세 % · 마진) + 끝자리 체크 열(판정 217)
    · 줄 고르기 = SKU 칸 앞 체크 · 처음: manual 가격이 있는 줄은 꺼짐 · 세트는 못 고름(판정 220 · 222)
@@ -137,6 +137,7 @@ const SH_BUILD = "sheet v2b";   // 대화 Claude — surcharge-4b(판정 231 · 
 const MAX_ROWS = 300, MAX_LINES = 1000;
 
 let sb = null, canEdit = false;
+let canCost = false;   // cost-1 — 원가 열쇠(ims_can_view_cost)
 let refs = { brands:[], cats:[], units:[], tiers:[], suppliers:[], cur:{}, sgroups:[], sgById:{}, byName:{ brand:{}, cat:{}, unit:{}, sup:{}, sg:{} } };
 let rows = [];          // 불러온 상품 — { p, prices:{tierId:{price}}, sup:{…기본 공급처}|null, bc, fam, parent }
 let cols = [];          // 보이는 열 — { key, label, kind, edit, cls }
@@ -179,12 +180,12 @@ function buildCols(){
     { key:"cat", label:"Category", kind:"ref", ref:"cat", edit:true, w:"w-cat" },
     { key:"unit", label:"Unit", kind:"ref", ref:"unit", edit:true, w:"w-num" },
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", edit:true, w:"w-num" })),
-    { key:"fres", label:"Landed · GP", kind:"ro" },
+    ...(canCost ? [{ key:"fres", label:"Landed · GP", kind:"ro" }] : []),   // cost-1
     { key:"supname", label:"Default supplier", kind:"ro" },
     { key:"cur", label:"Cur", kind:"ro" },
     { key:"ssku", label:"Supplier SKU", kind:"text", edit:true, w:"w-ssku", needSup:true },
-    { key:"fixed", label:"Fixed cost", kind:"num", edit:true, w:"w-num", needSup:true },
-    { key:"cost", label:"Latest cost", kind:"num", edit:true, w:"w-num", needSup:true },
+    ...(canCost ? [{ key:"fixed", label:"Fixed cost", kind:"num", edit:true, w:"w-num", needSup:true },
+                   { key:"cost", label:"Latest cost", kind:"num", edit:true, w:"w-num", needSup:true }] : []),   // cost-1
     { key:"active", label:"Active", kind:"bool", edit:true },
     { key:"disc", label:"Discontinued", kind:"bool", edit:true },
     { key:"setdisc", label:"Set disc %", kind:"num", edit:true, w:"w-num", needSet:true },
@@ -258,9 +259,15 @@ async function load(next){
 
   const [pr, sp, bc] = await Promise.all([
     inChunks(ids, async c => (await sb.from("product_price").select("product_id,tier_id,price,source").in("product_id", c).eq("is_active", true)).data),
-    inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,cost,fixed_cost,currency_id,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),
+    inChunks(ids, async c => (await sb.from("product_supplier").select("product_id,supplier_id,supplier_sku,currency_id,is_default,supplier(name)").in("product_id", c).eq("is_active", true)).data),   // cost-1 — 단가는 아래 창구로
     inChunks(ids, async c => (await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id", c).eq("is_active", true)).data),
   ]);
+  /* cost-1 — 단가는 창구로(원가 열쇠가 있을 때만 · 100 개씩) */
+  if(canCost && sp.length){
+    const cm = {};
+    await inChunks(ids, async c => { const { data: cd } = await sb.rpc("product_supplier_costs", { p_product_ids: c }); ((cd && cd.rows) || []).forEach(x => { cm[x.product_id + "|" + x.supplier_id] = x; }); return []; });
+    sp.forEach(x => { const c = cm[x.product_id + "|" + x.supplier_id]; x.cost = c ? c.cost : null; x.fixed_cost = c ? c.fixed_cost : null; });
+  }
   const famIds = Array.from(new Set(ps.map(x => x.family_id).filter(Boolean)));
   const parIds = Array.from(new Set(ps.map(x => x.parent_product_id).filter(Boolean)));
   const [fm, pa] = await Promise.all([
@@ -525,8 +532,8 @@ function buildNewCols(){
     ...saleTiers().map(t => ({ key:"pr_" + t.id, tier:t.id, label:t.name, kind:"num", w:"w-num" })),
     { key:"sup", label:"Supplier", kind:"ref", ref:"sup", w:"w-ref" },
     { key:"ssku", label:"Supplier SKU", kind:"text", w:"w-ssku" },
-    { key:"fixed", label:"Fixed cost", kind:"num", w:"w-num" },
-    { key:"cost", label:"Latest cost", kind:"num", w:"w-num" },
+    ...(canCost ? [{ key:"fixed", label:"Fixed cost", kind:"num", w:"w-num" },
+                   { key:"cost", label:"Latest cost", kind:"num", w:"w-num" }] : []),   // cost-1
     { key:"bc", label:"Barcode(s)", kind:"text", w:"w-ssku" },
     { key:"sets", label:"Sets (6, 12)", kind:"text", w:"w-num" },
   ];
@@ -624,7 +631,7 @@ async function saveNew(){
       brand_id: (byName("brand", r.brand) || {}).id || null, category_id: (byName("cat", r.cat) || {}).id || null, unit_id: unit ? unit.id : null,
       barcodes: splitList(r.bc),
       prices: saleTiers().filter(t => blankNull(r["pr_" + t.id]) !== null).map(t => ({ tier_id: t.id, price: blankNull(r["pr_" + t.id]) })),
-      suppliers: sup ? [{ supplier_id: sup.id, supplier_sku: blankNull(r.ssku), fixed_cost: blankNull(r.fixed), cost: blankNull(r.cost), currency_id: sup.currency_id || null, is_default: true }] : [],
+      suppliers: sup ? [{ supplier_id: sup.id, supplier_sku: blankNull(r.ssku), fixed_cost: canCost ? blankNull(r.fixed) : null, cost: canCost ? blankNull(r.cost) : null, currency_id: sup.currency_id || null, is_default: true }] : [],
       sets: splitList(r.sets).map(n => ({ pack_factor: n, barcodes: [] })),
     };
   });
@@ -700,6 +707,7 @@ function drawFbar(){
   const bar = document.getElementById("fbar");
   if(mode !== "edit"){ bar.hidden = true; return; }
   bar.hidden = false;
+  if(!canCost){ bar.innerHTML = `<span class="ttl">Price formula</span><span class="dim">Price formulas work from supplier costs, so they need the cost permission.</span>`; return; }   // cost-1
   if(!curSup){ bar.innerHTML = `<span class="ttl">Price formula</span><span class="dim">Filter by a supplier and press Load to use a price formula.</span>`; return; }
   const cads = [curId("CAD"), curId("USD")].filter(Boolean);
   bar.innerHTML = `<span class="ttl">Price formula</span>
@@ -843,6 +851,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
   canEdit = imsAuth.canWrite("master");
   isAdmin = me && me.role === "admin";
+  try { const cc = await sb.rpc("ims_can_view_cost", {}); canCost = !cc.error && cc.data === true; } catch(err){ canCost = false; }   // cost-1 — buildCols 앞
   imsHeader(me);
   document.getElementById("buildTag").textContent = SH_BUILD;
   if(!canEdit) document.getElementById("hint").textContent = "Read only — your account cannot change master data.";

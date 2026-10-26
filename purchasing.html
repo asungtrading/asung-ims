@@ -796,7 +796,7 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-10-22 · pur v1c';   // v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-10-26 · pur v1d';   // v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -1033,6 +1033,7 @@ async function sendDraftPO(){
 const FP_CACHE = {};   // { sku: {fixedCost} | {loading:true} } — 재렌더링에도 유지
 
 function fpCell(sku){
+  if(!PUR.canCost) return '';   // cost-1 — 원가 열쇠 없으면 💲 자체를 안 그린다
   const c = FP_CACHE[sku];
   if(c && c.loading) return `<span style="opacity:0.5;font-size:10px">…</span>`;
   if(c){
@@ -1053,8 +1054,9 @@ async function fpLoad(sku){
   FP_CACHE[sku] = { loading:true };
   renderTable();
   try{
-    const { data, error } = await sb.from('product_supplier').select('fixed_cost').eq('product_id', pid).eq('supplier_id', sid).eq('is_active', true).maybeSingle();
+    const { data: cd, error } = await sb.rpc('product_supplier_costs', { p_product_ids: [pid], p_supplier_id: sid });   // cost-1 — 단가는 창구로
     if(error) throw error;
+    const data = ((cd && cd.rows) || []).find(x => x.is_active) || null;
     if(!data){ delete FP_CACHE[sku]; renderTable(); alert('이 제품에 ' + S.supplier + ' 공급처 줄이 없습니다.'); return; }
     FP_CACHE[sku] = { fixedCost: data.fixed_cost === null ? null : Number(data.fixed_cost) };
   }catch(err){
