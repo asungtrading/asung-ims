@@ -622,7 +622,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
    **2판(v2 · 2026-09-25 밤 「so.html 2판 가자」)이 더한 것**: 보류 · 풀기 · 나누기 · 창고 바꾸기 · 백오더 진행 · 병합 · 줄의 Stock 칸 · 병합 초안의 견적 알림.
    **아직 자리만(눌리지 않는다)**: Release to WMS · Finish on POS(POS 오더는 pos.html 에서 끝낸다 · 7-k) · 오피스 마무리 · 인쇄.
 ⚠️ 권한: 줄·머리·결제 = sales 열쇠 · 확정·counter·취소·보류·풀기·나누기·창고 바꾸기·백오더 진행 = manager 이상(단추가 manager 에게만 뜬다) · 병합 = 초안이면 sales · 확정 뒤는 manager · Unconfirm = supervisor 이상 · Include sets 체크는 manager 이상에게만 보인다(v1.4).
-⚠️ 모집단: 테스트 DB 의 `so` 는 **0행**이 정상이다(검증은 전부 rollback · 번호 SO-25000 부터) — 첫 오더가 SO-25000 이면 시퀀스가 제자리다.
+⚠️ 모집단: 테스트 DB 의 `so` 는 **0행**이 정상이다(검증은 전부 rollback · 번호 SO-25000 부터) — 첫 오더가 SO-25000 이면 시퀀스가 제자리다. → [2026-10-26 · 판정 749 · so-module §77] 컷오버 뒤 첫 번호는 **SO-20000**(cutover-delete.sql ⑥)
 
 ```
 공통 · 목록
@@ -636,7 +636,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 새 오더
 [ ] + New → 손님을 이름으로 찾아 고른다 → Channel(Warehouse · Counter) · Warehouse(손님 기본 창고가 미리 골라짐) → Create
 [ ] Counter 는 창고가 필수다 — 비우고 만들면 DB 가 거부한다(so_create)
-[ ] 새 오더는 draft · SO-25000 부터 · 머리에 손님의 티어 · 결제조건 · 통화 · 배송지가 복사돼 있다 · 세금 규칙은 배송지 주에서 「from ship-to」
+[ ] 새 오더는 draft · SO-25000 부터 · 머리에 손님의 티어 · 결제조건 · 통화 · 배송지가 복사돼 있다 · 세금 규칙은 배송지 주에서 「from ship-to」 → [2026-10-26 · 판정 749 · so-module §77] 컷오버 뒤 첫 번호는 **SO-20000**(cutover-delete.sql ⑥)
 [ ] 비활성 손님은 후보에 안 뜬다(뜨면 so_create 가 거부한다)
 
 줄 넣기 · 붙여넣기 (draft 만)
@@ -660,7 +660,7 @@ asung-wms `20260918161537` · `163552` · `173042` · `174428` · `203805`.
 확정 미리 보기 (warehouse 길 · manager)
 [ ] Confirm… → 「preview」 창: 줄마다 Ordered · Result · Reserved · Backorder · Preorder · Preorder? 체크 — **아무것도 저장되지 않는다**(「Nothing is saved until you press Confirm.」)
 [ ] Preorder? 를 체크하거나 「Confirm on hold」를 켜면 미리 보기가 바로 다시 계산된다
-[ ] Confirm → confirmed · 모자란 줄은 형제(SO-25000a · stock_short)로 갈리고 뭉치 표에 보인다 · 프리오더는 b
+[ ] Confirm → confirmed · 모자란 줄은 형제(SO-25000a · stock_short)로 갈리고 뭉치 표에 보인다 · 프리오더는 b → [2026-10-26 · 판정 749 · so-module §77] 컷오버 뒤 첫 번호는 **SO-20000**(cutover-delete.sql ⑥)
 [ ] 세금 규칙이 없거나 가격 없는 줄이 있으면 DB 가 거부하고 문장이 무엇이 빠졌는지 말한다
 [ ] 확정 뒤(warehouse) 단추: Release to WMS 는 여전히 **회색** · manager 에게 Hold 또는 Release hold · Proceed backorder…(백오더·프리오더 줄이 있을 때만) · Divide… · Change warehouse… · Merge… · Unconfirm 은 supervisor 에게만 · Cancel order… 는 manager
 [ ] ⭐ [v2·v2.1] 줄 표의 **Stock 칸**(확정 뒤 · so_reserve 를 읽는다): reserved N(초록) · not reserved N · on hold · backorder N · preorder N — 예약이 없으면 「—」 · hold 는 「잡지 않고 멈춰 둔」 것이라 not reserved 로 읽힌다(Caleb 「not reserved가 직관적」)
@@ -2149,7 +2149,7 @@ so-credits.html(cr v3 → v4 → v4a) · purchasing.html(pur v1 · Reorder Plann
 ```
 help.html (help v1 · 판정 725) — asung-wms docs/manual 을 main 에서 읽어 그린다(원고는 push 뒤에야 보인다)
 [ ] IMS 화면 머리 Change Password 앞 **Manual** → 새 탭에 help.html (nav v11) · help.html 자신에는 Manual 이 없다
-[ ] WMS 화면 ☰ Menu 맨 끝(줄 하나 띄우고) **Manual** → 새 탭 help.html#ch-04-wms 가 4 장 머리에서 열린다 (nav v12) · WMS 머리에는 Manual · Change Password 가 없다
+[✅] WMS 화면 ☰ Menu 맨 끝(줄 하나 띄우고) **Manual** → 새 탭 help.html#ch-04-wms 가 4 장 머리에서 열린다 (nav v12) · WMS 머리에는 Manual · Change Password 가 없다 (Caleb 2026-10-26)
 [ ] English / 한국어 단추 — 고르면 바뀌고, 새로 고쳐도 고른 언어가 남는다
 [ ] 왼쪽 목차 = README Contents 표에서 링크가 걸린 장만(지금 0 · 1 · 4 장) · 장 · 절 제목을 누르면 그 자리로 → [7-zs] 00 ~ 10 장 · 9 장 없음(742)
 [ ] 찾기 칸(Find a section) — 절 제목으로 좁혀진다
@@ -2164,21 +2164,21 @@ Cin7 글 (판정 721 · 722 · b7c5ab9)
 ⭐ `imsSrc`(ims-ui.js) = 원천 값을 **화면 글로만** 바꾼다 — 저장 값 · CSV · 비교 · 필터 값에는 쓰지 않는다
 
 Result 글자 (판정 724)
-[ ] so.html 확정 창 · 보류 풀기(Hold released) · 백오더 진행 창의 Result 칸 = Reserved · Partly reserved · Backordered · Preorder · On hold
-[ ] so-backorders.html Proceed 창의 Result 칸도 같은 글자
+[✅] so.html 확정 창 · 보류 풀기(Hold released) · 백오더 진행 창의 Result 칸 = Reserved · Partly reserved · Backordered · Preorder · On hold (Caleb 2026-10-26) — 확인한 것은 초안 Confirm… 미리 보기의 Result 칸(so cf words v1) · 보류 풀기 · 백오더 진행 창은 이 확인에 없다 · 백오더 Proceed 창은 아래 줄
+[✅] so-backorders.html Proceed 창의 Result 칸도 같은 글자 (Caleb 2026-10-26)
 ⭐ `CF_RESULT` 는 두 화면(so.html · so-backorders.html)에 같은 표 — 바꾸면 둘 다(d6b9547 이 so-backorders 를 놓쳤다)
 
 수수료 (판정 5 · cr v5a)
-[ ] 크레딧 새 창 — 60 일이 넘은 판매여도 **Charge a fee** 는 꺼진 채 시작 · 알림 줄과 제안 % 는 보인다 · 체크하면 수수료 줄이 미리 보기에 선다
+[✅] 크레딧 새 창 — 60 일이 넘은 판매여도 **Charge a fee** 는 꺼진 채 시작 · 알림 줄과 제안 % 는 보인다 · 체크하면 수수료 줄이 미리 보기에 선다 (Caleb 2026-10-26) — 확인한 것은 알림이 보이고 Charge a fee 가 꺼진 채(cr v5a) · 체크 뒤 수수료 줄은 이 확인에 없다
 ```
 
 ### 7-zs. 2026-10-25 저녁 — PO CSV · 메뉴 · Action Centre · Settings 글 · 매뉴얼 장 (po csv v1 6eefa2b · nav v13 8fcf4d6 · ml v1.3 3205214 · set v8b a54d964 · set v8c 5693139 · so-module §76 · 판정 210 · 733 · 738 · 742)
 
 ```
 PO CSV (po csv v1 · 판정 733)
-[ ] 확정(Confirm)한 PO 상세에만 **↓ PO CSV** — 초안에는 없다
-[ ] 파일 = 머리 + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계
-[ ] 엑셀로 열면 SKU · 바코드가 숫자로 바뀌지 않고 글자 그대로(="…") · 0 으로 시작하는 바코드도 그대로
+[✅] 확정(Confirm)한 PO 상세에만 **↓ PO CSV** — 초안에는 없다 (Caleb 2026-10-26)
+[✅] 파일 = 머리 + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계 (Caleb 2026-10-26)
+[✅] 엑셀로 열면 SKU · 바코드가 숫자로 바뀌지 않고 글자 그대로(="…") · 0 으로 시작하는 바코드도 그대로 (Caleb 2026-10-26)
 [ ] 내부 메모는 파일에 없다 · 내려받아도 PO 는 바뀌지 않는다(읽기만)
 
 메뉴 (nav v13 · 판정 210)
@@ -2190,13 +2190,35 @@ Action Centre (ml v1.3)
 [ ] Unpaid at hand-over 는 Branch 를 골라도 모든 브랜치(알고 둔 것 — deferred 337 ①)
 
 Settings 글 (set v8b · v8c)
-[ ] Settings › Bin 표 머리 = 「Thousands of bins — search for the one you need」
-[ ] Settings › Documents › Wording & columns 안내 = 「… These are the subject and message of the email that carries this document.」
+[✅] Settings › Bin 표 머리 = 「Thousands of bins — search for the one you need」 (Caleb 2026-10-26)
+[✅] Settings › Documents › Wording & columns 안내 = 「… These are the subject and message of the email that carries this document.」 (Caleb 2026-10-26)
 
 매뉴얼 (help.html · asung-wms docs/manual · 판정 742)
 [ ] 왼쪽 목차 = 0 ~ 10 장(9 장 = FAQ · 10 장 = Glossary · 예전 「9 장 옮겨 오기」 는 없다)
 ⭐ 장 파일 이름 고정 표 — 00-getting-started · 01-sales · 02-purchasing · 03-inventory · 04-wms(nav v12 링크) · 05-pos · 06-action-centre · 07-settings · 08-by-role · 09-faq · 10-glossary
 ⭐ 앵커는 바꾸지 않는다 — 화면 「?」 단추(뒤 차수)가 help.html?lang=…#앵커 로 연다 · 파일 이름을 바꾸면 README Contents 링크만 맞추면 된다
+```
+
+### 7-zt. 2026-10-26 회사 — Ship Ready 메일 · 컷오버 날 번호 (asung-wms srm-1 700fee7 · cutdel-1 c5a6c53 · cutdel-2 3eb9189 · so-module §77 · 판정 744 ~ 758 · 화면 파일 무변)
+
+```
+Ship Ready 메일 (srm-1 · 판정 744 · 745 · DB 만 고침 · 화면 그대로)
+[✅] Sales Orders › Ship & invoice → Email Ship Ready… — 창이 열리면 받는 이 · 제목 · 본문 칸이 채워지고 Send 가 켜진다(예전: 빨간 글 「A Ship Ready mail needs the PDF made first (doc_file_id) — nothing was saved」 · Send 꺼짐) (Caleb 2026-10-26)
+[ ] Send → PDF 를 만들고 보낸다 · 테스트 DB 는 받는 이가 mail_redirect_to(회사 주소) · 제목 [TEST → 원래]
+⭐ 다른 오더의 Ship Ready PDF 번호로 보내면 「That Ship Ready PDF is for a different order — make the PDF for this order and send again — nothing was saved」(화면은 방금 만든 PDF 만 넘기므로 화면에서는 볼 일이 없다 — DB 시험 srm_1_check 가 본다)
+
+인계서 10-25 저녁 §2 화면 시험 일곱 — 모두 Caleb 확인(2026-10-26) · 체크는 위 7-zr · 7-zs 줄에
+[✅] ① Purchase Orders · po csv v1 — 확정 PO 의 ↓ PO CSV(엑셀에서 SKU · 바코드 글자 그대로 · 공급처에 보낼 칸) → 7-zs 줄 셋 (Caleb 2026-10-26)
+[✅] ② Sales Orders · so cf words v1 — 초안 Confirm… 미리 보기의 Result 칸 사람 말 → 7-zr Result 글자 첫 줄(확인 범위를 그 줄에 적었다) (Caleb 2026-10-26)
+[✅] ③ Backorders · bo cf words v1 — Proceed 창 Result 칸 → 7-zr Result 글자 둘째 줄 (Caleb 2026-10-26)
+[✅] ④ Credit Notes · cr v5a — 60 일 넘은 인보이스 크레딧: 알림은 보이고 Charge a fee 는 꺼진 채 → 7-zr 수수료 줄(확인 범위를 그 줄에 적었다) (Caleb 2026-10-26)
+[✅] ⑤ WMS 화면 · nav v12 — ☰ Menu 맨 끝 Manual → 새 탭 → 7-zr help.html 둘째 줄 (Caleb 2026-10-26)
+[✅] ⑥ Settings › Bin · set v8b · Documents · set v8c — 안내 글 둘 → 7-zs Settings 글 두 줄 (Caleb 2026-10-26)
+[✅] ⑦ 매뉴얼 Credit Notes 절 — 크레딧 창 칸 순서(manual-2b 이견 16) → 7-zr · 7-zs 에 맞는 줄이 없다(여기만 적는다) (Caleb 2026-10-26)
+
+컷오버 날 번호 (판정 749 · reload-procedure §P 14 단계)
+[ ] 컷오버 뒤 첫 오더 SO-20000 · 첫 인보이스 60000 · 첫 크레딧 CR-01000 · 첫 PO PO-02000 · 첫 입고 RCV-00001
+⚠️ 인보이스 · 결제 확인 줄(Clore Inc. (BLW) · 인보이스 60000 · wire 100.00 / cash 76.30)의 SO-25000 은 그때의 시험 오더 기록이다 — 컷오버 날 거래와 함께 지워진다(번호를 고치지 않는다 · 판정 749 표시는 시작 번호를 말하는 세 줄에만)
 ```
 
 ## 8. 로그인 · 계정
