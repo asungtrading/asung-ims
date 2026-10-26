@@ -86,6 +86,7 @@
       </span>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
+      <button class="pobtn" id="wexport" title="Download the suppliers in this list as a spreadsheet (CSV) — you pick the columns">↓ Export…</button>
       <button class="pobtn go" id="wnewBtn" hidden>+ New supplier</button>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
@@ -123,6 +124,7 @@
 <script src="ims-config.js"></script>
 <script src="ims-ui.js?v=src1"></script>
 <script src="ims-auth.js"></script>
+<script src="ims-export.js?v=1"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
    Suppliers — 공급처 목록 · 상세 · 만들기 · 고치기(sup v2 · cs-5 ③ · 판정 237 · 238 · 241 · 242 · 243 · 정본 so-module §41)
@@ -135,7 +137,7 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-10-25 · sup v3c";   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-10-26 · sup v3d";   // 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
@@ -650,6 +652,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("wpurch").onchange = e => { purchF = e.target.value; wpg.reset(); loadWide(); };
   imsQ("#wq", v => { q = v; wpg.reset(); loadWide(); });
   $("wclear").onclick = () => { q = ""; onlyActive = true; hideDisc = false; purchF = "yes"; syncCtl(); wpg.reset(); loadWide(); };
+  $("wexport").onclick = () => imsExport.open({   // exp-2 — 지금 거르기 그대로(loadWide 와 같은 조건 · 쓰기 없으면 DB 가 고정)
+    sb, kind: "supplier", title: "Export suppliers", file: "suppliers",
+    args: () => ({ p_q: q || null, p_only_active: onlyActive, p_hide_discontinued: hideDisc, p_purchasable: purchF }),
+    note: canWrite ? "" : "You see active, purchasable suppliers only, so the file has those only.",
+  });
   const want = new URLSearchParams(location.search);
   if(want.get("id")){ purchF = "all"; await openSupplier(want.get("id")); }   // sup v3b — 링크로 연 공급처가 Purchasable 이 아니어도 왼쪽 목록에 보이게
   else showWide();

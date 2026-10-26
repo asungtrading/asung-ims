@@ -92,6 +92,7 @@
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wnew"> New — not reviewed</label>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
+      <button class="pobtn" id="wexport" title="Download the customers in this list as a spreadsheet (CSV) — you pick the columns">↓ Export…</button>
       <button class="pobtn go" id="wnewBtn" hidden>+ New customer</button>
     </div>
     <div id="wrows"><div class="msg">Loading…</div></div>
@@ -128,6 +129,7 @@
 <script src="ims-config.js"></script>
 <script src="ims-ui.js?v=src1"></script>
 <script src="ims-auth.js"></script>
+<script src="ims-export.js?v=1"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
    Customers — 손님 목록 · 상세 · 만들기 · 고치기 · 확인(cs-5 ① · 판정 236 ~ 241 · 정본 so-module §41)
@@ -139,7 +141,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-25 · cs v6a";   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-26 · cs v6b";   // 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 761 · 762 · 763 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(customer_export p_q · p_only_active · p_only_new) · 주소 · 연락처 칸은 sales · master 쓰기만(DB 가 목록에서 뺀다) ← 2026-10-25 · cs v6a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -866,6 +868,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("wnew").onchange = e => { onlyNew = e.target.checked; wpg.reset(); loadWide(); };
   imsQ("#wq", v => { q = v; wpg.reset(); loadWide(); });
   $("wclear").onclick = () => { q = ""; onlyActive = true; onlyNew = false; syncCtl(); wpg.reset(); loadWide(); };
+  $("wexport").onclick = () => imsExport.open({   // exp-2 — 지금 거르기 그대로(loadWide 와 같은 조건)
+    sb, kind: "customer", title: "Export customers", file: "customers",
+    args: () => ({ p_q: q || null, p_only_active: onlyActive, p_only_new: onlyNew }),
+    note: canWrite ? "" : "Address and contact columns are only for staff who can edit customers.",
+  });
   const want = new URLSearchParams(location.search);
   if(want.get("new") === "1") onlyNew = true;
   if(want.get("id")) await openCustomer(want.get("id"));
