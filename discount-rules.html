@@ -163,7 +163,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v3b";   // 대화 Claude — tagn-1(판정 772 · asung-wms 20261026193518): 태그 이름 목록을 product_tag 63,515 줄을 1,000 줄씩 64 번 읽어 만들던 것(열 때 수 초) → 창구 product_tag_names() 한 번(1,193 개 · 정렬돼 온다 · 딜이 먼저 쓰는 태그 포함) ← dr v3a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 딜 머리 칩 · 동작 무변 ← dr v3: 대화 Claude — 판정 668(Caleb 「line 디스카운트에 벌크로 세일 항목을」 → 세 칸 SKU · % · at least · 「가」 딜 편집 안에서): 줄 딜 편집의 「Paste lines…」 — 붙여 넣은 목록을 (% · 최소) 가 같은 것끼리 한 줄로 · 같은 % · 최소의 켜진 줄이 이미 있으면 그 줄에 더한다 · 붙여 넣은 SKU = 그 줄의 Applies to(product) · 브랜드 · 태그 · Except · 손님 규칙은 안 건드린다 · 빨간 줄(없는 SKU · % 0 ~ 100 밖 · 0.3 같은 분수 · 같은 SKU 다른 값 · 이 딜의 다른 % 줄에 이미 있음)이 하나라도 있으면 더하지 않는다 · 더한 뒤에도 저장 전(so_deal_save 미리 보기 → 확인 → 저장 그대로 · DB 무변) ← dr v2: 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
+const DR_BUILD = "dr v3c";   // 대화 Claude — 판정 777(Caleb 「스크롤이 길어지니 기본으로 숨기는 캐롯을 두는게 좋지 않나?」): 딜 상세 Products 표에서 세트 줄(판정 302 — 낱개의 딜이 세트 줄에도 걸려 목록에 함께 나온다)을 기본으로 접는다 · 제목 줄의 ▸ sets N 으로 펼치기 · 펼침은 이 화면을 여는 동안 기억 ← dr v3b: 대화 Claude — tagn-1(판정 772 · asung-wms 20261026193518): 태그 이름 목록을 product_tag 63,515 줄을 1,000 줄씩 64 번 읽어 만들던 것(열 때 수 초) → 창구 product_tag_names() 한 번(1,193 개 · 정렬돼 온다 · 딜이 먼저 쓰는 태그 포함) ← dr v3a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 딜 머리 칩 · 동작 무변 ← dr v3: 대화 Claude — 판정 668(Caleb 「line 디스카운트에 벌크로 세일 항목을」 → 세 칸 SKU · % · at least · 「가」 딜 편집 안에서): 줄 딜 편집의 「Paste lines…」 — 붙여 넣은 목록을 (% · 최소) 가 같은 것끼리 한 줄로 · 같은 % · 최소의 켜진 줄이 이미 있으면 그 줄에 더한다 · 붙여 넣은 SKU = 그 줄의 Applies to(product) · 브랜드 · 태그 · Except · 손님 규칙은 안 건드린다 · 빨간 줄(없는 SKU · % 0 ~ 100 밖 · 0.3 같은 분수 · 같은 SKU 다른 값 · 이 딜의 다른 % 줄에 이미 있음)이 하나라도 있으면 더하지 않는다 · 더한 뒤에도 저장 전(so_deal_save 미리 보기 → 확인 → 저장 그대로 · DB 무변) ← dr v2: 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;
@@ -232,6 +232,15 @@ function statusChip(d){
   if(!d.is_active) return '<span class="chip bad">off</span>';
   if(d.ended) return '<span class="chip warn">ended</span>';
   return '<span class="chip good">on</span>';
+}
+
+/* dr v3c — 판정 777: 딜 상세 Products 표의 세트 줄 접기 · 펼치기(다시 그려도 이 화면을 여는 동안 기억) */
+let drShowSets = false;
+function drToggleSets(btn){
+  drShowSets = !drShowSets;
+  const card = btn.closest(".card"); if(!card) return;
+  card.querySelectorAll("tr.setrow").forEach(tr => { tr.hidden = !drShowSets; });
+  btn.textContent = (drShowSets ? "▾" : "▸") + " sets " + btn.dataset.n;
 }
 
 /* ── 목록 ─────────────────────────────────────────── */
@@ -411,9 +420,10 @@ function renderRead(){
   /* 제품 */
   if(!d.is_order_level){
     const pr = cur.products || { n:0, n_all:0, items:[] };
-    body += `<div class="card"><h3 class="ims-sec" data-sec="lines">Products <span class="n">${esc(Number(pr.n || 0).toLocaleString())}</span>${pr.n_all > pr.n ? ` <span class="dim">· +${esc(pr.n_all - pr.n)} inactive</span>` : ""}</h3>
+    const nSets = (pr.items || []).filter(x => x.is_set).length;   // dr v3c — 판정 777
+    body += `<div class="card"><h3 class="ims-sec" data-sec="lines">Products <span class="n">${esc(Number(pr.n || 0).toLocaleString())}</span>${pr.n_all > pr.n ? ` <span class="dim">· +${esc(pr.n_all - pr.n)} inactive</span>` : ""}${nSets ? ` <button class="xbtn" style="margin-left:8px;text-transform:none;font-weight:400" onclick="drToggleSets(this)" data-n="${nSets}" title="Sets get the same deal as their single (a set line counts its singles) — they are folded to keep the list short">${drShowSets ? "▾" : "▸"} sets ${nSets}</button>` : ""}</h3>
       ${(pr.items || []).length ? `<table><thead><tr><th>SKU</th><th>Name</th><th>Lines</th><th>Matched by</th></tr></thead><tbody>
-        ${pr.items.map(x => `<tr class="${x.is_active ? "" : "offl"}"><td class="mono"><a class="lnk" href="products.html?id=${encodeURIComponent(x.product_id)}">${esc(x.sku)}</a>${x.is_set ? ' <span class="tag">set</span>' : ""}</td>
+        ${pr.items.map(x => `<tr class="${x.is_active ? "" : "offl"}${x.is_set ? " setrow" : ""}"${x.is_set && !drShowSets ? " hidden" : ""}><td class="mono"><a class="lnk" href="products.html?id=${encodeURIComponent(x.product_id)}">${esc(x.sku)}</a>${x.is_set ? ' <span class="tag">set</span>' : ""}</td>
           <td>${esc(x.name)}</td><td class="mono">${esc((x.line_nos || []).join(", "))}</td><td class="mono">${esc((x.matched_by || []).join(", "))}</td></tr>`).join("")}
       </tbody></table>${pr.n_all > pr.items.length ? `<div class="cnt">Showing ${pr.items.length} of ${Number(pr.n_all).toLocaleString()}.</div>` : ""}`
       : '<div class="msg">No product matches these lines.</div>'}</div>`;
