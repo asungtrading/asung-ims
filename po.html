@@ -33,6 +33,7 @@
   .post.p-received{background:#e8590c}
   .post.p-completed{background:#2f9e44}
   .post.p-cancelled{background:#e03131}
+  .post.p-backorder{background:#f08c00}   /* po chip v1 — 판정 465 · 481 */
   .tag.paid{color:var(--good);border-color:#cfe9d7}   /* po st v3 — 결제 태그 */
   /* ⚠️ main 은 ims-ui.css 의 main 과 이름이 겹쳐 올리지 않았다(2026-09-17) — 바른 길은 <main class="stack">(§13-h 미룬 것 · HTML 은 이번 범위 밖).
      이 화면은 padding 없음 — 좌우 분할이라 바깥 .wrap 이 여백을 준다 */
@@ -91,6 +92,7 @@
         <option value="open">Open</option>
         <option value="draft">Draft</option>
         <option value="ordered">Ordered</option>
+        <option value="backorder">Backorder</option>
         <option value="receiving">Receiving</option>
         <option value="received">Received</option>
         <option value="closed">Completed</option>
@@ -125,6 +127,7 @@
             <option value="open">Open</option>
             <option value="draft">Draft</option>
             <option value="ordered">Ordered</option>
+            <option value="backorder">Backorder</option>
             <option value="receiving">Receiving</option>
             <option value="received">Received</option>
             <option value="closed">Completed</option>
@@ -184,7 +187,7 @@
 /* ⚠️ Build marker. A console error once pointed at a line this file does not have,
    three times over, unchanged. Printing the build makes it obvious whether the page
    running is the page that was deployed — or something else attached to it. */
-const PO_BUILD = "2026-10-26 · po cost v1";   // 대화 Claude — cost-1 화면(판정 759 · 764 · 765 · asung-wms cost-1a 20261026173000): Add lines 의 후보 목록이 공급처 단가(fixed · latest)를 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구(공급처 모드 한 번)로 · 원가 열쇠가 없으면 fixed · latest 를 안 보이고 마지막 입고일만 · 줄을 넣을 때 단가는 서버가 정한다(열쇠 없으면 0 · 손으로) ← 2026-10-25 · po csv v1: 대화 Claude — 판정 733(Caleb 「A」 · manual-2a 이견 1 — IMS 에 PO 를 공급처에 보내는 길이 없었다 · 지금은 엑셀 · CSV 를 만들어 메일로 보낸다): 상세에 「↓ PO CSV」 — 머리(PO · 공급처 · 주문일 · 필요일 · 통화 · 결제조건) + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계 · SKU · 바코드는 ="…"(엑셀이 글자로) · 초안이 아닐 때 · 메모(note)는 내부라 넣지 않는다 · 읽기만(DB 무접촉) ← 2026-10-24 · po docs v1: 대화 Claude — drive-3(판정 691 · 697 · 703 · 706 · 708): PO 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 올리기 · 열기 · 치우기 · 드라이브 상태 · 인보이스 종류면 공급처 인보이스 고르기) ← 2026-10-22 · po paste price v1: 대화 Claude — pln-1(asung-wms df5088a · 판정 624 A): Paste lines 셋째 칸 = 가격(선택 · 할인 전 단가 · PO 할인은 위에서 걸린다) · so v5u 와 같은 읽기(탭 · 쉼표 줄만 셋째 칸) · bad_price 판정 · 「your price」 표시 ← 2026-10-22 · po gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · po printed v1: 대화 Claude — 판정 621 A 를 「Create an invoice」 창에도: Printed total 이 비면 칸을 노랑으로(inv printed v1 과 같은 색 · 막지 않는다) ← po warn v1: 대화 Claude — Caleb 화면 시험: 경고가 열쇠 그대로 보였다(total_amount_missing) → po_create · po_invoice_create 경고를 사람 말로(PO_WARN · poWarn) ← po due v1: 대화 Claude — Caleb 「인보이스 날짜가 들어가면 자동적으로 due date도 그 사람의 텀 조건에 맞춰서」: Create an invoice 창에 Due date 칸 — Document date + PO 결제조건의 net_days 로 채움(날짜를 바꾸면 따라감 · 손으로 고치면 그대로 · 분할 조건 · 날 수 없음 · 조건 없음은 안내) · p_due_date 로 보냄 ← po fx v1: 대화 Claude — ⑥ 환율 차액(판정 394 · po-disc-5b): 외화 PO 의 환율 칸 아래에 「이미 원가가 잡힌 물건이 다른 환율로」 경고 + 차액(CAD) · 「Apply FX difference」 창(po_fx_cost_apply 미리 보기 → 저장) · 인보이스 환율로 원가를 세운 줄 · 핀 없는 옛 레이어는 따로 한 줄 · 환율 수정은 지금처럼 열려 있다(원가는 저절로 안 바뀐다) ← po tx v1a · 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
+const PO_BUILD = "2026-10-26 · po chip v1";   // 대화 Claude — chip-1(deferred 235 · 판정 465 · 481 · DB 무변 — po_list 세 칸): 갈라져 나왔고 · confirmed · 확정 인보이스 없음 = Backorder 칩(호박 · 단계 칩 앞) · Status 거르기 Backorder · 상세 머리도(po_list 한 줄을 더 읽는다) ← 2026-10-26 · po cost v1: 대화 Claude — cost-1 화면(판정 759 · 764 · 765 · asung-wms cost-1a 20261026173000): Add lines 의 후보 목록이 공급처 단가(fixed · latest)를 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구(공급처 모드 한 번)로 · 원가 열쇠가 없으면 fixed · latest 를 안 보이고 마지막 입고일만 · 줄을 넣을 때 단가는 서버가 정한다(열쇠 없으면 0 · 손으로) ← 2026-10-25 · po csv v1: 대화 Claude — 판정 733(Caleb 「A」 · manual-2a 이견 1 — IMS 에 PO 를 공급처에 보내는 길이 없었다 · 지금은 엑셀 · CSV 를 만들어 메일로 보낸다): 상세에 「↓ PO CSV」 — 머리(PO · 공급처 · 주문일 · 필요일 · 통화 · 결제조건) + 라인(Line · SKU · Supplier SKU · Barcode · Product · Qty · Unit price · Amount) + 할인 · 합계 · SKU · 바코드는 ="…"(엑셀이 글자로) · 초안이 아닐 때 · 메모(note)는 내부라 넣지 않는다 · 읽기만(DB 무접촉) ← 2026-10-24 · po docs v1: 대화 Claude — drive-3(판정 691 · 697 · 703 · 706 · 708): PO 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 올리기 · 열기 · 치우기 · 드라이브 상태 · 인보이스 종류면 공급처 인보이스 고르기) ← 2026-10-22 · po paste price v1: 대화 Claude — pln-1(asung-wms df5088a · 판정 624 A): Paste lines 셋째 칸 = 가격(선택 · 할인 전 단가 · PO 할인은 위에서 걸린다) · so v5u 와 같은 읽기(탭 · 쉼표 줄만 셋째 칸) · bad_price 판정 · 「your price」 표시 ← 2026-10-22 · po gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · po printed v1: 대화 Claude — 판정 621 A 를 「Create an invoice」 창에도: Printed total 이 비면 칸을 노랑으로(inv printed v1 과 같은 색 · 막지 않는다) ← po warn v1: 대화 Claude — Caleb 화면 시험: 경고가 열쇠 그대로 보였다(total_amount_missing) → po_create · po_invoice_create 경고를 사람 말로(PO_WARN · poWarn) ← po due v1: 대화 Claude — Caleb 「인보이스 날짜가 들어가면 자동적으로 due date도 그 사람의 텀 조건에 맞춰서」: Create an invoice 창에 Due date 칸 — Document date + PO 결제조건의 net_days 로 채움(날짜를 바꾸면 따라감 · 손으로 고치면 그대로 · 분할 조건 · 날 수 없음 · 조건 없음은 안내) · p_due_date 로 보냄 ← po fx v1: 대화 Claude — ⑥ 환율 차액(판정 394 · po-disc-5b): 외화 PO 의 환율 칸 아래에 「이미 원가가 잡힌 물건이 다른 환율로」 경고 + 차액(CAD) · 「Apply FX difference」 창(po_fx_cost_apply 미리 보기 → 저장) · 인보이스 환율로 원가를 세운 줄 · 핀 없는 옛 레이어는 따로 한 줄 · 환율 수정은 지금처럼 열려 있다(원가는 저절로 안 바뀐다) ← po tx v1a · 대화 Claude — Caleb 화면 시험 캡처(PO-02045): 확정된 발주의 Ship to 가 창고 이름이 아니라 id(045e4ca6-…)로 보였다 — headWh 의 읽기 갈래가 id 를 그렸다(po tx v1 이전부터) · WHS 에서 이름을 찾고 없으면(비활성) id 앞 8자 ← po tx v1 · 대화 Claude — PO 매입 세금(po-tax-1 51971d0 · po-tax-2 8c3343d): 머리 Tax rule 드롭다운(초안 · 활성 purchase 규칙 · PostgREST tax_rule_id → 짝 트리거가 이름을 채운다 · 비우면 둘 다 null) · 합계 Tax · Total with tax · 줄 Tax rule 칸(빈칸 = 머리 규칙 · po_line_update tax_rule_id / "" ) · 경고 tax_rule_missing · tax_inclusive_not_supported · 인보이스 표 Computed · Payable 「incl. tax」 · 비용 표 Charge total = 세금 포함(세금 전은 title) · 넓은 목록 Net 아래 세금 ← po st v4 · 대화 Claude — Caleb 「결제 상태로도 필터링」: 넓은 목록 Payment 거르기(Any · Unpaid · Partly paid · Paid) = 결제 태그와 같은 판정(po_list payment_phase · 공급처 인보이스가 있을 때만) · 고르면 상태가 Open 이면 All 로(끝난 발주에도 미지급이 있다) ← po st v3 · 대화 Claude — Caleb 「completed 라도 payment status 는 split 같은 라인으로」: PO 번호 옆 결제 태그(테두리) — 공급처 인보이스가 있을 때만 · unpaid(회색) · partly paid(호박) · paid(초록) · 판정은 뷰 po_list payment_phase(none · partial · done) · 금액은 Unpaid 열 그대로 ← po st v2 · + Caleb 「그 상태표시로 필터링」: 상태 거르기 = 칩 이름 그대로(Open · Draft · Ordered · Receiving · Received · Completed · Cancelled · All · 「Confirmed — any」 뺌) · 목록의 칩은 거르기와 같은 판정(뷰 receipt_phase)으로 — 두 판정이 어긋나지 않게 · 머리는 입고 수량으로 · 대화 Claude — Caleb 「현재의 status(국면 점 다섯)는 필요없다 · 지금의 상태 표시로 대체」: 넓은 목록 Status 열의 점 다섯을 지우고 단계 칩을 그 자리에 · PO 번호 옆에는 칩을 겹쳐 그리지 않는다(split · credit 태그만) · 좁은 목록 · 머리는 그대로 칩 ← po st v1 2026-10-07 · 대화 Claude — 판정 360(Caleb 「PO status 도 SO 처럼」 · 「closed 보다는 completed」): 상태 칩을 단계별 채운 색으로 — Draft 회색 · Ordered 파랑(아무것도 안 들어옴) · Receiving 보라(일부) · Received 주황(다 들어옴 · 안 닫힘 = 사무실이 마무리할 차례) · Completed 초록(저장값 closed · 글자만) · Cancelled 빨강 · 저장값은 그대로 · 화면이 confirmed 를 입고 수량(received_qty / ordered_qty)으로 가른다 · 상태 거르기에 Ordered · Receiving · Received(po_list receipt_phase) ← po thumb v2 2026-10-01 · 대화 Claude — 판정 212: Add a line 후보 목록에도 사진 ← v1 판정 208: Lines 표 줄마다 SKU 왼쪽에 대표 사진 40px(imsThumb · imsThumbFill · thumb-1) ← 「po sec v1」 lay-3(대화 Claude) — 판정 156 · 167: 구역 제목 색 띠(tbl 의 h3 → .ims-sec) ← 「invoice basis」(2026-09-29)   // ⑱-3(대화 Claude) — 판정 88 · 99: Remaining 음수 문장(더 온 것은 off-invoice 결정으로 재고에 든다) ← 「Toronto date」(2026-09-23)
 console.log("po.html build:", PO_BUILD);
 /* 줄 사진(판정 208 · 212) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -248,6 +251,8 @@ function poStage(status, received, ordered, phase){
   const r = Number(received) || 0, o = Number(ordered) || 0;
   return r <= 0 ? "ordered" : (o > 0 && r < o ? "receiving" : "received");
 }
+const PO_BO_CHIP = '<span class="post p-backorder" title="Split off from another PO and still waiting — no confirmed invoice yet">Backorder</span>';   // po chip v1 — 판정 481
+const poIsBo = (r) => !!(r && r.split_from_number && r.status === "confirmed" && r.has_confirmed_invoice === false);
 function stChip(status, received, ordered, phase){
   const k = poStage(status, received, ordered, phase), d = PO_STAGE[k];
   return d ? `<span class="post p-${k}" title="${esc(d[1])}">${esc(d[0])}</span>` : `<span class="chip">${esc(status)}</span>`;
@@ -282,6 +287,7 @@ function baseQuery(){
   else if(stFilter === "ordered")   qry = qry.eq("status", "confirmed").eq("receipt_phase", "none");      // po st v1 — 판정 360(입고 국면은 뷰가 판정)
   else if(stFilter === "receiving") qry = qry.eq("status", "confirmed").eq("receipt_phase", "partial");
   else if(stFilter === "received")  qry = qry.eq("status", "confirmed").eq("receipt_phase", "done");
+  else if(stFilter === "backorder") qry = qry.not("split_from_number", "is", null).eq("status", "confirmed").eq("has_confirmed_invoice", false);   // po chip v1 — 판정 481
   else if(stFilter !== "all")   qry = qry.eq("status", stFilter);
   if(supFilter) qry = qry.eq("supplier_id", supFilter);
   if(payFilter) qry = qry.gt("invoice_count", 0).not("status", "in", "(draft,cancelled)")
@@ -298,6 +304,7 @@ function baseQuery(){
 /* po st v2 — 국면 점 다섯은 지웠다(Caleb 「필요없다」 · 판정 360 의 단계 칩이 Status 열을 대신한다) · 국면 값은 뷰(po_list *_phase)에 그대로 있고 상태 거르기(Ordered · Receiving · Received)가 쓴다 */
 function rowTags(r, withStage = true){
   const t = [];
+  if(withStage && poIsBo(r)) t.push(PO_BO_CHIP);   // po chip v1
   if(withStage) t.push(stChip(r.status, r.received_qty, r.ordered_qty, r.receipt_phase));   // po st v1 — 판정 360 · v2: 넓은 목록은 Status 열에 따로
   if(Number(r.split_to_count) > 0) t.push('<span class="tag">split</span>');
   /* po st v3 — 결제 태그: 공급처 인보이스가 있을 때만 · 판정은 뷰(payment_phase) */
@@ -344,7 +351,7 @@ async function loadWide(){
       <th class="num">Charges</th><th class="num">Unpaid</th>
     </tr></thead><tbody>${data.map(r => `
       <tr data-id="${r.id}">
-        <td class="phead">${stChip(r.status, r.received_qty, r.ordered_qty, r.receipt_phase)}</td>
+        <td class="phead">${poIsBo(r) ? PO_BO_CHIP + " " : ""}${stChip(r.status, r.received_qty, r.ordered_qty, r.receipt_phase)}</td>
         <td><span class="mono">${esc(r.po_number)}</span> ${rowTags(r, false)}</td>
         <td>${dim(r.order_date)}</td>
         <td>${dim(r.required_by)}</td>
@@ -1252,7 +1259,7 @@ async function loadDetail(id){
      ⚠️ 이것은 **편의**다. 진짜로 막는 것은 DB(po_doc_delete)다. 없는 버튼을 누르게 두지 않을 뿐이다. */
   if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
 
-  const chips = [stChip(h.status, t.received_qty, t.ordered_qty)];   // po st v1
+  const chips = [`<span data-pobo="${esc(h.id)}"></span>` + stChip(h.status, t.received_qty, t.ordered_qty)];   // po st v1 · po chip v1 — Backorder 칩 자리(po_list 한 줄로 채운다)
   if(h.split_from_number) chips.push(`<span class="chip">split from ${esc(h.split_from_number)}</span>`);
   if((h.split_to || []).length) chips.push(`<span class="chip">split into ${h.split_to.length}</span>`);
 
@@ -1444,6 +1451,10 @@ async function loadDetail(id){
     </div>`;
 
   if(seq !== detailSeq) return;
+  /* po chip v1 — 판정 481: 상세 머리의 Backorder 칩은 po_list 의 세 칸으로(그린 뒤 채운다 · 실패하면 조용히) */
+  if(h.split_from_number && h.status === "confirmed") sb.from("po_list").select("split_from_number,status,has_confirmed_invoice").eq("id", h.id).maybeSingle().then(({ data }) => {
+    const el = document.querySelector(`[data-pobo="${CSS.escape(String(h.id))}"]`); if(el && poIsBo(data)) el.innerHTML = PO_BO_CHIP + " ";
+  }, () => {});
   box.innerHTML = `
     <div class="card">
       <div class="head">
