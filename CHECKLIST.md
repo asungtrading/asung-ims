@@ -2221,6 +2221,44 @@ Ship Ready 메일 (srm-1 · 판정 744 · 745 · DB 만 고침 · 화면 그대�
 ⚠️ 인보이스 · 결제 확인 줄(Clore Inc. (BLW) · 인보이스 60000 · wire 100.00 / cash 76.30)의 SO-25000 은 그때의 시험 오더 기록이다 — 컷오버 날 거래와 함께 지워진다(번호를 고치지 않는다 · 판정 749 표시는 시작 번호를 말하는 세 줄에만)
 ```
 
+### 7-zu. 2026-10-26 회사 오후 — 내보내기 · 공급처 단가 가림 · 손님 거르기 · 연체 알림 · 태그 창구 · POS 초안 지우기 (exp-2 7d2835b · cost-1 화면 9188b7d · so cust filt v1 eaacec6 · v1a 535e083 · ovd-2 405b1ad · tagn-1 화면 2aa05c7 · pos v1.14 a5a379f · asung-wms exp-1 6e9734b · cost-1 dd459b0 · exp-3 052f9e0 · ovd-1 57156b2 · tagn-1 1d3c126 · so-module §78 · 판정 759 ~ 773)
+
+```
+빌드: pr v5i · sheet v2c · spp v2b · po cost v1 · pur v1d · rcv latest v2 · sc v2a · cs v6b · sup v3d · so ovd v1(so cust filt v1 · v1a 위에) · pos v1.14(pos v1.13 위에) · wo v4e · dr v3b · export v1(ims-export.js) · overdue v1(ims-overdue.js)
+
+내보내기 (exp-1 · 2 · 3 · 판정 759 ~ 763 · 766 · 767 · deferred 300 닫힘)
+[✅] Products · Customers · Suppliers 넓은 목록 「↓ Export…」 → 칸 고르기 창(묶음 · All · None · Defaults) → Download CSV · 행 = 지금 거르기 그대로 (Caleb 2026-10-26)
+⭐ 한 레코드 = 한 줄 · 바코드 · 태그 · 모든 공급처 = 「; 」 · 가격 등급마다 칸 · REFERENCECOST 칸 없음(762 · 760 — 창구 실물 · 눈 확인은 위 줄 범위)
+[✅] 칸 이름 「Added in」(옛 Made in) · 「Added on」(옛 Created) — exp-3 (Caleb 2026-10-26)
+⭐ 고른 칸은 브라우저마다 기억(localStorage ims_export_cols_<kind> · 업무 값 아님) · 한도 20,000 줄
+
+공급처 단가는 원가 열쇠만 (cost-1 · 판정 759 · 764 · 765 · 1b 적용 46 / 0)
+[✅] Test Staff(worker · cost 열쇠 없음)로 Export — Fixed · Latest 단가 칸이 목록에 없다 (Caleb 2026-10-26)
+[✅] 같은 직원으로 PO Paste lines — 가격 없는 줄 안내 「Without a price, a line gets 0 — fill the price in by hand (supplier costs need the cost permission).」 (Caleb 2026-10-26)
+[✅] 화면 일곱(products · product-sheet · supplier-products · po · purchasing · receiving · system-check) — 두 권한(열쇠 있음 · 없음) 모두 오류 없음 (Caleb 2026-10-26)
+⭐ 열쇠 없는 직원의 Product Sheet 가격 공식 줄: 「Price formulas work from supplier costs, so they need the cost permission.」 · 나중에 켜려면 Staff 에서 cost 열쇠 → 그 사람이 새로 고침
+
+Sales Orders 손님 거르기 (so cust filt v1 · v1a · 판정 없는 Caleb 요청)
+[✅] 「Customer — pick one」 칸에 이름 일부 → 목록에서 고르면 그 손님의 오더만 · 다른 거르기 · CSV 와 함께 (Caleb 2026-10-26)
+[✅] 거르기 줄이 한 줄에 다 보인다(v1a) (Caleb 2026-10-26)
+
+연체 알림 (ovd-1 · 2 · 판정 768 ~ 771)
+[✅] POS — 연체 인보이스가 있는 손님을 고르는 순간 「Overdue invoices」 창 · OK 로만 닫힘 · 판매 막지 않음 (Caleb 2026-10-26)
+[✅] 새 SO — Create 뒤 초안이 열리면 같은 창(그 뒤에 ⚠ 경고) (Caleb 2026-10-26)
+[ ] 받아 둔 돈 · 크레딧이 있는 손님이면 창에 「Money already received or credit on account, not yet applied: …」 한 줄(771)
+[ ] 웹 오더 — 연체 손님의 웹 오더에 경고 「Customer had overdue invoices when the order came in — the order was not stopped; ask about payment」 · Mark checked
+⭐ 기한 지난 인보이스만(기한 전 · 기한 없음은 안 뜬다) · 청구처 기준(「This customer is billed to …」)
+
+태그 창구 (tagn-1 · 판정 772)
+[✅] Settings › Discount Rules 가 빨리 열린다(product_tag 63,515 줄 대신 product_tag_names() 한 번 · 1,193 개) (Caleb 2026-10-26)
+[ ] Products › Edit 태그 칸 자동 완성 — 딜이 먼저 쓰는 태그도 같은 철자로 나온다(pr v5i)
+
+POS 초안 지우기 (pos v1.14 · a5a379f · 판정 773 · Caleb 화면 시험 전)
+[ ] 초안 판매를 열면 위에 Delete draft → 확인 「Delete draft …? It has never been confirmed, so it disappears — the number is not reused.」 → 사라지고 화면이 비워진다
+[ ] Parked and open at this store 의 초안 줄 ✕ → 열지 않고 같은 확인 → 목록에서 빠진다
+[ ] 확정된 판매에는 Delete draft · ✕ 가 없다
+```
+
 ## 8. 로그인 · 계정
 
 ```
