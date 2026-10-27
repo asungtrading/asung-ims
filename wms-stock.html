@@ -129,7 +129,7 @@
    ⭐ Every number comes from the database — this screen does not count (ruling 262 for cost: only stk_value_*).
    ⚠️ Screen state lives in memory only.
    ───────────────────────────────────────────────────────────── */
-const WS_BUILD = "2026-10-27 · ws v1b";   // 대화 Claude — ws v1b: 카드마다 「Print label」(공용 ims-label.js · lbl v1 · Caleb 2026-10-27 「WMS 만 접근이 있는 사람도 프린트」) · 세트를 스캔해 들어왔으면 그 세트가 기본 ← ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
+const WS_BUILD = "2026-10-27 · ws v1c";   // 대화 Claude — ws v1c: 라벨 창에서 세트를 기본으로 고르는 것은 찾은 글자가 세트 SKU 와 같거나 숫자 바코드 스캔일 때만(SKU 를 쳐서 찾아도 stk_availability 가 matched_set_* 를 줘서 세트가 골라졌다 — Caleb AS01282) ← ws v1b: 카드마다 「Print label」(공용 ims-label.js · lbl v1 · Caleb 2026-10-27 「WMS 만 접근이 있는 사람도 프린트」) · 세트를 스캔해 들어왔으면 그 세트가 기본 ← ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
 console.log("wms-stock.html build:", WS_BUILD);
 
 let sb = null, me = null, canCost = false;
@@ -252,7 +252,11 @@ function card(r, ph, bins, vals){
 function bindCards(){
   $("out").querySelectorAll("[data-rsv]").forEach(b => { b.onclick = () => openSub(b, "rsv"); });
   $("out").querySelectorAll("[data-mv]").forEach(b => { b.onclick = () => openSub(b, "mv"); });
-  $("out").querySelectorAll("[data-lbl]").forEach(b => { b.onclick = () => imsLabel.open({ sb, kind: "product", productId: b.dataset.lbl, preferSku: b.dataset.set || null }); });   // ws v1b
+  $("out").querySelectorAll("[data-lbl]").forEach(b => { b.onclick = () => {   // ws v1b · v1c
+    const q = String(lastQ || "").trim().toUpperCase(), set = String(b.dataset.set || "");
+    const pickSet = set && (q === set.toUpperCase() || /^\d{6,}$/.test(q));   // 세트 SKU 를 쳤거나 세트 바코드를 스캔했을 때만
+    imsLabel.open({ sb, kind: "product", productId: b.dataset.lbl, preferSku: pickSet ? set : null });
+  }; });
 }
 /* 한 브랜치 칸 밑의 작은 표 — 같은 단추를 다시 누르면 닫는다 */
 async function openSub(btn, what){
