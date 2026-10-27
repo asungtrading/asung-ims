@@ -18,7 +18,7 @@
 */
 (function () {
   "use strict";
-  const BUILD = "2026-10-27 · lbl v1";
+  const BUILD = "2026-10-27 · lbl v1a";   // lbl v1a — SKU 가운데 정렬(Caleb 「sku의 가운데 정렬」)
   const JSB = "https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
 
   /* 크기 — 읽는 방향(긴 변 = 가로) · 인치 · lbl-0 이견 2: 프린터 쪽 방향은 PC 마다 「90° 돌리기」로 맞춘다
@@ -151,6 +151,7 @@
     ".lb .nm{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;word-break:break-word}" +
     ".lb .br{color:#000}" +
     ".lb .sk,.lb .bn{font-weight:700;letter-spacing:.02em}" +
+    ".lb .sk{text-align:center}" +
     ".lb .bn{font-family:'Courier New',monospace}" +
     ".lb .dg{font-family:'Courier New',monospace;text-align:center;letter-spacing:.06em}" +
     ".lb .bc{display:flex;align-items:stretch;justify-content:center}" +
