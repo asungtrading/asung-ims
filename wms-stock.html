@@ -112,6 +112,7 @@
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
 <script src="ims-auth.js"></script>
+<script src="ims-label.js?v=1"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
    Stock Lookup — the warehouse scans or types a product and sees its stock in every branch.
@@ -128,7 +129,7 @@
    ⭐ Every number comes from the database — this screen does not count (ruling 262 for cost: only stk_value_*).
    ⚠️ Screen state lives in memory only.
    ───────────────────────────────────────────────────────────── */
-const WS_BUILD = "2026-10-20 · ws v1a";   // 대화 Claude — ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
+const WS_BUILD = "2026-10-27 · ws v1b";   // 대화 Claude — ws v1b: 카드마다 「Print label」(공용 ims-label.js · lbl v1 · Caleb 2026-10-27 「WMS 만 접근이 있는 사람도 프린트」) · 세트를 스캔해 들어왔으면 그 세트가 기본 ← ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
 console.log("wms-stock.html build:", WS_BUILD);
 
 let sb = null, me = null, canCost = false;
@@ -244,13 +245,14 @@ function card(r, ph, bins, vals){
       <div class="nm">${esc(r.name)}</div>
       <div class="br">${esc([r.brand_name, r.category_name].filter(Boolean).join(" · "))}${r.last_event_on ? ` · last movement ${esc(r.last_event_on)}` : ""}</div>
       ${setm}
-    </div></div>
+    </div><button class="mini" data-lbl="${esc(r.product_id)}" data-set="${esc(r.matched_set_sku || "")}" title="Print a barcode label for this product">Print label</button></div>
     <div class="whs">${blocks}</div>
   </div>`;
 }
 function bindCards(){
   $("out").querySelectorAll("[data-rsv]").forEach(b => { b.onclick = () => openSub(b, "rsv"); });
   $("out").querySelectorAll("[data-mv]").forEach(b => { b.onclick = () => openSub(b, "mv"); });
+  $("out").querySelectorAll("[data-lbl]").forEach(b => { b.onclick = () => imsLabel.open({ sb, kind: "product", productId: b.dataset.lbl, preferSku: b.dataset.set || null }); });   // ws v1b
 }
 /* 한 브랜치 칸 밑의 작은 표 — 같은 단추를 다시 누르면 닫는다 */
 async function openSub(btn, what){
