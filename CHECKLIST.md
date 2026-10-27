@@ -2303,6 +2303,28 @@ PO 백오더 칩 · 딜 세트 접기 (판정 776 · 777)
 ⭐ 두 사람이 같은 오더를 동시에 Split · Release · Wave · 배치 되돌리기 — 두 번째는 서버 문장으로 거부(화면은 그 문장을 그대로 보인다)
 ```
 
+### 7-zx. 2026-10-27 회사 오후 — 바코드 라벨 · Stock Lookup 세트 고르기 · 이월 0 처리 · in() 나누기 (lbl v1 6c99d61 · v1a 47e0cb1 · ws v1c 4fe6a60 · lbl v1b 33d2bad · asung-wms ilo-zero-1 e194933 · 58962ae · url-1 cdd897e · so-module §81 · 판정 797 ~ 808)
+
+```
+빌드: ims-label.js?v=3 · ws v1c(wms-stock.html) · pr v5j(products.html) · set v9(settings.html)
+
+바코드 라벨 — 실물 인쇄 시험 (lbl v1 · v1a · v1b · 판정 798 ~ 807 · 창고 PC Windows 브라우저)
+[ ] 처음 한 번 — 인쇄 창에서 프린터 = 라벨 프린터 · 용지 = 같은 라벨 번호 · 여백 None · 배율 100% · 머리글 · 바닥글 끄기
+[ ] 크기마다 한 장(여덟): 30347 · 30332 · 30346 · 30334 · 30321 · 30323 · 30256 — 옆으로 나오면 「Rotate 90° for this printer」 켜고 다시(그 PC 가 기억)
+    ⚠️ 30321 · 30323 · 30256 · 1744907 은 기억값 — 실물 롤의 크기와 맞는지 먼저
+[ ] 1744907 4 × 6 은 큰(4 인치) 프린터로
+[ ] 찍은 바코드를 스캐너로 — UPC-A · EAN-13 · EAN-8 · Code 128 각각 한 번 · 읽힌 글자가 저장된 바코드와 같은지 · 작은 크기(30346 · 30332)에서도 읽히는지
+[ ] 칸 라벨(Settings › Bins › Print labels…) 한 장 → WMS Bin Moves 에서 그 칸 스캔이 받아지는지
+[ ] 찍는 곳 셋 — WMS Stock Lookup 카드 Print label · IMS Products 상세 Print label(보기 전용 직원으로도) · Settings › Bins(칸 라벨)
+⭐ 바코드 없는 제품 = 「No barcode」(SKU 를 바코드로 만들지 않는다) · 여러 제품에 걸린 바코드 = 경고만 · ASCII 아닌 바코드 = 「Barcode can't be printed」
+⭐ Stock Lookup 에서 SKU 를 쳐서 찾으면 낱개가 기본 · 세트 SKU 를 치거나 숫자 바코드를 스캔했을 때만 세트가 기본(ws v1c · AS01282)
+
+이월 · 적재 (asung-wms · 화면 무변)
+[✅] ilo-zero-1 Build · Dry (2026-10-27 12:05 · 12:06 · 0z 문제 0 · 어긋난 sale 0 · 거부 0 · CAD 294 장 976,939.54 · 받아 둔 돈 81 줄 6,308.16)
+[ ] QuickBooks A/R Aging Summary(10-31 · 통화별) 대조표 채우기 — 컷오버 직전 · Caleb
+[✅] url-1 — GAS(System_Automation)에 네 파일 붙임(ImsLoadPrice · ImsLoadSupplier · ImsLoadProduct · ImsLoadProductTag · Ctrl+F `_idChunks_` 확인 · Caleb 2026-10-27)
+```
+
 ## 8. 로그인 · 계정
 
 ```
