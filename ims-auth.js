@@ -87,6 +87,7 @@
     ["Product Sheet","product-sheet.html","master","ims",false,"inventory"],
     // ["Supplier Products","supplier-products.html","master","ims",false,"inventory"],   // nav v13 — 판정 210: Product Sheet 가 서서 메뉴에서 뺐다(화면은 주소로 열린다)
     ["Families","families.html","master","ims",false,"inventory"],
+    ["Combos","combos.html","master","ims",false,"inventory"],   // combo-2(2026-10-27 · 판정 810 · 824) — 콤보 찾기 · New combo · 구성품 고치기 · Release · 열쇠 master(Products · Families 와 같다)
     ["Stock Adjustments","stock-adjustments.html","stock_adjust","ims",false,"inventory"],
     ["B-grade Stock","stock-bgrade.html","stock_adjust","ims",false,"inventory"],   // nav v10(2026-10-23 · bgr v1) — B급 칸 재고 · Move to B-grade · Move back · 값 · 보기는 stock_adjust 화면 열쇠 · 옮기기 · 값은 창구 문 ims_can_adjust(판정 638)
     ["Transfers","transfers.html","transfer","ims",false,"inventory"],

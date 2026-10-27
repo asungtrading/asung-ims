@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combos · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(#wide · .wfilt · .list · .card · .pobtn · .pomodal) */
+  .list{width:330px;flex:0 0 330px}
+  .list .rows{max-height:calc(100vh - 225px)}
+  .list .row{padding:8px 12px}
+  .list .row .sk{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+  .list .row.cur .sk{color:#3b5bdb}
+  .list .row .nm{font-size:13px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .list .row .cp{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  main{display:flex;flex-direction:column;gap:14px}
+  #wide td.sk{font-family:var(--mono);font-weight:600;white-space:nowrap}
+  #wide tr.off td{color:var(--muted)}
+  #wide td.cp{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  /* 창 안 — products.html 의 New product 와 같은 꼴 */
+  .ein{width:100%;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:#fff;box-sizing:border-box}
+  .ein.mono{font-family:var(--mono)}
+  .ein.sm{width:110px}
+  .fg{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  .fg .full{grid-column:2 / span 3}
+  .sub{font-size:12.5px;font-weight:700;color:var(--ink);margin:14px 0 6px}
+  .vt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .vt th{text-align:left;font-weight:600;color:var(--muted);padding:4px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .vt td{padding:4px 4px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
+  .vt .ein{min-width:70px}
+  .ghost{color:var(--muted);font-size:11.5px}
+  .bchint{font-size:11.5px}
+  .bchint.bad{color:#c92a2a}
+  .bchint.warn{color:#b8860b}
+  .pobox.wide{max-width:980px}
+  .pbody h5{margin:6px 0 4px;font-size:12.5px}
+  .pbody ul{margin:0 0 8px 18px;padding:0;font-size:12.5px;line-height:1.55}
+  .pbody ul.blk li{color:#c92a2a}
+  .pbody ul.wrn li{color:#8a5a00}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<section id="wide" hidden>
+  <div class="card">
+    <div class="wfilt">
+      <input type="search" id="wq" placeholder="Search combo SKU or name — or a component SKU">
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
+      <label style="font-size:12.5px;display:flex;align-items:center;gap:5px" title="Combos that were released — they now sell as plain SKUs"><input type="checkbox" id="wrel"> Show released</label>
+      <button class="pobtn" id="wclear">Clear</button>
+      <span class="sp"></span>
+      <button class="pobtn" id="wprod" title="Open the Products screen">Products</button>
+      <button class="pobtn go" id="wnew" hidden>New combo</button>
+    </div>
+    <div id="wrows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="wrange"></span><span class="sp"></span>
+      <button id="wprev">←</button><button id="wnext">→</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap" id="wrapBox" hidden>
+  <section class="list" id="listPanel">
+    <div class="top">
+      <input type="search" id="q" placeholder="Combo or component SKU · name">
+      <div class="opts">
+        <label><input type="checkbox" id="onlyActive" checked> Active only</label>
+        <label><input type="checkbox" id="rel"> Released</label>
+      </div>
+    </div>
+    <div class="rows" id="rows"><div class="msg">Loading…</div></div>
+    <div class="foot">
+      <span class="range" id="range"></span><span class="sp"></span>
+      <button id="prev">←</button><button id="next">→</button>
+    </div>
+  </section>
+  <main id="detail"><div class="card"><div class="msg">Select a combo.</div></div></main>
+</div>
+<datalist id="brandList"></datalist><datalist id="catList"></datalist><datalist id="unitList"></datalist>
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js?v=src1"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Combos — 콤보 SKU 를 찾고 · 만들고 · 고치고 · 푸는 곳(판정 810 · 817 ~ 828 · asung-wms combo-1 20261027191301 · combo-1b 20261027202949)
+   ⭐ 두 모드(목록 화면 형식): 처음은 넓은 목록 · 고르면 좁은 목록 + 상세 · ☰ List · ‹ All combos
+   읽기  product_combo_list(p_q, p_only_active, p_include_released, p_limit ≤ 1000, p_offset) — invoker
+         행 {id, sku, name, is_active, component_count, components(「SKU × qty, …」), released, total}
+         검색 = 콤보 SKU · 이름 또는 켜진 구성품 SKU · 이름
+   쓰기  product_combo_create(p_item, p_lines, p_commit, p_ack) — 새 SKU + 구성품을 한 트랜잭션(818) · master
+           p_item {sku, name, brand_id, category_id, unit_id, barcodes[], prices[{tier_id, price}], weight, weight_unit, note}
+           세트 · 공급처 · 가족은 받지 않는다(821) · 알림에서 supplier_missing · sku_prefix 를 서버가 뺀다(821 · 826)
+         product_bom_set(p_parent_sku, p_lines, p_old, p_commit, p_ack) — 이미 콤보인 SKU 의 구성품 고치기 · 빈 목록 = Release
+           ⚠️ 콤보가 아니던 SKU(켜진 줄 0)는 parent_not_combo 로 막힌다(817) — 풀린 콤보도 다시 켤 수 없다(819)
+   ⭐ 막기 · 알리기 문장은 서버 것 그대로 · 화면은 다시 계산하지 않는다
+   ───────────────────────────────────────────────────────────── */
+const CB_BUILD = "2026-10-27 · cb v1";   // 대화 Claude — 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
+console.log("combos.html build:", CB_BUILD);
+
+let sb = null, canEdit = false, q = "", onlyActive = true, showRel = false, curId = null;
+let refs = { brands:[], cats:[], units:[], tiers:[] };
+const PAGE = 100;
+let off = 0, total = 0;
+const qtyTxt = v => { if(v === null || v === undefined || v === "") return ""; const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(6))) : String(v); };
+const splitList = s => String(s || "").split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
+const blankNull = v => { const s = (v === null || v === undefined) ? "" : String(v).trim(); return s === "" ? null : s; };
+
+/* ── 목록 한 곳 — 넓은 · 좁은 목록이 같은 거르기 · 같은 쪽 ── */
+async function fetchPage(){
+  const { data, error } = await sb.rpc("product_combo_list", { p_q: q || null, p_only_active: onlyActive, p_include_released: showRel, p_limit: PAGE, p_offset: off });
+  if(error) return { error };
+  const rows = data || [];
+  total = rows.length ? Number(rows[0].total) || rows.length : (off ? total : 0);
+  return { rows };
+}
+function pager(sel, reload){
+  const r = document.querySelector(sel.range), p = document.querySelector(sel.prev), n = document.querySelector(sel.next);
+  r.textContent = total ? `${off + 1}–${Math.min(off + PAGE, total)} of ${total}` : "";
+  p.disabled = off <= 0; n.disabled = off + PAGE >= total;
+  p.onclick = () => { off = Math.max(0, off - PAGE); reload(); };
+  n.onclick = () => { off += PAGE; reload(); };
+}
+function syncCtl(){
+  document.getElementById("q").value = q; document.getElementById("wq").value = q;
+  document.getElementById("onlyActive").checked = onlyActive; document.getElementById("wactive").checked = onlyActive;
+  document.getElementById("rel").checked = showRel; document.getElementById("wrel").checked = showRel;
+}
+function showWide(){
+  curId = null; syncCtl();
+  document.getElementById("wide").hidden = false;
+  document.getElementById("wrapBox").hidden = true;
+  history.replaceState(null, "", location.pathname);
+  loadWide();
+}
+async function openCombo(id){
+  curId = id; syncCtl();
+  document.getElementById("wide").hidden = true;
+  document.getElementById("wrapBox").hidden = false;
+  document.getElementById("listPanel").hidden = false;
+  history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(id));
+  loadList(); await loadDetail(id);
+}
+const stateChip = r => r.released ? '<span class="tag off">released</span>' : (r.is_active ? "" : '<span class="tag off">inactive</span>');
+
+let wideSeq = 0;
+async function loadWide(){
+  const seq = ++wideSeq, box = document.getElementById("wrows");
+  const { rows, error } = await fetchPage();
+  if(seq !== wideSeq) return;
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Combo SKU</th><th>Name</th><th>Components</th><th class="num">#</th><th>Active</th></tr></thead>
+    <tbody>${rows.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active && !r.released ? "" : "off"}">
+      <td class="sk">${esc(r.sku)} ${stateChip(r)}</td><td>${esc(r.name || "")}</td>
+      <td class="cp">${esc(r.components || "")}</td><td class="num">${esc(r.component_count ?? 0)}</td><td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
+    : `<div class="msg">No combos match.${canEdit && !q ? " Press New combo to make one." : ""}</div>`;
+  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openCombo(tr.dataset.id); });
+  pager({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+}
+async function loadList(){
+  const box = document.getElementById("rows");
+  const { rows, error } = await fetchPage();
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  box.innerHTML = rows.length ? rows.map(r => `
+    <div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}">
+      <div class="sk">${esc(r.sku)} ${stateChip(r)}</div>
+      <div class="nm">${esc(r.name || "")}</div>
+      <div class="cp">${esc(r.components || "")}</div>
+    </div>`).join("") : '<div class="msg">No combos match.</div>';
+  box.querySelectorAll(".row").forEach(el => { el.onclick = () => { curId = el.dataset.id; history.replaceState(null, "", location.pathname + "?id=" + encodeURIComponent(curId)); loadList(); loadDetail(curId); }; });
+  pager({ range:"#range", prev:"#prev", next:"#next" }, loadList);
+}
+
+/* ── 상세 — 머리 · 구성품(켜진 줄 · 풀렸으면 마지막 목록) ── */
+let cur = null, detailSeq = 0;
+async function loadDetail(id){
+  const seq = ++detailSeq, box = document.getElementById("detail");
+  box.innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const [p, bom] = await Promise.all([
+    sb.from("product").select("id,sku,name,is_active,sellable,brand_name,category_name,uom_name").eq("id", id).maybeSingle(),
+    sb.from("product_bom").select("component_product_id,quantity,is_active,source,updated_at").eq("parent_product_id", id),
+  ]);
+  if(seq !== detailSeq) return;
+  if(p.error || !p.data){ box.innerHTML = `<div class="card"><div class="msg err">${esc(p.error ? p.error.message : "Combo not found.")}</div></div>`; return; }
+  const r = p.data, all = bom.data || [];
+  const on = all.filter(b => b.is_active);
+  const released = !on.length && all.length > 0;
+  const shown = released ? all : on;
+  let map = {};
+  if(shown.length){
+    const { data: cp } = await sb.from("product").select("id,sku,name,is_active,parent_product_id,pack_factor").in("id", shown.map(b => b.component_product_id));
+    (cp || []).forEach(x => { map[x.id] = x; });
+  }
+  if(seq !== detailSeq) return;
+  const comps = shown.map(b => Object.assign({}, b, { c: map[b.component_product_id] || null }))
+    .sort((a, b) => String(a.c ? a.c.sku : "").localeCompare(String(b.c ? b.c.sku : "")));
+  cur = { r, comps, released, old: on.map(b => ({ sku: (map[b.component_product_id] || {}).sku, qty: qtyTxt(b.quantity) })).filter(x => x.sku) };
+
+  const chips = [
+    `<span class="chip warn">combo · ${on.length} components</span>`,
+    r.brand_name ? `<span class="chip">${esc(r.brand_name)}</span>` : "",
+    r.category_name ? `<span class="chip">${esc(r.category_name)}</span>` : "",
+    released ? '<span class="chip off">released — sells as a plain SKU</span>' : "",
+    r.is_active ? "" : '<span class="chip off">inactive</span>',
+    r.sellable === false ? '<span class="chip off">not sellable</span>' : "",
+  ].filter(Boolean);
+  const canChange = canEdit && !released && r.is_active;
+  const rows = comps.map(x => `<tr${(x.c && !x.c.is_active) || released ? ' style="opacity:.6"' : ""}>
+      <td class="mono">${x.c ? `<a class="lnk" href="products.html?id=${esc(x.c.id)}">${esc(x.c.sku)}</a>` : '<span class="dim">?</span>'}</td>
+      <td>${esc(x.c ? x.c.name : "")}${x.c && x.c.parent_product_id ? ` <span class="tag">set ×${esc(x.c.pack_factor)}</span>` : ""}${x.c && !x.c.is_active ? ' <span class="tag off">inactive</span>' : ""}</td>
+      <td class="num">${esc(qtyTxt(x.quantity))}</td><td class="dim" style="font-size:11.5px">${esc(imsSrc(x.source))}</td></tr>`).join("");
+
+  box.innerHTML = `
+    <div class="card">
+      <div class="head">
+        <div class="sk">${esc(r.sku)}</div>
+        <div class="nm">${esc(r.name || "")}</div>
+        <div class="chips">${chips.join("")}</div>
+        <div class="acts">
+          <button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
+          <button class="pobtn" data-act="wide">&lsaquo; All combos</button>
+          <button class="pobtn" data-act="prod" title="Prices, barcodes, photos, Shopify and the rest live on the product page">Open in Products</button>
+          ${canChange ? '<button class="pobtn go" data-act="edit">Edit components</button>' : ""}
+          ${canChange ? '<button class="pobtn" data-act="release" title="Turn all component rows off — cannot be undone">Release combo…</button>' : ""}
+        </div>
+      </div>
+      <div class="note">A combo is sold as one line; when it ships, the warehouse picks the components below and packs them together. A combo holds no stock of its own.</div>
+    </div>
+    <div class="card"><h3 class="ims-sec">${released ? "Components when it was released" : "Components"} <span class="n">${comps.length}</span></h3>
+      ${comps.length ? `<table><thead><tr><th>SKU</th><th>Name</th><th class="num">Qty per combo</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>`
+        : '<div class="msg">No component rows.</div>'}
+      ${released ? '<div class="note">This combo was released and cannot become a combo again. To sell the same bundle, make a new combo SKU with New combo.</div>' : ""}
+    </div>`;
+  box.querySelector('[data-act="toglist"]').onclick = () => { const lp = document.getElementById("listPanel"); lp.hidden = !lp.hidden; };
+  box.querySelector('[data-act="wide"]').onclick = showWide;
+  box.querySelector('[data-act="prod"]').onclick = () => { location.href = "products.html?id=" + encodeURIComponent(r.id); };
+  const eb = box.querySelector('[data-act="edit"]'); if(eb) eb.onclick = () => openComboDialog(null);
+  const rb = box.querySelector('[data-act="release"]'); if(rb) rb.onclick = openRelease;
+}
+
+/* ── 저장 흐름(products.html runWindow 와 같은 꼴) — 검사 → 막기면 보이고 끝 · 경고면 확인 → 저장(p_ack = 경고 key) ── */
+function showModal(html, wide){ const b = document.getElementById("modalBox"); b.classList.toggle("wide", !!wide); b.innerHTML = html; document.getElementById("modal").hidden = false; return b; }
+function closeModal(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !document.getElementById("modal").hidden) closeModal(); });
+function showResult(d, onGo, onBack){
+  const li = x => `<li>${x.sku ? `<span class="mono">${esc(x.sku)}</span> — ` : ""}${esc(x.message || x.code)}</li>`;
+  const blocks = d.blocks || [], warns = d.warnings || [];
+  const body = d.error ? `<div class="msg err">${esc(d.error)}</div>`
+    : `${blocks.length ? `<h5>Not saved — fix these first</h5><ul class="blk">${blocks.map(li).join("")}</ul>` : ""}
+       ${warns.length ? `<h5>${blocks.length ? "Also" : "Please confirm"}</h5><ul class="wrn">${warns.map(li).join("")}</ul>` : ""}
+       ${(d.unacked || []).length && !blocks.length ? '<div class="note">Something changed since the check — please confirm again.</div>' : ""}`;
+  const go = (!d.error && !blocks.length && onGo) ? '<button class="pobtn go" data-m="go">Save anyway</button>' : "";
+  const b = showModal(`<h4>${d.error ? "Could not save" : blocks.length ? "Not saved" : "Check before saving"}</h4><div class="pbody">${body}</div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : (onBack ? "Back" : "Close")}</button>${go}</div>`);
+  b.querySelector('[data-m="close"]').onclick = () => { closeModal(); if(onBack) onBack(); };
+  const g = b.querySelector('[data-m="go"]'); if(g) g.onclick = onGo;
+}
+async function runWindow(fn, args, onCommitted, onBack){
+  showModal('<h4>Checking…</h4><div class="pbody"><div class="msg">Checking with the server…</div></div>');
+  const r1 = await sb.rpc(fn, Object.assign({}, args, { p_commit: false, p_ack: [] }));
+  if(r1.error){ showResult({ error: r1.error.message }, null, onBack); return; }
+  const d1 = r1.data || {};
+  if((d1.blocks || []).length){ showResult(d1, null, onBack); return; }
+  const commit = async (ack) => {
+    showModal('<h4>Saving…</h4><div class="pbody"><div class="msg">Saving…</div></div>');
+    const r2 = await sb.rpc(fn, Object.assign({}, args, { p_commit: true, p_ack: ack }));
+    if(r2.error){ showResult({ error: r2.error.message }, null, onBack); return; }
+    const d2 = r2.data || {};
+    if(d2.committed){ closeModal(); await onCommitted(d2); return; }
+    if((d2.blocks || []).length){ showResult(d2, null, onBack); return; }
+    showResult(d2, () => commit((d2.warnings || []).map(w => w.key)), onBack);
+  };
+  if(!(d1.warnings || []).length) return commit([]);
+  showResult(d1, () => commit(d1.warnings.map(w => w.key)), onBack);
+}
+
+/* ── 구성품 줄 — New combo · Edit components 가 함께 쓴다(SKU 를 치면 이름 · 상태를 보인다) ── */
+let lookSeq = 0;
+function compHint(st, row){
+  const k = (row.sku || "").trim().toUpperCase();
+  if(!k) return "";
+  const i = st.info[k];
+  if(!i) return '<span class="ghost">checking…</span>';
+  if(!i.found) return '<span class="bchint bad">No such SKU</span>';
+  const bits = [esc(i.name || "")];
+  if(i.self) bits.push('<span class="bchint bad">this is the combo itself</span>');
+  if(!i.is_active) bits.push('<span class="bchint bad">inactive</span>');
+  if(i.combo) bits.push('<span class="bchint bad">is itself a combo</span>');
+  if(i.set) bits.push(`<span class="bchint warn">set ×${esc(i.set)} — counts as singles</span>`);
+  return bits.join(" · ");
+}
+function compRows(st){
+  return st.rows.map((x, i) => `<tr>
+      <td style="width:190px"><input class="ein mono" data-cb="sku" data-i="${i}" value="${esc(x.sku)}" placeholder="component SKU" autocomplete="off"></td>
+      <td style="width:110px"><input class="ein sm mono" data-cb="qty" data-i="${i}" value="${esc(x.qty)}" inputmode="decimal"></td>
+      <td data-cbh="${i}" style="font-size:12px">${compHint(st, x)}</td>
+      <td style="width:70px"><button class="xbtn" data-cbx="drop" data-i="${i}">remove</button></td></tr>`).join("");
+}
+async function compLook(st, b){
+  const want = [...new Set(st.rows.map(x => (x.sku || "").trim()).filter(Boolean).filter(k => !st.info[k.toUpperCase()]))];
+  if(!want.length) return;
+  const seq = ++lookSeq;
+  const { data } = await sb.from("product").select("id,sku,name,is_active,parent_product_id,pack_factor").in("sku", want);
+  const ids = (data || []).map(x => x.id);
+  let combos = new Set();
+  if(ids.length){
+    const { data: cb } = await sb.from("product_bom").select("parent_product_id").in("parent_product_id", ids).eq("is_active", true);
+    combos = new Set((cb || []).map(x => x.parent_product_id));
+  }
+  if(seq !== lookSeq) return;
+  want.forEach(k => {
+    const p = (data || []).find(x => x.sku === k) || (data || []).find(x => x.sku.toUpperCase() === k.toUpperCase());
+    st.info[k.toUpperCase()] = p ? { found:true, name:p.name, is_active:p.is_active, set:p.parent_product_id ? p.pack_factor : null, combo:combos.has(p.id),
+                                     self: st.parentId ? p.id === st.parentId : p.sku.toUpperCase() === (st.sku || "").trim().toUpperCase() }
+                                 : { found:false };
+  });
+  st.rows.forEach((x, i) => { const td = b.querySelector(`[data-cbh="${i}"]`); if(td) td.innerHTML = compHint(st, x); });
+}
+const readLines = st => st.rows.map(x => ({ sku: (x.sku || "").trim(), qty: (x.qty || "").toString().trim() })).filter(x => x.sku || x.qty);
+
+/* ── Edit components — 이미 콤보인 SKU(판정 823 · 이 화면에만) ── */
+function openComboDialog(st){
+  if(!st){
+    st = { parentId: cur.r.id, parentSku: cur.r.sku, old: cur.old, rows: cur.old.map(x => ({ sku: x.sku, qty: x.qty })), info: {} };
+    cur.comps.forEach(x => { if(x.c) st.info[x.c.sku.toUpperCase()] = { found:true, name:x.c.name, is_active:x.c.is_active, set:x.c.parent_product_id ? x.c.pack_factor : null, combo:false, self:false }; });
+  }
+  const b = showModal(`<h4>Edit components — <span class="mono">${esc(st.parentSku)}</span></h4>
+    <div class="pbody">
+      <div class="ghost" style="margin-bottom:10px">List <b>every</b> component with how many go into <b>one</b> combo. At least two components.</div>
+      <table class="vt"><thead><tr><th>SKU</th><th>Qty per combo</th><th>Product</th><th></th></tr></thead><tbody>${compRows(st)}</tbody></table>
+      <div style="display:flex;gap:6px;margin-top:8px"><button class="xbtn" data-cbx="add">+ component</button></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-cbx="go">Check &amp; save</button></div>`, true);
+  const read = () => { b.querySelectorAll("[data-cb]").forEach(el => { st.rows[Number(el.dataset.i)][el.dataset.cb] = el.value; }); };
+  b.querySelectorAll('[data-cb="sku"]').forEach(el => { el.onchange = () => { read(); compLook(st, b); }; });
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  b.querySelectorAll("[data-cbx]").forEach(el => {
+    el.onclick = async () => {
+      const a = el.dataset.cbx; read();
+      if(a === "add"){ st.rows.push({ sku:"", qty:"1" }); openComboDialog(st); return; }
+      if(a === "drop"){ st.rows.splice(Number(el.dataset.i), 1); openComboDialog(st); return; }
+      if(a === "go"){
+        const lines = readLines(st);
+        if(!lines.length){ alert("To stop this SKU being a combo, use Release combo."); return; }
+        await runWindow("product_bom_set", { p_parent_sku: st.parentSku, p_lines: lines, p_old: st.old },
+          async () => { await loadDetail(st.parentId); loadList(); }, () => openComboDialog(st));
+      }
+    };
+  });
+  compLook(st, b);
+}
+
+/* ── Release — 되돌릴 수 없다(판정 819) · SKU 를 쳐서 확인 ── */
+function openRelease(){
+  const r = cur.r;
+  const b = showModal(`<h4>Release combo — <span class="mono">${esc(r.sku)}</span></h4>
+    <div class="pbody">
+      <div style="font-size:12.5px;line-height:1.55">All component rows are turned off (kept as history) and <b>${esc(r.sku)}</b> sells as a plain SKU from now on.
+        <div style="margin-top:6px;color:#c92a2a"><b>This cannot be undone</b> — a released SKU can never become a combo again. To sell the same bundle later, make a new combo SKU with New combo.</div></div>
+      <div class="frow" style="margin-top:12px"><label>Type the SKU</label><input class="ein mono" id="relSku" placeholder="${esc(r.sku)}" autocomplete="off" style="max-width:220px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="relGo" disabled>Release</button></div>`);
+  const inp = b.querySelector("#relSku"), go = b.querySelector("#relGo");
+  inp.oninput = () => { go.disabled = inp.value.trim() !== r.sku; };
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  go.onclick = () => runWindow("product_bom_set", { p_parent_sku: r.sku, p_lines: [], p_old: cur.old },
+    async () => { await loadDetail(r.id); loadList(); }, openRelease);
+  inp.focus();
+}
+
+/* ── New combo — 새 SKU + 구성품 한 번에(판정 818 · 821) ── */
+const REFS = { brand:["brands","brandList"], cat:["cats","catList"], unit:["units","unitList"] };
+function refName(kind, id){ if(!id) return ""; if(String(id).startsWith("?")) return String(id).slice(1); const x = refs[REFS[kind][0]].find(y => y.id === id); return x ? x.name : ""; }
+function refId(kind, text){ const v = (text || "").trim(); if(!v) return null; const x = refs[REFS[kind][0]].find(y => y.name.toLowerCase() === v.toLowerCase()); return x ? x.id : "?" + v; }
+function refIn(kind, attrs, id){ return `<input class="ein" ${attrs} list="${REFS[kind][1]}" value="${esc(refName(kind, id))}" autocomplete="off">`; }
+const badRef = id => !!id && String(id).startsWith("?");
+const saleTiers = () => refs.tiers.filter(t => t.purpose === "sale");
+
+function openNewCombo(st){
+  st = st || { sku:"", name:"", brand_id:"", category_id:"", unit_id:(refs.units.find(u => u.name === "EA") || {}).id || "", weight:"", weight_unit:"", note:"",
+               barcodes:"", prices:{}, rows:[{ sku:"", qty:"1" }, { sku:"", qty:"1" }], info:{} };
+  const b = showModal(`<h4>New combo</h4>
+    <div class="pbody">
+      <div class="ghost" style="margin-bottom:10px">A combo is a <b>new SKU</b> sold as one line; when it ships, the warehouse picks the components and packs them together. It holds no stock and has no supplier.</div>
+      <div class="fg">
+        <label>SKU</label><input class="ein mono" id="ncSku" value="${esc(st.sku)}" placeholder="new SKU — not used before">
+        <label>Name</label><input class="ein" id="ncName" value="${esc(st.name)}">
+        <label>Brand</label>${refIn("brand", 'id="ncBrand"', st.brand_id)}
+        <label>Category</label>${refIn("cat", 'id="ncCat"', st.category_id)}
+        <label>Unit</label>${refIn("unit", 'id="ncUnit"', st.unit_id)}
+        <label>Barcode(s)</label><input class="ein mono" id="ncBc" value="${esc(st.barcodes)}" placeholder="optional — the first is primary">
+        <label>Weight</label><div style="display:flex;gap:6px"><input class="ein sm mono" id="ncW" value="${esc(st.weight)}"><input class="ein sm" id="ncWu" value="${esc(st.weight_unit)}" placeholder="kg · g · lb · oz"></div>
+        <label>Note</label><input class="ein" id="ncNote" value="${esc(st.note)}">
+      </div>
+      <div class="sub">Sale prices <span class="ghost">— the combo's own price, not the sum of its components</span></div>
+      <div class="fg">${saleTiers().map(t => `<label>${esc(t.name)}</label><input class="ein sm mono" data-ncprice="${t.id}" value="${esc(st.prices[t.id] || "")}">`).join("")}</div>
+      <div class="sub">Components <span class="ghost">— every component, with how many go into one combo · at least two</span></div>
+      <table class="vt"><thead><tr><th>SKU</th><th>Qty per combo</th><th>Product</th><th></th></tr></thead><tbody>${compRows(st)}</tbody></table>
+      <div style="display:flex;gap:6px;margin-top:8px"><button class="xbtn" data-cbx="add">+ component</button></div>
+    </div>
+    <div class="pfoot"><span class="ghost">Prices, barcodes and photos can be changed later on the product page.</span><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" data-cbx="go">Check &amp; create</button></div>`, true);
+  const read = () => {
+    st.sku = b.querySelector("#ncSku").value.trim(); st.name = b.querySelector("#ncName").value;
+    st.brand_id = refId("brand", b.querySelector("#ncBrand").value); st.category_id = refId("cat", b.querySelector("#ncCat").value); st.unit_id = refId("unit", b.querySelector("#ncUnit").value);
+    st.barcodes = b.querySelector("#ncBc").value; st.weight = b.querySelector("#ncW").value; st.weight_unit = b.querySelector("#ncWu").value; st.note = b.querySelector("#ncNote").value;
+    b.querySelectorAll("[data-ncprice]").forEach(el => { st.prices[el.dataset.ncprice] = el.value.trim(); });
+    b.querySelectorAll("[data-cb]").forEach(el => { st.rows[Number(el.dataset.i)][el.dataset.cb] = el.value; });
+  };
+  b.querySelectorAll('[data-cb="sku"]').forEach(el => { el.onchange = () => { read(); compLook(st, b); }; });
+  b.querySelector('[data-m="close"]').onclick = closeModal;
+  b.querySelectorAll("[data-cbx]").forEach(el => {
+    el.onclick = async () => {
+      const a = el.dataset.cbx; read();
+      if(a === "add"){ st.rows.push({ sku:"", qty:"1" }); openNewCombo(st); return; }
+      if(a === "drop"){ st.rows.splice(Number(el.dataset.i), 1); openNewCombo(st); return; }
+      if(a === "go"){
+        if(!st.sku){ alert("Enter the new combo SKU first."); b.querySelector("#ncSku").focus(); return; }
+        if([st.brand_id, st.category_id, st.unit_id].some(badRef)){ alert("Pick the brand, category and unit from the list."); return; }
+        const item = {
+          sku: st.sku, name: st.name.trim() || null, brand_id: st.brand_id || null, category_id: st.category_id || null, unit_id: st.unit_id || null,
+          weight: blankNull(st.weight), weight_unit: blankNull(st.weight_unit), note: blankNull(st.note),
+          barcodes: splitList(st.barcodes),
+          prices: Object.entries(st.prices).filter(([, v]) => v).map(([tier_id, price]) => ({ tier_id, price })),
+        };
+        await runWindow("product_combo_create", { p_item: item, p_lines: readLines(st) }, async (d) => {
+          q = st.sku; off = 0;
+          if(d.product_id) await openCombo(d.product_id); else showWide();
+        }, () => openNewCombo(st));
+      }
+    };
+  });
+  compLook(st, b);
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+async function fetchAll(table, select, build){
+  const out = [];
+  for(let from = 0; ; from += 1000){
+    let qy = sb.from(table).select(select).range(from, from + 999);
+    if(build) qy = build(qy);
+    const { data, error } = await qy;
+    if(error) throw error;
+    out.push(...(data || []));
+    if(!data || data.length < 1000) break;
+  }
+  return out;
+}
+imsAuth.start({ changePw: true }, async (client, me) => {
+  sb = client;
+  canEdit = imsAuth.canWrite("master");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = CB_BUILD;
+  document.getElementById("wprod").onclick = () => { location.href = "products.html"; };
+  const nb = document.getElementById("wnew"); if(canEdit){ nb.hidden = false; nb.onclick = () => openNewCombo(null); }
+  const reWide = () => { off = 0; loadWide(); }, reList = () => { off = 0; loadList(); };
+  imsQ("#wq", v => { q = v; reWide(); });
+  imsQ("#q", v => { q = v; reList(); });
+  document.getElementById("wactive").onchange = e => { onlyActive = e.target.checked; reWide(); };
+  document.getElementById("onlyActive").onchange = e => { onlyActive = e.target.checked; reList(); };
+  document.getElementById("wrel").onchange = e => { showRel = e.target.checked; reWide(); };
+  document.getElementById("rel").onchange = e => { showRel = e.target.checked; reList(); };
+  document.getElementById("wclear").onclick = () => { q = ""; onlyActive = true; showRel = false; syncCtl(); reWide(); };
+  try {
+    const [bl, cl, ul, tl] = await Promise.all([
+      fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_unit", "id,name", x => x.eq("is_active", true).order("name")),
+      fetchAll("ref_price_tier", "id,code,name,purpose", x => x.eq("is_active", true).order("code")),
+    ]);
+    refs = { brands: bl, cats: cl, units: ul, tiers: tl };
+    document.getElementById("brandList").innerHTML = bl.map(x => `<option value="${esc(x.name)}">`).join("");
+    document.getElementById("catList").innerHTML = cl.map(x => `<option value="${esc(x.name)}">`).join("");
+    document.getElementById("unitList").innerHTML = ul.map(x => `<option value="${esc(x.name)}">`).join("");
+  } catch(err){ console.warn("reference lists failed", err); }
+  /* ?id= 는 바로 상세(Products 의 Open in Combos) · ?new=1 은 새 콤보 창 · 그 밖은 넓은 목록 */
+  const p = new URLSearchParams(location.search);
+  const wantId = p.get("id");
+  if(wantId){ onlyActive = false; showRel = true; await openCombo(wantId); }
+  else showWide();
+  if(p.get("new") === "1" && canEdit) openNewCombo(null);
+});
+</script>
+</body>
+</html>
