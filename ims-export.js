@@ -1,6 +1,9 @@
 /* Asung IMS — 내보내기(Export) 공용 (exp-2 · 2026-10-26 · 대화 Claude)
    ─────────────────────────────────────────────
    판정 699 · 700 · 759 ~ 764 · deferred 300 — Products · Customers · Suppliers 목록의 「↓ Export…」
+   [2026-10-27 · export v2 · drx-1 · 판정 790 ~ 792] Discount Rules 의 두 kind — deal_rule(규칙 정의) · deal_product(풀린 제품)
+      둘 다 창구 deal_export(p_deal_ids, p_kind, p_columns) · args 가 p_deal_ids · p_kind 를 싣는다 · 안내 글은 opt.intro 로 덮는다
+      세 화면(products · customers · suppliers)은 RPC 표만 그대로 — opt.intro 가 없으면 옛 글 그대로
    ⭐ 칸 목록도 · 값도 DB 창구가 정한다(판정 763) — 화면은 고르게 하고 CSV 로 쓰기만 한다
       export_columns(p_kind) → {kind, columns:[{key, label, group, default, text}]} · 고를 수 없는 칸은 목록에 없다
       product_export · customer_export · supplier_export(지금 목록의 거르기 + p_columns) →
@@ -9,13 +12,15 @@
    ⭐ text 칸(SKU · 바코드 …)은 ="…" — 엑셀이 숫자로 바꾸거나 앞 0 을 지우지 않게(판정 628)
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-export.js
    쓰는 법: imsExport.open({ sb, kind: "product", title: "Export products", file: "products",
-                             args: () => ({ p_q: …, … }), note: "" })
+                             args: () => ({ p_q: …, … }), note: "", intro: "" })   // intro 는 없어도 된다
 */
 (function () {
   "use strict";
-  const BUILD = "2026-10-26 · export v1";
-  const RPC = { product: "product_export", customer: "customer_export", supplier: "supplier_export" };
-  const NOUN = { product: "products", customer: "customers", supplier: "suppliers" };
+  const BUILD = "2026-10-27 · export v2";
+  const RPC = { product: "product_export", customer: "customer_export", supplier: "supplier_export",
+                deal_rule: "deal_export", deal_product: "deal_export" };   // export v2 — 두 kind 가 창구 하나
+  const NOUN = { product: "products", customer: "customers", supplier: "suppliers",
+                 deal_rule: "discount-rules", deal_product: "discount-rule-products" };   // 파일 이름 기본값
   const e = (v) => (window.esc ? window.esc(v) : String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
   const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto" }).format(new Date());
   const fmtN = (n) => Number(n || 0).toLocaleString("en-CA");
@@ -125,7 +130,7 @@
       });
       const body = box.querySelector(".pbody");
       body.innerHTML =
-        `<p class="imx-intro">The file has one row for each of the ${e(noun)} that match the filters on this list now — every page, not just the one on screen. Pick the columns to put in it.</p>` +
+        `<p class="imx-intro">${opt.intro ? e(opt.intro) : `The file has one row for each of the ${e(noun)} that match the filters on this list now — every page, not just the one on screen. Pick the columns to put in it.`}</p>` +
         (opt.note ? `<p class="imx-note">${e(opt.note)}</p>` : "") +
         groups.map((g, gi) => `<div class="imx-grp">
           <div class="imx-gh">${e(g.name)} <span class="n" data-gn="${gi}"></span><span class="sp"></span>
