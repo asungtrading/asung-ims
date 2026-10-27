@@ -2286,6 +2286,23 @@ PO 백오더 칩 · 딜 세트 접기 (판정 776 · 777)
 [ ] Settings › Discount Rules 딜 상세 Products 표 — 세트 줄이 「▸ sets N」 로 접혀 시작 · 누르면 펼침 (dr v3c)
 ```
 
+### 7-zw. 2026-10-27 회사 — Discount Rules 규칙 CSV 내보내기 · 배송지 회사 판정(도매 등급) · WMS 동시 작업 막이 (dr v4 · export v2 999565a · asung-wms drx-1 f239f0a · lec-1 c64ca9e · wsp-1 43815bf · c91bc24 · so-module §80 · 판정 790 ~ 796)
+
+```
+빌드: dr v4 · export v2(ims-export.js?v=2) · lec-1 · wsp-1 은 화면 무변(DB 만)
+
+규칙 CSV 내보내기 (dr v4 · export v2 · drx-1 · 판정 790 ~ 793)
+[✅] Settings › Discount Rules 넓은 목록 「↓ Export rules… · ↓ Export products…」(지금 거르기에 보이는 딜 전부) · 딜 상세 「↓ Rule CSV… · ↓ Products CSV…」(그 딜 하나) · 칸 고르기 창 · 가격 칸은 골라야 나온다 (Caleb 2026-10-27 「다 잘 나와」)
+⭐ 오더 딜 상세에는 Products 단추가 없다 · 제품 CSV 창 안내 「This is the rule's own %. On an order the customer's standard discount or a bigger rule may win instead.」
+⭐ 제품 CSV 한 줄 = (규칙 × 제품 × 딜 줄) — 수량 단계가 둘이면 같은 제품이 두 줄 · 활성 제품만 · 세트 포함 · 원가 칸 없음
+[ ] sales 읽기만 있는 직원으로 두 내보내기(문 = sales 보기 ∨ master 쓰기 — 되어야 한다)
+[ ] master:read 만 있는 직원 — 메뉴는 열리고 목록(so_deal_list)이 거부된다(지금 동작 · 고칠지는 deferred 347)
+
+배송지 회사 판정 · WMS 동시 작업 (lec-1 · wsp-1 · 판정 794 · 795 · 화면 무변)
+⭐ 새 SO 의 배송지 — Wholesale · Franchise · Regular CAD · USWholesale USD 손님은 회사 칸에 손님 이름(이미 만든 SO 는 그대로)
+⭐ 두 사람이 같은 오더를 동시에 Split · Release · Wave · 배치 되돌리기 — 두 번째는 서버 문장으로 거부(화면은 그 문장을 그대로 보인다)
+```
+
 ## 8. 로그인 · 계정
 
 ```
