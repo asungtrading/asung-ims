@@ -2259,6 +2259,33 @@ POS 초안 지우기 (pos v1.14 · a5a379f · 판정 773 · Caleb 화면 시험 
 [ ] 확정된 판매에는 Delete draft · ✕ 가 없다
 ```
 
+### 7-zv. 2026-10-26 집 저녁 ~ 밤 — 참조 크레딧 이력 채우기 · 미수 · 받아 둔 돈 이월 화면 · 판 v7 · v3 · v3 · 프로포마 메일 제목 · PO 백오더 칩 · 딜 세트 접기 (cr v6 3089ca0 · cr v6a d089648 · ar-4 0c38251 · po chip v1a a88500a · dr v3c b23cdf4 · asung-wms hcr-1 818ffa9 · ar-2 bfba536 · ar-3 d6be2d6 · srs-1 2bc674b · ar-2b 4c067b0 · so-module §79 · 판정 774 ~ 789)
+
+```
+빌드: cr v6 · cr v6a · cr v6b · inv open v1 · pay open v1(ar-4) · po chip v1a · dr v3c · 판(DB) final_invoice v7 · ship_ready v3 · internal_receipt v3
+
+참조 크레딧 이력 채우기 (cr v6 · hcr-1 · 판정 774 · 778 · 779 · 781 · 782)
+[✅] Reference credit → 옛 인보이스 번호 Find(48425 · 50387 · 없는 번호 99999) → 줄 · 남은 수량 · 운임 줄 체크 해제 · 옛 세율 규칙 · 매장 표시 → Preview (Caleb 2026-10-26 「다 잘 작동해」)
+⭐ 판 수량을 넘겨도 막지 않는다(경고 qty_over_sold) · 돈은 청구처 · 종이와 목록은 매장 · 서버는 이력을 읽기만
+[✅] Find 옆 「Enter by hand」 — 「Skip the history — pick the customer and type the lines from the paper invoice」(cr v6a) (Caleb 2026-10-26)
+
+미수 · 받아 둔 돈 이월 화면 (ar-4 · 판정 775 · 783 ~ 786 · ⚠️ 이월 Apply 뒤에 볼 것 — 컷오버 날 reload-procedure §P-2 12b)
+[ ] Invoices — 이월 인보이스에 「Carried over (before IMS)」 꼬리표 · 이전에 받은 돈(paid before IMS)이 보이고 남은 금액 = 합계 − 이전에 받은 돈 (inv open v1)
+[ ] 이월 인보이스에는 Print · Email · Cancel 단추가 없다 — 「Carried over from the previous system — the original is in QuickBooks」 (785 · 784)
+[ ] Payments — 받아 둔 돈 이월 줄(「Payments and credits on the previous system before the switch-over」) · Void 없음 (pay open v1 · 784)
+[ ] Reference credit — 같은 옛 번호의 이월 인보이스가 남은 돈이 있으면 안내 · 크레딧은 그 인보이스를 저절로 줄이지 않는다(발행 뒤 Attach 손으로) (cr v6b)
+
+문서 (srs-1 · 판정 787 · 788)
+[✅] 묶음 인보이스 60073(SO-25201 · SO-25202 · 같은 배송지) — Ship To 가 한 번만 · 점선 없음 (판 final_invoice v7 · Caleb 2026-10-26 「중복은 사라졌어」)
+[ ] 같은 배송지 묶음의 Ship Ready(ship_ready v3) · Internal receipt(internal_receipt v3)도 한 번만 · 다른 배송지 묶음은 둘 다 보인다
+[✅] Email the ship ready — 제목 「PROFORMA INVOICE SO-25135 - Asung Trading Inc.」 (Caleb 2026-10-26)
+⭐ 제목 글은 Settings → Documents → Ship Ready 의 Email subject({{invoice.so_numbers}}) · 직원이 고친 글이면 그대로
+
+PO 백오더 칩 · 딜 세트 접기 (판정 776 · 777)
+[ ] Purchase Orders — 아무것도 안 들어온 백오더 PO 는 Ordered 대신 Backorder 칩 · 입고가 시작되면 평소 단계 · Backorder 거르기도 같다 (po chip v1a)
+[ ] Settings › Discount Rules 딜 상세 Products 표 — 세트 줄이 「▸ sets N」 로 접혀 시작 · 누르면 펼침 (dr v3c)
+```
+
 ## 8. 로그인 · 계정
 
 ```
