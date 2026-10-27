@@ -55,7 +55,7 @@
         <option value="overdue">Overdue</option>
         <option value="nodue">Open with no due date</option>
         <option value="paid">Paid in full</option>
-        <option value="cancelled">Cancelled</option>
+        <option value="cancelled">Cancelled</option><option value="opening">Carried over (before IMS)</option>
         <option value="all">All</option>
       </select>
       <input type="date" id="wfrom" title="Issued from">
@@ -87,7 +87,7 @@
             <option value="overdue">Overdue</option>
             <option value="nodue">No due date</option>
             <option value="paid">Paid in full</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="cancelled">Cancelled</option><option value="opening">Carried over (before IMS)</option>
             <option value="all">All</option>
           </select>
         </label>
@@ -119,7 +119,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-10-22 · inv csv v5";   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · inv csv v4 ·   // v4 — Caleb 「모양과 내용이 별로 · 아이템이 많아지면 쓰기 어렵다 · 바코드도」: Invoice CSV 를 한 표(한 줄 = 인보이스 줄 하나 · 인보이스 · 오더 칸 되풀이 · 끝에 합계 줄)로 · Barcode 칸(대표 → 없으면 첫 활성 바코드) · 목록 Lines CSV 에도 Barcode ←   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-10-27 · inv open v1";   // 대화 Claude — ar-4(판정 775 · 783 ~ 785 · asung-wms ar-2 bfba536): 이월 인보이스(kind opening) — 목록 · 좁은 목록에 「before IMS」 꼬리표 · 매장(store_name) · 이전에 받은 돈(prior_settled) · 거르기 「Carried over」 · 상세: 안내(원본은 QuickBooks) · Print · Email · Delivery receipt · CSV · Cancel · Raise a credit note 단추를 안 보인다(서버도 인쇄 · 메일 · 취소를 거부 · 785 · 784) · 숫자 칸은 Total · Paid before IMS · Paid · Credited · Still owed ← 2026-10-22 · inv csv v5:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · inv csv v4 ·   // v4 — Caleb 「모양과 내용이 별로 · 아이템이 많아지면 쓰기 어렵다 · 바코드도」: Invoice CSV 를 한 표(한 줄 = 인보이스 줄 하나 · 인보이스 · 오더 칸 되풀이 · 끝에 합계 줄)로 · Barcode 칸(대표 → 없으면 첫 활성 바코드) · 목록 Lines CSV 에도 Barcode ←   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -154,6 +154,8 @@ const price = (v) => (v === null || v === undefined || v === "")
 const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
 
 /* ⚠️ 색 절제 — 취소 빨강 · 다 받음 초록 · 연체는 날수로 말한다 */
+/* inv open v1 — 이월 인보이스(ar-2 · kind opening) 꼬리표 */
+const openTag = (r) => r && r.kind === "opening" ? ' <span class="tag" title="Carried over from the previous system — the original is in QuickBooks">before IMS</span>' : "";
 function invChip(r){
   if(r.status === "cancelled") return '<span class="chip bad">cancelled</span>';
   if(Number(r.remaining) <= 0) return '<span class="chip good">paid</span>';
@@ -283,13 +285,15 @@ async function exportWideLines(btn){
 }
 function baseQuery(){
   let qry = sb.from("so_invoice_list").select(
-    "id,invoice_number,status,issued_on,due_on,currency_code,bill_to_name,customer_name,so_numbers,order_count,channel,total,paid,credited,remaining,days_overdue,due_unknown,is_open,so_ids",   // inv v2e — so_ids: 웹 번호 꼬리표(fillWebInv)
+    "id,invoice_number,status,issued_on,due_on,currency_code,bill_to_name,customer_name,so_numbers,order_count,channel,total,paid,credited,remaining,days_overdue,due_unknown,is_open,so_ids,kind,prior_settled,store_name",   // inv open v1 — kind · prior_settled · store_name(ar-2)
+      // inv v2e — so_ids: 웹 번호 꼬리표(fillWebInv)
     { count: "exact" });
   if(stFilter === "open")           qry = qry.eq("is_open", true);
   else if(stFilter === "overdue")   qry = qry.gt("days_overdue", 0);
   else if(stFilter === "nodue")     qry = qry.eq("is_open", true).eq("due_unknown", true);
   else if(stFilter === "paid")      qry = qry.eq("status", "issued").eq("is_open", false);
   else if(stFilter === "cancelled") qry = qry.eq("status", "cancelled");
+  else if(stFilter === "opening")   qry = qry.eq("kind", "opening");   // inv open v1
   if(dateFrom) qry = qry.gte("issued_on", dateFrom);
   if(dateTo)   qry = qry.lte("issued_on", dateTo);
   /* ⭐ search_text 한 칸 — 번호 · 청구처 · 손님 · 오더 번호 · 오더 ref 를 뷰가 이어 두었다(조인 칸을 or() 에 못 넣는다) */
@@ -344,14 +348,14 @@ async function loadWide(){
       <th class="num">Total</th><th class="num">Paid</th><th class="num">Credited</th><th class="num">Still owed</th>
     </tr></thead><tbody>${data.map(r => `
       <tr data-id="${r.id}">
-        <td class="mono">${esc(r.invoice_number)}</td>
+        <td class="mono">${esc(r.invoice_number)}${openTag(r)}</td>
         <td>${invChip(r)}</td>
         <td>${dim(r.issued_on)}</td>
         <td>${dim(r.due_on)}</td>
-        <td>${esc(r.bill_to_name || r.customer_name || "")}</td>
+        <td>${esc(r.bill_to_name || r.customer_name || "")}${r.store_name && r.store_name !== (r.bill_to_name || r.customer_name) ? ` <span class="dim" style="font-size:11.5px">· store ${esc(r.store_name)}</span>` : ""}</td>
         <td class="mono" style="font-size:12px">${dim(r.so_numbers)}${r.channel && r.channel !== "warehouse" ? ` <span class="tag">${esc(r.channel)}</span>` : ""}<span data-webinv="${r.id}"></span></td>
         <td class="num">${money(r.total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
-        <td class="num">${Number(r.paid) ? money(r.paid) : '<span class="dim">—</span>'}</td>
+        <td class="num">${Number(r.paid) ? money(r.paid) : '<span class="dim">—</span>'}${Number(r.prior_settled) ? `<div class="dim" style="font-size:11px">+ ${money(r.prior_settled)} before IMS</div>` : ""}</td>
         <td class="num">${Number(r.credited) ? money(r.credited) : '<span class="dim">—</span>'}</td>
         <td class="num">${owedCell(r)}</td>
       </tr>`).join("")}</tbody></table>
@@ -367,7 +371,7 @@ async function loadList(){
   document.getElementById("rows").innerHTML = data.length ? data.map(r => `
     <div class="row ${r.id === curId ? "cur" : ""}" data-id="${r.id}">
       <span class="l">
-        <div class="pn">${esc(r.invoice_number)}</div>
+        <div class="pn">${esc(r.invoice_number)}${openTag(r)}</div>
         <div class="sn">${esc(r.bill_to_name || r.customer_name || "")}</div>
         <div class="sn">${esc(r.issued_on || "")}${r.due_on ? " · due " + esc(r.due_on) : ""}</div>
         <div data-webinv="${r.id}" style="font-size:11px"></div>
@@ -527,6 +531,7 @@ async function loadDetail(id){
   cur = data;
   const v = data.invoice;
   const live = v.status === "issued";
+  const isOpen = v.kind === "opening";   // inv open v1 — 이월 인보이스(784 · 785)
   /* inv v2e — 화면 안 A: 웹 오더(shop_order_list · so_id = 처음 만든 SO) · 형제 오더면 so_family_members 로 뭉치를 따라 찾는다 */
   let WEB = [];
   const webOrders = (data.orders || []).filter(o => o.intake === "shopify");
@@ -549,21 +554,23 @@ async function loadDetail(id){
   acts.push('<button class="pobtn" data-act="toglist" title="Show or hide the list">&#9776; List</button>');
   acts.push('<button class="pobtn" data-act="wide">&lsaquo; All invoices</button>');
   if(live && Number(v.remaining) > 0) acts.push('<button class="pobtn go" data-act="pay">Take a payment…</button>');
-  acts.push('<button class="pobtn" data-act="print" title="Print or save as PDF with the invoice layout in use">Print invoice</button>');   // inv v2f
-  if(live) acts.push('<button class="pobtn" data-act="mail" title="Email this invoice to the customer with the PDF attached">Email to customer…</button>');   // inv v2g
-  acts.push('<button class="pobtn" data-act="printint" title="The internal receipt for a local delivery — the driver gets it signed">Print delivery receipt</button>');   // inv v2f
-  acts.push('<button class="pobtn" data-act="csvinv" title="Download this invoice — header, orders and every line — as a spreadsheet (CSV)">↓ Invoice CSV</button>');   // inv csv v3
+  if(!isOpen) acts.push('<button class="pobtn" data-act="print" title="Print or save as PDF with the invoice layout in use">Print invoice</button>');   // inv v2f · inv open v1 — 이월은 인쇄 없음(785)
+  if(live && !isOpen) acts.push('<button class="pobtn" data-act="mail" title="Email this invoice to the customer with the PDF attached">Email to customer…</button>');   // inv v2g
+  if(!isOpen) acts.push('<button class="pobtn" data-act="printint" title="The internal receipt for a local delivery — the driver gets it signed">Print delivery receipt</button>');   // inv v2f
+  if(!isOpen) acts.push('<button class="pobtn" data-act="csvinv" title="Download this invoice — header, orders and every line — as a spreadsheet (CSV)">↓ Invoice CSV</button>');   // inv csv v3
   /* v1.2 — 이 인보이스에서 크레딧 노트를 낸다(Credit Notes 화면이 준비물을 읽고 연다 · manager) */
-  if(live && isMgr()) acts.push(`<a class="pobtn" href="so-credits.html?inv=${encodeURIComponent(v.id)}" style="text-decoration:none">Raise a credit note…</a>`);
-  if(live && isMgr()) acts.push('<button class="pobtn" data-act="cancel">Cancel invoice…</button>');
+  if(live && isMgr() && !isOpen) acts.push(`<a class="pobtn" href="so-credits.html?inv=${encodeURIComponent(v.id)}" style="text-decoration:none">Raise a credit note…</a>`);
+  if(live && isMgr() && !isOpen) acts.push('<button class="pobtn" data-act="cancel">Cancel invoice…</button>');   // inv open v1 — 이월은 취소 없음(784)
   if(v.status === "cancelled" && isMgr()) acts.push('<button class="pobtn" data-act="reissue" title="A new invoice for the same orders, dated today">Reissue…</button>');
 
   const warns = [];
+  if(isOpen) warns.push(`<span class="chip warn">⚠ Carried over from the previous system — the original invoice with its lines is in QuickBooks. It cannot be printed, emailed or cancelled here. Payments and credit notes attach to it as usual. For a return, use Credit Notes → Credit with a reference number.</span>`);   // inv open v1
   if(v.due_unknown && live) warns.push('<span class="chip warn">⚠ No due date — the order had no payment term. It is not counted as overdue.</span>');
   if(!v.bill_to_name) warns.push('<span class="chip warn">⚠ No bill-to name on this invoice.</span>');
 
   const kvL = [
     ["Bill to",      esc(v.bill_to_name || "") + (v.customer_name && v.customer_name !== v.bill_to_name ? ` <span class="dim">(${esc(v.customer_name)})</span>` : "")],
+    ...(isOpen && v.store_name && v.store_name !== v.bill_to_name ? [["Store", esc(v.store_name)]] : []),   // inv open v1
     ["Issued",       dim(v.issued_on)],
     ["Due",          dim(v.due_on) + (v.payment_term_name ? ` <span class="dim">${esc(v.payment_term_name)}</span>` : "")],
     ["Currency",     `<span class="mono">${dim(v.currency_code)}</span>`],
@@ -587,6 +594,7 @@ async function loadDetail(id){
       ${Number(v.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(v.surcharge_amount)}</b></div>` : ""}
       <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
       <div class="stat">Total<b>${money(v.total)}</b></div>
+      ${isOpen ? `<div class="stat" title="Payments and credits on the previous system before the switch-over">Paid before IMS<b>${money(v.prior_settled)}</b></div>` : ""}
       <div class="stat">Paid<b>${money(v.paid)}</b></div>
       <div class="stat">Credited<b>${money(v.credited)}</b></div>
       <div class="stat ${Number(v.days_overdue) > 0 ? "warn" : ""}">Still owed<b>${live ? money(v.remaining) : '<span class="dim">—</span>'}</b></div>
