@@ -83,7 +83,7 @@
          응답 {ok, shop{name, myshopifyDomain, currencyCode}, locations[{id, name, isActive, paired_warehouse}], scopes[], missing_scopes[], warnings[{code, …}], cost, ms}
    ⭐ 위치 대조는 GID 로만(이름은 표시) · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const SS_BUILD = "2026-10-27 · ss v4a";   // 대화 Claude — Sign-in 글: Automatic 은 「앱이 그 스토어와 같은 Shopify 조직에 있다」 — asung.ca · aonebeauty.com 둘 다(Aone 은 자기 조직에 전용 앱 · 판정 812) · 동작 무변 ← ss v4: 대화 Claude — shop-live-1(판정 811 ~ 816 · asung-wms 20261027190714): Live 칸(is_active = 연결 · 들여다보기 · live = 실제로 일함) · Go live…(op store_live {code, live, orders_from} · orders_from = 컷 시각 814 · 켜는 순간 재고 전부 force 815) · Stop live · 목록 Live 칸 · 상세 Sign-in(auth_mode) · Key names 가 방식을 따른다 · 만들기 · 고치기에 Sign-in 고르기(old 에 auth_mode) · live 전에는 Push linked products 의 Send 를 숨기고 이유를 쓴다(push_batch commit 은 live 필요) · Apply links 안내가 live 에 따라 갈린다 ← ss v3a: 대화 Claude — 판정 564(Caleb 「A」 · 컷오버 때 수천 개): Push linked products 에 「Send all left…」 — 처음 몇 브랜드를 보내 확인한 뒤 남은 전부를 큐에(shop_link_push_batch 를 거르기 없이 200 개씩 되풀이 · 남은 수 0 이 될 때까지 · 진행 표시) · 실제로 Shopify 로 나가는 속도는 큐가 정한다(약 20 개/분) ← ss v3: 대화 Claude — link-1c(판정 420 · 555 ~ 563 · asung-wms link-1a 5d38ef2 · link-1b 8e083d1): 스토어 상세에 「Link existing products」 — Read products from Shopify(EF link_read → link_poll 되풀이) · 판 목록 · Plan(shop_link_plan · 숫자 · 까닭) · Show lines(거르기 · CSV) · Apply links(미리 보기 → version 으로 저장) · 「Push linked products」(shop_link_remaining 브랜드별 · shop_link_push_batch 미리 보기 → Send) · 문 shopify 쓰기 ← ss v2: 대화 Claude — 판정 427 · 428 · shop-pol(asung-wms 8cd08a7): 「Sell when out of stock」(oos_policy continue = Allow · deny = Don't allow) 목록 · 상세 · 만들기/고치기 · 바꾸면 그 스토어의 켜진 상품이 다시 보내진다는 안내 · 「Send tags」(send_tags) 목록 · 상세에 읽기만(창구에 아직 없다 — 켜기는 관리자 SQL) ← ss v1a: 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
+const SS_BUILD = "2026-10-27 · ss v5";   // 대화 Claude — 판정 829 · link-perf-2(asung-wms 31c67c4): Apply links 를 묶음으로 — 미리 보기(p_commit false · 전체 숫자 · remaining) → 확인 → p_commit true · p_limit 500 을 done 이 참일 때까지 되풀이 · 진행 「N / total」(N = total_linked + total_linked_off − remaining) · Stop 은 지금 묶음이 끝난 뒤 멈춤 · 중간에 멈춘 판은 다시 누르면 이어서(서버 applied_version) · 남은 수가 줄지 않으면 멈춤(안전띠) · 돌리는 동안 Esc · 창 닫기 막음 · 막기 문장은 서버 것 그대로 · 미리 보기의 items 는 쓰지 않는다 ← ss v4a: 대화 Claude — Sign-in 글: Automatic 은 「앱이 그 스토어와 같은 Shopify 조직에 있다」 — asung.ca · aonebeauty.com 둘 다(Aone 은 자기 조직에 전용 앱 · 판정 812) · 동작 무변 ← ss v4: 대화 Claude — shop-live-1(판정 811 ~ 816 · asung-wms 20261027190714): Live 칸(is_active = 연결 · 들여다보기 · live = 실제로 일함) · Go live…(op store_live {code, live, orders_from} · orders_from = 컷 시각 814 · 켜는 순간 재고 전부 force 815) · Stop live · 목록 Live 칸 · 상세 Sign-in(auth_mode) · Key names 가 방식을 따른다 · 만들기 · 고치기에 Sign-in 고르기(old 에 auth_mode) · live 전에는 Push linked products 의 Send 를 숨기고 이유를 쓴다(push_batch commit 은 live 필요) · Apply links 안내가 live 에 따라 갈린다 ← ss v3a: 대화 Claude — 판정 564(Caleb 「A」 · 컷오버 때 수천 개): Push linked products 에 「Send all left…」 — 처음 몇 브랜드를 보내 확인한 뒤 남은 전부를 큐에(shop_link_push_batch 를 거르기 없이 200 개씩 되풀이 · 남은 수 0 이 될 때까지 · 진행 표시) · 실제로 Shopify 로 나가는 속도는 큐가 정한다(약 20 개/분) ← ss v3: 대화 Claude — link-1c(판정 420 · 555 ~ 563 · asung-wms link-1a 5d38ef2 · link-1b 8e083d1): 스토어 상세에 「Link existing products」 — Read products from Shopify(EF link_read → link_poll 되풀이) · 판 목록 · Plan(shop_link_plan · 숫자 · 까닭) · Show lines(거르기 · CSV) · Apply links(미리 보기 → version 으로 저장) · 「Push linked products」(shop_link_remaining 브랜드별 · shop_link_push_batch 미리 보기 → Send) · 문 shopify 쓰기 ← ss v2: 대화 Claude — 판정 427 · 428 · shop-pol(asung-wms 8cd08a7): 「Sell when out of stock」(oos_policy continue = Allow · deny = Don't allow) 목록 · 상세 · 만들기/고치기 · 바꾸면 그 스토어의 켜진 상품이 다시 보내진다는 안내 · 「Send tags」(send_tags) 목록 · 상세에 읽기만(창구에 아직 없다 — 켜기는 관리자 SQL) ← ss v1a: 대화 Claude — 짝 맺기 · 풀기 · 고치기 · 켜기 저장 뒤 저절로 다시 점검(옛 점검의 경고가 남아 헷갈렸다 · Caleb 시험 2026-10-09) · 끄기는 옛 점검 결과를 지운다 ← ss v1: 대화 Claude — Settings → Shopify Stores 첫 판: 목록 · 상세 · 만들기 · 고치기 · 끄기 · 켜기 · Check connection · 위치 짝 맺기 · 풀기
 console.log("shopify-stores.html build:", SS_BUILD);
 
 let sb = null, isAdmin = false, canCheck = false, onlyActive = true;
@@ -92,7 +92,9 @@ const escA = (v) => esc(v).replace(/"/g, "&quot;");
 
 function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
 function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
-document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+let lkBusy = false;   // ss v5 — Apply links 가 묶음을 돌리는 동안 Esc · 창 닫기를 막는다
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !lkBusy) modalClose(); });
+window.addEventListener("beforeunload", e => { if(lkBusy){ e.preventDefault(); e.returnValue = ""; } });
 
 /* ── 고를 것(티어 · 창고) ─────────────────────────── */
 async function loadRefs(){
@@ -575,24 +577,62 @@ async function lkItems(s, x){
     a.download = `link-${s.code}-v${x.version || 0}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
 }
+/* ss v5 — 판정 829 · link-perf-2: 묶음으로(한 번에 하면 16 ~ 24 s · REST 8 s 를 넘는다) · 진행은 서버의 remaining 으로만 센다 */
+const LK_BATCH = 500;
 async function lkApply(s, x){
   lkSay("", "Checking the plan…");
   const { data, error } = await sb.rpc("shop_link_apply", { p_run_id: x.id, p_commit: false, p_run_version: x.version });
   if(error){ lkSay("err", esc(error.message)); return; }
+  lkSay("", "");
+  const total = (Number(data.total_linked) || 0) + (Number(data.total_linked_off) || 0);
+  const left0 = Number(data.remaining) || 0;
+  const done0 = total - left0;
   modalOpen(`<h4>Apply links — ${esc(s.label)} · plan v${esc(x.version)}</h4>
     <div class="pbody"><div style="font-size:13px;line-height:1.6">
-      <b>${esc(data.linked)}</b> product(s) linked with send on · <b>${esc(data.linked_off)}</b> linked with send off (Draft · Archived) · ${esc(data.skipped)} skipped (blocked or report only) · ${esc(data.variants)} variant(s).</div>
+      <b>${esc(data.total_linked)}</b> product(s) linked with send on · <b>${esc(data.total_linked_off)}</b> linked with send off (Draft · Archived) · ${esc(data.skipped)} skipped (blocked or report only) · ${esc(data.total_variants)} variant(s).</div>
+      ${done0 > 0 ? `<div style="margin-top:6px;font-size:13px"><span class="on">${esc(done0)} of ${esc(total)} already applied</span> from an earlier try — this continues with the <b>${esc(left0)}</b> left.</div>` : ""}
+      <div class="dim" style="margin-top:8px;font-size:12.5px;line-height:1.5">It goes ${LK_BATCH} at a time — about ${esc(Math.max(1, Math.ceil(left0 / LK_BATCH) * 3))} second(s) for this store. Keep this window open. If it stops, press Apply links again and it carries on from where it stopped.</div>
       <div class="dim" style="margin-top:8px;font-size:12.5px;line-height:1.5">Nothing is pushed to Shopify now — product details go later, brand by brand (Push linked products). ${s.live ? "<b>Stock is sent right away</b> for products linked with send on (563), so IMS stock should be right today." : "This store is <b>not live</b> — no stock is sent now; it all goes out once when an admin presses Go live."} Blocked lines are not touched; fix them and read again.</div>
+      <div id="lkBar" style="display:none;margin-top:10px;height:8px;border:1px solid var(--line);border-radius:6px;overflow:hidden"><div id="lkBarIn" style="height:100%;width:0;background:currentColor;opacity:.45"></div></div>
       <div id="ssMsg" class="ssmsg"></div></div>
-    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="lkGo">Apply links</button></div>`);
-  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="lkStop">Cancel</button><button class="pobtn go" id="lkGo" ${left0 || !total ? "" : "disabled"}>${done0 > 0 ? `Continue (${esc(left0)} left)` : "Apply links"}</button></div>`);
+  let stopAsked = false;
+  document.getElementById("lkStop").onclick = () => {
+    if(!lkBusy){ modalClose(); return; }
+    stopAsked = true; const b = document.getElementById("lkStop"); b.disabled = true; b.textContent = "Stopping after this batch…";
+  };
+  const show = (left) => {
+    const n = total - left, m = document.getElementById("ssMsg"), bi = document.getElementById("lkBarIn");
+    if(m){ m.className = "ssmsg"; m.textContent = `Applying… ${n} / ${total}`; }
+    if(bi) bi.style.width = (total ? Math.round(n * 100 / total) : 100) + "%";
+  };
   document.getElementById("lkGo").onclick = async () => {
     const g = document.getElementById("lkGo"); g.disabled = true;
-    const m = document.getElementById("ssMsg"); m.textContent = "Applying…";
-    const r = await sb.rpc("shop_link_apply", { p_run_id: x.id, p_commit: true, p_run_version: x.version });
-    if(r.error){ m.className = "ssmsg err"; m.textContent = r.error.message; g.disabled = false; return; }
+    document.getElementById("lkStop").textContent = "Stop";
+    document.getElementById("lkBar").style.display = "";
+    lkBusy = true; show(left0);
+    let left = left0, last = null, fail = null, stalled = false;
+    try {
+      for(let i = 0; i < Math.ceil(left0 / LK_BATCH) + 5; i++){
+        const r = await sb.rpc("shop_link_apply", { p_run_id: x.id, p_commit: true, p_run_version: x.version, p_limit: LK_BATCH });
+        if(r.error){ fail = r.error.message; break; }
+        last = r.data;
+        const nl = Number(r.data.remaining) || 0;
+        if(r.data.done){ left = 0; show(0); break; }
+        if(nl >= left){ stalled = true; left = nl; break; }   // 안전띠 — 남은 수가 줄지 않으면 같은 줄을 되풀이하지 않는다
+        left = nl; show(left);
+        if(stopAsked) break;
+      }
+    } finally { lkBusy = false; }
+    const n = total - left;
+    if(fail || stalled || left > 0){
+      const m = document.getElementById("ssMsg");
+      if(m){ m.className = "ssmsg err"; m.textContent = `${fail ? `Stopped — ${fail}` : stalled ? "Stopped — the number left did not go down." : "Stopped as asked."} ${n} of ${total} applied · ${left} left. Press Apply links again to carry on.`; }
+      const b = document.getElementById("lkStop"); if(b){ b.disabled = false; b.textContent = "Close"; b.onclick = async () => { modalClose(); await lkLoad(s); renderDetail(); }; }
+      return;
+    }
     modalClose(); await lkLoad(s); renderDetail();
-    lkSay("", `<span class="on">Linked ${esc(r.data.linked)} · send off ${esc(r.data.linked_off)}.</span> Stock queue ${esc(r.data.stock_queue_open ?? 0)} · product push queue ${esc(r.data.push_queue_open ?? 0)}. Next: Push linked products.`);
+    lkSay("", `<span class="on">Applied ${esc(total)} of ${esc(total)} — linked ${esc(data.total_linked)} · send off ${esc(data.total_linked_off)}.</span> Stock queue ${esc(last ? last.stock_queue_open ?? 0 : 0)} · product push queue ${esc(last ? last.push_queue_open ?? 0 : 0)}. Next: Push linked products.`);
   };
 }
 async function lkRemaining(s){
