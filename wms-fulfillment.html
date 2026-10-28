@@ -344,7 +344,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-29 · fu v1.5";   // 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-29 · fu v1.5a";   // 대화 Claude — fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -447,7 +447,7 @@ document.getElementById("plPool").onclick=()=>{ if(armed&&armed.kind==="item"){ 
    ⚠️ 문은 DB 가 본다(fc_gate — sales 또는 fulfillment · 창고) · 거부 글은 그대로 보인다
    ⚠️ 「이 주소에 기억」 — sales 없는 창고 직원이면 주소에 쓰지 않고 오피스 확인 표시만(845) · 운송사 표에 없는 운송사는 고를 수 없다 — 오피스가 더한다(846)
    ⚠️ 트랜스퍼 작업대에는 보이지 않는다(842) */
-let fr=null, frBusy=false, frTimer=null, frOpts=null, frBookBusy=false, frBookWarn=null;   // fu v1.5 — frBookWarn = {booking_id, list} 이 화면에서 마지막 예약의 알림(DB 에 안 남는다)
+let fr=null, frBusy=false, frTimer=null, frOpts=null, frBookBusy=false, frBookWarn=null, frProg=null;   // fu v1.5a — frProg = {kind book|cancel|poll, t0, stage, tick, poll}   // fu v1.5 — frBookWarn = {booking_id, list} 이 화면에서 마지막 예약의 알림(DB 에 안 남는다)
 const frMoney=c=>c==null?"—":"$"+(Number(c)/100).toFixed(2);
 function frSoIds(){ return orders.filter(o=>!o.is_transfer).map(o=>o.id); }
 function freightSoon(){ clearTimeout(frTimer); frTimer=setTimeout(freightLoad,800); }
@@ -482,7 +482,7 @@ function renderFreight(){
   const sh=fr.shipment, q=fr.quote, sel=fr.selected;
   const same=sh?frSameOrders():true;
   const booked=!!(sh&&sh.status==="booked");   // fu v1.5 — 예약 중: 다시 견적 · 고르기 · 조건을 잠근다(DB 도 거부)
-  const lock=booked||!!(fr.bk&&fr.bk.current&&fr.bk.current.status==="pending");   // 예약이 진행 중일 때도 잠근다(발송은 아직 selected 라 DB 가 안 막는다)
+  const lock=booked||frBookBusy||!!(fr.bk&&fr.bk.current&&fr.bk.current.status==="pending");   // v1.5a — 예약 · 취소를 기다리는 동안도   // 예약이 진행 중일 때도 잠근다(발송은 아직 selected 라 DB 가 안 막는다)
   const isPallet=sh&&sh.packaging_type?sh.packaging_type==="pallet":(fr.units_now||[]).some(u=>u.unit_type==="pallet");   // fu v1.4a — 850
   const o=frOpts||(sh&&sh.options)||{};
   const ck=(k,lbl,tip)=>`<label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="${esc(tip)}"><input type="checkbox" data-fopt="${k}" ${o[k]?"checked":""} ${lock?"disabled":""}> ${lbl}</label>`;
@@ -553,6 +553,35 @@ function frPickupText(pk){
   const d=new Date(pk.date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});
   return pk.regular_pickup?`${d} · regular pickup`:`${d} · ${esc(pk.ready_at||"")} – ${esc(pk.ready_until||"")} (warehouse time)`;
 }
+/* fu v1.5a — 진행 칸: 초는 화면 시계 · 단계는 DB 실물(예약만 — 취소 · 다시 묻기는 DB 에 중간 흔적이 없어 초만) */
+function frProgStart(kind){
+  frProgStop();
+  const sid=fr&&fr.shipment&&fr.shipment.id;
+  frProg={kind, t0:Date.now(), stage:"check", fcAccepted:false};
+  frProg.tick=setInterval(frProgPaint,1000);
+  if(kind==="book"&&sid) frProg.poll=setInterval(async()=>{
+    const pr=frProg; if(!pr) return;
+    const {data,error}=await sb.rpc("fc_booking_for_shipment",{p_shipment_id:sid});
+    if(error||!data||frProg!==pr) return;
+    const c=data.current;
+    if(c&&c.status==="pending") pr.stage=c.freightcom_shipment_id?"carrier":"sent";
+    else if(c&&c.status==="booked"&&new Date(c.booked_at).getTime()>=pr.t0-5000) pr.stage="saving";   // 예약은 섰고 라벨을 받는 중
+    frProgPaint();
+  },2000);
+}
+function frProgStop(){ if(frProg){ clearInterval(frProg.tick); clearInterval(frProg.poll); } frProg=null; }
+function frProgHtml(){
+  if(!frProg) return "";
+  const sec=Math.round((Date.now()-frProg.t0)/1000);
+  if(frProg.kind!=="book") return `<b>${frProg.kind==="cancel"?"Cancelling at Freightcom…":"Asking Freightcom again…"}</b> <span style="font-family:var(--mono)">${sec} s</span> · keep this page open`;
+  const order=["check","sent","carrier","saving"], at=order.indexOf(frProg.stage);
+  const carrier=(fr&&fr.selected&&fr.selected.carrier_name)||"the carrier";
+  const steps=[["check","Checking the booking in IMS"],["sent","Sent to Freightcom — waiting for its answer"],["carrier",`Freightcom accepted it — booking with ${esc(carrier)}`],["saving","Booked — saving tracking and labels"]];
+  return `<div style="font-weight:800;margin-bottom:6px">Booking in progress <span style="font-family:var(--mono);font-weight:700">${sec} s</span></div>`+
+    steps.map(([k,t],i)=>`<div style="${i<at?"color:var(--ok)":i===at?"font-weight:800":"color:var(--mut-2)"}">${i<at?"✓":i===at?"⏳":"○"} ${t}</div>`).join("")+
+    `<div style="font-size:11.5px;color:var(--mut);margin-top:6px">Freightcom usually takes 10 – 20 seconds · keep this page open</div>`;
+}
+function frProgPaint(){ const el=document.getElementById("frProg"); if(el) el.innerHTML=frProgHtml(); }
 function frBookHtml(sh,sel,booked,same){
   if(!sh) return "";
   const bk=fr.bk;
@@ -576,10 +605,12 @@ function frBookHtml(sh,sel,booked,same){
       <div>Pickup: ${frPickupText(cur.pickup)||"—"}</div>
       ${cur.cancel_error?`<div style="margin-top:6px;color:var(--danger)">Last cancel was refused — ${esc(cur.cancel_error)}</div>`:""}
       ${warnHtml}
+      ${frProg&&frProg.kind!=="book"?`<div id="frProg" style="margin-top:8px;color:#3b5bdb">${frProgHtml()}</div>`:""}
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">${lbtn}
         ${can?`<button class="btn ghost" id="frCancelBook" style="margin-left:auto;color:var(--danger)" ${frBookBusy?"disabled":""}>${frBookBusy?"Cancelling…":"Cancel booking"}</button>`:""}</div>`);
   }
-  if(cur&&cur.status==="pending") return frBox("#eef3ff","#3b5bdb",`Booking attempt #${esc(cur.attempt)} is still in progress at Freightcom… <button class="btn ghost" id="frBookPoll" ${frBookBusy?"disabled":""}>Check again</button>${warnHtml}`);
+  if(frBookBusy&&frProg&&frProg.kind==="book") return frBox("#eef3ff","#3b5bdb",`<div id="frProg">${frProgHtml()}</div>`);   // fu v1.5a — 예약을 기다리는 동안
+  if(cur&&cur.status==="pending") return frBox("#eef3ff","#3b5bdb",`${frProg?`<div id="frProg" style="margin-bottom:6px">${frProgHtml()}</div>`:""}Booking attempt #${esc(cur.attempt)} is still in progress at Freightcom… <button class="btn ghost" id="frBookPoll" ${frBookBusy?"disabled":""}>Check again</button>${warnHtml}`);
   if(sh.status!=="selected"||!sel) return "";
   let last="";
   if(cur&&cur.status==="failed") last=`<div style="color:var(--danger);margin-bottom:6px">Booking attempt #${esc(cur.attempt)} failed — ${esc(cur.error||"")}</div>`;
@@ -608,7 +639,7 @@ async function freightBook(){
   if(v("frPkUntil")) pickup.ready_until=v("frPkUntil");
   const nums=((fr.orders)||[]).map(x=>x.so_number).join(", ");
   if(!confirm(`Book ${sel.carrier_name} · ${sel.service_name} for ${nums}?\n\nThis is a real Freightcom booking — Asung is billed (Net Terms) unless it is cancelled.`)) return;
-  frBookBusy=true; renderFreight();
+  frBookBusy=true; frProgStart("book"); renderFreight();
   try{
     const r=await frInvoke({action:"book", shipment_id:sh.id, pickup});
     frBookWarn={booking_id:r&&r.booking_id, list:(r&&r.prepare_warnings)||[]};
@@ -619,31 +650,31 @@ async function freightBook(){
       toast("Booked — "+((r&&r.booking&&r.booking.tracking_number)||"tracking on the card"));
     }
   }catch(e){ toast("Booking: "+(e.message||e),true); }
-  finally{ frBookBusy=false; await freightLoad(); }
+  finally{ frProgStop(); frBookBusy=false; await freightLoad(); }
 }
 async function freightBookPoll(){
   const bk=fr&&fr.bk; if(frBookBusy||!bk||!bk.booking_id) return;
-  frBookBusy=true; renderFreight();
+  frBookBusy=true; frProgStart("poll"); renderFreight();
   try{
     const r=await frInvoke({action:"book_poll", booking_id:bk.booking_id});
     if(r&&r.pending) toast("Still working at Freightcom — try again in a moment","warn");
     const lw=(r&&r.labels&&r.labels.warnings)||[];
     if(lw.length){ frBookWarn={booking_id:bk.booking_id, list:((frBookWarn&&frBookWarn.booking_id===bk.booking_id)?frBookWarn.list:[]).concat(lw.map(x=>"label — "+x))}; }
   }catch(e){ toast("Booking: "+(e.message||e),true); }
-  finally{ frBookBusy=false; await freightLoad(); }
+  finally{ frProgStop(); frBookBusy=false; await freightLoad(); }
 }
 async function freightCancelBook(){
   if(frBookBusy||!fr||!fr.shipment) return;
   const cur=fr.bk&&fr.bk.current;
   if(!confirm(`Cancel the Freightcom booking${cur&&cur.tracking_number?" "+cur.tracking_number:""}?\n\nThe carrier and tracking number come off the orders (unless someone changed them). The picked rate stays, so you can book again.`)) return;
-  frBookBusy=true; renderFreight();
+  frBookBusy=true; frProgStart("cancel"); renderFreight();
   try{
     const r=await frInvoke({action:"cancel", shipment_id:fr.shipment.id});
     const kept=(r&&r.cancel&&r.cancel.orders_kept)||[];
     frBookWarn=null;
     toast(kept.length?("Cancelled — "+kept.join(", ")+" kept carrier / tracking (changed by someone)"):"Booking cancelled", kept.length?"warn":false);
   }catch(e){ toast("Cancel: "+(e.message||e),true); }
-  finally{ frBookBusy=false; await freightLoad(); }
+  finally{ frProgStop(); frBookBusy=false; await freightLoad(); }
 }
 async function freightLabel(labelId){
   const w=window.open("","_blank");   // 클릭 순간에 연다(팝업 막기 피하기) · 주소는 받은 뒤
