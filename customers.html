@@ -141,7 +141,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-26 · cs v6b";   // 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 761 · 762 · 763 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(customer_export p_q · p_only_active · p_only_new) · 주소 · 연락처 칸은 sales · master 쓰기만(DB 가 목록에서 뺀다) ← 2026-10-25 · cs v6a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-28 · cs v7";   // 대화 Claude — fc-1c ④(판정 839 · 840 · 843 · asung-wms fc-1a 1157e98): 주소 표에 Delivery 칸(주거지 auto · business · home · 테일게이트 · 인사이드) · 주소 창에 그 셋(customer_update address_add · address_set · olds = 글자 true/false · 빈칸 = auto) · 손님 머리에 Default carrier(보기) · Carriers to avoid(칩 + Change — customer_carrier_avoid_set · sales) ← cs v6b: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 761 · 762 · 763 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(customer_export p_q · p_only_active · p_only_new) · 주소 · 연락처 칸은 sales · master 쓰기만(DB 가 목록에서 뺀다) ← 2026-10-25 · cs v6a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -383,11 +383,16 @@ async function loadDetail(id){
   }
   const cnm = await namesOf([r.parent_id, r.default_bill_to_customer_id, r.default_ship_to_customer_id].concat(kids.map(k => k.default_bill_to_customer_id)));
   /* cs v4 — 백오더 알림 메일 스위치(판정 507 · 517 — 보기 sales · 바꾸기 manager 이상 · 판정은 창구의 can_edit) */
+  const [avq, carq] = await Promise.all([   // cs v7 — 판정 843: 피할 운송사 · 운송사 표(kind carrier)
+    sb.from("customer_carrier_avoid").select("carrier_id").eq("customer_id", id),
+    CS_CARRIERS ? Promise.resolve({ data: CS_CARRIERS }) : sb.from("ref_carrier").select("id,name,kind,is_active").order("name") ]);
+  if(!CS_CARRIERS && !carq.error) CS_CARRIERS = carq.data || [];
+  const avoidIds = (avq.data || []).map(x => x.carrier_id);
   const bmq = await sb.rpc("customer_backorder_mail", { p_customer_id: id });
   if(bmq.error) console.warn("customer_backorder_mail:", bmq.error.message);
   const bmOn = bmq.data ? bmq.data.backorder_mail !== false : r.backorder_mail !== false, bmEdit = !!(bmq.data && bmq.data.can_edit);
   if(seq !== detailSeq) return;
-  cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0, kids, billName: cnm[r.default_bill_to_customer_id] ? cnm[r.default_bill_to_customer_id].name : "" };
+  cur = { r, addr: addr.data || [], cont: cont.data || [], openSo: so.count || 0, kids, billName: cnm[r.default_bill_to_customer_id] ? cnm[r.default_bill_to_customer_id].name : "", avoidIds };   // cs v7 — avoidIds
 
   const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span class="chip">${esc(imsSrc(r.source))}</span>`];
   if(isNew(r)) chips.push('<span class="chip warn">new — not reviewed by a manager</span>');
@@ -403,6 +408,9 @@ async function loadDetail(id){
       : '<span class="off">off</span> <span class="dim">— orders shipped &amp; invoiced together go on one invoice</span>')
       + ' <div class="dim" style="font-size:11.5px">Switched on the head-office customer. It only splits the number of invoices — it does not change who is billed.</div>'],
     ["Default warehouse", dim(r.default_location_name)], ["Tax rule", dim(r.tax_rule)], ["Tax number", dim(r.tax_number)],
+    ["Default carrier", r.default_carrier_id ? esc(csCarName(r.default_carrier_id)) + ' <span class="dim" style="font-size:11.5px">— freight quotes pick this carrier\'s cheapest rate first</span>' : (r.default_carrier ? esc(r.default_carrier) + ' <span class="dim">(typed — not on the carrier list)</span>' : '<span class="dim">— none · quotes pick the cheapest</span>')],   // cs v7 — 판정 843
+    ["Carriers to avoid", (avoidIds.length ? avoidIds.map(cid => `<span class="chip bad">${esc(csCarName(cid))}</span>`).join(" ") : '<span class="dim">none</span>')
+      + (canWrite ? ' <button class="xs" id="avBtn">Change</button>' : "") + ' <div class="dim" style="font-size:11.5px">Their freight quotes are shown greyed out and cannot be picked.</div>'],   // cs v7 — 판정 843
     ["Backorder emails", (bmOn ? '<span class="on">on</span> <span class="dim">— gets an email when backordered items can ship</span>' : '<span class="off">off</span> <span class="dim">— no backorder arrival emails</span>')
       + (bmEdit ? ` <button class="xs" id="bmBtn">${bmOn ? "Turn off" : "Turn on"}</button>` : ' <span class="dim" style="font-size:11.5px">(a manager can change this)</span>')],
     /* cs v4b — 판정 529: 최종 인보이스 자동 메일(같은 문 — manager 이상 · bmEdit 와 같은 판정 · DB 가 마지막 문) */
@@ -424,7 +432,7 @@ async function loadDetail(id){
   const aRows = cur.addr.map((a, i) => `<tr>
       <td class="mono">${dim(a.type)}${a.is_default_for_type ? ' <span class="chip good">default</span>' : ""}</td>
       <td>${dim(a.label)}</td><td>${dim(a.line1)}${a.line2 ? "<br>" + esc(a.line2) : ""}</td><td>${dim(a.city)}</td><td>${dim(a.state_province)}</td>
-      <td class="mono">${dim(a.postal_code)}</td><td>${dim(a.country)}</td>
+      <td class="mono">${dim(a.postal_code)}</td><td>${dim(a.country)}</td><td style="white-space:nowrap">${csDelivery(a)}</td>
       <td style="white-space:nowrap">${canWrite ? `<button class="xs" data-ae="${i}">Edit</button> ${a.is_default_for_type ? "" : `<button class="xs" data-ad="${i}">Make default</button> `}<button class="xs" data-ao="${i}">Remove</button>` : ""}</td></tr>`);
   const cRows = cur.cont.map((t, i) => `<tr>
       <td>${dim(t.name)}${t.is_default ? ' <span class="chip good">default</span>' : ""}</td><td>${dim(t.job_title)}</td>
@@ -438,7 +446,7 @@ async function loadDetail(id){
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
     ${storesCard(r, kids, kidOpen, cnm)}
     <div id="histBox"><div class="card"><h3>Order history</h3><div class="msg">Loading…</div></div></div>
-    ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr")}
+    ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", "Delivery", ""], aRows, "addAddr")}
     ${tbl("Contacts", cur.cont.length, ["Name", "Job title", "Phone", "Mobile", "Email", "Website", "Marketing", "Include in email", ""], cRows, "addCont")}`;
 
   $("togList").onclick = () => { $("listPanel").hidden = !$("listPanel").hidden; };
@@ -457,6 +465,7 @@ async function loadDetail(id){
     r.final_invoice_mail === true ? `Stop emailing invoices to ${r.name} automatically` : `Email every new invoice to ${r.name} automatically (with the PDF)`);   // cs v4b
   if($("actBtn")) $("actBtn").onclick = () => runUpdate([{ customer_id: r.id, op: "set", field: "is_active", value: String(!r.is_active), old: String(r.is_active) }], r.is_active ? "Deactivate " + r.name : "Activate " + r.name);
   if($("addAddr")) $("addAddr").onclick = () => openAddr(null);
+  if($("avBtn")) $("avBtn").onclick = openAvoid;   // cs v7
   if($("addCont")) $("addCont").onclick = () => openCont(null);
   box.querySelectorAll("[data-ae]").forEach(b => { b.onclick = () => openAddr(cur.addr[+b.dataset.ae]); });
   box.querySelectorAll("[data-ad]").forEach(b => { b.onclick = () => { const a = cur.addr[+b.dataset.ad]; runUpdate([{ customer_id: r.id, op: "address_default", address_id: a.id }], `Make this the default ${a.type} address`); }; });
@@ -777,6 +786,32 @@ function openEdit(){
     $("eMsg"), $("eGo"), async () => { modalClose(); await loadDetail(curId); await loadList(); });
 }
 
+/* ── cs v7 — 배송 조건 · 운송사(판정 839 · 840 · 843) ───────────────
+   ⚠️ 피할 운송사 = 창구 customer_carrier_avoid_set(p_customer_id, p_carrier_ids · sales · 통째 바꿈 · kind carrier 만) · 표 직접 쓰기 닫힘
+   ⚠️ 주소 조건은 customer_update 의 주소 열쇠(fc-1a) — olds 는 글자(true/false · 빈칸 = null) */
+let CS_CARRIERS = null;
+function csCarName(id){ const c = (CS_CARRIERS || []).find(x => x.id === id); return c ? c.name + (c.is_active ? "" : " (inactive)") : "(unknown carrier)"; }
+function csDelivery(a){
+  const r = a.residential === true ? '<span class="chip">home</span>' : a.residential === false ? '<span class="chip">business</span>' : '<span class="dim">auto</span>';
+  return r + (a.tailgate_required ? ' <span class="chip warn">tailgate</span>' : "") + (a.threshold_delivery ? ' <span class="chip warn">inside</span>' : "");
+}
+function openAvoid(){
+  const list = (CS_CARRIERS || []).filter(c => c.kind === "carrier" && (c.is_active || cur.avoidIds.includes(c.id)));
+  modalOpen(`<h4>Carriers to avoid — ${esc(cur.r.name)}</h4><div class="pbody">
+      <div class="cnote">Tick the carriers this customer does not want. Their freight quotes are greyed out and cannot be picked — in the warehouse and at Ship &amp; invoice.</div>
+      <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${list.map(c => `<label style="width:auto;display:flex;gap:6px;align-items:center"><input type="checkbox" data-avc="${esc(c.id)}" ${cur.avoidIds.includes(c.id) ? "checked" : ""}> ${esc(c.name)}${c.is_active ? "" : ' <span class="dim">(inactive)</span>'}</label>`).join("") || '<div class="msg">No carriers on the list.</div>'}</div>
+      <div id="avMsg" class="cmsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="avCancel">Cancel</button><button class="pobtn go" id="avGo">Save</button></div>`);
+  $("avCancel").onclick = modalClose;
+  $("avGo").onclick = async () => {
+    const ids = Array.from(document.querySelectorAll("#modalBox [data-avc]:checked")).map(x => x.dataset.avc);
+    $("avGo").disabled = true; $("avMsg").textContent = "Saving…";
+    const { error } = await sb.rpc("customer_carrier_avoid_set", { p_customer_id: cur.r.id, p_carrier_ids: ids });
+    if(error){ $("avMsg").innerHTML = `<div class="b">✕ ${esc(error.message)}</div>`; $("avGo").disabled = false; return; }
+    modalClose(); await loadDetail(curId);
+  };
+}
+
 /* ── 주소 · 연락처 ────────────────────────────────────── */
 const AF = ["type", "label", "line1", "line2", "city", "state_province", "postal_code", "country"];
 function openAddr(a){
@@ -789,16 +824,26 @@ function openAddr(a){
       <div class="cf"><label>Province</label><input type="text" id="a_state_province"></div>
       <div class="cf"><label>Postal code</label><input type="text" id="a_postal_code"></div>
       <div class="cf"><label>Country</label><input type="text" id="a_country"></div>
-    </div>${a ? "" : '<div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="a_default"> Make it the default for its type</label></div>'}
+    </div>
+    <div class="cgrid" style="margin-top:8px">   <!-- cs v7 — 판정 839 · 840: 배송 조건(견적에 자동으로 들어간다) -->
+      <div class="cf"><label>Delivery to</label><select id="a_residential"><option value="">Auto — business if the order has a company name, otherwise home</option><option value="false">Business</option><option value="true">Home (residential)</option></select></div>
+      <div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="a_tailgate_required"> Tailgate (no loading dock)</label></div>
+      <div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="a_threshold_delivery"> Inside delivery</label></div>
+    </div>
+    <div class="cnote" style="margin-top:4px">These go into freight quotes for this address automatically. Staff can still change them on a quote.</div>
+    ${a ? "" : '<div class="cf"><label></label><label style="width:auto"><input type="checkbox" id="a_default"> Make it the default for its type</label></div>'}
     <div id="aMsg" class="cmsg"></div></div>
     <div class="pfoot"><span class="sp"></span><button class="pobtn" id="aCancel">Cancel</button><button class="pobtn go" id="aGo">Save</button></div>`);
   AF.forEach(f => { $("a_" + f).value = a ? sv(a[f]) : (f === "country" ? "Canada" : f === "type" ? "Shipping" : ""); });
+  $("a_residential").value = a ? sv(a.residential) : ""; $("a_tailgate_required").checked = !!(a && a.tailgate_required); $("a_threshold_delivery").checked = !!(a && a.threshold_delivery);   // cs v7
   $("aCancel").onclick = modalClose;
   const build = () => {
     const cid = cur.r.id;
-    if(!a){ const v = {}; AF.forEach(f => { const x = val("a_" + f); if(x) v[f] = x; }); v.is_default_for_type = val("a_default"); return [{ customer_id: cid, op: "address_add", values: v }]; }
+    const dv = { residential: $("a_residential").value, tailgate_required: String($("a_tailgate_required").checked), threshold_delivery: String($("a_threshold_delivery").checked) };   // cs v7 — 글자 true/false · 빈칸 = auto
+    if(!a){ const v = {}; AF.forEach(f => { const x = val("a_" + f); if(x) v[f] = x; }); v.is_default_for_type = val("a_default"); if(dv.residential !== "") v.residential = dv.residential; v.tailgate_required = dv.tailgate_required; v.threshold_delivery = dv.threshold_delivery; return [{ customer_id: cid, op: "address_add", values: v }]; }
     const v = {}, o = {};
     AF.forEach(f => { const now = val("a_" + f), was = sv(a[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = was; } });
+    Object.keys(dv).forEach(f => { const now = dv[f], was = f === "residential" ? sv(a[f]) : String(!!a[f]); if(now !== was){ v[f] = now === "" ? null : now; o[f] = f === "residential" ? was : String(a[f] === true); } });   // cs v7
     return Object.keys(v).length ? [{ customer_id: cid, op: "address_set", address_id: a.id, values: v, olds: o }] : [];
   };
   saveTwoStep(ack => { const ch = build(); if(!ch.length) return Promise.resolve({ data: { committed: false, blocks: [{ message: "Nothing changed." }] } }); return sb.rpc("customer_update", { p_changes: ch, p_commit: true, p_ack: ack }); },
