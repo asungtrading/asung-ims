@@ -92,7 +92,7 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-const ST_BUILD = "2026-10-20 · st v3a";   // 대화 Claude — st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
+const ST_BUILD = "2026-10-29 · st v3b";   // 대화 Claude — st v3b(fc-2d · 판정 859): 열쇠의 방은 ims_perm_catalog 의 rooms(배열 · 없으면 room 하나) — 한 열쇠를 두 방이 쓰면(freight_booking = wms · ims) 둘 중 하나만 체크해도 보이고 저장 때 지워지지 않는다(옛 st v3a 는 room 하나만 보아 WMS 만 체크한 직원의 freight_booking 을 지웠다) ← st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
 console.log("staff.html build:", ST_BUILD);
 let sb=null, me=null, isAdmin=false, canEditStaff=false, WHS=[];
 let all=[], q="", curId=null, mode="view";   // mode: view | add
@@ -338,7 +338,8 @@ async function drawPerms(s){
       `<label class="ck" style="margin-right:12px">
          <input type="radio" name="perm_${esc(key)}" value="${v}" data-screen="${esc(key)}"${level === v ? " checked" : ""}${dis}>
          ${label}</label>`;
-    return `<tr data-room="${esc(info.room || "")}">
+    const rooms = (Array.isArray(info.rooms) && info.rooms.length) ? info.rooms : [info.room || ""];   // st v3b — 859: 두 방이 쓰는 열쇠
+    return `<tr data-room="${esc(rooms.join(" "))}">
       <td style="padding-right:12px;max-width:560px">   <!-- st v3a — 설명 글이 길면 줄을 바꾼다(cost 설명이 nowrap 으로 열을 늘려 단추가 오른쪽 끝으로 밀렸다) -->
         <span class="mono" style="white-space:nowrap">${esc(key)}</span>
         <div class="hint" style="margin:0">${esc(info.label || "")}</div>
@@ -358,13 +359,13 @@ async function drawPerms(s){
      ⭐ 둘 다 안 체크 = 모든 화면이 보이고 아무것도 빼지 않는다(옛 모양) */
   const sync = () => {
     const on = [...box.querySelectorAll("input[data-mode]:checked")].map(c => c.dataset.mode);
-    const show = r => !on.length || on.includes(r);
+    const show = r => !on.length || r.split(" ").some(x => on.includes(x));   // st v3b — 방 중 하나라도 체크되면 보인다
     let lose = { wms: 0, ims: 0 };
     box.querySelectorAll("tr[data-room]").forEach(tr => {
       const r = tr.dataset.room, vis = show(r);
       tr.hidden = !vis;
       const level = (tr.querySelector("input[data-screen]:checked") || {}).value;
-      if(!vis && level && level !== "none") lose[r] = (lose[r] || 0) + 1;
+      if(!vis && level && level !== "none"){ const k = r.split(" ").join("/"); lose[k] = (lose[k] || 0) + 1; }
     });
     const w = Object.entries(lose).filter(([, n]) => n).map(([r, n]) => `${n} ${r.toUpperCase()} screen${n === 1 ? "" : "s"}`);
     document.getElementById("roomWarn").textContent = w.length ? `Saving will remove ${w.join(" and ")} — their room is not ticked.` : "";
