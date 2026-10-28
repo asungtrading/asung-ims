@@ -344,7 +344,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-28 · fu v1.4";   // 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-28 · fu v1.4a";   // 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -476,6 +476,7 @@ function renderFreight(){
   if(fr.err){ panel.innerHTML=`<div class="phead"><h2>Freight</h2></div><div style="padding:12px;color:var(--danger)">${esc(fr.err)}</div>`; return; }
   const sh=fr.shipment, q=fr.quote, sel=fr.selected;
   const same=sh?frSameOrders():true;
+  const isPallet=sh&&sh.packaging_type?sh.packaging_type==="pallet":(fr.units_now||[]).some(u=>u.unit_type==="pallet");   // fu v1.4a — 850
   const o=frOpts||(sh&&sh.options)||{};
   const ck=(k,lbl,tip)=>`<label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="${esc(tip)}"><input type="checkbox" data-fopt="${k}" ${o[k]?"checked":""}> ${lbl}</label>`;
   const noDims=Number(fr.units_without_dims||0);
@@ -512,8 +513,7 @@ function renderFreight(){
     <div style="padding:10px 12px">
       <div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
         ${ck("residential","Residential","Delivery to a home — carriers charge more")}
-        ${ck("tailgate_required","Tailgate","No loading dock — needs a lift gate (pallets)")}
-        ${ck("threshold_delivery","Inside delivery","Carry inside the door (pallets)")}
+        ${isPallet?ck("tailgate_required","Tailgate","No loading dock — needs a lift gate")+ck("threshold_delivery","Inside delivery","Carry inside the door"):'<span style="font-size:12px;color:var(--mut-2);margin-right:14px">Tailgate · inside delivery: pallets only</span>'}
         <label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="Use these options for this address next time"><input type="checkbox" id="frRemember"> Remember for this address</label>
         <button class="btn dark" id="frQuote" style="background:var(--accent);color:#fff;margin-left:auto" ${noDims||frBusy?"disabled":""}>${frBusy?"Quoting…":(q?"Get quotes again":"Get freight quotes")}</button>
       </div>
@@ -531,7 +531,7 @@ async function freightQuote(){
   const ids=frSoIds(); if(!ids.length) return;
   const opts={};
   document.querySelectorAll("#freightPanel [data-fopt]").forEach(i=>{ if(frOpts||(fr&&fr.shipment)) opts[i.dataset.fopt]=i.checked; });   // 처음이면 빈 칸 = 주소 · 기본값
-  if(document.getElementById("frRemember").checked){ Object.assign(opts,{ residential:document.querySelector('[data-fopt="residential"]').checked, tailgate_required:document.querySelector('[data-fopt="tailgate_required"]').checked, threshold_delivery:document.querySelector('[data-fopt="threshold_delivery"]').checked, remember:true }); }
+  if(document.getElementById("frRemember").checked){ document.querySelectorAll("#freightPanel [data-fopt]").forEach(i=>{ opts[i.dataset.fopt]=i.checked; }); opts.remember=true; }   // fu v1.4a — 보이는 체크만(상자면 테일게이트 · 인사이드가 없다 · 850)
   frBusy=true; renderFreight();
   try{
     const r=await frInvoke({action:"quote", so_ids:ids, options:opts, created_in:"wms"});
