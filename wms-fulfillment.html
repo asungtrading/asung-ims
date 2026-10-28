@@ -307,6 +307,7 @@
         <div class="units" id="units"></div>
       </div>
     </div>
+    <div class="panel" id="freightPanel" style="display:none;margin-top:14px"></div>   <!-- fu v1.4 — fc-1c ② Freight -->
 </main>
 
 <div class="modal" id="qtyModal"><div class="box2">
@@ -343,7 +344,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-01 · fu v1.3";   // wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-28 · fu v1.4";   // 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -439,6 +440,128 @@ function placeTo(uid,utype){
 const recentDrag=()=>Date.now()-(window.__justDragged||0)<350; // ignore ghost taps right after a drag
 document.getElementById("plCancel").onclick=()=>disarm();
 document.getElementById("plPool").onclick=()=>{ if(armed&&armed.kind==="item"){ const id=armed.itemId; disarm(); removeItem(id); } };
+
+/* ---------- fu v1.4 — Freight(fc-1c ② · 판정 835 ~ 848) ----------
+   ⚠️ 엔진은 하나 · 입구는 둘(835) — 여기는 창고 입구 · 오피스 Ship & invoice 도 같은 견적을 본다
+   ⚠️ 읽기 = rpc fc_shipment_for_so(첫 판매 오더) · 견적 = EF freightcom {action:"quote", so_ids, options, created_in:"wms"} · 기다림 = {action:"quote_poll"} · 고르기 = rpc fc_quote_select
+   ⚠️ 문은 DB 가 본다(fc_gate — sales 또는 fulfillment · 창고) · 거부 글은 그대로 보인다
+   ⚠️ 「이 주소에 기억」 — sales 없는 창고 직원이면 주소에 쓰지 않고 오피스 확인 표시만(845) · 운송사 표에 없는 운송사는 고를 수 없다 — 오피스가 더한다(846)
+   ⚠️ 트랜스퍼 작업대에는 보이지 않는다(842) */
+let fr=null, frBusy=false, frTimer=null, frOpts=null;
+const frMoney=c=>c==null?"—":"$"+(Number(c)/100).toFixed(2);
+function frSoIds(){ return orders.filter(o=>!o.is_transfer).map(o=>o.id); }
+function freightSoon(){ clearTimeout(frTimer); frTimer=setTimeout(freightLoad,800); }
+async function frInvoke(body){
+  const {data,error}=await sb.functions.invoke("freightcom",{body});
+  if(!error) return data;
+  let msg=error.message||String(error);
+  try{ if(error.context&&typeof error.context.json==="function"){ const j=await error.context.json(); if(j&&j.error) msg=j.error; } }catch(e){}
+  throw new Error(msg);
+}
+async function freightLoad(){
+  const panel=document.getElementById("freightPanel");
+  const ids=frSoIds();
+  if(!ids.length||orders.some(o=>o.is_transfer)){ panel.style.display="none"; fr=null; return; }
+  const {data,error}=await sb.rpc("fc_shipment_for_so",{p_so_id:ids[0]});
+  if(error){ fr={err:error.message}; } else { fr=data||{}; }
+  renderFreight();
+}
+function frSameOrders(){
+  const want=new Set(frSoIds()), have=new Set(((fr&&fr.orders)||[]).map(o=>o.so_id));
+  return want.size===have.size && [...want].every(x=>have.has(x));
+}
+function renderFreight(){
+  const panel=document.getElementById("freightPanel"); panel.style.display="block";
+  if(!fr){ panel.innerHTML=""; return; }
+  if(fr.err){ panel.innerHTML=`<div class="phead"><h2>Freight</h2></div><div style="padding:12px;color:var(--danger)">${esc(fr.err)}</div>`; return; }
+  const sh=fr.shipment, q=fr.quote, sel=fr.selected;
+  const same=sh?frSameOrders():true;
+  const o=frOpts||(sh&&sh.options)||{};
+  const ck=(k,lbl,tip)=>`<label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="${esc(tip)}"><input type="checkbox" data-fopt="${k}" ${o[k]?"checked":""}> ${lbl}</label>`;
+  const noDims=Number(fr.units_without_dims||0);
+  let warn="";
+  if(noDims) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">${noDims} unit(s) without dimensions or weight — fill them in above before quoting</div>`;
+  if(sh&&fr.units_changed) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">Boxes or pallets changed since this quote — get quotes again</div>`;
+  if(sh&&!same) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">The last quote was for ${esc(((fr.orders)||[]).map(x=>x.so_number).join(", "))} — get quotes again for the orders on this workspace</div>`;
+  if(sh&&sh.address_review&&!sh.address_review_closed_at) warn+=`<div class="otag" style="color:#3b5bdb;background:#eef3ff;display:inline-block;margin:4px 0">Delivery options sent to the office to remember for this address</div>`;
+  if(sh&&sh.freight_locked) warn+=`<div class="otag" style="color:var(--mut);background:var(--line-2);display:inline-block;margin:4px 0">Customer paid shipping at checkout — the cheapest quote is used, the invoice freight stays as paid</div>`;
+  let list="";
+  if(q&&q.status==="pending") list=`<div style="padding:10px 0">Freightcom is still working on the quote… <button class="btn ghost" id="frPoll">Check again</button></div>`;
+  else if(q&&q.status==="error") list=`<div style="padding:10px 0;color:var(--danger)">The quote failed — ${esc(q.error||"")}</div>`;
+  else if(q&&q.rates&&q.rates.length){
+    const rs=q.rates.slice().sort((a,b)=>Number(a.total_cents)-Number(b.total_cents));
+    const pick=sel?sel.rate_id:(rs.find(r=>r.preselected)||{}).rate_id;
+    list=`<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:6px"><thead><tr style="text-align:left;color:var(--mut);font-size:11.5px">
+      <th style="padding:5px 6px"></th><th style="padding:5px 6px">Carrier</th><th style="padding:5px 6px">Service</th><th style="padding:5px 6px">Days</th><th style="padding:5px 6px;text-align:right">Our cost</th><th style="padding:5px 6px;text-align:right">Customer freight</th><th style="padding:5px 6px"></th></tr></thead><tbody>`+
+      rs.map(r=>{
+        const why=r.avoided?"customer avoids this carrier":(r.carrier_id?"":"not on the carrier list — the office adds it");
+        const dimRow=!r.selectable;
+        return `<tr style="border-top:1px solid var(--line);${dimRow?"color:var(--mut-2)":""}${r.selected?";background:#ecfdf3":""}">
+          <td style="padding:6px"><input type="radio" name="frRate" value="${esc(r.rate_id)}" ${r.rate_id===pick?"checked":""} ${dimRow?"disabled":""}></td>
+          <td style="padding:6px;font-weight:700">${esc(r.carrier_name)}</td><td style="padding:6px">${esc(r.service_name)}</td>
+          <td style="padding:6px">${r.transit_days==null?"—":esc(r.transit_days)}</td>
+          <td style="padding:6px;text-align:right;font-family:var(--mono)">${frMoney(r.total_cents)}</td>
+          <td style="padding:6px;text-align:right;font-family:var(--mono)">${sh&&sh.freight_locked?'<span style="color:var(--mut-2)">paid</span>':frMoney(r.customer_charge_cents)}</td>
+          <td style="padding:6px;font-size:11.5px">${r.selected?'<b style="color:var(--ok)">picked</b>':(r.preselected&&!sel?"cheapest":"")}${why?esc(why):""}</td></tr>`;
+      }).join("")+`</tbody></table>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button class="btn dark" id="frUse" style="background:var(--ink);color:#fff">Use this rate</button>
+      <span style="font-size:12px;color:var(--mut)">Our cost includes Freightcom's tax. Customer freight = before tax × (1 + ${esc(fr.markup_pct??"")} %) — the office can change it at Ship & invoice.</span></div>`;
+  } else if(q&&q.status==="done") list=`<div style="padding:10px 0;color:var(--mut)">No rates came back for these boxes or pallets.</div>`;
+  const head=sel?`<span class="otag" style="color:var(--ok);background:#ecfdf3">${esc(sel.carrier_name)} · ${esc(sel.service_name)} · ${sh&&sh.freight_locked?"paid at checkout":frMoney(sel.customer_charge_cents)}</span>`:(sh?`<span class="otag">${esc(sh.status)}</span>`:"");
+  panel.innerHTML=`<div class="phead"><h2>Freight</h2>${head}<span style="margin-left:auto;font-size:11px;color:var(--mut-2)">${sh&&sh.freightcom_account?"Freightcom "+esc(sh.freightcom_account):""}</span></div>
+    <div style="padding:10px 12px">
+      <div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
+        ${ck("residential","Residential","Delivery to a home — carriers charge more")}
+        ${ck("tailgate_required","Tailgate","No loading dock — needs a lift gate (pallets)")}
+        ${ck("threshold_delivery","Inside delivery","Carry inside the door (pallets)")}
+        <label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="Use these options for this address next time"><input type="checkbox" id="frRemember"> Remember for this address</label>
+        <button class="btn dark" id="frQuote" style="background:var(--accent);color:#fff;margin-left:auto" ${noDims||frBusy?"disabled":""}>${frBusy?"Quoting…":(q?"Get quotes again":"Get freight quotes")}</button>
+      </div>
+      ${sh?"":'<div style="font-size:12px;color:var(--mut);margin-top:4px">Options start from the customer\'s address (or company / home by default). Pickup and our own delivery need no quote.</div>'}
+      ${warn}
+      ${list}
+    </div>`;
+  panel.querySelectorAll("[data-fopt]").forEach(i=>i.onchange=()=>{ frOpts=Object.assign({}, (sh&&sh.options)||{}, frOpts||{}, {[i.dataset.fopt]:i.checked}); });
+  document.getElementById("frQuote").onclick=freightQuote;
+  const pb=document.getElementById("frPoll"); if(pb) pb.onclick=freightPoll;
+  const ub=document.getElementById("frUse"); if(ub) ub.onclick=freightUse;
+}
+async function freightQuote(){
+  if(frBusy) return;
+  const ids=frSoIds(); if(!ids.length) return;
+  const opts={};
+  document.querySelectorAll("#freightPanel [data-fopt]").forEach(i=>{ if(frOpts||(fr&&fr.shipment)) opts[i.dataset.fopt]=i.checked; });   // 처음이면 빈 칸 = 주소 · 기본값
+  if(document.getElementById("frRemember").checked){ Object.assign(opts,{ residential:document.querySelector('[data-fopt="residential"]').checked, tailgate_required:document.querySelector('[data-fopt="tailgate_required"]').checked, threshold_delivery:document.querySelector('[data-fopt="threshold_delivery"]').checked, remember:true }); }
+  frBusy=true; renderFreight();
+  try{
+    const r=await frInvoke({action:"quote", so_ids:ids, options:opts, created_in:"wms"});
+    if(r&&r.pending) toast("Freightcom is still working — press Check again in a moment","warn");
+    const w=(r&&r.prepare&&r.prepare.warnings)||[];
+    if(w.includes("address_not_found")||w.includes("address_ambiguous")) toast("Could not match the ship-to to one customer address — the office will decide","warn");
+    frOpts=null;
+  }catch(e){ toast("Quote: "+(e.message||e),true); }
+  finally{ frBusy=false; await freightLoad(); }
+}
+async function freightPoll(){
+  if(!fr||!fr.shipment||!fr.quote) return;
+  try{ await frInvoke({action:"quote_poll", shipment_id:fr.shipment.id, request_id:fr.quote.request_id}); }catch(e){ toast("Quote: "+(e.message||e),true); }
+  await freightLoad();
+}
+async function freightUse(){
+  const r=document.querySelector('#freightPanel input[name="frRate"]:checked');
+  if(!r){ toast("Pick a rate first",true); return; }
+  const {error}=await sb.rpc("fc_quote_select",{p_shipment_id:fr.shipment.id, p_rate_id:r.value});
+  if(error){ toast(error.message,true); return; }
+  toast("Rate picked — the office sees it at Ship & invoice");
+  await freightLoad();
+}
+function frConfirmLine(){
+  if(!fr||fr.err||!frSoIds().length) return "Freight: —";
+  const sel=fr.selected;
+  if(sel&&frSameOrders()&&!fr.units_changed) return `Freight: ${sel.carrier_name} · ${sel.service_name}${fr.shipment&&fr.shipment.freight_locked?"":" · "+frMoney(sel.customer_charge_cents)}`;
+  if(fr.quote) return "Freight: quoted but no rate picked (or out of date) — the office decides";
+  return "Freight: no quote — the office arranges it (fine for pickup or our own delivery)";
+}
 
 /* ---------- login ---------- */
 function boot(){
@@ -647,6 +770,7 @@ document.getElementById("completeBtn").onclick=async ()=>{
   let msg=`Finalize ${orders.length} order(s)?\n\n`+orders.map(o=>"· "+o.order_number).join("\n");
   if(direct.length) msg+=`\n\nDirect pack — no pallet/box (pickup / immediate ship):\n`+direct.map(x=>"· "+x.o.order_number).join("\n");
   if(partial.length) msg+=`\n\n\u26a0 Still has unplaced items (will finalize anyway):\n`+partial.map(x=>`· ${x.o.order_number} (${x.unplaced} units)`).join("\n");
+  msg+=`\n\n`+frConfirmLine();   // fu v1.4 — 고른 운임(없으면 「오피스가 정한다」)
   msg+=`\n\nFinalized orders leave the fulfillment board.`;
   if(mixedKinds(orders.map(o=>o.id))){ toast(MIX_MSG,true); return; }   // tf-2b 판정 84 ① — 마무리 앞에서 한 번 더(DB 의 wms_finalize 도 거부한다)
   if(!confirm(msg)) return;
@@ -680,6 +804,7 @@ document.getElementById("completeBtn").onclick=async ()=>{
     document.getElementById("storeBar").style.display="none";
     document.getElementById("pool").innerHTML="";
     document.getElementById("units").innerHTML="";
+    fr=null; document.getElementById("freightPanel").style.display="none"; document.getElementById("freightPanel").innerHTML="";   // fu v1.4
     btn.style.display="none";
     loadOrders();
   }catch(e){ toast("Complete failed: "+(e.message||e),true); }
@@ -748,6 +873,7 @@ async function loadWorkspace(){
   poolLines.forEach(p=>{ if(bcBySku[p.sku]) return; const b=(p.barcodes||[]).find(x=>x.sku===p.sku)||(p.barcodes||[]).find(x=>Number(x.factor)===1); if(b) bcBySku[p.sku]=String(b.barcode||"").trim(); });
   renderStoreBar();
   await refresh();
+  freightLoad();   // fu v1.4 — fc-1c ②
   if(HAS_IMAGES) fillPhotos();   // 판정 224 — 풀 카드 사진(그려진 칸만 채운다 · 다시 그리지 않는다 · 뒤의 renderPool 은 pl.image 로)
   focusProdScan(true);   // orders are in — product scanning is now the default job
 }
@@ -936,7 +1062,8 @@ async function saveDims(uid){
     const rows=await mustRows(sb.from("wms_pallets").update(patch).eq("id",uid).select("id,dim_length,dim_width,dim_height,dim_unit,weight,weight_unit,length_in,width_in,height_in,weight_lb"),"Saving the dimensions failed - retype them");
     const u=units.find(x=>x.id===uid); if(u) Object.assign(u,rows[0]);
     const sv=row.querySelector(".saved"); const txt=u?dimsSaved(u):null;
-    if(sv){ sv.textContent=txt||"no dimensions yet — the office needs them for the freight quote"; sv.className="saved"+(txt?"":" miss"); }
+    if(sv){ sv.textContent=txt||"no dimensions yet — needed for the freight quote"; sv.className="saved"+(txt?"":" miss"); }
+    freightSoon();   // fu v1.4 — 유닛이 바뀌었는지 다시 본다
   }catch(e){ toast(e.message||String(e),true); }
 }
 function wireDims(){
