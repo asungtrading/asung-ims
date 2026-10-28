@@ -344,7 +344,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-28 · fu v1.4a";   // 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-29 · fu v1.5";   // 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -447,7 +447,7 @@ document.getElementById("plPool").onclick=()=>{ if(armed&&armed.kind==="item"){ 
    ⚠️ 문은 DB 가 본다(fc_gate — sales 또는 fulfillment · 창고) · 거부 글은 그대로 보인다
    ⚠️ 「이 주소에 기억」 — sales 없는 창고 직원이면 주소에 쓰지 않고 오피스 확인 표시만(845) · 운송사 표에 없는 운송사는 고를 수 없다 — 오피스가 더한다(846)
    ⚠️ 트랜스퍼 작업대에는 보이지 않는다(842) */
-let fr=null, frBusy=false, frTimer=null, frOpts=null;
+let fr=null, frBusy=false, frTimer=null, frOpts=null, frBookBusy=false, frBookWarn=null;   // fu v1.5 — frBookWarn = {booking_id, list} 이 화면에서 마지막 예약의 알림(DB 에 안 남는다)
 const frMoney=c=>c==null?"—":"$"+(Number(c)/100).toFixed(2);
 function frSoIds(){ return orders.filter(o=>!o.is_transfer).map(o=>o.id); }
 function freightSoon(){ clearTimeout(frTimer); frTimer=setTimeout(freightLoad,800); }
@@ -464,6 +464,11 @@ async function freightLoad(){
   if(!ids.length||orders.some(o=>o.is_transfer)){ panel.style.display="none"; fr=null; return; }
   const {data,error}=await sb.rpc("fc_shipment_for_so",{p_so_id:ids[0]});
   if(error){ fr={err:error.message}; } else { fr=data||{}; }
+  if(fr.shipment&&fr.shipment.id){   // fu v1.5 — 예약(현재 시도 · 이력 · 라벨 · can_book) · 읽기만
+    const b=await sb.rpc("fc_booking_for_shipment",{p_shipment_id:fr.shipment.id});
+    fr.bk=b.error?{err:b.error.message}:(b.data||null);
+    if(frBookWarn&&(!fr.bk||fr.bk.booking_id!==frBookWarn.booking_id)) frBookWarn=null;
+  }
   renderFreight();
 }
 function frSameOrders(){
@@ -476,14 +481,16 @@ function renderFreight(){
   if(fr.err){ panel.innerHTML=`<div class="phead"><h2>Freight</h2></div><div style="padding:12px;color:var(--danger)">${esc(fr.err)}</div>`; return; }
   const sh=fr.shipment, q=fr.quote, sel=fr.selected;
   const same=sh?frSameOrders():true;
+  const booked=!!(sh&&sh.status==="booked");   // fu v1.5 — 예약 중: 다시 견적 · 고르기 · 조건을 잠근다(DB 도 거부)
+  const lock=booked||!!(fr.bk&&fr.bk.current&&fr.bk.current.status==="pending");   // 예약이 진행 중일 때도 잠근다(발송은 아직 selected 라 DB 가 안 막는다)
   const isPallet=sh&&sh.packaging_type?sh.packaging_type==="pallet":(fr.units_now||[]).some(u=>u.unit_type==="pallet");   // fu v1.4a — 850
   const o=frOpts||(sh&&sh.options)||{};
-  const ck=(k,lbl,tip)=>`<label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="${esc(tip)}"><input type="checkbox" data-fopt="${k}" ${o[k]?"checked":""}> ${lbl}</label>`;
+  const ck=(k,lbl,tip)=>`<label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="${esc(tip)}"><input type="checkbox" data-fopt="${k}" ${o[k]?"checked":""} ${lock?"disabled":""}> ${lbl}</label>`;
   const noDims=Number(fr.units_without_dims||0);
   let warn="";
   if(noDims) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">${noDims} unit(s) without dimensions or weight — fill them in above before quoting</div>`;
-  if(sh&&fr.units_changed) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">Boxes or pallets changed since this quote — get quotes again</div>`;
-  if(sh&&!same) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">The last quote was for ${esc(((fr.orders)||[]).map(x=>x.so_number).join(", "))} — get quotes again for the orders on this workspace</div>`;
+  if(sh&&fr.units_changed) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">${booked?"Boxes or pallets changed after booking — cancel the booking, then quote and book again":"Boxes or pallets changed since this quote — get quotes again"}</div>`;
+  if(sh&&!same) warn+=`<div class="otag" style="color:var(--warn);background:var(--warn-bg);display:inline-block;margin:4px 0">${booked?"The booking is for":"The last quote was for"} ${esc(((fr.orders)||[]).map(x=>x.so_number).join(", "))} — ${booked?"cancel it, then quote again":"get quotes again"} for the orders on this workspace</div>`;
   if(sh&&sh.address_review&&!sh.address_review_closed_at) warn+=`<div class="otag" style="color:#3b5bdb;background:#eef3ff;display:inline-block;margin:4px 0">Delivery options sent to the office to remember for this address</div>`;
   if(sh&&sh.freight_locked) warn+=`<div class="otag" style="color:var(--mut);background:var(--line-2);display:inline-block;margin:4px 0">Customer paid shipping at checkout — the cheapest quote is used, the invoice freight stays as paid</div>`;
   let list="";
@@ -498,33 +505,153 @@ function renderFreight(){
         const why=r.avoided?"customer avoids this carrier":(r.carrier_id?"":"not on the carrier list — the office adds it");
         const dimRow=!r.selectable;
         return `<tr style="border-top:1px solid var(--line);${dimRow?"color:var(--mut-2)":""}${r.selected?";background:#ecfdf3":""}">
-          <td style="padding:6px"><input type="radio" name="frRate" value="${esc(r.rate_id)}" ${r.rate_id===pick?"checked":""} ${dimRow?"disabled":""}></td>
+          <td style="padding:6px"><input type="radio" name="frRate" value="${esc(r.rate_id)}" ${r.rate_id===pick?"checked":""} ${dimRow||lock?"disabled":""}></td>
           <td style="padding:6px;font-weight:700">${esc(r.carrier_name)}</td><td style="padding:6px">${esc(r.service_name)}</td>
           <td style="padding:6px">${r.transit_days==null?"—":esc(r.transit_days)}</td>
           <td style="padding:6px;text-align:right;font-family:var(--mono)">${frMoney(r.total_cents)}</td>
           <td style="padding:6px;text-align:right;font-family:var(--mono)">${sh&&sh.freight_locked?'<span style="color:var(--mut-2)">paid</span>':frMoney(r.customer_charge_cents)}</td>
           <td style="padding:6px;font-size:11.5px">${r.selected?'<b style="color:var(--ok)">picked</b>':(r.preselected&&!sel?"cheapest":"")}${why?esc(why):""}</td></tr>`;
       }).join("")+`</tbody></table>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button class="btn dark" id="frUse" style="background:var(--ink);color:#fff">Use this rate</button>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">${lock?"":'<button class="btn dark" id="frUse" style="background:var(--ink);color:#fff">Use this rate</button>'}
       <span style="font-size:12px;color:var(--mut)">Our cost includes Freightcom's tax. Customer freight = before tax × (1 + ${esc(fr.markup_pct??"")} %) — the office can change it at Ship & invoice.</span></div>`;
   } else if(q&&q.status==="done") list=`<div style="padding:10px 0;color:var(--mut)">No rates came back for these boxes or pallets.</div>`;
-  const head=sel?`<span class="otag" style="color:var(--ok);background:#ecfdf3">${esc(sel.carrier_name)} · ${esc(sel.service_name)} · ${sh&&sh.freight_locked?"paid at checkout":frMoney(sel.customer_charge_cents)}</span>`:(sh?`<span class="otag">${esc(sh.status)}</span>`:"");
+  const cur=fr.bk&&!fr.bk.err?fr.bk.current:null;   // fu v1.5
+  const head=booked&&cur?`<span class="otag" style="color:#fff;background:var(--ok)">Booked · ${esc(sel?sel.carrier_name:"")} · ${esc(cur.tracking_number||"")}</span>`:sel?`<span class="otag" style="color:var(--ok);background:#ecfdf3">${esc(sel.carrier_name)} · ${esc(sel.service_name)} · ${sh&&sh.freight_locked?"paid at checkout":frMoney(sel.customer_charge_cents)}</span>`:(sh?`<span class="otag">${esc(sh.status)}</span>`:"");
   panel.innerHTML=`<div class="phead"><h2>Freight</h2>${head}<span style="margin-left:auto;font-size:11px;color:var(--mut-2)">${sh&&sh.freightcom_account?"Freightcom "+esc(sh.freightcom_account):""}</span></div>
     <div style="padding:10px 12px">
       <div style="display:flex;flex-wrap:wrap;gap:6px 0;align-items:center">
         ${ck("residential","Residential","Delivery to a home — carriers charge more")}
         ${isPallet?ck("tailgate_required","Tailgate","No loading dock — needs a lift gate")+ck("threshold_delivery","Inside delivery","Carry inside the door"):'<span style="font-size:12px;color:var(--mut-2);margin-right:14px">Tailgate · inside delivery: pallets only</span>'}
         <label style="display:inline-flex;gap:5px;align-items:center;margin-right:14px" title="Use these options for this address next time"><input type="checkbox" id="frRemember"> Remember for this address</label>
-        <button class="btn dark" id="frQuote" style="background:var(--accent);color:#fff;margin-left:auto" ${noDims||frBusy?"disabled":""}>${frBusy?"Quoting…":(q?"Get quotes again":"Get freight quotes")}</button>
+        ${lock?"":`<button class="btn dark" id="frQuote" style="background:var(--accent);color:#fff;margin-left:auto" ${noDims||frBusy?"disabled":""}>${frBusy?"Quoting…":(q?"Get quotes again":"Get freight quotes")}</button>`}
       </div>
       ${sh?"":'<div style="font-size:12px;color:var(--mut);margin-top:4px">Options start from the customer\'s address (or company / home by default). Pickup and our own delivery need no quote.</div>'}
       ${warn}
       ${list}
+      ${frBookHtml(sh,sel,booked,same)}
     </div>`;
   panel.querySelectorAll("[data-fopt]").forEach(i=>i.onchange=()=>{ frOpts=Object.assign({}, (sh&&sh.options)||{}, frOpts||{}, {[i.dataset.fopt]:i.checked}); });
-  document.getElementById("frQuote").onclick=freightQuote;
+  const qb=document.getElementById("frQuote"); if(qb) qb.onclick=freightQuote;   // fu v1.5 — 예약 중에는 단추가 없다
   const pb=document.getElementById("frPoll"); if(pb) pb.onclick=freightPoll;
   const ub=document.getElementById("frUse"); if(ub) ub.onclick=freightUse;
+  const bb=document.getElementById("frBook"); if(bb) bb.onclick=freightBook;
+  const bp=document.getElementById("frBookPoll"); if(bp) bp.onclick=freightBookPoll;
+  const cb=document.getElementById("frCancelBook"); if(cb) cb.onclick=freightCancelBook;
+  panel.querySelectorAll("[data-frlabel]").forEach(b=>b.onclick=()=>freightLabel(b.dataset.frlabel));
+}
+/* ---------- fu v1.5 — 예약(fc-2d ② · 판정 835 · 851 ~ 856) ----------
+   ⚠️ 예약 = EF freightcom {action:"book", shipment_id, pickup{date?, ready_at?, ready_until?}} — 빈 칸은 보내지 않는다(DB fc_book_prepare 가 정한다:
+      날짜 = 오늘 · 마감 지남 · 문 닫힘이면 다음 날 · 준비 = 지금(다음 날이면 09:00) · 끝 = 창고 문 닫는 시각) · 정기 픽업 상자는 시각이 필요 없다
+   ⚠️ 알림 = 응답 prepare_warnings(「closed:17:00 — …」 꼴 · 앞 열쇠를 떼고 보인다) — DB 에 안 남아 이 화면 기억에만(새로 고치면 사라진다 · 픽업 날짜는 current.pickup 이 늘 보인다)
+   ⚠️ 진행 중(202 pending) = book_poll {booking_id} · 취소 = {action:"cancel", shipment_id} · 라벨 = {action:"label", label_id} → 서명 URL(120 초)
+   ⚠️⚠️ current.labels[].url 은 Freightcom 원본(S3 · 서명 없음 · 손님 주소) — 그리지 않는다(인계 §4) · 라벨은 IMS 사본(fc_label)만
+   ⚠️ 문은 DB · EF 가 본다(freight_booking — admin · supervisor 는 늘) · 화면은 can_book 으로 단추만 가린다 */
+const frWarnText=w=>{ const t=String(w||""), i=t.indexOf(" — "); return i>0?t.slice(i+3):t; };
+const frBox=(bg,fg,html)=>`<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:${bg};color:${fg};font-size:13px">${html}</div>`;
+function frPickupText(pk){
+  if(!pk||!pk.date) return "";
+  const d=new Date(pk.date+"T12:00:00").toLocaleDateString("en-CA",{weekday:"short",month:"short",day:"numeric"});
+  return pk.regular_pickup?`${d} · regular pickup`:`${d} · ${esc(pk.ready_at||"")} – ${esc(pk.ready_until||"")} (warehouse time)`;
+}
+function frBookHtml(sh,sel,booked,same){
+  if(!sh) return "";
+  const bk=fr.bk;
+  if(bk&&bk.err) return frBox("var(--warn-bg)","var(--warn)","Booking: "+esc(bk.err));
+  const cur=bk?bk.current:null, can=!!(bk&&bk.can_book);
+  const warnList=(frBookWarn&&bk&&frBookWarn.booking_id===bk.booking_id)?frBookWarn.list:[];
+  const warnHtml=warnList.length?`<div style="margin-top:6px;color:var(--warn);font-weight:700">${warnList.map(w=>"⚠ "+esc(frWarnText(w))).join("<br>")}</div>`:"";
+  if(booked&&cur&&cur.status==="booked"){
+    const isPallet=sh.packaging_type==="pallet";
+    const labs=(bk.labels||[]).filter(l=>l.booking_id===cur.id&&!l.padded);
+    const a6=labs.find(l=>l.size==="a6"), lt=labs.find(l=>l.size==="letter");
+    let lbtn="";
+    if(!isPallet&&a6) lbtn+=`<button class="btn dark" data-frlabel="${esc(a6.label_id)}" style="background:var(--ink);color:#fff">🖨 Print 4 × 6 label</button>`;
+    if(lt) lbtn+=`<button class="btn ${isPallet?"dark":"ghost"}" data-frlabel="${esc(lt.label_id)}" ${isPallet?'style="background:var(--ink);color:#fff"':""}>${isPallet?"🖨 Print label (Letter)":"Letter instead"}</button>`;
+    if(!lbtn) lbtn=`<span>Labels are not saved yet.</span> <button class="btn ghost" id="frBookPoll">Get labels</button>`;
+    const tn=(cur.tracking_numbers&&cur.tracking_numbers.length)?cur.tracking_numbers:(cur.tracking_number?[cur.tracking_number]:[]);
+    const trk=tn.length?(cur.tracking_url?`<a href="${esc(cur.tracking_url)}" target="_blank" rel="noopener" style="font-family:var(--mono)">${esc(tn.join(", "))}</a>`:`<span style="font-family:var(--mono)">${esc(tn.join(", "))}</span>`):"—";
+    return frBox("#ecfdf3","var(--ink)",`
+      <div style="font-weight:800;color:var(--ok);margin-bottom:4px">✓ Booked with Freightcom${sel?" — "+esc(sel.carrier_name)+" · "+esc(sel.service_name):""}</div>
+      <div>Tracking: ${trk}${cur.bol_number?` · BOL <span style="font-family:var(--mono)">${esc(cur.bol_number)}</span>`:""}${cur.pickup_confirmation?` · Pickup confirmation <span style="font-family:var(--mono)">${esc(cur.pickup_confirmation)}</span>`:""}</div>
+      <div>Pickup: ${frPickupText(cur.pickup)||"—"}</div>
+      ${cur.cancel_error?`<div style="margin-top:6px;color:var(--danger)">Last cancel was refused — ${esc(cur.cancel_error)}</div>`:""}
+      ${warnHtml}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">${lbtn}
+        ${can?`<button class="btn ghost" id="frCancelBook" style="margin-left:auto;color:var(--danger)" ${frBookBusy?"disabled":""}>${frBookBusy?"Cancelling…":"Cancel booking"}</button>`:""}</div>`);
+  }
+  if(cur&&cur.status==="pending") return frBox("#eef3ff","#3b5bdb",`Booking attempt #${esc(cur.attempt)} is still in progress at Freightcom… <button class="btn ghost" id="frBookPoll" ${frBookBusy?"disabled":""}>Check again</button>${warnHtml}`);
+  if(sh.status!=="selected"||!sel) return "";
+  let last="";
+  if(cur&&cur.status==="failed") last=`<div style="color:var(--danger);margin-bottom:6px">Booking attempt #${esc(cur.attempt)} failed — ${esc(cur.error||"")}</div>`;
+  else if(cur&&cur.status==="cancelled") last=`<div style="color:var(--mut);margin-bottom:6px">Booking #${esc(cur.attempt)} was cancelled.</div>`;
+  if(!can) return frBox("var(--line-2)","var(--mut)",last+"Booking needs the 'Freight booking' permission — ask a supervisor, or the office books it at Ship &amp; invoice.");
+  const regularBox=!!sel.regular_pickup&&sh.packaging_type==="package";
+  const stop=fr.units_changed?"Boxes or pallets changed — get quotes again first":(!same?"Orders changed — get quotes again first":"");
+  const tip=`Blank = today (tomorrow if the cutoff has passed or the warehouse is closed)${regularBox?"":` · ready from now · until closing ${esc(sh.warehouse_closes_at||"(not set)")}`} · warehouse time now ${esc(sh.local_now||"")}`;
+  return frBox("#f8fafc","var(--ink)",`${last}
+    <div style="font-weight:800;margin-bottom:6px">Book ${esc(sel.carrier_name)} · ${esc(sel.service_name)}</div>
+    ${sel.past_cutoff?`<div style="color:var(--warn);font-weight:700;margin-bottom:6px">⚠ ${esc(sel.carrier_name)} cutoff ${esc(sel.cutoff||"")} has passed — pickup moves to the next day</div>`:""}
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <label style="display:inline-flex;gap:5px;align-items:center">Pickup date <input type="date" id="frPkDate" autocomplete="off"></label>
+      ${regularBox?`<span style="color:var(--mut)">Regular pickup — the driver comes on the usual run, no times needed</span>`:`<label style="display:inline-flex;gap:5px;align-items:center">Ready from <input type="time" id="frPkFrom" autocomplete="off"></label>
+      <label style="display:inline-flex;gap:5px;align-items:center">until <input type="time" id="frPkUntil" autocomplete="off"></label>`}
+      <button class="btn dark" id="frBook" style="background:var(--ok);color:#fff;margin-left:auto" ${stop||frBookBusy?"disabled":""}>${frBookBusy?"Booking…":((bk.attempts||[]).length?"Book again":"Book shipment")}</button>
+    </div>
+    <div style="font-size:11.5px;color:var(--mut);margin-top:6px">${stop?'<b style="color:var(--warn)">'+esc(stop)+'</b> · ':""}${tip}</div>`);
+}
+async function freightBook(){
+  if(frBookBusy||!fr||!fr.shipment||!fr.selected) return;
+  const sh=fr.shipment, sel=fr.selected, pickup={};
+  const v=id=>{ const e=document.getElementById(id); return e&&e.value?e.value.trim():""; };
+  if(v("frPkDate")) pickup.date=v("frPkDate");
+  if(v("frPkFrom")) pickup.ready_at=v("frPkFrom");
+  if(v("frPkUntil")) pickup.ready_until=v("frPkUntil");
+  const nums=((fr.orders)||[]).map(x=>x.so_number).join(", ");
+  if(!confirm(`Book ${sel.carrier_name} · ${sel.service_name} for ${nums}?\n\nThis is a real Freightcom booking — Asung is billed (Net Terms) unless it is cancelled.`)) return;
+  frBookBusy=true; renderFreight();
+  try{
+    const r=await frInvoke({action:"book", shipment_id:sh.id, pickup});
+    frBookWarn={booking_id:r&&r.booking_id, list:(r&&r.prepare_warnings)||[]};
+    if(r&&r.pending) toast("Freightcom is still booking — press Check again in a moment","warn");
+    else{
+      const lw=(r&&r.labels&&r.labels.warnings)||[];
+      if(lw.length) frBookWarn.list=frBookWarn.list.concat(lw.map(x=>"label — "+x));
+      toast("Booked — "+((r&&r.booking&&r.booking.tracking_number)||"tracking on the card"));
+    }
+  }catch(e){ toast("Booking: "+(e.message||e),true); }
+  finally{ frBookBusy=false; await freightLoad(); }
+}
+async function freightBookPoll(){
+  const bk=fr&&fr.bk; if(frBookBusy||!bk||!bk.booking_id) return;
+  frBookBusy=true; renderFreight();
+  try{
+    const r=await frInvoke({action:"book_poll", booking_id:bk.booking_id});
+    if(r&&r.pending) toast("Still working at Freightcom — try again in a moment","warn");
+    const lw=(r&&r.labels&&r.labels.warnings)||[];
+    if(lw.length){ frBookWarn={booking_id:bk.booking_id, list:((frBookWarn&&frBookWarn.booking_id===bk.booking_id)?frBookWarn.list:[]).concat(lw.map(x=>"label — "+x))}; }
+  }catch(e){ toast("Booking: "+(e.message||e),true); }
+  finally{ frBookBusy=false; await freightLoad(); }
+}
+async function freightCancelBook(){
+  if(frBookBusy||!fr||!fr.shipment) return;
+  const cur=fr.bk&&fr.bk.current;
+  if(!confirm(`Cancel the Freightcom booking${cur&&cur.tracking_number?" "+cur.tracking_number:""}?\n\nThe carrier and tracking number come off the orders (unless someone changed them). The picked rate stays, so you can book again.`)) return;
+  frBookBusy=true; renderFreight();
+  try{
+    const r=await frInvoke({action:"cancel", shipment_id:fr.shipment.id});
+    const kept=(r&&r.cancel&&r.cancel.orders_kept)||[];
+    frBookWarn=null;
+    toast(kept.length?("Cancelled — "+kept.join(", ")+" kept carrier / tracking (changed by someone)"):"Booking cancelled", kept.length?"warn":false);
+  }catch(e){ toast("Cancel: "+(e.message||e),true); }
+  finally{ frBookBusy=false; await freightLoad(); }
+}
+async function freightLabel(labelId){
+  const w=window.open("","_blank");   // 클릭 순간에 연다(팝업 막기 피하기) · 주소는 받은 뒤
+  try{
+    const r=await frInvoke({action:"label", label_id:labelId});
+    if(!r||!r.signed_url) throw new Error("no label link came back");
+    if(w) w.location.href=r.signed_url; else window.open(r.signed_url,"_blank");
+  }catch(e){ if(w) w.close(); toast("Label: "+(e.message||e),true); }
 }
 async function freightQuote(){
   if(frBusy) return;
@@ -558,7 +685,9 @@ async function freightUse(){
 function frConfirmLine(){
   if(!fr||fr.err||!frSoIds().length) return "Freight: —";
   const sel=fr.selected;
-  if(sel&&frSameOrders()&&!fr.units_changed) return `Freight: ${sel.carrier_name} · ${sel.service_name}${fr.shipment&&fr.shipment.freight_locked?"":" · "+frMoney(sel.customer_charge_cents)}`;
+  const cur=fr.bk&&!fr.bk.err?fr.bk.current:null;   // fu v1.5
+  if(fr.shipment&&fr.shipment.status==="booked"&&cur&&cur.status==="booked") return `Freight: BOOKED ${sel?sel.carrier_name+" · "+sel.service_name:""} · tracking ${cur.tracking_number||"—"}${fr.units_changed?" — ⚠ boxes changed after booking":""}`;
+  if(sel&&frSameOrders()&&!fr.units_changed) return `Freight: ${sel.carrier_name} · ${sel.service_name}${fr.shipment&&fr.shipment.freight_locked?"":" · "+frMoney(sel.customer_charge_cents)} — not booked yet`;
   if(fr.quote) return "Freight: quoted but no rate picked (or out of date) — the office decides";
   return "Freight: no quote — the office arranges it (fine for pickup or our own delivery)";
 }
