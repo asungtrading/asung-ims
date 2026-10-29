@@ -2325,6 +2325,40 @@ PO 백오더 칩 · 딜 세트 접기 (판정 776 · 777)
 [✅] url-1 — GAS(System_Automation)에 네 파일 붙임(ImsLoadPrice · ImsLoadSupplier · ImsLoadProduct · ImsLoadProductTag · Ctrl+F `_idChunks_` 확인 · Caleb 2026-10-27)
 ```
 
+### 7-zy. 2026-10-28 집 저녁 ~ 10-29 회사 — POS 결제 취소 · 다시 연 초안 · 인보이스 크레딧 목록 · QuickBooks 연결 (pos v1.15 4c88bf0 · v1.16 70f0dcc · v1.16a f93900b · v1.16b + so v5y2 d5d34d8 · v1.16c 9077982 · v1.16d + so v5y3 fdc9176 · legal v1 c255002 · set v12 feceed3 · asung-wms pos-pay-1 36d3782 · doc-cr-1 925bcdf · pos-reopen-1 0d6c12b · so-del-1 554835a · qbo-1a d712d6f ~ qbo-1d 0c2f4ed · so-module §86 · §87 · 판정 863 ~ 872)
+
+```
+빌드: pos v1.16d(pos.html) · so v5y3(so.html) · set v12(settings.html) · terms.html · privacy.html(legal v1)
+
+POS — 결제 · 다시 연 초안 (863 · 865 · 866)
+[✅] pos v1.16 — 부분 현금 + Debit 나눠 내기 · Payments 목록 (Caleb 「정상적으로 잘 작동해」 2026-10-29)
+[✅] Payments 목록 Cancel(회색 · 「POS: 테스트」) · Reopen (Caleb 집 화면 2026-10-28)
+[ ] pos v1.15 — 스캔한 줄이 맨 위(이미 있던 SKU 도) · 수량 고치기는 안 옮김
+[ ] pos v1.16a — B급 나누기가 안 될 때(거부 · 칸 고르기 취소 · 재고 넘침 거절) 새 줄이 사라지고 원래 수량이 돌아온다 — 한 줄로 남는지
+[ ] pos v1.16b — 확정됐던 판매를 Reopen 한 초안에 Delete draft 가 없다 · 한 번도 확정 안 된 초안에는 있다
+[ ] pos v1.16c · d — 보관 목록 「draft — reopened」(주황 · ✕ 없음) · 머리 「· reopened」
+[ ] pos v1.16d — 매니저로 Cancel sale… → 사유 → Check → Cancel the sale → POS 목록에서 빠지고 Sales Orders 에 「Cancelled」 로 남음(누가 · 언제 · 사유) · 받은 돈은 손님 잔액 · sales 직원에게는 단추 없음(또는 DB 거부)
+[ ] so v5y2 · v5y3 — Sales Orders 의 다시 연 초안: Delete draft 없음 · Cancel order…(매니저) 있음
+[ ] Reopen 뒤 줄 ✕ · 줄 전부 지우기가 된다(pos-reopen-1 · 옛 23503 없음)
+⭐ 「POS 에서 고르고 배송을 원하는 손님」 = 우회(Sales Orders ↓ Lines CSV → 새 warehouse 오더 Paste lines → POS 판매 Reopen · 정리) — 매뉴얼 거리(deferred 379)
+
+인보이스 문서 (864 · DB 판 · Caleb 올림)
+[✅] final_invoice v9 · internal_receipt v4 · ship_ready v4 Use this version — 「이제 제대로 나와」 (Caleb 2026-10-28)
+[ ] 크레딧이 붙은 인보이스(예 60073 · CR-01010 0.80) 인쇄 — Payments 아래 Credits 표 · Total → Payments → Credits → Balance due 0.00
+[ ] ship_ready v4(PROFORMA) — Credit applied · Previous balance 가 Balance due 와 겹쳐 보이지 않는지(deferred 380)
+[ ] 60073 손님에게 Email to customer… 다시 보내기(Caleb)
+
+QuickBooks 연결 · 공개 페이지 (867 ~ 872)
+[✅] https://ims.asung.ca/terms.html · privacy.html 이 로그인 없이 열린다 (Caleb 「둘다 로그인 없이 잘 열려」 2026-10-29)
+[✅] Settings → QuickBooks — 샌드박스 Connect → Check connection → Disconnect → 다시 Connect · 운영 Asung Trading Inc. 연결 11:48 (Caleb 화면 2026-10-29)
+[ ] admin 아닌 직원으로 Settings → QuickBooks — 상태는 보이고 단추(Connect · Disconnect · Check · Untie)는 없다
+[ ] Help 줄 「Connection problems? Contact the IMS administrator: caleb@asung.ca」
+[ ] 10-30 아침 — 상태 칸의 마지막 갱신이 09:10 UTC 언저리로 바뀌었나(cron 59 · deferred 370)
+⚠️ 운영 연결에서 Disconnect · Untie 를 시험하지 않는다 — 끊김 메일 시험은 샌드박스로(deferred 377)
+
+⬜ 이 문서에 아직 절이 없는 날: 10-27 저녁 · 밤(Shopify live · 콤보 cb v1 · 잇기 ss v5 · so-module §82 · §83) · 10-28(Freightcom fu v1.4 ~ v1.5b · so v5x ~ v5y1 · set v10 ~ v11a · cs v7 · st v3b · §84 · §85) — 시험 기록은 so-module 85-c 에만
+```
+
 ## 8. 로그인 · 계정
 
 ```
