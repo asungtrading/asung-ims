@@ -106,7 +106,7 @@
 <script src="ims-doc.js"></script>
 <script src="ims-label.js?v=3"></script>
 <script>
-const SET_BUILD = "2026-10-29 · set v11a";   // 대화 Claude — Caleb 화면 시험: Updated 칸이 이름 없이 「· 2026-10-28」(SQL 로 넣은 시험 값 · updated_by null) → 있는 것만 잇는다 ← set v11: 대화 Claude — fc-2d ④(판정 852 · 857 · asung-wms fc-2a b9d1216 · Caleb 판정 A = Settings 에만): Warehouse Edit 에 시간대(IANA 고르기 · Edmonton = America/Regina 857) · 문 닫는 시각(closes_at · 픽업 창의 끝) · 표에 두 칸 · 새 구역 「Carrier pickups」 — 창고마다 운송사(kind carrier · 켜진 것) 줄: 정기 픽업 · 마감 · 메모 · 누가 언제 · Save · Clear(창구 ref_carrier_pickup_set · 문 master — 화면은 master 만 고친다 · 마감이 문 닫는 시각보다 늦으면 빨강 · DB 도 거부) ← set v10a: 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-29 · set v12";   // 대화 Claude — QuickBooks 칸(?t=qbo · qbo-1a ~ 1d · 판정 867 ~ 872): EF qbo status(토큰 없음) · Connect / Reconnect(같은 탭으로 Intuit → callback 302 → ?t=qbo&qbo=connected|error&why=) · Check connection(ping) · Disconnect(revoke + 지움) · 고정 회사 비우기(연결 없을 때) · 연락 한 줄(872) · admin 만 단추(870) ← set v11a: 대화 Claude — Caleb 화면 시험: Updated 칸이 이름 없이 「· 2026-10-28」(SQL 로 넣은 시험 값 · updated_by null) → 있는 것만 잇는다 ← set v11: 대화 Claude — fc-2d ④(판정 852 · 857 · asung-wms fc-2a b9d1216 · Caleb 판정 A = Settings 에만): Warehouse Edit 에 시간대(IANA 고르기 · Edmonton = America/Regina 857) · 문 닫는 시각(closes_at · 픽업 창의 끝) · 표에 두 칸 · 새 구역 「Carrier pickups」 — 창고마다 운송사(kind carrier · 켜진 것) 줄: 정기 픽업 · 마감 · 메모 · 누가 언제 · Save · Clear(창구 ref_carrier_pickup_set · 문 master — 화면은 master 만 고친다 · 마감이 문 닫는 시각보다 늦으면 빨강 · DB 도 거부) ← set v10a: 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -175,6 +175,7 @@ const TABLES = [
   { t:"freight", label:"Shipping quotes", note:"Freightcom quotes — customer markup and the connection of each warehouse", custom:"freight", nocount:1 },   // set v10 — 판정 836 · 848
   { t:"pickup", label:"Carrier pickups", note:"Per warehouse — which carriers come on a regular run, and the cutoff for a same-day pickup", custom:"pickup", nocount:1 },   // set v11 — 판정 852
   { t:"drive", label:"Google Drive", note:"Invoices, credit notes and PO documents to the IMS Documents shared drive", custom:"drive", nocount:1 },   // set v8 — drive-3 · 판정 688 · 692 · 707
+  { t:"qbo", label:"QuickBooks", note:"The IMS connection to the QuickBooks Online company — connect, check, disconnect", custom:"qbo", nocount:1 },   // set v12 — qbo-1a ~ 1d · 판정 867 ~ 872
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
@@ -214,6 +215,7 @@ async function load(){
   if(cur.custom === "drive"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDrive(); return; }   // set v8
   if(cur.custom === "freight"){ document.getElementById("addRow").hidden = true; drawNav(); await loadFreight(); return; }   // set v10
   if(cur.custom === "pickup"){ document.getElementById("addRow").hidden = true; drawNav(); await loadPickups(); return; }   // set v11
+  if(cur.custom === "qbo"){ document.getElementById("addRow").hidden = true; drawNav(); await loadQbo(); return; }   // set v12
   document.getElementById("addRow").hidden = !(cur.edit && canEdit()) || !!cur.noAdd;   // set v2 · set v10 — 창고는 더하지 않는다
   document.getElementById("addRow").textContent = "+ Add " + (cur.noun || "carrier");   // set v5
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
@@ -1115,6 +1117,115 @@ async function dSave(key, value, old){
   if(r2){ r2.className = "res on"; r2.textContent = "Saved."; }
 }
 
+/* ── set v12 — QuickBooks(qbo-1a ~ 1d · 판정 867 ~ 872) ──────────
+   ⚠️ 값은 EF qbo 의 status(창구 qbo_status · 토큰 칸 없음 — 처리방침 §4 「not shown on staff screens」)
+   ⚠️ 연결 · 다시 연결 · 끊기 · 확인 · 고정 회사 비우기는 admin 만(870) — 화면은 단추만 숨긴다 · EF · DB 가 다시 본다
+   ⚠️ Connect 는 같은 탭으로 Intuit 에 간다 → callback(302 · 고정 주소)이 ?t=qbo&qbo=connected | error&why=<낱말> 로 돌려보낸다
+   ⚠️ 싱크(인보이스 · 결제 보내기)는 아직 없다 — 이 칸은 연결만 */
+const QBO_WHY = {
+  denied:   "You chose not to connect on the QuickBooks page. Nothing changed.",
+  state:    "The connect link expired or was already used. Press Connect again.",
+  exchange: "QuickBooks did not finish the sign-in. Press Connect again.",
+  realm:    "That is a different QuickBooks company from the one this IMS is tied to. Nothing was saved.",
+  save:     "The connection could not be saved. Press Connect again — if it repeats, contact the administrator.",
+  env:      "The connection belongs to the other environment (sandbox or production). Disconnect first, then connect."
+};
+let qboFlash = null;   // Intuit 에서 돌아온 결과 — 한 번만 보인다
+async function qboCall(action){
+  const r = await sb.functions.invoke("qbo", { body:{ action }, region:"ca-central-1" });
+  if(!r.error) return { data: r.data || {} };
+  let msg = String((r.error && r.error.message) || r.error);
+  try{ const j = await r.error.context.json(); if(j && (j.error || j.message)) msg = j.error || j.message; }catch(e){}
+  return { err: msg };
+}
+async function loadQbo(after){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const { data: st, err } = await qboCall("status");
+  if(err){ body.innerHTML = `<div class="msg err">Could not load — ${esc(err)}</div>`; return; }
+  const admin = !!st.caller_is_admin;
+  const status = st.status || "none";
+  const envLbl = (e) => e === "production" ? "Production" : e === "sandbox" ? "Sandbox (test company)" : (e || "—");
+  const sec = st.secrets || {};
+  const keysOk = !!(sec.client_id && sec.client_secret);
+  const lock = admin ? "" : '<span class="note">Only an IMS admin can connect or disconnect.</span>';
+  const state = status === "connected" ? '<span class="bigstate on">Connected</span>'
+              : status === "needs_reconnect" ? '<span class="bigstate off">Reconnect needed</span>'
+              : '<span class="bigstate">Not connected</span>';
+  let btns = "";
+  if(admin){
+    if(status === "none") btns = '<button class="pobtn go" id="qbConnect">Connect to QuickBooks</button>';
+    else if(status === "needs_reconnect") btns = '<button class="pobtn go" id="qbConnect">Reconnect</button> <button class="pobtn" id="qbDisc">Disconnect</button>';
+    else btns = (st.env_mismatch ? "" : '<button class="pobtn" id="qbPing">Check connection</button> ') + '<button class="pobtn" id="qbDisc">Disconnect</button>';   // 환경이 어긋나면 EF 가 ping 을 거부한다 — 끊기만
+  }
+  const why = status === "connected"
+      ? "The IMS can reach this QuickBooks company. Nothing is sent to the books yet — sending invoices and payments comes later."
+      : status === "needs_reconnect"
+      ? "QuickBooks stopped accepting this connection — the approval ran out, or the app was disconnected inside QuickBooks. Press Reconnect and approve again on the QuickBooks page."
+      : "Press Connect, sign in as an admin of the QuickBooks company, and approve. You come back to this page when it is done.";
+  const flash = qboFlash
+      ? `<div class="mrow"><div class="lbl">Just now</div><div class="ctl"><span class="res ${qboFlash.ok ? "on" : "err"}">${qboFlash.ok ? "Connected to QuickBooks." : esc(QBO_WHY[qboFlash.why] || "Connecting did not finish. Press Connect again.")}</span></div></div>`
+      : "";
+  qboFlash = null;
+  const pins = Object.entries(st.pinned_realm || {});
+  const pinHere = (st.pinned_realm || {})[st.qbo_env] || "";
+  body.innerHTML = `<div class="mset">
+    ${flash}
+    <div class="mrow"><div class="lbl">Connection</div><div class="ctl">
+      <div class="line">${state}${btns}<span class="res" id="qbRes"></span></div>
+      <span class="note">${why}</span>${lock}</div></div>
+    ${st.env_mismatch ? `<div class="mrow"><div class="lbl">Environment</div><div class="ctl"><span class="res err">This connection is for ${esc(envLbl(st.env))}, but the IMS is now set to ${esc(envLbl(st.qbo_env))}. Disconnect it, then connect again.</span></div></div>` : ""}
+    ${status !== "none" ? `<div class="mrow"><div class="lbl">Company</div><div class="ctl">
+      <div class="line"><b>${esc(st.company_name || "(name not read yet — press Check connection)")}</b></div>
+      <span class="note">Company ID ${esc(st.realm_id || "—")} · ${esc(envLbl(st.env))}</span></div></div>
+    <div class="mrow"><div class="lbl">Connected by</div><div class="ctl">
+      <div class="line">${esc(st.connected_by || "—")}${st.connected_at ? ` <span class="dim">${esc(imsTs(st.connected_at))}</span>` : ""}</div></div></div>
+    <div class="mrow"><div class="lbl">Approval good until</div><div class="ctl">
+      <div class="line">${st.refresh_expires_at ? esc(imsTs(st.refresh_expires_at)) : "—"}</div>
+      <span class="note">QuickBooks asks for a fresh approval by this date — press Reconnect before then. The IMS renews its access every day${st.last_refresh_at ? ` (last ${esc(imsTs(st.last_refresh_at))})` : ""} and emails the administrator if the connection drops.</span></div></div>` : ""}
+    ${st.last_error ? `<div class="mrow"><div class="lbl">Last problem</div><div class="ctl">
+      <span class="res err">${esc(st.last_error)}</span>${st.last_error_at ? `<span class="note">${esc(imsTs(st.last_error_at))}</span>` : ""}</div></div>` : ""}
+    ${admin ? `<div class="mrow"><div class="lbl">Setup</div><div class="ctl">
+      <div class="line">${esc(envLbl(st.qbo_env))} · app keys ${keysOk ? '<span class="on">on file</span>' : '<b class="off">missing</b>'}</div>
+      ${keysOk ? "" : '<span class="note">The QuickBooks app keys are not set on the server, so Connect cannot work. They are added by the administrator, not on this page.</span>'}
+      <div class="line">${pins.length ? pins.map(([e, id]) => `<span class="tag">${e === "production" ? "Production" : "Sandbox"}: company ${esc(id)}</span>`).join(" ") : '<span class="dim">No company tied yet — the first connection ties it.</span>'}${pinHere && status === "none" ? ' <button class="pobtn" id="qbUnpin">Untie company</button>' : ""}</div>
+      <span class="note">The IMS stays tied to the first QuickBooks company it connects to, so records never point at the wrong books. Untie only when the company itself really changed — and only while not connected.</span></div></div>` : ""}
+    <div class="mrow"><div class="lbl">Help</div><div class="ctl">
+      <span class="note">Connection problems? Contact the IMS administrator: <a class="lnk" href="mailto:caleb@asung.ca">caleb@asung.ca</a></span></div></div>
+  </div>`;
+  const res = (ok, t) => { const r = document.getElementById("qbRes"); if(r){ r.className = "res " + (ok ? "on" : "err"); r.textContent = t; } };
+  if(after) res(after.ok, after.text);
+  const bC = document.getElementById("qbConnect"); if(bC) bC.onclick = async () => {
+    if(!keysOk){ res(false, "The app keys are missing on the server."); return; }
+    bC.disabled = true; res(true, "Opening QuickBooks…");
+    const { data, err: e } = await qboCall("start");
+    const u = data && (data.url || data.authorize_url);
+    if(e || !u){ bC.disabled = false; res(false, e || "QuickBooks did not give a sign-in address. Try again."); return; }
+    location.href = u;   // 같은 탭 — 허락 뒤 callback 이 ?t=qbo 로 돌려보낸다
+  };
+  const bP = document.getElementById("qbPing"); if(bP) bP.onclick = async () => {
+    bP.disabled = true; res(true, "Checking…");
+    const { data, err: e } = await qboCall("ping");
+    if(e){ await loadQbo({ ok:false, text: e }); return; }
+    await loadQbo({ ok:true, text: "QuickBooks answered" + (data.company_name ? " — " + data.company_name : "") + "." });
+  };
+  const bD = document.getElementById("qbDisc"); if(bD) bD.onclick = async () => {
+    if(!confirm("Disconnect QuickBooks?\n\nThe IMS signs out of the QuickBooks company and deletes its connection details. Nothing can be sent to the books until someone connects again.")) return;
+    bD.disabled = true; res(true, "Disconnecting…");
+    const { data, err: e } = await qboCall("disconnect");
+    if(e){ await loadQbo({ ok:false, text: e }); return; }
+    await loadQbo({ ok: data.revoked !== false, text: data.revoked === false
+      ? "Removed from the IMS, but QuickBooks did not confirm the sign-out. In QuickBooks, open Apps and disconnect Asung IMS there too."
+      : "Disconnected." });
+  };
+  const bU = document.getElementById("qbUnpin"); if(bU) bU.onclick = async () => {
+    if(!confirm(`Untie the IMS from QuickBooks company ${pinHere}?\n\nThe next connection can then be to a different company. Do this only if the company really changed.`)) return;
+    bU.disabled = true;
+    const { error } = await sb.rpc("qbo_realm_clear", { p_env: st.qbo_env });
+    await loadQbo(error ? { ok:false, text: error.message } : { ok:true, text: "Company untied." });
+  };
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
@@ -1128,6 +1239,13 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   if(new URLSearchParams(location.search).get("t") === "freight") cur = TABLES.find(x => x.t === "freight");   // set v10 — ?t=freight
   if(new URLSearchParams(location.search).get("t") === "warehouse") cur = TABLES.find(x => x.t === "ref_warehouse");   // set v10 — ?t=warehouse
   if(new URLSearchParams(location.search).get("t") === "pickup") cur = TABLES.find(x => x.t === "pickup");   // set v11 — ?t=pickup
+  if(new URLSearchParams(location.search).get("t") === "qbo"){   // set v12 — ?t=qbo · Intuit 에서 돌아오면 &qbo=connected | error&why=
+    cur = TABLES.find(x => x.t === "qbo");
+    const sp = new URLSearchParams(location.search), r = sp.get("qbo");
+    if(r === "connected") qboFlash = { ok:true };
+    else if(r === "error") qboFlash = { ok:false, why: sp.get("why") || "" };
+    if(r) history.replaceState(null, "", "settings.html?t=qbo");   // 새로 고침에 같은 알림이 또 뜨지 않게
+  }
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   document.getElementById("binLabels").onclick = () => imsLabel.open({ sb, kind:"bin" });   // set v9
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
