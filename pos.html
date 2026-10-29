@@ -120,7 +120,7 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-28 · pos v1.16";   // 대화 Claude — 동료 요청 둘(Caleb 2026-10-28 「받은 돈을 cancel 하고 다시 할 수 있으면 · 화면에 페이먼트한 내역이 다 보였으면」 · 판정 863 · asung-wms pos-pay-1): ① 오른쪽 합계 아래 「Payments」 목록(so_pos_payment_list · 시각 · 방법 · 금액 · 참조 · 누가 · 취소된 줄은 회색 줄긋기 + 누가 · 사유) ② 줄마다 Cancel(so_pos_payment_cancel · Finish 전 · 대상 판매 하나일 때만 · 사유는 비워도 됨 · 거부 글 그대로) ③ Cash 창을 칸 하나로 — 「Cash received」 에 받은 돈 → 기록 = 남은 금액까지(그보다 적으면 부분 결제) · 거스름돈 · 남는 금액을 창에 보인다(옛 판은 Amount 칸이 남은 금액 전부로 미리 차 있어 Cash given 만 고치면 전액이 기록됐다 · 짐작 — DB 는 부분 결제를 맞게 셈한다 · pos-pay-1 S1c) · 다른 방법은 Amount 칸 그대로 + 「부분이면 고친다」 안내 ← pos v1.15: 대화 Claude — 동료 요청(Caleb 2026-10-28 「스캔하는 아이템은 항상 맨위에 · 이미 이전에 찍었던 같은 아이템이라도」): 줄 순서 = 마지막으로 스캔 · 담은 순(같은 SKU 가 이미 있어 수량이 늘어도 그 줄이 맨 위로) · 기억은 이 브라우저(localStorage ims_pos_touch_<SO id> · 업무 값 아님 · 다른 계산대에서 열면 옛 순서 = 줄 번호 역순) · 수량 칸 · ± 로 바꿀 때는 움직이지 않는다(입력 중에 줄이 튀지 않게) ← 2026-10-26 · pos v1.14: 대화 Claude — 판정 773(Caleb 「parked draft를 지울 수 있는 방법은 없나?」 → 「B」): 초안을 POS 에서 지운다 — 열린 판매가 초안이면 머리에 Delete draft · 목록의 초안 줄마다 ✕(열지 않고) · 확인 한 번 · 창구 so_delete(Sales Orders 의 Delete draft 와 같은 창구 · 권한은 DB) · 확정된 줄에는 없다 ← 2026-10-26 · pos v1.13: 대화 Claude — ovd-2(판정 768 ~ 771 · asung-wms ovd-1 57156b2): 판매를 시작하며 손님을 고르면 청구처에 기한 지난 인보이스가 있을 때 창(공용 ims-overdue.js · so_customer_overdue · OK 로만 닫힘 · 막지 않음 · 받아 둔 돈 한 줄) — 손님 막대의 Overdue 칩은 그대로 ← 2026-10-23 · pos v1.12: 대화 Claude — bgr-1c(c60eb9e) · 1d(3d0d7fe) · 판정 633 · 634 ② · 635 · 644 · 646 · 647 · 648: 초안 줄의 「B」 단추 = 그 줄을 B급으로(so_line_bgrade_set · 칸이 여럿이면 고르는 창 · 값 없는 칸은 고를 수 없음 · 수량이 2 이상이면 몇 개가 B급인지 물어 나머지는 정상 줄로 남긴다 — so_line_update + so_line_add p_force_new) · B급 줄은 「B-grade · 칸 · Final sale」 표시 · ✎ 없음(값은 B급 칸이 정한다) · 「✕B」 = 정상으로 되돌리기(so_line_bgrade_clear) · 장부보다 많으면 확인(over_bgrade_stock · so_lines_available 의 B급 가용) · surcharge 는 DB 가 비운다 ← pos v1.11:   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-28 · pos v1.16a";   // 대화 Claude — Caleb 화면 시험(SO-25237 ORS11009 두 줄): 수량 2 이상 줄의 B 가 먼저 줄을 나누고(정상 줄 수량 줄임 + 새 줄) B급 지정이 거부되면(B급 칸 없음 등) 나눈 채로 남았다 → 거부되면 새 줄을 지우고 원래 수량으로 되돌린다(되돌리기도 실패하면 알린다) ← pos v1.16: 대화 Claude — 동료 요청 둘(Caleb 2026-10-28 「받은 돈을 cancel 하고 다시 할 수 있으면 · 화면에 페이먼트한 내역이 다 보였으면」 · 판정 863 · asung-wms pos-pay-1): ① 오른쪽 합계 아래 「Payments」 목록(so_pos_payment_list · 시각 · 방법 · 금액 · 참조 · 누가 · 취소된 줄은 회색 줄긋기 + 누가 · 사유) ② 줄마다 Cancel(so_pos_payment_cancel · Finish 전 · 대상 판매 하나일 때만 · 사유는 비워도 됨 · 거부 글 그대로) ③ Cash 창을 칸 하나로 — 「Cash received」 에 받은 돈 → 기록 = 남은 금액까지(그보다 적으면 부분 결제) · 거스름돈 · 남는 금액을 창에 보인다(옛 판은 Amount 칸이 남은 금액 전부로 미리 차 있어 Cash given 만 고치면 전액이 기록됐다 · 짐작 — DB 는 부분 결제를 맞게 셈한다 · pos-pay-1 S1c) · 다른 방법은 Amount 칸 그대로 + 「부분이면 고친다」 안내 ← pos v1.15: 대화 Claude — 동료 요청(Caleb 2026-10-28 「스캔하는 아이템은 항상 맨위에 · 이미 이전에 찍었던 같은 아이템이라도」): 줄 순서 = 마지막으로 스캔 · 담은 순(같은 SKU 가 이미 있어 수량이 늘어도 그 줄이 맨 위로) · 기억은 이 브라우저(localStorage ims_pos_touch_<SO id> · 업무 값 아님 · 다른 계산대에서 열면 옛 순서 = 줄 번호 역순) · 수량 칸 · ± 로 바꿀 때는 움직이지 않는다(입력 중에 줄이 튀지 않게) ← 2026-10-26 · pos v1.14: 대화 Claude — 판정 773(Caleb 「parked draft를 지울 수 있는 방법은 없나?」 → 「B」): 초안을 POS 에서 지운다 — 열린 판매가 초안이면 머리에 Delete draft · 목록의 초안 줄마다 ✕(열지 않고) · 확인 한 번 · 창구 so_delete(Sales Orders 의 Delete draft 와 같은 창구 · 권한은 DB) · 확정된 줄에는 없다 ← 2026-10-26 · pos v1.13: 대화 Claude — ovd-2(판정 768 ~ 771 · asung-wms ovd-1 57156b2): 판매를 시작하며 손님을 고르면 청구처에 기한 지난 인보이스가 있을 때 창(공용 ims-overdue.js · so_customer_overdue · OK 로만 닫힘 · 막지 않음 · 받아 둔 돈 한 줄) — 손님 막대의 Overdue 칩은 그대로 ← 2026-10-23 · pos v1.12: 대화 Claude — bgr-1c(c60eb9e) · 1d(3d0d7fe) · 판정 633 · 634 ② · 635 · 644 · 646 · 647 · 648: 초안 줄의 「B」 단추 = 그 줄을 B급으로(so_line_bgrade_set · 칸이 여럿이면 고르는 창 · 값 없는 칸은 고를 수 없음 · 수량이 2 이상이면 몇 개가 B급인지 물어 나머지는 정상 줄로 남긴다 — so_line_update + so_line_add p_force_new) · B급 줄은 「B-grade · 칸 · Final sale」 표시 · ✎ 없음(값은 B급 칸이 정한다) · 「✕B」 = 정상으로 되돌리기(so_line_bgrade_clear) · 장부보다 많으면 확인(over_bgrade_stock · so_lines_available 의 B급 가용) · surcharge 는 DB 가 비운다 ← pos v1.11:   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
@@ -386,16 +386,20 @@ async function askBgrade(l){
       const u = await sb.rpc("so_line_update", { p_line_id: l.id, p_patch: { qty_ordered: q - n } });
       if(u.error){ alert(u.error.message); await openSale(curId); return; }
       const ad = await sb.rpc("so_line_add", { p_so_id: curId, p_product_id: l.product_id, p_qty: n, p_force_new: true });
-      if(ad.error || !ad.data || !ad.data.line){ alert(ad.error ? ad.error.message : "Could not add the B-grade line."); await openSale(curId); return; }
-      return setBgrade(ad.data.line.id, null);
+      if(ad.error || !ad.data || !ad.data.line){
+        alert(ad.error ? ad.error.message : "Could not add the B-grade line.");
+        await sb.rpc("so_line_update", { p_line_id: l.id, p_patch: { qty_ordered: q } });   // pos v1.16a — 나눈 수량을 되돌린다
+        await openSale(curId); return;
+      }
+      return setBgrade(ad.data.line.id, null, { keepId: l.id, qty: q, newId: ad.data.line.id });   // pos v1.16a — 실패하면 합친다
     }
   }
   return setBgrade(l.id, null);
 }
-async function setBgrade(lineId, binId){
+async function setBgrade(lineId, binId, undo){
   const { data, error } = await sb.rpc("so_line_bgrade_set", { p_line_id: lineId, p_bin_id: binId || null });
-  if(error){ alert(error.message); await openSale(curId); return; }
-  if(data && data.action === "choose") return openBgChoose(data);
+  if(error){ alert(error.message); if(undo) await undoBgSplit(undo); await openSale(curId); return; }
+  if(data && data.action === "choose") return openBgChoose(data, undo);
   modalClose();
   if(data && (data.warnings || []).includes("over_bgrade_stock")){
     const ln = data.line || {};
@@ -404,12 +408,19 @@ async function setBgrade(lineId, binId){
         alert("It was added to the B-grade line already on this sale. Lower that line's quantity if it should not be sold.");
         await openSale(curId); return;
       }
+      if(undo){ await undoBgSplit(undo); await openSale(curId); return; }   // pos v1.16a — 나눠 만든 B급 줄이면 지우고 합친다
       return clearBgrade(ln.id || lineId);
     }
   }
   await openSale(curId);
 }
-function openBgChoose(d){
+/* pos v1.16a — B급 지정이 안 되면 나눈 줄을 합친다(새 줄 지우기 → 원래 줄 수량 되돌리기) */
+async function undoBgSplit(u){
+  const r1 = await sb.rpc("so_line_remove", { p_line_id: u.newId });
+  const r2 = r1.error ? null : await sb.rpc("so_line_update", { p_line_id: u.keepId, p_patch: { qty_ordered: u.qty } });
+  if(r1.error || (r2 && r2.error)) alert("The item stays split into two lines — set the quantity back by hand. (" + ((r1.error || r2.error).message) + ")");
+}
+function openBgChoose(d, undo){
   const cs = d.candidates || [];
   modalOpen(`
     <h4>Which B-grade bin? — <span class="mono">${esc(d.sku || "")}</span></h4>
@@ -419,9 +430,10 @@ function openBgChoose(d){
         ? `<div class="prow" data-bgbin="${esc(c.bin_id)}"><span class="mono">${esc(c.bin)}</span> · <b>${money(c.price)}</b> <span class="dim">· ${qty(c.qty)} in the bin</span></div>`
         : `<div class="prow" style="cursor:default;opacity:.6"><span class="mono">${esc(c.bin)}</span> · <span class="off">no B-grade price — ask a manager</span> <span class="dim">· ${qty(c.qty)} in the bin</span></div>`).join("")}</div>
     </div>
-    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="bgCancel">Cancel</button></div>`);
   wireModalClose();
-  document.querySelectorAll("[data-bgbin]").forEach(el => { el.onclick = () => setBgrade(d.line_id, el.dataset.bgbin); });
+  document.getElementById("bgCancel").onclick = async () => { modalClose(); if(undo) await undoBgSplit(undo); await openSale(curId); };   // pos v1.16a — 고르지 않으면 나눈 줄을 합친다
+  document.querySelectorAll("[data-bgbin]").forEach(el => { el.onclick = () => setBgrade(d.line_id, el.dataset.bgbin, undo); });
 }
 async function clearBgrade(lineId){
   const { error } = await sb.rpc("so_line_bgrade_clear", { p_line_id: lineId });
