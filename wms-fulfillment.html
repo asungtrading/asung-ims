@@ -266,6 +266,7 @@
       <span class="ordinfo" id="ordInfo">Select the orders to ship together.</span>
       <button id="completeBtn" style="margin-left:auto;display:none;border:0;background:var(--ok,#16a34a);color:#fff;border-radius:10px;padding:9px 16px;font:inherit;font-size:13px;font-weight:800;cursor:pointer">✓ Finalize order(s)</button>
     </div>
+    <div id="shipInfo" style="display:none;margin:-4px 0 12px;font-size:13px;color:var(--mut)"></div>   <!-- fu v1.6 — 배송지 -->
 
     <!-- order select panel -->
     <div id="orderPicker" class="panel" style="display:none;margin-bottom:14px;max-width:520px">
@@ -344,7 +345,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-29 · fu v1.5b";   // 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-29 · fu v1.6";   // 대화 Claude — 동료 피드백 2(2026-10-29 · Caleb 「2번부터 진행하자」): 작업대 머리 아래에 배송지(Ship to) — 고른 판매 오더마다 회사 · 받는 사람 · 전화 · 주소(같은 주소면 한 번) · 주소가 비면 빨간 안내(견적이 「no full ship-to address」 로 거부한다) · 트랜스퍼는 지금처럼 「Transfer to …」 · so 읽기 SO_SEL 에 ship_to_* 아홉 칸(픽리스트 · 패커가 이미 읽는 칸 · 창구 무변) ← fu v1.5b: 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -361,11 +362,32 @@ function normOrder(s){
   s=s||{};
   return { id:s.id||null, order_number:s.so_number||"", status:s.status||"", warehouse_id:s.location_id||null,
            warehouse:s.location_name||whOf(s.location_id).name||"", wh:whKey(s.location_name||whOf(s.location_id).name), customer_name:(s.customer&&s.customer.name)||"",
-           is_transfer:!!s._transfer, dest_name:s._dest||"" };   // tf-2a — 판매 행은 false · ""(트랜스퍼는 normTransferDoc 이 만든다)
+           is_transfer:!!s._transfer, dest_name:s._dest||"",
+           ship:{ company:s.ship_to_company||"", contact:s.ship_to_contact||"", phone:s.ship_to_phone||"", line1:s.ship_to_line1||"", line2:s.ship_to_line2||"",
+                  city:s.ship_to_city||"", prov:s.ship_to_state_province||"", postal:s.ship_to_postal_code||"", country:s.ship_to_country||"" } };   // fu v1.6   // tf-2a — 판매 행은 false · ""(트랜스퍼는 normTransferDoc 이 만든다)
+}
+/* fu v1.6 — 동료 피드백 2: 배송지를 작업대 머리 아래에(판매 오더만 · 트랜스퍼는 ordInfo 의 「Transfer to」) · 같은 주소는 한 번 · 오더 번호를 앞에 */
+function shipLine(p){
+  const a=[p.line1,p.line2].filter(Boolean).join(", "), c=[p.city,p.prov,p.postal].filter(Boolean).join(" ");
+  return [a,c,p.country].filter(Boolean).join(", ");
+}
+function renderShipInfo(){
+  const el=document.getElementById("shipInfo"); if(!el) return;
+  const sales=orders.filter(o=>!o.is_transfer);
+  if(!sales.length){ el.style.display="none"; el.innerHTML=""; return; }
+  const groups=[]; const keyOf=o=>JSON.stringify([o.ship.company,o.ship.contact,o.ship.phone,shipLine(o.ship)].map(x=>String(x).trim().toLowerCase()));
+  sales.forEach(o=>{ const k=keyOf(o); const g=groups.find(x=>x.k===k); if(g) g.nums.push(o.order_number); else groups.push({k,o,nums:[o.order_number]}); });
+  el.innerHTML=groups.map(g=>{
+    const p=g.o.ship, line=shipLine(p), who=[p.company,p.contact].filter(Boolean).map(esc).join(" · ");
+    const head=groups.length>1?`<span class="otag" style="color:var(--ink);background:#eef1f5">${g.nums.map(esc).join(", ")}</span> `:"";
+    if(!p.line1||!p.city) return `<div>${head}<b style="color:var(--ink)">Ship to</b> ${who?who+" · ":""}<span style="color:#c0392b;font-weight:700">No full ship-to address on this order — ask the office before quoting freight.</span></div>`;
+    return `<div>${head}<b style="color:var(--ink)">Ship to</b> ${who?`<b style="color:var(--ink)">${who}</b> · `:""}${esc(line)}${p.phone?` · ☎ ${esc(p.phone)}`:""}</div>`;
+  }).join("");
+  el.style.display="block";
 }
 function myWarehouses(){ const a=me&&me.access&&Array.isArray(me.access.warehouses)?me.access.warehouses:null; return (a&&a.length)?a:null; }   // null · 빈 배열 = 전부
 function inWhId(id){ const a=myWarehouses(); return !a || a.includes(id); }
-const SO_SEL="id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name)";   // 손님 FK 가 둘(customer_id · bill_to_customer_id)이라 이름을 박는다
+const SO_SEL="id,so_number,status,location_id,location_name,customer:customer!so_customer_id_fkey(name),ship_to_company,ship_to_contact,ship_to_phone,ship_to_line1,ship_to_line2,ship_to_city,ship_to_state_province,ship_to_postal_code,ship_to_country";   // fu v1.6 — 배송지 아홉 칸   // 손님 FK 가 둘(customer_id · bill_to_customer_id)이라 이름을 박는다
 /* ---------- tf-2a(판정 83) 트랜스퍼 갈래 — 판매 조회 줄은 그대로 · 트랜스퍼 문서는 공용 목록 뷰 wms_order_doc(tr-1a:399 · 1b1:43)에서 같은 모양으로 읽어 옆에 더한다 ----------
    번호 = TRF- · 손님 자리 = 도착 창고 이름(party_name) · 창고 = 출발 창고 · 상태 어휘는 판매와 같다(picking = Working · 묶음 열 4) · 풀 줄은 창구 wms_pick_lines 가 문서를 가른다(order_line_id = 문서 줄 id · tr-1b2).
    읽은 뒤 화면 열쇠는 order_id · order_line_id 하나로(docFillRow) · 쓰기는 문서 종류로 열 이름을 가른다(docHome · docCols · CHECK 많아야 하나 · tr-1a:360 · 362) · 마무리 = 같은 wms_finalize(트랜스퍼는 출발 · tr-2). */
@@ -959,6 +981,7 @@ document.getElementById("completeBtn").onclick=async ()=>{
     presenceLeave();   // 워크스페이스 비움 — LIVE NOW 에서 제거
     scanTarget=null; scanLog=[]; bcMap={}; assignState.clear(); writeChain.clear();
     document.getElementById("voidBanner").style.display="none";
+    renderShipInfo();   // fu v1.6 — 빈 작업대면 숨김
     renderScanBar(); renderRecent();
     document.getElementById("ordInfo").textContent="Select the orders to ship together.";
     document.getElementById("pickBtn").textContent="Select orders ▾";
@@ -989,6 +1012,7 @@ async function loadWorkspace(){
   document.getElementById("ordInfo").innerHTML+=orders.filter(o=>o.is_transfer).map(o=>` <span class="otag" style="color:#a86400;background:#fff4e0">${esc(o.order_number)} · Transfer to ${esc(o.dest_name||"—")}</span>`).join("");
   if(mixedKinds(orderIds)) document.getElementById("ordInfo").innerHTML+=` <span class="otag" style="color:#c0392b;background:#fdecec">${esc(MIX_MSG)}</span>`;
   document.getElementById("pickBtn").textContent=`${orderIds.length} orders ▾`;
+  renderShipInfo();   // fu v1.6
 
   // static pool: completed pack lines of all selected orders
   const [packTasks, pickTasks]=await Promise.all([
