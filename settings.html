@@ -106,7 +106,7 @@
 <script src="ims-doc.js"></script>
 <script src="ims-label.js?v=3"></script>
 <script>
-const SET_BUILD = "2026-10-28 · set v10a";   // 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-10-29 · set v11";   // 대화 Claude — fc-2d ④(판정 852 · 857 · asung-wms fc-2a b9d1216 · Caleb 판정 A = Settings 에만): Warehouse Edit 에 시간대(IANA 고르기 · Edmonton = America/Regina 857) · 문 닫는 시각(closes_at · 픽업 창의 끝) · 표에 두 칸 · 새 구역 「Carrier pickups」 — 창고마다 운송사(kind carrier · 켜진 것) 줄: 정기 픽업 · 마감 · 메모 · 누가 언제 · Save · Clear(창구 ref_carrier_pickup_set · 문 master — 화면은 master 만 고친다 · 마감이 문 닫는 시각보다 늦으면 빨강 · DB 도 거부) ← set v10a: 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -145,6 +145,7 @@ const TABLES = [
   { t:"ref_warehouse",    label:"Warehouse",    note:"Warehouses — the shipping contact and Freightcom account are used for freight quotes", edit:"warehouse", noAdd:1,   // set v10 — 판정 848 · fc-1a
     cols:[ C("name","Name"), C("city","City"), C("state_province","Province"), C("country","Country"),
            C("contact_name","Contact",{dim:1}), C("phone","Phone",{mono:1,dim:1}), C("freightcom_account","Freightcom",{mono:1}),
+           C("timezone","Time zone",{mono:1,dim:1}), { key:"closes_at", label:"Closes", mono:1, get:r => r.closes_at ? String(r.closes_at).slice(0,5) : "" },   // set v11 — 857 · 852
            C("is_default","Default",{bool:1}), C_ACTIVE ] },
 
   { t:"ref_bin",          label:"Bin",          note:"Thousands of bins — search for the one you need", edit:"ref", noun:"bin",   // set v5
@@ -172,6 +173,7 @@ const TABLES = [
   /* set v4 — 판정 521 ~ 526: 문서(인보이스 · 크레딧 노트 · SO · Ship Ready · Internal) — 회사 글 · 판 · 미리 보기 · 문서 글 */
   { t:"docs", label:"Documents", note:"Invoices, credit notes, sales orders — company details, layouts, preview", custom:"docs", nocount:1 },
   { t:"freight", label:"Shipping quotes", note:"Freightcom quotes — customer markup and the connection of each warehouse", custom:"freight", nocount:1 },   // set v10 — 판정 836 · 848
+  { t:"pickup", label:"Carrier pickups", note:"Per warehouse — which carriers come on a regular run, and the cutoff for a same-day pickup", custom:"pickup", nocount:1 },   // set v11 — 판정 852
   { t:"drive", label:"Google Drive", note:"Invoices, credit notes and PO documents to the IMS Documents shared drive", custom:"drive", nocount:1 },   // set v8 — drive-3 · 판정 688 · 692 · 707
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
@@ -211,6 +213,7 @@ async function load(){
   if(cur.custom === "docs"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDocs(); return; }   // set v4
   if(cur.custom === "drive"){ document.getElementById("addRow").hidden = true; drawNav(); await loadDrive(); return; }   // set v8
   if(cur.custom === "freight"){ document.getElementById("addRow").hidden = true; drawNav(); await loadFreight(); return; }   // set v10
+  if(cur.custom === "pickup"){ document.getElementById("addRow").hidden = true; drawNav(); await loadPickups(); return; }   // set v11
   document.getElementById("addRow").hidden = !(cur.edit && canEdit()) || !!cur.noAdd;   // set v2 · set v10 — 창고는 더하지 않는다
   document.getElementById("addRow").textContent = "+ Add " + (cur.noun || "carrier");   // set v5
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
@@ -358,6 +361,10 @@ function openWarehouse(r){
       <div class="hint">Sent to the carrier as the ship-from contact on freight quotes and bookings. A quote is refused without a 10-digit phone.</div>
       <div class="frow"><label>Freightcom account</label><input id="wAcct" type="search" autocomplete="off" value="${esc(r.freightcom_account || "")}" placeholder="e.g. TOR" style="width:120px;text-transform:uppercase"></div>
       <div class="hint">2 – 10 letters or digits. Quotes from this warehouse use the Freightcom account with this key. Empty = no Freightcom quotes from this warehouse.</div>
+      <div class="frow"><label>Time zone</label><select id="wTz">${WH_TZ.concat(WH_TZ.some(z => z[0] === r.timezone) || !r.timezone ? [] : [[r.timezone, r.timezone + " (current)"]]).map(z => `<option value="${esc(z[0])}" ${z[0] === (r.timezone || "America/Toronto") ? "selected" : ""}>${esc(z[1])}</option>`).join("")}</select></div>
+      <div class="hint">Pickup times and carrier cutoffs at this warehouse are in this time zone. Edmonton uses America/Regina — Alberta stays on UTC-6 all year from Nov 1, 2026.</div>
+      <div class="frow"><label>Closes at</label><input id="wClose" type="time" autocomplete="off" value="${esc(r.closes_at ? String(r.closes_at).slice(0,5) : "")}" style="width:130px"></div>
+      <div class="hint">When the warehouse closes (24-hour). A booking made after this moves the pickup to the next day, and a pickup window ends here. Empty = not set (booking a pickup asks for an end time).</div>
       <div id="wMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span>
@@ -375,13 +382,89 @@ function openWarehouse(r){
     if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ msg.className = "err"; msg.textContent = "That email does not look right."; return; }
     if(acct && !/^[A-Z0-9]{2,10}$/.test(acct)){ msg.className = "err"; msg.textContent = "The Freightcom account is 2 – 10 letters or digits, e.g. TOR."; return; }
     if((r.freightcom_account || "") !== acct && !confirm(acct ? `Use the Freightcom account ${acct} for quotes from ${r.name}?` : `Remove the Freightcom account from ${r.name}?\n\nNo Freightcom quotes can be made from this warehouse until one is set.`)) return;
-    const row = { contact_name: document.getElementById("wWho").value.trim() || null, phone: phone || null, email: email || null, freightcom_account: acct || null };
+    const tz = document.getElementById("wTz").value, closes = document.getElementById("wClose").value.trim();   // set v11 — 857 · 852
+    if(closes && !/^([01]\d|2[0-3]):[0-5]\d$/.test(closes)){ msg.className = "err"; msg.textContent = "Closes at must be a time like 17:00."; return; }
+    if((r.timezone || "America/Toronto") !== tz && !confirm(`Change the time zone of ${r.name} to ${tz}?\n\nPickup times and cutoffs for this warehouse are read in this time zone from now on.`)) return;
+    const row = { contact_name: document.getElementById("wWho").value.trim() || null, phone: phone || null, email: email || null, freightcom_account: acct || null, timezone: tz, closes_at: closes || null };
     msg.className = ""; msg.textContent = "Saving…";
     const res = await sb.from("ref_warehouse").update(row).eq("id", r.id).select("id");
     if(res.error){ msg.className = "err"; msg.textContent = res.error.message; return; }
     if(!res.data || res.data.length !== 1){ msg.className = "err"; msg.textContent = "Nothing was saved — you may not have the right to change warehouses."; return; }
     modalClose(); await load();
   };
+}
+
+/* set v11 — 857: 고를 수 있는 시간대(IANA) · Edmonton 은 Regina(Alberta 가 2026-11-01 부터 늘 UTC-6 · DB 의 tz 자료는 모른다) · 지금 값이 목록에 없으면 「(current)」 로 더한다 */
+const WH_TZ = [
+  ["America/Toronto",   "America/Toronto — Ontario (Eastern)"],
+  ["America/Regina",    "America/Regina — UTC-6 all year (use for Edmonton / Alberta)"],
+  ["America/Winnipeg",  "America/Winnipeg — Manitoba (Central)"],
+  ["America/Vancouver", "America/Vancouver — British Columbia (Pacific)"],
+  ["America/Halifax",   "America/Halifax — Atlantic"],
+];
+
+/* ── set v11 — Carrier pickups(판정 852 · fc-2a ref_carrier_pickup · Caleb 판정 A = Settings 에만) ──────────
+   ⚠️ 쓰기 = 창구 ref_carrier_pickup_set(p_carrier_id, p_warehouse_id, p {regular_pickup, cutoff "HH:MM" | "", note, delete}) · 문 = master(또는 그 창고 fulfillment — 화면은 master 만 고친다)
+   ⚠️ 행 없음 = 모른다(정기 픽업 없음 · 마감 없음) · 마감은 창고 시간대 · 문 닫는 시각보다 늦으면 DB 가 거부 · Freightcom 이 진짜 마감을 주면 예약은 그것을 먼저 본다
+   ⚠️ 운송사 = ref_carrier kind carrier · 켜진 것 · 창고 = 켜진 것 */
+async function loadPickups(){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const [wh, car, pk, st] = await Promise.all([
+    sb.from("ref_warehouse").select("id,name,timezone,closes_at").eq("is_active", true).order("name"),
+    sb.from("ref_carrier").select("id,name").eq("kind", "carrier").eq("is_active", true).order("name"),
+    sb.from("ref_carrier_pickup").select("carrier_id,warehouse_id,regular_pickup,cutoff,note,updated_at,updated_by"),
+    sb.from("ims_staff").select("id,name") ]);
+  const err = wh.error || car.error || pk.error;
+  if(err){ body.innerHTML = `<div class="msg err">Could not load — ${esc(err.message)}</div>`; return; }
+  const ed = canEdit();
+  const names = Object.fromEntries(((st && st.data) || []).map(x => [x.id, x.name]));
+  const by = {}; (pk.data || []).forEach(x => { by[x.warehouse_id + "|" + x.carrier_id] = x; });
+  const hm = (t) => t ? String(t).slice(0, 5) : "";
+  const blocks = (wh.data || []).map(w => {
+    const close = hm(w.closes_at);
+    const trs = (car.data || []).map(c => {
+      const x = by[w.id + "|" + c.id], cut = x ? hm(x.cutoff) : "", late = cut && close && cut > close;
+      return `<tr data-pw="${esc(w.id)}" data-pc="${esc(c.id)}" data-has="${x ? 1 : 0}">
+        <td><b>${esc(c.name)}</b>${x ? "" : ' <span class="dim">not set</span>'}</td>
+        <td><label style="display:inline-flex;gap:5px;align-items:center"><input type="checkbox" data-k="reg" ${x && x.regular_pickup ? "checked" : ""} ${ed ? "" : "disabled"}> regular pickup</label></td>
+        <td><input type="time" data-k="cut" value="${esc(cut)}" autocomplete="off" ${ed ? "" : "disabled"} style="width:120px${late ? ";border-color:var(--bad);color:var(--bad)" : ""}">${late ? ' <span style="color:var(--bad);font-size:11.5px">after closing</span>' : ""}</td>
+        <td><input type="search" data-k="note" value="${esc((x && x.note) || "")}" autocomplete="off" placeholder="e.g. driver around 3 pm" ${ed ? "" : "disabled"} style="width:220px"></td>
+        <td class="dim" style="font-size:11.5px">${x ? esc((names[x.updated_by] || "") + (x.updated_at ? " · " + String(x.updated_at).slice(0, 10) : "")) : ""}</td>
+        <td style="white-space:nowrap">${ed ? `<button class="pobtn" data-pact="save">Save</button>${x ? ' <button class="pobtn" data-pact="clear">Clear</button>' : ""}` : ""}<span class="res" style="margin-left:6px;font-size:12px"></span></td></tr>`;
+    }).join("");
+    return `<div class="mrow"><div class="lbl">${esc(w.name)}<span class="who">${esc(w.timezone || "America/Toronto")} · closes ${close ? esc(close) : '<span style="color:var(--bad)">not set</span>'}</span>
+        <span class="who"><a class="lnk" href="settings.html?t=warehouse">Change under Warehouse</a></span></div>
+      <div class="ctl">${(car.data || []).length ? `<table><thead><tr><th>Carrier</th><th>Pickup</th><th>Cutoff (${esc(w.timezone || "America/Toronto")})</th><th>Note</th><th>Updated</th><th></th></tr></thead><tbody>${trs}</tbody></table>` : '<span class="dim">No active carriers — add them under Carrier.</span>'}</div></div>`;
+  }).join("");
+  body.innerHTML = `<div class="mset">
+    <div class="mrow"><div class="lbl">How this is used</div><div class="ctl">
+      <span class="note"><b>Regular pickup</b> — the carrier already comes to this warehouse on its usual run, so a box booking just joins that run (no pickup time is sent). Not ticked — each booking asks the carrier to come, from the ready time until the warehouse closes. Pallets always ask for a pickup.</span>
+      <span class="note"><b>Cutoff</b> — after this time (warehouse time) a booking made today is picked up the next day, and the carrier shows as “past cutoff” in the quotes. Empty = no cutoff known. When Freightcom sends the carrier's real cutoff, that comes first.</span>
+      <span class="note">Ask the warehouse lead for these. A carrier left as “not set” has no regular pickup and no cutoff.</span>
+      ${ed ? "" : '<span class="note">Only staff with master rights can change this.</span>'}</div></div>
+    ${blocks || '<div class="mrow"><div class="ctl"><span class="dim">No active warehouses.</span></div></div>'}
+  </div>`;
+  body.querySelectorAll("[data-pact]").forEach(b => b.onclick = () => pickupSave(b.closest("tr"), b.dataset.pact));
+}
+async function pickupSave(tr, act){
+  const res = tr.querySelector(".res");
+  const cname = tr.querySelector("b").textContent;
+  let p;
+  if(act === "clear"){
+    if(!confirm(`Clear the pickup settings of ${cname} at this warehouse?\n\nIt goes back to “not set” — no regular pickup, no cutoff.`)) return;
+    p = { delete: true };
+  } else {
+    const cut = tr.querySelector('[data-k="cut"]').value.trim();
+    if(cut && !/^([01]\d|2[0-3]):[0-5]\d$/.test(cut)){ res.className = "res err"; res.textContent = "A time like 16:30."; return; }
+    p = { regular_pickup: tr.querySelector('[data-k="reg"]').checked, cutoff: cut, note: tr.querySelector('[data-k="note"]').value.trim() };
+  }
+  res.className = "res"; res.textContent = "Saving…";
+  const { error } = await sb.rpc("ref_carrier_pickup_set", { p_carrier_id: tr.dataset.pc, p_warehouse_id: tr.dataset.pw, p });
+  if(error){ res.className = "res err"; res.textContent = error.message; return; }
+  await loadPickups();
+  const again = document.querySelector(`#body tr[data-pw="${tr.dataset.pw}"][data-pc="${tr.dataset.pc}"] .res`);
+  if(again){ again.className = "res on"; again.textContent = act === "clear" ? "Cleared." : "Saved."; }
 }
 
 async function loadFreight(){
@@ -1044,6 +1127,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
   if(new URLSearchParams(location.search).get("t") === "drive") cur = TABLES.find(x => x.t === "drive");   // set v8 — ?t=drive
   if(new URLSearchParams(location.search).get("t") === "freight") cur = TABLES.find(x => x.t === "freight");   // set v10 — ?t=freight
   if(new URLSearchParams(location.search).get("t") === "warehouse") cur = TABLES.find(x => x.t === "ref_warehouse");   // set v10 — ?t=warehouse
+  if(new URLSearchParams(location.search).get("t") === "pickup") cur = TABLES.find(x => x.t === "pickup");   // set v11 — ?t=pickup
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   document.getElementById("binLabels").onclick = () => imsLabel.open({ sb, kind:"bin" });   // set v9
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
