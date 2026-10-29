@@ -120,7 +120,7 @@
    ⚠️ 금액 · 세금 · 받은 돈 · 미수는 DB 가 준다(so_detail · so_pos_finish 미리 보기) — 화면이 다시 계산하지 마라
    ⚠️ 계산대 매장은 기기에 기억한다(localStorage — 이 기기의 편의일 뿐 · 오더의 창고는 so 에 굳는다)
    ───────────────────────────────────────────────────────────── */
-const POS_BUILD = "2026-10-28 · pos v1.15";   // 대화 Claude — 동료 요청(Caleb 2026-10-28 「스캔하는 아이템은 항상 맨위에 · 이미 이전에 찍었던 같은 아이템이라도」): 줄 순서 = 마지막으로 스캔 · 담은 순(같은 SKU 가 이미 있어 수량이 늘어도 그 줄이 맨 위로) · 기억은 이 브라우저(localStorage ims_pos_touch_<SO id> · 업무 값 아님 · 다른 계산대에서 열면 옛 순서 = 줄 번호 역순) · 수량 칸 · ± 로 바꿀 때는 움직이지 않는다(입력 중에 줄이 튀지 않게) ← 2026-10-26 · pos v1.14: 대화 Claude — 판정 773(Caleb 「parked draft를 지울 수 있는 방법은 없나?」 → 「B」): 초안을 POS 에서 지운다 — 열린 판매가 초안이면 머리에 Delete draft · 목록의 초안 줄마다 ✕(열지 않고) · 확인 한 번 · 창구 so_delete(Sales Orders 의 Delete draft 와 같은 창구 · 권한은 DB) · 확정된 줄에는 없다 ← 2026-10-26 · pos v1.13: 대화 Claude — ovd-2(판정 768 ~ 771 · asung-wms ovd-1 57156b2): 판매를 시작하며 손님을 고르면 청구처에 기한 지난 인보이스가 있을 때 창(공용 ims-overdue.js · so_customer_overdue · OK 로만 닫힘 · 막지 않음 · 받아 둔 돈 한 줄) — 손님 막대의 Overdue 칩은 그대로 ← 2026-10-23 · pos v1.12: 대화 Claude — bgr-1c(c60eb9e) · 1d(3d0d7fe) · 판정 633 · 634 ② · 635 · 644 · 646 · 647 · 648: 초안 줄의 「B」 단추 = 그 줄을 B급으로(so_line_bgrade_set · 칸이 여럿이면 고르는 창 · 값 없는 칸은 고를 수 없음 · 수량이 2 이상이면 몇 개가 B급인지 물어 나머지는 정상 줄로 남긴다 — so_line_update + so_line_add p_force_new) · B급 줄은 「B-grade · 칸 · Final sale」 표시 · ✎ 없음(값은 B급 칸이 정한다) · 「✕B」 = 정상으로 되돌리기(so_line_bgrade_clear) · 장부보다 많으면 확인(over_bgrade_stock · so_lines_available 의 B급 가용) · surcharge 는 DB 가 비운다 ← pos v1.11:   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
+const POS_BUILD = "2026-10-28 · pos v1.16";   // 대화 Claude — 동료 요청 둘(Caleb 2026-10-28 「받은 돈을 cancel 하고 다시 할 수 있으면 · 화면에 페이먼트한 내역이 다 보였으면」 · 판정 863 · asung-wms pos-pay-1): ① 오른쪽 합계 아래 「Payments」 목록(so_pos_payment_list · 시각 · 방법 · 금액 · 참조 · 누가 · 취소된 줄은 회색 줄긋기 + 누가 · 사유) ② 줄마다 Cancel(so_pos_payment_cancel · Finish 전 · 대상 판매 하나일 때만 · 사유는 비워도 됨 · 거부 글 그대로) ③ Cash 창을 칸 하나로 — 「Cash received」 에 받은 돈 → 기록 = 남은 금액까지(그보다 적으면 부분 결제) · 거스름돈 · 남는 금액을 창에 보인다(옛 판은 Amount 칸이 남은 금액 전부로 미리 차 있어 Cash given 만 고치면 전액이 기록됐다 · 짐작 — DB 는 부분 결제를 맞게 셈한다 · pos-pay-1 S1c) · 다른 방법은 Amount 칸 그대로 + 「부분이면 고친다」 안내 ← pos v1.15: 대화 Claude — 동료 요청(Caleb 2026-10-28 「스캔하는 아이템은 항상 맨위에 · 이미 이전에 찍었던 같은 아이템이라도」): 줄 순서 = 마지막으로 스캔 · 담은 순(같은 SKU 가 이미 있어 수량이 늘어도 그 줄이 맨 위로) · 기억은 이 브라우저(localStorage ims_pos_touch_<SO id> · 업무 값 아님 · 다른 계산대에서 열면 옛 순서 = 줄 번호 역순) · 수량 칸 · ± 로 바꿀 때는 움직이지 않는다(입력 중에 줄이 튀지 않게) ← 2026-10-26 · pos v1.14: 대화 Claude — 판정 773(Caleb 「parked draft를 지울 수 있는 방법은 없나?」 → 「B」): 초안을 POS 에서 지운다 — 열린 판매가 초안이면 머리에 Delete draft · 목록의 초안 줄마다 ✕(열지 않고) · 확인 한 번 · 창구 so_delete(Sales Orders 의 Delete draft 와 같은 창구 · 권한은 DB) · 확정된 줄에는 없다 ← 2026-10-26 · pos v1.13: 대화 Claude — ovd-2(판정 768 ~ 771 · asung-wms ovd-1 57156b2): 판매를 시작하며 손님을 고르면 청구처에 기한 지난 인보이스가 있을 때 창(공용 ims-overdue.js · so_customer_overdue · OK 로만 닫힘 · 막지 않음 · 받아 둔 돈 한 줄) — 손님 막대의 Overdue 칩은 그대로 ← 2026-10-23 · pos v1.12: 대화 Claude — bgr-1c(c60eb9e) · 1d(3d0d7fe) · 판정 633 · 634 ② · 635 · 644 · 646 · 647 · 648: 초안 줄의 「B」 단추 = 그 줄을 B급으로(so_line_bgrade_set · 칸이 여럿이면 고르는 창 · 값 없는 칸은 고를 수 없음 · 수량이 2 이상이면 몇 개가 B급인지 물어 나머지는 정상 줄로 남긴다 — so_line_update + so_line_add p_force_new) · B급 줄은 「B-grade · 칸 · Final sale」 표시 · ✎ 없음(값은 B급 칸이 정한다) · 「✕B」 = 정상으로 되돌리기(so_line_bgrade_clear) · 장부보다 많으면 확인(over_bgrade_stock · so_lines_available 의 B급 가용) · surcharge 는 DB 가 비운다 ← pos v1.11:   // 대화 Claude — 판정 535 → 546(판정 225 「표시만」 을 뒤집는다 · ln-1 asung-wms 0c5886e): 초안 줄의 단가 옆 ✎ — 가격 또는 할인 % 를 POS 직원이 넣는다(so_line_update unit_price | discount_pct · 둘 중 하나) · 손으로 정한 줄은 「Back to the usual price」(discount_pct 빈 값 = 다시 견적) · 줄의 「price set by hand」 · 「Discount by hand」 옆에 누가 · 언제(so_detail price_set_by_name · price_set_at) · 가격 0 은 받지 않는다(무상은 사유가 필요 — SO 화면) ← pos v1.10: 대화 Claude — fb-0 11번 · 10번(판정 547 · 536): ① 수량 칸에 숫자를 직접 — 1 이상 정수만 · 늘릴 때 이 가게 창고의 가용(so_lines_available)보다 많으면 확인 한 번(+ 단추도 같다) ② 손님 막대에 쓸 수 있는 크레딧(so_detail.customer_balance.available — 받아 둔 돈 + 크레딧 − 예약) · 열린 인보이스 · 연체(so_invoice_ar_summary · 청구처 · 그 통화 · 있으면 빨간 칩) — 보이기만(Finish 를 막지 않는다 · 판정 5) ← pos v1.9: 대화 Claude — doc 인쇄(ims-doc v2): 끝낸 판매에 Print invoice(final_invoice · 번호로 찾음) ← pos v1.8: 대화 Claude — Caleb 「쿠폰이 발행된 사람에게만 쿠폰 칸」 · 「B」(코드까지 보이고 Use 로 한 번에): 초안을 열 때 그 손님의 쓸 수 있는 쿠폰(so_coupon 읽기 — 안 쓰임 · 무효 아님 · 기한 ≥ 판매일 · 딜이 켜진 쿠폰 딜)을 읽어 있을 때만 쿠폰 칸 · 코드 · 딜 · 기한 · Use · 붙은 쿠폰이 있으면 늘 보임 · 경고 칩에서 no_lines 를 뺐다(「Scan the first item.」 과 겹치고 코드 그대로 보였다) ← pos v1.7 2026-10-07 · 대화 Claude — 할인 표시(미룬 120 · 판정 283 · 298 · 329): 초안 오른쪽에 쿠폰 칸(so_coupon_apply · so_coupon_remove — so.html v5a 와 같은 창구 · 붙은 쿠폰의 applied / not used + 까닭 · ✕) · 확정 뒤 Order discount 줄에 「coupon 코드」 · 줄 할인 출처에 「Set discount」 · 경고 글 둘 · 확정 때 쿠폰이 떼어졌으면 알림 ← pos v1.6 2026-10-06 · 대화 Claude — dsc-1(판정 281 · 293): 안 파는 세트 바코드를 찍으면 창구가 낱개 × pack_factor 로 넣는다 → 「SET is not sold as a set — added BASE × n instead」 한 줄 · 오른쪽 위 사진은 그 낱개 · 거부(판매 안 함)는 창구 글 그대로 alert ← pos v1.5 대화 Claude — asm-3e(판정 244 · asm 묶음 2 · 3): 콤보 줄 아래 구성품 줄을 작게 묶어 그린다(구성품은 −/+ · 지우기 없음 — 콤보 줄만 바꾼다 · 스캔한 콤보는 so_line_add 가 구성품까지 넣는다) ← pos v1.4 // 대화 Claude — surcharge-3(묶음 8): 줄 아래 작은 글씨로 surcharge · 오른쪽 금액에 Surcharge 줄(표시만 · 값은 so_detail) ← v1.3 대화 Claude — 줄 · 찾기 목록의 작은 사진이 안 그려지던 것(칸은 채워짐 · Caleb 콘솔 확인) → 사진 크기를 픽셀로 · 줄 사진은 바로 읽기 ← v1.2 판정 225: 할인 표시(딜 = SALE · 원래 가격 줄 긋기 · 손님 할인 · 손으로 · 무상) · 오른쪽 금액에 Order discount · Charges 줄 ← v1.1 오른쪽 위 큰 사진(Caleb 2026-09-25 「오른쪽 위에 사진이 크게 들어가게 하면 좋을 것 같아」) · 줄 · 찾기 목록 사진(판정 208 · 213 모양) ← pos v1
 console.log("pos.html build:", POS_BUILD);
 /* 사진(판정 194 · 208 · 213) — 공통 imsThumb(thumb-1) · 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 오른쪽 위 큰 사진 = 마지막으로 담은 상품(줄의 상품 칸을 누르면 그 상품) · 누르면 크게 보기 */
@@ -481,26 +481,43 @@ function parkSale(){
 /* ── 결제 — 대상 = 이 오더(발행 순간 저절로 붙는다 · §18 판정 4) · 나눠 내기 ── */
 const PMETH = [["cash","Cash"],["debit_card","Debit"],["credit_card","Credit"],["e_transfer","e-Transfer"]];
 function openPay(method){
+  /* pos v1.16 — Cash 는 칸 하나(받은 돈) · 기록 = min(받은 돈, 남은 금액) · 거스름돈 · 남는 금액을 창에서 · 다른 방법은 Amount 칸(남은 금액으로 미리 참 · 부분이면 고친다) */
   const due = est ? Math.max(0, Number(est.amount_due) || 0) : 0;
+  const cash = method === "cash";
+  const r2 = (v) => Math.round(Number(v) * 100) / 100;
   modalOpen(`
     <h4>${esc((PMETH.find(m => m[0] === method) || [0, method])[1])} payment</h4>
     <div class="pbody">
-      <div class="frow"><label>Amount</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01" value="${due > 0 ? due.toFixed(2) : ""}"></div>
-      ${method === "cash" ? `<div class="frow"><label>Cash given</label><input id="pyGiven" class="sofield" type="number" step="0.01" min="0"> <span id="pyChange" class="mid"></span></div>` : ""}
-      <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="${method === "cash" ? "" : "slip / approval no."}"></div>
-      <div class="sohint">Record it after the terminal approves. A split payment is just two payments — record each one.${method === "cash" ? " Record the amount kept, not the cash handed over (change is not recorded)." : ""}</div>
+      <div class="frow"><label>To pay</label><b class="mono" style="font-size:15px">${plain(due)}</b></div>
+      ${cash ? `<div class="frow"><label>Cash received</label><input id="pyGiven" class="sofield" type="number" step="0.01" min="0.01" inputmode="decimal" placeholder="what the customer handed over"></div>
+      <div id="pyCalc" class="sohint" style="font-size:13px;min-height:18px"></div>`
+      : `<div class="frow"><label>Amount</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01" inputmode="decimal" value="${due > 0 ? due.toFixed(2) : ""}"></div>
+      <div class="sohint">For part of the bill (e.g. some cash, the rest by debit), change the amount to what this ${esc((PMETH.find(m => m[0] === method) || [0, method])[1])} covers.</div>`}
+      <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="${cash ? "" : "slip / approval no."}"></div>
+      <div class="sohint">Record it after the terminal approves. A split payment is just two payments — record each one. Each payment shows under Payments on the right, and can be cancelled there before Finish.</div>
       <div id="pyMsg" style="margin-top:10px;font-size:12.5px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="pyGo">Record</button></div>`);
   wireModalClose();
-  if(method === "cash"){
-    const g = document.getElementById("pyGiven");
-    g.oninput = () => { const ch = Number(g.value) - Number(document.getElementById("pyA").value); document.getElementById("pyChange").textContent = ch >= 0 ? "change " + plain(ch) : ""; };
+  const amountNow = () => {
+    if(!cash) return r2(document.getElementById("pyA").value);
+    const g = r2(document.getElementById("pyGiven").value);
+    return due > 0 ? Math.min(g, due) : g;
+  };
+  if(cash){
+    const g = document.getElementById("pyGiven"), c = document.getElementById("pyCalc");
+    g.oninput = () => {
+      const got = r2(g.value);
+      if(!(got > 0)){ c.textContent = ""; return; }
+      if(due > 0 && got >= due) c.innerHTML = `Records <b>${plain(due)}</b> · change <b class="mid">${plain(got - due)}</b>`;
+      else if(due > 0) c.innerHTML = `Part payment — records <b>${plain(got)}</b> · still to pay <b class="mid">${plain(due - got)}</b> (another payment, e.g. debit)`;
+      else c.innerHTML = `Records <b>${plain(got)}</b>`;
+    };
   }
-  setTimeout(() => { const i = document.getElementById("pyA"); if(i){ i.focus(); i.select(); } }, 30);
-  document.getElementById("pyGo").onclick = async () => {
-    const amt = Number(document.getElementById("pyA").value);
-    if(!(amt > 0)){ say("pyMsg", "err", "Give an amount above zero."); return; }
+  setTimeout(() => { const i = document.getElementById(cash ? "pyGiven" : "pyA"); if(i){ i.focus(); i.select(); } }, 30);
+  const go = async () => {
+    const amt = amountNow();
+    if(!(amt > 0)){ say("pyMsg", "err", cash ? "Type the cash the customer handed over." : "Give an amount above zero."); return; }
     const s = cur.so;
     say("pyMsg", "", "Recording…"); document.getElementById("pyGo").disabled = true;
     const { error } = await sb.rpc("so_payment_add", { p: {
@@ -509,6 +526,39 @@ function openPay(method){
     if(error){ say("pyMsg", "err", error.message); document.getElementById("pyGo").disabled = false; return; }
     modalClose(); await openSale(curId); loadParked();
   };
+  document.getElementById("pyGo").onclick = go;
+  ["pyGiven", "pyA", "pyR"].forEach(id => { const el = document.getElementById(id); if(el) el.onkeydown = (e) => { if(e.key === "Enter"){ e.preventDefault(); go(); } }; });
+}
+/* ── pos v1.16 — 이 판매의 결제 목록 · 취소(판정 863 · so_pos_payment_list · so_pos_payment_cancel) ──
+   ⚠️ 취소는 Finish 전(draft · confirmed) · 대상 판매가 하나인 결제만(targets ≠ 1 이면 단추 없음) · 거부 글은 DB 그대로(Finish 뒤 · 다른 인보이스에 붙은 돈 = manager 가 Payments 화면에서) */
+const PAY_LBL = { cash: "Cash", debit_card: "Debit", credit_card: "Credit", e_transfer: "e-Transfer", cheque: "Cheque", wire: "Wire", direct_deposit: "Direct deposit", shopify: "Shopify" };
+function payListHtml(pl, s){
+  if(!pl) return "";
+  if(pl.err) return `<div class="sohint" style="color:var(--bad)">Payments: ${esc(pl.err)}</div>`;
+  const ps = pl.payments || [];
+  if(!ps.length) return "";
+  const open = s && (s.status === "draft" || s.status === "confirmed");
+  const tm = (t) => t ? new Date(t).toLocaleString("en-CA", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "";
+  const rows = ps.map(p => {
+    const nT = Array.isArray(p.targets) ? p.targets.length : Number(p.targets);
+    const live = p.status === "active", lbl = (PAY_LBL[p.method] || p.method || "") + " " + plain(p.amount);
+    return `<div style="display:flex;gap:6px;align-items:flex-start;padding:5px 0;border-top:1px solid var(--line);font-size:12.5px${live ? "" : ";color:var(--muted)"}">
+      <div style="flex:1;min-width:0">
+        <div style="${live ? "" : "text-decoration:line-through"}"><b>${esc(PAY_LBL[p.method] || p.method || "")}</b> <span class="mono">${plain(p.amount)}</span>${p.reference ? ` <span class="dim">· ${esc(p.reference)}</span>` : ""}</div>
+        <div class="dim" style="font-size:11px">${esc(tm(p.created_at))}${p.created_by_name ? " · " + esc(p.created_by_name) : ""}</div>
+        ${live ? "" : `<div style="font-size:11px">Cancelled${p.voided_by_name ? " by " + esc(p.voided_by_name) : ""}${p.voided_at ? " · " + esc(tm(p.voided_at)) : ""}${p.void_note ? " — " + esc(p.void_note) : ""}</div>`}
+      </div>
+      ${live && open && nT === 1 ? `<button class="xbtn" data-paycx="${esc(p.payment_id)}" data-paylbl="${esc(lbl)}" title="Cancel this payment (entered by mistake)">Cancel</button>` : ""}
+    </div>`;
+  }).join("");
+  return `<div style="margin-top:10px"><div class="dim" style="font-size:12px;margin-bottom:2px">PAYMENTS · ${ps.filter(p => p.status === "active").length} · total ${plain(pl.active_total)}</div>${rows}</div>`;
+}
+async function cancelPay(paymentId, lbl){
+  const why = prompt(`Cancel the payment ${lbl}?\n\nIt stays on record as cancelled, with your name. Then record the right amount again.\n\nReason (optional):`, "");
+  if(why === null) return;
+  const { error } = await sb.rpc("so_pos_payment_cancel", { p_payment_id: paymentId, p_note: why.trim() || null });
+  if(error){ alert(error.message); return; }
+  await openSale(curId); loadParked();
 }
 
 /* ── Finish — 미리 보기 → 출고 + 인보이스 한 번(막지 않는다) ── */
@@ -596,6 +646,9 @@ async function openSale(id){
     const pv = await sb.rpc("so_pos_finish", { p_so_id: id, p_commit: false });
     if(!pv.error) est = pv.data.estimate || null;
   }
+  let pays = null;   // pos v1.16 — 이 판매의 결제(취소된 것 포함)
+  { const pl = await sb.rpc("so_pos_payment_list", { p_so_id: id }); pays = pl.error ? { err: pl.error.message } : (pl.data || {}); }
+  if(curId !== id) return;
   const draft = s.status === "draft";
   document.getElementById("soNo").textContent = s.so_number + " · " + s.status;
   { const dd = document.getElementById("delDraft"); dd.hidden = !draft; dd.onclick = () => deleteDraft(s.id, s.so_number); }   // pos v1.14 — 판정 773
@@ -662,7 +715,8 @@ async function openSale(id){
     <div class="row2">Tax${t.tax_rule ? " · " + esc(t.tax_rule) : ""}<b>${t.tax === null || t.tax === undefined ? "no rule" : plain(t.tax)}</b></div>
     ${est ? `<div class="row2">Paid<b>${plain(est.deposit)}</b></div>
       ${Number(est.credit) || Number(est.balance) ? `<div class="row2">Credit / on account<b>${plain(Number(est.credit || 0) + Number(est.balance || 0))}</b></div>` : ""}
-      <div class="row2" style="font-size:15px">To pay<b class="mid">${plain(Math.max(0, Number(est.amount_due) || 0))}</b></div>` : ""}`;
+      <div class="row2" style="font-size:15px">To pay<b class="mid">${plain(Math.max(0, Number(est.amount_due) || 0))}</b></div>` : ""}
+    ${payListHtml(pays, s)}`;
   let acts = "";
   if(draft){
     /* pos v1.7 — 쿠폰 칸(초안만 · 붙은 쿠폰은 상태와 ✕) · pos v1.8 — 그 손님의 쓸 수 있는 쿠폰이 있거나 붙은 쿠폰이 있을 때만 */
@@ -699,6 +753,7 @@ async function openSale(id){
     const cc = document.getElementById("cpCode"); if(cc) cc.onkeydown = e => { if(e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); applyCoupon(); } };
     document.querySelectorAll("[data-cpuse]").forEach(b => { b.onclick = () => applyCoupon(b.dataset.cpuse); }); }   // pos v1.8
   document.querySelectorAll("[data-pay]").forEach(b => { b.onclick = () => openPay(b.dataset.pay); });
+  document.querySelectorAll("[data-paycx]").forEach(b => { b.onclick = () => cancelPay(b.dataset.paycx, b.dataset.paylbl); });   // pos v1.16
   const bf = document.getElementById("aFinish"); if(bf) bf.onclick = finishSale;
   const bp = document.getElementById("aPark"); if(bp) bp.onclick = parkSale;
   const br = document.getElementById("aReopen"); if(br) br.onclick = reopenSale;
