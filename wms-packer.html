@@ -309,11 +309,11 @@
    팩 과제 시작(insert) · 클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 · void 안내 · 오더 상태를 「닫을 준비」로 쓰던 것(checkOrderReady 의 update) — 대신 「오더가 Working 이 아니다」 배너(판정 21) · ready 는 안내만 ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found · 픽커 선언은 reported_by 이름으로 보인다) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다. */
-const WK_BUILD="2026-10-20 · pa v1.6b";   // 대화 Claude — Caleb 화면 시험(리스트 뷰 마지막 줄이 아래 단추 칸에 가림): 목록 아래 여유 140px · 스캔 칸 포커스 되돌리기가 화면을 위로 끌어올리지 않게(focus preventScroll) ←   // 「for combo」 꼬리표 폭 = 글자 폭(픽 화면과 같은 고침) ←   // asm-3c(판정 244 · 249 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○」 · 목록 맨 위에 콤보마다 「Combo ○○ — n of m complete」(구성품이 다 찬 콤보 수 = min(verified ÷ (combo_qty × pack_factor))) · 줄 순서 · 스캔 흐름은 그대로(판정 249 Caleb 「첫째안으로 가자」) ← pa v1.5 rep-close-2(판정 58 묶음 1) — 픽을 넘겨 채울 때 「Found it?」 창 하나(찾았나 + 어느 칸 · 기본 = 픽 계획 칸) · 채운 줄에 「Found · 칸」 표시 · 완료 창구가 신고를 found_at_pack · 몇 개 · 칸으로 닫는다(rep-close-1) ← pa v1.4 // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
+const WK_BUILD="2026-10-30 · pa v1.7";   // 대화 Claude — pa v1.7: 판정 887(combo-bc-1) 콤보 박스 바코드 한 번 = 그 콤보 하나(구성품 줄마다 combo_qty × pack_factor · 하나라도 자리 · 픽 수량 안이 아니면 거부 · 기록 scanned_combo) ←   // pa v1.6b: Caleb 화면 시험(리스트 뷰 마지막 줄이 아래 단추 칸에 가림): 목록 아래 여유 140px · 스캔 칸 포커스 되돌리기가 화면을 위로 끌어올리지 않게(focus preventScroll) ←   // 「for combo」 꼬리표 폭 = 글자 폭(픽 화면과 같은 고침) ←   // asm-3c(판정 244 · 249 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○」 · 목록 맨 위에 콤보마다 「Combo ○○ — n of m complete」(구성품이 다 찬 콤보 수 = min(verified ÷ (combo_qty × pack_factor))) · 줄 순서 · 스캔 흐름은 그대로(판정 249 Caleb 「첫째안으로 가자」) ← pa v1.5 rep-close-2(판정 58 묶음 1) — 픽을 넘겨 채울 때 「Found it?」 창 하나(찾았나 + 어느 칸 · 기본 = 픽 계획 칸) · 채운 줄에 「Found · 칸」 표시 · 완료 창구가 신고를 found_at_pack · 몇 개 · 칸으로 닫는다(rep-close-1) ← pa v1.4 // wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2c(판정 87) — 팩 줄 id 되찾기를 문서 줄 id 로(트랜스퍼 결함 · 553) · 저장 못 하는 줄은 빨간 토스트 · tf-2a(판정 83) — 트랜스퍼 갈래 ·   // adj-rec-a(판정 57) — 팩 회복에 칸을 남긴다: 채울 때 칸을 묻고(기본 = 픽 계획 칸) 완료 때 p_recovered [{sku, bin, qty}] 로 보낸다
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, whById={}, staffName={};
-let pool=[], mine=[], stalePacks=[], packTask=null, order=null, lines=[], bcMap={}, curIdx=0, view="list";
+let pool=[], mine=[], stalePacks=[], packTask=null, order=null, lines=[], bcMap={}, comboMap={}, curIdx=0, view="list";
 let actx=null;
 
 /* ---------- IMS 공통 조각 (⑤-4b wms-picker.html 과 같다) ---------- */
@@ -735,7 +735,8 @@ function lineFromRpc(r, isPack){
     verified: isPack ? Number(r.verified_base||0) : 0,
     // vmethod 복원 (운영 2026-08-25 · 실사고 null 3,702행): verified_base 는 복원하면서 방법만 버리면 완료·Hold 가 전 라인을 null 로 덮는다 — 스캔 증거의 비가역 소실.
     overage:0, vmethod: isPack ? (r.pack_verification_method||null) : null,
-    _combo:r.combo_sku||null, _comboQty:(r.combo_qty==null)?null:Number(r.combo_qty), _comboLine:r.combo_line_id||null,   // asm-3c — 콤보 구성품이면 콤보 SKU · 콤보 하나에 드는 수(보통 줄 null)
+    _combo:r.combo_sku||null, _comboQty:(r.combo_qty==null)?null:Number(r.combo_qty), _comboLine:r.combo_line_id||null, _comboBc:(r.combo_barcodes||[]).map(x=>String(x||"").trim()).filter(Boolean),   // pa v1.7 판정 887 — 그 콤보의 바코드(구성품 줄만 · 보통 줄 [])
+      // asm-3c — 콤보 구성품이면 콤보 SKU · 콤보 하나에 드는 수(보통 줄 null)
   };
 }
 /* asm-3c(묶음 6 · 판정 249) — 콤보 표시 · 묶음 수 = 구성품이 다 찬 콤보 수(단위 = base · 콤보 하나 = combo_qty × pack_factor) · 줄 순서는 그대로 */
@@ -837,6 +838,9 @@ function finishBuild(){
   // barcode map: code -> [{idx,factor}] — 낱개 1 · 세트 pack_factor (전부 창구 barcodes[] 에서)
   bcMap={};
   lines.forEach((l,idx)=>{ (l.barcodes||[]).forEach(b=>{ const c=String(b.barcode||"").trim(); if(!c)return; const arr=(bcMap[c]=bcMap[c]||[]); if(!arr.some(x=>x.idx===idx)) arr.push({idx,factor:Number(b.factor)||1}); }); });
+  // pa v1.7 판정 887 — 콤보 박스 바코드 → 콤보 줄 id 들(줄 순서 · 같은 콤보 줄은 한 번)
+  comboMap={};
+  lines.forEach(l=>{ if(!l._comboLine) return; (l._comboBc||[]).forEach(code=>{ const arr=(comboMap[code]=comboMap[code]||[]); if(!arr.includes(l._comboLine)) arr.push(l._comboLine); }); });
 }
 
 async function enterPack(){
@@ -1322,6 +1326,7 @@ function processScan(code){
   if(frozen) return;
   if(scanBusy) return;               // a decision modal is open — ignore scans meanwhile
   const cands=bcMap[code];
+  if((!cands||!cands.length) && comboMap[code]){ comboScan(code); return; }   // pa v1.7 판정 887 — 낱개 · 세트 바코드가 먼저(같은 번호면 낱개로 본다)
   if(!cands||!cands.length){ flash("bad","✕ Barcode not in this batch"); return; }
   clearTimeout(advTimer);
   // prefer lines not yet at ordered qty, else already-full (=over detect) lines
@@ -1358,6 +1363,32 @@ function processScan(code){
     return;
   }
   renderPack(); focusScan();
+}
+/* pa v1.7 · 판정 887 — 콤보 박스 바코드 한 번 = 그 콤보 하나
+   구성품 줄마다 combo_qty × pack_factor(base) 를 한꺼번에 · 하나라도 자리가 모자라거나 픽한 수(expected)를 넘으면 아무것도 안 채운다
+   (반쪽 콤보 없음 · 픽이 모자란 줄의 「Found it?」 확인은 낱개 스캔 길로) · 기록 scanned_combo */
+function comboScan(code){
+  clearTimeout(advTimer);
+  const ids=comboMap[code]||[]; let partial=null;
+  const need=p=>(Number(p._comboQty)||0)*(Number(p.pack_factor)||1);
+  for(const id of ids){
+    const parts=lines.filter(l=>l._comboLine===id);
+    if(!parts.length || parts.some(p=>!(need(p)>0))) continue;
+    if(parts.every(p=>p.verified+need(p)<=p.required && p.verified+need(p)<=p.expected)){
+      parts.forEach(p=>{ p.verified+=need(p); p.vmethod="scanned_combo"; saveLine(p); });
+      curIdx=lines.indexOf(parts[0]);
+      const done=parts.every(p=>p.verified>=p.required);
+      lastScan={sku:parts[0]._combo||"", f:need(parts[0]), verified:parts[0].verified, required:parts[0].required, box:true, at:Date.now()};
+      flash(done?"done":"okbox",`✓ BOX ${parts[0]._combo||""} → ${parts.length} item${parts.length>1?"s":""} verified${done?" · COMPLETE":""}`);
+      renderPack(); focusScan();
+      if(done) advTimer=setTimeout(()=>{ autoAdvance(); renderPack(); focusScan(); },900);
+      return;
+    }
+    if(!partial && parts.some(p=>p.verified<p.required)) partial=parts[0];
+  }
+  if(partial){ flash("bad",`✕ Box ${partial._combo||""} doesn't fit — some items are already packed or short-picked. Scan the items one by one`); return; }
+  const l=lines.find(x=>ids.includes(x._comboLine));
+  flash("bad",`⚠ already met — box ignored (${(l&&l._combo)||"combo"})`);
 }
 function autoAdvance(){ const n=lines.findIndex((l,i)=>i>curIdx&&l.verified<l.required); const a=lines.findIndex(l=>l.verified<l.required); curIdx=n>=0?n:(a>=0?a:curIdx); }
 
@@ -1405,7 +1436,7 @@ async function saveLine(l){
 }
 
 function leavePackView(){
-  packTask=null;order=null;lines=[];bcMap={};
+  packTask=null;order=null;lines=[];bcMap={};comboMap={};
   document.getElementById("packView").style.display="none";
   document.getElementById("listView").style.display="block";
   loadQueue();

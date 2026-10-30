@@ -313,11 +313,11 @@
    클레임 · 이어받기 · 세션 · 스캔 저장 · Back · 리포트는 표에 직접(운영 그대로 · auth_all) — 칸만 uuid(ims_staff.id) · ⭐ 소유권 비교는 전부 me.id(me.name 은 표시용만).
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · sku-bin 표 · 스냅샷 표 · 불일치 표 · Cin7 보류 안내 · Cin7 void 배너 — 대신 「오더가 Working 이 아니다」 배너(판정 21 · so.status) ·
    「Not enough stock」(판정 20) = wms_reports kind stock_short(qty_expected · qty_found) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 화면이 product_image_primary 를 부른다) · 글자 표(판정 17) · 창고 id · 존은 창구가 준다 · 동선 순서 열쇠 warehouse_id|zone. */
-const WP_BUILD="2026-10-20 · pk v1.5b";   // 대화 Claude — Caleb 화면 시험(리스트 뷰 마지막 줄이 아래 단추 칸에 가림): 목록 아래 여유 140px · 스캔 칸 포커스 되돌리기가 화면을 위로 끌어올리지 않게(focus preventScroll) ←   // 「for combo」 꼬리표가 줄 끝까지 늘어나던 것(Caleb 화면 시험) → 글자 폭만 ←   // asm-3c(판정 244 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○ · N per combo」(wms_pick_lines 의 combo_sku · combo_qty · asm-2b1) · 픽은 구성품 그대로 · 콤보 줄 자체는 오지 않는다 ← pk v1.4 pick-shelf-2(판정 235 · 묶음 1 ~ 4) — 칸 옆 on shelf(wms_pick_shelf 한 번 · asung-wms pick-shelf-1) · Different bin = 계획 칸 + 바로 밑 체크 · 고르기 → 「Pick from」 · 줄에 결과 · 빈 계획 칸 보고 한 번만 ← wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
+const WP_BUILD="2026-10-30 · pk v1.6";   // 대화 Claude — pk v1.6: 판정 887(combo-bc-1) 콤보 박스 바코드 한 번 = 그 콤보 하나(구성품 줄마다 combo_qty × pack_factor · 하나라도 자리가 없으면 거부 · 기록 scanned_combo) ←   // pk v1.5b: Caleb 화면 시험(리스트 뷰 마지막 줄이 아래 단추 칸에 가림): 목록 아래 여유 140px · 스캔 칸 포커스 되돌리기가 화면을 위로 끌어올리지 않게(focus preventScroll) ←   // 「for combo」 꼬리표가 줄 끝까지 늘어나던 것(Caleb 화면 시험) → 글자 폭만 ←   // asm-3c(판정 244 · asm 묶음 6) — 콤보 구성품 줄에 「for combo ○○ · N per combo」(wms_pick_lines 의 combo_sku · combo_qty · asm-2b1) · 픽은 구성품 그대로 · 콤보 줄 자체는 오지 않는다 ← pk v1.4 pick-shelf-2(판정 235 · 묶음 1 ~ 4) — 칸 옆 on shelf(wms_pick_shelf 한 번 · asung-wms pick-shelf-1) · Different bin = 계획 칸 + 바로 밑 체크 · 고르기 → 「Pick from」 · 줄에 결과 · 빈 계획 칸 보고 한 번만 ← wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · pick-bin(판정 121 ~ 124) — 줄 저장마다 실제 칸 · Different bin
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17 — 저장 값은 그대로 · 글자만
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
-let batches=[], myBatches=[], stalePool=[], task=null, order=null, lines=[], bcMap={}, curIdx=0, view="single", batchFilter="";
+let batches=[], myBatches=[], stalePool=[], task=null, order=null, lines=[], bcMap={}, comboMap={}, curIdx=0, view="single", batchFilter="";
 /* 리스트 행 탭 → 임시 싱글뷰 (2026-08-05). view(선호)는 건드리지 않는다 — 렌더는 viewOverride||view */
 let viewOverride=null, backIdx=null;
 let lastListScroll=0;   // 스크롤 직후 고스트 탭 무시 (fulfillment __justDragged 패턴)
@@ -477,7 +477,7 @@ window.addEventListener("focus",guardOnReturn);
 
 function resetToList(){
   stopHeartbeat(); presenceLeave();
-  task=null; order=null; wave=null; tasks=[]; lines=[]; bcMap={};
+  task=null; order=null; wave=null; tasks=[]; lines=[]; bcMap={}; comboMap={};
   document.getElementById("pickView").style.display="none";
   document.getElementById("listView").style.display="block";
   loadBatches();
@@ -875,7 +875,8 @@ function lineFromRpc(r, t){
     vmethod:r.verification_method||null, _sync:true,
     _taskId:r.pick_task_id, _tote:r.tote_no||0,
     _orderId:r.so_id, _orderNumber:r.so_number||"", _customer:r.customer_name||"",
-    _combo:r.combo_sku||null, _comboQty:(r.combo_qty==null)?null:Number(r.combo_qty), _comboLine:r.combo_line_id||null,   // asm-3c — 콤보 구성품이면 콤보 SKU · 콤보 하나에 드는 수(보통 줄 null)
+    _combo:r.combo_sku||null, _comboQty:(r.combo_qty==null)?null:Number(r.combo_qty), _comboLine:r.combo_line_id||null, _comboBc:(r.combo_barcodes||[]).map(x=>String(x||"").trim()).filter(Boolean),   // pk v1.6 판정 887 — 그 콤보의 바코드(구성품 줄만 · 보통 줄 [])
+      // asm-3c — 콤보 구성품이면 콤보 SKU · 콤보 하나에 드는 수(보통 줄 null)
     planned:pb.map(b=>({bin_id:b.bin_id, bin:b.bin||"", qty:Number(b.qty_base||0)})),   // pick-bin — 계획 칸(순서 = 계획 행 id)
     stockBins:(r.stock_bins||[]).map(b=>({bin_id:b.bin_id, bin:b.bin||"", zone:b.zone||"", qty:Number(b.qty||0), active:b.is_active!==false, planned:!!b.planned})),   // 판정 122 — 칸 목록(EA · 계획 먼저)
     ...binStateFrom(pb, r.actual_bins||[], Number(r.picked_base||0)),                  // 판정 121 — 저장된 실제 칸을 되살린다(보류 · 이어받기 · 다른 기기)
@@ -985,6 +986,9 @@ async function enterPickView(){
       if(!arr.some(c=>c.idx===idx)) arr.push({idx,factor:Number(b.factor)||1});
     });
   });
+  // pk v1.6 판정 887 — 콤보 박스 바코드 → 콤보 줄 id 들(줄 순서 · 같은 콤보 줄은 한 번)
+  comboMap={};
+  lines.forEach(l=>{ if(!l._comboLine) return; (l._comboBc||[]).forEach(code=>{ const arr=(comboMap[code]=comboMap[code]||[]); if(!arr.includes(l._comboLine)) arr.push(l._comboLine); }); });
   curIdx=firstIncomplete();
   document.getElementById("listView").style.display="none";
   document.getElementById("pickView").style.display="block";
@@ -1335,6 +1339,7 @@ function processScan(code){
   if(frozen) return;
   if(scanBusy) return;              // a decision modal is open — ignore scans meanwhile
   const cands=bcMap[code];
+  if((!cands||!cands.length) && comboMap[code]){ comboScan(code); return; }   // pk v1.6 판정 887 — 낱개 · 세트 바코드가 먼저(같은 번호면 낱개로 본다)
   if(!cands||!cands.length){
     // 판정 122 — 칸 이름을 스캔 · 타자하면 지금 줄의 칸을 바꾼다(칸 이름 ∩ 제품 바코드 = 0 · 조사 실측) · 목록에 없는 칸은 「Different bin」 창에서
     const cl=lines[curIdx];
@@ -1356,6 +1361,30 @@ function processScan(code){
   saveLine(l);
   if(l.picked>=l.assigned) autoAdvance();
   renderPick(); focusScan();
+}
+/* pk v1.6 · 판정 887 — 콤보 박스 바코드 한 번 = 그 콤보 하나
+   구성품 줄마다 combo_qty × pack_factor(base) 를 한꺼번에 · 하나라도 자리가 모자라면 아무것도 안 채운다(반쪽 콤보 없음) · 기록 scanned_combo
+   칸은 각 줄의 계획 칸 그대로(setPicked) — 박스가 낱개와 같은 칸이라는 실무 전제(Caleb 10-30) */
+function comboScan(code){
+  const ids=comboMap[code]||[]; let partial=null;
+  const need=p=>(Number(p._comboQty)||0)*(Number(p.pack_factor)||1);
+  for(const id of ids){
+    const parts=lines.filter(l=>l._comboLine===id);
+    if(!parts.length || parts.some(p=>!(need(p)>0))) continue;
+    if(parts.every(p=>p.picked+need(p)<=p.assigned)){
+      parts.forEach(p=>{ setPicked(p, p.picked+need(p)); p.vmethod="scanned_combo"; saveLine(p); });
+      curIdx=lines.indexOf(parts[0]);
+      const done=parts.every(p=>p.picked>=p.assigned);
+      const tote=parts[0]._tote?`TOTE ${parts[0]._tote} · `:"";
+      flash(done?"done":"okbox",`✓ ${tote}BOX ${parts[0]._combo||""} → ${parts.length} item${parts.length>1?"s":""} filled${done?" · DONE":""}`);
+      if(done) autoAdvance();
+      renderPick(); focusScan(); return;
+    }
+    if(!partial && parts.some(p=>p.picked<p.assigned)) partial=parts[0];
+  }
+  if(partial){ flash("bad",`✕ Box ${partial._combo||""} doesn't fit — some items are already picked. Scan the items one by one`); return; }
+  const l=lines.find(x=>ids.includes(x._comboLine));
+  flash("bad","✕ Quantity already met: "+((l&&l._combo)||"combo"));
 }
 function autoAdvance(){
   const next=lines.findIndex((l,i)=>i>curIdx&&l.picked<l.assigned);
