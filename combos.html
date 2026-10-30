@@ -109,7 +109,7 @@
            ⚠️ 콤보가 아니던 SKU(켜진 줄 0)는 parent_not_combo 로 막힌다(817) — 풀린 콤보도 다시 켤 수 없다(819)
    ⭐ 막기 · 알리기 문장은 서버 것 그대로 · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const CB_BUILD = "2026-10-27 · cb v1";   // 대화 Claude — 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
+const CB_BUILD = "2026-10-30 · cb v1a";   // 대화 Claude — cb v1a: 판정 885(combo-one-1 · 02ecada) 구성품 하나 + 수량 2 이상도 콤보 — 안내 글 두 곳만 · cb v1 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
 console.log("combos.html build:", CB_BUILD);
 
 let sb = null, canEdit = false, q = "", onlyActive = true, showRel = false, curId = null;
@@ -340,7 +340,7 @@ function openComboDialog(st){
   }
   const b = showModal(`<h4>Edit components — <span class="mono">${esc(st.parentSku)}</span></h4>
     <div class="pbody">
-      <div class="ghost" style="margin-bottom:10px">List <b>every</b> component with how many go into <b>one</b> combo. At least two components.</div>
+      <div class="ghost" style="margin-bottom:10px">List <b>every</b> component with how many go into <b>one</b> combo. Two or more components — or one component with a qty of 2 or more.</div>
       <table class="vt"><thead><tr><th>SKU</th><th>Qty per combo</th><th>Product</th><th></th></tr></thead><tbody>${compRows(st)}</tbody></table>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="xbtn" data-cbx="add">+ component</button></div>
     </div>
@@ -408,7 +408,7 @@ function openNewCombo(st){
       </div>
       <div class="sub">Sale prices <span class="ghost">— the combo's own price, not the sum of its components</span></div>
       <div class="fg">${saleTiers().map(t => `<label>${esc(t.name)}</label><input class="ein sm mono" data-ncprice="${t.id}" value="${esc(st.prices[t.id] || "")}">`).join("")}</div>
-      <div class="sub">Components <span class="ghost">— every component, with how many go into one combo · at least two</span></div>
+      <div class="sub">Components <span class="ghost">— every component, with how many go into one combo · two or more, or one with a qty of 2 or more</span></div>
       <table class="vt"><thead><tr><th>SKU</th><th>Qty per combo</th><th>Product</th><th></th></tr></thead><tbody>${compRows(st)}</tbody></table>
       <div style="display:flex;gap:6px;margin-top:8px"><button class="xbtn" data-cbx="add">+ component</button></div>
     </div>
