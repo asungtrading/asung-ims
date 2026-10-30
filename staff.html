@@ -92,7 +92,7 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-const ST_BUILD = "2026-10-29 · st v3b";   // 대화 Claude — st v3b(fc-2d · 판정 859): 열쇠의 방은 ims_perm_catalog 의 rooms(배열 · 없으면 room 하나) — 한 열쇠를 두 방이 쓰면(freight_booking = wms · ims) 둘 중 하나만 체크해도 보이고 저장 때 지워지지 않는다(옛 st v3a 는 room 하나만 보아 WMS 만 체크한 직원의 freight_booking 을 지웠다) ← st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
+const ST_BUILD = "2026-10-29 · st v3c";   // 대화 Claude — st v3c(Caleb 「supervisor로 올려도 로케이션은 여전히 선택이 가능한데?」): 역할이 Supervisor · Admin 이면 Location 체크 칸을 잠근다(흐림) — DB(ims_can_warehouse)는 그 역할에 체크를 보지 않는다 · 체크 값은 지우지 않고 그대로 저장(역할을 Manager · Worker 로 되돌리면 다시 쓰인다) · 역할 고르기를 바꾸면 바로 잠김 · 풀림 · 자기 행은 늘 잠김 ← st v3b: 대화 Claude — st v3b(fc-2d · 판정 859): 열쇠의 방은 ims_perm_catalog 의 rooms(배열 · 없으면 room 하나) — 한 열쇠를 두 방이 쓰면(freight_booking = wms · ims) 둘 중 하나만 체크해도 보이고 저장 때 지워지지 않는다(옛 st v3a 는 room 하나만 보아 WMS 만 체크한 직원의 freight_booking 을 지웠다) ← st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
 console.log("staff.html build:", ST_BUILD);
 let sb=null, me=null, isAdmin=false, canEditStaff=false, WHS=[];
 let all=[], q="", curId=null, mode="view";   // mode: view | add
@@ -243,8 +243,10 @@ function drawLoc(s){
     if(!document.getElementById("locHint")) return;   // 다시 그려진 뒤의 옛 칸
     const role = (document.getElementById("fRole") || {}).value || s.role;
     const n = box.querySelectorAll("input[data-wh]:checked").length;
+    const sup = role === "admin" || role === "supervisor";
+    box.querySelectorAll("input[data-wh]").forEach(c => { c.disabled = sup || s.id === me.id; });   // st v3c — 그 역할에는 체크가 쓰이지 않는다(값은 그대로 저장)
     document.getElementById("locHint").textContent =
-      (role === "admin" || role === "supervisor") ? `A ${role} works in every warehouse — the boxes above apply only if the role is manager or worker.`
+      sup ? `A ${role} works in every warehouse — the ticks are kept but not used. They apply again if the role goes back to manager or worker.`
       : n ? "Only the ticked warehouses: their orders, picks, receiving, transfers and bin moves." : "None ticked = every warehouse.";
     if(s.id === me.id) document.getElementById("locHint").textContent += " You cannot change your own location.";
   };
