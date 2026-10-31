@@ -109,16 +109,60 @@
            ⚠️ 콤보가 아니던 SKU(켜진 줄 0)는 parent_not_combo 로 막힌다(817) — 풀린 콤보도 다시 켤 수 없다(819)
    ⭐ 막기 · 알리기 문장은 서버 것 그대로 · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const CB_BUILD = "2026-10-30 · cb v1a";   // 대화 Claude — cb v1a: 판정 885(combo-one-1 · 02ecada) 구성품 하나 + 수량 2 이상도 콤보 — 안내 글 두 곳만 · cb v1 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
+const CB_BUILD = "2026-10-31 · cb v2";   // 대화 Claude — Caleb 「combo 화면 목록에 가용칸」: 지금 만들 수 있는 콤보 수 — 목록에 켜진 창고마다 칸(TO · ED) · 상세 머리 「Can make now」 + 구성품 표에 창고마다 가용 EA · 몇 콤보 몫(가장 작은 것 = 막는 구성품 빨강) · 식 = 구성품마다 floor(가용 EA ÷ 콤보 하나에 드는 EA) 의 최소(재고 키 = 세트면 부모 · 드는 EA = quantity × pack_factor · 같은 재고 키는 합침) · 가용 = so_available_many(창고 재고 − 판매 · 트랜스퍼 할당 · SO 화면 · Shopify 831 과 같은 수) · 그린 뒤 채운다 · 풀린 콤보 「—」 · DB 무변 ← cb v1a: 대화 Claude — cb v1a: 판정 885(combo-one-1 · 02ecada) 구성품 하나 + 수량 2 이상도 콤보 — 안내 글 두 곳만 · cb v1 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
 console.log("combos.html build:", CB_BUILD);
 
 let sb = null, canEdit = false, q = "", onlyActive = true, showRel = false, curId = null;
+let WHS = [];   // cb v2 — 켜진 창고(가용 칸 · 이름 순)
 let refs = { brands:[], cats:[], units:[], tiers:[] };
 const PAGE = 100;
 let off = 0, total = 0;
 const qtyTxt = v => { if(v === null || v === undefined || v === "") return ""; const n = Number(v); return Number.isFinite(n) ? String(Number(n.toFixed(6))) : String(v); };
 const splitList = s => String(s || "").split(/[\s,;]+/).map(x => x.trim()).filter(Boolean);
 const blankNull = v => { const s = (v === null || v === undefined) ? "" : String(v).trim(); return s === "" ? null : s; };
+
+/* ── cb v2 — 지금 만들 수 있는 콤보 수(SO 화면 so_lines_available · Shopify 831 과 같은 식) ──
+   need[combo][재고 키] = Σ quantity × pack_factor(구성품이 세트면 재고 키 = 부모) · 창고마다 so_available_many 한 번(POST 몸 — 주소 길이 걱정 없음)
+   반환 { combo_id: { need:{pid:ea}, per:{wh_id:{units, comps:{pid:avail_ea}}} } } · 켜진 구성품 줄이 없으면 그 콤보는 빠진다(풀림 → 「—」) */
+const whCode = (name) => { const n = String(name || ""); if(/edmonton/i.test(n)) return "ED"; if(/^asung trading/i.test(n) || /toronto/i.test(n)) return "TO"; return n; };
+async function comboAvail(ids){
+  const out = {};
+  if(!ids.length || !WHS.length) return out;
+  const b = await sb.from("product_bom").select("parent_product_id,component_product_id,quantity").in("parent_product_id", ids).eq("is_active", true);   // caps-ok: 한 쪽(≤ 100) 콤보의 켜진 구성품 줄
+  if(b.error) throw b.error;
+  const rows = b.data || [];
+  if(!rows.length) return out;
+  const c = await sb.from("product").select("id,parent_product_id,pack_factor").in("id", [...new Set(rows.map(x => x.component_product_id))]);   // caps-ok: 그 구성품만
+  if(c.error) throw c.error;
+  const P = {}; (c.data || []).forEach(x => { P[x.id] = x; });
+  rows.forEach(x => {
+    const cp = P[x.component_product_id] || {}, pid = cp.parent_product_id || x.component_product_id;
+    const ea = (Number(x.quantity) || 0) * (Number(cp.pack_factor) || 1);
+    const o = out[x.parent_product_id] = out[x.parent_product_id] || { need: {}, per: {} };
+    o.need[pid] = (o.need[pid] || 0) + ea;
+  });
+  const pids = [...new Set(Object.values(out).flatMap(o => Object.keys(o.need)))];
+  const res = await Promise.all(WHS.map(w => sb.rpc("so_available_many", { p_stock_pids: pids, p_location_id: w.id })));
+  WHS.forEach((w, i) => {
+    if(res[i].error) return;   // 그 창고만 「—」
+    const A = {}; (res[i].data || []).forEach(r => { A[r.stock_pid] = Math.max(Number(r.available_ea) || 0, 0); });
+    Object.values(out).forEach(o => {
+      const ns = Object.entries(o.need).filter(([, n]) => n > 0);
+      const comps = {}; ns.forEach(([pid]) => { comps[pid] = A[pid] || 0; });
+      o.per[w.id] = { units: ns.length ? Math.min(...ns.map(([pid, n]) => Math.floor((A[pid] || 0) / n))) : 0, comps };
+    });
+  });
+  return out;
+}
+const nfmt = (v) => Number(v).toLocaleString("en-CA");
+async function fillAvail(box, ids){
+  let av = {};
+  try { av = await comboAvail(ids); } catch(e){ console.warn("availability failed", e); }
+  box.querySelectorAll("[data-av]").forEach(td => {
+    const [id, wh] = td.dataset.av.split("|"), o = av[id], x = o && o.per[wh];
+    td.innerHTML = x ? `<span class="${x.units > 0 ? "on" : "dim"}">${esc(nfmt(x.units))}</span>` : '<span class="dim">—</span>';
+  });
+}
 
 /* ── 목록 한 곳 — 넓은 · 좁은 목록이 같은 거르기 · 같은 쪽 ── */
 async function fetchPage(){
@@ -163,11 +207,12 @@ async function loadWide(){
   const { rows, error } = await fetchPage();
   if(seq !== wideSeq) return;
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  box.innerHTML = rows.length ? `<table><thead><tr><th>Combo SKU</th><th>Name</th><th>Components</th><th class="num">#</th><th>Active</th></tr></thead>
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Combo SKU</th><th>Name</th><th>Components</th><th class="num">#</th>${WHS.map(w => `<th class="num" title="Combos that can be made now at ${esc(w.name)} — from component stock minus what orders and transfers have reserved">Can make ${esc(whCode(w.name))}</th>`).join("")}<th>Active</th></tr></thead>
     <tbody>${rows.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active && !r.released ? "" : "off"}">
       <td class="sk">${esc(r.sku)} ${stateChip(r)}</td><td>${esc(r.name || "")}</td>
-      <td class="cp">${esc(r.components || "")}</td><td class="num">${esc(r.component_count ?? 0)}</td><td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
+      <td class="cp">${esc(r.components || "")}</td><td class="num">${esc(r.component_count ?? 0)}</td>${WHS.map(w => `<td class="num" data-av="${esc(r.id)}|${esc(w.id)}"><span class="dim">…</span></td>`).join("")}<td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
     : `<div class="msg">No combos match.${canEdit && !q ? " Press New combo to make one." : ""}</div>`;
+  if(rows.length) fillAvail(box, rows.filter(r => !r.released).map(r => r.id));   // cb v2 — 그린 뒤 채운다
   box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openCombo(tr.dataset.id); });
   pager({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
 }
@@ -209,6 +254,12 @@ async function loadDetail(id){
   const comps = shown.map(b => Object.assign({}, b, { c: map[b.component_product_id] || null }))
     .sort((a, b) => String(a.c ? a.c.sku : "").localeCompare(String(b.c ? b.c.sku : "")));
   cur = { r, comps, released, old: on.map(b => ({ sku: (map[b.component_product_id] || {}).sku, qty: qtyTxt(b.quantity) })).filter(x => x.sku) };
+  /* cb v2 — 지금 만들 수 있는 수 · 구성품마다 창고별 가용(풀린 콤보는 없음) */
+  let AV = null;
+  if(!released && on.length){ try { AV = (await comboAvail([id]))[id] || null; } catch(e){ console.warn("availability failed", e); } }
+  if(seq !== detailSeq) return;
+  const stockKey = (x) => x.c ? (x.c.parent_product_id || x.c.id) : x.component_product_id;
+  const canMake = AV ? WHS.filter(w => AV.per[w.id]).map(w => `<b class="mono">${esc(whCode(w.name))} ${esc(nfmt(AV.per[w.id].units))}</b>`).join(" · ") : "";
 
   const chips = [
     `<span class="chip warn">combo · ${on.length} components</span>`,
@@ -222,7 +273,9 @@ async function loadDetail(id){
   const rows = comps.map(x => `<tr${(x.c && !x.c.is_active) || released ? ' style="opacity:.6"' : ""}>
       <td class="mono">${x.c ? `<a class="lnk" href="products.html?id=${esc(x.c.id)}">${esc(x.c.sku)}</a>` : '<span class="dim">?</span>'}</td>
       <td>${esc(x.c ? x.c.name : "")}${x.c && x.c.parent_product_id ? ` <span class="tag">set ×${esc(x.c.pack_factor)}</span>` : ""}${x.c && !x.c.is_active ? ' <span class="tag off">inactive</span>' : ""}</td>
-      <td class="num">${esc(qtyTxt(x.quantity))}</td><td class="dim" style="font-size:11.5px">${esc(imsSrc(x.source))}</td></tr>`).join("");
+      <td class="num">${esc(qtyTxt(x.quantity))}</td>${AV ? WHS.map(w => { const per = AV.per[w.id]; if(!per) return '<td class="num dim">—</td>';
+        const k = stockKey(x), a = per.comps[k] || 0, n = AV.need[k] || 0, can = n ? Math.floor(a / n) : 0, lim = n && can === per.units;
+        return `<td class="num" title="Available ${esc(nfmt(a))} single units at ${esc(w.name)} · this combo needs ${esc(nfmt(n))} of them${lim ? " — this component limits the combo" : ""}">${esc(nfmt(a))} <span class="${lim ? "off" : "dim"}" style="font-size:11.5px">→ ${esc(nfmt(can))}</span></td>`; }).join("") : ""}<td class="dim" style="font-size:11.5px">${esc(imsSrc(x.source))}</td></tr>`).join("");
 
   box.innerHTML = `
     <div class="card">
@@ -230,6 +283,7 @@ async function loadDetail(id){
         <div class="sk">${esc(r.sku)}</div>
         <div class="nm">${esc(r.name || "")}</div>
         <div class="chips">${chips.join("")}</div>
+        ${canMake ? `<div style="margin-top:6px;font-size:13px" title="From component stock minus what orders and transfers have reserved — the same number the Sales Order screen and the web stores use">Can make now: ${canMake}</div>` : ""}
         <div class="acts">
           <button class="pobtn" data-act="toglist" title="Show or hide the list on the left">&#9776; List</button>
           <button class="pobtn" data-act="wide">&lsaquo; All combos</button>
@@ -241,7 +295,7 @@ async function loadDetail(id){
       <div class="note">A combo is sold as one line; when it ships, the warehouse picks the components below and packs them together. A combo holds no stock of its own.</div>
     </div>
     <div class="card"><h3 class="ims-sec">${released ? "Components when it was released" : "Components"} <span class="n">${comps.length}</span></h3>
-      ${comps.length ? `<table><thead><tr><th>SKU</th><th>Name</th><th class="num">Qty per combo</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>`
+      ${comps.length ? `<table><thead><tr><th>SKU</th><th>Name</th><th class="num">Qty per combo</th>${AV ? WHS.map(w => `<th class="num" title="Single units available at ${esc(w.name)} → how many combos they make">${esc(whCode(w.name))} avail → combos</th>`).join("") : ""}<th>Source</th></tr></thead><tbody>${rows}</tbody></table>`
         : '<div class="msg">No component rows.</div>'}
       ${released ? '<div class="note">This combo was released and cannot become a combo again. To sell the same bundle, make a new combo SKU with New combo.</div>' : ""}
     </div>`;
@@ -476,6 +530,8 @@ imsAuth.start({ changePw: true }, async (client, me) => {
   document.getElementById("rel").onchange = e => { showRel = e.target.checked; reList(); };
   document.getElementById("wclear").onclick = () => { q = ""; onlyActive = true; showRel = false; syncCtl(); reWide(); };
   try {
+    const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");   // cb v2 — 가용 칸(창고 넷 · caps-ok)
+    WHS = (wh && wh.data) || [];
     const [bl, cl, ul, tl] = await Promise.all([
       fetchAll("ref_brand", "id,name", x => x.eq("is_active", true).order("name")),
       fetchAll("ref_category", "id,name", x => x.eq("is_active", true).order("name")),
