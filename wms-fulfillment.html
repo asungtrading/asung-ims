@@ -174,6 +174,11 @@
   .pl-meta{display:flex;gap:24px;font-size:13px;margin-bottom:14px}
   .pl-meta b{font-family:var(--mono)}
   .pl-unit{font-family:var(--mono);font-weight:800;font-size:16px;margin:14px 0 6px}
+  /* fu v1.7 · 판정 897 — 트랜스퍼 팔렛 라벨(받는 쪽이 스캔) */
+  .pl-lab{border:3px solid #111;border-radius:6px;padding:14px 16px 10px;margin:0 0 16px;text-align:center}
+  .pl-lab-t{font-family:var(--mono);font-weight:800;font-size:44px;line-height:1.1;letter-spacing:.5px}
+  .pl-lab-r{font-size:20px;font-weight:700;margin:6px 0 10px}
+  .pl-lab svg{max-width:100%;height:auto}
   table.pl{width:100%;border-collapse:collapse;margin-bottom:10px}
   table.pl th,table.pl td{border:1px solid #ccc;padding:6px 9px;font-size:12.5px;text-align:left}
   table.pl th{background:#f2f2f2;font-family:var(--mono);font-size:11px;text-transform:uppercase}
@@ -345,7 +350,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-29 · fu v1.6";   // 대화 Claude — 동료 피드백 2(2026-10-29 · Caleb 「2번부터 진행하자」): 작업대 머리 아래에 배송지(Ship to) — 고른 판매 오더마다 회사 · 받는 사람 · 전화 · 주소(같은 주소면 한 번) · 주소가 비면 빨간 안내(견적이 「no full ship-to address」 로 거부한다) · 트랜스퍼는 지금처럼 「Transfer to …」 · so 읽기 SO_SEL 에 ship_to_* 아홉 칸(픽리스트 · 패커가 이미 읽는 칸 · 창구 무변) ← fu v1.5b: 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-31 · fu v1.7";   // 대화 Claude — 판정 897(Caleb 「가」 · 레터): 트랜스퍼 팔렛의 Pallet list 첫 머리에 받는 쪽이 스캔할 팔렛 라벨 — 큰 글씨 <번호>-<label>(예 TRF-00002-P2) · 출발 → 도착 · Pallet n of N(맨 위 팔렛 수) · Code 128 바코드 값 PLT-<wms_pallets.id>(스캔은 id 로 · label 은 유니크가 아니다) · JsBarcode 3.11.6(ims-label.js 와 같은 판) · 못 실으면 인쇄하지 않고 알림 · 판매 팔렛 · 박스 · 박스 안 팔렛은 그대로 ← fu v1.6: 대화 Claude — 동료 피드백 2(2026-10-29 · Caleb 「2번부터 진행하자」): 작업대 머리 아래에 배송지(Ship to) — 고른 판매 오더마다 회사 · 받는 사람 · 전화 · 주소(같은 주소면 한 번) · 주소가 비면 빨간 안내(견적이 「no full ship-to address」 로 거부한다) · 트랜스퍼는 지금처럼 「Transfer to …」 · so 읽기 SO_SEL 에 ship_to_* 아홉 칸(픽리스트 · 패커가 이미 읽는 칸 · 창구 무변) ← fu v1.5b: 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -1915,8 +1920,23 @@ function tableFor(unitId){
   });
   return {html, tot};
 }
-function printUnit(uid){
+/* fu v1.7 · 판정 897 — 트랜스퍼 팔렛 라벨: 맨 위 팔렛만 · 바코드 값 PLT-<id> */
+const JSB_URL="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js";
+function loadJsb(){
+  if(window.JsBarcode) return Promise.resolve();
+  return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=JSB_URL; s.onload=()=>res(); s.onerror=()=>rej(new Error("barcode library did not load")); document.head.appendChild(s); });
+}
+function trPalletHead(u){
+  if(!u||u.unit_type!=="pallet"||u.parent_id) return null;
+  const o=orderById[u.order_id]||extOrders[u.order_id];
+  if(!o||!o.is_transfer) return null;
+  const tops=units.filter(x=>x.unit_type==="pallet"&&!x.parent_id&&x.order_id===u.order_id).sort((a,b)=>a.id-b.id);
+  const n=tops.findIndex(x=>x.id===u.id)+1;
+  return { code:"PLT-"+u.id, disp:`${o.order_number}-${u.label||("P"+n)}`, from:o.warehouse||"", to:o.dest_name||"", n, of:tops.length };
+}
+async function printUnit(uid){
   const u=units.find(x=>x.id===uid);
+  const lab=trPalletHead(u);
   const isPallet=u.unit_type==="pallet";
   let body=""; let grand=0;
   if(isPallet){
@@ -1935,12 +1955,20 @@ function printUnit(uid){
   const custs=[...new Set(orders.map(o=>o.customer_name||"—"))];
   const wh=orders[0]?.warehouse||whLabel(orders[0]?.wh);   // ref_warehouse 이름(location_name)
   const pa=document.getElementById("printArea");
+  const labHtml=lab?`<div class="pl-lab"><div class="pl-lab-t">${esc(lab.disp)}</div><div class="pl-lab-r">${esc(lab.from)} → ${esc(lab.to)} · Pallet ${lab.n} of ${lab.of}</div><svg id="plBc"></svg></div>`:"";
   pa.innerHTML=`
+    ${labHtml}
     <div class="pl-h"><div class="brand">ASUNG</div><div class="doc">PACKING LIST<br>${new Date().toLocaleDateString()}</div></div>
     <div class="pl-meta"><div>Order <b>${esc(orderStr)}</b></div><div>${custLabel()} <b>${custs.map(esc).join(" / ")}</b></div><div>Warehouse <b>${wh}</b></div></div>
     <div class="pl-unit">${uIcon(u)} ${esc(uTitle(u))}</div>
     ${body}
     <div class="pl-total">Total qty: ${grand}</div>`;
+  if(lab){
+    try{
+      await loadJsb();
+      window.JsBarcode(document.getElementById("plBc"), lab.code, {format:"CODE128", width:3, height:120, displayValue:true, fontSize:22, margin:0});
+    }catch(e){ pa.innerHTML=""; toast("Pallet label: "+(e.message||e)+" — not printed. Try again.", true); return; }
+  }
   window.print();
 }
 
