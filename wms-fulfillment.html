@@ -152,6 +152,13 @@
   .modal .row{display:flex;gap:8px}
   .modal .row button{flex:1;border:0;border-radius:9px;padding:10px;font:inherit;font-weight:700;cursor:pointer}
   .modal .cancel{background:var(--line-2);color:var(--ink)} .modal .ok{background:var(--ink);color:#fff}
+  /* fu v1.8 — 트랜스퍼 Finalize 창(운송 정보) · 위 .modal input(큰 고정폭 가운데)을 이 창에서만 되돌린다 */
+  #shipModal .box2{width:420px;max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:auto}
+  #shipModal p{white-space:pre-line}
+  #shipModal label{display:block;font-size:12px;font-weight:600;margin:0 0 4px}
+  #shipModal input,#shipModal select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font:inherit;font-size:14px;text-align:left;margin-bottom:10px;background:#fff}
+  #shipModal .hint{font-size:11.5px;color:var(--mut);margin:-6px 0 10px}
+  #shipModal .err{font-size:12.5px;color:var(--bad,#c0392b);margin-bottom:8px}
 
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.2s;z-index:70}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)} #toast.bad{background:var(--danger)}
@@ -322,6 +329,16 @@
   <div class="row"><button class="cancel" id="qmCancel">Cancel</button><button class="ok" id="qmOk">OK</button></div>
 </div></div>
 
+<div class="modal" id="shipModal"><div class="box2">   <!-- fu v1.8 — 트랜스퍼 Finalize · 운송 정보(판정 898) -->
+  <h3 id="shTitle">Finalize</h3><p id="shMsg"></p>
+  <label for="shCar">Carrier</label><select id="shCar"></select>
+  <label for="shTrk">Tracking (PRO) number</label><input id="shTrk" type="text" autocomplete="off" placeholder="the carrier's PRO or tracking number">
+  <label for="shEta">Expected arrival</label><input id="shEta" type="date">
+  <div class="hint" id="shHint"></div>
+  <div class="err" id="shErr"></div>
+  <div class="row"><button class="cancel" id="shCancel">Cancel</button><button class="ok" id="shOk">Finalize</button></div>
+</div></div>
+
 <div class="modal" id="scanChoice"><div class="box2" style="width:340px">
   <h3 id="scTitle"></h3><p id="scMsg"></p>
   <div class="colbtns" id="scBtns"></div>
@@ -350,7 +367,7 @@
    팔렛 · 박스 · 담긴 것 쓰기 17 은 표에 직접(운영 그대로 · auth_all · 판정 6) — created_by uuid(ims_staff.id) · 아이템 insert 에 pack_task_id(⬜10) · 아이템 표에 sku · 이름 칸이 없어 풀 줄(so_line)에서 표시 ·
    ⭐ 새로: 치수 입력(판정 19) — dim_length · dim_width · dim_height · dim_unit(in|cm) · weight · weight_unit(lb|kg) 을 wms_pallets 에 직접 쓰고 트리거 wms_pallet_dims 가 채운 length_in · width_in · height_in · weight_lb 를 다시 읽어 보인다.
    사라진 것: 옛 wms_ 오더 표 · 줄 표 · 스냅샷 표 · Cin7 보류 · void 재확인 벨트 · 컬럼 없음 폴백 — 대신 「오더가 Working 이 아니다」 배너(판정 21) · 글자 표(판정 17) · 창고 id(me.access.warehouses) · 사진 = 공통 imsPhotoPrimary(판정 224 · wms-img-1 · 풀 카드). */
-const WK_BUILD="2026-10-31 · fu v1.7";   // 대화 Claude — 판정 897(Caleb 「가」 · 레터): 트랜스퍼 팔렛의 Pallet list 첫 머리에 받는 쪽이 스캔할 팔렛 라벨 — 큰 글씨 <번호>-<label>(예 TRF-00002-P2) · 출발 → 도착 · Pallet n of N(맨 위 팔렛 수) · Code 128 바코드 값 PLT-<wms_pallets.id>(스캔은 id 로 · label 은 유니크가 아니다) · JsBarcode 3.11.6(ims-label.js 와 같은 판) · 못 실으면 인쇄하지 않고 알림 · 판매 팔렛 · 박스 · 박스 안 팔렛은 그대로 ← fu v1.6: 대화 Claude — 동료 피드백 2(2026-10-29 · Caleb 「2번부터 진행하자」): 작업대 머리 아래에 배송지(Ship to) — 고른 판매 오더마다 회사 · 받는 사람 · 전화 · 주소(같은 주소면 한 번) · 주소가 비면 빨간 안내(견적이 「no full ship-to address」 로 거부한다) · 트랜스퍼는 지금처럼 「Transfer to …」 · so 읽기 SO_SEL 에 ship_to_* 아홉 칸(픽리스트 · 패커가 이미 읽는 칸 · 창구 무변) ← fu v1.5b: 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
+const WK_BUILD="2026-10-31 · fu v1.8";   // 대화 Claude — 판정 898 · deferred 417(Caleb 「A」): 트랜스퍼 작업대의 Finalize 는 기본 확인 창 대신 IMS 창 — 운송사 · PRO · ETA 칸 하나씩 · 넣은 값을 작업대의 모든 트랜스퍼에 inv_transfer_shipping_set 으로 적은 뒤 wms_finalize · 칸은 선택 · 빈 칸 = 그 문서의 지금 값 그대로(오피스가 먼저 넣은 값을 지우지 않는다 · 지우기는 오피스 transfers 화면) · 모두 같은 값이면 미리 채움 · 적기가 거부되면 Finalize 하지 않는다 · 판매 작업대는 그대로 ← fu v1.7: 대화 Claude — 판정 897(Caleb 「가」 · 레터): 트랜스퍼 팔렛의 Pallet list 첫 머리에 받는 쪽이 스캔할 팔렛 라벨 — 큰 글씨 <번호>-<label>(예 TRF-00002-P2) · 출발 → 도착 · Pallet n of N(맨 위 팔렛 수) · Code 128 바코드 값 PLT-<wms_pallets.id>(스캔은 id 로 · label 은 유니크가 아니다) · JsBarcode 3.11.6(ims-label.js 와 같은 판) · 못 실으면 인쇄하지 않고 알림 · 판매 팔렛 · 박스 · 박스 안 팔렛은 그대로 ← fu v1.6: 대화 Claude — 동료 피드백 2(2026-10-29 · Caleb 「2번부터 진행하자」): 작업대 머리 아래에 배송지(Ship to) — 고른 판매 오더마다 회사 · 받는 사람 · 전화 · 주소(같은 주소면 한 번) · 주소가 비면 빨간 안내(견적이 「no full ship-to address」 로 거부한다) · 트랜스퍼는 지금처럼 「Transfer to …」 · so 읽기 SO_SEL 에 ship_to_* 아홉 칸(픽리스트 · 패커가 이미 읽는 칸 · 창구 무변) ← fu v1.5b: 대화 Claude — Caleb 「Freightcom TOR 글씨가 진했으면 좋겠고, 색깔이 들어갔으면」: Freight 머리의 계정 글씨를 굵은 색 꼬리표로 — 계정마다 색(TOR 파랑 · EDM 초록 · 그 밖 보라) · 어느 계정으로 견적 · 예약하는지 한눈에 ← fu v1.5a: 예약 · 취소를 기다리는 동안 진행 칸 — 지난 초 + 예약은 DB 의 실제 단계(fc_booking_for_shipment 를 2 초마다 읽는다: ① IMS 검사 · pending 행 없음 → ② Freightcom 에 보냄 · pending · Freightcom id 없음 → ③ Freightcom 이 받음 · 운송사 확정 기다림 · id 있음) · 시계로 단계를 짐작하지 않는다(Caleb 「실제로 북킹이 진행중임을 알 수 있어야」) ← fu v1.5: 대화 Claude — fc-2d ②(판정 835 · 851 ~ 856 · asung-wms fc-2a ~ 2c): Freight 칸에 예약 — 고른 줄로 Book(EF freightcom book · 픽업 날짜 · 시각은 비우면 DB 가 정한다 · 정기 픽업 상자는 시각 없음) · 예약 뒤 알림(prepare_warnings — 마감 지남 · 문 닫힘으로 다음 날)을 칸에 남긴다 · 진행 중이면 Check again(book_poll) · 예약됨 = 운송사 · 추적번호 · BOL · 픽업 · 라벨 인쇄(상자 4 × 6 기본 · Letter 고름 · 팔렛 Letter — EF label 서명 URL 120 초) · Cancel booking(EF cancel · 사람이 바꾼 SO 칸은 둔다) · 예약 중에는 다시 견적 · 고르기 · 조건 칸을 잠근다 · 권한 없는 사람은 안내만(853 · 854) · ⚠️ Freightcom 라벨 원본 주소(fc_booking.labels[].url)는 그리지 않는다 · Finalize 확인 글에 예약 상태 ← fu v1.4a: 대화 Claude — 판정 850(asung-wms fc-1b5 0fc7f7c): 상자 발송이면 Tailgate · Inside delivery 체크를 숨기고 보내지 않는다(「팔렛에만」 안내) · 판단 = 발송 packaging_type → 없으면 유닛에 팔렛이 있나 ← fu v1.4: 대화 Claude — fc-1c ②(판정 835 ~ 848 · asung-wms fc-1a ~ 1b4): 작업대 아래 「Freight」 칸 — 견적 받기(EF freightcom quote · created_in wms) · 조건 셋(주거지 · 테일게이트 · 인사이드) · 이 주소에 기억(창고 직원은 오피스 확인 표시만 · 845) · 견적 목록(싼 순 · 미리 고름 · 피할 운송사 흐림 · 운송사 표에 없는 곳 흐림 — 오피스가 더한다 846) · 고르기(fc_quote_select) · 유닛이 바뀌면 다시 받으라고 · Finalize 확인 글에 고른 운임 ← fu v1.3: wms-img-1(판정 224) — 풀 카드 사진(공통 imsPhotoPrimary · 그려진 칸만 채움) · tf-2a(판정 83) — 트랜스퍼 갈래 · tf-2b(판정 84 ① · 85-1) — 판매 · 트랜스퍼 한 작업대 금지 · 「Ship to warehouse」
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 /* unit label helpers — wms-packing.js is the only place that builds them (screen == print) */
@@ -946,6 +963,56 @@ document.getElementById("orderScan").addEventListener("keydown",e=>{
   const el=document.getElementById("orderScan"); const v=el.value.trim(); el.value=""; scanLoadOrder(v);
 });
 
+/* ---------- fu v1.8 · 판정 898 — 트랜스퍼 Finalize 창: 운송 정보 ----------
+   ⚠️ 창구 inv_transfer_shipping_set(p_transfer_id, p_carrier_id, p_tracking, p_eta) 는 세 칸을 통째로 바꾼다 →
+      문서마다 「빈 칸 = 지금 값」 으로 합친 세 칸을 보낸다(오피스가 먼저 넣은 값을 지우지 않는다) · 달라진 문서만 부른다
+   ⚠️ 한 트럭 = 한 PRO(10-26 TR-06396 ~ 99) — 칸은 하나씩 · 작업대의 모든 트랜스퍼에 같은 값
+   반환: null(취소) | { save:[{id, carrier_id, tracking, eta}] } — 적기는 Finalize 직전에(picking 도 창구가 받는다) */
+async function askTransferShipping(trs, msg){
+  const ids=trs.map(o=>o.id);
+  const [cur, car]=await Promise.all([
+    sb.from("inv_transfer").select("id,transfer_number,carrier_id,tracking_number,eta").in("id",ids),   // caps-ok: 작업대의 트랜스퍼만
+    sb.from("ref_carrier").select("id,name,kind,is_active").order("name")                              // caps-ok: 운송사 수십
+  ]);
+  if(cur.error){ toast("Couldn't read the transfers' shipping details: "+cur.error.message,true); return null; }
+  const rows=cur.data||[];
+  const carriers=(car.data||[]);
+  const nameOf=id=>(carriers.find(c=>c.id===id)||{}).name||"";
+  const same=k=>{ const v=[...new Set(rows.map(r=>r[k]==null?"":String(r[k])))]; return v.length===1?v[0]:null; };   // null = 문서마다 다르다
+  const sc=same("carrier_id"), st=same("tracking_number"), se=same("eta");
+  const active=carriers.filter(c=>c.kind==="carrier"&&c.is_active);
+  const extra=sc&&!active.some(c=>c.id===sc)?carriers.filter(c=>c.id===sc):[];
+  const $=id=>document.getElementById(id);
+  $("shTitle").textContent=`Finalize ${trs.length} transfer${trs.length===1?"":"s"} — shipping details`;
+  $("shMsg").textContent=msg;
+  $("shCar").innerHTML=`<option value="">${sc===null?"— different on each · keep them —":"— none —"}</option>`+[...active,...extra].map(c=>`<option value="${esc(c.id)}" ${c.id===sc?"selected":""}>${esc(c.name)}${c.is_active?"":" (off)"}</option>`).join("");
+  $("shTrk").value=st||""; $("shTrk").placeholder=st===null?"different on each — leave empty to keep them":"the carrier's PRO or tracking number";
+  $("shEta").value=se?se.slice(0,10):"";
+  $("shHint").textContent="Optional — the receiving warehouse sees these. "+(trs.length>1?"What you type goes on all "+trs.length+" transfers. ":"")+"An empty box keeps what is there now; the office can change them later on Transfers.";
+  $("shErr").textContent="";
+  const modal=$("shipModal"); modal.classList.add("show");
+  return await new Promise(res=>{
+    const done=v=>{ modal.classList.remove("show"); $("shOk").onclick=null; $("shCancel").onclick=null; res(v); };
+    $("shCancel").onclick=()=>done(null);
+    $("shOk").onclick=()=>{
+      const fc=$("shCar").value||null, ft=$("shTrk").value.trim()||null, fe=$("shEta").value||null;
+      const save=[];
+      rows.forEach(r=>{
+        const n={ id:r.id, number:r.transfer_number, carrier_id:fc||r.carrier_id||null, tracking:ft||r.tracking_number||null, eta:fe||(r.eta?String(r.eta).slice(0,10):null) };
+        if(n.carrier_id!==(r.carrier_id||null)||n.tracking!==(r.tracking_number||null)||n.eta!==(r.eta?String(r.eta).slice(0,10):null)) save.push(n);
+      });
+      done({save, carrier:nameOf(fc)});
+    };
+  });
+}
+async function saveTransferShipping(save){   // 하나라도 거부되면 false(Finalize 하지 않는다) · 앞서 적은 것은 남는다(Finalize 전이라 무해 · 다시 누르면 같은 값 = 변화 없음)
+  for(const n of save){
+    const {error}=await sb.rpc("inv_transfer_shipping_set",{p_transfer_id:n.id, p_carrier_id:n.carrier_id, p_tracking:n.tracking, p_eta:n.eta});
+    if(error){ toast(`Shipping details for ${n.number} were not saved — nothing was finalized: `+(error.message||error),true); return false; }
+  }
+  return true;
+}
+
 /* ---------- complete & close (works with or without pallets/boxes) ---------- */
 document.getElementById("completeBtn").onclick=async ()=>{
   if(!orders.length) return;
@@ -962,9 +1029,13 @@ document.getElementById("completeBtn").onclick=async ()=>{
   msg+=`\n\n`+frConfirmLine();   // fu v1.4 — 고른 운임(없으면 「오피스가 정한다」)
   msg+=`\n\nFinalized orders leave the fulfillment board.`;
   if(mixedKinds(orders.map(o=>o.id))){ toast(MIX_MSG,true); return; }   // tf-2b 판정 84 ① — 마무리 앞에서 한 번 더(DB 의 wms_finalize 도 거부한다)
-  if(!confirm(msg)) return;
+  const trsOnBench=orders.filter(o=>o.is_transfer);   // fu v1.8 · 판정 898 — 트랜스퍼 작업대는 운송 정보 창(판매와 섞이지 않는다 — 위 MIX)
+  let ship=null;
+  if(trsOnBench.length){ ship=await askTransferShipping(trsOnBench, msg); if(!ship) return; }
+  else if(!confirm(msg)) return;
   const btn=document.getElementById("completeBtn"); btn.disabled=true;
   try{
+    if(ship&&ship.save.length&&!(await saveTransferShipping(ship.save))){ btn.disabled=false; return; }   // fu v1.8 — 적기 먼저 · 거부면 Finalize 안 함
     // ⑤-5a: 원본의 벨트 셋(Cin7 보류 · void · all_packed 재확인)과 옛 오더 표 쓰기 둘(closed + 타입 · 폴백)은 창구 wms_finalize 한 번으로(판정 16 · 18 · 24-k) —
     // 창구가 picking 만 · 뷰 all_packed · 팔렛에 담긴 수량 ≤ 팩 수량을 검사하고, 타입(packing_list | direct)을 팔렛 아이템 유무로 판정하고(원본 600행 규칙과 같다),
     // wms_order_finalize 한 줄 + so packed(packed_at/by)를 한 트랜잭션에 쓴다. 하나라도 막히면 전체 거부(「nothing was saved」) · 치수 없음은 경고만(units_without_dims).
