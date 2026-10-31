@@ -87,7 +87,7 @@
 <section id="wide" hidden>
   <div class="card">
     <div class="wfilt">
-      <input type="search" id="wq" placeholder="Search name">
+      <input type="search" id="wq" placeholder="Search name, email, phone, city, postal code">
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wactive" checked> Active only</label>
       <label style="font-size:12.5px;display:flex;align-items:center;gap:5px"><input type="checkbox" id="wnew"> New — not reviewed</label>
       <button class="pobtn" id="wclear">Clear</button>
@@ -107,7 +107,7 @@
   <section class="list" id="listPanel">
     <div class="cstop"><button class="pobtn go" id="newBtn" hidden>+ New customer</button></div>
     <div class="top">
-      <input type="search" id="q" placeholder="Search name">
+      <input type="search" id="q" placeholder="Search name, email, phone, city, postal code">
       <div class="opts">
         <label><input type="checkbox" id="onlyActive" checked> Active only</label>
         <label><input type="checkbox" id="onlyNew"> New — not reviewed</label>
@@ -141,7 +141,7 @@
    ⭐ 옛 값(old)은 지금 읽은 값을 문자열로(빈 값 = "") — 창구가 칸마다 text · numeric · boolean 으로 견준다 · 다른 사람이 먼저 바꿨으면 changed_elsewhere
    ⭐ 입력 칸의 값은 속성이 아니라 DOM 으로 넣는다(esc 는 큰따옴표를 막지 않는다 · 정본 §37-d 7)
    ───────────────────────────────────────────────────────────── */
-const CS_BUILD = "2026-10-31 · cs v7c";   // 대화 Claude — Caleb 「아무리 부모라 하더라도, 부모 스토어 이름으로 오더된 것들만 나왔으면 좋겠어」: 주문 이력 카드가 본사 손님에 매장 오더까지 섞던 것(cs v6 · 두 출처 모두)을 그 손님 이름의 오더만으로 · 매장이 있으면 「매장 오더는 그 매장을 열어」 한 줄 · Store 칸 없앰 · 적재 · DB 무변 ← cs v7b: 대화 Claude — 판정 876(Caleb 「그래도 가자」 · 동료 피드백 4 · asung-wms cdc-1): Default carrier 에 Change — 창구 customer_default_carrier_set(p_customer_id, p_carrier_id, p_old · sales · 셋 다 carrier · pickup · delivery · 켜진 행 · null = 비움 · 글자 칸도 표 이름 / 비우면 둘 다 비움) ← cs v7a: 대화 Claude — 판정 849(Caleb 「빌링에는 안보이는게 낫지 않을까」): 배송 조건은 Shipping · Business 주소에만 — Billing 줄은 「—」 · 창에서 Type 이 Billing 이면 칸을 숨기고 값을 보내지 않는다 · 칸 배치를 한 줄로 ← cs v7: 대화 Claude — fc-1c ④(판정 839 · 840 · 843 · asung-wms fc-1a 1157e98): 주소 표에 Delivery 칸(주거지 auto · business · home · 테일게이트 · 인사이드) · 주소 창에 그 셋(customer_update address_add · address_set · olds = 글자 true/false · 빈칸 = auto) · 손님 머리에 Default carrier(보기) · Carriers to avoid(칩 + Change — customer_carrier_avoid_set · sales) ← cs v6b: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 761 · 762 · 763 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(customer_export p_q · p_only_active · p_only_new) · 주소 · 연락처 칸은 sales · master 쓰기만(DB 가 목록에서 뺀다) ← 2026-10-25 · cs v6a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
+const CS_BUILD = "2026-10-31 · cs v8";   // 대화 Claude — Caleb 「손님의 AR발란스와 크레딧 어마운트, 그리고 오버페이먼트, 오버 듀 스테이터스」 · 「email로도 검색」: ① 검색 = 이름 · 표시 이름 · 세금 번호 + 연락처(이메일 · 이름 · 전화 · 휴대폰) · 주소(거리 · 도시 · 우편번호) — 연락처 · 주소는 먼저 손님 id 를 찾아(각 100 · 두 글자부터) or 에 id.in · 무엇으로 찾았는지 줄 아래 작게 ② 넓은 목록 Open A/R · Overdue 칸 — so_invoice_list(is_open) 를 한 번 읽어 청구처(bill_to_customer_id)별 · 매장이 본사로 청구되면 「billed to head office」 ③ 상세 머리 기한 지남 칩 + Balance 카드 — so_customer_balance(통화마다 open_invoices · open_invoices_due · owed_credit · received · reserved_deposit · available) + 기한 지난 인보이스(청구처 = 이 손님 · 매장이면 이 매장 이름의 열린 인보이스도) · 크레딧 · 오버페이는 상세에만(함수가 손님 하나씩) · DB 무변 ← cs v7c: 대화 Claude — Caleb 「아무리 부모라 하더라도, 부모 스토어 이름으로 오더된 것들만 나왔으면 좋겠어」: 주문 이력 카드가 본사 손님에 매장 오더까지 섞던 것(cs v6 · 두 출처 모두)을 그 손님 이름의 오더만으로 · 매장이 있으면 「매장 오더는 그 매장을 열어」 한 줄 · Store 칸 없앰 · 적재 · DB 무변 ← cs v7b: 대화 Claude — 판정 876(Caleb 「그래도 가자」 · 동료 피드백 4 · asung-wms cdc-1): Default carrier 에 Change — 창구 customer_default_carrier_set(p_customer_id, p_carrier_id, p_old · sales · 셋 다 carrier · pickup · delivery · 켜진 행 · null = 비움 · 글자 칸도 표 이름 / 비우면 둘 다 비움) ← cs v7a: 대화 Claude — 판정 849(Caleb 「빌링에는 안보이는게 낫지 않을까」): 배송 조건은 Shipping · Business 주소에만 — Billing 줄은 「—」 · 창에서 Type 이 Billing 이면 칸을 숨기고 값을 보내지 않는다 · 칸 배치를 한 줄로 ← cs v7: 대화 Claude — fc-1c ④(판정 839 · 840 · 843 · asung-wms fc-1a 1157e98): 주소 표에 Delivery 칸(주거지 auto · business · home · 테일게이트 · 인사이드) · 주소 창에 그 셋(customer_update address_add · address_set · olds = 글자 true/false · 빈칸 = auto) · 손님 머리에 Default carrier(보기) · Carriers to avoid(칩 + Change — customer_carrier_avoid_set · sales) ← cs v6b: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 761 · 762 · 763 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(customer_export p_q · p_only_active · p_only_new) · 주소 · 연락처 칸은 sales · master 쓰기만(DB 가 목록에서 뺀다) ← 2026-10-25 · cs v6a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Reviewed 「— (from before IMS)」 · 이전 오더 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · cs v6: 대화 Claude — 판정 654 B · 666 · 667(Caleb 「2」 · 「가」): Order history 카드에 IMS 이전 오더(hist_so · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 날짜순으로 섞는다(IMS = order_date · 이전 = invoice_date · DB 무변) · 「Before IMS」 꼬리표 · 이전 금액은 세전(hist_so.total · IMS 줄은 세후 — 카드 머리 · 꼬리에 적음) · 통화가 빈 이전 오더 = 그 손님(매장)의 currency_code · ▸ 로 펼치면 줄(hist_so_line 바로 읽기 · 최대 584 줄) — 제품 줄과 제품에 안 이어진 줄(운임 · 배송 · 크레딧 · 할인 · IMS 에 없는 SKU)을 따로 · 반품 줄 표시 · hist_so 를 못 읽으면 IMS 오더만 + 한 줄 ← cs v5: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자 · B도 짓고 싶어」): 상세에 Order history 카드(머리 · Stores 아래) — IMS so 표만 · 본사 손님은 매장 오더까지(Store 칸) · 최근 20 · Show 20 more · 줄 금액 so_totals_many(판정 350 · 총액 없음) · SO 번호 → so.html?so= · 지난 이력(BQ)은 B · deferred 301 ← cs v4e: 대화 Claude — cs v4e: Split invoice by store 를 「·」 대신 on · off + 뜻(본사 손님에서 켜는 스위치 · 함께 Ship & invoice 할 때 장수만 나눔 · Bill to 는 본사 그대로) · 편집 칸 옆에도 한 줄 ← cs v4d · Caleb 화면 시험: New customer 의 Contact 에 Add contact 창과 같은 칸이 없었다 → Mobile · Website · Include in email 더함(customer_create 가 이미 mobile_phone · website · include_in_email 을 받는다 · 20261006131814) ← cs v4c: 대화 Claude — Caleb 화면 시험: ① Tax rule 을 글자 칸 → 고르기(켜진 판매 세금 규칙 ref_tax_rule direction sale · 이름 그대로 저장 · 목록에 없는 옛 값은 「(current · inactive)」로 남김 · 비움 = — none —) ② Contacts 표에 Website · Include in email 열(창에는 있던 칸) ← cs v4b: 대화 Claude — 판정 529(doc-3a): 「Final invoice emails」 줄 — 켜면 인보이스가 발행될 때 PDF 를 붙여 저절로 보낸다 · 바꾸기 = manager 이상(Backorder emails 와 같은 문 · customer_update) ← cs v4a: 대화 Claude — Caleb 「가로 스크롤이 생기는게 좀 불편」: 두 칸 폼(.cgrid)을 minmax(0,1fr) · 선택 칸 너비 100% · 라벨 150 → 130 · 좁은 화면은 한 칸 ← cs v4 2026-10-16: 대화 Claude — mail-4b(판정 507 · 517 · asung-wms mail-4a): 상세에 「Backorder emails」 줄 · 끄기 · 켜기는 manager 이상(customer_backorder_mail 의 can_edit · customer_update field backorder_mail · 막히면 manager_needed) ← cs v3 2026-10-06: 대화 Claude — cs-par-1(판정 251 ~ 256): 부모 · 자식(Parent · Stores) · 청구처(Bill to)를 IMS 에서 세우고 없앤다 · is_bill_parent 는 화면에서 뺀다(판정 254)
 /* cs v3 — 집안(판정 251 ~ 256 · 마이그레이션 20261006131814_master_cs_par_1)
    ⭐ 관계 = customer.parent_id · 청구처 = default_bill_to_customer_id(null = 자기 자신 · 판정 251) · 둘 다 master 만(판정 252)
    ⭐ Add store · Detach · 부모 바꾸기는 모두 「자식」에 대한 customer_update 한 호출 — old 는 자식의 지금 parent_id
@@ -172,9 +172,67 @@ function baseQuery(cols){
   let qry = sb.from("customer").select(cols, { count: "exact" });
   if(onlyActive) qry = qry.eq("is_active", true);
   if(onlyNew) qry = qry.eq("source", "manual").is("reviewed_at", null);
-  if(q) qry = qry.or(`name.ilike.%${q}%,display_name.ilike.%${q}%`);
+  if(q){   // cs v8 — 이름 · 표시 이름 · 세금 번호 + 연락처 · 주소로 찾은 손님 id(ensureSearch)
+    const t = qSafe(q), parts = [`name.ilike.%${t}%`, `display_name.ilike.%${t}%`, `tax_number.ilike.%${t}%`];
+    if(SRCH.q === q && SRCH.ids.length) parts.push(`id.in.(${SRCH.ids.join(",")})`);
+    qry = qry.or(parts.join(","));
+  }
   return qry.order("name");
 }
+/* ── cs v8 — 검색 넓히기: 연락처(이메일 · 이름 · 전화 · 휴대폰) · 주소(거리 · 도시 · 우편번호)로 손님 id 를 먼저 찾는다 ──
+   or() 글자를 깨는 , ( ) " * \ 는 뺀다 · 두 글자부터 · 각 100 개(주소 길이 — id.in 이 주소에 실린다) · hit = 무엇으로 찾았나(줄 아래 작게) */
+let SRCH = { q: null, ids: [], hit: {} };
+const qSafe = (v) => String(v || "").replace(/[,()"*\\]/g, " ").trim();
+async function ensureSearch(){
+  if(SRCH.q === q) return;
+  const t = qSafe(q), hit = {};
+  if(t.length < 2){ SRCH = { q, ids: [], hit }; return; }
+  const low = t.toLowerCase(), has = (v) => v && String(v).toLowerCase().includes(low);
+  const [c, a] = await Promise.all([
+    sb.from("customer_contact").select("customer_id,name,email,phone,mobile_phone").eq("is_active", true)
+      .or(`email.ilike.%${t}%,name.ilike.%${t}%,phone.ilike.%${t}%,mobile_phone.ilike.%${t}%`).limit(100),
+    sb.from("customer_address").select("customer_id,line1,city,postal_code").eq("is_active", true)
+      .or(`line1.ilike.%${t}%,city.ilike.%${t}%,postal_code.ilike.%${t}%`).limit(100)
+  ]);
+  (c.data || []).forEach(x => { if(hit[x.customer_id]) return;
+    hit[x.customer_id] = has(x.email) ? "email: " + x.email : has(x.phone) ? "phone: " + x.phone : has(x.mobile_phone) ? "mobile: " + x.mobile_phone : "contact: " + (x.name || ""); });
+  (a.data || []).forEach(x => { if(hit[x.customer_id]) return;
+    hit[x.customer_id] = has(x.postal_code) ? "postal: " + x.postal_code : has(x.city) ? "city: " + x.city : "address: " + (x.line1 || ""); });
+  SRCH = { q, ids: Object.keys(hit).slice(0, 150), hit };
+}
+const hitLine = (r) => { const h = SRCH.q === q && q ? SRCH.hit[r.id] : null; return h && !String(r.name || "").toLowerCase().includes(String(q).toLowerCase()) ? `<div class="dim" style="font-size:11px">${esc(h)}</div>` : ""; };
+
+/* ── cs v8 — 넓은 목록의 Open A/R · Overdue: 열린 인보이스를 한 번 읽어 청구처별로(1,000 씩 · 열린 것은 늘 수백) ── */
+let OPEN = { at: 0, by: {}, storeBilled: {} };
+async function loadOpenInv(){
+  if(Date.now() - OPEN.at < 60000) return OPEN;
+  const by = {}, storeBilled = {};
+  for(let from = 0; from < 20000; from += 1000){
+    const { data, error } = await sb.from("so_invoice_list").select("bill_to_customer_id,store_customer_id,currency_code,remaining,days_overdue").eq("is_open", true).range(from, from + 999);   // caps-ok: 열린 인보이스(1,000 씩)
+    if(error){ console.warn("open invoices:", error.message); break; }
+    (data || []).forEach(x => {
+      const k = x.bill_to_customer_id; if(!k) return;
+      const o = by[k] = by[k] || { cur: {}, od: {}, maxDays: 0, n: 0 };
+      const rem = Number(x.remaining) || 0, cc = x.currency_code || "";
+      o.n++; o.cur[cc] = (o.cur[cc] || 0) + rem;
+      if(Number(x.days_overdue) > 0){ o.od[cc] = (o.od[cc] || 0) + rem; o.maxDays = Math.max(o.maxDays, Number(x.days_overdue)); }
+      if(x.store_customer_id && x.store_customer_id !== k) storeBilled[x.store_customer_id] = k;
+    });
+    if((data || []).length < 1000) break;
+  }
+  OPEN = { at: Date.now(), by, storeBilled };
+  return OPEN;
+}
+const money2 = (v) => Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const curAmt = (m) => Object.entries(m || {}).filter(([, v]) => Math.abs(v) > 0.004).map(([c, v]) => `${esc(money2(v))} <span class="dim">${esc(c)}</span>`).join("<br>");
+function arCells(r){
+  const o = OPEN.by[r.id];
+  if(!o) return OPEN.storeBilled[r.id] ? '<td colspan="2" class="dim" style="font-size:11.5px">billed to head office</td>' : '<td class="num dim">—</td><td class="num dim">—</td>';
+  const od = curAmt(o.od);
+  return `<td class="num" title="${esc(o.n)} open invoice(s)">${curAmt(o.cur) || '<span class="dim">0</span>'}</td>
+    <td class="num">${od ? `<span class="off">${od}</span><div class="off" style="font-size:11px">${esc(o.maxDays)}d late</div>` : '<span class="dim">—</span>'}</td>`;
+}
+
 /* ── 두 모드(판정 242 · products 판정 209 와 같다) — 아무것도 안 골랐으면 넓은 목록 · 고르면 좁은 목록 + 상세 ── */
 function syncCtl(){
   $("q").value = q; $("wq").value = q;
@@ -197,20 +255,23 @@ async function openCustomer(id){
 let wideSeq = 0;
 async function loadWide(){
   const seq = ++wideSeq;
+  await Promise.all([ensureSearch(), loadOpenInv()]);   // cs v8
+  if(seq !== wideSeq) return;
   const { data, error } = await wpg.run(baseQuery("id,name,display_name,is_active,source,reviewed_at,price_tier,payment_term_name,currency_code,discount_pct,default_location_name,created_at"));
   if(seq !== wideSeq) return;
   const box = $("wrows");
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Display name</th><th>Price tier</th><th class="num">Disc %</th><th>Payment term</th><th>Currency</th><th>Warehouse</th><th>Family</th><th>Source</th><th>Status</th><th>Active</th></tr></thead><tbody>
+  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Display name</th><th>Price tier</th><th class="num">Disc %</th><th>Payment term</th><th>Currency</th><th class="num" title="Open invoices billed to this customer — what is still owed">Open A/R</th><th class="num" title="Part of Open A/R past its due date · the oldest one's days late">Overdue</th><th>Warehouse</th><th>Family</th><th>Source</th><th>Status</th><th>Active</th></tr></thead><tbody>
     ${data.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active ? "" : "off"}">
-      <td class="nmc">${esc(r.name)}</td><td>${dim(r.display_name)}</td><td>${dim(r.price_tier)}</td><td class="num">${dim(r.discount_pct)}</td>
-      <td>${dim(r.payment_term_name)}</td><td class="mono">${dim(r.currency_code)}</td><td>${dim(r.default_location_name)}</td><td>${famTag(r.id)}</td><td>${esc(imsSrc(r.source))}</td>
+      <td class="nmc">${esc(r.name)}${hitLine(r)}</td><td>${dim(r.display_name)}</td><td>${dim(r.price_tier)}</td><td class="num">${dim(r.discount_pct)}</td>
+      <td>${dim(r.payment_term_name)}</td><td class="mono">${dim(r.currency_code)}</td>${arCells(r)}<td>${dim(r.default_location_name)}</td><td>${famTag(r.id)}</td><td>${esc(imsSrc(r.source))}</td>
       <td>${isNew(r) ? '<span class="tag newchip">new · not reviewed</span>' : ""}</td><td>${yn(r.is_active, true)}</td></tr>`).join("")}</tbody></table>`
     : '<div class="msg">No customers match.</div>';
   box.querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openCustomer(tr.dataset.id); });
   wpg.render({ range: "#wrange", prev: "#wprev", next: "#wnext" }, loadWide);
 }
 async function loadList(){
+  await ensureSearch();   // cs v8
   const { data, error } = await pg.run(baseQuery("id,name,display_name,is_active,source,reviewed_at,price_tier"));
   if(error){ $("rows").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   $("rows").innerHTML = data.length ? data.map(r => {
@@ -218,7 +279,7 @@ async function loadList(){
     if(!r.is_active) tags.push('<span class="tag off">inactive</span>');
     if(isNew(r)) tags.push('<span class="tag newchip">new · not reviewed</span>');
     const ft = famTag(r.id); if(ft) tags.push(ft);
-    return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
+    return `<div class="row ${r.id === curId ? "cur" : ""}" data-id="${esc(r.id)}"><span>${esc(r.name)}${hitLine(r)}</span><span style="display:flex;gap:4px">${tags.join("")}</span></div>`;
   }).join("") : '<div class="msg">No customers match.</div>';
   document.querySelectorAll(".list .row").forEach(el => { el.onclick = () => openCustomer(el.dataset.id); });
   pg.render({ range: "#range", prev: "#prev", next: "#next" }, loadList);
@@ -396,6 +457,7 @@ async function loadDetail(id){
 
   const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span class="chip">${esc(imsSrc(r.source))}</span>`];
   if(isNew(r)) chips.push('<span class="chip warn">new — not reviewed by a manager</span>');
+  chips.push('<span id="odChip"></span>');   // cs v8 — 기한 지남(그린 뒤 채운다)
   const kv = [
     ["Display name", dim(r.display_name)],
     ["Price tier", dim(r.price_tier)], ["Discount %", dim(r.discount_pct)], ["Payment term", dim(r.payment_term_name)],
@@ -445,6 +507,7 @@ async function loadDetail(id){
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div>
       <div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    <div id="balBox"></div>
     ${storesCard(r, kids, kidOpen, cnm)}
     <div id="histBox"><div class="card"><h3>Order history</h3><div class="msg">Loading…</div></div></div>
     ${tbl("Addresses", cur.addr.length, ["Type", "Label", "Street", "City", "Province", "Postal", "Country", "Delivery", ""], aRows, "addAddr")}
@@ -475,6 +538,7 @@ async function loadDetail(id){
   box.querySelectorAll("[data-ce]").forEach(b => { b.onclick = () => openCont(cur.cont[+b.dataset.ce]); });
   box.querySelectorAll("[data-cd]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.cd]; runUpdate([{ customer_id: r.id, op: "contact_default", contact_id: t.id }], `Make ${t.name || "this contact"} the default contact`); }; });
   box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ customer_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
+  balLoad(r, seq, cnm);   // cs v8 — 잔액 카드(그린 뒤 채운다)
   histLoad(r, kids, seq, HIST_N);   // cs v5 — 판정 654 A · 카드는 따로 채운다(상세가 이력을 기다리지 않게)
 }
 
@@ -488,6 +552,48 @@ async function loadDetail(id){
    ~~⚠️ 본사 손님은 매장 오더까지(두 출처 모두 Store 칸) · 매장을 열면 그 매장 것만~~ → cs v7c(Caleb 2026-10-31): 본사도 자기 이름 오더만 · 매장 오더는 그 매장에서
    ⚠️ 상태 이름 · 색은 so.html SO_STATUS_LABEL · .sost 를 복사 — 그쪽이 바뀌면 여기도
    ⚠️ hist_so 를 못 읽으면(보기 문 · 오류) IMS 오더만 그리고 머리에 한 줄 — 카드 전체를 에러로 만들지 않는다 */
+/* ── cs v8 — 잔액 카드: so_customer_balance(청구처 기준 · 통화마다) + 기한 지난 인보이스(so_invoice_list · 열린 것) ──
+   Open A/R = open_invoices_due · Credit owed = owed_credit · Money on account = received(오버페이 · 선결제 · 이월된 받아 둔 돈) · Held for orders = reserved_deposit · Available = available
+   이 손님이 다른 손님에게 청구되면(매장 → 본사) 잔액은 그쪽에 있다 — 안내 + 이 손님 이름의 열린 인보이스 */
+async function balLoad(r, seq, cnm){
+  const box = $("balBox"); if(!box) return;
+  const billTo = r.default_bill_to_customer_id && r.default_bill_to_customer_id !== r.id ? r.default_bill_to_customer_id : null;
+  const [b, inv] = await Promise.all([
+    billTo ? Promise.resolve({ data: [] }) : sb.rpc("so_customer_balance", { p_customer_id: r.id }),
+    sb.from("so_invoice_list").select("invoice_number,currency_code,remaining,days_overdue,due_on,issued_on,kind,bill_to_customer_id,store_customer_id").eq("is_open", true)
+      .or(`bill_to_customer_id.eq.${r.id},store_customer_id.eq.${r.id}`).order("due_on").limit(500)   // caps-ok: 한 손님의 열린 인보이스
+  ]);
+  if(seq !== detailSeq) return;
+  const rows = (b && b.data) || [], err = (b && b.error) ? b.error.message : (inv.error ? inv.error.message : "");
+  const opens = (inv.data || []).filter(x => billTo ? x.store_customer_id === r.id : x.bill_to_customer_id === r.id || x.store_customer_id === r.id);
+  const late = opens.filter(x => Number(x.days_overdue) > 0).sort((a, c) => Number(c.days_overdue) - Number(a.days_overdue));
+  const odBy = {}; late.forEach(x => { odBy[x.currency_code] = (odBy[x.currency_code] || 0) + (Number(x.remaining) || 0); });
+  const maxDays = late.length ? Number(late[0].days_overdue) : 0;
+  const chip = $("odChip");
+  if(chip) chip.innerHTML = late.length ? `<span class="chip bad" title="${esc(late.length)} invoice(s) past due">overdue ${esc(maxDays)}d · ${Object.entries(odBy).map(([c, v]) => esc(money2(v)) + " " + esc(c)).join(" · ")}</span>`
+    : (opens.length ? '<span class="chip good">nothing overdue</span>' : "");
+  const balRows = rows.filter(x => Number(x.open_invoices) || Math.abs(Number(x.received)) > 0.004 || Math.abs(Number(x.owed_credit)) > 0.004 || Math.abs(Number(x.reserved_deposit)) > 0.004)
+    .map(x => `<tr><td class="mono">${esc(x.currency_code || "")}</td><td class="num">${esc(x.open_invoices || 0)}</td>
+      <td class="num"><b>${esc(money2(x.open_invoices_due || 0))}</b></td>
+      <td class="num">${odBy[x.currency_code] ? `<span class="off">${esc(money2(odBy[x.currency_code]))}</span>` : '<span class="dim">0.00</span>'}</td>
+      <td class="num">${esc(money2(x.owed_credit || 0))}</td><td class="num">${esc(money2(x.received || 0))}</td>
+      <td class="num">${esc(money2(x.reserved_deposit || 0))}</td><td class="num">${esc(money2(x.available || 0))}</td></tr>`);
+  const lateRows = late.slice(0, 15).map(x => `<tr><td><a class="lk mono" href="so-invoices.html?inv=${encodeURIComponent(x.invoice_number)}">${esc(x.invoice_number)}</a>${x.kind === "opening" ? ' <span class="tag old" title="Carried over from before IMS">before IMS</span>' : ""}</td>
+      <td class="mono">${dim(x.issued_on)}</td><td class="mono">${dim(x.due_on)}</td><td class="num"><span class="off">${esc(x.days_overdue)}d</span></td><td class="num">${esc(money2(x.remaining || 0))} <span class="dim">${esc(x.currency_code || "")}</span></td></tr>`);
+  const btName = billTo ? (cnm[billTo] ? cnm[billTo].name : "the bill-to customer") : "";
+  box.innerHTML = `<div class="card"><h3>Balance</h3>
+    ${err ? `<div class="msg err">${esc(err)}</div>` : ""}
+    ${billTo ? `<div class="msg">Invoices for this customer are billed to <a class="lk" data-open="${esc(billTo)}">${esc(btName)}</a> — the balance, credits and money on account are kept there.${opens.length ? ` ${esc(opens.length)} open invoice(s) are in this customer's name.` : ""}</div>` : ""}
+    ${!billTo ? (balRows.length ? `<table><thead><tr><th>Currency</th><th class="num">Open invoices</th><th class="num" title="What is still owed on open invoices">Open A/R</th><th class="num" title="Part of Open A/R past its due date">Overdue</th>
+        <th class="num" title="Credit notes not yet used — owed back to the customer">Credit owed</th><th class="num" title="Payments not attached to an invoice — overpayments, prepayments and money carried over from before IMS">Money on account</th>
+        <th class="num" title="Deposits held for open orders">Held for orders</th><th class="num" title="Money on account + credit owed − held for orders · used automatically when an invoice is issued">Available to use</th></tr></thead>
+        <tbody>${balRows.join("")}</tbody></table>` : '<div class="msg">Nothing owed and no credit or money on account.</div>') : ""}
+    ${lateRows.length ? `<div class="histnote" style="margin-top:8px"><b class="off">Past due</b> — ${esc(late.length)} invoice(s)${late.length > 15 ? " · the 15 oldest shown" : ""}</div>
+      <table><thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th class="num">Late</th><th class="num">Still owed</th></tr></thead><tbody>${lateRows.join("")}</tbody></table>` : ""}
+  </div>`;
+  box.querySelectorAll("[data-open]").forEach(a => { a.onclick = () => openCustomer(a.dataset.open); });
+}
+
 const HIST_N = 20;
 const HIST_LBL = { draft: "Draft", confirmed: "Confirmed", at_wms: "Released to WMS", picking: "Working", packed: "Finalized", shipped: "Invoice cancelled", fulfilled: "Fulfilled", cancelled: "Cancelled" };
 const HIST_HINT = { draft: "The office is writing it", confirmed: "Confirmed — next: release to the warehouse", at_wms: "Warehouse's turn", picking: "Warehouse's turn",
