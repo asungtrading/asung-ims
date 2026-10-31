@@ -84,6 +84,11 @@
         <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="whide"> Hide discontinued</label>
         <label style="display:flex;align-items:center;gap:5px">Purchasable <select id="wpurch"><option value="all">All</option><option value="yes">Yes</option><option value="no">No</option><option value="unset">Not set</option></select></label>
       </span>
+      <select id="wsort" title="Sort the list — A/P and Overdue show only suppliers with open bills entered in IMS">
+        <option value="name">Sort: Name</option>
+        <option value="ap">Sort: A/P — largest first</option>
+        <option value="od">Sort: Overdue — latest first</option>
+      </select>
       <button class="pobtn" id="wclear">Clear</button>
       <span class="sp"></span>
       <button class="pobtn" id="wexport" title="Download the suppliers in this list as a spreadsheet (CSV) — you pick the columns">↓ Export…</button>
@@ -137,7 +142,7 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-10-26 · sup v3d";   // 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-10-31 · sup v4";   // 대화 Claude — Caleb 「supplier화면에도 overdue와 a/p balance 그리고 credit amount」: ① 넓은 목록 A/P · Overdue · Credit 칸 + Sort(Name · A/P 큰 순 · Overdue 가장 늦은 순) ② 상세 머리 기한 지남 칩 + Payables 카드(통화마다 A/P · Overdue · Credit · 기한 지난 문서 — 인보이스 · 비용 문서로 링크) · 셈 = 확정(status confirmed)된 po_invoice_list · po_charge_list 의 unpaid — 양수 = 갚을 돈 · 음수 = 크레딧(정본 「음수 미지급은 받을 돈」) · 기한 = due_date < 토론토 오늘 · ⚠️ IMS 에 넣은 매입 문서만 — 컷오버 전 미지급은 QuickBooks(Caleb 10-31 · 이월 안 함) · 화면 안내 · DB 무변 ← sup v3d: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
@@ -155,6 +160,61 @@ function purchChip(v){
   if(v === true) return '<span class="chip good">purchasable</span>';
   if(v === false) return '<span class="chip">not purchasable</span>';
   return '<span class="chip">purchasable: not set</span>';
+}
+
+/* ── sup v4 — 미지급 · 기한 지남 · 크레딧: 확정된 인보이스 · 비용 문서의 unpaid(IMS 에 넣은 것만 · 컷오버 전 미지급은 QuickBooks) ──
+   양수 = 갚을 돈(A/P) · 음수 = 크레딧(공급처가 우리에게 빚진 돈) · 기한 = due_date < 토론토 오늘 · 1,000 씩 · 1 분 담아 둠 */
+function supTodayStr(){ const p = {}; new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date()).forEach(x => { p[x.type] = x.value; }); return p.year + "-" + p.month + "-" + p.day; }
+const daysLate = (due, today) => due && due < today ? Math.round((Date.parse(today) - Date.parse(String(due).slice(0, 10))) / 86400000) : 0;
+let AP = { at: 0, by: {}, docs: [] };
+async function loadAp(force){
+  if(!force && Date.now() - AP.at < 60000) return AP;
+  const today = supTodayStr(), by = {}, docs = [];
+  const pull = async (view, cols, map) => {
+    for(let from = 0; from < 20000; from += 1000){
+      const { data, error } = await sb.from(view).select(cols).eq("status", "confirmed").neq("unpaid", 0).range(from, from + 999);   // caps-ok: 열린 매입 문서(1,000 씩)
+      if(error){ console.warn(view + ":", error.message); return; }
+      (data || []).forEach(x => docs.push(map(x)));
+      if((data || []).length < 1000) return;
+    }
+  };
+  await Promise.all([
+    pull("po_invoice_list", "id,doc_kind,invoice_number,invoice_date,due_date,supplier_id,currency_code,unpaid", x => ({ kind: x.doc_kind === "credit" ? "credit" : "invoice", id: x.id, no: x.invoice_number, date: x.invoice_date, due: x.due_date, sid: x.supplier_id, cc: x.currency_code || "", unpaid: Number(x.unpaid) || 0 })),
+    pull("po_charge_list", "id,charge_number,charge_date,due_date,supplier_id,currency_code,unpaid", x => ({ kind: "charge", id: x.id, no: x.charge_number, date: x.charge_date, due: x.due_date, sid: x.supplier_id, cc: x.currency_code || "", unpaid: Number(x.unpaid) || 0 }))
+  ]);
+  docs.forEach(d => {
+    if(!d.sid) return;
+    const o = by[d.sid] = by[d.sid] || { ap: {}, od: {}, cr: {}, maxDays: 0, n: 0 };
+    d.late = d.unpaid > 0 ? daysLate(d.due, today) : 0;
+    if(d.unpaid > 0){ o.n++; o.ap[d.cc] = (o.ap[d.cc] || 0) + d.unpaid; if(d.late > 0){ o.od[d.cc] = (o.od[d.cc] || 0) + d.unpaid; o.maxDays = Math.max(o.maxDays, d.late); } }
+    else o.cr[d.cc] = (o.cr[d.cc] || 0) - d.unpaid;
+  });
+  AP = { at: Date.now(), by, docs };
+  return AP;
+}
+const m2 = (v) => Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const ccAmt = (m) => Object.entries(m || {}).filter(([, v]) => Math.abs(v) > 0.004).map(([c, v]) => `${esc(m2(v))} <span class="dim">${esc(c)}</span>`).join("<br>");
+const sumOf = (m) => Object.values(m || {}).reduce((a, v) => a + v, 0);
+function apCells(r){
+  const o = AP.by[r.id];
+  if(!o) return '<td class="num dim">—</td><td class="num dim">—</td><td class="num dim">—</td>';
+  const od = ccAmt(o.od), cr = ccAmt(o.cr);
+  return `<td class="num" title="${esc(o.n)} open bill(s) entered in IMS">${ccAmt(o.ap) || '<span class="dim">0</span>'}</td>
+    <td class="num">${od ? `<span class="off">${od}</span><div class="off" style="font-size:11px">${esc(o.maxDays)}d late</div>` : '<span class="dim">—</span>'}</td>
+    <td class="num">${cr ? `<span class="on">${cr}</span>` : '<span class="dim">—</span>'}</td>`;
+}
+let sortMode = "name";
+async function sortedRows(cols){
+  const keys = Object.keys(AP.by).filter(k => sortMode === "od" ? AP.by[k].maxDays > 0 : sumOf(AP.by[k].ap) > 0);
+  let out = [];
+  for(let i = 0; i < keys.length; i += 100){
+    const { data, error } = await baseQuery(cols).in("id", keys.slice(i, i + 100));   // caps-ok: 한 덩이 100
+    if(error) return { error };
+    out = out.concat(data || []);
+  }
+  out.sort((a, b) => { const A = AP.by[a.id], B = AP.by[b.id];
+    return sortMode === "od" ? (B.maxDays - A.maxDays) || (sumOf(B.od) - sumOf(A.od)) : sumOf(B.ap) - sumOf(A.ap); });
+  return { data: out };
 }
 
 /* ── 목록 · 두 모드 ───────────────────────────────────── */
@@ -193,19 +253,26 @@ async function openSupplier(id){
 let wideSeq = 0;
 async function loadWide(){
   const seq = ++wideSeq;
-  const { data, error } = await wpg.run(baseQuery("id,name,is_active,source,is_purchasable,is_discontinued,payment_term_name,account_payable_code,tax_rule,ref_currency(code)"));
+  await loadAp();   // sup v4
+  if(seq !== wideSeq) return;
+  const WCOLS = "id,name,is_active,source,is_purchasable,is_discontinued,payment_term_name,account_payable_code,tax_rule,ref_currency(code)";
+  const { data, error } = sortMode === "name" ? await wpg.run(baseQuery(WCOLS)) : await sortedRows(WCOLS);
   if(seq !== wideSeq) return;
   const box = $("wrows");
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
-  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Currency</th><th>Payment term</th><th>Payable</th><th>Tax rule</th><th>Purchasable</th><th>Discontinued</th><th>Source</th><th>Active</th></tr></thead><tbody>
+  box.innerHTML = data.length ? `<table><thead><tr><th>Name</th><th>Currency</th><th>Payment term</th><th class="num" data-sort="ap" style="cursor:pointer" title="Open bills entered in IMS — what we still owe · click to sort largest first">A/P${sortMode === "ap" ? " ↓" : ""}</th><th class="num" data-sort="od" style="cursor:pointer" title="Part of A/P past its due date · the oldest one's days late · click to sort latest first">Overdue${sortMode === "od" ? " ↓" : ""}</th><th class="num" title="Credit notes and overpaid bills — what the supplier owes us">Credit</th><th>Payable</th><th>Tax rule</th><th>Purchasable</th><th>Discontinued</th><th>Source</th><th>Active</th></tr></thead><tbody>
     ${data.map(r => `<tr data-id="${esc(r.id)}" class="${r.is_active ? "" : "off"}">
-      <td class="nmc">${esc(r.name)}</td><td class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</td><td>${dim(r.payment_term_name)}</td>
+      <td class="nmc">${esc(r.name)}</td><td class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</td><td>${dim(r.payment_term_name)}</td>${apCells(r)}
       <td class="mono">${dim(r.account_payable_code)}</td><td>${dim(r.tax_rule)}</td>
       <td>${r.is_purchasable === null ? '<span class="tag">not set</span>' : yn(r.is_purchasable, false)}</td>
       <td>${r.is_discontinued ? '<span class="tag disc">discontinued</span>' : ""}</td><td>${esc(imsSrc(r.source))}</td><td>${yn(r.is_active, true)}</td></tr>`).join("")}</tbody></table>`
     : '<div class="msg">No suppliers match.</div>';
   box.querySelectorAll("tr[data-id]").forEach(tr => { tr.onclick = () => openSupplier(tr.dataset.id); });
-  wpg.render({ range: "#wrange", prev: "#wprev", next: "#wnext" }, loadWide);
+  box.querySelectorAll("th[data-sort]").forEach(th => { th.onclick = () => { sortMode = sortMode === th.dataset.sort ? "name" : th.dataset.sort; $("wsort").value = sortMode; wpg.reset(); loadWide(); }; });   // sup v4
+  const apNote = '<div class="dim" style="font-size:11.5px;padding:6px 14px">A/P, Overdue and Credit count only bills entered in IMS. Payables from before the switch-over are in QuickBooks.</div>';
+  box.insertAdjacentHTML("beforeend", apNote);
+  if(sortMode === "name") wpg.render({ range: "#wrange", prev: "#wprev", next: "#wnext" }, loadWide);
+  else { $("wrange").textContent = `${data.length} supplier${data.length === 1 ? "" : "s"} with ${sortMode === "od" ? "overdue bills" : "open bills"}`; $("wprev").disabled = true; $("wnext").disabled = true; }
 }
 async function loadList(){
   const { data, error } = await pg.run(baseQuery("id,name,is_active,is_purchasable,is_discontinued"));
@@ -243,6 +310,7 @@ async function loadDetail(id){
   const chips = [`<span class="chip ${r.is_active ? "good" : "bad"}">${r.is_active ? "active" : "inactive"}</span>`, `<span id="purchChip">${purchChip(r.is_purchasable)}</span>`];
   if(r.is_discontinued) chips.push(`<span class="chip bad">discontinued${r.discontinued_on ? " " + esc(r.discontinued_on) : ""}</span>`);
   chips.push(`<span class="chip">${esc(imsSrc(r.source))}</span>`);
+  chips.push('<span id="odChip"></span>');   // sup v4
   const kv = [
     ["Payment term", dim(r.payment_term_name)], ["Account payable", `<span class="mono">${dim(r.account_payable_code)}</span>`],
     ["Currency", `<span class="mono">${dim(r.ref_currency ? r.ref_currency.code : null)}</span>`], ["Tax rule", dim(r.tax_rule)],
@@ -266,6 +334,7 @@ async function loadDetail(id){
   box.innerHTML = `
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div><div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
+    <div id="apBox"></div>
     <div id="histBox"><div class="card"><h3>Purchase history</h3><div class="msg">Loading…</div></div></div>
     ${tbl("Addresses", cur.addr.length, ["Type", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr", canWrite)}
     ${tbl("Contacts", cur.cont.length, ["Name", "Phone", "Mobile", "Email", ""], cRows, "addCont", canWrite)}
@@ -285,7 +354,32 @@ async function loadDetail(id){
   box.querySelectorAll("[data-co]").forEach(b => { b.onclick = () => { const t = cur.cont[+b.dataset.co]; runUpdate([{ supplier_id: r.id, op: "contact_off", contact_id: t.id }], `Remove the contact ${t.name || ""}`); }; });
   box.querySelectorAll("[data-de]").forEach(b => { b.onclick = () => openDisc(cur.disc[+b.dataset.de]); });
   box.querySelectorAll("[data-do]").forEach(b => { b.onclick = () => { const x = cur.disc[+b.dataset.do]; runUpdate([{ supplier_id: r.id, op: "discount_off", discount_id: x.id }], `Remove the discount ${x.name || ""}`); }; });
+  apLoad(r, seq);   // sup v4 — 미지급 카드(그린 뒤 채운다)
   histLoad(r, seq, HIST_N);   // sup v2 — 판정 654 A · 카드는 따로 채운다
+}
+
+/* ── sup v4 — 상세 Payables 카드 · 기한 지남 칩 ── */
+async function apLoad(r, seq){
+  await loadAp(true);
+  if(seq !== detailSeq) return;
+  const box = $("apBox"); if(!box) return;
+  const o = AP.by[r.id], mine = AP.docs.filter(d => d.sid === r.id);
+  const late = mine.filter(d => d.late > 0).sort((a, b) => b.late - a.late);
+  const chip = $("odChip");
+  if(chip) chip.innerHTML = late.length ? `<span class="chip bad" title="${esc(late.length)} bill(s) past due">overdue ${esc(o.maxDays)}d · ${Object.entries(o.od).map(([c, v]) => esc(m2(v)) + " " + esc(c)).join(" · ")}</span>` : (o && o.n ? '<span class="chip good">nothing overdue</span>' : "");
+  const curs = o ? [...new Set([...Object.keys(o.ap), ...Object.keys(o.cr)])] : [];
+  const rows = curs.map(c => `<tr><td class="mono">${esc(c)}</td><td class="num">${esc(mine.filter(d => d.cc === c && d.unpaid > 0).length)}</td>
+      <td class="num"><b>${esc(m2(o.ap[c] || 0))}</b></td><td class="num">${o.od[c] ? `<span class="off">${esc(m2(o.od[c]))}</span>` : '<span class="dim">0.00</span>'}</td>
+      <td class="num">${o.cr[c] ? `<span class="on">${esc(m2(o.cr[c]))}</span>` : '<span class="dim">0.00</span>'}</td></tr>`);
+  const link = (d) => d.kind === "charge" ? `charges.html?id=${encodeURIComponent(d.id)}` : `invoices.html?id=${encodeURIComponent(d.id)}`;
+  const lateRows = late.slice(0, 15).map(d => `<tr><td><a class="lk mono" href="${link(d)}">${esc(d.no || "")}</a> <span class="dim" style="font-size:11px">${d.kind === "charge" ? "charge" : "invoice"}</span></td>
+      <td class="mono">${dim(d.date)}</td><td class="mono">${dim(d.due)}</td><td class="num"><span class="off">${esc(d.late)}d</span></td><td class="num">${esc(m2(d.unpaid))} <span class="dim">${esc(d.cc)}</span></td></tr>`);
+  box.innerHTML = `<div class="card"><h3>Payables</h3>
+    ${rows.length ? `<table><thead><tr><th>Currency</th><th class="num">Open bills</th><th class="num" title="What we still owe on confirmed bills">A/P</th><th class="num" title="Part of A/P past its due date">Overdue</th><th class="num" title="Credit notes and overpaid bills — what the supplier owes us">Credit</th></tr></thead><tbody>${rows.join("")}</tbody></table>`
+      : '<div class="msg">Nothing owed and no credit — in bills entered in IMS.</div>'}
+    ${lateRows.length ? `<div class="dim" style="margin:8px 14px 0"><b class="off">Past due</b> — ${esc(late.length)} bill(s)${late.length > 15 ? " · the 15 oldest shown" : ""}</div>
+      <table><thead><tr><th>Bill</th><th>Date</th><th>Due</th><th class="num">Late</th><th class="num">Still owed</th></tr></thead><tbody>${lateRows.join("")}</tbody></table>` : ""}
+    <div class="dim" style="font-size:11.5px;padding:6px 14px 10px">Only bills entered in IMS. Payables from before the switch-over are in QuickBooks.</div></div>`;
 }
 
 /* ── sup v3 — 판정 654 B · 666 · 669: 발주 이력 카드 = IMS 발주 + IMS 이전 발주 ─────────
@@ -651,7 +745,8 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("whide").onchange = e => { hideDisc = e.target.checked; wpg.reset(); loadWide(); };
   $("wpurch").onchange = e => { purchF = e.target.value; wpg.reset(); loadWide(); };
   imsQ("#wq", v => { q = v; wpg.reset(); loadWide(); });
-  $("wclear").onclick = () => { q = ""; onlyActive = true; hideDisc = false; purchF = "yes"; syncCtl(); wpg.reset(); loadWide(); };
+  $("wclear").onclick = () => { q = ""; onlyActive = true; hideDisc = false; purchF = "yes"; sortMode = "name"; $("wsort").value = "name"; syncCtl(); wpg.reset(); loadWide(); };
+  $("wsort").onchange = e => { sortMode = e.target.value; wpg.reset(); loadWide(); };   // sup v4
   $("wexport").onclick = () => imsExport.open({   // exp-2 — 지금 거르기 그대로(loadWide 와 같은 조건 · 쓰기 없으면 DB 가 고정)
     sb, kind: "supplier", title: "Export suppliers", file: "suppliers",
     args: () => ({ p_q: q || null, p_only_active: onlyActive, p_hide_discontinued: hideDisc, p_purchasable: purchF }),
