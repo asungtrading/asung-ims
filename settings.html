@@ -62,6 +62,19 @@
   .dchk.ok{background:#ecfdf3;border:1px solid #abefc6} .dchk.bad{background:#fef3f2;border:1px solid #fecdca}
   .dchkh{font-weight:700;margin-bottom:4px} .dchk ul{margin:4px 0 0 18px;padding:0}
   .dtog{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;margin-right:14px}
+  /* set v13 — QuickBooks matching */
+  table.qmt{margin-top:12px}
+  table.qmt tr.cur td{background:#eef3ff}
+  table.qmt .sub,#qmDetail .sub{font-size:11.5px;color:var(--muted);font-weight:400}
+  #qmDetail .res,table.qmt .res{font-size:12.5px}
+  .qmhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:22px 0 8px}
+  .qmhead h3{margin:0 8px 0 0;font-size:15px}
+  .qmhead .pobtn.on{background:#eef3ff;color:#3b5bdb;border-color:#c5d3ff}
+  .qmhead input[type=search]{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:13px;width:260px}
+  .qmcand{margin:2px 4px 2px 0;font-size:12px;text-align:left}
+  .qmnote{font-size:12.5px;color:var(--muted);margin:4px 0 10px;max-width:900px}
+  .qmf{max-height:52vh;overflow:auto;margin-top:6px}
+  .qmf table{width:100%}
   @media (max-width:720px){ .mrow{grid-template-columns:1fr} }
 </style>
 </head>
@@ -106,7 +119,7 @@
 <script src="ims-doc.js"></script>
 <script src="ims-label.js?v=3"></script>
 <script>
-const SET_BUILD = "2026-10-29 · set v12";   // 대화 Claude — QuickBooks 칸(?t=qbo · qbo-1a ~ 1d · 판정 867 ~ 872): EF qbo status(토큰 없음) · Connect / Reconnect(같은 탭으로 Intuit → callback 302 → ?t=qbo&qbo=connected|error&why=) · Check connection(ping) · Disconnect(revoke + 지움) · 고정 회사 비우기(연결 없을 때) · 연락 한 줄(872) · admin 만 단추(870) ← set v11a: 대화 Claude — Caleb 화면 시험: Updated 칸이 이름 없이 「· 2026-10-28」(SQL 로 넣은 시험 값 · updated_by null) → 있는 것만 잇는다 ← set v11: 대화 Claude — fc-2d ④(판정 852 · 857 · asung-wms fc-2a b9d1216 · Caleb 판정 A = Settings 에만): Warehouse Edit 에 시간대(IANA 고르기 · Edmonton = America/Regina 857) · 문 닫는 시각(closes_at · 픽업 창의 끝) · 표에 두 칸 · 새 구역 「Carrier pickups」 — 창고마다 운송사(kind carrier · 켜진 것) 줄: 정기 픽업 · 마감 · 메모 · 누가 언제 · Save · Clear(창구 ref_carrier_pickup_set · 문 master — 화면은 master 만 고친다 · 마감이 문 닫는 시각보다 늦으면 빨강 · DB 도 거부) ← set v10a: 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
+const SET_BUILD = "2026-11-01 · set v13";   // 대화 Claude — QuickBooks matching 칸(?t=qbomatch · qbo-sync-1a ~ 1c · 판정 934): 종류 9 요약(qbo_link_summary) · Refresh list(EF qbo pull · next_start 로 끝까지) · Match automatically(qbo_match_auto 묶음 5,000 · done 까지) · Review — To match / Matched / All · 검색 · 후보 단추로 바로 짝 · Find… 창(qbo_entity_find) · Unlink · 제품의 「To match」 는 후보 있는 줄만(QuickBooks 에 없는 제품은 처음 보낼 때 IMS 가 만든다) · admin 만(status caller_is_admin · DB 가 다시 본다) · qboCall 에 body 덧붙이기 ← set v12: 대화 Claude — QuickBooks 칸(?t=qbo · qbo-1a ~ 1d · 판정 867 ~ 872): EF qbo status(토큰 없음) · Connect / Reconnect(같은 탭으로 Intuit → callback 302 → ?t=qbo&qbo=connected|error&why=) · Check connection(ping) · Disconnect(revoke + 지움) · 고정 회사 비우기(연결 없을 때) · 연락 한 줄(872) · admin 만 단추(870) ← set v11a: 대화 Claude — Caleb 화면 시험: Updated 칸이 이름 없이 「· 2026-10-28」(SQL 로 넣은 시험 값 · updated_by null) → 있는 것만 잇는다 ← set v11: 대화 Claude — fc-2d ④(판정 852 · 857 · asung-wms fc-2a b9d1216 · Caleb 판정 A = Settings 에만): Warehouse Edit 에 시간대(IANA 고르기 · Edmonton = America/Regina 857) · 문 닫는 시각(closes_at · 픽업 창의 끝) · 표에 두 칸 · 새 구역 「Carrier pickups」 — 창고마다 운송사(kind carrier · 켜진 것) 줄: 정기 픽업 · 마감 · 메모 · 누가 언제 · Save · Clear(창구 ref_carrier_pickup_set · 문 master — 화면은 master 만 고친다 · 마감이 문 닫는 시각보다 늦으면 빨강 · DB 도 거부) ← set v10a: 대화 Claude — Caleb 화면 시험: 꺼진 창고에는 Edit 없음 · 연결 상태 글자 색(초록 · 빨강)을 칸에 바로 ← set v10: 대화 Claude — fc-1c ① (판정 835 ~ 848 · asung-wms fc-1a 1157e98 · fc-1b e617671 · fc-1b3 e3a722c · fc-1b4 9da8a0e): Warehouse 표에 Edit — 담당자 · 전화 · 이메일 · Freightcom 계정(TOR · EDM) · 주소는 고치지 않는다(참조 적재가 덮는다) / Carrier 표에 Freightcom names 칸 · Edit 창에서 이름 여럿(창구 ref_carrier_fc_names_set) · Freightcom 이름 목록 자동 완성(EF services) / 왼쪽 목록에 「Shipping quotes」 — 운임 마크업 %(ims_config_set fc_markup_pct · master) · 창고별 Freightcom 연결 상태(EF status) · ?t=freight ← 2026-10-27 · set v9: 대화 Claude — lbl v1(Caleb 2026-10-27): Bin 표에 「Print labels…」 — 칸 이름 그대로 바코드(Code 128) · 창고 · 존(이름 앞 영문) · 검색 · 범위로 골라 한 번에(공용 ims-label.js) ← set v8c: 대화 Claude — manual-7b 이견 6 · Caleb 「운영에서 이미 나간다(켜져 있다)」: Wording & columns 의 안내 글 「Emails with documents arrive in a later version」 이 낡았다(문서 메일은 운영에서 돈다) → 「These are the subject and message of the email that carries this document.」 · 동작 무변 ← 2026-10-25 · set v8b: 대화 Claude — manual-7a 이견 3: Bin 표 안내 글이 개발 글(「2,675 rows — above the 1,000-row cap」)이었다 → 「Thousands of bins — search for the one you need」 · 동작 무변(페이지 나눠 읽기는 그대로) ← 2026-10-25 · set v8a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · Source 칸 · Payment Term · Account 안내 글 · 동작 무변 ← 2026-10-24 · set v8: 대화 Claude — drive-3(판정 688 · 692 · 707): Google Drive 칸 — Start date(drive_since · 비면 보관도 없음) · Send to Drive(drive_enabled) · Shared drive id · Queue(drive_status · failed) · 바꾸기 admin 만 · ?t=drive ← 2026-10-23 · set v7a: 대화 Claude — Caleb 「지금 안쓰는 것들은 안보이게 … 숨기면 어떨까?」(A · 화면만 · DB 무변): Documents 판 목록은 쓰는 판 + 판 번호가 가장 높은 둘만 보이고 나머지는 「Show N older versions」 로 접는다(지우지 않는다 · 다섯 문서 탭 같은 규칙 · 탭을 바꾸면 다시 접힌다) ← set v7:   // 대화 Claude — bgr-1a(asung-wms e73c83c · 판정 636): Bin 표에 B-grade 칸 · 줄마다 Mark B-grade / Unmark 단추(창구 ref_bin_bgrade_set · master · 잔고 있는 칸 · 열린 B급 줄이 가리키는 칸은 DB 가 거부 · 거부 글 그대로) · 칸을 직접 update 하지 않는다(가드 트리거 IM636) ← set v6: 대화 Claude — svc-1a(asung-wms 2508980 · 판정 590 · 593 · 596 · 597): Services 탭(ref_service) — 이름 · 단가 · 매출 계정(빈칸 = DB 기본 _153_ Services) · 켜짐 · 메모 · 세금 칸 없음(593 · 오더 세율) · 이름은 만든 뒤 못 바꿈(IM538 · 538) · 단가 · 계정 · 메모 · 켜짐은 Edit 로 · 쓰기 = master(정책) · 지우기 없음 ← set v5b: 대화 Claude — rls-2(판정 568 · 572 ~ 574): 설정 저장 두 곳(Backorder emails mSave · Documents dCfgSave)을 inv_config 직접 update → 창구 ims_config_set(p_key, p_value, p_old) 로 · p_old = 화면이 본 값(다르면 changed_elsewhere · 문단 doc_branches 는 null = 검사 안 함) · 성공 = !error(거부는 전부 error.message · 옛 「.select() 1 행」 분기 뺌) ← set v5a: 대화 Claude — od-1 판정 538: DB 이름 잠금(IM538) 글 · ← set v5: 대화 Claude — fb-0 1번(판정 534 · 538): Brand · Category · Unit · Payment Term · Bin 을 master 쓰기 직원이 만들기 · 끄기 · 켜기 — 이름 바꾸기 없음(538 · 원장 · 세트 단위 · 결제조건 기본값이 이름 글자로 이어져 있다) · 새 행은 source 'manual'(기본값 'cin7' 함정 · fb-0 회신 1번) · 같은 이름(대소문자 무시 · bin 은 창고 안)이 있으면 막는다 · Payment term 은 Net days 필수 · Bin 은 창고 필수 ← set v4a: 대화 Claude — ims-doc v1a(Mustache 를 파일 안에) · 미리 보기 안내 글 「Type the invoice no.」 ← set v4: doc 화면 ①(판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043): 왼쪽 목록 맨 아래 「Documents」 — 회사 글(이름 · HST · 웹 · 지점 둘 · 약관 · 날짜 꼴) · 로고(doc-brand) = master(판정 525) · 문서 다섯 탭마다 판 목록 · 판 검사 · 새 판 저장 · 이 판 쓰기 = doc_template 열쇠(판정 522) · 실제 문서로 미리 보기(sandbox iframe · ims-doc.js) · 제목 · 칸 켜고 끄기 · 메일 글 = master ← set v3 2026-10-16: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-4a): 왼쪽 목록 맨 아래 「Backorder emails」 — 메일 설정 일곱(mail_settings 의 값 · 바꿀 수 있나 · 마지막 고친 사람) · 켜기 · 시험 돌려 보내기 = admin · 보내는 주소 · 이름 · 답장 · 창고마다 요일 · 시각 · 절반 비율 = master · 저장 = inv_config update(guard 가 검사 · 성공 = .select() 1 행) ← set v2 2026-10-13: 대화 Claude — ful-3b(판정 436 · 450): Carrier 표(ref_carrier) — 보기 + master 쓰기 직원은 더하기 · 이름 · Shopify 이름 · 송장 링크 틀 고치기 · 끄기(지우지 않음 — 옛 오더의 이름은 그대로) · 종류(carrier · pickup · delivery)는 만든 뒤 못 바꾼다(옛 오더의 메일 · 송장 뜻이 바뀐다) · 저장 성공 판정 = .select() 1 행 ← set v1(읽기 전용 · 판 글자 없음)
 /* ─────────────────────────────────────────────────────────────
    Settings — ref_ 표 보기 (Carrier 만 고치기 — set v2)
    정본: docs/design/po-module.md §3-a · 화면 규칙 §10-j
@@ -176,6 +189,7 @@ const TABLES = [
   { t:"pickup", label:"Carrier pickups", note:"Per warehouse — which carriers come on a regular run, and the cutoff for a same-day pickup", custom:"pickup", nocount:1 },   // set v11 — 판정 852
   { t:"drive", label:"Google Drive", note:"Invoices, credit notes and PO documents to the IMS Documents shared drive", custom:"drive", nocount:1 },   // set v8 — drive-3 · 판정 688 · 692 · 707
   { t:"qbo", label:"QuickBooks", note:"The IMS connection to the QuickBooks Online company — connect, check, disconnect", custom:"qbo", nocount:1 },   // set v12 — qbo-1a ~ 1d · 판정 867 ~ 872
+  { t:"qbomatch", label:"QuickBooks matching", note:"Which QuickBooks record each IMS account, tax rule, customer, supplier and product belongs to", custom:"qbomatch", nocount:1 },   // set v13 — qbo-sync-1a ~ 1c · 판정 934
 ];
 const KIND_LBL = { carrier: "Carrier — tracking number · shipping email", pickup: "Pickup — customer collects", delivery: "Delivery — our truck" };
 
@@ -216,6 +230,7 @@ async function load(){
   if(cur.custom === "freight"){ document.getElementById("addRow").hidden = true; drawNav(); await loadFreight(); return; }   // set v10
   if(cur.custom === "pickup"){ document.getElementById("addRow").hidden = true; drawNav(); await loadPickups(); return; }   // set v11
   if(cur.custom === "qbo"){ document.getElementById("addRow").hidden = true; drawNav(); await loadQbo(); return; }   // set v12
+  if(cur.custom === "qbomatch"){ document.getElementById("addRow").hidden = true; drawNav(); await loadQboMatch(); return; }   // set v13
   document.getElementById("addRow").hidden = !(cur.edit && canEdit()) || !!cur.noAdd;   // set v2 · set v10 — 창고는 더하지 않는다
   document.getElementById("addRow").textContent = "+ Add " + (cur.noun || "carrier");   // set v5
   document.getElementById("body").innerHTML = '<div class="msg">Loading…</div>';
@@ -1131,8 +1146,8 @@ const QBO_WHY = {
   env:      "The connection belongs to the other environment (sandbox or production). Disconnect first, then connect."
 };
 let qboFlash = null;   // Intuit 에서 돌아온 결과 — 한 번만 보인다
-async function qboCall(action){
-  const r = await sb.functions.invoke("qbo", { body:{ action }, region:"ca-central-1" });
+async function qboCall(action, extra){   // set v13 — extra = pull 의 entity · start
+  const r = await sb.functions.invoke("qbo", { body:Object.assign({ action }, extra || {}), region:"ca-central-1" });
   if(!r.error) return { data: r.data || {} };
   let msg = String((r.error && r.error.message) || r.error);
   try{ const j = await r.error.context.json(); if(j && (j.error || j.message)) msg = j.error || j.message; }catch(e){}
@@ -1226,6 +1241,232 @@ async function loadQbo(after){
   };
 }
 
+/* ── set v13 — QuickBooks matching(qbo-sync-1a ~ 1c · 판정 934) ──────────
+   ⚠️ 창구는 전부 admin(qbo_sync_gate) — 화면은 EF status 의 caller_is_admin 으로 먼저 가린다 · DB 가 다시 본다
+   ⚠️ Refresh list = EF qbo pull(한 번 = 한 쪽 · next_start 로 done 까지) · Match automatically = qbo_match_auto 묶음(p_after · 5,000 · done 까지)
+   ⚠️ 제품 「To match」 기본 보기는 후보 있는 줄만 — 같은 SKU 의 QuickBooks Item 이 없는 제품(한 번도 안 팔림)은 사람이 할 일이 아니다(처음 보낼 때 IMS 가 만든다 · 다음 차수)
+   ⚠️ 이 칸은 QuickBooks 에 아무것도 쓰지 않는다 — 짝(qbo_link)과 받아 둔 목록(qbo_entity)만 */
+const QM = {
+  account:        { label:"Accounts",        type:"Account",       hint:"by account number" },
+  tax_rule:       { label:"Tax rules",       type:"TaxCode",       hint:"by name — sale and purchase rules share one QuickBooks tax code" },
+  payment_term:   { label:"Payment terms",   type:"Term",          hint:"by name" },
+  payment_method: { label:"Payment methods", type:"PaymentMethod", hint:"fixed list — credit card waits for the payment step" },
+  customer:       { label:"Customers",       type:"Customer",      hint:"by name" },
+  supplier:       { label:"Suppliers",       type:"Vendor",        hint:"by name" },
+  product:        { label:"Products",        type:"Item",          hint:"by SKU — two QuickBooks items with one SKU are told apart by name" },
+  charge:         { label:"Freight & discount lines", type:"Item", hint:"by hand — pick the QuickBooks item" },
+  service:        { label:"Services",        type:"Item",          hint:"by hand — pick the QuickBooks item" }
+};
+const QM_AUTO = new Set(["account", "tax_rule", "payment_term", "payment_method", "customer", "supplier", "product"]);
+const QM_CHARGE = { freight:"Freight", discount:"Order discount", surcharge:"Surcharge", freight_discount:"Freight discount" };
+const QM_BY = { auto_code:"matched automatically — account number", auto_name:"matched automatically — name", auto_sku:"matched automatically — SKU", auto_sku_name:"matched automatically — SKU and name", auto_map:"matched automatically", manual:"matched by hand" };
+let qm = { kind:null, filter:"unlinked", q:"", offset:0, showAbsent:false };
+const qmN = (v) => Number(v || 0).toLocaleString("en-CA");
+const qmName = (kind, x) => kind === "charge" ? (QM_CHARGE[x.ims_id] || x.ims_id) : (x.ims_name || x.ims_id);
+
+async function qmPull(type, onStep){   // EF pull — 한 쪽씩 끝까지
+  let start = 1;
+  for(;;){
+    const { data, err } = await qboCall("pull", { entity:type, start });
+    if(err) return { err };
+    if(onStep) onStep(data);
+    if(data.done) return { data };
+    start = data.next_start;
+    await new Promise(r => setTimeout(r, 250));
+  }
+}
+async function qmMatch(kind, onStep){   // 자동 짝 — 묶음 5,000 · done 까지
+  let after = null; const sum = { considered:0, linked:0, absent:0, ambiguous:0, skipped:0 };
+  for(;;){
+    const { data, error } = await sb.rpc("qbo_match_auto", { p_kind:kind, p_after:after, p_limit:5000 });
+    if(error) return { err:error.message, sum };
+    const d = data || {}; for(const k in sum) sum[k] += Number(d[k] || 0);
+    if(onStep) onStep(sum);
+    if(d.done || !d.considered) return { sum };
+    after = d.next_after;
+  }
+}
+
+async function loadQboMatch(flash){
+  const body = document.getElementById("body");
+  body.innerHTML = '<div class="msg">Loading…</div>';
+  const { data: st, err } = await qboCall("status");
+  if(err){ body.innerHTML = `<div class="msg err">Could not load — ${esc(err)}</div>`; return; }
+  if(!st.caller_is_admin){ body.innerHTML = '<div class="msg">Only an IMS admin can see and change how IMS records are matched to QuickBooks.</div>'; return; }
+  if((st.status || "none") === "none"){ body.innerHTML = '<div class="msg">QuickBooks is not connected. Connect it first under <a class="lnk" href="settings.html?t=qbo">QuickBooks</a>.</div>'; return; }
+  const { data: sum, error } = await sb.rpc("qbo_link_summary");
+  if(error){ body.innerHTML = `<div class="msg err">Could not load — ${esc(error.message)}</div>`; return; }
+  const list = sum || [];
+  const trs = list.map(s => {
+    const k = QM[s.kind] || { label:s.kind, type:s.qbo_type, hint:"" };
+    const pulled = s.pull_in_progress ? '<span class="off">unfinished — refresh again</span>'
+                 : s.pull_finished_at ? esc(imsTs(s.pull_finished_at)) : '<span class="dim">not pulled yet</span>';
+    const off = Number(s.qbo_rows || 0) - Number(s.qbo_active || 0);
+    return `<tr class="${qm.kind === s.kind ? "cur" : ""}">
+      <td><b>${esc(k.label)}</b><div class="sub">${esc(k.hint)}</div></td>
+      <td class="num">${qmN(s.ims_active)}</td>
+      <td class="num">${qmN(s.linked)}</td>
+      <td class="num">${Number(s.unlinked) ? "<b>" + qmN(s.unlinked) + "</b>" : "0"}</td>
+      <td class="num">${qmN(s.qbo_active)}${off > 0 ? ` <span class="sub">+${qmN(off)} inactive</span>` : ""}</td>
+      <td>${pulled}<div class="sub">QuickBooks ${esc(k.type)}</div></td>
+      <td style="white-space:nowrap"><button class="pobtn" data-qmpull="${esc(k.type)}" data-qmk="${esc(s.kind)}">Refresh list</button>
+        ${QM_AUTO.has(s.kind) ? `<button class="pobtn" data-qmauto="${esc(s.kind)}">Match automatically</button>` : ""}
+        <button class="pobtn go" data-qmopen="${esc(s.kind)}">Review</button>
+        <div class="res" id="qmRes_${esc(s.kind)}"></div></td></tr>`;
+  }).join("");
+  body.innerHTML = `<div class="mset">
+      <div class="mrow"><div class="lbl">What this is</div><div class="ctl"><span class="note">Each IMS record that will later go to QuickBooks is tied here to one QuickBooks record — automatically by account number, name or SKU, or by hand. Once tied, the tie holds even if a name changes later. Nothing is sent to QuickBooks from this page.</span></div></div>
+      ${flash ? `<div class="mrow"><div class="lbl">Just now</div><div class="ctl"><span class="res ${flash.ok ? "on" : "err"}">${esc(flash.text)}</span></div></div>` : ""}
+    </div>
+    <table class="qmt"><thead><tr><th>Records</th><th class="num">IMS active</th><th class="num">Matched</th><th class="num">Not matched</th><th class="num">In QuickBooks</th><th>List from QuickBooks</th><th></th></tr></thead><tbody>${trs}</tbody></table>
+    <div id="qmDetail"></div>`;
+  const busy = (on) => document.querySelectorAll("[data-qmpull],[data-qmauto]").forEach(b => { b.disabled = on; });
+  document.querySelectorAll("[data-qmpull]").forEach(b => { b.onclick = async () => {
+    const type = b.dataset.qmpull, res = document.getElementById("qmRes_" + b.dataset.qmk);
+    busy(true); res.className = "res"; res.textContent = "Reading QuickBooks…";
+    const r = await qmPull(type, (d) => { res.textContent = "Reading QuickBooks… " + qmN(d.received); });
+    busy(false);
+    if(r.err){ res.className = "res err"; res.textContent = r.err; return; }
+    await loadQboMatch({ ok:true, text:`QuickBooks ${type} list read — ${qmN(r.data.received)} records${Number(r.data.gone) ? ` · ${qmN(r.data.gone)} no longer in QuickBooks` : ""}. New IMS records are tied when you press Match automatically.` });
+  }; });
+  document.querySelectorAll("[data-qmauto]").forEach(b => { b.onclick = async () => {
+    const kind = b.dataset.qmauto, res = document.getElementById("qmRes_" + kind);
+    busy(true); res.className = "res"; res.textContent = "Matching…";
+    const r = await qmMatch(kind, (s) => { res.textContent = "Matching… " + qmN(s.considered) + " looked at"; });
+    busy(false);
+    if(r.err){ res.className = "res err"; res.textContent = r.err; return; }
+    const s = r.sum, lbl = (QM[kind] || {}).label || kind;
+    await loadQboMatch({ ok:true, text: s.considered
+      ? `${lbl}: ${qmN(s.linked)} matched now · ${qmN(s.absent)} with no QuickBooks record · ${qmN(s.ambiguous)} need a choice${s.skipped ? ` · ${qmN(s.skipped)} left for later` : ""}.`
+      : `${lbl}: nothing new to match — every active record is already tied or was looked at.` });
+  }; });
+  document.querySelectorAll("[data-qmopen]").forEach(b => { b.onclick = () => {
+    qm = { kind:b.dataset.qmopen, filter:"unlinked", q:"", offset:0, showAbsent:false };
+    document.querySelectorAll("table.qmt tr").forEach(tr => tr.classList.remove("cur")); b.closest("tr").classList.add("cur");
+    qmDetail();
+  }; });
+  if(qm.kind) await qmDetail();
+}
+
+function qmNoCand(kind, x){
+  if(kind === "product") return "Not in QuickBooks yet — never sold before. The IMS creates it when it is first sent.";
+  if(kind === "payment_method" && x.ims_id === "credit_card") return "Card brand (Visa · Mastercard · Amex) is decided in the payment step.";
+  if(kind === "charge" || kind === "service") return "Pick the QuickBooks item with Find…";
+  return "No QuickBooks record with the same name — find one, or leave it unmatched.";
+}
+
+async function qmDetail(){
+  const box = document.getElementById("qmDetail"); if(!box || !qm.kind) return;
+  const k = QM[qm.kind];
+  box.innerHTML = '<div class="msg">Loading…</div>';
+  const scan = qm.kind === "product" && qm.filter === "unlinked" && !qm.showAbsent && !qm.q;
+  let shown = [], total = 0, note = "";
+  if(scan){   // 짝 없는 제품을 200 씩 훑어 후보(같은 SKU) 있는 줄만
+    let off = 0, all = [], tot = 0, pages = 0;
+    do {
+      const r = await sb.rpc("qbo_link_page", { p_kind:"product", p_filter:"unlinked", p_q:null, p_limit:200, p_offset:off });
+      if(r.error){ box.innerHTML = `<div class="msg err">Could not load — ${esc(r.error.message)}</div>`; return; }
+      tot = Number(r.data.total || 0); all = all.concat(r.data.rows || []); off += 200; pages++;
+      box.innerHTML = `<div class="msg">Looking through ${qmN(Math.min(off, tot))} of ${qmN(tot)} unmatched products…</div>`;
+    } while(off < tot && pages < 60);
+    shown = all.filter(x => (x.candidates || []).length); total = shown.length;
+    note = `${qmN(tot - shown.length)} unmatched products have no QuickBooks item with the same SKU — they were never sold, so QuickBooks does not have them yet. The IMS will create them when they are first sent. Nothing to do for those. <button class="pobtn" id="qmShowAbsent">Show them anyway</button>`;
+  } else {
+    const r = await sb.rpc("qbo_link_page", { p_kind:qm.kind, p_filter:qm.filter, p_q:qm.q || null, p_limit:50, p_offset:qm.offset });
+    if(r.error){ box.innerHTML = `<div class="msg err">Could not load — ${esc(r.error.message)}</div>`; return; }
+    shown = r.data.rows || []; total = Number(r.data.total || 0);
+  }
+  const seg = (f, t) => `<button class="pobtn ${qm.filter === f ? "on" : ""}" data-qmf="${f}">${t}</button>`;
+  const trs = shown.map(x => {
+    const nm = qmName(qm.kind, x), code = qm.kind === "payment_method" ? "" : (x.ims_code || "");
+    let qb, acts;
+    if(x.qbo_id){
+      qb = `${esc(x.qbo_name || x.qbo_name_at_match || "?")} <span class="dim mono">#${esc(x.qbo_id)}</span>`
+         + (x.qbo_gone_at ? ' <span class="off">— gone from QuickBooks</span>' : x.qbo_active === false ? ' <span class="dim">(inactive in QuickBooks)</span>' : "")
+         + `<div class="sub dim">${esc(QM_BY[x.matched_by] || x.matched_by || "")}${x.matched_at ? " · " + esc(imsTs(x.matched_at)) : ""}</div>`;
+      acts = `<button class="pobtn" data-qmfind="${esc(x.ims_id)}">Change…</button> <button class="pobtn" data-qmclear="${esc(x.ims_id)}">Unlink</button>`;
+    } else {
+      const c = x.candidates || [];
+      qb = c.length
+        ? c.map(cd => `<button class="pobtn qmcand" data-qmset="${esc(x.ims_id)}" data-qbo="${esc(cd.qbo_id)}" title="Match to QuickBooks #${esc(cd.qbo_id)}">${esc(cd.name)}${cd.sku ? " · " + esc(cd.sku) : ""}${cd.active ? "" : " (inactive)"} <span class="mono">#${esc(cd.qbo_id)}</span></button>`).join("")
+          + '<div class="sub dim">Press the QuickBooks record this one belongs to.</div>'
+        : `<span class="dim">${esc(qmNoCand(qm.kind, x))}</span>`;
+      acts = `<button class="pobtn" data-qmfind="${esc(x.ims_id)}">Find…</button>`;
+    }
+    return `<tr><td>${esc(nm)}${x.ims_active === false ? ' <span class="dim">(off in IMS)</span>' : ""}</td><td class="mono dim">${esc(code)}</td><td>${qb}</td><td style="white-space:nowrap">${acts}</td></tr>`;
+  }).join("");
+  const pager = scan ? "" : `<span class="dim">${total ? `${qmN(qm.offset + 1)}–${qmN(Math.min(qm.offset + 50, total))} of ${qmN(total)}` : "0"}</span>
+      <button class="pobtn" id="qmPrev" ${qm.offset > 0 ? "" : "disabled"}>‹</button><button class="pobtn" id="qmNext" ${qm.offset + 50 < total ? "" : "disabled"}>›</button>`;
+  box.innerHTML = `<div class="qmhead"><h3>${esc(k.label)}</h3>${seg("unlinked", "To match")}${seg("linked", "Matched")}${seg("all", "All")}
+      <input type="search" id="qmQ" placeholder="Search IMS name${qm.kind === "product" ? " or SKU" : ""}" value="${esc(qm.q)}"> ${pager}<span class="res" id="qmDres"></span></div>
+    ${note ? `<div class="qmnote">${note}</div>` : ""}
+    ${shown.length ? `<table><thead><tr><th>IMS</th><th>${qm.kind === "product" ? "SKU" : qm.kind === "account" ? "Code" : ""}</th><th>QuickBooks</th><th></th></tr></thead><tbody>${trs}</tbody></table>`
+                   : `<div class="msg">${qm.filter === "unlinked" ? "Nothing left to match here." : "No rows."}</div>`}`;
+  box.querySelectorAll("[data-qmf]").forEach(b => { b.onclick = () => { qm.filter = b.dataset.qmf; qm.offset = 0; qm.showAbsent = false; qmDetail(); }; });
+  const qi = document.getElementById("qmQ"); qi.onkeydown = (e) => { if(e.key === "Enter"){ qm.q = qi.value.trim(); qm.offset = 0; qmDetail(); } };
+  qi.onsearch = () => { if(!qi.value){ qm.q = ""; qm.offset = 0; qmDetail(); } };
+  const pv = document.getElementById("qmPrev"); if(pv) pv.onclick = () => { qm.offset = Math.max(0, qm.offset - 50); qmDetail(); };
+  const nx = document.getElementById("qmNext"); if(nx) nx.onclick = () => { qm.offset += 50; qmDetail(); };
+  const sa = document.getElementById("qmShowAbsent"); if(sa) sa.onclick = () => { qm.showAbsent = true; qm.offset = 0; qmDetail(); };
+  const dres = (ok, t) => { const r = document.getElementById("qmDres"); if(r){ r.className = "res " + (ok ? "on" : "err"); r.textContent = t; } };
+  box.querySelectorAll("[data-qmset]").forEach(b => { b.onclick = async () => {
+    b.disabled = true;
+    const { error } = await sb.rpc("qbo_link_set", { p_kind:qm.kind, p_ims_id:b.dataset.qmset, p_qbo_id:b.dataset.qbo });
+    if(error){ b.disabled = false; dres(false, error.message); return; }
+    await loadQboMatch({ ok:true, text:"Matched." });
+  }; });
+  box.querySelectorAll("[data-qmclear]").forEach(b => { b.onclick = async () => {
+    const x = shown.find(r => r.ims_id === b.dataset.qmclear);
+    if(!confirm(`Unlink ${qmName(qm.kind, x)} from QuickBooks ${x.qbo_name || "#" + x.qbo_id}?\n\nNothing changes in QuickBooks. Match it again by hand, or with Match automatically.`)) return;
+    b.disabled = true;
+    const { error } = await sb.rpc("qbo_link_clear", { p_kind:qm.kind, p_ims_id:x.ims_id });
+    if(error){ b.disabled = false; dres(false, error.message); return; }
+    await loadQboMatch({ ok:true, text:"Unlinked." });
+  }; });
+  box.querySelectorAll("[data-qmfind]").forEach(b => { b.onclick = () => qmFind(shown.find(r => r.ims_id === b.dataset.qmfind)); });
+}
+
+function qmFind(x){
+  const k = QM[qm.kind], nm = qmName(qm.kind, x);
+  const first = qm.kind === "product" ? (x.ims_code || "") : qm.kind === "charge" ? (QM_CHARGE[x.ims_id] || "") : nm;
+  document.getElementById("modalBox").innerHTML = `
+    <h4>Match to QuickBooks — ${esc(nm)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Search</label><input id="qmFq" type="search" autocomplete="off" value="${esc(first)}" style="flex:1"></div>
+      <div class="hint">QuickBooks ${esc(k.type)} — by name${k.type === "Item" ? ", SKU" : ""} or ID. Inactive records come last. A record already tied to another IMS record cannot be picked until that one is unlinked.</div>
+      <div class="qmf" id="qmFlist"><div class="msg">Searching…</div></div>
+      <div id="qmFmsg" style="margin-top:8px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="qmFclose">Close</button></div>`;
+  document.getElementById("modal").hidden = false;
+  document.getElementById("qmFclose").onclick = modalClose;
+  const inp = document.getElementById("qmFq");
+  let tmr = null, seq = 0;
+  const run = async () => {
+    const my = ++seq, list = document.getElementById("qmFlist");
+    const { data, error } = await sb.rpc("qbo_entity_find", { p_type:k.type, p_q:inp.value.trim() || null, p_limit:40 });
+    if(my !== seq) return;
+    if(error){ list.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+    const rows = data || [];
+    if(!rows.length){ list.innerHTML = '<div class="msg">No QuickBooks record matches.</div>'; return; }
+    list.innerHTML = `<table><thead><tr><th>QuickBooks</th>${k.type === "Item" ? "<th>SKU</th>" : ""}<th>ID</th><th></th></tr></thead><tbody>${rows.map(r => {
+      const mine = r.linked_to && r.linked_to.kind === qm.kind && r.linked_to.ims_id === x.ims_id;
+      const taken = r.linked_to && !mine && qm.kind !== "tax_rule";
+      return `<tr><td>${esc(r.fully_qualified_name || r.name)}${r.active ? "" : ' <span class="dim">(inactive)</span>'}</td>${k.type === "Item" ? `<td class="mono dim">${esc(r.sku || "")}</td>` : ""}<td class="mono dim">#${esc(r.qbo_id)}</td>
+        <td style="white-space:nowrap">${mine ? '<span class="on">this one now</span>' : taken ? '<span class="dim">tied to another IMS record</span>' : `<button class="pobtn go" data-qmpick="${esc(r.qbo_id)}">Match</button>`}</td></tr>`;
+    }).join("")}</tbody></table>`;
+    list.querySelectorAll("[data-qmpick]").forEach(b => { b.onclick = async () => {
+      b.disabled = true;
+      const { error: e2 } = await sb.rpc("qbo_link_set", { p_kind:qm.kind, p_ims_id:x.ims_id, p_qbo_id:b.dataset.qmpick });
+      if(e2){ b.disabled = false; const m = document.getElementById("qmFmsg"); m.className = "err"; m.textContent = e2.message; return; }
+      modalClose();
+      await loadQboMatch({ ok:true, text:`${nm} matched.` });
+    }; });
+  };
+  inp.oninput = () => { clearTimeout(tmr); tmr = setTimeout(run, 300); };
+  run(); inp.focus();
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw:true }, async (client, me) => {
   sb = client;
@@ -1246,6 +1487,7 @@ imsAuth.start({ changePw:true }, async (client, me) => {
     else if(r === "error") qboFlash = { ok:false, why: sp.get("why") || "" };
     if(r) history.replaceState(null, "", "settings.html?t=qbo");   // 새로 고침에 같은 알림이 또 뜨지 않게
   }
+  if(new URLSearchParams(location.search).get("t") === "qbomatch") cur = TABLES.find(x => x.t === "qbomatch");   // set v13 — ?t=qbomatch
   document.getElementById("onlyActive").onchange = (e) => { onlyActive = e.target.checked; pg.reset(); load(); };
   document.getElementById("binLabels").onclick = () => imsLabel.open({ sb, kind:"bin" });   // set v9
   imsQ("#q", (v) => { q = v; pg.reset(); load(); });
