@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Claude — Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 승인 화면 — 헤더 없음(index.html 의 문 꼴) · 카드 하나 */
+  .door{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .door .card{max-width:520px;width:100%;padding:28px 26px}
+  .door img.logo{height:36px;width:auto;display:block;margin:0 auto 18px}
+  .door h1{font-size:18px;margin:0 0 6px;text-align:center}
+  .door .sub{margin:0 0 18px;font-size:13px;color:var(--muted);text-align:center;line-height:1.5}
+  .door .who{font-size:13px;margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+  .door .who a{font-size:12.5px;cursor:pointer;color:var(--muted);text-decoration:underline}
+  .door ul{margin:0 0 14px;padding-left:18px;font-size:13px;line-height:1.6}
+  .door .box{font-size:12.5px;color:var(--muted);line-height:1.55;margin:0 0 18px}
+  .door .warn{font-size:13px;line-height:1.5;margin:0 0 16px;padding:10px 12px;border-radius:9px;background:#fff6e5;border:1px solid #f0d9a8;color:#7a5200}
+  .door .err{font-size:13px;line-height:1.5;margin:0 0 16px;padding:10px 12px;border-radius:9px;background:#fdecec;border:1px solid #f3c2c2;color:#8a1f1f}
+  .door .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .door button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 16px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .door button.main{background:#12161c;color:#fff;border-color:#12161c}
+  .door button:disabled{opacity:.5;cursor:default}
+  .door .meta{font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="door">
+  <div class="card" id="card">
+    <img class="logo" src="asung-logo-dark.png" alt="ASUNG">
+    <p class="sub" id="msg">Opening…</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   oauth-consent.html — Claude 커넥터 승인 화면 1판 (2026-10-31 · 대화 Claude · mcp-3)
+   판정 917 ~ 924 · Supabase OAuth 2.1 서버의 authorization path(Site URL + 이 경로) — Supabase 가 ?authorization_id=… 를 붙여 보낸다
+   흐름: 로그인(ims-auth.js 의 로그인 카드 그대로) → Claude 열쇠 확인 → getAuthorizationDetails → 허락 / 거절 → redirect_url 로 보낸다
+   ⭐ 921 Claude 열쇠 = staff perms 배열에 'claude' 또는 'claude:read' 를 글자 그대로(admin · supervisor 도 켜야 한다 — access.screens 를 쓰지 않는다: 역할로 열려 보인다)
+   ⭐ 922 Claude 하나만 손 등록 — 돌아갈 주소가 claude.ai · claude.com 이 아니면 Approve 를 그리지 않는다(이중 안전 · 진짜 문은 훅 · mcp_gate)
+   ⭐ 열쇠가 없거나 비활성이면 Approve 없음 · 「Back to Claude」 = deny(Claude 가 깨끗한 거절을 받는다)
+   ⚠️ 이 화면은 items(메뉴)에 없다 — 메뉴로 가는 길이 아니라 Claude 가 보내는 주소다 · 헤더 · Change Password 없음(index.html 꼴)
+   ⚠️ 이 화면은 DB 에 쓰지 않는다 — 허락 기록은 Supabase Auth 가 한다(auth.oauth_consents)
+   ───────────────────────────────────────────────────────────── */
+const CONSENT_BUILD = "2026-10-31 · oauth-consent v1";
+const ALLOWED_RETURN = /^https:\/\/(claude\.ai|claude\.com)\//;
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const card = document.getElementById("card");
+const authId = new URLSearchParams(location.search).get("authorization_id");
+
+function paint(html){
+  card.innerHTML = '<img class="logo" src="asung-logo-dark.png" alt="ASUNG">' + html +
+    '<div class="meta">' + esc(CONSENT_BUILD) + ' · ' + esc(window.imsAuth ? imsAuth.build : "") + '</div>';
+}
+function fail(text){
+  paint('<h1>Connect Claude</h1><div class="err">' + esc(text) + '</div>' +
+        '<p class="box">You can close this tab and try connecting again from Claude.</p>');
+}
+function hasClaudeKey(me){
+  const p = Array.isArray(me && me.perms) ? me.perms : [];
+  return p.includes("claude") || p.includes("claude:read");
+}
+function busy(on){ card.querySelectorAll("button").forEach(b => b.disabled = on); }
+
+async function decide(sb, approve){
+  busy(true);
+  try{
+    const r = approve ? await sb.auth.oauth.approveAuthorization(authId)
+                      : await sb.auth.oauth.denyAuthorization(authId);
+    if(r.error) throw r.error;
+    const url = r.data && (r.data.redirect_url || r.data.redirect_to);
+    if(!url) throw new Error("No return address came back from IMS.");
+    location.href = url;
+  }catch(e){
+    busy(false);
+    fail((approve ? "Could not approve: " : "Could not send the answer back: ") + (e && e.message ? e.message : String(e)));
+  }
+}
+
+if(!authId){
+  fail("This page opens from Claude when you connect the IMS connector. The link is missing its authorization ID.");
+}else{
+  imsAuth.start({}, async (sb, me) => {
+    if(!sb.auth || !sb.auth.oauth || typeof sb.auth.oauth.getAuthorizationDetails !== "function"){
+      fail("The IMS login library on this page is out of date (no OAuth support). Reload the page with Ctrl + Shift + R and try again.");
+      return;
+    }
+    paint('<p class="sub">Checking the request…</p>');
+
+    let d;
+    try{
+      const r = await sb.auth.oauth.getAuthorizationDetails(authId);
+      if(r.error) throw r.error;
+      d = r.data;
+    }catch(e){
+      fail("This connection request is not valid any more (" + (e && e.message ? e.message : String(e)) + "). Start again from Claude.");
+      return;
+    }
+    if(!d){ fail("This connection request was not found. Start again from Claude."); return; }
+
+    // 이미 허락한 적이 있으면 authorization_id 없이 redirect_url 만 온다(Supabase 문서)
+    if(!("authorization_id" in d)){
+      const url = d.redirect_url || d.redirect_to;
+      if(url && ALLOWED_RETURN.test(url)){ location.href = url; return; }
+      fail("This connection was approved before, but its return address is not Claude. Ask an admin.");
+      return;
+    }
+
+    const client = (d.client && (d.client.name || d.client.client_name)) || "Unknown app";
+    const ret = d.redirect_uri || "";
+    const retOk = ALLOWED_RETURN.test(ret);
+    const keyOk = hasClaudeKey(me);
+    const who = '<div class="who"><span>Signed in as <b>' + esc(me.name || me.email || "") + '</b>' +
+                (me.email && me.name ? ' · ' + esc(me.email) : '') + '</span>' +
+                '<a id="swap">Not you? Sign out</a></div>';
+
+    let body = '<h1>Connect ' + esc(client) + ' to Asung IMS</h1>' +
+               '<p class="sub">' + esc(client) + ' is asking to read IMS for you.</p>' + who;
+
+    if(!retOk){
+      body += '<div class="err">This request would send you back to <b>' + esc(ret || "an unknown address") +
+              '</b>, which is not Claude. It was not approved. Close this tab and tell an admin.</div>';
+    }else if(!keyOk){
+      body += '<div class="warn">The Claude connector is not switched on for your IMS account. ' +
+              'An admin can switch it on in Settings → Staff (the CLAUDE line). Until then Claude cannot read IMS for you.</div>' +
+              '<div class="row"><button class="main" id="back">Back to Claude</button></div>';
+    }else{
+      body += '<ul>' +
+                '<li><b>Read only.</b> Claude can look things up; it cannot change anything in IMS.</li>' +
+                '<li>What it can look up: sales orders, stock, customer summaries (name, orders, balance), purchase order status and backorders.</li>' +
+                '<li>It sees only what your IMS access lets you see.</li>' +
+                '<li>It never gets customer addresses, phone numbers, emails or notes.</li>' +
+              '</ul>' +
+              '<p class="box">Each lookup is recorded (who, when, what was asked). You can disconnect any time in Claude’s connector settings; an admin can also switch your Claude access off in IMS.</p>' +
+              '<div class="row"><button id="deny">Deny</button><button class="main" id="approve">Approve</button></div>';
+    }
+    paint(body);
+
+    const swap = document.getElementById("swap");
+    if(swap) swap.onclick = async () => { await sb.auth.signOut(); location.reload(); };
+    const ap = document.getElementById("approve"); if(ap) ap.onclick = () => decide(sb, true);
+    const dn = document.getElementById("deny");    if(dn) dn.onclick = () => decide(sb, false);
+    const bk = document.getElementById("back");    if(bk) bk.onclick = () => decide(sb, false);
+  });
+}
+</script>
+</body>
+</html>
