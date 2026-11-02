@@ -49,6 +49,12 @@
   /* 줄 사진 — 판정 208 · 213 · 칸 모양은 ims-ui.css 의 .ims-thumb(thumb-1) */
   .lnth{display:flex;gap:8px;align-items:flex-start}
   .tfw{color:var(--warn);font-weight:600}   /* tf-paste-2 — 모자람 · 중복 판정 색 */
+  /* tf combo v1 — 콤보 줄 · 구성품 줄 */
+  .chip.cb{background:#eef3ff;color:#1b4fd6;border-color:#c7d2fe}
+  .chip.cbf{background:#f4f6fa;color:var(--muted)}
+  tr.cbc td{background:#fbfcfe}
+  tr.cbc td:nth-child(2){padding-left:30px}
+  .cbarrow{color:var(--muted);margin-right:4px}
 </style>
 </head>
 <body>
@@ -123,7 +129,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-11-01 · tf sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — 운임 청구서 Supplier (carrier) 고르기 = Purchasable · 거래 중단 아님(지금 값은 늘 보인다 · 트랜스퍼 운송사도 Suppliers 화면에서 Yes 여야 고를 수 있다) ← 2026-10-31 · tf ship v1:   // 대화 Claude — 판정 898 · deferred 417: 운송 정보(운송사 · 운송장 PRO · ETA) — 상세 머리 Shipping 줄 + 「Shipping details」 창 → 창구 inv_transfer_shipping_set(세 칸 통째 · received · cancelled 거부) · 목록 Shipping 칸(열린 문서만 inv_transfer 직접 한 번 · id 목록을 주소에 싣지 않는다) · 운송사 = ref_carrier kind carrier · 켜진 것(지금 값이 꺼졌으면 그 하나만 (off)) ← tf cost v1 · 대화 Claude — rls-3b(ada71fa · 판정 580): 원가 열쇠 없으면 inv_transfer_detail 의 freight.posted_cad · charges[].posted_cad · lines[].carried.* 가 null → On stock cost 칸 「—」(경고 색 없음 · title) · Carried cost · Posted 칸 「—」 + title(옛 판은 n0(null)=0 으로 「0.00」 + 틀린 warn) ← tf tx v1 · 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-11-02 · tf combo v1";   // 대화 Claude — 판정 952 ~ 957(Caleb 2026-11-02 · tf-combo-1 a4e991a): 콤보 줄 + 딸린 구성품 줄 — 줄 표에서 콤보 줄 아래 구성품 들여쓰기(「for SKU」) · 구성품 줄은 Edit · ✕ 없음(창구가 거부) · 콤보 줄의 Lost · Returned · Extra · In transit · Carried 「—」(955) · 합계(EA)는 콤보 줄을 빼고 셈 · 정산 대상에서 콤보 줄 제외(957) · 줄 창 = 콤보면 구성품 가용으로 몇 콤보(새 줄은 inv_transfer_lines_paste 미리 보기 · 고치기는 구성품 줄 + so_available_many) · 콤보 줄 고치기는 상품 칸 잠금(상품 바꾸기 거부) · 붙여넣기 콤보 행 = available_units · short_by 콤보 단위 · 확정 창 구성품 들여쓰기 ← 2026-11-01 · tf sup v1:   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — 운임 청구서 Supplier (carrier) 고르기 = Purchasable · 거래 중단 아님(지금 값은 늘 보인다 · 트랜스퍼 운송사도 Suppliers 화면에서 Yes 여야 고를 수 있다) ← 2026-10-31 · tf ship v1:   // 대화 Claude — 판정 898 · deferred 417: 운송 정보(운송사 · 운송장 PRO · ETA) — 상세 머리 Shipping 줄 + 「Shipping details」 창 → 창구 inv_transfer_shipping_set(세 칸 통째 · received · cancelled 거부) · 목록 Shipping 칸(열린 문서만 inv_transfer 직접 한 번 · id 목록을 주소에 싣지 않는다) · 운송사 = ref_carrier kind carrier · 켜진 것(지금 값이 꺼졌으면 그 하나만 (off)) ← tf cost v1 · 대화 Claude — rls-3b(ada71fa · 판정 580): 원가 열쇠 없으면 inv_transfer_detail 의 freight.posted_cad · charges[].posted_cad · lines[].carried.* 가 null → On stock cost 칸 「—」(경고 색 없음 · title) · Carried cost · Posted 칸 「—」 + title(옛 판은 n0(null)=0 으로 「0.00」 + 틀린 warn) ← tf tx v1 · 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -206,6 +212,21 @@ function uq(v, pf){
   const f = n0(pf) || 1;
   return f > 1 && n0(v) !== 0 ? `${qty(v)} <span class="sub">(${qty(n0(v) * f)} EA)</span>` : qty(v);
 }
+
+/* tf combo v1 · 판정 952 — 콤보 줄 = is_combo(구성품이 달린 줄) · 구성품 줄 = combo_line_id 가 있는 줄.
+   재고 · 원가 · 정산은 구성품 줄로만 움직인다 → 합계(EA)에서 콤보 줄을 뺀다. 줄 순서는 콤보 줄 바로 아래 그 구성품. */
+const isCombo = (l) => !!(l && l.is_combo);
+const isComp  = (l) => !!(l && l.combo_line_id);
+function orderLines(lines){
+  const out = [], seen = new Set();
+  lines.filter(l => !isComp(l)).forEach(l => {
+    out.push(l); seen.add(l.line_id);
+    if(isCombo(l)) lines.filter(c => c.combo_line_id === l.line_id).forEach(c => { out.push(c); seen.add(c.line_id); });
+  });
+  lines.forEach(l => { if(!seen.has(l.line_id)) out.push(l); });   // 부모를 못 찾은 구성품 줄 — 버리지 않는다
+  return out;
+}
+const comboTag = (l) => isComp(l) ? ` <span class="chip cbf">for ${esc(l.combo_sku || "")}</span>` : "";
 
 /* tf ship v1 · 판정 898 — 운송 정보 한 줄. 받기 화면(rc v2.0 shipText)과 같은 글: 「APPS · PRO 123 · ETA 2026-11-02」 */
 function shipText(carrier, tracking, eta){
@@ -301,12 +322,13 @@ async function loadDetail(id){
   const ed = s === "draft" && canWrite;
   const shipEd = canWrite && s !== "received" && s !== "cancelled";   // tf ship v1 — 창구가 받기 끝 · 취소를 거부한다
 
-  const totReq  = lines.reduce((a, l) => a + n0(l.qty_ea), 0);
-  const totSent = lines.reduce((a, l) => a + n0(l.qty_sent) * n0(l.pack_factor), 0);
-  const totRecv = lines.reduce((a, l) => a + n0(l.qty_received) * n0(l.pack_factor), 0);
-  const totLost = lines.reduce((a, l) => a + n0(l.qty_lost) * n0(l.pack_factor), 0);
-  const totTran = lines.reduce((a, l) => a + Math.max(n0(inTransit(l)), 0) * n0(l.pack_factor), 0);
-  const settleable = lines.filter(l => n0(inTransit(l)) > 0);
+  const stockLines = lines.filter(l => !isCombo(l));   // tf combo v1 — 콤보 줄은 재고가 없다(구성품 줄이 센다)
+  const totReq  = stockLines.reduce((a, l) => a + n0(l.qty_ea), 0);
+  const totSent = stockLines.reduce((a, l) => a + n0(l.qty_sent) * n0(l.pack_factor), 0);
+  const totRecv = stockLines.reduce((a, l) => a + n0(l.qty_received) * n0(l.pack_factor), 0);
+  const totLost = stockLines.reduce((a, l) => a + n0(l.qty_lost) * n0(l.pack_factor), 0);
+  const totTran = stockLines.reduce((a, l) => a + Math.max(n0(inTransit(l)), 0) * n0(l.pack_factor), 0);
+  const settleable = stockLines.filter(l => n0(inTransit(l)) > 0);   // 판정 957 — 정산은 구성품 줄에서만
   const openOver = diffs.filter(d => d.kind === "over" && !d.resolved_at);
 
   const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All transfers</button>'];
@@ -348,9 +370,9 @@ async function loadDetail(id){
   if(s === "confirmed") boxes += '<div class="infobox">The stock is held at the from warehouse. Release to WMS sends it to the warehouse to be split and picked.</div>';
   if(s === "at_wms") boxes += '<div class="infobox">At the warehouse, waiting for Split &amp; Waves. It can be recalled until pick tasks are made. Once it is in work, it can no longer be cancelled.</div>';
   if(s === "picking") boxes += '<div class="infobox">The warehouse is working on it. It leaves the from warehouse at Fulfillment Finalize.</div>';
-  const shortSent = lines.filter(l => n0(l.short_sent) > 0);
-  if(shortSent.length) boxes += `<div class="warnbox"><b>Sent short</b> — the pickers could not find everything. What was not sent is closed on this transfer; make a new transfer if it should still go.<br>${shortSent.map(l =>
-      `<span class="mono">${esc(l.sku)}</span> asked ${uq(l.qty, l.pack_factor)} · sent ${uq(l.qty_sent, l.pack_factor)} · short ${uq(l.short_sent, l.pack_factor)}`).join("<br>")}</div>`;
+  const shortSent = orderLines(lines).filter(l => n0(l.short_sent) > 0);
+  if(shortSent.length) boxes += `<div class="warnbox"><b>Sent short</b> — the pickers could not find everything. What was not sent is closed on this transfer; make a new transfer if it should still go.${shortSent.some(isCombo) ? " A combo goes only whole — if one of its items was short, that combo was not sent and its other items went back to their bins." : ""}<br>${shortSent.map(l =>
+      `${isComp(l) ? '<span class="cbarrow">↳</span>' : ""}<span class="mono">${esc(l.sku)}</span>${isCombo(l) ? ' <span class="chip cb">combo</span>' : comboTag(l)} asked ${uq(l.qty, l.pack_factor)} · sent ${uq(l.qty_sent, l.pack_factor)} · short ${uq(l.short_sent, l.pack_factor)}`).join("<br>")}</div>`;
   if(left && settleable.length && s === "received") boxes += `<div class="warnbox"><b>Still in transit after the arrival</b> — ${qty(totTran)} EA did not arrive. ${canAdj
       ? "Settle it: lost, or returned to a bin at the from warehouse." : "Someone with the Stock adjustments key settles it (lost or returned)."}</div>`;
   if(openOver.length) boxes += `<div class="warnbox"><b>More arrived than was sent</b> — the receiving warehouse took only what was sent. ${canAdj
@@ -359,7 +381,7 @@ async function loadDetail(id){
   const frTot = n0(fr.total_cad), frPost = n0(fr.posted_cad);
   const costHidden = fr.posted_cad === null;   // rls-3b — 원가 열쇠 없음(0 이 아니다)
   const gap = `<div class="gap">
-      <div class="g"><b>${esc(lines.length)}</b><span>Lines</span></div>
+      <div class="g"><b>${esc(lines.filter(l => !isComp(l)).length)}</b><span>Lines</span></div>
       <div class="g"><b>${qty(totReq)}</b><span>Asked (EA)</span></div>
       <div class="g"><b>${s === "draft" || s === "confirmed" || s === "at_wms" || s === "picking" || s === "cancelled" ? '<span class="dim">—</span>' : qty(totSent)}</b><span>Sent (EA)</span></div>
       <div class="g"><b>${s === "received" ? qty(totRecv) : '<span class="dim">—</span>'}</b><span>Received (EA)</span></div>
@@ -388,7 +410,8 @@ async function loadDetail(id){
       <div class="invsub">Quantities are in each line's own unit; a pack line also shows single units (EA). Sent is what left at
         Fulfillment Finalize. Received is what the to warehouse put into bins at Complete. In transit = sent − received − lost −
         returned (a guide — the settle checks the stock book). Carried cost is the purchase freight and duty that was on these
-        units at the from warehouse and moved with them.</div>
+        units at the from warehouse and moved with them. A combo line holds no stock — its items are the indented lines under it,
+        and they are what is picked, sent, counted and settled; a combo is sent only whole.</div>
     </div>
     ${freightCard(fr, h)}`;
   thumbFill(box);   // 판정 208 — 이 트랜스퍼의 SKU 를 한 번에(기다리지 않는다)
@@ -396,7 +419,7 @@ async function loadDetail(id){
   box.querySelectorAll("[data-act]").forEach(el => {
     const a = el.dataset.act;
     if(a === "wide") el.onclick = showWide;
-    if(a === "add") el.onclick = () => openLine(h, null);
+    if(a === "add") el.onclick = () => openLine(h, null, lines);
     if(a === "paste") el.onclick = () => openPasteTf(h);
     if(a === "confirm") el.onclick = () => openConfirm(h, lines);
     if(a === "unconfirm") el.onclick = () => simpleAct(h, "inv_transfer_unconfirm", `Put ${h.transfer_number} back to draft? The held stock is let go.`);
@@ -408,8 +431,8 @@ async function loadDetail(id){
     if(a === "del") el.onclick = () => deleteTransfer(h);
     if(a === "cancel") el.onclick = () => cancelTransfer(h);
   });
-  box.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => openLine(h, lines.find(l => l.line_id === el.dataset.edit)); });
-  box.querySelectorAll("[data-rm]").forEach(el => { el.onclick = () => removeLine(h, el.dataset.rm); });
+  box.querySelectorAll("[data-edit]").forEach(el => { el.onclick = () => openLine(h, lines.find(l => l.line_id === el.dataset.edit), lines); });
+  box.querySelectorAll("[data-rm]").forEach(el => { el.onclick = () => removeLine(h, el.dataset.rm, !!el.dataset.cb); });
   box.querySelectorAll("[data-over]").forEach(el => { el.onclick = () => openOverDecide(h, diffs.find(d => d.id === el.dataset.over), lines); });
   box.querySelectorAll("[data-chg]").forEach(el => { el.onclick = () => openCharge(el.dataset.chg); });
 }
@@ -417,32 +440,40 @@ async function loadDetail(id){
 function linesTable(lines, ed, s){
   if(!lines.length) return `<div class="msg">No lines yet.${ed ? " Add a line for each product you send." : ""}</div>`;
   const left = ["in_transit", "receiving", "received"].includes(s);
+  const dash = '<span class="dim">—</span>';
   return `<table><thead><tr>
       <th class="num">#</th><th>SKU</th><th class="num">Asked</th><th class="num">Sent</th><th class="num">Received</th>
       <th class="num">Lost</th><th class="num">Returned</th><th class="num">Extra sent</th><th class="num">In transit</th>
       <th class="num">Carried cost</th>${ed ? "<th></th>" : ""}
-    </tr></thead><tbody>${lines.map(l => {
+    </tr></thead><tbody>${orderLines(lines).map(l => {
+      const cb = isCombo(l), cp = isComp(l);
       const it = inTransit(l);
       const c = l.carried || {};
-      const carriedTxt = c.total === null
+      const carriedTxt = cb ? dash : c.total === null
         ? '<span class="dim" title="Hidden — needs the Inventory cost permission (Staff)">—</span>'
         : n0(c.total) !== 0
         ? `${money(c.total)}<div class="sub">${n0(c.in_transit) ? "in transit " + money(c.in_transit) + " · " : ""}${n0(c.arrived) ? "arrived " + money(c.arrived) : ""}${n0(c.returned) ? " · returned " + money(c.returned) : ""}</div>`
-        : '<span class="dim">—</span>';
-      return `<tr>
+        : dash;
+      const skuTag = cb
+        ? ` <span class="chip cb" title="A combo holds no stock — the items under it are what moves">combo · ${esc(n0(l.components))} item${n0(l.components) === 1 ? "" : "s"}</span>`
+        : comboTag(l);
+      const perCombo = cp && n0(l.combo_qty) ? `<div class="sub">${qty(l.combo_qty)} per combo</div>` : "";
+      return `<tr${cp ? ' class="cbc"' : ""}>
         <td class="num">${esc(l.line_no)}</td>
-        <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${n0(l.pack_factor) > 1 ? ` <span class="chip">pack × ${esc(l.pack_factor)}</span>` : ""}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
-        <td class="num"><b>${uq(l.qty, l.pack_factor)}</b></td>
+        <td><div class="lnth">${cp ? '<span class="cbarrow">↳</span>' : ""}${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span>${n0(l.pack_factor) > 1 ? ` <span class="chip">pack × ${esc(l.pack_factor)}</span>` : ""}${skuTag}<div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
+        <td class="num"><b>${uq(l.qty, l.pack_factor)}</b>${perCombo}</td>
         <td class="num">${uq(l.qty_sent, l.pack_factor)}${n0(l.short_sent) > 0 ? `<div class="sub bad">short ${qty(l.short_sent)}</div>` : ""}</td>
         <td class="num">${uq(l.qty_received, l.pack_factor)}</td>
-        <td class="num">${n0(l.qty_lost) ? `<span class="bad">${uq(l.qty_lost, l.pack_factor)}</span>` : '<span class="dim">0</span>'}</td>
-        <td class="num">${n0(l.qty_returned) ? uq(l.qty_returned, l.pack_factor) : '<span class="dim">0</span>'}</td>
-        <td class="num">${n0(l.qty_extra) ? uq(l.qty_extra, l.pack_factor) : '<span class="dim">0</span>'}</td>
-        <td class="num">${left ? (n0(it) > 0 ? `<b>${uq(it, l.pack_factor)}</b>` : '<span class="dim">0</span>') : '<span class="dim">—</span>'}</td>
+        <td class="num">${cb ? dash : n0(l.qty_lost) ? `<span class="bad">${uq(l.qty_lost, l.pack_factor)}</span>` : '<span class="dim">0</span>'}</td>
+        <td class="num">${cb ? dash : n0(l.qty_returned) ? uq(l.qty_returned, l.pack_factor) : '<span class="dim">0</span>'}</td>
+        <td class="num">${cb ? dash : n0(l.qty_extra) ? uq(l.qty_extra, l.pack_factor) : '<span class="dim">0</span>'}</td>
+        <td class="num">${cb || !left ? dash : (n0(it) > 0 ? `<b>${uq(it, l.pack_factor)}</b>` : '<span class="dim">0</span>')}</td>
         <td class="num">${carriedTxt}</td>
-        ${ed ? `<td style="white-space:nowrap">
+        ${ed ? (cp
+          ? '<td><span class="sub" title="Change or remove the combo line above — its items follow">with the combo</span></td>'
+          : `<td style="white-space:nowrap">
             <button class="pobtn" data-edit="${esc(l.line_id)}">Edit</button>
-            <button class="pobtn bad" data-rm="${esc(l.line_id)}">✕</button></td>` : ""}
+            <button class="pobtn bad" data-rm="${esc(l.line_id)}" ${cb ? 'data-cb="1"' : ""}>✕</button></td>`) : ""}
       </tr>`;
     }).join("")}</tbody></table>`;
 }
@@ -516,15 +547,17 @@ function freightCard(fr, h){
    Any active product, single or pack (a pack line is in packs; single units = qty × pack size).
    Before saving, the from warehouse's available stock is shown (book − held for sales − held for
    other transfers · so_available_many). Confirm checks it again for the whole transfer. */
-function openLine(h, line){
+function openLine(h, line, lines){
   const st = {
     product_id: line ? line.product_id : null, sku: line ? line.sku : "", name: line ? (line.product_name || "") : "",
-    factor: line ? (n0(line.pack_factor) || 1) : 1, stock_pid: line ? line.stock_product_id : null
+    factor: line ? (n0(line.pack_factor) || 1) : 1, stock_pid: line ? line.stock_product_id : null,
+    combo: line ? isCombo(line) : null   // tf combo v1 — null = 아직 모름(새 줄은 미리 보기로 안다)
   };
+  const comboEdit = !!(line && isCombo(line));   // 콤보 줄 고치기 — 수량만(상품 바꾸기는 창구가 거부)
   modalOpen(`
     <h4>${line ? "Edit line " + esc(line.line_no) : "Add a line"} · ${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")}</h4>
     <div class="pbody">
-      <div class="frow"><label>Product</label><input id="lpq" placeholder="Scan or type SKU · product name" autocomplete="off" value="${esc(st.sku)}"></div>
+      <div class="frow"><label>Product</label><input id="lpq" placeholder="Scan or type SKU · product name" autocomplete="off" value="${esc(st.sku)}" ${comboEdit ? 'readonly title="A combo line keeps its product — remove the line and add a new one to change it"' : ""}></div>
       <div id="lpPicked" style="font-size:12.5px;margin-top:4px"></div>
       <div id="lpHits" class="binlist" ${line ? "hidden" : ""}><div class="msg">Type to search.</div></div>
       <div class="frow" style="margin-top:12px"><label>Quantity</label>
@@ -540,18 +573,55 @@ function openLine(h, line){
   const pHits = document.getElementById("lpHits");
 
   let calcSeq = 0;
+  /* tf combo v1 — 콤보면 구성품 가용으로 몇 콤보인지(판정 953: 구성품이 다 있어야 확정된다) */
+  function comboCalcHtml(rows, needCombos){
+    const can = rows.length ? Math.min(...rows.map(r => r.per > 0 ? Math.floor(r.av / r.per) : 0)) : 0;
+    const lowest = rows.length ? Math.min(...rows.map(r => r.per > 0 ? Math.floor(r.av / r.per) : 0)) : null;
+    return `A combo — its items are picked and sent; the combo line holds no stock.
+      <table style="margin-top:6px"><thead><tr><th>Item</th><th class="num">Per combo (EA)</th><th class="num">Available (EA)</th><th class="num">Makes</th></tr></thead>
+      <tbody>${rows.map(r => { const mk = r.per > 0 ? Math.floor(r.av / r.per) : 0;
+        return `<tr><td class="mono">${esc(r.sku)}</td><td class="num">${qty(r.per)}</td><td class="num">${qty(r.av)}</td><td class="num ${mk === lowest ? "bad" : ""}">${qty(mk)}</td></tr>`; }).join("")}</tbody></table>
+      At ${esc(h.from_warehouse || "")}: <b>${qty(can)}</b> combo${can === 1 ? "" : "s"} can be sent now` +
+      (needCombos !== null ? `<br>This line asks <b>${qty(needCombos)}</b>` + (needCombos > can ? ' <span class="bad">— more than the items allow, confirm will be refused</span>' : "") : "") +
+      (line ? '<br><span class="dim">Other lines of this draft are not counted here — confirm checks them all together.</span>' : "");
+  }
   async function calc(){
     const box = document.getElementById("lcalc"); if(!box) return;
     if(!st.product_id){ box.hidden = true; return; }
     const sq = ++calcSeq;
+    const raw = document.getElementById("lq").value;
+    const askN = raw === "" || isNaN(Number(raw)) ? null : Number(raw);
+
+    if(comboEdit){   // 고치기 — 이 콤보 줄의 구성품 줄 + 창고 가용(줄마다 하나씩)
+      const comps = (lines || []).filter(c => c.combo_line_id === line.line_id);
+      const res = await Promise.all(comps.map(c => sb.rpc("so_available_many", { p_stock_pids: [c.stock_product_id], p_location_id: h.from_warehouse_id })));
+      if(sq !== calcSeq || !document.getElementById("lcalc")) return;
+      box.hidden = false;
+      const bad = res.find(r => r.error); if(bad){ box.textContent = bad.error.message; return; }
+      box.innerHTML = comboCalcHtml(comps.map((c, i) => ({ sku: c.sku, per: n0(c.combo_qty) * (n0(c.pack_factor) || 1), av: n0(((res[i].data || [])[0] || {}).available_ea) })), askN);
+      return;
+    }
+    if(!line && st.combo !== false){   // 새 줄 — 콤보인지 · 구성품 가용은 붙여넣기 미리 보기(쓰기 없음)가 안다
+      const { data: pv, error: pe } = await sb.rpc("inv_transfer_lines_paste", { p_transfer_id: h.id, p_lines: [{ sku: st.sku, qty: String(askN && askN > 0 ? askN : 1) }], p_commit: false });
+      if(sq !== calcSeq || !document.getElementById("lcalc")) return;
+      const r0 = !pe && pv && (pv.lines || [])[0];
+      if(r0 && r0.is_combo){
+        st.combo = true;
+        box.hidden = false;
+        if(r0.verdict === "exists"){ box.innerHTML = '<span class="bad">This combo is already on the transfer — change that line instead.</span>'; return; }
+        box.innerHTML = comboCalcHtml((r0.components || []).map(c => ({ sku: c.sku, per: n0(c.qty_per_combo) * (n0(c.pack_factor) || 1), av: n0(c.available_ea) })), askN);
+        document.getElementById("lqHint").textContent = "combos";
+        return;
+      }
+      if(r0) st.combo = false;   // 콤보 아님 — 아래 보통 길(다음부터 미리 보기 없이)
+    }
     const { data, error } = await sb.rpc("so_available_many", { p_stock_pids: [st.stock_pid], p_location_id: h.from_warehouse_id });
     if(sq !== calcSeq || !document.getElementById("lcalc")) return;
     box.hidden = false;
     if(error){ box.textContent = error.message; return; }
     const r = (data || [])[0] || {};
     const av = n0(r.available_ea);
-    const raw = document.getElementById("lq").value;
-    const need = raw === "" || isNaN(Number(raw)) ? null : Number(raw) * st.factor;
+    const need = askN === null ? null : askN * st.factor;
     box.innerHTML = `At ${esc(h.from_warehouse || "")}: book <b>${qty(r.qty_ea)}</b> EA · held <b>${qty(r.allocated_ea)}</b> · available <b>${qty(av)}</b> EA` +
       (need !== null ? `<br>This line needs <b>${qty(need)}</b> EA` + (need > av ? ' <span class="bad">— more than available, confirm will be refused</span>' : "") : "") +
       (line ? '<br><span class="dim">Other lines of this draft are not counted here — confirm checks them all together.</span>' : "");
@@ -563,12 +633,13 @@ function openLine(h, line){
       ? `<span class="mono">${esc(st.sku)}</span> <span class="dim">${esc(st.name)}</span>` +
         (st.factor > 1 ? `<div class="dim">A pack — the line is in packs; single units = quantity × ${esc(st.factor)}.</div>` : "")
       : "";
-    document.getElementById("lqHint").textContent = st.factor > 1 ? `packs of ${st.factor}` : "single units (EA)";
+    document.getElementById("lqHint").textContent = st.combo ? "combos" : st.factor > 1 ? `packs of ${st.factor}` : "single units (EA)";
   };
   const pickProduct = (p) => {
     st.product_id = p.id; st.sku = p.sku; st.name = p.name || "";
     st.factor = p.parent_product_id && n0(p.pack_factor) > 1 ? n0(p.pack_factor) : 1;
     st.stock_pid = p.parent_product_id || p.id;
+    st.combo = null;   // tf combo v1 — 고를 때마다 다시 안다
     document.getElementById("lpq").value = st.sku;
     pHits.hidden = true;
     showPicked(); calc();
@@ -585,8 +656,9 @@ function openLine(h, line){
     thumbFill(pHits);   // 판정 213 — 사진 클릭은 크게 보기만(고르기로 안 번진다)
   };
   const lpq = document.getElementById("lpq");
-  imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
+  if(!comboEdit) imsQ(lpq, v => { pHits.hidden = false; st.product_id = null; showPicked(); calc(); drawP(v); });
   lpq.onkeydown = async (e) => {
+    if(comboEdit) return;
     if(e.key !== "Enter") return;
     const code = lpq.value.trim(); if(!code) return;
     const { data } = await sb.from("product").select("id,sku,name,parent_product_id,pack_factor").eq("is_active", true).ilike("sku", code).limit(2);
@@ -630,7 +702,7 @@ function openPasteTf(h){
   modalOpen(`
     <h4>Paste lines — ${esc(h.transfer_number)} · ${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")}</h4>
     <div class="pbody">
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.5">One row per product: SKU then quantity (copy two columns from a spreadsheet). Quantity is in the product's own unit — a pack SKU counts packs. Up to 500 rows. A SKU already on this transfer is not added — change that line instead.</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;line-height:1.5">One row per product: SKU then quantity (copy two columns from a spreadsheet). Quantity is in the product's own unit — a pack SKU counts packs, a combo SKU counts combos (its items come with it). Up to 500 rows. A SKU already on this transfer is not added — change that line instead.</div>
       <textarea id="tfpBox" style="min-height:150px;font-family:var(--mono)" placeholder="ABE50205&#9;10&#10;HBE00245&#9;24&#10;…&#10;&#10;Tab, comma or spaces — any of them works."></textarea>
       <div id="tfpOut" style="margin-top:12px"></div>
     </div>
@@ -675,12 +747,12 @@ async function runPasteTf(h, rows, commit){
     <table><thead><tr><th class="num">#</th><th>SKU</th><th>Product</th><th class="num">Qty</th><th class="num">EA</th><th class="num">Available EA</th><th>Verdict</th><th>Note</th></tr></thead>
     <tbody>${(data.lines || []).map(l => {
       const short = l.verdict === "ok" && Number(l.short_by) > 0;
-      const v = short ? ["tfw", `ok · short ${qty(l.short_by)} EA`] : (TFP_VERDICT[l.verdict] || ["dim", l.verdict || ""]);
+      const v = short ? ["tfw", `ok · short ${qty(l.short_by)} ${l.is_combo ? "combo" + (Number(l.short_by) === 1 ? "" : "s") : "EA"}`] : (TFP_VERDICT[l.verdict] || ["dim", l.verdict || ""]);   // tf combo v1 — 콤보는 콤보 단위
       return `<tr><td class="num">${esc(l.n)}</td><td class="mono">${esc(l.input_sku)}${l.sku && l.sku !== l.input_sku ? ` <span class="dim">→ ${esc(l.sku)}</span>` : ""}</td>
-        <td>${l.product_name ? esc(l.product_name) : '<span class="dim">—</span>'}</td>
+        <td>${l.product_name ? esc(l.product_name) : '<span class="dim">—</span>'}${l.is_combo ? ` <span class="chip cb">combo · ${esc((l.components || []).length)} items</span>` : ""}</td>
         <td class="num">${esc(l.input_qty === null || l.input_qty === undefined ? "" : l.input_qty)}</td>
         <td class="num">${l.qty_ea === null || l.qty_ea === undefined ? "" : qty(l.qty_ea)}${Number(l.pack_factor) > 1 ? ` <span class="dim">(×${esc(l.pack_factor)})</span>` : ""}</td>
-        <td class="num">${l.available_ea === null || l.available_ea === undefined ? "" : qty(l.available_ea)}</td>
+        <td class="num">${l.is_combo ? (l.available_units === null || l.available_units === undefined ? "" : `${qty(l.available_units)} <span class="dim">combos</span>`) : l.available_ea === null || l.available_ea === undefined ? "" : qty(l.available_ea)}</td>
         <td><span class="${v[0]}">${esc(v[1])}</span>${l.inserted ? ' <span class="on">added</span>' : ""}</td>
         <td class="dim" style="font-size:11.5px">${esc(l.message || "")}</td></tr>`;
     }).join("")}</tbody></table>
@@ -689,8 +761,8 @@ async function runPasteTf(h, rows, commit){
   return data;
 }
 
-async function removeLine(h, lineId){
-  if(!confirm("Remove this line?")) return;
+async function removeLine(h, lineId, combo){
+  if(!confirm(combo ? "Remove this combo line? Its items come off with it." : "Remove this line?")) return;
   const { error } = await sb.rpc("inv_transfer_line_remove", { p_transfer_id: h.id, p_line_id: lineId });
   if(error){ alert(error.message); return; }
   reload();
@@ -726,9 +798,9 @@ function openConfirm(h, lines){
   modalOpen(`
     <h4>Confirm ${esc(h.transfer_number)}</h4>
     <div class="pbody">
-      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.length)} line${lines.length === 1 ? "" : "s"}</div>
+      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.filter(l => !isComp(l)).length)} line${lines.filter(l => !isComp(l)).length === 1 ? "" : "s"}</div>
       <table style="margin-top:10px"><thead><tr><th>SKU</th><th class="num">Qty</th></tr></thead>
-        <tbody>${lines.map(l => `<tr><td class="mono">${esc(l.sku)}</td><td class="num">${uq(l.qty, l.pack_factor)}</td></tr>`).join("")}</tbody></table>
+        <tbody>${orderLines(lines).map(l => `<tr${isComp(l) ? ' class="cbc"' : ""}><td>${isComp(l) ? '<span class="cbarrow">↳</span>' : ""}<span class="mono">${esc(l.sku)}</span>${isCombo(l) ? ' <span class="chip cb">combo</span>' : comboTag(l)}</td><td class="num">${uq(l.qty, l.pack_factor)}</td></tr>`).join("")}</tbody></table>
       <div class="infobox">Confirming holds this stock at ${esc(h.from_warehouse || "")} — it is no longer available for sales or other
         transfers. If anything is short, confirm is refused and nothing changes. Nothing moves yet; you can still put it back to draft.</div>
       <div id="cMsg" style="font-size:12.5px;margin-top:8px"></div>
@@ -748,11 +820,11 @@ function openConfirm(h, lines){
 
 /* ── release to the warehouse ── */
 function openRelease(h, lines){
-  const ea = lines.reduce((a, l) => a + n0(l.qty_ea), 0);
+  const ea = lines.filter(l => !isCombo(l)).reduce((a, l) => a + n0(l.qty_ea), 0);   // tf combo v1 — 콤보 줄은 재고 없음
   modalOpen(`
     <h4>Release ${esc(h.transfer_number)} to WMS</h4>
     <div class="pbody">
-      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.length)} line${lines.length === 1 ? "" : "s"} · ${qty(ea)} EA</div>
+      <div style="font-size:13px">${esc(h.from_warehouse || "")} → ${esc(h.to_warehouse || "")} · ${esc(lines.filter(l => !isComp(l)).length)} line${lines.filter(l => !isComp(l)).length === 1 ? "" : "s"} · ${qty(ea)} EA</div>
       <div class="infobox">It goes to ${esc(h.from_warehouse || "")}'s Split &amp; Waves, then Picking, Packing and Fulfillment — the same way a
         sales order goes. The pick list shows ${esc(h.to_warehouse || "")} as where it goes. It leaves the warehouse at Fulfillment Finalize.</div>
       <div class="warnbox">You can recall it until the warehouse makes pick tasks. After that it can no longer be cancelled.</div>
@@ -783,7 +855,7 @@ function openSettle(h, ls){
         Quantities are single units (EA).</div>
       <table style="margin-top:10px"><thead><tr><th>SKU</th><th class="num">In transit (EA)</th><th>What happened</th><th class="num">Qty (EA)</th><th>Back into bin at ${esc(h.from_warehouse || "")}</th><th>Note</th></tr></thead>
         <tbody>${ls.map(l => `<tr data-sl="${esc(l.line_id)}">
-          <td class="mono">${esc(l.sku)}</td>
+          <td><span class="mono">${esc(l.sku)}</span>${comboTag(l)}</td>
           <td class="num">${qty(n0(inTransit(l)) * (n0(l.pack_factor) || 1))}</td>
           <td><select data-f="action"><option value="">—</option><option value="lost">Lost</option><option value="return">Returned to sender</option></select></td>
           <td><input class="qin" data-f="qty" type="number" step="1" min="1" value="${esc(n0(inTransit(l)) * (n0(l.pack_factor) || 1))}"></td>

@@ -372,7 +372,7 @@
    ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
    ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
-const RC_BUILD="2026-10-31 · rc v2.0";   // 대화 Claude — tf-pallet-1(asung-wms a0f9555 · 판정 897 · 898): 트랜스퍼를 팔렛 단위로 받기 — 팔렛 라벨 스캔(PLT-<id> → tf_pallet_lookup → wms_recv_start(id, 팔렛)) · 팔렛이 있는 트랜스퍼의 Start = 팔렛 고르기 창(tf_pallets · 상태 waiting · receiving · done) · 열린 입고가 있어도 트랜스퍼 카드는 숨기지 않는다(다른 팔렛을 시작해야 한다) · 받는 화면 머리에 팔렛 이름 · n of N · Complete 안내 = 이 팔렛만 · 끝나면 「n of N 팔렛 받음 · 나머지는 운송 중」 · 트랜스퍼 카드 · 받는 화면에 운송 정보(운송사 · 운송장 · ETA · 판정 898 · 읽기만) · 팔렛 없는 트랜스퍼 · PO 는 그대로 ← rc v1.9: 대화 Claude — rcv-3(asung-wms 103865e · 판정 598 ~ 600): 남은 몫이 있는 확정은 PO 를 열어 둔다 → Complete 안내를 그 뜻으로 · 확정 창에 오피스와 같은 안내(po_receipt_keep_open 미리 보기: short 줄 · 「PO stays open — N can still be received」 / 「closes」 · 되돌릴 수 없음) · 확정 뒤 po_kept_open / po_closed 를 글로 · 확정 스위치 주석 정정(열쇠 8 명) ← rc v1.8: 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
+const RC_BUILD="2026-11-02 · rc v2.1";   // 대화 Claude — 판정 954(Caleb 2026-11-02 · tf-combo-1b a4e991a): 트랜스퍼 콤보 받기 = SO 픽킹과 같은 방식 — 콤보 줄은 목록에 없고(tf_receipt_detail 이 뺀다) 구성품 줄에 「for 콤보 · combos n/m」 칩 · 박스 바코드(combo_barcodes) 한 번 = 그 콤보 하나 → 구성품 줄마다 combo_qty × pack_factor EA 를 wms_recv_scan 으로(픽 화면 comboScan 과 같은 셈 · 낱개 · 세트 바코드가 먼저) · 보낸 것보다 많아지면 한 번 묻는다(판정 74 · 남는 몫은 오피스) · 콤보 줄 자체는 셀 수 없다(창구가 거부) ← 2026-10-31 · rc v2.0:   // 대화 Claude — tf-pallet-1(asung-wms a0f9555 · 판정 897 · 898): 트랜스퍼를 팔렛 단위로 받기 — 팔렛 라벨 스캔(PLT-<id> → tf_pallet_lookup → wms_recv_start(id, 팔렛)) · 팔렛이 있는 트랜스퍼의 Start = 팔렛 고르기 창(tf_pallets · 상태 waiting · receiving · done) · 열린 입고가 있어도 트랜스퍼 카드는 숨기지 않는다(다른 팔렛을 시작해야 한다) · 받는 화면 머리에 팔렛 이름 · n of N · Complete 안내 = 이 팔렛만 · 끝나면 「n of N 팔렛 받음 · 나머지는 운송 중」 · 트랜스퍼 카드 · 받는 화면에 운송 정보(운송사 · 운송장 · ETA · 판정 898 · 읽기만) · 팔렛 없는 트랜스퍼 · PO 는 그대로 ← rc v1.9: 대화 Claude — rcv-3(asung-wms 103865e · 판정 598 ~ 600): 남은 몫이 있는 확정은 PO 를 열어 둔다 → Complete 안내를 그 뜻으로 · 확정 창에 오피스와 같은 안내(po_receipt_keep_open 미리 보기: short 줄 · 「PO stays open — N can still be received」 / 「closes」 · 되돌릴 수 없음) · 확정 뒤 po_kept_open / po_closed 를 글로 · 확정 스위치 주석 정정(열쇠 8 명) ← rc v1.8: 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -411,13 +411,16 @@ function tfDetailAsPo(t){
   return { header:{ id:h.id, receipt_number:h.receipt_number, status:h.status, received_on:h.received_on, po_id:null, po_number:h.transfer_number, supplier_name:"from "+(h.from_warehouse||"—"),
                     warehouse_id:h.warehouse_id, warehouse_name:h.warehouse_name, created_by:h.created_by||null, transfer_id:h.transfer_id, transfer_number:h.transfer_number, from_warehouse:h.from_warehouse||"", transfer_status:h.transfer_status,
                     pallet:h.pallet||null, pallet_count:Number(h.pallet_count||0), ship:shipText(h.carrier, h.tracking_number, h.eta) },   // rc v2.0 · tf-pallet-1 — 팔렛 받기면 줄은 그 팔렛 몫(expected_ea)
-           lines:(t.lines||[]).map(l=>({ po_line_id:l.line_id, product_id:l.product_id, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, ordered:Number(l.expected_ea||0), received_before:0, counted:l.counted, work:l.work||[] })),
+           lines:(t.lines||[]).map(l=>({ po_line_id:l.line_id, product_id:l.product_id, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, ordered:Number(l.expected_ea||0), received_before:0, counted:l.counted, work:l.work||[],
+                                         combo_line_id:l.combo_line_id||null, combo_qty:l.combo_qty, combo_sku:l.combo_sku||null, combo_barcodes:l.combo_barcodes||[] })),   // rc v2.1 · 판정 954 — 구성품 줄의 콤보 꼬리표 · 박스 바코드
+           combos:t.combos||[],   // rc v2.1 — 콤보 머리(sku · qty_sent · barcodes) · 줄로 그리지 않는다
            diffs:[], wms:t.wms };
 }
 function completeNote(){ if(receipt&&receipt.pallet) return `Complete = pallet ${receipt.pallet.display||""} arrives: its counted quantities go into stock now. The other pallets stay in transit until they are received.`; return (receipt&&receipt.is_transfer) ? "Complete = arrival: the counted quantities go into stock now; anything not received stays in transit for the office to settle." : "The office confirms what you counted into stock. Anything not counted is kept as short — the order stays open so the rest can be received on it later, until the office settles it as not coming. Count everything that arrived before you complete."; }
 /* inv-basis-4 · 판정 88 ⑧ · ㉒ — 기준보다 많이 셀 때의 한 문장(± · 스캔 · Enter quantity 세 길 · PO 는 off-invoice · 트랜스퍼는 판정 74) */
 function overNote(){ return (receipt&&receipt.is_transfer) ? "Only what was sent is taken in — the office decides the rest" : "More than the invoice — the extra is put away and the office decides it (off-invoice)"; }
 let receipt=null, lines=[], bcMap={}, actx=null, view="single", curIdx=0;
+let comboMap={}, rcCombos=[];   // rc v2.1 · 판정 954 — 박스 바코드 → [콤보 줄 id] · 콤보 머리(tf_receipt_detail.combos)
 let imgFlags=new Set(), imgBusy=false;   // open image_mismatch reports: "receiptId|sku" (판정 224 — HAS_IMAGES 가 켜져 쓴다)
 let sortMode="po";   // 검수 리스트/싱글 표시 순서: po|zone|product|sku
 
@@ -825,8 +828,13 @@ function applyDetail(d){
       received:unconfirmed.has(x.po_line_id)&&k.received!=null?k.received:Number(x.counted||0),   // 미확인 쓰기가 걸린 줄은 내 값이 더 최신
       is_off_po:false, needs_approval:false, image_url:k.image_url||null, image_parent:!!k.image_parent,   // 판정 224 — 새로 고침마다 줄을 다시 만들어도 사진은 보존(fillPhotos 가 채운 값)
       work:(x.work||[]).map(w=>({id:w.id, qty:Number(w.qty_ea||0), bin_id:w.bin_id, bin:w.bin||null, done:!!w.putaway_done})),
+      _combo:x.combo_sku||null, _comboQty:(x.combo_qty==null)?null:Number(x.combo_qty), _comboLine:x.combo_line_id||null, _pf:Number(x.pack_factor)||1,   // rc v2.1 · 판정 954
+      _comboBc:(x.combo_barcodes||[]).map(b=>String(b||"").trim()).filter(Boolean),
     });
   });
+  // rc v2.1 · 판정 954 — 박스 바코드 짝(픽 화면 comboMap 과 같은 뜻 · 낱개 · 세트 바코드가 먼저)
+  rcCombos=d.combos||[]; comboMap={};
+  out.forEach(l=>{ if(l._comboLine) (l._comboBc||[]).forEach(b=>{ const a=(comboMap[b]=comboMap[b]||[]); if(!a.includes(l._comboLine)) a.push(l._comboLine); }); });
   // PO 에 없는 물건 = 차이 큐 off_po(옛 행 · 옛 이름 그대로) · off_invoice(inv-basis-4 · 판정 88 ⑧ — 줄 없는 행 = PO 밖 품목 · 줄 있는 행은 오피스 확정이 만드는 인보이스 초과라 초안에는 없고 PO 줄과 겹치므로 줄로 안 그린다)
   //   열린 것은 줄처럼 놓고(판정 43) · 결정된 것도 상태를 보인다(accepted · 옛 off_po 만 rejected/removed — 판정 99) · 창고가 놓은 칸 · 사람은 diff 의 칸(⑤-6c1)
   (d.diffs||[]).filter(x=>x.kind==="off_po"||(x.kind==="off_invoice"&&!x.po_line_id)).forEach(x=>{
@@ -1074,8 +1082,18 @@ function renderRecv(){
   if(PERF) perfLog("renderRecv("+view+")",Math.round(performance.now()-rt0)+"ms",
     "doc nodes="+document.querySelectorAll("*").length);
 }
+/* rc v2.1 · 판정 954 — 구성품 줄 칩: 어느 콤보 · 지금까지 받은 콤보 수(구성품 중 가장 적은 몫) / 보낸 콤보 수 */
+function comboNeedEa(l){ return (Number(l._comboQty)||0)*(Number(l._pf)||1); }
+function comboChip(l){
+  if(!l||!l._comboLine) return "";
+  const parts=lines.filter(x=>x._comboLine===l._comboLine);
+  const got=parts.length?Math.min(...parts.map(p=>comboNeedEa(p)>0?Math.floor(p.received/comboNeedEa(p)):0)):0;
+  const head=rcCombos.find(c=>c.line_id===l._comboLine)||{};
+  const sent=head.qty_sent==null?null:Number(head.qty_sent);
+  return `<span class="chip" style="background:#eef3ff;color:#1b4fd6" title="Part of a combo — scan the box barcode to count all ${parts.length} items at once">for ${esc(l._combo||"combo")} · ${comboNeedEa(l)} per box · combos ${got}${sent!=null?" / "+sent:""}</span>`;
+}
 function lineChips(l){
-  return (l.is_off_po?`<span class="chip appr">${!l.decided?offLabel(l)+" · put it away — the manager decides later":l.decided==="rejected"?offLabel(l)+" · rejected — take it off the shelf":offLabel(l)+" · accepted — in stock"}</span>`:"")+
+  return comboChip(l)+(l.is_off_po?`<span class="chip appr">${!l.decided?offLabel(l)+" · put it away — the manager decides later":l.decided==="rejected"?offLabel(l)+" · rejected — take it off the shelf":offLabel(l)+" · accepted — in stock"}</span>`:"")+
          (notInvoiced(l)?`<span class="chip noinv">NOT INVOICED</span>`:"")+
          (!l.is_off_po&&l.barcodeRows&&!l.barcodeRows.length?`<span class="chip newsku">NO BARCODE</span>`:"");
 }
@@ -1317,6 +1335,7 @@ scanEl.addEventListener("keydown",e=>{
 async function processScan(code){
   // bcMap 은 id 를 담으므로 지금 살아있는 라인으로 해석한다
   const cands=(bcMap[code]||[]).map(c=>({l:lineById(c.id),factor:c.factor})).filter(c=>c.l&&!(c.l.is_off_po&&c.l.decided));   // 결정된 off-PO 줄은 더할 수 없다 — 창구가 새 행을 연다(offPoScan)
+  if(!cands.length&&comboMap[code]){ await comboScanRecv(code); return; }   // rc v2.1 · 판정 954 — 콤보 박스(낱개 · 세트 바코드가 먼저)
   if(!cands.length&&receipt&&receipt.is_transfer){   // tf-3 — 트랜스퍼 상자에 문서에 없는 물건: off-PO 없음(창구도 거부 · tr-3a:869) · 오피스가 Transfers 에서 정리
     flash("bad","✕ "+code+" — not on this transfer"); toast("Not on this transfer — items that were not sent are settled by the office on the Transfers screen",true); focusScan(); return;
   }
@@ -1343,6 +1362,33 @@ async function processScan(code){
   if(over) setTimeout(()=>toast(overNote(),true),700);   // tf-3 판정 74 · inv-basis-4: PO 도(off-invoice)
   if(l.is_off_po) saveOffPo(l,f); else saveLine(l,f,"scanned");
   if(lineDone) autoAdvance();
+  renderRecv(); focusScan();
+}
+
+/* rc v2.1 · 판정 954 — 콤보 박스 바코드 한 번 = 그 콤보 하나: 구성품 줄마다 combo_qty × pack_factor EA 를 델타로(wms_recv_scan · 줄마다)
+   픽 화면 comboScan 과 같은 셈 · 받기는 실물을 센다 — 보낸 것보다 많아지면 한 번 묻고(판정 74 · 남는 몫은 오피스) 넣는다 */
+async function comboScanRecv(code){
+  const ids=comboMap[code]||[];
+  let pick=null;
+  for(const id of ids){
+    const parts=lines.filter(l=>l._comboLine===id);
+    if(!parts.length||parts.some(p=>!(comboNeedEa(p)>0))) continue;
+    if(!pick) pick=parts;
+    if(parts.every(p=>p.received+comboNeedEa(p)<=p.expected)){ pick=parts; break; }   // 다 들어가는 콤보가 먼저
+  }
+  if(!pick){ flash("bad","✕ "+code+" — combo box, but its items are not on this receipt"); focusScan(); return; }
+  if(!await ensureReceiptOpen()){ focusScan(); return; }
+  const overs=pick.filter(p=>p.received+comboNeedEa(p)>p.expected);
+  if(overs.length){
+    const msg=`Box ${pick[0]._combo||""} — ${overs.map(p=>`${p.order_sku} ${p.received}/${p.expected}`).join(", ")} would go over what was sent.\n${overNote()}\nReceive this box anyway?`;
+    if(!confirm(msg)){ focusScan(); return; }
+  }
+  pick.forEach(p=>{ const f=comboNeedEa(p); p.received+=f; p.vmethod="scanned"; saveLine(p,f,"scanned"); });
+  curIdx=lines.indexOf(pick[0]);
+  const done=pick.every(p=>isFilled(p));
+  flash(overs.length?"bad":(done?"done":"okbox"),`✓ BOX ${pick[0]._combo||""} → ${pick.length} item${pick.length>1?"s":""} +1 combo${done?" · DONE":""}`);
+  if(overs.length) setTimeout(()=>toast(overNote(),true),700);
+  if(done) autoAdvance();
   renderRecv(); focusScan();
 }
 
@@ -1634,7 +1680,7 @@ function exitToList(){
   presenceLeave();
   unconfirmed.clear(); writeChain.clear(); putawayFailed.clear();
   receiptClosed=false; lastOpenCheck=0; renderClosed();
-  receipt=null;lines=[];bcMap={};imgFlags=new Set();imgBusy=false;
+  receipt=null;lines=[];bcMap={};comboMap={};rcCombos=[];imgFlags=new Set();imgBusy=false;   // rc v2.1
   document.getElementById("recvView").style.display="none";
   document.getElementById("putView").style.display="none";
   document.getElementById("listView").style.display="block";
