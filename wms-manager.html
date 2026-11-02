@@ -216,7 +216,7 @@
    접점 19 → 대기 목록 = so(at_wms · warehouse · 내 창고) + customer(name) + so_line · 분할 미리 보기 = so_pick_plan · 배치 = wms_batch_create · 웨이브 = wms_wave_create(각 한 번 · 한 트랜잭션).
    사라진 것(⑪): voided 목록 · holdBelt(Cin7 보류·void 재확인) · needs_review · 실패 청소 · 라벨 셈 — 창구가 문(권한 · 창고 · at_wms · 줄 검사)을 지키고, 오피스가 거둬들인 오더는 창구가 막는다 → 목록을 다시 읽어 알린다.
    판정 17 글자 = STATUS_LABEL 표 하나 · 판정 33 사진 없음 · 소유권 비교 없음(me.name 은 표시용만) · 동선 순서 열쇠 warehouse_id|zone. */
-const WM_BUILD="2026-09-29 · wm v1.2";   // tf-2a(판정 83) — 트랜스퍼 갈래
+const WM_BUILD="2026-11-02 · wm v1.3";   // 대화 Claude — 판정 970 · 973 · 975(Caleb 2026-11-02 · wms-split-combo-0): 한 콤보의 구성품은 한 조각에 — 분할 미리 보기가 같은 combo_line_id 의 구성품을 한 덩이로 묶어 덩이째 자른다(973: 덩이가 한도를 넘어도 쪼개지 않는다 · 975: 덩이는 첫 구성품이 동선에서 처음 나오는 자리에 선다) · 줄에 「for <콤보>」 꼬리표 · 대기 카드 · 머리 줄 수에서 콤보 부모 줄을 뺀다(SO-20839 111 → 110) · 서버 안전띠는 wms_batch_create(판정 972) ← 2026-09-29 · wm v1.2:   // tf-2a(판정 83) — 트랜스퍼 갈래
 const STATUS_LABEL={ at_wms:"Released to WMS", picking:"Working" };   // 판정 17 — 저장 값은 그대로 · 화면 글자만 · 오피스(so.html)와 같은 글자
 let sb=null, me=null, orders=[], zoneSeq={}, filterWh="all", filterTier="all";
 let staffName={};        // ims_staff.id → name (⑥ · 표시용 · 로그인 뒤 한 번)
@@ -231,13 +231,13 @@ async function loadTransfers(acc){
   const {data:docs,error}=await q;
   if(error){ toast("Failed to load transfers: "+error.message,true); return []; }
   if(!docs||!docs.length) return [];
-  const {data:dl,error:le}=await sb.from("wms_order_doc_line").select("doc_id,line_id,line_no,sku,product_name,pack_factor,qty_target")   // caps-ok: 위 문서들의 줄만(문서당 200 줄 안팎)
+  const {data:dl,error:le}=await sb.from("wms_order_doc_line").select("doc_id,line_id,line_no,sku,product_name,pack_factor,qty_target,combo_line_id,combo_sku")   // caps-ok: 위 문서들의 줄만(문서당 200 줄 안팎)
     .eq("doc_kind","transfer").in("doc_id",docs.map(d=>d.doc_id)).order("line_no");
   if(le){ toast("Failed to load transfer lines: "+le.message,true); return []; }
   const byDoc={}; (dl||[]).forEach(l=>{ (byDoc[l.doc_id]=byDoc[l.doc_id]||[]).push(l); });
   return docs.map(d=>{
     const dest=d.dest_warehouse_name||whName[d.dest_warehouse_id]||"";
-    const lines=(byDoc[d.doc_id]||[]).filter(l=>Number(l.qty_target)>0).map(l=>({ id:l.line_id, line_no:l.line_no, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, qty_ordered:l.qty_target, qty_removed:0 }));
+    const lines=(byDoc[d.doc_id]||[]).filter(l=>Number(l.qty_target)>0).map(l=>({ id:l.line_id, line_no:l.line_no, sku:l.sku, product_name:l.product_name, pack_factor:l.pack_factor, qty_ordered:l.qty_target, qty_removed:0, combo_line_id:l.combo_line_id||null, combo_sku:l.combo_sku||null }));   // wm v1.3 — 뷰가 콤보 줄을 숨기고 구성품에 콤보 칸을 싣는다(tf-combo-1a)
     return {
       id:d.doc_id, order_number:d.doc_number, customer_name:dest, is_transfer:true, dest_name:dest,
       warehouse_id:d.warehouse_id, warehouse:d.warehouse_name||"", wh:whKey(d.warehouse_name),
@@ -307,7 +307,7 @@ async function loadOrders(){
   // 대기 풀 = 오피스가 Release 한 창고 오더(so.status at_wms · channel warehouse) · 내 창고만(me.access.warehouses) · 창구가 같은 문을 다시 지킨다.
   // 손님 이름은 customer_id 의 손님(청구처 bill_to_customer_id 와 FK 둘이라 이름을 못 박는다) · 줄은 보낼 것(qty_ordered − qty_removed > 0)만.
   let q=sb.from("so")
-    .select("id,so_number,location_id,location_name,order_date,ref,comments,price_tier,payment_term_name,ship_to_company,ship_to_contact,ship_to_line1,ship_to_line2,ship_to_city,ship_to_state_province,ship_to_postal_code,ship_to_country,at_wms_at,at_wms_by,customer:customer!so_customer_id_fkey(name),so_line(id,line_no,sku,product_name,pack_factor,qty_ordered,qty_removed)")
+    .select("id,so_number,location_id,location_name,order_date,ref,comments,price_tier,payment_term_name,ship_to_company,ship_to_contact,ship_to_line1,ship_to_line2,ship_to_city,ship_to_state_province,ship_to_postal_code,ship_to_country,at_wms_at,at_wms_by,customer:customer!so_customer_id_fkey(name),so_line(id,line_no,sku,product_name,pack_factor,qty_ordered,qty_removed,combo_line_id)")
     .eq("status","at_wms").eq("channel","warehouse").order("at_wms_at");   // caps-ok: at_wms 는 배치·웨이브·거둬들이기로 소진되는 활성 풀(수십 규모)
   const acc=(me.access&&Array.isArray(me.access.warehouses)&&me.access.warehouses.length)?me.access.warehouses:null;
   if(acc) q=q.in("location_id", acc);
@@ -315,7 +315,12 @@ async function loadOrders(){
   document.getElementById("qloading").style.display="none";
   if(error){ toast("Failed to load orders: "+error.message,true); return; }
   orders=(data||[]).map(o=>{
-    const lines=(o.so_line||[]).filter(l=>Number(l.qty_ordered)-Number(l.qty_removed)>0).sort((a,b)=>a.line_no-b.line_no);
+    // wm v1.3 · 판정 970 — 콤보 부모 줄(구성품이 달린 줄)은 뽑지 않는다 · 구성품 줄에 콤보 SKU 를 붙인다
+    const all=(o.so_line||[]);
+    const parentSku={}; all.forEach(l=>{ if(l.combo_line_id){ const p=all.find(x=>x.id===l.combo_line_id); parentSku[l.combo_line_id]=p?p.sku:""; } });
+    const lines=all.filter(l=>Number(l.qty_ordered)-Number(l.qty_removed)>0 && !(l.id in parentSku))
+      .map(l=>Object.assign({}, l, { combo_sku:l.combo_line_id?(parentSku[l.combo_line_id]||""):null }))
+      .sort((a,b)=>a.line_no-b.line_no);
     return {
       id:o.id, order_number:o.so_number, customer_name:(o.customer&&o.customer.name)||"",
       warehouse_id:o.location_id, warehouse:o.location_name||"", wh:whKey(o.location_name),
@@ -413,6 +418,7 @@ async function selectOrder(id){
     return {
       line_id:p.line_id, line_no:p.line_no, sku:p.sku, product_name:l.product_name||"",
       units:Number(p.need_ea||0), short_ea:Number(p.short_ea||0), is_set:!!p.is_set,
+      combo_line_id:l.combo_line_id||null, combo_sku:l.combo_sku||null,   // wm v1.3 · 판정 970
       bin, zone:zoneOf(bin, selected.wh),
       bins:picks.map(x=>(x.bin||"?")+(picks.length>1?" ×"+x.qty:"")).join(", "),
     };
@@ -445,17 +451,25 @@ function buildPreview(){
     if(ba!==bb) return ba<bb?-1:1;
     return (a.sku||"")<(b.sku||"")?-1:1;
   });
-  // hybrid split: cut at whichever comes first — line-count limit or unit-count limit.
-  // a single line is never split (always placed in an empty batch, guaranteeing one line = one batch minimum).
-  const batches=[]; let cur=[]; let curUnits=0;
+  // wm v1.3 · 판정 970 · 975 — 덩이로 묶기: 낱줄은 한 줄 덩이 · 한 콤보의 구성품은 한 덩이(첫 구성품이 동선에서 처음 나오는 자리에 선다 · 덩이 안은 동선 순서 그대로)
+  const blocks=[], comboBlock={};
   for(const l of sorted){
-    const u=Number(l.units||0);
-    const wouldLines=cur.length+1;
+    if(l.combo_line_id){
+      if(!comboBlock[l.combo_line_id]){ comboBlock[l.combo_line_id]=[]; blocks.push(comboBlock[l.combo_line_id]); }
+      comboBlock[l.combo_line_id].push(l);
+    } else blocks.push([l]);
+  }
+  // hybrid split: cut at whichever comes first — line-count limit or unit-count limit — between blocks only.
+  // a block is never split (판정 973: a combo bigger than the limits goes whole into its own batch).
+  const batches=[]; let cur=[]; let curUnits=0;
+  for(const bl of blocks){
+    const u=bl.reduce((s,l)=>s+Number(l.units||0),0);
+    const wouldLines=cur.length+bl.length;
     const wouldUnits=curUnits+u;
     if(cur.length>0 && (wouldLines>maxLines || wouldUnits>maxUnits)){
       batches.push(cur); cur=[]; curUnits=0;
     }
-    cur.push(l); curUnits+=u;
+    bl.forEach(l=>cur.push(l)); curUnits+=u;
   }
   if(cur.length) batches.push(cur);
   preview=batches;
@@ -474,7 +488,7 @@ function renderBatches(){
       const flag=l.short_ea>0?`<span class="fl">short ${l.short_ea}</span>`:"";
       return `<div class="lrow ${l.short_ea>0?"flag":""}">
         <span class="zn">${esc(zn)}</span>
-        <span><span class="sku">${esc(l.sku)}</span><br><span class="nm">${esc(l.product_name)}</span></span>
+        <span><span class="sku">${esc(l.sku)}</span>${l.combo_line_id?` <span class="tag" style="background:#eef3ff;color:#1b4fd6" title="Part of a combo — kept in one batch with its other items">for ${esc(l.combo_sku||"combo")}</span>`:""}<br><span class="nm">${esc(l.product_name)}</span></span>
         <span class="bin">${esc(l.bins||"—")}</span>
         <span class="qty">${l.units}${flag}</span>
       </div>`;
