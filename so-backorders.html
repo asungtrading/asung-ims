@@ -99,6 +99,7 @@
   .mact .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .msec{font-size:13px;font-weight:600;margin:14px 0 6px}
   .notice{font-size:11px;margin-top:3px}
+  .bnbar{display:flex;gap:10px;align-items:center;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -128,6 +129,7 @@
     <div class="card" style="margin-bottom:14px">
       <div class="bofilt">
         <select id="aLoc" title="Branch the stock came into"><option value="">All branches</option></select>
+        <select id="aStore" title="Where the waiting orders came from"><option value="">All stores</option><option value="manual">Warehouse Backend</option><option value="asung">Web — asung.ca</option><option value="aone">Web — aonebeauty.com</option></select>
         <select id="aSup" title="Supplier of the receipt"><option value="">All suppliers</option><option value="none">Supplier unknown</option></select>
         <select id="aBrand" title="Brand"><option value="">All brands</option></select>
         <input type="search" id="aSku" placeholder="SKU starts with" style="width:150px" autocomplete="off">
@@ -162,6 +164,7 @@
         </select>
         <span id="iCustom" hidden><input type="date" id="iFrom" title="From"><span class="dash"> — </span><input type="date" id="iTo" title="To"></span>
         <select id="iLoc" title="Branch"><option value="">All branches</option></select>
+        <select id="iStore" title="Where the orders came from"><option value="">All stores</option><option value="manual">Warehouse Backend</option><option value="asung">Web — asung.ca</option><option value="aone">Web — aonebeauty.com</option></select>
         <select id="iSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
         <select id="iBrand" title="Brand"><option value="">All brands</option></select>
         <input type="search" id="iSku" placeholder="SKU starts with" style="width:150px" autocomplete="off">
@@ -197,6 +200,7 @@
           <option value="">Backorders and pre-orders</option><option value="backorder">Backorders only</option><option value="preorder">Pre-orders only</option>
         </select>
         <select id="fLoc" title="Branch"><option value="">All branches</option></select>
+        <select id="fStore" title="Where the order came from"><option value="">All stores</option><option value="manual">Warehouse Backend</option><option value="asung">Web — asung.ca</option><option value="aone">Web — aonebeauty.com</option></select>
         <button class="pobtn cust" id="fCust" title="Pick a customer">All customers</button>
         <select id="fSup" title="Default supplier"><option value="">All suppliers</option><option value="none">No default supplier</option></select>
         <select id="fBrand" title="Brand"><option value="">All brands</option></select>
@@ -292,7 +296,7 @@
      All       줄마다 알림 상태(notified_state · notified_at — 1c so_backorder_notice_state · 열린 백오더 줄만)
    ⭐ 화면은 권한 · 셈을 다시 짜지 않는다 — 누를 수 있는지는 창구가 준 can_* · 보낼 것은 미리 보기 창구가
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-11-01 · bo sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Arrivals · Insights · All backorders 의 Supplier 거르기 셋 ← 2026-10-25 · bo cf words v1:   // 대화 Claude — 판정 724 이어서(manual-1c 이견 4): Proceed 창 Result 칸이 내부 낱말(allocated · partial …)을 그대로 찍었다 — d6b9547 이 so.html 만 고치고 이 화면을 놓쳤다 → 사람 말(Reserved · Partly reserved · Backordered · Preorder · On hold) · 저장 값 · 동작 무변 ← 2026-10-22 · bo csv v1: 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-16 · bo v5: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-11-01 · bo store v1";   // 대화 Claude — aone-bo-1(판정 948 · 949 · 덧붙임 3 · asung-wms 2f95f91): 스토어 거르기(store asung · aone · manual = Warehouse Backend) — Arrivals(Ready 도 같이) · Insights(SKU 상세 포함) · All backorders · All 의 줄에 스토어 꼬리표 · 열린 백오더 줄 체크 → 「Send backorder notice…」(manager · mail_backorder_send 미리 보기 → 보내기 · 알림 꺼진 손님은 경고 뒤 그래도 보냄) · aone 은 자동 회차에서 빠진다는 안내 ← 2026-11-01 · bo sup v1:   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Arrivals · Insights · All backorders 의 Supplier 거르기 셋 ← 2026-10-25 · bo cf words v1:   // 대화 Claude — 판정 724 이어서(manual-1c 이견 4): Proceed 창 Result 칸이 내부 낱말(allocated · partial …)을 그대로 찍었다 — d6b9547 이 so.html 만 고치고 이 화면을 놓쳤다 → 사람 말(Reserved · Partly reserved · Backordered · Preorder · On hold) · 저장 값 · 동작 무변 ← 2026-10-22 · bo csv v1: 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-16 · bo v5: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 /* bo cf words v1 — 판정 724: Result 칸의 사람 말(so.html CF_RESULT 와 같은 표 · 두 화면이 같은 글자) */
 const CF_RESULT = { allocated: "Reserved", partial: "Partly reserved", backorder: "Backordered", preorder: "Preorder", hold: "On hold" };
@@ -376,6 +380,7 @@ function aFilters(){
   const f = { limit: A_PAGE, offset: aOffset };
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
   put("location_id", val("aLoc"));
+  put("store", val("aStore"));   // bo store v1
   put("supplier_id", val("aSup"));
   put("brand_id", val("aBrand"));
   put("sku", val("aSku").trim());
@@ -497,7 +502,7 @@ async function rLoad(){
   const box = document.getElementById("aReady");
   const f = { limit: 100 };
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
-  put("location_id", val("aLoc")); put("supplier_id", val("aSup")); put("brand_id", val("aBrand")); put("sku", val("aSku").trim());
+  put("location_id", val("aLoc")); put("store", val("aStore")); put("supplier_id", val("aSup")); put("brand_id", val("aBrand")); put("sku", val("aSku").trim());
   const { data, error } = await sb.rpc("so_backorder_ready", { p_filters: f });
   if(error){ box.innerHTML = `<div class="rhead"><span class="ttl">Ready to ship now</span></div><div class="msg err">${esc(error.message)}</div>`; return; }
   const rows = data.rows || [], total = Number(data.total ?? rows.length);
@@ -532,6 +537,7 @@ function iFilters(){
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
   put("order_from", per.from); put("order_to", per.to);
   put("location_id", val("iLoc"));
+  put("store", val("iStore"));   // bo store v1
   put("supplier_id", val("iSup"));
   put("brand_id", val("iBrand"));
   put("sku", val("iSku").trim());
@@ -616,7 +622,7 @@ async function openSkuDetail(r){
   const draw = async () => {
     const base = iLast ? iLast.f : {};
     const f = { product_id: r.product_id, limit: 200 };
-    ["order_from", "order_to", "location_id", "supplier_id", "brand_id"].forEach(k => { if(base[k]) f[k] = base[k]; });
+    ["order_from", "order_to", "location_id", "store", "supplier_id", "brand_id"].forEach(k => { if(base[k]) f[k] = base[k]; });
     const { data, error } = await sb.rpc("so_backorder_demand", { p_filters: f });
     const out = document.getElementById("sdOut");
     if(!out) return;
@@ -749,6 +755,7 @@ function filters(){
   const put = (k, v) => { if(v !== "" && v !== null && v !== undefined) f[k] = v; };
   put("kind", document.getElementById("fKind").value);   // bo v3 — 판정 351
   put("location_id", document.getElementById("fLoc").value);
+  put("store", document.getElementById("fStore").value);   // bo store v1
   put("customer_id", custId);
   put("supplier_id", document.getElementById("fSup").value);
   put("brand_id", document.getElementById("fBrand").value);
@@ -780,7 +787,7 @@ async function load(){
   if(!rows.length){ box.innerHTML = '<div class="msg">Nothing matches.</div>'; pager(data); return; }
 
   /* 손님마다 묶어 보인다 — 창구가 손님 · 제품 · 주문일 순으로 준다 */
-  let html = `<table><thead><tr>
+  let html = (isMgr() ? `<div class="bnbar"><button class="pobtn" id="bnSend" disabled>Send backorder notice…</button> <span class="dim" id="bnCnt">Tick open backorder lines to email the customer by hand.</span></div>` : "") + `<table><thead><tr>
       <th>Order</th><th>Ordered</th><th>Product</th><th>Supplier · brand</th><th>Branch</th>
       <th class="num">Open</th><th class="num">Waiting</th><th>Stock</th><th>State</th><th></th>
     </tr></thead><tbody>`;
@@ -803,7 +810,7 @@ async function load(){
         + (r.taken_by_so_number ? ` <a class="lnk mono" href="so.html?so=${encodeURIComponent(r.taken_by_so_number)}">${esc(r.taken_by_so_number)}</a>` : "")
         + (Number(r.qty_unwanted) ? `<div class="dim" style="font-size:11px">taken ${qty(r.qty_taken)} · no longer wanted ${qty(r.qty_unwanted)}</div>` : "");
     html += `<tr class="${open ? "" : "ended"}">
-      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a></td>
+      <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(r.so_number)}">${esc(r.so_number)}</a>${storeTag(r.store)}</td>
       <td>${dim(r.order_date)}</td>
       <td><span class="mono">${esc(r.sku || "")}</span>${Number(r.pack_factor) > 1 ? ` <span class="dim">×${esc(r.pack_factor)}</span>` : ""}${r.is_combo ? ' <span class="tag" title="Counted in whole combos — it can ship when every component is here">combo</span>' : ""}<div class="dim" style="font-size:11.5px">${esc(r.product_name || "")}</div>${r.is_combo && (r.components || []).length ? `<div class="dim" style="font-size:11px">each: ${r.components.map(c => `${esc(qty(c.combo_qty))} × <span class="mono">${esc(c.sku || "")}</span>`).join(", ")}</div>` : ""}</td>
       <td>${esc(r.supplier_name || "")}${r.supplier_name ? "" : '<span class="dim">no default supplier</span>'}<div class="dim" style="font-size:11.5px">${esc(r.brand_name || "")}</div></td>
@@ -812,16 +819,19 @@ async function load(){
       <td class="num">${r.days_waiting !== null && r.days_waiting !== undefined ? esc(r.days_waiting) + "d" : '<span class="dim">—</span>'}</td>
       <td>${stock}</td>
       <td>${st}</td>
-      <td>${open && isMgr() ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" title="Reserve what is in stock now for this ${r.kind === "preorder" ? "pre-order" : "backorder"} order (manager)">proceed</button>` : ""}</td>
+      <td style="white-space:nowrap">${open && isMgr() && r.kind !== "preorder" && r.line_id ? `<label class="ck" title="Pick this line for a backorder email sent by hand"><input type="checkbox" class="bnPick" value="${esc(r.line_id)}"></label> ` : ""}${open && isMgr() ? `<button class="xbtn" data-proceed="${esc(r.so_id)}" data-no="${esc(r.so_number)}" title="Reserve what is in stock now for this ${r.kind === "preorder" ? "pre-order" : "backorder"} order (manager)">proceed</button>` : ""}</td>
     </tr>`;
   });
   html += `</tbody></table>
     <div class="sosub">Pre-orders are confirmed orders waiting for stock that has not come in yet — they are listed while open, never expire and are never taken over by a new order (ruling 9); arrived and proceed work the same way.
       Arrived = a purchase receipt or a transfer from another branch landed at this branch after the backorder or pre-order was made (adjustments and returns do not count).
       Here = available now in this branch · then each other branch by name (EA — for a combo, whole combos its components can make). A combo is arrived when one of its components came in and at least one whole combo is here.
+      Orders from aonebeauty.com are not emailed automatically — tick their lines and press Send backorder notice (customers with alerts switched off can still be emailed this way).
+      With a store picked, Ready to ship now still shares stock across all waiting orders in the order they waited.
       Under the state you see the arrival email for that line: each backorder line is emailed once at most; "before IMS emails" means the line was waiting before IMS started sending, so any email came from the old system. The Emails tab has the details.</div>`;
   box.innerHTML = html;
   box.querySelectorAll("[data-proceed]").forEach(b => { b.onclick = () => openProceed(b.dataset.proceed, b.dataset.no, 0); });
+  bnWire(box);   // bo store v1
   pager(data);
 }
 function pager(data){
@@ -1083,6 +1093,51 @@ async function mResolve(act, id){
 }
 
 /* ══ 모달 ══════════════════════════════════════════════ */
+/* ── bo store v1 — 스토어 꼬리표 · 사람이 보내는 백오더 알림(판정 948 · mail_backorder_send) ── */
+function storeTag(st){
+  if(st === "aone") return ' <span class="tag" title="Order from aonebeauty.com — backorder emails are sent by hand">aonebeauty.com</span>';
+  if(st === "asung") return ' <span class="tag" title="Order from asung.ca">asung.ca</span>';
+  return "";
+}
+const BN_WHY = { not_open_backorder: "not an open backorder", already_notified: "already emailed", nothing_to_fill: "no stock to fill it yet",
+  customer_inactive: "customer is inactive", bad_shape: "the email could not be built", no_email: "no email address for this customer" };
+function bnWire(box){
+  const b = document.getElementById("bnSend"); if(!b) return;
+  const sync = () => { const n = box.querySelectorAll(".bnPick:checked").length; b.disabled = !n; document.getElementById("bnCnt").textContent = n ? `${n} line${n === 1 ? "" : "s"} picked` : "Tick open backorder lines to email the customer by hand."; };
+  box.querySelectorAll(".bnPick").forEach(c => { c.onchange = sync; });
+  b.onclick = () => bnOpen([...box.querySelectorAll(".bnPick:checked")].map(c => c.value));
+}
+async function bnOpen(ids){
+  if(!ids.length) return;
+  modalOpen('<h4>Send backorder notice</h4><div class="pbody"><div class="msg">Checking…</div></div>');
+  const { data, error } = await sb.rpc("mail_backorder_send", { p_line_ids: ids, p_commit: false });
+  const lineTxt = (l) => `<div class="dim" style="font-size:12px"><span class="mono">${esc(l.so_number)}</span> #${esc(l.line_no)} · <span class="mono">${esc(l.sku || "")}</span> — can ship ${qty(l.can_fill_units)} of ${qty(l.qty_open)}${l.store === "aone" ? " · aonebeauty.com" : ""}</div>`;
+  if(error){ document.querySelector("#modalBox .pbody").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("modalBox").insertAdjacentHTML("beforeend", '<div class="pfoot"><span class="sp"></span><button class="pobtn" onclick="modalClose()">Close</button></div>'); return; }
+  const mails = data.mails || [], sc = data.skipped_customers || [], sl = data.skipped_lines || [];
+  const off = mails.filter(m => m.backorder_mail === false).length;
+  document.getElementById("modalBox").innerHTML = `<h4>Send backorder notice</h4>
+    <div class="pbody">
+      ${data.enabled === false ? '<div class="msg err">Emails are switched off (Settings → Backorder emails) — nothing can be sent now.</div>' : ""}
+      ${mails.length ? `<div style="font-weight:600;margin:4px 0">${mails.length} email${mails.length === 1 ? "" : "s"} will go out</div>` + mails.map(m => `<div style="padding:6px 0;border-top:1px solid var(--line)">
+          <b>${esc(m.customer_name || "")}</b> <span class="dim">→ ${esc(m.to || "")} · ${esc(m.location_name || "")}</span>
+          ${m.backorder_mail === false ? '<div class="err" style="font-size:12px">This customer has backorder emails switched off — this one is sent anyway.</div>' : ""}
+          ${(m.lines || []).map(lineTxt).join("")}</div>`).join("") : '<div class="msg">No email can go out for the lines you picked.</div>'}
+      ${sc.length ? '<div style="font-weight:600;margin:10px 0 4px">Not emailed — customer</div>' + sc.map(c => `<div class="dim" style="font-size:12px"><b>${esc(c.customer_name || "")}</b> — ${esc(BN_WHY[c.reason] || c.reason)}</div>`).join("") : ""}
+      ${sl.length ? '<div style="font-weight:600;margin:10px 0 4px">Not emailed — line</div>' + sl.map(l => `<div class="dim" style="font-size:12px"><span class="mono">${esc(l.so_number || "")}</span> #${esc(l.line_no || "")} · <span class="mono">${esc(l.sku || "")}</span> — ${esc(BN_WHY[l.reason] || l.reason)}</div>`).join("") : ""}
+      <div class="sosub">Each line is emailed once — after this, the automatic runs leave these lines alone. The email waits in the Emails tab until it goes out (within a few minutes).</div>
+      <div id="bnMsg" style="margin-top:8px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" onclick="modalClose()">Cancel</button>
+      ${mails.length && data.enabled !== false ? `<button class="pobtn go" id="bnGo">Send ${mails.length} email${mails.length === 1 ? "" : "s"}</button>` : ""}</div>`;
+  const go = document.getElementById("bnGo"); if(go) go.onclick = async () => {
+    if(off && !confirm(`${off} customer${off === 1 ? " has" : "s have"} backorder emails switched off. Send anyway?`)) return;
+    go.disabled = true;
+    const r = await sb.rpc("mail_backorder_send", { p_line_ids: ids, p_commit: true });
+    const m = document.getElementById("bnMsg");
+    if(r.error){ go.disabled = false; m.className = "err"; m.textContent = r.error.message; return; }
+    modalClose(); load();
+  };
+}
 function modalOpen(html){ const b = document.getElementById("modalBox"); b.classList.remove("wide"); b.innerHTML = html; document.getElementById("modal").hidden = false; }
 function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
 document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
@@ -1186,20 +1241,20 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   document.querySelectorAll("#tabs [data-tab]").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
 
   /* Arrivals 거르기 */
-  ["aLoc", "aSup", "aBrand", "aFrom", "aTo", "aAll"].forEach(i => { document.getElementById(i).onchange = aRefilter; });
+  ["aLoc", "aStore", "aSup", "aBrand", "aFrom", "aTo", "aAll"].forEach(i => { document.getElementById(i).onchange = aRefilter; });
   imsQ("#aSku", aRefilter);
   document.getElementById("aClear").onclick = () => {
-    ["aLoc", "aSup", "aBrand", "aSku", "aFrom", "aTo"].forEach(i => document.getElementById(i).value = "");
+    ["aLoc", "aStore", "aSup", "aBrand", "aSku", "aFrom", "aTo"].forEach(i => document.getElementById(i).value = "");
     document.getElementById("aAll").checked = false;
     aRefilter();
   };
 
   /* Insights 거르기 */
   document.getElementById("iPer").onchange = () => { document.getElementById("iCustom").hidden = val("iPer") !== "custom"; iLoad(); };
-  ["iFrom", "iTo", "iLoc", "iSup", "iBrand", "iSort"].forEach(i => { document.getElementById(i).onchange = iLoad; });
+  ["iFrom", "iTo", "iLoc", "iStore", "iSup", "iBrand", "iSort"].forEach(i => { document.getElementById(i).onchange = iLoad; });
   imsQ("#iSku", iLoad);
   document.getElementById("iClear").onclick = () => {
-    ["iLoc", "iSup", "iBrand", "iSku", "iFrom", "iTo"].forEach(i => document.getElementById(i).value = "");
+    ["iLoc", "iStore", "iSup", "iBrand", "iSku", "iFrom", "iTo"].forEach(i => document.getElementById(i).value = "");
     document.getElementById("iPer").value = "month"; document.getElementById("iCustom").hidden = true;
     document.getElementById("iSort").value = "lost_amount";
     iLoad();
@@ -1208,11 +1263,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   /* All backorders 거르기 (bo v3a) */
   const endSel = document.getElementById("fEnd");
   document.getElementById("fState").onchange = () => { endSel.hidden = document.getElementById("fState").value === "open"; refilter(); };
-  ["fKind","fLoc","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
+  ["fKind","fLoc","fStore","fSup","fBrand","fArr","fFrom","fTo","fEnd"].forEach(i => { document.getElementById(i).onchange = refilter; });
   imsQ("#fSku", refilter);
   document.getElementById("fCust").onclick = openCustPick;
   document.getElementById("fClear").onclick = () => {
-    ["fKind","fLoc","fSup","fBrand","fSku","fArr","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
+    ["fKind","fLoc","fStore","fSup","fBrand","fSku","fArr","fFrom","fTo","fEnd"].forEach(i => document.getElementById(i).value = "");
     owedOnly = false;
     document.getElementById("fState").value = "open"; endSel.hidden = true;
     custId = null; custName = ""; document.getElementById("fCust").textContent = "All customers";
