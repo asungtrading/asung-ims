@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuickBooks · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 뼈대는 so-invoices.html(목록 · 모달) */
+  main{display:flex;flex-direction:column;gap:14px;padding:14px}
+  .cnt{display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .cnt .c{display:flex;flex-direction:column;gap:2px;min-width:78px}
+  .cnt .c b{font-family:var(--mono);font-size:17px}
+  .cnt .c span{font-size:11.5px;color:var(--muted)}
+  .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .acts .sp{flex:1}
+  table td.ck,table th.ck{width:28px;text-align:center}
+  .why{font-size:11.5px;color:var(--muted);max-width:360px}
+  .why.bad{color:var(--bad)}
+  .res{font-size:11.5px;margin-top:2px}
+  .res.ok{color:var(--good)} .res.bad{color:var(--bad)} .res.wait{color:var(--warn)}
+  .pomodal[hidden]{display:none}
+  .pobox{max-width:980px}
+  .pv table{font-size:12.5px}
+  .pv .kv td:first-child{width:150px;color:var(--muted)}
+  .needbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:10px}
+  .errbox{border:1px solid #f3d3cf;background:#fff6f5;border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:10px;color:var(--bad)}
+  .infobox{border:1px solid #c7d2fe;background:#eef3ff;border-radius:10px;padding:9px 12px;font-size:12.5px;color:#1b4fd6}
+  .prog{font-size:12.5px}
+  td .pobtn{padding:3px 9px;font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<main>
+  <div class="card">
+    <div class="infobox" style="margin:12px 14px 0">Invoices and credit notes issued in IMS wait here until you send them to QuickBooks.
+      Open <b>Preview</b> to see exactly what will be written, then <b>Send</b>. Customers and items that QuickBooks does not have yet are created first, in the same send.
+      Do not enter these documents in QuickBooks by hand — they would be there twice.</div>
+    <div class="cnt" id="cnt"><span class="dim">Loading…</span></div>
+    <div class="wfilt">
+      <select id="fst">
+        <option value="open">Waiting — not sent yet</option>
+        <option value="queued">Queued</option>
+        <option value="blocked">Blocked</option>
+        <option value="failed">Failed</option>
+        <option value="unknown">Result unknown</option>
+        <option value="sent">Sent</option>
+        <option value="skipped">Skipped</option>
+        <option value="">All</option>
+      </select>
+      <select id="fkd">
+        <option value="docs">Invoices and credit notes</option>
+        <option value="invoice">Invoices only</option>
+        <option value="credit">Credit notes only</option>
+        <option value="voids">Cancellations (void)</option>
+        <option value="setup">Customers and items</option>
+        <option value="">Everything</option>
+      </select>
+      <input type="date" id="ffrom"><span class="dash">–</span><input type="date" id="fto">
+      <input type="search" id="fq" placeholder="Invoice · credit number · customer">
+      <button class="pobtn" id="fclear">Clear</button>
+    </div>
+    <div class="acts">
+      <label style="font-size:12.5px"><input type="checkbox" id="ckAll"> Select all on this page</label>
+      <span class="prog" id="prog"></span>
+      <span class="sp"></span>
+      <button class="pobtn go" id="sendSel" disabled>Send selected</button>
+    </div>
+    <div id="rows"><div class="msg">Loading…</div></div>
+    <div class="acts" id="pager"></div>
+  </div>
+</main>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   QuickBooks — 북키퍼가 골라 보내는 QuickBooks 보내기 (2026-11-02 · 대화 Claude · 판정 971)
+   읽기: qbo_job_list(p_state, p_kinds, p_from, p_to, p_q, p_limit, p_offset) · qbo_job_preview(p_job)  (asung-wms c0cf4c0 · qbo-sync-2d1)
+   쓰기: EF qbo { action:"send", job_ids:[…] } (한 번에 10 · 손님 · Item 은 같은 호출에서 먼저) · qbo_job_skip(p_job, p_note) · qbo_job_retry(p_job, p_note)
+   문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
+   ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
+   ───────────────────────────────────────────────────────────── */
+const QS_BUILD = "2026-11-02 · qs v1";   // 대화 Claude — 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+console.log("qbo-send.html build:", QS_BUILD);
+
+const PAGE = 50, SEND_MAX = 10;
+let sb = null, me = null;
+let st = { state: "open", kind: "docs", from: "", to: "", q: "", offset: 0 };
+let rows = [], total = 0, picked = new Set(), last = {};   // last[job_id] = 마지막 보내기 결과(화면 표시용)
+let busy = false;
+
+const KINDS = {
+  docs: ["invoice", "credit", "invoice_void", "credit_void"], invoice: ["invoice"], credit: ["credit"],
+  voids: ["invoice_void", "credit_void"], setup: ["customer", "item"], "": null
+};
+const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "Void invoice", credit_void: "Void credit note", customer: "Customer", item: "Item" };
+const STATE_CHIP = {
+  queued: ["", "waiting"], blocked: ["warn", "blocked"], sending: ["warn", "sending"], sent: ["good", "sent"],
+  failed: ["bad", "failed"], unknown: ["bad", "result unknown"], skipped: ["", "skipped"]
+};
+const money = (v) => (v === null || v === undefined || v === "")
+  ? '<span class="dim">—</span>'
+  : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const num = (v) => (v === null || v === undefined || v === "") ? "" : esc(Number(v).toLocaleString("en-CA", { maximumFractionDigits: 4 }));
+const dash = '<span class="dim">—</span>';
+function torontoToday(){
+  const p = {};
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" })
+    .formatToParts(new Date()).forEach((x) => { p[x.type] = x.value; });
+  return p.year + "-" + p.month + "-" + p.day;
+}
+function chip(s){ const c = STATE_CHIP[s] || ["", s]; return `<span class="chip ${c[0]}">${esc(c[1])}</span>`; }
+function modalOpen(html){ const b = document.getElementById("modalBox"); b.innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !busy) modalClose(); });
+const canSend = (r) => r.state === "queued" || r.state === "blocked";
+const canRetry = (r) => r.state === "failed" || r.state === "unknown" || r.state === "skipped";
+const canSkip = (r) => r.state === "queued" || r.state === "blocked" || r.state === "failed" || r.state === "unknown";
+
+/* ── 목록 ── */
+async function load(){
+  const box = document.getElementById("rows");
+  const { data, error } = await sb.rpc("qbo_job_list", {
+    p_state: st.state || null, p_kinds: KINDS[st.kind], p_from: st.from || null, p_to: st.to || null,
+    p_q: st.q || null, p_limit: PAGE, p_offset: st.offset
+  });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; document.getElementById("cnt").innerHTML = ""; return; }
+  const d = data || {};
+  rows = d.rows || []; total = Number(d.total || 0);
+  const c = d.counts || {};
+  document.getElementById("cnt").innerHTML = ["queued", "blocked", "failed", "unknown", "sent", "skipped"]
+    .map(k => `<div class="c"><b>${esc(Number(c[k] || 0))}</b><span>${esc((STATE_CHIP[k] || ["", k])[1])}</span></div>`).join("");
+  picked.forEach(id => { if(!rows.some(r => r.id === id && canSend(r))) picked.delete(id); });
+  draw();
+}
+function draw(){
+  const box = document.getElementById("rows");
+  if(!rows.length){ box.innerHTML = '<div class="msg">Nothing here for these filters.</div>'; drawPager(); syncSel(); return; }
+  box.innerHTML = `<table><thead><tr>
+      <th class="ck"></th><th>Document</th><th>Kind</th><th>Customer</th><th>Date</th><th class="num">Total</th><th>Status</th><th>QuickBooks</th><th>Why · result</th><th></th>
+    </tr></thead><tbody>${rows.map(r => {
+      const lr = last[r.id];
+      const why = r.state === "blocked" && r.blocked_name
+        ? `waits for ${esc((KIND_LABEL[r.blocked_kind] || r.blocked_kind || "").toLowerCase())} ${esc(r.blocked_name)}${r.blocked_state ? " (" + esc(r.blocked_state) + ")" : ""}`
+        : (r.last_error || r.warning || r.note || "");
+      const res = lr ? `<div class="res ${lr.cls}">${esc(lr.text)}</div>` : "";
+      const acts = [
+        `<button class="pobtn" data-pv="${esc(r.id)}">Preview</button>`,
+        canSend(r) ? `<button class="pobtn go" data-send="${esc(r.id)}">Send</button>` : "",
+        canRetry(r) ? `<button class="pobtn" data-retry="${esc(r.id)}">Retry</button>` : "",
+        canSkip(r) ? `<button class="pobtn" data-skip="${esc(r.id)}" title="Do not send this one to QuickBooks">Skip</button>` : ""
+      ].join(" ");
+      return `<tr>
+        <td class="ck">${canSend(r) ? `<input type="checkbox" data-ck="${esc(r.id)}" ${picked.has(r.id) ? "checked" : ""}>` : ""}</td>
+        <td class="mono">${esc(r.doc_number || r.qbo_name || r.ims_name || "")}</td>
+        <td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>
+        <td>${esc(r.name || "")}</td>
+        <td>${esc(r.doc_date || r.job_date || "")}</td>
+        <td class="num">${r.total === null || r.total === undefined ? dash : money(r.total) + ` <span class="dim">${esc(r.currency || "")}</span>`}</td>
+        <td>${chip(r.state)}</td>
+        <td class="mono">${r.qbo_id ? esc(r.qbo_id) : dash}${r.txn_mismatch ? ' <span class="chip bad" title="QuickBooks total differs from IMS">mismatch</span>' : ""}${r.txn_voided_at ? ' <span class="chip">voided</span>' : ""}</td>
+        <td><div class="why ${r.state === "failed" || r.state === "unknown" ? "bad" : ""}">${esc(why)}</div>${res}</td>
+        <td style="white-space:nowrap">${acts}</td>
+      </tr>`;
+    }).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-ck]").forEach(el => { el.onchange = () => { el.checked ? picked.add(el.dataset.ck) : picked.delete(el.dataset.ck); syncSel(); }; });
+  box.querySelectorAll("[data-pv]").forEach(el => { el.onclick = () => openPreview(el.dataset.pv); });
+  box.querySelectorAll("[data-send]").forEach(el => { el.onclick = () => sendIds([el.dataset.send]); });
+  box.querySelectorAll("[data-retry]").forEach(el => { el.onclick = () => retryOne(rows.find(r => r.id === el.dataset.retry)); });
+  box.querySelectorAll("[data-skip]").forEach(el => { el.onclick = () => skipOne(rows.find(r => r.id === el.dataset.skip)); });
+  drawPager(); syncSel();
+}
+function drawPager(){
+  const p = document.getElementById("pager");
+  const from = total ? st.offset + 1 : 0, to = Math.min(total, st.offset + PAGE);
+  p.innerHTML = `<span class="dim" style="font-size:12px">${from}–${to} of ${esc(total)}</span><span class="sp"></span>
+    <button class="pobtn" id="pgPrev" ${st.offset <= 0 ? "disabled" : ""}>&lsaquo; Previous</button>
+    <button class="pobtn" id="pgNext" ${st.offset + PAGE >= total ? "disabled" : ""}>Next &rsaquo;</button>`;
+  document.getElementById("pgPrev").onclick = () => { st.offset = Math.max(0, st.offset - PAGE); load(); };
+  document.getElementById("pgNext").onclick = () => { st.offset += PAGE; load(); };
+}
+function syncSel(){
+  const b = document.getElementById("sendSel");
+  b.disabled = busy || picked.size === 0;
+  b.textContent = picked.size ? `Send selected (${picked.size})` : "Send selected";
+  const sendable = rows.filter(canSend);
+  const all = document.getElementById("ckAll");
+  all.checked = sendable.length > 0 && sendable.every(r => picked.has(r.id));
+  all.disabled = busy || sendable.length === 0;
+}
+
+/* ── 보내기 — 10 장씩 차례로 · 손님 · Item 은 서버가 같은 호출에서 먼저 ── */
+function resultText(x){
+  if(x.result === "sent") return { cls: "ok", text: `sent · QuickBooks ${x.qbo_id || ""}${x.mismatch ? " · total differs" : ""}` };
+  if(x.result === "blocked") return { cls: "wait", text: x.reason || "blocked" };
+  if(x.result === "failed" || x.result === "unknown") return { cls: "bad", text: `${x.result}: ${x.error || x.reason || ""}` };
+  return { cls: "wait", text: `${x.result}${x.reason ? ": " + x.reason : ""}` };
+}
+async function sendIds(ids){
+  if(busy || !ids.length) return;
+  if(ids.length > 1 && !confirm(`Send ${ids.length} document${ids.length === 1 ? "" : "s"} to QuickBooks now?`)) return;
+  busy = true; syncSel();
+  const prog = document.getElementById("prog");
+  let sent = 0, other = 0, made = 0;
+  try{
+    for(let i = 0; i < ids.length; i += SEND_MAX){
+      const part = ids.slice(i, i + SEND_MAX);
+      prog.textContent = `Sending ${Math.min(i + part.length, ids.length)} of ${ids.length}…`;
+      const { data, error } = await sb.functions.invoke("qbo", { body: { action: "send", job_ids: part } });
+      if(error){
+        let msg = error.message || String(error);
+        try{ const j = error.context && await error.context.json(); if(j && (j.error || j.message)) msg = j.error || j.message; }catch(_){ }
+        part.forEach(id => { last[id] = { cls: "bad", text: "not sent: " + msg }; }); other += part.length;
+        continue;
+      }
+      (data.requested || []).forEach(x => { last[x.job_id] = resultText(x); x.result === "sent" ? sent++ : other++; });
+      made += (data.needs || []).filter(n => n.result === "sent").length;
+      if(data.stopped === "time") prog.textContent = "QuickBooks was slow — some were not reached; press Send again for those.";
+    }
+    prog.textContent = `Done — sent ${sent}` + (other ? ` · not sent ${other} (see each line)` : "") + (made ? ` · created ${made} customer/item record${made === 1 ? "" : "s"} first` : "");
+  }finally{
+    busy = false; picked.clear();
+    await load();
+  }
+}
+document.getElementById("sendSel").onclick = () => sendIds([...picked]);
+document.getElementById("ckAll").onchange = (e) => {
+  rows.filter(canSend).forEach(r => { e.target.checked ? picked.add(r.id) : picked.delete(r.id); });
+  draw();
+};
+
+/* ── 건너뛰기 · 다시 — 메모 필수(서버 규칙) ── */
+async function skipOne(r){
+  if(!r) return;
+  const note = prompt(`Skip ${r.doc_number || r.ims_name || ""}? It will not be sent to QuickBooks.\nWhy? (required — e.g. "entered by hand in QuickBooks")`);
+  if(note === null) return;
+  if(!note.trim()){ alert("A reason is required."); return; }
+  const { error } = await sb.rpc("qbo_job_skip", { p_job: r.id, p_note: note.trim() });
+  if(error){ alert(error.message); return; }
+  last[r.id] = { cls: "wait", text: "skipped: " + note.trim() };
+  load();
+}
+async function retryOne(r){
+  if(!r) return;
+  const note = prompt(`Put ${r.doc_number || r.ims_name || ""} back in the queue?${r.state === "unknown" ? "\nThe last send's result is unknown — check QuickBooks first that it is not already there." : ""}\nWhy? (required)`);
+  if(note === null) return;
+  if(!note.trim()){ alert("A reason is required."); return; }
+  const { error } = await sb.rpc("qbo_job_retry", { p_job: r.id, p_note: note.trim() });
+  if(error){ alert(error.message); return; }
+  last[r.id] = { cls: "wait", text: "back in the queue — press Send" };
+  load();
+}
+
+/* ── 미리 보기 — QBO 에 갈 몸 그대로 · QBO 호출 0 ── */
+function addrTxt(a){
+  if(!a) return dash;
+  return esc([a.Line1, a.Line2, a.Line3, a.Line4, [a.City, a.CountrySubDivisionCode, a.PostalCode].filter(Boolean).join(" "), a.Country].filter(Boolean).join(", ")) || dash;
+}
+function lineRows(lines){
+  return (lines || []).map(l => {
+    const d = l.SalesItemLineDetail || {};
+    const kind = l.DetailType || (l.SalesItemLineDetail ? "item" : l.DiscountLineDetail ? "discount" : "");
+    return `<tr>
+      <td class="num">${esc(l.LineNum ?? "")}</td>
+      <td>${esc(l.Description || "")}${kind === "discount" ? ' <span class="chip">discount</span>' : ""}</td>
+      <td class="mono">${d.ItemRef ? esc(d.ItemRef.value) : (kind === "item" ? '<span class="chip warn" title="Created in QuickBooks first, in the same send">new item</span>' : "")}</td>
+      <td class="num">${num(d.Qty)}</td>
+      <td class="num">${d.UnitPrice === undefined ? "" : num(d.UnitPrice)}</td>
+      <td class="num">${money(l.Amount)}</td>
+      <td class="mono">${d.TaxCodeRef ? esc(d.TaxCodeRef.value) : ""}</td>
+    </tr>`;
+  }).join("");
+}
+async function openPreview(id){
+  modalOpen('<h4>Preview</h4><div class="pbody"><div class="msg">Loading…</div></div>');
+  const { data, error } = await sb.rpc("qbo_job_preview", { p_job: id });
+  if(error){ modalOpen(`<h4>Preview</h4><div class="pbody"><div class="errbox">${esc(error.message)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" id="pvClose">Close</button></div>`); document.getElementById("pvClose").onclick = modalClose; return; }
+  const p = data || {}, j = p.job || {}, doc = p.doc || {}, b = p.body || {}, t = p.totals || {};
+  const r = rows.find(x => x.id === id) || j;
+  const needs = p.needs || [];
+  const sendable = canSend(r) && !p.error;
+  const kv = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  modalOpen(`
+    <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")} · ${esc(doc.name || r.name || "")}</h4>
+    <div class="pbody pv">
+      <div style="font-size:12.5px;margin-bottom:8px">${chip(j.state || r.state)} <span class="dim">This is exactly what IMS will write to QuickBooks. Nothing is sent from this window until you press Send.</span></div>
+      ${p.error ? `<div class="errbox"><b>Cannot be sent yet:</b> ${esc(p.error)}</div>` : ""}
+      ${p.wait ? `<div class="needbox"><b>Waiting:</b> ${esc(typeof p.wait === "string" ? p.wait : (p.wait.reason || p.wait.doc_number || JSON.stringify(p.wait)))}</div>` : ""}
+      ${needs.length ? `<div class="needbox"><b>Created in QuickBooks first, in the same send:</b><br>${needs.map(n =>
+          `${esc(KIND_LABEL[n.kind] || n.kind)} <span class="mono">${esc(n.name || "")}</span>${n.job_state ? " · " + esc(n.job_state) : ""}${n.job_error ? ` · <span class="bad">${esc(n.job_error)}</span>` : ""}`).join("<br>")}</div>` : ""}
+      ${(p.warnings || []).length ? `<div class="needbox">${(p.warnings || []).map(w => esc(typeof w === "string" ? w : JSON.stringify(w))).join("<br>")}</div>` : ""}
+      ${b && Object.keys(b).length ? `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("Number", `<span class="mono">${esc(b.DocNumber || "")}</span>`)}
+        ${kv("Date · due", esc([b.TxnDate, b.DueDate].filter(Boolean).join(" · ")) || dash)}
+        ${kv("Customer (QuickBooks)", b.CustomerRef ? `<span class="mono">${esc(b.CustomerRef.value)}</span> · ${esc(doc.name || "")}` : (needs.some(n => n.kind === "customer") ? "new customer — created first" : dash))}
+        ${kv("Currency", esc((b.CurrencyRef && b.CurrencyRef.value) || ""))}
+        ${kv("Bill to", addrTxt(b.BillAddr))}
+        ${kv("Ship to", addrTxt(b.ShipAddr))}
+        ${kv("Email", b.BillEmail ? esc(b.BillEmail.Address || "") : dash)}
+        ${kv("Memo on the document", b.CustomerMemo ? esc(b.CustomerMemo.value || "") : dash)}
+        ${kv("Private note", esc(b.PrivateNote || "") || dash)}
+      </tbody></table>
+      <table style="margin-top:10px"><thead><tr><th class="num">#</th><th>Line</th><th>Item</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th><th>Tax code</th></tr></thead>
+        <tbody>${lineRows(b.Line)}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Before tax <b class="mono">${money(t.taxable)}</b></span>
+        <span>Tax <b class="mono">${money(t.tax)}</b></span>
+        <span>Total <b class="mono">${money(t.total)}</b></span>
+      </div>` : (p.error ? "" : '<div class="msg">No QuickBooks document for this one.</div>')}
+      <div id="pvMsg" style="font-size:12.5px;margin-top:8px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" id="pvClose">Close</button>
+      ${sendable ? '<button class="pobtn go" id="pvSend">Send to QuickBooks</button>' : ""}
+    </div>`);
+  document.getElementById("pvClose").onclick = modalClose;
+  const sb2 = document.getElementById("pvSend");
+  if(sb2) sb2.onclick = async () => { sb2.disabled = true; document.getElementById("pvMsg").textContent = "Sending…"; modalClose(); await sendIds([id]); };
+}
+
+/* ── 거르기 ── */
+function bindFilters(){
+  const on = () => { st.offset = 0; load(); };
+  document.getElementById("fst").onchange = (e) => { st.state = e.target.value; on(); };
+  document.getElementById("fkd").onchange = (e) => { st.kind = e.target.value; on(); };
+  document.getElementById("ffrom").onchange = (e) => { st.from = e.target.value; on(); };
+  document.getElementById("fto").onchange = (e) => { st.to = e.target.value; on(); };
+  imsQ(document.getElementById("fq"), (v) => { st.q = v; on(); });
+  document.getElementById("fclear").onclick = () => {
+    st = { state: "open", kind: "docs", from: "", to: "", q: "", offset: 0 };
+    document.getElementById("fst").value = "open"; document.getElementById("fkd").value = "docs";
+    document.getElementById("ffrom").value = ""; document.getElementById("fto").value = ""; document.getElementById("fq").value = "";
+    load();
+  };
+}
+
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
+  window.sb = sb;
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = QS_BUILD;
+  bindFilters();
+  load();
+});
+</script>
+</body>
+</html>
