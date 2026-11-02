@@ -104,7 +104,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-10-24 · chg docs v1";   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-11-01 · chg sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -599,16 +599,21 @@ function openAddPo(chgId){
       and any warning about the number already existing; nothing is written until Create.
    ⚠️ Currency has no fallback — a freight company bills in its own currency and the master
       value is no guide, so the field is required here and refused by the back end. */
+document.addEventListener("change", (e) => {   // chg sup v1 — 새 Charge 의 Show all suppliers
+  if(e.target && e.target.id === "cSupAll" && window.__cSupOpts){ const sel = document.getElementById("cSup"); const keep = sel.value; sel.innerHTML = window.__cSupOpts(e.target.checked); sel.value = keep; }
+});
 async function openCreate(preselectPoId){
-  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  const sup = await sb.from("supplier").select("id,name,is_purchasable,is_discontinued").eq("is_active", true).order("name");   // chg sup v1 — 고르기는 Purchasable · 거래 중단 아님 · Show all 로 전부
+  const supOpts = (all) => '<option value="">Choose…</option>' + (sup.data || []).filter(s => all || (s.is_purchasable === true && !s.is_discontinued)).map(s => `<option value="${s.id}">${esc(s.name)}${s.is_purchasable === true ? "" : " (not purchasable)"}</option>`).join("");
+  window.__cSupOpts = supOpts;
   const cur = await sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code");
   const today = torontoToday();
   modalOpen(`
     <h4>New charge</h4>
     <div class="pbody">
       <div class="frow"><label>Billed by</label>
-        <select id="cSup"><option value="">Choose…</option>${
-          (sup.data || []).map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select></div>
+        <select id="cSup">${supOpts(false)}</select></div>
+      <div class="frow"><label></label><label style="font-weight:400;font-size:12.5px"><input type="checkbox" id="cSupAll"> Show all suppliers</label></div>
       <div class="frow"><label>Number</label><input id="cNum" placeholder="their invoice number"></div>
       <div class="frow"><label>Charge date</label><input type="date" id="cDate" value="${today}"></div>
       <div class="frow"><label>Due date</label><input type="date" id="cDue"></div>
@@ -742,9 +747,8 @@ imsAuth.start({ changePw:true }, async (client, meData) => {
   const tr = await sb.from("ref_tax_rule").select("id,name,rate_pct").eq("direction", "purchase").eq("is_active", true).order("name");
   TAX_RULES = tr.data || [];
 
-  // ⚠️ Charge suppliers are not purchase suppliers — CBSA and the brokers are marked
-  //    is_purchasable = false, so do NOT filter this list by that column.
-  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).order("name");
+  // chg sup v1 — 판정 950: 운임 · 관세 · 통관 청구처(CBSA · 브로커 · 포워더)도 이제 Purchasable = Yes 로 판정한다(Caleb 2026-11-01) — 그래서 이 목록도 그 칸으로 거른다(옛 주석 「거르지 마라」 는 뒤집혔다)
+  const sup = await sb.from("supplier").select("id,name").eq("is_active", true).eq("is_purchasable", true).order("name");
   if(sup.data) document.getElementById("wsup").innerHTML =
     '<option value="">All suppliers</option>' +
     sup.data.map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join("");

@@ -123,7 +123,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const TF_BUILD = "2026-10-31 · tf ship v1";   // 대화 Claude — 판정 898 · deferred 417: 운송 정보(운송사 · 운송장 PRO · ETA) — 상세 머리 Shipping 줄 + 「Shipping details」 창 → 창구 inv_transfer_shipping_set(세 칸 통째 · received · cancelled 거부) · 목록 Shipping 칸(열린 문서만 inv_transfer 직접 한 번 · id 목록을 주소에 싣지 않는다) · 운송사 = ref_carrier kind carrier · 켜진 것(지금 값이 꺼졌으면 그 하나만 (off)) ← tf cost v1 · 대화 Claude — rls-3b(ada71fa · 판정 580): 원가 열쇠 없으면 inv_transfer_detail 의 freight.posted_cad · charges[].posted_cad · lines[].carried.* 가 null → On stock cost 칸 「—」(경고 색 없음 · title) · Carried cost · Posted 칸 「—」 + title(옛 판은 n0(null)=0 으로 「0.00」 + 틀린 warn) ← tf tx v1 · 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
+const TF_BUILD = "2026-11-01 · tf sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — 운임 청구서 Supplier (carrier) 고르기 = Purchasable · 거래 중단 아님(지금 값은 늘 보인다 · 트랜스퍼 운송사도 Suppliers 화면에서 Yes 여야 고를 수 있다) ← 2026-10-31 · tf ship v1:   // 대화 Claude — 판정 898 · deferred 417: 운송 정보(운송사 · 운송장 PRO · ETA) — 상세 머리 Shipping 줄 + 「Shipping details」 창 → 창구 inv_transfer_shipping_set(세 칸 통째 · received · cancelled 거부) · 목록 Shipping 칸(열린 문서만 inv_transfer 직접 한 번 · id 목록을 주소에 싣지 않는다) · 운송사 = ref_carrier kind carrier · 켜진 것(지금 값이 꺼졌으면 그 하나만 (off)) ← tf cost v1 · 대화 Claude — rls-3b(ada71fa · 판정 580): 원가 열쇠 없으면 inv_transfer_detail 의 freight.posted_cad · charges[].posted_cad · lines[].carried.* 가 null → On stock cost 칸 「—」(경고 색 없음 · title) · Carried cost · Posted 칸 「—」 + title(옛 판은 n0(null)=0 으로 「0.00」 + 틀린 warn) ← tf tx v1 · 대화 Claude — 트랜스퍼 운임 세금(po-tax-2 8c3343d): 운임 창 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서 값) · Tax rule(제안 재료 · 이름) · Check 가 빈 Tax 를 제안값으로 · 고치기 창 열쇠 tax_amount · tax_rule("" = 없음 · tax_rule_id 도 "") · 상세 Before tax · Tax · Total with tax · 트랜스퍼 운임 표 Total incl. tax · 경고 두 문장 ← tf paste v1 · 대화 Claude — tf-paste-2(판정 233 = 판정 171 의 실행 · tf-paste 묶음 7): 초안에 Paste lines — inv_transfer_lines_paste 미리 보기 → 넣기 · 판정 여섯 · 모자람 알림 ← 「tf thumb v1」 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← tf v1.1: New transfer 기본 From Asung Trading Inc. · To Asung - Edmonton(Caleb) ← tf v1:   // 대화 Claude — ⑥-1 · 판정 64 ~ 80 · 창구 715f900 ~ d5c93cc
 console.log("transfers.html build:", TF_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -924,7 +924,7 @@ function chargeForm(v, editing){
   const ruleOpts = `<option value="">${editing ? "— no tax rule —" : "the carrier's rule"}</option>`
     + (editing && v.tax_rule && !TAX_RULES.some(r => r.name === v.tax_rule) ? `<option value="${esc(v.tax_rule)}" selected>${esc(v.tax_rule)} (current · inactive)</option>` : "")
     + TAX_RULES.map(r => `<option value="${esc(r.name)}" ${editing && v.tax_rule === r.name ? "selected" : ""}>${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("");
-  const supOpts = sups.map(s => `<option value="${esc(s.id)}" ${v.supplier_id === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  const supOpts = sups.filter(s => (s.is_purchasable === true && !s.is_discontinued) || s.id === v.supplier_id).map(s => `<option value="${esc(s.id)}" ${v.supplier_id === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("");
   const curOpts = curs.map(c => `<option value="${esc(c.id)}" ${v.currency_id === c.id ? "selected" : ""}>${esc(c.code)}</option>`).join("");
   const kindOpts = Object.keys(KIND_LABEL).map(k => `<option value="${k}" ${v.kind === k ? "selected" : ""}>${KIND_LABEL[k]}</option>`).join("");
   return `
@@ -1233,7 +1233,7 @@ imsAuth.start({ changePw:true, requireScreen:"transfer" }, async (client, meData
   const [ca, wh, su, cu, cr] = await Promise.all([
     sb.rpc("ims_can_adjust"),
     sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name"),
-    sb.from("supplier").select("id,name").eq("is_active", true).order("name"),
+    sb.from("supplier").select("id,name,is_purchasable,is_discontinued").eq("is_active", true).order("name"),   // tf sup v1 — 판정 950
     sb.from("ref_currency").select("id,code,name").eq("is_active", true).order("code"),
     sb.from("ref_carrier").select("id,name,kind,is_active").order("name")   // tf ship v1 — 꺼진 것도(지금 값 표시)
   ]);
