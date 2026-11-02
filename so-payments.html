@@ -79,8 +79,9 @@
     <div class="top">
       <div style="display:flex;gap:6px">
         <button class="pobtn" id="backWide" style="flex:1">‹ All payments</button>
-        <button class="pobtn go" id="newPay" style="flex:1">+ New</button>
+        <button class="pobtn go" id="newPay" style="flex:1" title="Money a customer pays that is not for a particular invoice yet — a deposit or prepayment. Attach it to invoices later.">+ Money on account</button>
       </div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.35">To pay an invoice, open it in <a class="lnk" href="so-invoices.html">Sales Invoices</a> and press Take a payment.</div>
       <input type="search" id="q" placeholder="Reference · customer · invoice">
       <div class="opts">
         <label>Show
@@ -120,7 +121,7 @@
    ⭐ 환불은 붙일 돈이 아니다 — remaining 이 비어 있고, 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9)
    ⭐ held_for_orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다) — 발행 순간 저절로 붙는다
    ───────────────────────────────────────────────────────────── */
-const PAY_BUILD = "2026-10-27 · pay open v1";   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
+const PAY_BUILD = "2026-11-01 · pay label v1";   // 대화 Claude — Caleb 「+New라고 되어 있으니까 헷갈릴것 같아」 · 「상세 화면 안에 있어야 하지 않나?」: 「+ New」 는 인보이스 결제가 아니라 선입금(money on account · 창 제목 Record a payment — money on account) → 단추 글 「+ Money on account」 · 그 아래 안내 한 줄(인보이스 결제는 Sales Invoices 에서 그 인보이스를 열고 Take a payment · 링크) · 동작 무변 ← pay open v1:   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
 console.log("so-payments.html build:", PAY_BUILD);
 
 function torontoToday() {
