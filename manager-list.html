@@ -61,7 +61,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-10-25 · ml v1.3";   // 대화 Claude — manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
+const ML_BUILD = "2026-11-03 · ml v1.4";   // 대화 Claude — ml v1.4(판정 994 · so-inv-branch-1): Unpaid at hand-over 목록 · 배지가 Branch 를 따른다(so_invoice_list.warehouse_id) · All branches 일 때 Branch 칸(이월 인보이스는 「customer's branch」) ← ml v1.3: manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
@@ -94,10 +94,11 @@ async function loadBadges(){
 }
 
 /* ── 즉시 결제 미수 — 인보이스 뷰(남은 금액은 so_invoice_remaining 한 곳) ──
-   ⚠️ 창고 거르기는 인보이스의 오더 창고를 봐야 하는데 뷰에 창고 칸이 없다 → 이번 판은 창고 거르기 없이 전부(⬜ 뷰에 창고 칸) */
+   ml v1.4 — 판정 994: 브랜치 = 뷰 warehouse_id(오더 있으면 첫 SO 창고 · 없으면 매장 → 청구처 기본 브랜치 · so-inv-branch-1) · 목록 · 배지가 같은 거르기 */
 function unpaidQuery(countOnly){
-  let qy = sb.from("so_invoice_list").select(countOnly ? "id" : "id,invoice_number,issued_on,due_on,payment_term_name,bill_to_name,so_numbers,channel,total,paid,credited,remaining,currency_code",
+  let qy = sb.from("so_invoice_list").select(countOnly ? "id" : "id,invoice_number,issued_on,due_on,payment_term_name,bill_to_name,so_numbers,channel,total,paid,credited,remaining,currency_code,warehouse_name,warehouse_source",
     { count: "exact", head: !!countOnly }).eq("is_open", true);
+  if(whId) qy = qy.eq("warehouse_id", whId);   // ml v1.4
   qy = IMMEDIATE.length ? qy.in("payment_term_name", IMMEDIATE) : qy.eq("payment_term_name", "__none__");
   return countOnly ? qy : qy.order("issued_on", { ascending: true }).limit(300);
 }
@@ -158,8 +159,9 @@ async function showUnpaid(box){
       <td class="num">${money(r.total)} <span class="dim">${esc(r.currency_code || "")}</span></td>
       <td class="num">${money(Number(r.paid || 0) + Number(r.credited || 0))}</td>
       <td class="num"><span class="neutral">${money(r.remaining)}</span></td>
+      ${whId ? "" : `<td>${esc(r.warehouse_name || "")}${r.warehouse_source === "store" || r.warehouse_source === "bill_to" ? ' <span class="dim" style="font-size:11.5px" title="No order in IMS (carried over) — the customer\'s home branch">customer\'s branch</span>' : ""}</td>`}
     </tr>`);
-  box.innerHTML = rows.length ? `<table><thead><tr><th>Invoice</th><th>Issued</th><th>Customer</th><th>Term</th><th>Orders</th><th class="num">Total</th><th class="num">Paid · credited</th><th class="num">Still owed</th></tr></thead>
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Invoice</th><th>Issued</th><th>Customer</th><th>Term</th><th>Orders</th><th class="num">Total</th><th class="num">Paid · credited</th><th class="num">Still owed</th>${whId ? "" : "<th>Branch</th>"}</tr></thead>
       <tbody>${rows.join("")}</tbody></table>
       <div class="sosub">The customer's term says pay before or on delivery (${esc(IMMEDIATE.join(" · ") || "no such term found")}), but the goods went out with money still owed. Open the invoice to take the payment. It drops off this list once it is paid.
         ⚠️ Customer payment terms are still being cleaned up — a customer with the wrong term shows here (or is missing) until then.</div>`
