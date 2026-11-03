@@ -11,7 +11,7 @@
      Same frame as stock-adjustments.html (adj v1.2). */
   main{display:flex;flex-direction:column;gap:14px;padding:14px}
   .pobox input,.pobox select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
-  .pobox{max-width:720px}
+  .pobox{max-width:720px;padding:16px 18px;overflow:auto;box-sizing:border-box}   /* pad v1 — 옛 꼴 팝업에 안쪽 여백(공통 .pobox 는 여백 없음) */
 
   .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
   .gap .g{display:flex;flex-direction:column;gap:2px}
@@ -97,7 +97,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const SM_BUILD = "2026-11-02 · sm bal-of v1";   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← sm v1 · trf-c(대화 Claude) — 판정 60 ~ 63 · 창구 1429943
+const SM_BUILD = "2026-11-02 · sm pad v1";   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 이 화면의 팝업은 h4 · .pbody · .pfoot 없이 .pobox 에 바로 쓰는 옛 꼴인데 ims-ui.css 의 .pobox 는 여백이 없다(af06c61 부터 · 여백은 .pbody 몫) → 지역 규칙으로 .pobox 에 안쪽 여백 · 넘치면 스크롤 · box-sizing ← sm bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← sm v1 · trf-c(대화 Claude) — 판정 60 ~ 63 · 창구 1429943
 console.log("stock-moves.html build:", SM_BUILD);
 
 let sb = null, me = null, canMove = false;
