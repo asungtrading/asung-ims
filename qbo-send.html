@@ -63,11 +63,12 @@
         <option value="invoice">Invoices only</option>
         <option value="credit">Credit notes only</option>
         <option value="voids">Cancellations (void)</option>
+        <option value="payments">Payments</option>
         <option value="setup">Customers and items</option>
         <option value="">Everything</option>
       </select>
       <input type="date" id="ffrom"><span class="dash">–</span><input type="date" id="fto">
-      <input type="search" id="fq" placeholder="Invoice · credit number · customer">
+      <input type="search" id="fq" placeholder="Invoice · credit number · payment reference · customer">
       <button class="pobtn" id="fclear">Clear</button>
     </div>
     <div class="acts">
@@ -95,7 +96,7 @@
    문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
    ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
    ───────────────────────────────────────────────────────────── */
-const QS_BUILD = "2026-11-02 · qs v1";   // 대화 Claude — 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+const QS_BUILD = "2026-11-03 · qs pay v1";   // 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
 console.log("qbo-send.html build:", QS_BUILD);
 
 const PAGE = 50, SEND_MAX = 10;
@@ -106,9 +107,9 @@ let busy = false;
 
 const KINDS = {
   docs: ["invoice", "credit", "invoice_void", "credit_void"], invoice: ["invoice"], credit: ["credit"],
-  voids: ["invoice_void", "credit_void"], setup: ["customer", "item"], "": null
+  voids: ["invoice_void", "credit_void"], payments: ["payment", "payment_void"], setup: ["customer", "item"], "": null
 };
-const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "Void invoice", credit_void: "Void credit note", customer: "Customer", item: "Item" };
+const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "Void invoice", credit_void: "Void credit note", customer: "Customer", item: "Item", payment: "Payment", payment_void: "Void payment" };
 const STATE_CHIP = {
   queued: ["", "waiting"], blocked: ["warn", "blocked"], sending: ["warn", "sending"], sent: ["good", "sent"],
   failed: ["bad", "failed"], unknown: ["bad", "result unknown"], skipped: ["", "skipped"]
@@ -286,6 +287,35 @@ function lineRows(lines){
     </tr>`;
   }).join("");
 }
+/* qs pay v1 — 결제 미리 보기(판정 978 · 980 · 988 · 2e-1b 몸): 인보이스 칸(DocNumber · 주소 · 메일) 대신 결제 칸 · 줄은 check_lines(붙는 인보이스) · void 는 Id · SyncToken 만 */
+function payPreview(p, b, doc, needs, kv){
+  if(b.Id && !b.TotalAmt && !b.Line) return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("QuickBooks payment", `<span class="mono">#${esc(b.Id)}</span> · version ${esc(b.SyncToken || "")}`)}
+        ${kv("What happens", "QuickBooks keeps the payment with amount 0 and marks it Voided — the invoices it paid go back to open. IMS then sends the payment again if it still applies to invoices.")}
+      </tbody></table>`;
+  const cl = p.check_lines || [], t = p.totals || {};
+  const ref = (o) => o && o.value ? `<span class="mono">${esc(o.value)}</span>` : dash;
+  return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("Date", esc(b.TxnDate || "") || dash)}
+        ${kv("Customer (QuickBooks)", b.CustomerRef ? `${ref(b.CustomerRef)} · ${esc(doc.name || "")}` : (needs.some(n => n.kind === "customer") ? "new customer — created first" : dash))}
+        ${kv("Amount", `<b class="mono">${money(b.TotalAmt)}</b> ${esc((b.CurrencyRef && b.CurrencyRef.value) || "")}`)}
+        ${kv("Method (QuickBooks)", ref(b.PaymentMethodRef))}
+        ${kv("Deposit to (QuickBooks account)", ref(b.DepositToAccountRef))}
+        ${kv("Reference", esc(b.PaymentRefNum || "") || dash)}
+        ${kv("Private note", esc(b.PrivateNote || "") || dash)}
+      </tbody></table>
+      <table style="margin-top:10px"><thead><tr><th>Applies to invoice</th><th>QuickBooks invoice</th><th class="num">Amount</th></tr></thead>
+        <tbody>${cl.length ? cl.map(c => `<tr><td class="mono">${esc(c.invoice_number || "")}</td><td class="mono">${c.qbo_invoice_id ? "#" + esc(c.qbo_invoice_id) : dash}</td><td class="num">${money(c.amount)}</td></tr>`).join("")
+          : '<tr><td colspan="3" class="dim">No invoice applied.</td></tr>'}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Payment <b class="mono">${money(t.amount !== undefined ? t.amount : b.TotalAmt)}</b></span>
+        <span>Applied <b class="mono">${money(t.applied)}</b></span>
+        <span>Not applied <b class="mono">${money(t.unapplied)}</b></span>
+      </div>
+      <div class="dim" style="font-size:12px;margin-top:6px">Before it writes, IMS reads each invoice in QuickBooks and does not send if QuickBooks already shows it paid.</div>`;
+}
 async function openPreview(id){
   modalOpen('<h4>Preview</h4><div class="pbody"><div class="msg">Loading…</div></div>');
   const { data, error } = await sb.rpc("qbo_job_preview", { p_job: id });
@@ -295,6 +325,7 @@ async function openPreview(id){
   const needs = p.needs || [];
   const sendable = canSend(r) && !p.error;
   const kv = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  const isPay = (j.kind || r.kind) === "payment" || (j.kind || r.kind) === "payment_void";   // qs pay v1
   modalOpen(`
     <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")} · ${esc(doc.name || r.name || "")}</h4>
     <div class="pbody pv">
@@ -304,7 +335,7 @@ async function openPreview(id){
       ${needs.length ? `<div class="needbox"><b>Created in QuickBooks first, in the same send:</b><br>${needs.map(n =>
           `${esc(KIND_LABEL[n.kind] || n.kind)} <span class="mono">${esc(n.name || "")}</span>${n.job_state ? " · " + esc(n.job_state) : ""}${n.job_error ? ` · <span class="bad">${esc(n.job_error)}</span>` : ""}`).join("<br>")}</div>` : ""}
       ${(p.warnings || []).length ? `<div class="needbox">${(p.warnings || []).map(w => esc(typeof w === "string" ? w : JSON.stringify(w))).join("<br>")}</div>` : ""}
-      ${b && Object.keys(b).length ? `
+      ${isPay && b && Object.keys(b).length ? payPreview(p, b, doc, needs, kv) : b && Object.keys(b).length ? `
       <table class="kv" style="margin-top:10px"><tbody>
         ${kv("Number", `<span class="mono">${esc(b.DocNumber || "")}</span>`)}
         ${kv("Date · due", esc([b.TxnDate, b.DueDate].filter(Boolean).join(" · ")) || dash)}

@@ -121,7 +121,7 @@
    ⭐ 환불은 붙일 돈이 아니다 — remaining 이 비어 있고, 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9)
    ⭐ held_for_orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다) — 발행 순간 저절로 붙는다
    ───────────────────────────────────────────────────────────── */
-const PAY_BUILD = "2026-11-01 · pay label v1";   // 대화 Claude — Caleb 「+New라고 되어 있으니까 헷갈릴것 같아」 · 「상세 화면 안에 있어야 하지 않나?」: 「+ New」 는 인보이스 결제가 아니라 선입금(money on account · 창 제목 Record a payment — money on account) → 단추 글 「+ Money on account」 · 그 아래 안내 한 줄(인보이스 결제는 Sales Invoices 에서 그 인보이스를 열고 Take a payment · 링크) · 동작 무변 ← pay open v1:   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
+const PAY_BUILD = "2026-11-03 · pay pd v1";   // 대화 Claude — pd v1(판정 979 · 991 · 2e-1a f7ca811): 결제 날짜 칸 상한 오늘 → 오늘 + 365(post-dated 수표 · 수표 날짜로) · 안내 한 줄 · 미래 날짜 결제에 「post-dated」 칩 · 환불 창은 「Refunded on」 · 오늘까지 · 수단 이름 paypal → PayPal ← 2026-11-01 · pay label v1: 대화 Claude — Caleb 「+New라고 되어 있으니까 헷갈릴것 같아」 · 「상세 화면 안에 있어야 하지 않나?」: 「+ New」 는 인보이스 결제가 아니라 선입금(money on account · 창 제목 Record a payment — money on account) → 단추 글 「+ Money on account」 · 그 아래 안내 한 줄(인보이스 결제는 Sales Invoices 에서 그 인보이스를 열고 Take a payment · 링크) · 동작 무변 ← pay open v1:   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
 console.log("so-payments.html build:", PAY_BUILD);
 
 function torontoToday() {
@@ -144,11 +144,16 @@ const money = (v) => (v === null || v === undefined || v === "")
   : esc(Number(v).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 const orTerm = (t) => String(t || "").replace(/[,()"\\]/g, "%");
 const METHODS = [["credit_card","Credit card"],["debit_card","Debit card"],["cash","Cash"],["e_transfer","e-Transfer"],["cheque","Cheque"],["wire","Wire"],["direct_deposit","Direct deposit"],["shopify","Shopify"]];
-const mLabel = (m) => m === "opening" ? "Carried over (before IMS)" : ((METHODS.find(x => x[0] === m) || [0, m])[1] || "");   // pay open v1
+const mLabel = (m) => m === "opening" ? "Carried over (before IMS)" : m === "paypal" ? "PayPal" : ((METHODS.find(x => x[0] === m) || [0, m])[1] || "");   // pd v1 — paypal(986 · 받기만 · 손 입력 목록에는 없다)   // pay open v1
 const acctLabel = (code, name) => code ? `<span class="mono">${esc(code)}</span>${(name || ACCT_NAME[code]) ? ` <span class="dim">${esc(name || ACCT_NAME[code])}</span>` : ""}` : '<span class="dim">—</span>';
 const SRC = { manual: "by hand", auto_deposit: "deposit · auto", auto_balance: "on account · auto", auto: "auto" };
 
-function payChip(r){
+/* pd v1 — 판정 979 · 991: post-dated 수표는 수표에 적힌 날짜로 · 1 년 안(so_payment_add 가 받는다 · 넘으면 거부) · 환불은 오늘까지(so_payment_refund 미래 거부 그대로) */
+function payDateMax(){ const d = new Date(torontoToday() + "T12:00:00"); d.setDate(d.getDate() + 365); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+const isPostDated = (d) => !!d && String(d) > torontoToday();
+const pdChip = (d) => isPostDated(d) ? ' <span class="chip warn" title="Post-dated cheque — dated as written on the cheque">post-dated</span>' : "";
+function payChip(r){ return payChip0(r) + (r.status === "voided" || r.kind === "refund" ? "" : pdChip(r.paid_on)); }   // pd v1
+function payChip0(r){
   if(r.status === "voided") return '<span class="chip bad">voided</span>';
   if(r.kind === "refund") return '<span class="chip warn">refund</span>';
   if(r.held_for_orders) return '<span class="chip">held for orders</span>';
@@ -326,7 +331,7 @@ function custPicker(onPick){
 const payFields = (needAcct) => `
   <div class="frow"><label>Method</label><select id="pyM" class="sofield">${METHODS.map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
   <div class="frow"><label>Amount</label><input id="pyA" class="sofield" type="number" step="0.01" min="0.01"></div>
-  <div class="frow"><label>Paid on</label><input id="pyD" class="sofield" type="date" value="${torontoToday()}" max="${torontoToday()}"></div>
+  <div class="frow"><label>${needAcct ? "Refunded on" : "Paid on"}</label><input id="pyD" class="sofield" type="date" value="${torontoToday()}" max="${needAcct ? torontoToday() : payDateMax()}"></div>${needAcct ? "" : '\n  <div class="frow"><label></label><span class="dim" style="font-size:12px">A post-dated cheque: the date written on the cheque (up to a year ahead) · one cheque = one payment.</span></div>'}
   <div class="frow"><label>Reference</label><input id="pyR" class="sofield" placeholder="card slip · cheque no. · transfer ref"></div>
   <div class="frow"><label>Branch</label><select id="pyW" class="sofield"><option value="">Customer's default branch</option>${WHS.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
   <div class="frow"><label>Account</label><select id="pyAcc" class="sofield"><option value="">${needAcct ? "— pick the account the money leaves from" : "Default for this method and branch"}</option>
@@ -518,7 +523,7 @@ async function loadDetail(id){
 
   const kvL = [
     ["Customer",   esc(v.customer_name || "")],
-    ["Paid on",    dim(v.paid_on)],
+    ["Paid on",    dim(v.paid_on) + (v.status === "voided" || v.kind === "refund" ? "" : pdChip(v.paid_on))],
     ["Method",     esc(mLabel(v.method))],
     ["Reference",  `<span class="mono">${dim(v.reference)}</span>`],
     ["Account",    acctLabel(v.account_code, v.account_name)],
