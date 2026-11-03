@@ -104,7 +104,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-11-02 · chg duty v1";   // 대화 Claude — chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-11-02 · chg duty v2";   // 대화 Claude — chg duty v2(Caleb 같은 날 · DB 무변): 관세 칸이 비면 「Duty (before tax) is required — type 0 if the bill has no duty」 · 경고 total_amount_zero 를 사람 말로(관세 0 · GST 만 있는 CBSA 청구서는 흔하다 — 경고일 뿐 막지 않는다) ← chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -337,7 +337,7 @@ async function loadDetail(id){
     </div>`;
 
   const warn = (data.warnings || []).length
-    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(w => esc(WARN_TEXT[w] || w)).join(" · ")}</div></div>` : "";
+    ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(w => esc(warnText(w, h.kind === "duty"))).join(" · ")}</div></div>` : "";
 
   const isDuty = (h.kind === "duty");   // chg duty v1
   box.innerHTML = `
@@ -418,8 +418,13 @@ async function loadDetail(id){
    A current value missing from the list (inactive) stays as "(current · inactive)" so an untouched field never saves a change. */
 const WARN_TEXT = {
   tax_amount_zero_with_rate: "The biller's tax rule has a rate but Tax is 0 — type the tax printed on the bill (leave 0 only if the bill really has none)",
-  tax_amount_not_given: "No tax was entered — saved as 0"
+  tax_amount_not_given: "No tax was entered — saved as 0",
+  total_amount_zero: "The amount before tax is 0 — nothing goes onto the cost of the goods; only the tax is owed (fine for a bill that really has none)"   // chg duty v2
 };
+const WARN_DUTY = {   // chg duty v2 — Kind = duty 일 때만 다른 말
+  total_amount_zero: "No duty on this bill — nothing goes onto the cost of the goods; only the GST on import is owed (fine for a CBSA bill with GST only)"
+};
+const warnText = (w, duty) => (duty && WARN_DUTY[w]) || WARN_TEXT[w] || w;
 function taxLabel(name, rate){
   if(!name) return '<span class="dim">—</span>';
   return esc(name) + (rate === null || rate === undefined ? "" : ` <span class="dim">${esc(Number(rate))}%</span>`);
@@ -702,6 +707,9 @@ async function openCreate(preselectPoId){
   imsQ("#poQ", draw);
   draw();
 
+  // chg duty v2 — 관세 청구서에서 서버의 「Total amount is required」 를 칸 이름에 맞춰
+  const dutyErr = (msg) => (document.getElementById("cKind").value === "duty" && /total amount is required/i.test(msg || ""))
+    ? "Duty (before tax) is required — type 0 if the bill has no duty. Nothing was saved." : msg;
   const args = () => ({
     p_supplier_id:  document.getElementById("cSup").value || null,
     p_charge_number: document.getElementById("cNum").value.trim(),
@@ -734,7 +742,7 @@ async function openCreate(preselectPoId){
   document.getElementById("cChk").onclick = async () => {
     say("cMsg", "", "Checking…");
     const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:false }));
-    if(error){ say("cMsg", "err", error.message); document.getElementById("cGo").disabled = true; return; }
+    if(error){ say("cMsg", "err", dutyErr(error.message)); document.getElementById("cGo").disabled = true; return; }
     drawProposal(data);
     // chg tx v1 — 빈 Tax 칸에 제안값을 채운다(사람이 본 값을 보낸다 · po-tax-2 ㉡)
     const taxBox = document.getElementById("cTax");
@@ -743,7 +751,7 @@ async function openCreate(preselectPoId){
       if(taxBox.value.trim() === ""){ say("cMsg", "err", "Type the GST on import from the CBSA bill (0 if the bill has none), then press Check again."); document.getElementById("cGo").disabled = true; return; }
     } else if(taxBox.value.trim() === "" && data.tax_suggested !== null && data.tax_suggested !== undefined) taxBox.value = String(data.tax_suggested);
     const w = (data.warnings || []).filter(x => x !== "tax_amount_not_given");
-    say("cMsg", w.length ? "err" : "on", (w.length ? "⚠ " + w.map(x => WARN_TEXT[x] || x).join(" · ") : "Looks fine — press Create.")
+    say("cMsg", w.length ? "err" : "on", (w.length ? "⚠ " + w.map(x => warnText(x, document.getElementById("cKind").value === "duty")).join(" · ") : "Looks fine — press Create.")
       + (data.tax_rule ? ` · Tax rule ${data.tax_rule}` : "") + ` · ${document.getElementById("cKind").value === "duty" ? "GST on import" : "Tax"} ${money(Number(taxBox.value || 0))} — check it against the bill`);
     // ⚠️ A number that already exists is only a warning here; the commit refuses it.
     document.getElementById("cGo").disabled = w.includes("charge_number_exists");
@@ -752,9 +760,9 @@ async function openCreate(preselectPoId){
   document.getElementById("cGo").onclick = async () => {
     say("cMsg", "", "Creating…");
     const { data, error } = await sb.rpc("po_charge_create", Object.assign(args(), { p_commit:true }));
-    if(error){ say("cMsg", "err", error.message); return; }
+    if(error){ say("cMsg", "err", dutyErr(error.message)); return; }
     modalClose();
-    if((data.warnings || []).length) alert("⚠ " + data.warnings.map(x => WARN_TEXT[x] || x).join("\n⚠ "));
+    if((data.warnings || []).length) alert("⚠ " + data.warnings.map(x => warnText(x, document.getElementById("cKind").value === "duty")).join("\n⚠ "));
     openChg(data.charge_id);
   };
 }
