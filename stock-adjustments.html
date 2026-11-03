@@ -110,7 +110,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-10-01 · adj thumb v1";   // 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
+const ADJ_BUILD = "2026-11-02 · adj bal-of v1";   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← adj thumb v1 · 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
 console.log("stock-adjustments.html build:", ADJ_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -524,8 +524,8 @@ function openLine(h, line, pre){
     if(!st.product_id){ box.innerHTML = ""; return; }
     const pid = st.product_id;
     const [r1, r2] = await Promise.all([
-      sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active")
-        .eq("product_id", pid).eq("warehouse_id", h.warehouse_id).not("bin_id", "is", null)
+      sb.rpc("ims_inv_balance_of", { p_product_ids: [pid], p_warehouse_id: h.warehouse_id }).select("bin_id,bin,qty,bin_is_active")
+        .not("bin_id", "is", null)
         .order("qty", { ascending:false }).order("bin").limit(50),
       sb.rpc("ims_last_bin", { p_product_ids: [pid], p_warehouse_id: h.warehouse_id })
     ]);

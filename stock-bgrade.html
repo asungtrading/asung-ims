@@ -93,7 +93,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const BG_BUILD = "2026-10-23 · bgr v1";   // 대화 Claude — bgr-1a e73c83c · bgr-1b 3230cff · bgr-1c c60eb9e(판정 629 ~ 648): 새 화면 — B급 재고 목록(bgrade_stock · 창고 · 값 없음만 · 찾기) · Move to B-grade(bgrade_move_in · 값 또는 Wholesale 에서 깎는 %) · Move back(bgrade_move_out) · Set price / Reprice(bgrade_price_set · p_reprice · 라벨 다시 붙이기 안내) · 문 = ims_can_adjust
+const BG_BUILD = "2026-11-02 · bgr bal-of v1";   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← bgr v1 · 대화 Claude — bgr-1a e73c83c · bgr-1b 3230cff · bgr-1c c60eb9e(판정 629 ~ 648): 새 화면 — B급 재고 목록(bgrade_stock · 창고 · 값 없음만 · 찾기) · Move to B-grade(bgrade_move_in · 값 또는 Wholesale 에서 깎는 %) · Move back(bgrade_move_out) · Set price / Reprice(bgrade_price_set · p_reprice · 라벨 다시 붙이기 안내) · 문 = ims_can_adjust
 console.log("stock-bgrade.html build:", BG_BUILD);
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
 const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
@@ -323,8 +323,8 @@ async function openMoveIn(){
     const hint = document.getElementById("mFromHint");
     if(!st.product_id){ box.innerHTML = ""; hint.textContent = "Pick the product first."; return; }
     const pid = st.product_id;
-    const { data, error } = await sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
-      .eq("product_id", pid).eq("warehouse_id", st.wh).not("bin_id", "is", null).order("qty", { ascending:false }).order("bin").limit(50);
+    const { data, error } = await sb.rpc("ims_inv_balance_of", { p_product_ids: [pid], p_warehouse_id: st.wh }).select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
+      .not("bin_id", "is", null).order("qty", { ascending:false }).order("bin").limit(50);
     if(st.product_id !== pid || !document.getElementById("mFrom")) return;
     if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
     const reg = (data || []).filter(r => !r.bin_is_bgrade && r.bin_is_active !== false && Number(r.qty) > 0);
@@ -438,8 +438,8 @@ async function openBack(r){
   };
   /* where this SKU lives in regular bins now · or the last regular bin it was in (ims_last_bin skips B-grade bins) */
   const [r1, r2] = await Promise.all([
-    sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
-      .eq("product_id", r.product_id).eq("warehouse_id", r.warehouse_id).not("bin_id", "is", null).order("qty", { ascending:false }).limit(50),
+    sb.rpc("ims_inv_balance_of", { p_product_ids: [r.product_id], p_warehouse_id: r.warehouse_id }).select("bin_id,bin,qty,bin_is_active,bin_is_bgrade")
+      .not("bin_id", "is", null).order("qty", { ascending:false }).limit(50),
     sb.rpc("ims_last_bin", { p_product_ids: [r.product_id], p_warehouse_id: r.warehouse_id })
   ]);
   if(!document.getElementById("bHere")) return;

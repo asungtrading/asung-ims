@@ -97,7 +97,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const SM_BUILD = "2026-09-28 · sm v1";   // trf-c(대화 Claude) — 판정 60 ~ 63 · 창구 1429943
+const SM_BUILD = "2026-11-02 · sm bal-of v1";   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← sm v1 · trf-c(대화 Claude) — 판정 60 ~ 63 · 창구 1429943
 console.log("stock-moves.html build:", SM_BUILD);
 
 let sb = null, me = null, canMove = false;
@@ -406,8 +406,8 @@ function openLine(h, line){
     const box = document.getElementById("lfHere"); if(!box) return;
     if(!st.product_id){ box.innerHTML = ""; return; }
     const pid = st.product_id;
-    const { data, error } = await sb.from("ims_inv_balance").select("bin_id,bin,qty,bin_is_active")
-      .eq("product_id", pid).eq("warehouse_id", h.warehouse_id).not("bin_id", "is", null).gt("qty", 0).order("qty", { ascending:false }).limit(50);
+    const { data, error } = await sb.rpc("ims_inv_balance_of", { p_product_ids: [pid], p_warehouse_id: h.warehouse_id }).select("bin_id,bin,qty,bin_is_active")
+      .not("bin_id", "is", null).gt("qty", 0).order("qty", { ascending:false }).limit(50);
     if(st.product_id !== pid || !document.getElementById("lfHere")) return;
     if(error || !data || !data.length){ box.innerHTML = error ? "" : '<div class="dim" style="font-size:12px;margin-top:4px">The book has none of this SKU in this warehouse — nothing to move.</div>'; return; }
     box.innerHTML = `<div class="dim" style="font-size:12px;margin-top:4px">Where the book says it is now:</div>
