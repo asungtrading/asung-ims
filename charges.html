@@ -104,7 +104,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-11-01 · chg sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-11-02 · chg duty v1";   // 대화 Claude — chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -339,6 +339,7 @@ async function loadDetail(id){
   const warn = (data.warnings || []).length
     ? `<div class="card"><div class="msg err">&#9888; ${(data.warnings || []).map(w => esc(WARN_TEXT[w] || w)).join(" · ")}</div></div>` : "";
 
+  const isDuty = (h.kind === "duty");   // chg duty v1
   box.innerHTML = `
     <div class="card">
       <div class="head">
@@ -348,20 +349,20 @@ async function loadDetail(id){
         </div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)">
-          <span>Before tax</span>
+          <span>${isDuty ? "Duty (before tax)" : "Before tax"}</span>
           ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.total_amount)}" data-prev="${esc(h.total_amount)}" data-head="total_amount">`
                : `<span class="mono">${money(h.total_amount)}</span>`}
-          <span>Tax</span>
-          ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.tax_amount ?? 0)}" data-prev="${esc(h.tax_amount ?? 0)}" data-head="tax_amount" title="Type the tax printed on the bill">`
+          <span>${isDuty ? "GST on import" : "Tax"}</span>
+          ${ed ? `<input class="qin pin" type="number" step="any" value="${esc(h.tax_amount ?? 0)}" data-prev="${esc(h.tax_amount ?? 0)}" data-head="tax_amount" title="${isDuty ? "Type the GST printed on the CBSA bill" : "Type the tax printed on the bill"}">`
                : `<span class="mono">${money(h.tax_amount || 0)}</span>`}
           <span class="mono">${esc(h.currency_code || "")}</span>
-          ${ed && Number(m.tax_suggested) && Number(m.tax_suggested) !== Number(h.tax_amount)
+          ${ed && !isDuty && Number(m.tax_suggested) && Number(m.tax_suggested) !== Number(h.tax_amount)
               ? `<span class="dim">· the rule suggests ${money(m.tax_suggested)} — use what the bill says</span>` : ""}
         </div>
       </div>
       <div class="gap">
-        <div class="g"><b>${money(m.total_amount)}</b><span>Before tax</span></div>
-        <div class="g"><b>${money(m.tax_amount || 0)}</b><span>Tax</span></div>
+        <div class="g"><b>${money(m.total_amount)}</b><span>${isDuty ? "Duty (before tax)" : "Before tax"}</span></div>
+        <div class="g"><b>${money(m.tax_amount || 0)}</b><span>${isDuty ? "GST on import" : "Tax"}</span></div>
         <div class="g"><b>${money(m.total_with_tax ?? m.total_amount)}</b><span>Total with tax</span></div>
         <div class="g"><b>${money(m.alloc_sum)}</b><span>Allocated</span></div>
         <div class="g ${balanced ? "ok" : "bad"}"><b>${money(m.unallocated)}</b><span>Not allocated</span></div>
@@ -624,12 +625,12 @@ async function openCreate(preselectPoId){
           <option value="brokerage">Brokerage</option>
           <option value="other">Other</option>
         </select></div>
-      <div class="frow"><label>Before tax</label><input id="cTotal" placeholder="the amount before tax"></div>
-      <div class="frow"><label>Tax</label><input id="cTax" placeholder="the tax printed on the bill"></div>
+      <div class="frow"><label id="cTotalL">Before tax</label><input id="cTotal" placeholder="the amount before tax"></div>
+      <div class="frow"><label id="cTaxL">Tax</label><input id="cTax" placeholder="the tax printed on the bill"></div>
       <div class="frow"><label>Tax rule</label>
         <select id="cRule"><option value="">the biller's rule</option>${
           TAX_RULES.map(r => `<option value="${esc(r.name)}">${esc(r.name)} · ${esc(Number(r.rate_pct))}%</option>`).join("")}</select></div>
-      <div class="dim" style="font-size:12px;margin:-2px 0 6px">Only the amount before tax goes onto the cost of the goods. Import GST on a customs bill
+      <div class="dim" id="cTaxHint" style="font-size:12px;margin:-2px 0 6px">Only the amount before tax goes onto the cost of the goods. Import GST on a customs bill
         cannot be worked out from a rate — type it from the bill. Check fills an empty Tax with what the rule suggests; change it to the bill.</div>
       <div class="frow"><label>Currency</label>
         <select id="cCur"><option value="">Choose…</option>${
@@ -655,6 +656,22 @@ async function openCreate(preselectPoId){
 
   const picked = new Set();
   if(preselectPoId) picked.add(preselectPoId);
+
+  // chg duty v1 — Kind = duty 이면 CBSA 청구서 말로 · 다른 종류는 그대로
+  const HINT_STD = document.getElementById("cTaxHint").innerHTML;
+  const kindView = () => {
+    const duty = document.getElementById("cKind").value === "duty";
+    document.getElementById("cTotalL").textContent = duty ? "Duty (before tax)" : "Before tax";
+    document.getElementById("cTaxL").textContent   = duty ? "GST on import" : "Tax";
+    document.getElementById("cTotal").placeholder  = duty ? "the duty on the CBSA bill" : "the amount before tax";
+    document.getElementById("cTax").placeholder    = duty ? "the GST printed on the CBSA bill" : "the tax printed on the bill";
+    document.getElementById("cTaxHint").innerHTML  = duty
+      ? "A CBSA bill goes in as one charge: the <b>duty</b> in Duty (before tax) — this goes onto the cost of the goods — and the <b>GST on import</b> exactly as printed on the bill. The GST is not worked out from a rate (it is charged on the goods plus the duty), so Check will not fill it in for you. If the bill has no GST, type 0."
+      : HINT_STD;
+    document.getElementById("cGo").disabled = true;
+  };
+  document.getElementById("cKind").onchange = kindView;
+  kindView();
 
   const draw = async () => {
     const t = document.getElementById("poQ").value.trim();
@@ -721,10 +738,13 @@ async function openCreate(preselectPoId){
     drawProposal(data);
     // chg tx v1 — 빈 Tax 칸에 제안값을 채운다(사람이 본 값을 보낸다 · po-tax-2 ㉡)
     const taxBox = document.getElementById("cTax");
-    if(taxBox.value.trim() === "" && data.tax_suggested !== null && data.tax_suggested !== undefined) taxBox.value = String(data.tax_suggested);
+    // chg duty v1 — 관세 청구서는 제안값을 채우지 않는다 · GST 칸이 비면 여기서 멈춘다
+    if(document.getElementById("cKind").value === "duty"){
+      if(taxBox.value.trim() === ""){ say("cMsg", "err", "Type the GST on import from the CBSA bill (0 if the bill has none), then press Check again."); document.getElementById("cGo").disabled = true; return; }
+    } else if(taxBox.value.trim() === "" && data.tax_suggested !== null && data.tax_suggested !== undefined) taxBox.value = String(data.tax_suggested);
     const w = (data.warnings || []).filter(x => x !== "tax_amount_not_given");
     say("cMsg", w.length ? "err" : "on", (w.length ? "⚠ " + w.map(x => WARN_TEXT[x] || x).join(" · ") : "Looks fine — press Create.")
-      + (data.tax_rule ? ` · Tax rule ${data.tax_rule}` : "") + ` · Tax ${money(Number(taxBox.value || 0))} — check it against the bill`);
+      + (data.tax_rule ? ` · Tax rule ${data.tax_rule}` : "") + ` · ${document.getElementById("cKind").value === "duty" ? "GST on import" : "Tax"} ${money(Number(taxBox.value || 0))} — check it against the bill`);
     // ⚠️ A number that already exists is only a warning here; the commit refuses it.
     document.getElementById("cGo").disabled = w.includes("charge_number_exists");
   };
