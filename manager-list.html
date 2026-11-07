@@ -38,6 +38,7 @@
       <button data-t="pos">POS not finished<span class="badge zero" id="bPos">0</span></button>
       <button data-t="counter">Counter orders</button>
       <button data-t="newcust">New customers to review<span class="badge zero" id="bNewCust">0</span></button>
+      <button data-t="pickup">Pickups not scheduled<span class="badge zero" id="bPickup">0</span></button>
       <span class="sp"></span>
       <select id="wh" title="Branch"><option value="">All branches</option></select>
     </div>
@@ -61,7 +62,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-11-03 · ml v1.4";   // 대화 Claude — ml v1.4(판정 994 · so-inv-branch-1): Unpaid at hand-over 목록 · 배지가 Branch 를 따른다(so_invoice_list.warehouse_id) · All branches 일 때 Branch 칸(이월 인보이스는 「customer's branch」) ← ml v1.3: manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
+const ML_BUILD = "2026-11-06 · ml v1.5";   // 대화 Claude — ml v1.5(fc-pickup-4 · ac-count-1): 여섯째 탭 Pickups not scheduled(fc_pickup_attention_list · Check pickup = EF freightcom pickup_poll) · 배지 다섯을 ims_action_counts 한 번으로(함수가 없으면 옛 길) · All branches 면 바깥 메뉴 배지도 같은 숫자로(window.imsActionBadgeSet) ← 2026-11-03 · ml v1.4: 대화 Claude — ml v1.4(판정 994 · so-inv-branch-1): Unpaid at hand-over 목록 · 배지가 Branch 를 따른다(so_invoice_list.warehouse_id) · All branches 일 때 Branch 칸(이월 인보이스는 「customer's branch」) ← ml v1.3: manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
@@ -79,7 +80,17 @@ function daysAgo(d){
 }
 
 /* ── 배지 넷을 한 번에(탭을 바꾸지 않아도 쌓인 것이 보이게) ── */
+/* ml v1.5 — 숫자 다섯은 ims_action_counts 한 번(ac-count-1 · 탭 원천과 같은 셈) · 못 보는 항목은 null → 0 · 함수가 없거나 실패하면 옛 길(loadBadgesOld) */
 async function loadBadges(){
+  const { data, error } = await sb.rpc("ims_action_counts", { p_warehouse_id: whId || null });
+  if(error || !data){ return loadBadgesOld(); }
+  badge("bShort", data.short || 0); badge("bUnpaid", data.unpaid || 0); badge("bPos", data.pos || 0);
+  badge("bNewCust", data.new_customers || 0); badge("bPickup", data.pickups || 0);
+  if(!whId && typeof window.imsActionBadgeSet === "function") window.imsActionBadgeSet(data.total || 0);   // 바깥 메뉴도 같은 숫자(All branches)
+}
+async function loadBadgesOld(){
+  const pk = await sb.rpc("fc_pickup_attention_list", { p_warehouse_id: whId || null });
+  if(!pk.error && pk.data) badge("bPickup", pk.data.count || 0);
   const [sh, un, po, nc] = await Promise.all([
     sb.rpc("so_stock_short_list", { p_filters: Object.assign({ unchecked_only: true }, whId ? { warehouse_id: whId } : {}) }),
     unpaidQuery(true),
@@ -112,6 +123,7 @@ async function show(){
   if(tab === "pos")     return showPos(box);
   if(tab === "counter") return showCounter(box);
   if(tab === "newcust") return showNewCust(box);
+  if(tab === "pickup")  return showPickup(box);
 }
 
 /* ① 재고 없이 나갔다 — 미확인은 기간과 상관없이 전량 · 확인된 것은 최근 30일 */
@@ -220,6 +232,44 @@ async function showNewCust(box){
         <td><a class="lnk" href="customers.html?id=${encodeURIComponent(c.customer_id)}">Open</a></td></tr>`).join("")}</tbody></table>
       <div class="sosub">Customers made by sales start on the default terms (Wholesale · 0% · C.B.S · CAD). A manager opens each one, changes the terms if needed, and presses Reviewed — changing a money term counts as reviewed too.</div>`
     : '<div class="msg">No new customers waiting for review.</div>';
+}
+
+/* ⑥ 픽업이 안 잡힌 예약(ml v1.5 · fc-pickup-4) — fc_pickup_attention_list(판정은 DB fc_pickup_check · 창 = 자동 다시 읽기와 같은 기간)
+   ⭐ 출고 뒤에는 예약됨 칸이 사라져 거절을 볼 곳이 여기뿐 · Check pickup = EF freightcom {action:"pickup_poll", booking_id}(GET 만 · 청구 없음) */
+async function showPickup(box){
+  const { data, error } = await sb.rpc("fc_pickup_attention_list", { p_warehouse_id: whId || null });
+  if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = (data && data.rows) || [];
+  const pkDay = (d) => d ? esc(new Date(d + "T12:00:00").toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })) : '<span class="dim">—</span>';
+  const ago = (m) => { m = Number(m || 0); return m < 60 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+  box.innerHTML = rows.length ? `<table><thead><tr><th>Pickup</th><th>Orders</th><th>Customer</th><th>Carrier</th><th>What Freightcom says</th><th>Booked</th><th>Last checked</th><th>Tracking</th><th></th></tr></thead>
+      <tbody>${rows.map(r => `<tr>
+        <td>${pkDay(r.pickup_date)}${r.ready_at ? `<div class="dim" style="font-size:11.5px">${esc(r.ready_at)} – ${esc(r.ready_until || "")}</div>` : ""}</td>
+        <td>${(r.so_numbers && r.so_numbers.length ? r.so_numbers : [r.so_number]).filter(Boolean).map(n => `<a class="lnk mono" href="so.html?so=${encodeURIComponent(n)}">${esc(n)}</a>`).join("<br>")}</td>
+        <td>${esc(r.customer_name || "")}</td>
+        <td>${esc(r.carrier || "")}${r.account ? ` <span class="tag">${esc(r.account)}</span>` : ""}${whId ? "" : `<div class="dim" style="font-size:11.5px">${esc(r.warehouse || "")}</div>`}</td>
+        <td><span class="off" style="font-size:12px">${esc(r.message || "")}</span></td>
+        <td>${imsTs(r.booked_at)} <span class="dim" style="font-size:11.5px">${esc(ago(r.minutes_since_booked))}</span></td>
+        <td>${r.schedule_checked_at ? imsTs(r.schedule_checked_at) : '<span class="dim">not yet</span>'}</td>
+        <td class="mono" style="font-size:12px">${esc(r.tracking_number || "")}</td>
+        <td><button class="xbtn" data-pk="${esc(r.booking_id)}">Check pickup</button></td></tr>`).join("")}</tbody></table>
+      <div class="sosub">These Freightcom bookings have no confirmed carrier pickup. Schedule the pickup on the Freightcom site, then press Check pickup. IMS also checks again every few minutes, and a booking drops off this list once the pickup is confirmed (or 2 days after the pickup date).</div>`
+    : '<div class="msg">Every Freightcom pickup is scheduled.</div>';
+  box.querySelectorAll("[data-pk]").forEach(b => {
+    b.onclick = async () => {
+      b.disabled = true; b.textContent = "Checking…";
+      const { data: r, error: e } = await sb.functions.invoke("freightcom", { body: { action: "pickup_poll", booking_id: b.dataset.pk } });
+      if(e){
+        let m = e.message || String(e);
+        try{ if(e.context && typeof e.context.json === "function"){ const j = await e.context.json(); if(j && (j.message || j.error)) m = j.message || j.error; } }catch(_){}
+        alert("Check pickup: " + m);
+      } else {
+        const pc = (r && r.pickup_check && r.pickup_check.pickup_check) || (r && r.pickup_check) || {};
+        if(pc.message) alert(pc.message);
+      }
+      loadBadges(); show();
+    };
+  });
 }
 
 /* ── 시작 ── */

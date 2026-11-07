@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v14";     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v15";     // [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -387,9 +387,40 @@
         const sp=header.querySelector(".sp");
         if(sp) sp.insertAdjacentElement("beforebegin", nav); else header.appendChild(nav);
         wireDropdowns(nav);
+        if(nav.querySelector("#imsAcBadge")) actionBadge();   // nav v15
       }
     }
   }
+
+  /* nav v15 — Action Centre 메뉴 배지(ac-count-1 · Caleb 2026-11-06 「바깥에서 Action Centre 메뉴에도 번호가 잡혀야」)
+     · 숫자 = ims_action_counts(null).total(All branches · Action Centre 기본 거르기와 같다) · 같은 직원 · 2 분 안이면 sessionStorage 값을 쓴다(화면마다 부르지 않는다)
+     · 0 · 실패 · 함수 없음 → 숨김(조용히 · 로그인을 막지 않는다) · Action Centre 화면은 window.imsActionBadgeSet(total) 로 같은 숫자를 바로 넣는다 */
+  const AC_KEY="ims_ac_counts_v1", AC_TTL=120000;
+  function actionBadgePaint(n){
+    const b=document.getElementById("imsAcBadge"); if(!b) return;
+    n=Number(n)||0;
+    if(!document.getElementById("imsAcCss")){
+      const st=document.createElement("style"); st.id="imsAcCss";
+      st.textContent='.ims-acbadge{display:inline-block;min-width:18px;padding:0 6px;margin-left:6px;border-radius:9px;background:#e03131;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;vertical-align:middle}';
+      document.head.appendChild(st);
+    }
+    if(n>0){ b.textContent=n>99?"99+":String(n); b.hidden=false; } else { b.textContent=""; b.hidden=true; }
+  }
+  function actionBadgeSave(n){
+    try{ sessionStorage.setItem(AC_KEY, JSON.stringify({t:Date.now(), who:(me&&me.id)||"", n:Number(n)||0})); }catch(e){}
+  }
+  async function actionBadge(){
+    try{
+      const c=JSON.parse(sessionStorage.getItem(AC_KEY)||"null");
+      if(c && c.who===((me&&me.id)||"") && Date.now()-c.t<AC_TTL){ actionBadgePaint(c.n); return; }
+    }catch(e){}
+    try{
+      const {data,error}=await sb.rpc("ims_action_counts",{p_warehouse_id:null});
+      if(error||!data){ actionBadgePaint(0); return; }
+      actionBadgeSave(data.total); actionBadgePaint(data.total);
+    }catch(e){ actionBadgePaint(0); }
+  }
+  window.imsActionBadgeSet=function(n){ actionBadgeSave(n); actionBadgePaint(n); };
 
   /* IMS 윗줄 펼침 — 갈래마다 <div class="ims-grp"><button> + <div class="ims-drop"> · 'action' 처럼 flat 인 갈래는 링크 하나 (판정 153 · 152)
      · 갈래는 보이는 화면이 하나라도 있을 때만 · 지금 화면이 든 갈래는 .cur · 펼침 안 지금 화면 줄도 .cur
@@ -403,7 +434,8 @@
       const on=(g===curGroup);
       if(flat){   // 링크 하나 — 갈래에 줄이 둘 이상 생기면 flat 을 false 로 바꾼다(첫 줄만 쓴다)
         const it=list[0]; const c=it[1].toLowerCase()===here;
-        html+=`<a class="ims-grpbtn flat${c?" cur":""}" href="${esc(it[1])}"${c?' aria-current="page"':""}>${esc(label)}</a>`;
+        const ab=(g==="action")?'<span class="ims-acbadge" id="imsAcBadge" hidden></span>':"";   // nav v15
+        html+=`<a class="ims-grpbtn flat${c?" cur":""}" href="${esc(it[1])}"${c?' aria-current="page"':""}>${esc(label)}${ab}</a>`;
         continue;
       }
       html+=`<div class="ims-grp${on?" cur":""}" data-grp="${g}"><button type="button" class="ims-grpbtn" aria-haspopup="true" aria-expanded="false">${esc(label)}<span class="car" aria-hidden="true">▾</span></button><div class="ims-drop" role="menu">`
