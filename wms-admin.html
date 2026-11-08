@@ -233,7 +233,7 @@
       <div class="period" id="finWhBar"></div>
       <div class="sect-h">Fulfillment mix <span style="font-weight:400;color:var(--mut);font-size:12.5px">— packing list vs direct pack</span></div>
       <div class="grid" id="fulfillStats"></div>
-      <div class="sect-h">Finalized orders <span style="font-weight:400;color:var(--mut);font-size:12.5px">— print or download the packing list; direct-pack orders have none</span></div>
+      <div class="sect-h">Finalized orders <span style="font-weight:400;color:var(--mut);font-size:12.5px">— print or download the packing list; direct-pack orders have none · orders stay here after Ship &amp; invoice</span></div>
       <div class="card"><div id="packingList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
     </div>
 
@@ -298,7 +298,7 @@
 /* inv-basis-4 (2026-09-29 · wa v1.14) — 판정 88 ⑧ · 93 · 98 (inv_basis_2 20260929195458): Receiving 탭(배지 · 「waiting for a decision」 · 「Rejected — still on a shelf」) · Review 모달 · Stats 차이 카드가 off_invoice 를 off_po 옆에 본다(글자 「Off-invoice」 · 옛 off_po 행은 옛 이름) ·
    수량 = received − expected(줄 있는 off_invoice = 오피스 확정이 만든 인보이스 초과 · 줄 없는 행 = PO 밖 품목 · expected 0) · Health 151 off_invoice_undecided 는 RPC 반환(title · hint)을 그대로 그린다 — 화면 글자 없음 · 판매 · 트랜스퍼 · PO 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · Health 161 없음 ⇒ 「Rejected — still on a shelf」 · Review 의 rejected 글자 · Stats 의 rejected 카드는 옛 off_po 행에만 */
-const WK_BUILD="2026-10-05 · wa v1.17";   // 대화 Claude — Found at packing 칩이 이름을 이미 말하니 아래 줄에서 이름을 뺀다(Caleb 「이름이 두번 나오는 것은 지금 수정하자」) · Adjusted · Resolved by hand 는 아래 줄에 누가 그대로 ← wa v1.16 rep-close-2(판정 58 묶음 3) — Reports: 닫힌 신고에 닫힌 방법 칩(Found at packing — 누가 found N in 칸 · Adjusted — ADJ-… · Resolved by hand) · Not enough stock 합계 갈라 보기 · Mark resolved = 창구 wms_report_resolve(rep-close-1 · 이미 닫힌 것 거부) ← pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-11-08 · wa v1.18";   // 대화 Claude — 동료 요청(Caleb 11-08 「이전처럼 계속 기록이 남아 있었으면」): Finalized 탭이 so status packed 만 읽어 오피스가 Ship & invoice 하면(fulfilled · shipped) 오더가 사라지고 팩킹 리스트를 다시 뽑을 길이 없었다 → 기간 안의 fulfilled · shipped 오더도 함께(packed_at 이 기간 안 · 최근 500 · 총수는 count-head 로 캡션) · 줄에 Fulfilled / Shipped 꼬리표 · 재출력(🖨 · PDF · CSV)은 상태를 안 보던 그대로 · 닫힌 오더는 팩 줄 임베드를 빼서 가볍게(실제 팩 수 괄호는 안 보임) · 트랜스퍼(도착하면 빠짐)는 그대로 · DB 무변 ← wa v1.17: 대화 Claude — Found at packing 칩이 이름을 이미 말하니 아래 줄에서 이름을 뺀다(Caleb 「이름이 두번 나오는 것은 지금 수정하자」) · Adjusted · Resolved by hand 는 아래 줄에 누가 그대로 ← wa v1.16 rep-close-2(판정 58 묶음 3) — Reports: 닫힌 신고에 닫힌 방법 칩(Found at packing — 누가 found N in 칸 · Adjusted — ADJ-… · Resolved by hand) · Not enough stock 합계 갈라 보기 · Mark resolved = 창구 wms_report_resolve(rep-close-1 · 이미 닫힌 것 거부) ← pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -1455,6 +1455,15 @@ async function loadPacking(){
   const q=await sbAll(()=>sb.from("so").select(FIN_SELECT).eq("status","packed").order("packed_at",{ascending:false}).order("id"));   // caps-ok: sbAll · 소진되는 풀
   if(q.error){ el.innerHTML=`<div class="empty">Couldn't load: ${esc(q.error.message||"")}</div>`; return; }
   let all=(q.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id));
+  // wa v1.18 — 오피스가 Ship & invoice 한 오더(fulfilled · shipped)도 남긴다: 기간(packed_at) 안 · 최근 500 · 팩 줄 임베드 없이(가볍게) · 총수는 count-head
+  const CLOSED_ST=["fulfilled","shipped"], CLOSED_CAP=500;
+  const [cq,cc]=await Promise.all([
+    sb.from("so").select(FIN_SELECT_CLOSED).in("status",CLOSED_ST).gte("packed_at",r.fromISO).lte("packed_at",r.toISO).order("packed_at",{ascending:false}).order("id").limit(CLOSED_CAP),   // caps-ok: 최근 500 · 캡션이 총수를 말한다
+    sb.from("so").select("id",{count:"exact",head:true}).in("status",CLOSED_ST).gte("packed_at",r.fromISO).lte("packed_at",r.toISO)
+  ]);
+  const closedErr=cq.error?(cq.error.message||"error"):"";
+  (cq.data||[]).map(normOrder).filter(o=>inWhId(o.warehouse_id)).forEach(o=>{ o.closed=true; all.push(o); });
+  const closedTotal=cc.count||0, closedShown=(cq.data||[]).length;
   (await loadTransferFinRows()).filter(o=>inWhId(o.warehouse_id)).forEach(o=>all.push(o));   // tf-2b 판정 86 ③-2 A — 운송 중 트랜스퍼를 판매 옆에(마무리 시각 · 창고 · 기간 필터는 같은 줄)
   if(finWh!=="all"){ const ids=whIdsFor(finWh); all=all.filter(o=>ids.includes(o.warehouse_id)); }
   const finAt=o=>(o.fin&&o.fin.finalized_at)||o.packed_at;
@@ -1467,9 +1476,11 @@ async function loadPacking(){
   const unrevRows=fin.filter(o=>!isRev(o)), revAll=fin.filter(isRev), revRows=revAll.slice(0,200), revTotal=revAll.length;
   const list=[...unrevRows,...revRows].sort((a,b)=>new Date(finAt(b))-new Date(finAt(a)));
   const unrev=unrevRows.filter(o=>!o.is_transfer).length, finTotal=fin.filter(o=>!o.is_transfer).length;   // tf-2b 판정 86 — 검토 셈은 판매만(트랜스퍼 줄은 검토 표시를 숨긴다) · 판매만이면 전과 같은 수
-  const revNote=revTotal>revRows.length
+  const revNote=(revTotal>revRows.length
     ? `<span style="font-size:11.5px;color:var(--mut)">Latest ${revRows.length} of ${revTotal} reviewed listed — older reviewed orders are not listed.</span>`
-    : "";
+    : "")
+    +(closedErr?`<span style="font-size:11.5px;color:var(--danger)">Couldn't load orders already shipped &amp; invoiced: ${esc(closedErr)}</span>`
+      :closedTotal>closedShown?`<span style="font-size:11.5px;color:var(--mut)">Shipped &amp; invoiced: latest ${closedShown} of ${closedTotal} in this period listed — pick a shorter period or Calendar for older ones.</span>`:"");
   const fmtT=t=>t?new Date(t).toLocaleString():"";
   el.innerHTML=`<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
       <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mut);cursor:pointer"><input type="checkbox" id="finHideRev"> Hide reviewed</label>
@@ -1484,6 +1495,7 @@ async function loadPacking(){
       let pkL=0,pkU=0;
       if(packDone) pks.forEach(p=>{ const t=tallyVerified(p.wms_pack_task_lines); pkL+=t.lines; pkU+=t.units; });
       const packedCell=(base,actual)=>{
+        if(o.closed) return "";   // wa v1.18 — 닫힌 오더는 팩 줄을 안 읽는다(가볍게) · 괄호 비교 없음
         if(!packDone) return ` <span style="color:var(--mut-2);font-weight:400" title="Not fully packed — no reliable packed count">(—)</span>`;
         if(base==null) return "";
         return Number(base)!==actual?` <span style="color:var(--danger)" title="Actually packed (verified) — differs from the ordered amount">(${actual})</span>`:"";
@@ -1495,7 +1507,7 @@ async function loadPacking(){
       const ftype=o.fin?o.fin.fulfillment_type:null;
       return `<tr data-rev="${isRev(o)?1:0}" style="${isRev(o)?"opacity:.55":""}">
       <td>${o.is_transfer?trTag(o).trim():`<input type="checkbox" class="mgrchk" data-oid="${o.id}" ${isRev(o)?"checked":""} title="${esc(revTitle)}">`}</td>
-      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}${bt}</td>
+      <td style="font-family:var(--mono);font-weight:700">${esc(o.order_number)}${o.closed?` <span class="tag st-${esc(o.status)}" style="font-family:inherit;font-weight:500" title="The office has shipped &amp; invoiced this order — the packing list can still be printed">${esc(STATUS_LABEL[o.status]||o.status)}</span>`:""}${bt}</td>
       <td>${esc(o.customer_name||"—")}</td>
       <td class="num">${o.total_lines??"—"}${packedCell(o.total_lines,pkL)}</td><td class="num">${o.total_units??"—"}${packedCell(o.total_units,pkU)}</td>
       <td><span class="tag wh-${o.wh}">${whLabel(o.wh)}</span></td>
@@ -1553,6 +1565,7 @@ async function loadPacking(){
   const hide=document.getElementById("finHideRev");
   if(hide) hide.onchange=()=>{ el.querySelectorAll("tbody tr").forEach(tr=>{ tr.style.display=(hide.checked&&tr.dataset.rev==="1")?"none":""; }); };
 }
+const FIN_SELECT_CLOSED=SO_SEL+",so_line(qty_ordered,qty_removed,pack_factor),wms_order_finalize(fulfillment_type,finalized_by,finalized_at,units,units_without_dims),wms_order_review(reviewed,reviewed_by,reviewed_at,cleared_by,cleared_at),wms_pick_tasks(count)";   // wa v1.18 — 닫힌 오더(fulfilled · shipped)는 팩 줄 임베드 없이
 const FIN_SELECT=SO_SEL+",so_line(qty_ordered,qty_removed,pack_factor),wms_order_finalize(fulfillment_type,finalized_by,finalized_at,units,units_without_dims),wms_order_review(reviewed,reviewed_by,reviewed_at,cleared_by,cleared_at),wms_pick_tasks(count),wms_pack_tasks(wms_pack_task_lines(verified_base))";
 /* 검토함(판정 22 · 26) — 창구 wms_review_set(p_so_id, p_reviewed): 서버 시각 · 서버 사람 · 켜면 reviewed_by/at · 끄면 cleared_by/at(반대쪽 기록은 남는다) · 첫 줄 ims_require_write(fulfillment) · 창고 검사 */
 async function toggleMgrReviewed(oid,checked,chk){
