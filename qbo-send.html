@@ -28,6 +28,15 @@
   .infobox{border:1px solid #c7d2fe;background:#eef3ff;border-radius:10px;padding:9px 12px;font-size:12.5px;color:#1b4fd6}
   .prog{font-size:12.5px}
   td .pobtn{padding:3px 9px;font-size:12px}
+  /* qs cost v1 — Cost days(하루 원가 장) */
+  .csec{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .csec:last-child{border-bottom:0}
+  .ctitle{font-size:14px;font-weight:700;margin:0 0 6px}
+  .csub{font-size:12px;color:var(--muted);margin:0 0 8px}
+  .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;color:#8a5a00}
+  .cost-tbl td,.cost-tbl th{font-size:12.5px}
+  .rform{display:flex;flex-direction:column;gap:8px;font-size:13px}
+  .rform input[type=text]{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -42,6 +51,29 @@
 </header>
 
 <main>
+  <div class="card" id="costCard" hidden>
+    <div class="csec">
+      <div class="ctitle">Cost days — the daily cost-of-goods journal</div>
+      <div class="csub">One journal entry per warehouse per day: cost of goods sold (#58) against inventory (#59), one line per sales order, adjustment, credit or transfer.
+        IMS builds the sheets every night at 03:00 (Toronto). For now you queue and send them by hand, oldest first — a sheet waits until the one before it is in QuickBooks.</div>
+      <div class="cnt" id="costCnt" style="padding:0;border:0"><span class="dim">Loading…</span></div>
+      <div id="costRebuild"></div>
+      <div class="acts" style="padding:8px 0 0;border:0">
+        <button class="pobtn" id="costBuild" title="Build any missing sheets up to yesterday now (the nightly run does this too)">Build sheets now</button>
+        <button class="pobtn go" id="costQueueAll" title="Put every built sheet that is not queued yet into the list below, oldest first">Queue all ready sheets</button>
+        <span class="prog" id="costProg"></span>
+      </div>
+    </div>
+    <div class="csec">
+      <div class="ctitle">Sheets</div>
+      <div id="costRows"><div class="msg">Loading…</div></div>
+    </div>
+    <div class="csec">
+      <div class="ctitle">Held back</div>
+      <div class="csub">Not sent until decided: an inventory adjustment over the limit below (you choose Send or Never), and receipts and supplier cost changes (they open with the supplier bill round — nothing to do here).</div>
+      <div id="costHolds"><div class="msg">Loading…</div></div>
+    </div>
+  </div>
   <div class="card">
     <div class="infobox" style="margin:12px 14px 0">Invoices and credit notes issued in IMS wait here until you send them to QuickBooks.
       Open <b>Preview</b> to see exactly what will be written, then <b>Send</b>. Customers and items that QuickBooks does not have yet are created first, in the same send.
@@ -67,11 +99,12 @@
         <option value="applies">Credits applied to invoices</option>
         <option value="opening">Carried-over money (before the cut-over)</option>
         <option value="refunds">Refunds</option>
+        <option value="cost">Cost of goods — daily journal</option>
         <option value="setup">Customers and items</option>
         <option value="">Everything</option>
       </select>
       <input type="date" id="ffrom"><span class="dash">–</span><input type="date" id="fto">
-      <input type="search" id="fq" placeholder="Invoice · credit number · payment reference · customer">
+      <input type="search" id="fq" placeholder="Invoice · credit number · payment reference · customer · COGS-…">
       <button class="pobtn" id="fclear">Clear</button>
     </div>
     <div class="acts">
@@ -99,7 +132,7 @@
    문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
    ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
    ───────────────────────────────────────────────────────────── */
-const QS_BUILD = "2026-11-08 · qs refund v1a";   // 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+const QS_BUILD = "2026-11-09 · qs cost v1";   // 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
 console.log("qbo-send.html build:", QS_BUILD);
 
 const PAGE = 50, SEND_MAX = 10;
@@ -113,11 +146,13 @@ const KINDS = {
   voids: ["invoice_void", "credit_void"], payments: ["payment", "payment_void"], applies: ["credit_apply", "credit_apply_void"],
   opening: ["opening_credit", "opening_credit_void", "opening_apply", "opening_apply_void"],   // qs refund v1 — 495
   refunds: ["refund", "refund_void", "refund_apply", "refund_apply_void"],                     // qs refund v1 — 2e-3-2-1
+  cost: ["cost_day"],   // qs cost v1 — 3-2b · 3-3
   setup: ["customer", "item"], "": null
 };
 const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "Void invoice", credit_void: "Void credit note", customer: "Customer", item: "Item", payment: "Payment", payment_void: "Void payment", credit_apply: "Credit applied", credit_apply_void: "Undo credit applied",
   opening_credit: "Carried-over money", opening_credit_void: "Void carried-over money", opening_apply: "Carried-over money applied", opening_apply_void: "Undo carried-over money applied",   // qs refund v1 — 495
-  refund: "Refund", refund_void: "Void refund", refund_apply: "Refund linked to credit", refund_apply_void: "Undo refund link" };
+  refund: "Refund", refund_void: "Void refund", refund_apply: "Refund linked to credit", refund_apply_void: "Undo refund link",
+  cost_day: "Cost day" };   // qs cost v1
 const STATE_CHIP = {
   queued: ["", "waiting"], blocked: ["warn", "blocked"], sending: ["warn", "sending"], sent: ["good", "sent"],
   failed: ["bad", "failed"], unknown: ["bad", "result unknown"], skipped: ["", "skipped"]
@@ -156,6 +191,7 @@ async function load(){
     .map(k => `<div class="c"><b>${esc(Number(c[k] || 0))}</b><span>${esc((STATE_CHIP[k] || ["", k])[1])}</span></div>`).join("");
   picked.forEach(id => { if(!rows.some(r => r.id === id && canSend(r))) picked.delete(id); });
   draw();
+  costShow();   // qs cost v1
 }
 function draw(){
   const box = document.getElementById("rows");
@@ -178,7 +214,7 @@ function draw(){
         <td class="ck">${canSend(r) ? `<input type="checkbox" data-ck="${esc(r.id)}" ${picked.has(r.id) ? "checked" : ""}>` : ""}</td>
         <td class="mono">${esc(r.doc_number || r.qbo_name || r.ims_name || "")}</td>
         <td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>
-        <td>${esc(r.name || "")}</td>
+        <td>${r.kind === "cost_day" ? dash : esc(r.name || "")}</td>
         <td>${esc(r.doc_date || r.job_date || "")}</td>
         <td class="num">${r.total === null || r.total === undefined ? dash : money(r.total) + ` <span class="dim">${esc(r.currency || "")}</span>`}</td>
         <td>${chip(r.state)}</td>
@@ -386,6 +422,228 @@ function refPreview(p, b, doc, kv, kind){
       </div>` : ""}
       ${REF_NOTE[kind] ? `<div class="dim" style="font-size:12px;margin-top:6px">${REF_NOTE[kind]}</div>` : ""}`;
 }
+/* qs cost v1 — 하루 원가 장(JournalEntry) 미리 보기: 몸의 Line 그대로(PostingType · AccountRef · Entity) · 합계는 totals(센트에서) */
+const acctTxt = (code) => code ? esc(String(code).replace(/^_+|_+$/g, "").replace(/^/, "#")) : dash;
+function jePreview(p, b){
+  const t = p.totals || {}, ln = b.Line || [];
+  return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        <tr><td>Number</td><td><span class="mono">${esc(b.DocNumber || "")}</span></td></tr>
+        <tr><td>Date</td><td>${esc(b.TxnDate || "") || dash}</td></tr>
+        <tr><td>Private note</td><td>${esc(b.PrivateNote || "") || dash}</td></tr>
+      </tbody></table>
+      <table style="margin-top:10px"><thead><tr><th>Line</th><th>Debit / credit</th><th>QuickBooks account</th><th>Customer (QuickBooks)</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+        <tbody>${ln.length ? ln.map(l => {
+          const d = l.JournalEntryLineDetail || {}, a = d.AccountRef || {}, en = (d.Entity && d.Entity.EntityRef) || null, dr = d.PostingType === "Debit";
+          return `<tr><td>${esc(l.Description || "")}</td><td>${esc(d.PostingType || "")}</td><td class="mono">${a.value ? "#" + esc(a.value) : dash}${a.name ? " " + esc(a.name) : ""}</td>
+            <td class="mono">${en && en.value ? "#" + esc(en.value) : dash}</td><td class="num">${dr ? money(l.Amount) : ""}</td><td class="num">${dr ? "" : money(l.Amount)}</td></tr>`;
+        }).join("") : '<tr><td colspan="6" class="dim">No lines.</td></tr>'}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Lines <b class="mono">${esc(t.line_count != null ? t.line_count : ln.length)}</b></span>
+        <span>Debits <b class="mono">${money(t.debit)}</b></span>
+        <span>Credits <b class="mono">${money(t.credit)}</b></span>
+      </div>
+      <div class="dim" style="font-size:12px;margin-top:6px">Before it writes, IMS looks for a journal entry with this number in QuickBooks and does not send if one is already there. QuickBooks shows a total of 0.00 for journal entries — IMS checks the debits instead.</div>`;
+}
+
+/* ── qs cost v1 — Cost days 카드(종류 = cost 일 때만) ── */
+const SHEET_CHIP = { pending: ["", "built"], hold: ["bad", "on hold"], sending: ["warn", "sending"], sent: ["good", "sent"], failed: ["bad", "failed"], unknown: ["bad", "result unknown"], empty: ["", "empty"], void: ["", "void"] };
+const cents = (c) => (c === null || c === undefined || c === "") ? dash : money(Number(c) / 100);
+let costRows = [];
+function costShow(){
+  const on = st.kind === "cost";
+  document.getElementById("costCard").hidden = !on;
+  if(on) costLoad();
+}
+async function costLoad(){
+  const [l, h] = await Promise.all([
+    sb.rpc("qbo_cost_sheet_list", { p_from: null, p_to: null, p_wh: null, p_state: null }),
+    sb.rpc("qbo_cost_hold_list")
+  ]);
+  const cnt = document.getElementById("costCnt"), box = document.getElementById("costRows");
+  if(l.error){ box.innerHTML = `<div class="msg err">${esc(l.error.message)}</div>`; cnt.innerHTML = ""; }
+  else {
+    const d = l.data || {}, c = d.counts || {};
+    costRows = d.rows || [];
+    cnt.innerHTML = ["pending", "sending", "sent", "failed", "unknown", "hold"].map(k => `<div class="c"><b>${esc(Number(c[k] || 0))}</b><span>${esc((SHEET_CHIP[k] || ["", k])[1])}</span></div>`).join("")
+      + `<div class="c"><b style="font-size:13px">${esc(d.since || "")}</b><span>counting from</span></div>`
+      + `<div class="c"><b style="font-size:13px">${d.send_enabled === "on" ? "on" : "off — by hand"}</b><span>automatic sending</span></div>`;
+    document.getElementById("costRebuild").innerHTML = Number(c.hold || 0) > 0
+      ? `<div class="warnbox" style="margin-top:8px"><b>Cost days are on hold.</b> The cost layers were rebuilt after some sheets were prepared, so nothing more is sent until someone checks the difference and releases it.
+          <button class="pobtn" id="costRbPv" style="margin-left:8px">Review the rebuild</button></div>` : "";
+    const rb = document.getElementById("costRbPv"); if(rb) rb.onclick = rebuildPreview;
+    costDraw();
+  }
+  holdsDraw(h);
+}
+function costDraw(){
+  const box = document.getElementById("costRows");
+  if(!costRows.length){ box.innerHTML = '<div class="msg">No sheets yet — they are built every night at 03:00 (Toronto), or press Build sheets now.</div>'; return; }
+  const firstPending = {};   // 창고마다 아직 일감 없는 가장 이른 장만 Queue 단추(서버도 날짜 순을 지킨다)
+  [...costRows].sort((a, b) => String(a.sheet_date).localeCompare(String(b.sheet_date))).forEach(r => {
+    if(r.kind === "day" && r.state === "pending" && !r.job_id && !firstPending[r.wh]) firstPending[r.wh] = r.id;
+  });
+  box.innerHTML = `<table class="cost-tbl"><thead><tr><th>Date</th><th>Warehouse</th><th>Number</th><th>Status</th><th class="num">Keys</th><th class="num">Lines</th><th class="num">Debits</th><th>QuickBooks</th><th>Note</th><th></th></tr></thead><tbody>${costRows.map(r => {
+    const ch = SHEET_CHIP[r.state] || ["", r.state];
+    const acts = [
+      `<button class="pobtn" data-cpv="${esc(r.id)}">Preview</button>`,
+      firstPending[r.wh] === r.id ? `<button class="pobtn go" data-cq="${esc(r.id)}">Queue</button>` : "",
+      r.state === "unknown" ? `<button class="pobtn" data-crs="${esc(r.id)}">Resolve</button>` : ""
+    ].join(" ");
+    return `<tr>
+      <td>${esc(r.sheet_date || "")}</td><td>${esc(r.wh || "")}</td>
+      <td class="mono">${esc(r.doc_number || "")}${r.kind === "rebuild" ? ' <span class="chip warn">rebuild</span>' : ""}</td>
+      <td><span class="chip ${ch[0]}">${esc(ch[1])}</span>${r.job_id && r.state === "pending" ? ' <span class="dim" style="font-size:11.5px">queued below</span>' : ""}</td>
+      <td class="num">${esc(r.built_keys ?? "")}</td><td class="num">${esc(r.built_lines ?? "")}</td><td class="num">${cents(r.built_debit_cents)}</td>
+      <td class="mono">${r.qbo_id ? "#" + esc(r.qbo_id) : dash}</td>
+      <td><div class="why ${r.state === "hold" || r.state === "failed" || r.state === "unknown" ? "bad" : ""}">${esc(r.hold_reason || r.note || "")}</div></td>
+      <td style="white-space:nowrap">${acts}</td></tr>`;
+  }).join("")}</tbody></table>`;
+  box.querySelectorAll("[data-cpv]").forEach(el => { el.onclick = () => sheetPreview(costRows.find(r => r.id === el.dataset.cpv)); });
+  box.querySelectorAll("[data-cq]").forEach(el => { el.onclick = () => sheetQueue(costRows.find(r => r.id === el.dataset.cq)); });
+  box.querySelectorAll("[data-crs]").forEach(el => { el.onclick = () => sheetResolve(costRows.find(r => r.id === el.dataset.crs)); });
+}
+async function sheetPreview(r){
+  if(!r) return;
+  modalOpen('<h4>Cost day preview</h4><div class="pbody"><div class="msg">Loading…</div></div>');
+  const { data, error } = await sb.rpc("qbo_cost_preview", { p_date: r.sheet_date, p_wh: r.wh });
+  const close = '<div class="pfoot"><span class="sp"></span><button class="pobtn" id="pvClose">Close</button></div>';
+  if(error){ modalOpen(`<h4>Cost day preview</h4><div class="pbody"><div class="errbox">${esc(error.message)}</div></div>${close}`); document.getElementById("pvClose").onclick = modalClose; return; }
+  const p = data || {}, je = p.je_lines || [], holds = p.holds || [], ex = p.excluded || [], bl = p.blocks || [];
+  const keyRow = (k) => `<tr><td class="mono">${esc(k.doc_key || "")}</td><td>${esc(k.key_kind || "")}</td><td class="mono">${acctTxt(k.acct_a)} / ${acctTxt(k.acct_b)}</td><td class="num">${cents(k.expected_cents)}</td><td class="num">${cents(k.sent_cents)}</td><td class="num">${cents(k.diff_cents)}</td><td>${esc(k.first_sent_on || "")}</td><td class="why">${esc(k.reason || "")}</td></tr>`;
+  const keyTbl = (list, empty) => list.length ? `<table class="cost-tbl" style="margin-top:6px"><thead><tr><th>Document</th><th>Kind</th><th>Accounts</th><th class="num">Counted now</th><th class="num">Sent before</th><th class="num">This sheet</th><th>First sent</th><th>Why</th></tr></thead><tbody>${list.map(keyRow).join("")}</tbody></table>` : `<div class="dim" style="font-size:12px">${empty}</div>`;
+  modalOpen(`
+    <h4>Cost day ${esc(p.doc_number || "")}</h4>
+    <div class="pbody pv">
+      <div style="font-size:12.5px;margin-bottom:8px"><span class="dim">What this sheet would write if it were sent now. The lines are fixed again at the moment it is sent — anything recorded later goes on the next sheet.</span></div>
+      ${p.error ? `<div class="errbox"><b>Cannot be worked out:</b> ${esc(p.error)}</div>` : ""}
+      ${bl.length ? `<div class="errbox"><b>Blocked — these events have no QuickBooks line yet, so no sheet is built until they are fixed:</b>${keyTbl(bl, "")}</div>` : ""}
+      ${p.sheet ? `<div class="needbox">Sheet <b>${esc((SHEET_CHIP[p.sheet.state] || ["", p.sheet.state])[1])}</b> · built ${esc(String(p.sheet.built_at || "").slice(0, 16).replace("T", " "))}${p.sheet.qbo_id ? " · QuickBooks #" + esc(p.sheet.qbo_id) : ""}${p.sheet.hold_reason ? " · " + esc(p.sheet.hold_reason) : ""}</div>` : '<div class="needbox">Not built yet — the nightly run builds it, or press Build sheets now.</div>'}
+      <table style="margin-top:10px"><thead><tr><th>Line</th><th>Account (IMS code)</th><th>Customer (QuickBooks)</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+        <tbody>${je.length ? je.map(l => `<tr><td>${esc(l.description || "")}</td><td class="mono">${acctTxt(l.account_code)}</td><td class="mono">${l.entity_qbo_id ? "#" + esc(l.entity_qbo_id) : dash}</td>
+          <td class="num">${l.posting === "Debit" ? cents(l.cents) : ""}</td><td class="num">${l.posting === "Debit" ? "" : cents(l.cents)}</td></tr>`).join("") : '<tr><td colspan="5" class="dim">Nothing to send for this day.</td></tr>'}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Lines <b class="mono">${esc(p.je_line_count ?? 0)}</b></span>
+        <span>Debits <b class="mono">${cents(p.debit_cents)}</b></span>
+        <span>Credits <b class="mono">${cents(p.credit_cents)}</b></span>
+        ${p.balanced === false ? '<span class="bad"><b>not balanced</b></span>' : ""}
+      </div>
+      <div class="ctitle" style="margin-top:14px">By document</div>
+      ${keyTbl(p.keys || [], "No documents to send.")}
+      ${holds.length ? `<div class="ctitle" style="margin-top:14px">Held back on this day</div>${keyTbl(holds, "")}` : ""}
+      ${ex.length ? `<div class="ctitle" style="margin-top:14px">Left out on purpose</div><div class="csub">Opening-cost corrections and the trucks carried over from before the cut-over are never sent.</div>${keyTbl(ex, "")}` : ""}
+    </div>${close}`);
+  document.getElementById("pvClose").onclick = modalClose;
+}
+async function sheetQueue(r){
+  if(!r || busy) return;
+  const { data, error } = await sb.rpc("qbo_cost_sheet_queue", { p_date: r.sheet_date, p_wh: r.wh });
+  if(error){ alert(error.message); return; }
+  document.getElementById("costProg").textContent = `${(data && data.doc_number) || r.doc_number} is in the list below — open Preview, then Send.`;
+  st.state = "open"; document.getElementById("fst").value = "open"; st.offset = 0;
+  load();
+}
+async function sheetResolve(r){
+  if(!r) return;
+  modalOpen(`<h4>Resolve ${esc(r.doc_number || "")}</h4>
+    <div class="pbody"><div class="rform">
+      <div class="dim">IMS sent this sheet but did not hear back, so it does not know whether QuickBooks has it. Look in QuickBooks for a journal entry numbered <span class="mono">${esc(r.doc_number || "")}</span>, then say what you found.</div>
+      <label><input type="radio" name="rsOut" value="in_qbo"> It is in QuickBooks — journal entry Id <input type="text" id="rsId" placeholder="e.g. 172950" style="width:140px"></label>
+      <label><input type="radio" name="rsOut" value="not_in_qbo"> It is not in QuickBooks — send it again</label>
+      <label>What did you check? <input type="text" id="rsNote" placeholder="required" style="width:100%"></label>
+      <div id="rsMsg" class="bad" style="font-size:12.5px"></div>
+    </div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="pvClose">Close</button><button class="pobtn go" id="rsGo">Save</button></div>`);
+  document.getElementById("pvClose").onclick = modalClose;
+  document.getElementById("rsGo").onclick = async () => {
+    const out = (document.querySelector('input[name="rsOut"]:checked') || {}).value;
+    const note = document.getElementById("rsNote").value.trim(), qid = document.getElementById("rsId").value.trim();
+    const msg = document.getElementById("rsMsg");
+    if(!out){ msg.textContent = "Choose one."; return; }
+    if(!note){ msg.textContent = "Say what you checked."; return; }
+    if(out === "in_qbo" && !qid){ msg.textContent = "Type the journal entry Id from QuickBooks."; return; }
+    const { error } = await sb.rpc("qbo_cost_sheet_resolve", { p_sheet: r.id, p_outcome: out, p_note: note, p_qbo_id: out === "in_qbo" ? qid : null });
+    if(error){ msg.textContent = error.message; return; }
+    modalClose(); load();
+  };
+}
+function holdsDraw(h){
+  const box = document.getElementById("costHolds");
+  if(h.error){ box.innerHTML = `<div class="msg err">${esc(h.error.message)}</div>`; return; }
+  const d = h.data || {}, list = d.holds || [], dec = d.decisions || [];
+  const decOf = {}; dec.forEach(x => { decOf[x.key_kind + "|" + x.doc_key] = x; });
+  box.innerHTML = `<div class="csub">Adjustment limit: <b class="mono">${money(d.threshold)}</b> per adjustment (in and out together).</div>`
+    + (list.length ? `<table class="cost-tbl"><thead><tr><th>Document</th><th>Kind</th><th>Warehouse</th><th>Accounts</th><th class="num">Amount</th><th>Dates</th><th>Why</th><th>Decision</th><th></th></tr></thead><tbody>${list.map(x => {
+        const k = decOf[x.key_kind + "|" + x.doc_key];
+        return `<tr><td class="mono">${esc(x.doc_key || "")}</td><td>${esc(x.key_kind || "")}</td><td>${esc(x.wh || "")}</td><td class="mono">${acctTxt(x.acct_a)} / ${acctTxt(x.acct_b)}</td>
+          <td class="num">${cents(x.cents)}</td><td>${esc([x.first_on, x.last_on].filter(Boolean).join(" – "))}</td><td class="why">${esc(x.reason || "")}</td>
+          <td>${k ? `${esc(k.decision)} <span class="dim" style="font-size:11.5px">${esc(k.by_name || "")} · ${esc(k.note || "")}</span>` : dash}</td>
+          <td style="white-space:nowrap">${x.takes_decision ? `<button class="pobtn" data-hd="send" data-hk="${esc(x.doc_key)}">Send</button> <button class="pobtn" data-hd="never" data-hk="${esc(x.doc_key)}">Never</button>${k ? ` <button class="pobtn" data-hd="" data-hk="${esc(x.doc_key)}" title="Remove the decision">Undo</button>` : ""}` : '<span class="dim" style="font-size:11.5px">opens with supplier bills</span>'}</td></tr>`;
+      }).join("")}</tbody></table>` : '<div class="dim" style="font-size:12.5px">Nothing held back.</div>');
+  box.querySelectorAll("[data-hd]").forEach(el => { el.onclick = () => holdDecide(el.dataset.hk, el.dataset.hd || null); });
+}
+async function holdDecide(key, decision){
+  let note = null;
+  if(decision){
+    note = prompt(decision === "send"
+      ? `Send adjustment ${key} to QuickBooks on the next cost day?\nWhy? (required)`
+      : `Never send adjustment ${key} to QuickBooks? (for example a write-off the accountant handles at year-end)\nWhy? (required)`);
+    if(note === null) return;
+    if(!note.trim()){ alert("A reason is required."); return; }
+  } else if(!confirm(`Remove the decision on ${key}? It goes back to held.`)) return;
+  const { error } = await sb.rpc("qbo_cost_hold_decide", { p_key_kind: "ADJ", p_key: key, p_decision: decision, p_note: note ? note.trim() : null });
+  if(error){ alert(error.message); return; }
+  costLoad();
+}
+async function rebuildPreview(){
+  modalOpen('<h4>Cost rebuild</h4><div class="pbody"><div class="msg">Loading…</div></div>');
+  const { data, error } = await sb.rpc("qbo_cost_rebuild_preview");
+  const foot = (rel) => `<div class="pfoot"><span class="sp"></span><button class="pobtn" id="pvClose">Close</button>${rel ? '<button class="pobtn go" id="rbGo">Release</button>' : ""}</div>`;
+  if(error){ modalOpen(`<h4>Cost rebuild</h4><div class="pbody"><div class="errbox">${esc(error.message)}</div></div>${foot(false)}`); document.getElementById("pvClose").onclick = modalClose; return; }
+  const d = data || {}, held = d.held || [], whs = d.warehouses || [];
+  modalOpen(`<h4>Cost rebuild — release</h4>
+    <div class="pbody pv">
+      <div style="font-size:12.5px">The cost layers were rebuilt, so costs IMS already sent may now be counted differently. Release sends one sheet per warehouse, dated today, with the difference per account pair as lines named “IMS cost rebuild”, then puts the held cost days back in the queue.</div>
+      <div class="ctitle" style="margin-top:12px">On hold</div>
+      ${held.length ? `<table class="cost-tbl"><thead><tr><th>Number</th><th>Date</th><th>Warehouse</th><th>Why</th></tr></thead><tbody>${held.map(x => `<tr><td class="mono">${esc(x.doc_number || "")}</td><td>${esc(x.sheet_date || "")}</td><td>${esc(x.wh || "")}</td><td class="why">${esc(x.hold_reason || "")}</td></tr>`).join("")}</tbody></table>` : '<div class="dim">Nothing on hold.</div>'}
+      ${whs.map(w => `<div class="ctitle" style="margin-top:14px">${esc(w.doc_number || "")} · ${esc(w.wh || "")}</div>
+        <table class="cost-tbl"><thead><tr><th>Accounts</th><th class="num">Difference</th></tr></thead><tbody>${(w.pairs || []).length ? (w.pairs || []).map(x => `<tr><td class="mono">${acctTxt(x.acct_a)} / ${acctTxt(x.acct_b)}</td><td class="num">${cents(x.cents)}</td></tr>`).join("") : '<tr><td colspan="2" class="dim">No difference — no sheet for this warehouse.</td></tr>'}</tbody></table>
+        <div class="dim" style="font-size:12px;margin-top:4px">${esc((w.keys || []).length)} document(s) behind these lines · lines ${esc(w.line_count ?? 0)} · debits ${cents(w.debit_cents)}</div>`).join("")}
+      <div id="rbMsg" class="bad" style="font-size:12.5px;margin-top:8px"></div>
+    </div>${foot(held.length > 0)}`);
+  document.getElementById("pvClose").onclick = modalClose;
+  const go = document.getElementById("rbGo");
+  if(go) go.onclick = async () => {
+    const note = prompt("Release the cost rebuild? Say what you checked (required).");
+    if(note === null) return;
+    if(!note.trim()){ document.getElementById("rbMsg").textContent = "A note is required."; return; }
+    go.disabled = true;
+    const { error: e2 } = await sb.rpc("qbo_cost_rebuild_release", { p_note: note.trim() });
+    if(e2){ document.getElementById("rbMsg").textContent = e2.message; go.disabled = false; return; }
+    modalClose(); load();
+  };
+}
+async function costBuild(){
+  const b = document.getElementById("costBuild"), pr = document.getElementById("costProg");
+  b.disabled = true; pr.textContent = "Building…";
+  const { data, error } = await sb.rpc("qbo_cost_build_now");
+  b.disabled = false;
+  if(error){ pr.textContent = ""; alert(error.message); return; }
+  const d = data || {}, built = d.built || [], errs = d.errors || [];
+  pr.textContent = `Built ${built.length} sheet${built.length === 1 ? "" : "s"}` + (errs.length ? ` · stopped at ${errs.map(x => x.date + " " + x.wh).join(", ")} — ${errs[0].error || ""}` : "");
+  costLoad();
+}
+async function costQueueAll(){
+  const pr = document.getElementById("costProg");
+  if(!confirm("Queue every built cost day that is not queued yet, oldest first?")) return;
+  const { data, error } = await sb.rpc("qbo_cost_queue_due");
+  if(error){ alert(error.message); return; }
+  const d = data || {}, errs = d.errors || [];
+  pr.textContent = `Queued ${d.count || 0}` + (errs.length ? ` · not queued: ${errs.map(x => x.doc_number).join(", ")} — ${errs[0].error || ""}` : "") + " — they are in the list below.";
+  st.state = "open"; document.getElementById("fst").value = "open"; st.offset = 0;
+  load();
+}
+
 async function openPreview(id){
   modalOpen('<h4>Preview</h4><div class="pbody"><div class="msg">Loading…</div></div>');
   const { data, error } = await sb.rpc("qbo_job_preview", { p_job: id });
@@ -397,9 +655,10 @@ async function openPreview(id){
   const kv = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
   const isPay = (j.kind || r.kind) === "payment" || (j.kind || r.kind) === "payment_void";   // qs pay v1
   const isApply = (j.kind || r.kind) === "credit_apply" || (j.kind || r.kind) === "credit_apply_void";   // qs apply v1
-  const isRef = REF_NOTE[j.kind || r.kind] !== undefined;   // qs refund v1 — refund 넷 · opening 셋(opening_credit 은 문서 미리 보기)
+  const isRef = REF_NOTE[j.kind || r.kind] !== undefined;
+  const isCost = (j.kind || r.kind) === "cost_day";   // qs cost v1   // qs refund v1 — refund 넷 · opening 셋(opening_credit 은 문서 미리 보기)
   modalOpen(`
-    <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")} · ${esc(doc.name || r.name || "")}</h4>
+    <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")}${isCost ? "" : " · " + esc(doc.name || r.name || "")}</h4>
     <div class="pbody pv">
       <div style="font-size:12.5px;margin-bottom:8px">${chip(j.state || r.state)} <span class="dim">This is exactly what IMS will write to QuickBooks. Nothing is sent from this window until you press Send.</span></div>
       ${p.error ? `<div class="errbox"><b>Cannot be sent yet:</b> ${esc(p.error)}</div>` : ""}
@@ -407,7 +666,9 @@ async function openPreview(id){
       ${needs.length ? `<div class="needbox"><b>Created in QuickBooks first, in the same send:</b><br>${needs.map(n =>
           `${esc(KIND_LABEL[n.kind] || n.kind)} <span class="mono">${esc(n.name || "")}</span>${n.job_state ? " · " + esc(n.job_state) : ""}${n.job_error ? ` · <span class="bad">${esc(n.job_error)}</span>` : ""}`).join("<br>")}</div>` : ""}
       ${(p.warnings || []).length ? `<div class="needbox">${(p.warnings || []).map(w => esc(typeof w === "string" ? w : JSON.stringify(w))).join("<br>")}</div>` : ""}
-      ${isRef && b && Object.keys(b).length ? refPreview(p, b, doc, kv, j.kind || r.kind) : isApply && b && Object.keys(b).length ? applyPreview(p, b, doc, kv) : isPay && b && Object.keys(b).length ? payPreview(p, b, doc, needs, kv) : b && Object.keys(b).length ? `
+      ${p.hold ? `<div class="errbox"><b>On hold:</b> ${esc(p.hold)}</div>` : ""}
+      ${p.empty ? '<div class="needbox">Nothing left to send on this sheet — it will be marked empty and skipped.</div>' : ""}
+      ${isCost && b && Object.keys(b).length ? jePreview(p, b) : isRef && b && Object.keys(b).length ? refPreview(p, b, doc, kv, j.kind || r.kind) : isApply && b && Object.keys(b).length ? applyPreview(p, b, doc, kv) : isPay && b && Object.keys(b).length ? payPreview(p, b, doc, needs, kv) : b && Object.keys(b).length ? `
       <table class="kv" style="margin-top:10px"><tbody>
         ${kv("Number", `<span class="mono">${esc(b.DocNumber || "")}</span>`)}
         ${kv("Date · due", esc([b.TxnDate, b.DueDate].filter(Boolean).join(" · ")) || dash)}
@@ -459,6 +720,8 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   imsHeader(me);
   document.getElementById("buildTag").textContent = QS_BUILD;
   bindFilters();
+  document.getElementById("costBuild").onclick = costBuild;   // qs cost v1
+  document.getElementById("costQueueAll").onclick = costQueueAll;
   load();
 });
 </script>
