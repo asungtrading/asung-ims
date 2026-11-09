@@ -104,7 +104,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-11-02 · chg duty v2";   // 대화 Claude — chg duty v2(Caleb 같은 날 · DB 무변): 관세 칸이 비면 「Duty (before tax) is required — type 0 if the bill has no duty」 · 경고 total_amount_zero 를 사람 말로(관세 0 · GST 만 있는 CBSA 청구서는 흔하다 — 경고일 뿐 막지 않는다) ← chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-11-09 · chg kind v1";   // 대화 Claude — chg kind v1(판정 1135 · chg-fix-1 · 청구서 17038 동료 리포트): 초안 상세의 Kind 를 고르기 칸으로(저장은 saveHead · DB 트리거 po_charge_kind_lock 이 초안 밖을 거부) ← chg duty v2(Caleb 같은 날 · DB 무변): 관세 칸이 비면 「Duty (before tax) is required — type 0 if the bill has no duty」 · 경고 total_amount_zero 를 사람 말로(관세 0 · GST 만 있는 CBSA 청구서는 흔하다 — 경고일 뿐 막지 않는다) ← chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -136,6 +136,7 @@ function stChip(s){
   return `<span class="chip">${esc(s)}</span>`;
 }
 const kindChip = (k) => `<span class="tag">${esc(k || "")}</span>`;
+const KIND_OPTS = [["freight", "Freight"], ["duty", "Duty"], ["brokerage", "Brokerage"], ["other", "Other"]];   // chg kind v1 — same four as po_charge_kind_ck and the New charge form
 
 /* ⭐ The gap between the document total and what has been handed out to orders.
    Zero is the only state that can be confirmed. */
@@ -278,7 +279,10 @@ async function loadDetail(id){
     ["Supplier",     esc(h.supplier_name)],
     ["Charge date",  ed ? `<input class="tin" type="date" value="${esc(h.charge_date || "")}" data-prev="${esc(h.charge_date || "")}" data-head="charge_date">` : dim(h.charge_date)],
     ["Due date",     ed ? `<input class="tin" type="date" value="${esc(h.due_date || "")}" data-head="due_date">` : dim(h.due_date)],
-    ["Kind",         kindChip(h.kind)],
+    /* chg kind v1 (판정 1135) — a draft can change Kind; the DB trigger po_charge_kind_lock refuses it on anything else.
+       Kind decides the QuickBooks account (#134 duty · #135 brokerage · #136 freight) and the duty field names. */
+    ["Kind",         ed ? `<select class="tin" data-head="kind" data-prev="${esc(h.kind || "")}">${KIND_OPTS.map(([v, t]) => `<option value="${v}" ${v === h.kind ? "selected" : ""}>${t}</option>`).join("")}</select>`
+                        : kindChip(h.kind)],
     ["Description",  ed ? `<input class="tin" style="width:280px" value="${esc(h.description || "")}" data-head="description">` : dim(h.description)],
   ];
   const kvR = [
@@ -439,8 +443,8 @@ function taxOptions(curId, curName, blankLabel){
 /* ── Head fields ───────────────────────────────────────
    ⚠️ One column at a time, so PostgREST. imsSaved() reads it back — a row count of zero
       means RLS or a filter swallowed it, and that must not look like success.
-   ⚠️ Draft only. The back end does not lock the head yet; the screen is the only guard
-      until that lands, so do not open these inputs on a confirmed document. */
+   ⚠️ Draft only. The back end does not lock the head yet (Kind excepted — trigger po_charge_kind_lock,
+      판정 1135); for the other fields the screen is the only guard, so do not open these inputs on a confirmed document. */
 async function saveHead(id, inp){
   const field = inp.dataset.head;
   /* ⚠️ total_amount and charge_date are NOT NULL. Blanking them would come back as a
