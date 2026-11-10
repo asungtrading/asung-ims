@@ -101,7 +101,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file more
    than once, so the screen says its own version out loud. */
-const INV_BUILD = "2026-11-01 · inv sup v1";   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — 매입 인보이스 목록 Supplier 거르기(거래 중단도 보인다) ← 2026-10-22 · inv printed v2:   // v2 — Caleb 「printed total 을 넣지 않고 confirm 을 누르면 alert 팝업」: 경고를 확정 안내문과 섞지 않고 따로 먼저 띄운다(확인 → 원래 확정 창 · 취소 → 아무 일 없음) ←   // 대화 Claude — Caleb 「새로 고침을 하면 기존의 목록들이 사라지는 현상」: ?id= 로 연 문서를 지운 뒤 새로 고치면 「That document is gone.」 만 남았다 → 목록으로 돌아가면 주소의 ?id 를 지우고(replaceState) · 없는 문서면 안내 + 「‹ All documents」 단추 ← inv printed v1: 대화 Claude — 판정 621 A(Caleb 「색깔을 다르게」): Printed total 이 비면 칸 · Printed 노랑, Diff ≠ 0 이면 빨강, Confirm 때 「그래도 확정?」 문장을 같은 창 맨 위에(막지는 않는다 — 샘플 인보이스 0 · 센트 반올림) ← inv warn v1: 대화 Claude — Caleb 화면 시험(po warn v1 과 함께): 「Add lines from a PO」 미리 보기 · 확정 알림의 경고를 사람 말로(ADDPO_WARN) ← inv due v1: 대화 Claude — 초안 인보이스의 Due date 가 비었으면 「Use <날짜>」 단추(Document date + 결제조건 net_days · 판정 10) — 누르면 그 칸에 넣고 저장 ← inv cn-diff v1: 대화 Claude — 판정 554(po-cn-1 · 동료 「Credit note의 숫자가 혼동을 주는 부분」 · CN-PO-02052 −68): 크레딧 노트의 줄 차이 = 크레딧 뒤 남은 차이(qty_diff_after_credits = credit_billed_qty − received_qty − credited_not_received_qty · Not received 크레딧만 · 이 문서 포함) · 열 이름 「Qty diff after credits」 · 칸에 풀어 쓴 식 · 크레딧용 설명 글 · 인보이스는 그대로(qty_diff) ← inv esc v1: 대화 Claude — 공통 esc(ims-ui.js)가 " ' 를 막게 된 짝: 크레딧 번호 칸(cNumShown)의 textContent 에서 esc 를 뺐다 ← inv disc v2c: 대화 Claude — 미룬 157: Early-pay discount 의 Edit 단추가 작아 못 찾았다 — 박아 둔 크기(style)를 빼 다른 pobtn 과 같게 ← inv disc v2b: 대화 Claude — Caleb 화면: 크레딧 만들기 창 아래 경고가 코드 글자(number_is_provisional · total_amount_missing) — 사람 말로(CRED_WARN · 모르는 코드는 그대로) ← inv disc v2a · 대화 Claude — Caleb 화면: 크레딧 만들기 창 Billed 칸이 전부 「—」 — 서버 반환은 invoice_qty 인데 화면이 invoiced_qty 를 읽었다(옛 결함) ← inv disc v2 · 대화 Claude — ⑥ 할인 화면(po-disc-4a1 · 5a): 인보이스 조기 결제 할인 조건(Early-pay discount · % 또는 금액 · 세금 전/포함 · 기한 · 오늘 기준 금액 · 고치기 창 → PostgREST 네 칸 한 번에 · 잠금 문장 그대로) · 크레딧 줄 Reason(Not received / Price difference · 초안 고르기 → po_invoice_line_update credit_reason · 제안 · 걸침 경고) · 크레딧 원가 변경 표(credit_cost_events) · 확정 결과에 원가 변경 한 줄 · 경고 글귀 ← inv tx v1b · 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
+const INV_BUILD = "2026-11-09 · inv disc v3";   // 대화 Claude — inv disc v3(qbo-sync-4-7c · 판정 1144 · Caleb 「디스카운트를 받을 수 있는 날짜가 있으면 그것이 도드라져 보이게」): 상세 Due date 옆 할인 칩(Pay by · save · days left · 3 일 이하 주황) · 기한 출처(from the payment term / set by hand · due_date_manual) · 목록 Due 칸 할인 칩 · 확정 경고 due_date_missing · due_date_differs_from_term 사람 말 · Cancel 단추 이름 「Cancel invoice…」(Caleb 이 나가기로 알고 눌러 2223170 이 취소됨) ← inv sup v1 — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — 매입 인보이스 목록 Supplier 거르기(거래 중단도 보인다) ← 2026-10-22 · inv printed v2:   // v2 — Caleb 「printed total 을 넣지 않고 confirm 을 누르면 alert 팝업」: 경고를 확정 안내문과 섞지 않고 따로 먼저 띄운다(확인 → 원래 확정 창 · 취소 → 아무 일 없음) ←   // 대화 Claude — Caleb 「새로 고침을 하면 기존의 목록들이 사라지는 현상」: ?id= 로 연 문서를 지운 뒤 새로 고치면 「That document is gone.」 만 남았다 → 목록으로 돌아가면 주소의 ?id 를 지우고(replaceState) · 없는 문서면 안내 + 「‹ All documents」 단추 ← inv printed v1: 대화 Claude — 판정 621 A(Caleb 「색깔을 다르게」): Printed total 이 비면 칸 · Printed 노랑, Diff ≠ 0 이면 빨강, Confirm 때 「그래도 확정?」 문장을 같은 창 맨 위에(막지는 않는다 — 샘플 인보이스 0 · 센트 반올림) ← inv warn v1: 대화 Claude — Caleb 화면 시험(po warn v1 과 함께): 「Add lines from a PO」 미리 보기 · 확정 알림의 경고를 사람 말로(ADDPO_WARN) ← inv due v1: 대화 Claude — 초안 인보이스의 Due date 가 비었으면 「Use <날짜>」 단추(Document date + 결제조건 net_days · 판정 10) — 누르면 그 칸에 넣고 저장 ← inv cn-diff v1: 대화 Claude — 판정 554(po-cn-1 · 동료 「Credit note의 숫자가 혼동을 주는 부분」 · CN-PO-02052 −68): 크레딧 노트의 줄 차이 = 크레딧 뒤 남은 차이(qty_diff_after_credits = credit_billed_qty − received_qty − credited_not_received_qty · Not received 크레딧만 · 이 문서 포함) · 열 이름 「Qty diff after credits」 · 칸에 풀어 쓴 식 · 크레딧용 설명 글 · 인보이스는 그대로(qty_diff) ← inv esc v1: 대화 Claude — 공통 esc(ims-ui.js)가 " ' 를 막게 된 짝: 크레딧 번호 칸(cNumShown)의 textContent 에서 esc 를 뺐다 ← inv disc v2c: 대화 Claude — 미룬 157: Early-pay discount 의 Edit 단추가 작아 못 찾았다 — 박아 둔 크기(style)를 빼 다른 pobtn 과 같게 ← inv disc v2b: 대화 Claude — Caleb 화면: 크레딧 만들기 창 아래 경고가 코드 글자(number_is_provisional · total_amount_missing) — 사람 말로(CRED_WARN · 모르는 코드는 그대로) ← inv disc v2a · 대화 Claude — Caleb 화면: 크레딧 만들기 창 Billed 칸이 전부 「—」 — 서버 반환은 invoice_qty 인데 화면이 invoiced_qty 를 읽었다(옛 결함) ← inv disc v2 · 대화 Claude — ⑥ 할인 화면(po-disc-4a1 · 5a): 인보이스 조기 결제 할인 조건(Early-pay discount · % 또는 금액 · 세금 전/포함 · 기한 · 오늘 기준 금액 · 고치기 창 → PostgREST 네 칸 한 번에 · 잠금 문장 그대로) · 크레딧 줄 Reason(Not received / Price difference · 초안 고르기 → po_invoice_line_update credit_reason · 제안 · 걸침 경고) · 크레딧 원가 변경 표(credit_cost_events) · 확정 결과에 원가 변경 한 줄 · 경고 글귀 ← inv tx v1b · 대화 Claude — 판정 396(po-disc-2): 입고가 있는 확정 인보이스는 Reopen · Cancel 단추를 흐리게 하고 「credit note 로」 한 줄 · 서버가 막는 것은 그대로(미리 말할 뿐) ← inv tx v1a · 대화 Claude — Caleb 「디스카운트 어마운트가 1인것은 맞나?」: 합계 카드 Discount 가 금액이 아니라 곱하는 수(factor · 1 = 할인 없음)를 보였다 — 금액(Goods + Other − Before tax)으로 보이고 곱하는 수는 작은 글자 · 결제 때 받는 할인(텀 디스카운트)은 아래 Payments 표의 Discount 라는 안내 ← inv tx v1 · 대화 Claude — 매입 세금(po-tax-1 51971d0): 머리 Tax rule(초안 드롭다운 · PostgREST tax_rule_id → 짝 트리거 · 비우면 둘 다 null) · 합계 Before tax · Tax · Computed/Payable incl. tax · 줄 Tax rule(빈칸 = 머리 · po_invoice_line_update tax_rule_id / "") · 줄 Tax · 경고 tax_rule_missing · 넓은 목록 incl. tax ← inv thumb v1 · 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← 「invoice splits the PO」 ⑱-3(대화 Claude) — 판정 88 · 92 · 96 · 97: 확정 = PO 분할 안내 · 결과 split[] · Reopen 뒤 reattached[] · 경고 문장 ← 「Toronto date」(2026-09-23)
 console.log("invoices.html build:", INV_BUILD);
 let TAX_RULES = [];           // inv tx v1 — active purchase tax rules (head · line pickers)
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
@@ -203,6 +203,15 @@ function baseQuery(){
   return qy.order("invoice_date", { ascending:false }).order("invoice_number", { ascending:false });
 }
 
+/* inv disc v3 — list: a small chip when an early-pay date is still ahead and something is owed (needs early_discount_until on the list view · nothing shown if absent) */
+function listEarly(r){
+  if(!r || r.doc_kind === "credit" || !r.early_discount_until || r.status === "cancelled" || !(Number(r.unpaid) > 0)) return "";
+  const today = torontoToday();
+  if(r.early_discount_until < today) return "";
+  const days = Math.round((Date.parse(r.early_discount_until) - Date.parse(today)) / 86400000);
+  const hot = days <= 3;
+  return `<div style="font-size:11.5px;font-weight:700;color:${hot ? "#9a4b00" : "#11683a"}">save by ${esc(r.early_discount_until)}</div>`;
+}
 async function loadWide(){
   const { data, error } = await pgW.run(baseQuery());
   const box = document.getElementById("wrows");
@@ -223,7 +232,7 @@ async function loadWide(){
           r.supplier_ref_number ? `<div class="dim" style="font-size:11.5px">their ref ${esc(r.supplier_ref_number)}</div>` : ""}</td>
         <td>${kindChip(r.doc_kind)}</td>
         <td>${dim(r.invoice_date)}</td>
-        <td>${dim(r.due_date)}</td>
+        <td>${dim(r.due_date)}${listEarly(r)}</td>
         <td>${esc(r.supplier_name)}</td>
         <td class="mono" style="font-size:11.5px">${dim(r.po_numbers)}</td>
         <td class="num">${money(r.total_amount)} <span class="dim">${esc(r.currency_code || "")}</span></td>
@@ -308,8 +317,8 @@ async function loadDetail(id){
   /* ⭐ Cancelling is open on a draft too — a supplier document that arrived and was refused
      is worth keeping as a record, and refusing that would leave no way to enter it. */
   if(h.status !== "cancelled") acts.push(received
-      ? `<button class="pobtn" data-act="cancel" disabled title="${closedTip}">Cancel</button>`
-      : '<button class="pobtn" data-act="cancel">Cancel</button>');
+      ? `<button class="pobtn" data-act="cancel" disabled title="${closedTip}">${h.doc_kind === "credit" ? "Cancel credit note…" : "Cancel invoice…"}</button>`
+      : `<button class="pobtn" data-act="cancel">${h.doc_kind === "credit" ? "Cancel credit note…" : "Cancel invoice…"}</button>`);   // inv disc v3 — not an exit button
   /* ⭐ Restore lives in the detail only — on the list it would sit against every cancelled
      row and a stray click would put a dead document back into the books. */
   if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
@@ -328,7 +337,7 @@ async function loadDetail(id){
     ["Supplier",      esc(h.supplier_name)],
     ["Document date", dim(h.invoice_date)],
     // inv due v1 — ref_payment_term.net_days is filled now (판정 10): a draft with no due date offers "Use <date>" next to the field.
-    ["Due date",      dim(h.due_date)],
+    ["Due date",      dim(h.due_date) + dueSource(h) + earlyChip(early, h)],   // inv disc v3 · 1144
     ["Payment term",  dim(h.payment_term_name)],
   ];
   // inv disc v2 — invoices only · a credit note has no early-payment terms
@@ -729,6 +738,21 @@ const INV_DWARN = {
    (P&G "2%19 Net30" is really 2.1% within 13 days), so check it against the invoice.
    The four fields are saved together: the database refuses a percent without a basis, or both
    a percent and an amount. Once a payment has taken the discount the terms are locked. */
+/* inv disc v3 · 판정 1144 — the early-pay date stands out next to the due date, so the two are not mixed up.
+   Shown only while the discount is open and something is still owed. ≤ 3 days left → orange. */
+function earlyChip(e, h){
+  if(!e || !e.has_terms || !e.is_valid || !e.until_date) return "";
+  if(h && h.status === "cancelled") return "";
+  const d = (e.days_left === null || e.days_left === undefined) ? null : Number(e.days_left);
+  const hot = d !== null && d <= 3;
+  const st = hot ? "background:#fff1e0;color:#9a4b00;border:1px solid #f3c58c" : "background:#e7f6ec;color:#11683a;border:1px solid #b9e3c7";
+  return ` <span style="${st};border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;margin-left:6px;white-space:nowrap">Pay by ${esc(e.until_date)} → save ${money(e.discount)}${d !== null ? ` · ${d} day${d === 1 ? "" : "s"} left` : ""}</span>`;
+}
+/* inv disc v3 — where the due date came from (due_date_manual · 4-7a). Says nothing when the column is not there. */
+function dueSource(h){
+  if(!h || h.doc_kind === "credit" || !h.due_date || h.due_date_manual === undefined || h.due_date_manual === null) return "";
+  return h.due_date_manual ? ' <span class="off" style="font-size:12px">· set by hand</span>' : ' <span class="dim" style="font-size:12px">· from the payment term</span>';
+}
 function earlyText(e){
   if(!e || !e.has_terms) return '<span class="dim">none</span>';
   const what = e.pct !== null && e.pct !== undefined ? `${esc(Number(e.pct))}%` : money(e.amount);
@@ -825,7 +849,9 @@ const INV_WARN = {
   has_attached_credits:     "Credit notes are attached to this invoice.",
   credit_fx_mixed:          "The goods were costed at more than one exchange rate — the cost change uses their quantity-weighted rate.",
   credit_fx_unpinned:       "The goods are not received yet — the cost change uses this document's exchange rate.",
-  price_credit_qty_above_received: "A price difference covers more than has been received so far."
+  price_credit_qty_above_received: "A price difference covers more than has been received so far.",
+  due_date_missing:         "There is no due date and the payment term gives none — QuickBooks will use the document date as the due date.",   // inv disc v3 · 1144
+  due_date_differs_from_term: "The due date differs from the payment term (document date + the term's net days). Check it is the date the money is owed — not the early-pay discount date."
 };
 async function confirmInv(id, on, chk){
   /* inv printed v1 · 판정 621 A — 인쇄 합계를 안 넣었거나 줄 합과 다르면 같은 확인 창 맨 위에 먼저 말한다(막지는 않는다) */

@@ -134,7 +134,7 @@
    문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
    ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
    ───────────────────────────────────────────────────────────── */
-const QS_BUILD = "2026-11-09 · qs sup v2";   // 대화 Claude — qs sup v2(deferred 534 · 535 · 536 · 4-5a/b): 공급처 미리 보기 supPreview — Vendor(이름 · 통화) · Bill · Supplier credit(공급처 · A/P · 기한 · 통화 · 환율 · CAD 환산 · 줄마다 계정/품목 · 세금 코드 · 세금 합 · 합계) · Supplier payment(공급처 · 결제 방식 · 낸 계좌 · 수표 인쇄 여부 · A/P · 금액 · 환율 · CAD 환산 · 붙는 Bill check_lines) · void 와 손 지우기 안내 · 목록 머리 「Customer · supplier」 · DB 무변 ← qs sup v1 — qs sup v1(Caleb 「kind로도 필터링이 되는 기능이 필요할 것 같아」 · deferred 535 일부): 종류 고르기에 「Supplier bills and credits」(vendor · bill · vendor_credit · bill_delete_manual) · 「Supplier payments」(bill_payment · bill_payment_void · 4-5a a9cb5ce) · KIND_LABEL 여섯 · 미리 보기 꼴(534)은 그대로 · DB 무변 ← qs cost v1a — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+const QS_BUILD = "2026-11-09 · qs sup v3";   // 대화 Claude — qs sup v3(qbo-sync-4-7c · 판정 1143 · 1150): 이름표 vendor_credit + po_discount = 「Early-pay discount credit」 · bill_delete_manual + po_discount = 「Delete discount credit by hand」 · 결제 미리 보기 줄 txn_type(Bill · VendorCredit) · 할인 합계 · 할인 크레딧은 같은 보내기에서 먼저 나간다는 안내 ← qs sup v2 — qs sup v2(deferred 534 · 535 · 536 · 4-5a/b): 공급처 미리 보기 supPreview — Vendor(이름 · 통화) · Bill · Supplier credit(공급처 · A/P · 기한 · 통화 · 환율 · CAD 환산 · 줄마다 계정/품목 · 세금 코드 · 세금 합 · 합계) · Supplier payment(공급처 · 결제 방식 · 낸 계좌 · 수표 인쇄 여부 · A/P · 금액 · 환율 · CAD 환산 · 붙는 Bill check_lines) · void 와 손 지우기 안내 · 목록 머리 「Customer · supplier」 · DB 무변 ← qs sup v1 — qs sup v1(Caleb 「kind로도 필터링이 되는 기능이 필요할 것 같아」 · deferred 535 일부): 종류 고르기에 「Supplier bills and credits」(vendor · bill · vendor_credit · bill_delete_manual) · 「Supplier payments」(bill_payment · bill_payment_void · 4-5a a9cb5ce) · KIND_LABEL 여섯 · 미리 보기 꼴(534)은 그대로 · DB 무변 ← qs cost v1a — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
 console.log("qbo-send.html build:", QS_BUILD);
 
 const PAGE = 50, SEND_MAX = 10;
@@ -159,6 +159,12 @@ const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "V
   cost_day: "Cost day",   // qs cost v1
   vendor: "Supplier", bill: "Supplier bill", vendor_credit: "Supplier credit", bill_delete_manual: "Delete bill by hand",   // qs sup v1
   bill_payment: "Supplier payment", bill_payment_void: "Void supplier payment" };
+/* qs sup v3 — one kind (vendor_credit · bill_delete_manual) carries two meanings; ims_kind po_discount is the early-pay discount (4-7a) */
+function kindLabel(kind, imsKind){
+  if(kind === "vendor_credit" && imsKind === "po_discount") return "Early-pay discount credit";
+  if(kind === "bill_delete_manual" && imsKind === "po_discount") return "Delete discount credit by hand";
+  return KIND_LABEL[kind] || kind || "";
+}
 const STATE_CHIP = {
   queued: ["", "waiting"], blocked: ["warn", "blocked"], sending: ["warn", "sending"], sent: ["good", "sent"],
   failed: ["bad", "failed"], unknown: ["bad", "result unknown"], skipped: ["", "skipped"]
@@ -219,7 +225,7 @@ function draw(){
       return `<tr>
         <td class="ck">${canSend(r) ? `<input type="checkbox" data-ck="${esc(r.id)}" ${picked.has(r.id) ? "checked" : ""}>` : ""}</td>
         <td class="mono">${esc(r.doc_number || r.qbo_name || r.ims_name || "")}</td>
-        <td>${esc(KIND_LABEL[r.kind] || r.kind)}</td>
+        <td>${esc(kindLabel(r.kind, r.ims_kind))}</td>
         <td>${r.kind === "cost_day" ? dash : esc(r.name || "")}</td>
         <td>${esc(r.doc_date || r.job_date || "")}</td>
         <td class="num">${r.total === null || r.total === undefined ? dash : money(r.total) + ` <span class="dim">${esc(r.currency || "")}</span>`}</td>
@@ -375,6 +381,10 @@ function supPreview(p, b, doc, kv, kind, j){
   const rate = Number(b.ExchangeRate) || null;
   const cad = (v) => (rate && cur && cur !== "CAD" && v !== undefined && v !== null) ? ` <span class="dim">≈ ${money(Number(v) * rate)} CAD</span>` : "";
   const rateRow = cur && cur !== "CAD" ? kv("Exchange rate", rate ? `<span class="mono">${esc(String(b.ExchangeRate))}</span> <span class="dim">CAD per 1 ${esc(cur)}</span>` : '<span class="bad">none</span>') : "";
+  if(kind === "bill_delete_manual" && j && j.ims_kind === "po_discount") return `
+      <div class="needbox" style="margin-top:10px"><b>Delete by hand in QuickBooks.</b> The early-pay discount on this payment changed or was removed, so its old discount
+        supplier credit ${j.qbo_id ? `<span class="mono">#${esc(j.qbo_id)}</span>` : ""} must go. IMS never deletes in QuickBooks. Open that supplier credit in QuickBooks, delete it,
+        then press <b>Skip</b> here with the note “deleted in QuickBooks”. ${esc(j.note || "")}</div>`;
   if(kind === "bill_delete_manual") return `
       <div class="needbox" style="margin-top:10px"><b>Delete by hand in QuickBooks.</b> IMS never deletes a bill in QuickBooks. Open
         ${j && j.qbo_id ? `bill <span class="mono">#${esc(j.qbo_id)}</span>` : "the bill"} ${doc.doc_number ? `(<span class="mono">${esc(doc.doc_number)}</span>)` : ""} in QuickBooks, delete it,
@@ -407,13 +417,20 @@ function supPreview(p, b, doc, kv, kind, j){
         ${rateRow}
         ${kv("Private note", esc(b.PrivateNote || "") || dash)}
       </tbody></table>
-      <table style="margin-top:10px"><thead><tr><th>Pays bill</th><th>QuickBooks bill</th><th class="num">Amount</th></tr></thead>
-        <tbody>${cl.length ? cl.map(c => `<tr><td class="mono">${esc(c.doc_number || c.invoice_number || "")}</td><td class="mono">${c.qbo_bill_id ? "#" + esc(c.qbo_bill_id) : dash}</td><td class="num">${money(c.amount)}</td></tr>`).join("")
+      <table style="margin-top:10px"><thead><tr><th>Settles</th><th>In QuickBooks</th><th class="num">Amount</th></tr></thead>
+        <tbody>${cl.length ? cl.map(c => {
+          const vc = c.txn_type === "VendorCredit";   // qs sup v3 · 4-7a check_lines
+          const qid = c.qbo_txn_id || c.qbo_bill_id;
+          return `<tr><td>${vc ? '<span class="chip">discount credit</span> ' : ""}<span class="mono">${esc(c.doc_number || c.invoice_number || "")}</span></td>
+            <td class="mono">${qid ? (vc ? "supplier credit #" : "bill #") + esc(qid) : (vc ? '<span class="chip warn">created first, in the same send</span>' : dash)}</td>
+            <td class="num">${vc ? "−" : ""}${money(c.amount)}</td></tr>`; }).join("")
           : '<tr><td colspan="3" class="dim">No bill applied.</td></tr>'}</tbody></table>
       <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
-        <span>Payment <b class="mono">${money(t.amount !== undefined ? t.amount : b.TotalAmt)}</b></span>
-        <span>Applied <b class="mono">${money(t.applied)}</b></span>
+        <span>Bills <b class="mono">${money(t.applied)}</b></span>
+        ${Number(t.discount) > 0 ? `<span>Early-pay discount <b class="mono">−${money(t.discount)}</b></span>` : ""}
+        <span>Paid <b class="mono">${money(t.amount !== undefined ? t.amount : b.TotalAmt)}</b></span>
       </div>
+      ${cl.some(c => c.txn_type === "VendorCredit") ? '<div class="dim" style="font-size:12px;margin-top:6px">The early-pay discount goes to QuickBooks as a supplier credit and is applied in this same payment. If it is not in QuickBooks yet, Send creates it first, in the same send.</div>' : ""}
       <div class="dim" style="font-size:12px;margin-top:6px">Before it writes, IMS reads each bill in QuickBooks and does not send if QuickBooks already shows it paid. Afterwards, match the bank-feed line to this bill payment in QuickBooks.</div>`;
   }
   // bill · vendor_credit
@@ -748,7 +765,7 @@ async function openPreview(id){
   const isSup = SUP_KINDS.includes(j.kind || r.kind);   // qs sup v2
   const isCost = (j.kind || r.kind) === "cost_day";   // qs cost v1   // qs refund v1 — refund 넷 · opening 셋(opening_credit 은 문서 미리 보기)
   modalOpen(`
-    <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")}${isCost ? "" : " · " + esc(doc.name || r.name || "")}</h4>
+    <h4>${esc(kindLabel(j.kind || r.kind, j.ims_kind || r.ims_kind))} ${esc(p.doc_number || doc.doc_number || p.name || "")}${isCost ? "" : " · " + esc(doc.name || r.name || "")}</h4>
     <div class="pbody pv">
       <div style="font-size:12.5px;margin-bottom:8px">${chip(j.state || r.state)} <span class="dim">This is exactly what IMS will write to QuickBooks. Nothing is sent from this window until you press Send.</span></div>
       ${p.error ? `<div class="errbox"><b>Cannot be sent yet:</b> ${esc(p.error)}</div>` : ""}
