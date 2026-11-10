@@ -77,6 +77,8 @@
         <option value="opening">Carried-over money (before the cut-over)</option>
         <option value="refunds">Refunds</option>
         <option value="cost">Cost of goods — daily journal</option>
+        <option value="supbills">Supplier bills and credits</option>
+        <option value="suppays">Supplier payments</option>
         <option value="setup">Customers and items</option>
         <option value="">Everything</option>
       </select>
@@ -132,7 +134,7 @@
    문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
    ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
    ───────────────────────────────────────────────────────────── */
-const QS_BUILD = "2026-11-09 · qs cost v1a";   // 대화 Claude — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+const QS_BUILD = "2026-11-09 · qs sup v1";   // 대화 Claude — qs sup v1(Caleb 「kind로도 필터링이 되는 기능이 필요할 것 같아」 · deferred 535 일부): 종류 고르기에 「Supplier bills and credits」(vendor · bill · vendor_credit · bill_delete_manual) · 「Supplier payments」(bill_payment · bill_payment_void · 4-5a a9cb5ce) · KIND_LABEL 여섯 · 미리 보기 꼴(534)은 그대로 · DB 무변 ← qs cost v1a — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
 console.log("qbo-send.html build:", QS_BUILD);
 
 const PAGE = 50, SEND_MAX = 10;
@@ -147,12 +149,16 @@ const KINDS = {
   opening: ["opening_credit", "opening_credit_void", "opening_apply", "opening_apply_void"],   // qs refund v1 — 495
   refunds: ["refund", "refund_void", "refund_apply", "refund_apply_void"],                     // qs refund v1 — 2e-3-2-1
   cost: ["cost_day"],   // qs cost v1 — 3-2b · 3-3
+  supbills: ["vendor", "bill", "vendor_credit", "bill_delete_manual"],   // qs sup v1 — 4-3 · 4-4 (deferred 535)
+  suppays: ["bill_payment", "bill_payment_void"],                        // qs sup v1 — 4-5a
   setup: ["customer", "item"], "": null
 };
 const KIND_LABEL = { invoice: "Invoice", credit: "Credit note", invoice_void: "Void invoice", credit_void: "Void credit note", customer: "Customer", item: "Item", payment: "Payment", payment_void: "Void payment", credit_apply: "Credit applied", credit_apply_void: "Undo credit applied",
   opening_credit: "Carried-over money", opening_credit_void: "Void carried-over money", opening_apply: "Carried-over money applied", opening_apply_void: "Undo carried-over money applied",   // qs refund v1 — 495
   refund: "Refund", refund_void: "Void refund", refund_apply: "Refund linked to credit", refund_apply_void: "Undo refund link",
-  cost_day: "Cost day" };   // qs cost v1
+  cost_day: "Cost day",   // qs cost v1
+  vendor: "Supplier", bill: "Supplier bill", vendor_credit: "Supplier credit", bill_delete_manual: "Delete bill by hand",   // qs sup v1
+  bill_payment: "Supplier payment", bill_payment_void: "Void supplier payment" };
 const STATE_CHIP = {
   queued: ["", "waiting"], blocked: ["warn", "blocked"], sending: ["warn", "sending"], sent: ["good", "sent"],
   failed: ["bad", "failed"], unknown: ["bad", "result unknown"], skipped: ["", "skipped"]
