@@ -372,7 +372,7 @@
    ㉒ 트랜스퍼: ± 대화 상자에도 「Only what was sent …」 · 스캔 칸 안내에서 off-PO 문장 없앰 · 인보이스 번호는 po_receipt_detail 에 키가 없어 머리에 안 보인다(ⓘ · 보고) · 판매 · 트랜스퍼 갈래 · 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · 돌려보내기는 입고와 따로 ⇒ 「Rejected — take it off」 그룹 · Removed · 요약의 「Rejected … still on a shelf」 는 옛 off_po 행에만 · off_invoice 결정 표시는 「accepted — in stock」 하나
    ⭐ 판정 100(inv-basis-6): 더 온 몫이 두 칸에 나뉘면 창고 Complete(wms_recv_complete)가 먼저 거부한다 — 문장은 창구가 내고 화면은 alert + 토스트로 그대로(입고가 열려 있으니 창고가 한 칸으로 옮기고 다시 Complete) · 오피스 확정의 같은 검사는 안전띠 */
-const RC_BUILD="2026-11-02 · rc v2.1";   // 대화 Claude — 판정 954(Caleb 2026-11-02 · tf-combo-1b a4e991a): 트랜스퍼 콤보 받기 = SO 픽킹과 같은 방식 — 콤보 줄은 목록에 없고(tf_receipt_detail 이 뺀다) 구성품 줄에 「for 콤보 · combos n/m」 칩 · 박스 바코드(combo_barcodes) 한 번 = 그 콤보 하나 → 구성품 줄마다 combo_qty × pack_factor EA 를 wms_recv_scan 으로(픽 화면 comboScan 과 같은 셈 · 낱개 · 세트 바코드가 먼저) · 보낸 것보다 많아지면 한 번 묻는다(판정 74 · 남는 몫은 오피스) · 콤보 줄 자체는 셀 수 없다(창구가 거부) ← 2026-10-31 · rc v2.0:   // 대화 Claude — tf-pallet-1(asung-wms a0f9555 · 판정 897 · 898): 트랜스퍼를 팔렛 단위로 받기 — 팔렛 라벨 스캔(PLT-<id> → tf_pallet_lookup → wms_recv_start(id, 팔렛)) · 팔렛이 있는 트랜스퍼의 Start = 팔렛 고르기 창(tf_pallets · 상태 waiting · receiving · done) · 열린 입고가 있어도 트랜스퍼 카드는 숨기지 않는다(다른 팔렛을 시작해야 한다) · 받는 화면 머리에 팔렛 이름 · n of N · Complete 안내 = 이 팔렛만 · 끝나면 「n of N 팔렛 받음 · 나머지는 운송 중」 · 트랜스퍼 카드 · 받는 화면에 운송 정보(운송사 · 운송장 · ETA · 판정 898 · 읽기만) · 팔렛 없는 트랜스퍼 · PO 는 그대로 ← rc v1.9: 대화 Claude — rcv-3(asung-wms 103865e · 판정 598 ~ 600): 남은 몫이 있는 확정은 PO 를 열어 둔다 → Complete 안내를 그 뜻으로 · 확정 창에 오피스와 같은 안내(po_receipt_keep_open 미리 보기: short 줄 · 「PO stays open — N can still be received」 / 「closes」 · 되돌릴 수 없음) · 확정 뒤 po_kept_open / po_closed 를 글로 · 확정 스위치 주석 정정(열쇠 8 명) ← rc v1.8: 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
+const RC_BUILD="2026-11-11 · rc v2.2";   // 대화 Claude — rc v2.2(에드먼턴 TRF-00003 · RCV-00124 「Barcode lookup failed: Bad Request」 · 스캔 전부 안 됨): buildBcMap 이 제품 id 목록을 주소(URL)에 통째로 실어 324 줄 트랜스퍼에서 주소가 길이 한도를 넘었다(콘솔 실측 — or 질문 300 개 200 OK · 324 개 400) → 긴 id 목록은 100 개 묶음으로 나눠 묻고 합친다(rcInChunks) · 줄 제품과 off-PO SKU 는 or 대신 따로 · 바코드도 묶음이라 PostgREST 1,000 행 캡에도 안 걸린다 · 뜻 · 결과 무변 ← 2026-11-02 · rc v2.1:   // 대화 Claude — 판정 954(Caleb 2026-11-02 · tf-combo-1b a4e991a): 트랜스퍼 콤보 받기 = SO 픽킹과 같은 방식 — 콤보 줄은 목록에 없고(tf_receipt_detail 이 뺀다) 구성품 줄에 「for 콤보 · combos n/m」 칩 · 박스 바코드(combo_barcodes) 한 번 = 그 콤보 하나 → 구성품 줄마다 combo_qty × pack_factor EA 를 wms_recv_scan 으로(픽 화면 comboScan 과 같은 셈 · 낱개 · 세트 바코드가 먼저) · 보낸 것보다 많아지면 한 번 묻는다(판정 74 · 남는 몫은 오피스) · 콤보 줄 자체는 셀 수 없다(창구가 거부) ← 2026-10-31 · rc v2.0:   // 대화 Claude — tf-pallet-1(asung-wms a0f9555 · 판정 897 · 898): 트랜스퍼를 팔렛 단위로 받기 — 팔렛 라벨 스캔(PLT-<id> → tf_pallet_lookup → wms_recv_start(id, 팔렛)) · 팔렛이 있는 트랜스퍼의 Start = 팔렛 고르기 창(tf_pallets · 상태 waiting · receiving · done) · 열린 입고가 있어도 트랜스퍼 카드는 숨기지 않는다(다른 팔렛을 시작해야 한다) · 받는 화면 머리에 팔렛 이름 · n of N · Complete 안내 = 이 팔렛만 · 끝나면 「n of N 팔렛 받음 · 나머지는 운송 중」 · 트랜스퍼 카드 · 받는 화면에 운송 정보(운송사 · 운송장 · ETA · 판정 898 · 읽기만) · 팔렛 없는 트랜스퍼 · PO 는 그대로 ← rc v1.9: 대화 Claude — rcv-3(asung-wms 103865e · 판정 598 ~ 600): 남은 몫이 있는 확정은 PO 를 열어 둔다 → Complete 안내를 그 뜻으로 · 확정 창에 오피스와 같은 안내(po_receipt_keep_open 미리 보기: short 줄 · 「PO stays open — N can still be received」 / 「closes」 · 되돌릴 수 없음) · 확정 뒤 po_kept_open / po_closed 를 글로 · 확정 스위치 주석 정정(열쇠 8 명) ← rc v1.8: 대화 Claude — fb-0 6번 이견 0-1: PO 의 Complete 안내 글이 지금 동작과 반대였다(「안 받은 것은 오더에 남는다」) — 판정 88 ⑤ ⑥ 뒤로 오피스 확정은 PO 를 닫고 안 센 몫은 short 로 남는다 · 이어 받을 길 없음 ⇒ 다 센 뒤 Complete · 일부만 먼저는 아직 없다(판정 대기) ← rc v1.7: wms-img-1(판정 224) — 사진 켜기(공통 imsPhotoPrimary · 그려진 칸만 채움 · 새로 고침에도 보존) · inv-basis-4 — 인보이스 기준 · Off-invoice(위 머리 주석) · tf-3(판정 83) — 트랜스퍼 도착 갈래
 const HAS_IMAGES=typeof window.imsPhotoPrimary==="function";   // 판정 224(wms-img-1) — 화면이 product_image_primary 를 부른다(wms_pick_lines 에 사진 칸 없음) · 공통 imsPhotoPrimary · 옛 ims-ui.js 가 캐시돼 있으면 지금처럼 꺼진 채(판정 59 ③ · GitHub Pages 반영 뒤 켜진다)
 let sb=null, me=null, zoneSeq={}, whById={}, staffName={};
 let myReceipts=[], openPos=[];
@@ -948,6 +948,18 @@ async function binByName(name){
   return (data&&data.length===1)?{id:data[0].id,bin:String(data[0].name).trim()}:null;
 }
 
+/* ---------- rc v2.2 — 긴 id 목록은 묶음으로 나눠 묻는다 ----------
+   GET 주소에 id 를 통째로 실으면 큰 트랜스퍼(324 줄)에서 주소가 길이 한도를 넘어 400 Bad Request(RCV-00124 · 콘솔 실측 300 개 OK · 324 개 400).
+   100 개 묶음 = 주소 약 8 천 자(or 두 목록) · 묶음마다 행이 1,000 을 넘지 않아 PostgREST 캡에도 안 걸린다. 묶음은 함께 보내고(Promise.all) 결과를 합친다 · 하나라도 실패하면 전체 실패(옛 동작과 같다). */
+const RC_CHUNK=100;
+async function rcInChunks(arr, ask){
+  const parts=[]; for(let i=0;i<arr.length;i+=RC_CHUNK) parts.push(arr.slice(i,i+RC_CHUNK));
+  const res=await Promise.all(parts.map(c=>ask(c)));
+  const out=[]; res.forEach(r=>{ if(r.error) throw r.error; (r.data||[]).forEach(x=>out.push(x)); });
+  return out;
+}
+function rcUniqById(rows){ const m={}; rows.forEach(r=>{ m[r.id]=r; }); return Object.values(m); }
+
 /* ---------- bcMap: 낱개(factor 1) + 그 낱개를 parent 로 둔 세트(×pack_factor) 의 바코드 — wms_pick_lines 와 같은 뜻 ---------- */
 /* ⚠️ 담는 것은 line.id 다 — 배열 인덱스가 아니다(운영 주석 그대로). */
 async function buildBcMap(){
@@ -957,11 +969,11 @@ async function buildBcMap(){
   if(!pids.length&&!offSkus.length)return;
   try{
     // 1) 줄의 제품(+ off-PO 는 sku 로) → parent · pack_factor
-    let q=sb.from("product").select("id,sku,name,parent_product_id,pack_factor");
-    q=(pids.length&&offSkus.length)?q.or(`id.in.(${pids.join(",")}),sku.in.(${offSkus.map(s=>'"'+s.replace(/"/g,'')+'"').join(",")})`)
-     :pids.length?q.in("id",pids):q.in("sku",offSkus);
-    const {data:own,error:e1}=await q;
-    if(e1) throw e1;
+    // rc v2.2 — 줄 제품(id) · off-PO(sku) 를 따로 · 묶음으로(옛 or 한 질문은 주소가 길어졌다)
+    const own=rcUniqById([
+      ...await rcInChunks(pids, c=>sb.from("product").select("id,sku,name,parent_product_id,pack_factor").in("id",c)),
+      ...await rcInChunks(offSkus, c=>sb.from("product").select("id,sku,name,parent_product_id,pack_factor").in("sku",c))
+    ]);
     const bySku={}, byId={};
     (own||[]).forEach(p=>{ byId[p.id]=p; bySku[String(p.sku).toUpperCase()]=p; });
     lines.forEach(l=>{
@@ -972,15 +984,15 @@ async function buildBcMap(){
     });
     const stockPids=[...new Set(lines.map(l=>l.stock_pid).filter(Boolean))];
     // 2) 낱개(stock) 행 + 그 낱개를 parent 로 둔 세트 행 전부
-    const {data:fam,error:e2}=await sb.from("product").select("id,sku,parent_product_id,pack_factor")
-      .or(`id.in.(${stockPids.join(",")}),parent_product_id.in.(${stockPids.join(",")})`);
-    if(e2) throw e2;
+    // rc v2.2 — 묶음마다 or(100 개 × 두 목록) · 같은 행이 두 묶음에서 오면 하나로
+    const fam=rcUniqById(await rcInChunks(stockPids, c=>sb.from("product").select("id,sku,parent_product_id,pack_factor")
+      .or(`id.in.(${c.join(",")}),parent_product_id.in.(${c.join(",")})`)));
     const famById={}; (fam||[]).forEach(p=>{ famById[p.id]=p; });
     lines.forEach(l=>{ const sp=famById[l.stock_pid]; if(sp) l.base_sku=sp.sku; });
     const famIds=Object.keys(famById);
     // 3) 그 제품들의 활성 바코드
-    const {data:bcs,error:e3}=await sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id",famIds).eq("is_active",true);
-    if(e3) throw e3;
+    // rc v2.2 — 묶음으로(585 제품이면 주소 2만 자 넘음 · 바코드 행 1,000 캡)
+    const bcs=await rcInChunks(famIds, c=>sb.from("product_barcode").select("product_id,barcode,is_primary").in("product_id",c).eq("is_active",true));
     const bcByPid={}; (bcs||[]).forEach(b=>{ (bcByPid[b.product_id]=bcByPid[b.product_id]||[]).push(b); });
     const factorOf=p=>p.parent_product_id?(Number(p.pack_factor)||1):1;
     lines.forEach(l=>{
