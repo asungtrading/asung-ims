@@ -95,7 +95,7 @@
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const PAY_BUILD = "2026-10-22 · pay gone v1";   // 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · pay disc v1b: 대화 Claude — Caleb 화면: To pay 검색 칸이 좁아 안내 글이 잘렸다 — 너비 100% ← pay disc v1a · 대화 Claude — Caleb 화면: 할인 0 으로 Check 하면 「Lowers stock cost by —」 — 원가 몫이 빈 값 · 되돌림인지 · 바뀌는 것인지 문장으로(costLine) ← pay disc v1 · 대화 Claude — ⑥ 결제 할인 화면(po-disc-4a1 · 4a2 · 4b): To pay(po_pay_candidates · 결제일 기준 할인 제안) → Pay selected(문서마다 금액 · 할인 · 비용 청구서 기준 · p_targets.discount) · Paid · Discount taken 은 읽기 전용(문지기) · 줄마다 Discount + Adjust discount(po_payment_alloc_discount_set 미리 보기 → 저장) · Still owed 를 할인으로 끝내기(미룬 144) · 경고 코드를 사람 말로(미룬 143 gap_not_zero 등) ← 「Toronto date」(2026-09-23)
+const PAY_BUILD = "2026-11-09 · pay rate v1";   // 대화 Claude — pay rate v1(qbo-sync-4-5c · 판정 1123 · 4-5a a9cb5ce): 외화 결제의 환율 칸 — 상세 머리 Exchange rate(PostgREST saveHead · 비면 안내) · To pay 창 Exchange rate(USD 문서를 고르면 나타남 · p_exchange_rate · 비우면 저장 전 한 번 묻는다 — 저장은 받고 QuickBooks 보내기에서 막는다) · PAY_WARN exchange_rate_missing ← pay gone v1 — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · pay disc v1b: 대화 Claude — Caleb 화면: To pay 검색 칸이 좁아 안내 글이 잘렸다 — 너비 100% ← pay disc v1a · 대화 Claude — Caleb 화면: 할인 0 으로 Check 하면 「Lowers stock cost by —」 — 원가 몫이 빈 값 · 되돌림인지 · 바뀌는 것인지 문장으로(costLine) ← pay disc v1 · 대화 Claude — ⑥ 결제 할인 화면(po-disc-4a1 · 4a2 · 4b): To pay(po_pay_candidates · 결제일 기준 할인 제안) → Pay selected(문서마다 금액 · 할인 · 비용 청구서 기준 · p_targets.discount) · Paid · Discount taken 은 읽기 전용(문지기) · 줄마다 Discount + Adjust discount(po_payment_alloc_discount_set 미리 보기 → 저장) · Still owed 를 할인으로 끝내기(미룬 144) · 경고 코드를 사람 말로(미룬 143 gap_not_zero 등) ← 「Toronto date」(2026-09-23)
 console.log("payments.html build:", PAY_BUILD);
 
 /* 토론토 날짜 'YYYY-MM-DD' — ⚠️ toISOString().slice(0,10) 은 UTC 날짜다(토론토 저녁 8시 · 겨울 7시 뒤에는 내일 · 2026-09-23 실측 20:09 EDT 에 DB 는 09-24).
@@ -166,7 +166,8 @@ const PAY_WARN = {
   discount_without_terms:    "a discount was taken on a document with no early-pay terms",
   discount_available:        "an early-pay discount was available but not taken",
   legacy_shape:              "",
-  early_discount_no_deadline:"the discount has no deadline"
+  early_discount_no_deadline:"the discount has no deadline",
+  exchange_rate_missing:     "no exchange rate — QuickBooks needs the MTFX rate of the day the money was bought before this payment can be sent"   // pay rate v1
 };
 function warnText(list){
   return (list || []).map(w => {
@@ -256,6 +257,13 @@ async function loadDetail(id){
   if(!data){ box.innerHTML = '<div class="card"><div class="msg">That payment is gone — it was deleted, or the link is old.<div style="margin-top:12px"><button class="pobtn" onclick="showWide()">‹ Back to the list</button></div></div></div>'; return; }
 
   const h = data.header, m = data.money || {};
+  /* pay rate v1 — po_payment_detail may not carry exchange_rate (4-5a added the column's write path, not the detail) — read it once if absent */
+  if(h.exchange_rate === undefined){
+    const xr = await sb.from("po_payment").select("exchange_rate").eq("id", id).maybeSingle();
+    if(seq !== detailSeq) return;
+    h.exchange_rate = (xr.data && xr.data.exchange_rate !== undefined) ? xr.data.exchange_rate : null;
+  }
+  const foreign = !!h.currency_code && h.currency_code !== "CAD";
   const gap = Number(m.gap);
   const balanced = gap === 0;
   const allocList = data.allocs || [];
@@ -284,6 +292,9 @@ async function loadDetail(id){
         : `<span class="dim">not set</span> <button class="xbtn" data-act="acct" style="margin-left:8px">choose</button>`],
     ["Currency",    `<span class="mono">${dim(h.currency_code)}</span>` +
                     (curLocked ? ' <span class="dim">· fixed while documents are attached</span>' : "")],
+    /* pay rate v1 · 판정 1123 — the MTFX rate of the day the money was bought · QuickBooks takes it as is and books the exchange gain/loss */
+    ...(foreign ? [["Exchange rate", `<span class="dim">CAD per 1 ${esc(h.currency_code)}</span> <input class="qin pin" type="number" step="any" min="0" value="${esc(h.exchange_rate ?? "")}" data-prev="${esc(h.exchange_rate ?? "")}" data-head="exchange_rate" title="The MTFX rate of the day the money was bought">`
+        + (h.exchange_rate ? "" : ' <span class="off" style="font-size:12px;margin-left:6px">needed before this payment can go to QuickBooks</span>')]] : []),
     ["Entered by",  dim(h.paid_by_name) + (h.created_at ? ` <span class="dim">· ${imsTs(h.created_at)}</span>` : "")],
     ["Note",        `<input class="tin" style="width:260px" value="${esc(h.note || "")}" data-head="note">`],
   ];
@@ -464,6 +475,9 @@ async function saveHead(id, inp){
     inp.value = inp.dataset.prev || inp.value;
     say("headMsg", "err", "That field cannot be left empty.");
     return;
+  }
+  if(field === "exchange_rate" && inp.value.trim() !== "" && !(Number(inp.value) > 0)){   // pay rate v1
+    inp.value = inp.dataset.prev || ""; say("headMsg", "err", "The exchange rate must be a number above zero."); return;
   }
   const patch = {}; patch[field] = inp.value === "" ? null : inp.value;
   const res = await imsSaved(sb.from("po_payment").update(patch).eq("id", id).select("id"));
@@ -704,6 +718,8 @@ async function openCreate(preselect){
         <div class="frow"><label>From account</label>
           <input id="pAcc" placeholder="search code or name — try CHEQUING" autocomplete="off"></div>
         <div id="pAccList" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin:-4px 0 10px;display:none"></div>
+        <div class="frow" id="pRateRow" hidden><label>Exchange rate</label>
+          <input id="pRate" type="number" step="any" min="0" placeholder="CAD per 1 USD — MTFX rate of the day the money was bought"></div>
       </div>
 
       <div id="pMsg" style="margin-top:10px;font-size:12.5px"></div>
@@ -739,6 +755,11 @@ async function openCreate(preselect){
     document.getElementById("pGap").textContent = gap.toFixed(2);
     document.getElementById("pGapBox").className = "g " + (gap === 0 ? "ok" : "bad");
     document.getElementById("pGo").disabled = picked.size === 0;
+    /* pay rate v1 — a foreign-currency payment carries its exchange rate (판정 1123) */
+    const cc = picked.size ? picked.values().next().value.currency : null;
+    const rr = document.getElementById("pRateRow");
+    rr.hidden = !cc || cc === "CAD";
+    if(!rr.hidden) document.getElementById("pRate").placeholder = `CAD per 1 ${cc} — MTFX rate of the day the money was bought`;
   };
 
   /* The discount the list offers on the paying date — 0 when there are no terms or they have expired. */
@@ -864,6 +885,11 @@ async function openCreate(preselect){
   document.getElementById("pDate").onchange = loadCands;
   imsQ("#pAcc", () => { accId = null; drawAccounts(); });
 
+  const rateValue = () => {   // pay rate v1 — only when the row shows
+    if(document.getElementById("pRateRow").hidden) return null;
+    const v = document.getElementById("pRate").value.trim();
+    return v === "" ? null : Number(v);
+  };
   const args = (commit) => ({
     p_supplier_id:    null,
     p_paid_on:        document.getElementById("pDate").value || null,
@@ -873,6 +899,7 @@ async function openCreate(preselect){
     p_account_id:     accId,
     p_reference:      document.getElementById("pRef").value.trim() || null,
     p_note:           null,
+    p_exchange_rate:  rateValue(),   // pay rate v1
     /* ⭐ The new shape: every element carries its own discount (po-disc-4a2), charges also their basis. */
     p_targets:        Array.from(picked.entries()).map(([key, v]) => {
                         const [kind, id] = key.split(":");
@@ -885,6 +912,7 @@ async function openCreate(preselect){
 
   document.getElementById("pGo").onclick = async () => {
     if(!picked.size){ say("pMsg", "err", "Click the invoices or charges this payment settles."); return; }
+    { const rv = rateValue(); if(rv !== null && !(rv > 0)){ say("pMsg", "err", "The exchange rate must be a number above zero."); return; } }   // pay rate v1
     const btn = document.getElementById("pGo");
     btn.disabled = true;
     say("pMsg", "", "Checking…");
@@ -893,6 +921,11 @@ async function openCreate(preselect){
     /* Ask only about what changes money or cost — a missing account is said, not asked. */
     const ask = (dry.data.warnings || []).filter(x => /^(discount_after_deadline|discount_without_terms|mixed_supplier)/.test(x));
     if(ask.length && !confirm(`Before paying:\n\n⚠ ${warnText(ask)}\n\nPay anyway?`)){ say("pMsg", "err", "⚠ " + warnText(ask)); btn.disabled = false; return; }
+    /* pay rate v1 — saved without a rate is allowed, but it cannot go to QuickBooks until the rate is entered */
+    if((dry.data.warnings || []).some(x => /^exchange_rate_missing/.test(x))
+       && !confirm("No exchange rate entered.\n\nThe payment is saved, but it cannot go to QuickBooks until you enter the MTFX rate of the day the money was bought (you can add it later on the payment).\n\nSave without the rate?")){
+      say("pMsg", "err", "Enter the exchange rate, then press Pay selected."); btn.disabled = false; return;
+    }
     say("pMsg", "", "Paying…");
     const { data, error } = await sb.rpc("po_payment_create", args(true));
     if(error){ say("pMsg", "err", error.message); btn.disabled = false; return; }
