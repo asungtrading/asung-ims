@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v18";     // [2026-11-09 nav v18 · 대화 Claude] 판정 1138 — 폰 폭(max-width:760px · IMS 화면만): 목록 + 상세 화면(.wrap · .list · #detail · 13 화면)은 처음엔 목록만 · 줄을 누르면 상세만 화면 가득 + 「‹ Back to list」 · 상세 첫 카드는 펼침 · 나머지 카드는 제목(h3)에 ▸ 캐럿으로 접힘 · 카드 안 넓은 표는 옆으로 밀기 · 넓은 목록 ↔ 상세 화면(9)도 접힘 · 표 밀기 · 모양은 <style id="imsMobileCss"> 한 곳 · 데스크톱 무변 ← [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v18b";     // [2026-11-09 nav v18b · 대화 Claude] 캐럿을 글자 그대로(▾ ▸) — v18a 는 CSS 코드값 \25BE 를 JS 문자열에 넣어 \25 가 8 진 escape 로 먹혀 「BE」 · 「B8」 이 보였다 ← [nav v18a] 폰에서 넓은 목록 건너뛰기 · 넓은 표 카드 줄(아래) ← [nav v18] 판정 1138 — 폰 폭(max-width:760px · IMS 화면만): 목록 + 상세 화면(.wrap · .list · #detail · 13 화면)은 처음엔 목록만 · 줄을 누르면 상세만 화면 가득 + 「‹ Back to list」 · 상세 첫 카드는 펼침 · 나머지 카드는 제목(h3)에 ▸ 캐럿으로 접힘 · 카드 안 넓은 표는 옆으로 밀기 · 넓은 목록 ↔ 상세 화면(9)도 접힘 · 표 밀기 · 모양은 <style id="imsMobileCss"> 한 곳 · 데스크톱 무변 · Caleb 「모바일에서는 전체목록을 볼 필요는 없을것 같아 … 어느 메뉴든」 ⇒ 간단 목록이 있는 화면(#wide + #wrapBox + loadList · 12)은 폰에서 넓은 목록을 건너뛴다(showWide 를 감싸 간단 목록으로) · 넓은 목록뿐인 화면(#wide 표 · 9)은 표를 카드 줄로(머리 줄 감춤 · 첫 칸 굵게 · 칸 감추지 않음) · #backWide 감춤 ← [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -641,9 +641,16 @@
         +'#detail .card table,main .card table,.card>table{display:block;overflow-x:auto;max-width:100%}'
         +'#detail .card.ims-m-fold>:not(h3){display:none !important}'
         +'#detail .card>h3.ims-m-h{cursor:pointer;user-select:none}'
-        +'#detail .card>h3.ims-m-h::before{content:"\25BE  ";color:var(--muted,#6b7280)}'
-        +'#detail .card.ims-m-fold>h3.ims-m-h::before{content:"\25B8  "}'
+        +'#detail .card>h3.ims-m-h::before{content:"▾  ";color:var(--muted,#6b7280)}'
+        +'#detail .card.ims-m-fold>h3.ims-m-h::before{content:"▸  "}'
         +'#detail .card.ims-m-fold{padding-bottom:10px}'
+        +'#backWide{display:none !important}'
+        +'#wide table,#wide tbody{display:block !important;overflow:visible !important;max-width:100%}'
+        +'#wide thead{display:none !important}'
+        +'#wide tr{display:flex;flex-wrap:wrap;gap:2px 12px;padding:10px 6px;border-bottom:1px solid #eef0f4}'
+        +'#wide td{display:block;border:0 !important;padding:0 !important;white-space:normal !important;font-size:13px;text-align:left !important}'
+        +'#wide td:first-child{flex-basis:100%;font-weight:700;font-size:14px}'
+        +'#wide td:empty{display:none}'
         +'#imsMBack{display:none}'
         +'html.ims-m-det #imsMBack{display:block;padding:8px 10px 0}'
         +'#imsMBack button{width:100%;border:1px solid var(--line,#e3e6eb);background:#fff;border-radius:10px;padding:10px;font:inherit;font-size:14px;font-weight:600;text-align:left}'
@@ -682,6 +689,16 @@
       new MutationObserver(()=>{ fold(); if(mq.matches && wrap && wrap.contains(detail) && realContent(detail) && !root.classList.contains("ims-m-det")) setDet(true); })
         .observe(detail,{childList:true,subtree:true});
       fold();
+    }
+    /* 간단 목록이 있는 화면 — 폰에서는 넓은 목록(showWide)을 건너뛰고 간단 목록으로. 화면의 showWide 는 전역 함수 선언이라
+       window.showWide 를 갈아 끼우면 화면 안의 부름(시작 · ‹ All … 단추 · data-act="wide")도 이것을 탄다. 원래 것을 먼저 돌려 상태(curId · syncCtl)를 맞춘 뒤 바꾼다. */
+    const wideEl=document.getElementById("wide"), wrapBox=document.getElementById("wrapBox");
+    if(wideEl && wrapBox && typeof window.showWide==="function" && typeof window.loadList==="function" && !window.showWide._imsM){
+      const orig=window.showWide;
+      const goNarrow=()=>{ wideEl.hidden=true; wrapBox.hidden=false; setDet(false); try{ window.loadList(); }catch(e){} };
+      const wrapped=function(){ const r=orig.apply(this, arguments); if(mq.matches) goNarrow(); return r; };
+      wrapped._imsM=true; window.showWide=wrapped;
+      if(mq.matches && !wideEl.hidden) goNarrow();
     }
     const onMq=()=>{ if(!mq.matches){ setDet(false); document.querySelectorAll("#detail .card.ims-m-fold").forEach(c=>c.classList.remove("ims-m-fold")); } };
     if(mq.addEventListener) mq.addEventListener("change", onMq); else if(mq.addListener) mq.addListener(onMq);
