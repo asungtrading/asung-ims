@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v15";     // [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v16";     // [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -80,7 +80,6 @@
     ["Customer Payments","so-payments.html","sales","ims",true,"sales"],
     ["Credit Notes","so-credits.html","sales","ims",true,"sales"],
     ["Backorders","so-backorders.html","sales","ims",true,"sales"],
-    ["QuickBooks","qbo-send.html","qbo","ims",true,"sales"],   // nav v14(2026-11-02 · qbo-sync-2d1 · 판정 971) — 북키퍼가 골라 보내는 QuickBooks 보내기 · 열쇠 qbo(보기 qbo:read) · 탭 줄에도(Sales 문서 화면 · 판정 169)
     ["Customers","customers.html","sales","ims",false,"sales"],   // cs-5 ①(2026-10-05 · 판정 236 ~ 241) — 판정 150 · 162 의 자리 · 보기는 sales 읽기 · 쓰기는 창구가 가른다
     // Inventory (판정 150 · 151)
     ["Stock Availability","stock.html",null,"ims",false,"inventory"],   // stk-3(2026-10-06 · 판정 257 · 258) — 브랜치별 가용 · bin · 움직임 · 열쇠 없음 = 로그인한 직원 누구나(창구 문 = 활성 직원)
@@ -95,12 +94,14 @@
     ["Bin Moves (office)","stock-moves.html","stock_move","ims",false,"inventory"],
     // Action Center — 펼침 없이 링크 하나 (판정 152 · 165 · 파일 manager-list.html · 열쇠 sales 그대로)
     ["Action Centre","manager-list.html","sales","ims",false,"action"],
+    // ── Integrations(nav v16 · 판정 1136 · Caleb 2026-11-09 「인테그레이션을 따로 뽑으면 어떨까」) — 연동을 관리 · 보내는 화면만 · Web Orders 는 오더 받는 일이라 Sales 에 둔다 · Freightcom 은 자기 화면이 생기면
+    ["QuickBooks","qbo-send.html","qbo","ims",true,"integrations"],   // nav v16(2026-11-09 · 판정 1136 · Sales → Integrations) ← nav v14(2026-11-02 · qbo-sync-2d1 · 판정 971) — 북키퍼가 골라 보내는 QuickBooks 보내기 · 열쇠 qbo(보기 qbo:read) · 탭 줄에도(Sales 문서 화면 · 판정 169)
+    ["Shopify Stores","shopify-stores.html","shopify","ims",true,"integrations"],   // nav v16(2026-11-09 · 판정 1136 · Settings → Integrations · 탭 줄에도) ← nav v6(2026-10-09 · shop-1a 584aaf0 · shop-1b 9d67484) — 보기 · Check connection = shopify(manager 이상 · 쓰기) · 스토어 · 짝 고치기 = admin(창구)   // dr v1(2026-10-06 · dsc-4 · 판정 285 · 330 ~ 344) — 보기 · 고치기 master · 쿠폰 발행 · 무효
     // Settings (판정 150 · 151 · 166)
     ["Settings","settings.html","master","ims",false,"settings"],
     ["Surcharge Groups","surcharge-groups.html","master","ims",false,"settings"],   // surcharge-4b(판정 231) — 보기는 master · 고치기는 admin(창구)
     ["Staff","staff.html","staff","ims",false,"settings"],
     ["Discount Rules","discount-rules.html","master","ims",false,"settings"],
-    ["Shopify Stores","shopify-stores.html","shopify","ims",false,"settings"],   // nav v6(2026-10-09 · shop-1a 584aaf0 · shop-1b 9d67484) — 보기 · Check connection = shopify(manager 이상 · 쓰기) · 스토어 · 짝 고치기 = admin(창구)   // dr v1(2026-10-06 · dsc-4 · 판정 285 · 330 ~ 344) — 보기 · 고치기 master · 쿠폰 발행 · 무효
     ["System Check","system-check.html",null,"ims",false,"settings"],
     // POS 모드 — pos.html 하나 · 펼침 · ☰ 없음 (판정 159)
     ["POS","pos.html","sales","pos",false,null],
@@ -121,6 +122,7 @@
     ["sales","Sales",false],
     ["inventory","Inventory",false],
     ["action","Action Centre",true],
+    ["integrations","Integrations",false],   // nav v16 · 판정 1136
     ["settings","Settings",false],
   ];
 
