@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v17";     // [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v18";     // [2026-11-09 nav v18 · 대화 Claude] 판정 1138 — 폰 폭(max-width:760px · IMS 화면만): 목록 + 상세 화면(.wrap · .list · #detail · 13 화면)은 처음엔 목록만 · 줄을 누르면 상세만 화면 가득 + 「‹ Back to list」 · 상세 첫 카드는 펼침 · 나머지 카드는 제목(h3)에 ▸ 캐럿으로 접힘 · 카드 안 넓은 표는 옆으로 밀기 · 넓은 목록 ↔ 상세 화면(9)도 접힘 · 표 밀기 · 모양은 <style id="imsMobileCss"> 한 곳 · 데스크톱 무변 ← [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -620,6 +620,73 @@
     document.addEventListener("click",(e)=>{ if(dd.style.display==="block" && !dd.contains(e.target) && e.target!==btn) dd.style.display="none"; });
   }
 
+  /* nav v18 · 판정 1138 — 폰 폭의 문서 화면. CSS 는 @media 안에만 있어 데스크톱은 그대로다.
+     · html.ims-m-det = 「상세를 보는 중」 — 목록 줄을 누르거나(위임) #detail 에 진짜 내용이 들어오면 단다 · 「‹ Back to list」 · 화면의 List 단추(data-act="toglist")가 뗀다
+     · 접힘: #detail 의 둘째 카드부터, 첫 자식이 h3 인 카드만 · 다시 그려지면 다시 접힌다(화면이 상세를 통째로 다시 그리기 때문 — 짐작이 아니라 화면 코드가 innerHTML 로 그린다)
+     · 첫 카드(머리 · 번호 · 상태 · 합계 · 단추)는 접지 않는다 = 「핵심 정보」 */
+  const M_Q="(max-width: 760px)";
+  function setupMobile(){
+    if(hereMode!=="ims" || window._imsMobile) return;
+    window._imsMobile=true;
+    const mq=window.matchMedia(M_Q);
+    if(!document.getElementById("imsMobileCss")){
+      const st=document.createElement("style"); st.id="imsMobileCss";
+      st.textContent='@media '+M_Q+'{'
+        +'.wrap{flex-direction:column;padding:10px;gap:10px}'
+        +'.wrap>.list{width:100% !important;flex:1 1 auto !important;position:static !important;max-height:none !important}'
+        +'.wrap>.list .rows{max-height:none !important}'
+        +'html.ims-m-det .wrap>.list{display:none !important}'
+        +'html:not(.ims-m-det) .wrap>#detail{display:none}'
+        +'#detail{width:100%;min-width:0}'
+        +'#detail .card table,main .card table,.card>table{display:block;overflow-x:auto;max-width:100%}'
+        +'#detail .card.ims-m-fold>:not(h3){display:none !important}'
+        +'#detail .card>h3.ims-m-h{cursor:pointer;user-select:none}'
+        +'#detail .card>h3.ims-m-h::before{content:"\25BE  ";color:var(--muted,#6b7280)}'
+        +'#detail .card.ims-m-fold>h3.ims-m-h::before{content:"\25B8  "}'
+        +'#detail .card.ims-m-fold{padding-bottom:10px}'
+        +'#imsMBack{display:none}'
+        +'html.ims-m-det #imsMBack{display:block;padding:8px 10px 0}'
+        +'#imsMBack button{width:100%;border:1px solid var(--line,#e3e6eb);background:#fff;border-radius:10px;padding:10px;font:inherit;font-size:14px;font-weight:600;text-align:left}'
+        +'}';
+      document.head.appendChild(st);
+    }
+    const root=document.documentElement;
+    const setDet=(on)=>{ root.classList.toggle("ims-m-det", !!on); };
+    const wrap=document.querySelector(".wrap");
+    const detail=document.getElementById("detail");
+    if(wrap && detail && wrap.contains(detail) && !document.getElementById("imsMBack")){
+      const bar=document.createElement("div"); bar.id="imsMBack";
+      bar.innerHTML='<button type="button">\u2039 Back to list</button>';
+      bar.querySelector("button").onclick=()=>{ setDet(false); window.scrollTo(0,0); };
+      wrap.parentNode.insertBefore(bar, wrap);
+    }
+    // 목록 줄을 누르면 곧바로 상세로(그림이 오기 전 「Loading…」 도 상세 쪽에 보이게)
+    document.addEventListener("click",(e)=>{
+      if(!mq.matches) return;
+      if(e.target.closest(".wrap .list .row")){ setDet(true); window.scrollTo(0,0); return; }
+      if(e.target.closest('[data-act="toglist"]')) setDet(false);
+    }, true);
+    const realContent=(d)=>{ const cards=d.querySelectorAll(".card"); if(cards.length>1) return true; const c=cards[0]; return !!(c && !(c.children.length===1 && c.firstElementChild.classList.contains("msg"))); };
+    const fold=()=>{
+      if(!detail) return;
+      const cards=Array.from(detail.querySelectorAll(":scope .card")).filter(c=>c.closest("#detail")===detail);
+      cards.forEach((c,i)=>{
+        if(i===0 || c.dataset.mfold) return;
+        const h=c.firstElementChild; if(!h || h.tagName!=="H3") return;
+        c.dataset.mfold="1"; h.classList.add("ims-m-h");
+        if(mq.matches) c.classList.add("ims-m-fold");
+        h.addEventListener("click",()=>{ if(mq.matches) c.classList.toggle("ims-m-fold"); });
+      });
+    };
+    if(detail){
+      new MutationObserver(()=>{ fold(); if(mq.matches && wrap && wrap.contains(detail) && realContent(detail) && !root.classList.contains("ims-m-det")) setDet(true); })
+        .observe(detail,{childList:true,subtree:true});
+      fold();
+    }
+    const onMq=()=>{ if(!mq.matches){ setDet(false); document.querySelectorAll("#detail .card.ims-m-fold").forEach(c=>c.classList.remove("ims-m-fold")); } };
+    if(mq.addEventListener) mq.addEventListener("change", onMq); else if(mq.addListener) mq.addListener(onMq);
+  }
+
   // 로그인 뒤 한 번 — 헤더 · WMS 탭 · ☰ · 높이 변수 (각각 try — 하나가 죽어도 화면 콜백은 돈다)
   function setupNav(){
     const vis=visibleItems();
@@ -627,6 +694,7 @@
     try{ setupTabs(vis); }catch(e){ console.warn("tabs failed", e); }
     try{ setupNavMenu(vis); }catch(e){ console.warn("menu failed", e); }
     try{ setHeaderVars(); }catch(e){ console.warn("header vars failed", e); }
+    try{ setupMobile(); }catch(e){ console.warn("mobile layout failed", e); }   // nav v18 · 판정 1138
     if(!window._imsHdrResize){ window._imsHdrResize=true; window.addEventListener("resize",()=>{ clearTimeout(hdrTimer); hdrTimer=setTimeout(()=>{ try{ setHeaderVars(); }catch(e){} },80); }); }
   }
 
