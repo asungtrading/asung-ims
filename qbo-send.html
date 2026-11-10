@@ -134,7 +134,7 @@
    문: 열쇠 qbo(쓰기) · qbo:read(보기만 — 보내기 · 건너뛰기 · 다시는 서버가 거부) · 자동 보내기 qbo_send_enabled 는 off(판정 971)
    ⚠️ 상태 · 금액 · 막힌 이유는 DB 가 준다 — 화면은 그리기만. 크레딧은 인보이스를 대신 보내지 않는다(판정 960).
    ───────────────────────────────────────────────────────────── */
-const QS_BUILD = "2026-11-09 · qs sup v1";   // 대화 Claude — qs sup v1(Caleb 「kind로도 필터링이 되는 기능이 필요할 것 같아」 · deferred 535 일부): 종류 고르기에 「Supplier bills and credits」(vendor · bill · vendor_credit · bill_delete_manual) · 「Supplier payments」(bill_payment · bill_payment_void · 4-5a a9cb5ce) · KIND_LABEL 여섯 · 미리 보기 꼴(534)은 그대로 · DB 무변 ← qs cost v1a — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
+const QS_BUILD = "2026-11-09 · qs sup v2";   // 대화 Claude — qs sup v2(deferred 534 · 535 · 536 · 4-5a/b): 공급처 미리 보기 supPreview — Vendor(이름 · 통화) · Bill · Supplier credit(공급처 · A/P · 기한 · 통화 · 환율 · CAD 환산 · 줄마다 계정/품목 · 세금 코드 · 세금 합 · 합계) · Supplier payment(공급처 · 결제 방식 · 낸 계좌 · 수표 인쇄 여부 · A/P · 금액 · 환율 · CAD 환산 · 붙는 Bill check_lines) · void 와 손 지우기 안내 · 목록 머리 「Customer · supplier」 · DB 무변 ← qs sup v1 — qs sup v1(Caleb 「kind로도 필터링이 되는 기능이 필요할 것 같아」 · deferred 535 일부): 종류 고르기에 「Supplier bills and credits」(vendor · bill · vendor_credit · bill_delete_manual) · 「Supplier payments」(bill_payment · bill_payment_void · 4-5a a9cb5ce) · KIND_LABEL 여섯 · 미리 보기 꼴(534)은 그대로 · DB 무변 ← qs cost v1a — qs cost v1a: Cost days 칸을 맨 위 카드에서 목록 카드 안 거르기 줄 바로 아래로(Caleb 「다른 것을 선택할 옵션이 안보이네」 — 종류 고르기가 화면 밖으로 밀렸다) · 동작 무변 ← 2026-11-09 · qs cost v1: 대화 Claude — qs cost v1(qbo-sync-3-2a 0228bd0 · 3-2b 2fbed9d · 3-3 232dec7 · 판정 1092 ~ 1103 · 1112): 종류 「Cost of goods — daily journal」(cost_day) · 그 종류를 고르면 Cost days 카드(장 목록 qbo_cost_sheet_list · 장 미리 보기 qbo_cost_preview · Queue qbo_cost_sheet_queue · Queue all qbo_cost_queue_due · Build qbo_cost_build_now · 보류 qbo_cost_hold_list / qbo_cost_hold_decide · 재생성 qbo_cost_rebuild_preview / qbo_cost_rebuild_release · unknown 장 qbo_cost_sheet_resolve) · 일감 미리 보기에 JournalEntry 줄(차 · 대 · 계정 · 손님) · DB 무변 ← 2026-11-08 · qs refund v1a: 대화 Claude — qs refund v1a(1b 이견 11): Refund linked to credit 만 골라 Send 하면 안 나간다(refund 뒤 blocked · 거래 kind 는 need 로 대신 안 보냄) — 미리 보기 설명에 「Refund 먼저 · 또는 둘을 함께」 · DB 무변 ← 2026-11-08 · qs refund v1: 대화 Claude — qs refund v1(qbo-sync-2e-3-2-1c · deferred 495): 종류 고르기에 「Carried-over money」(opening_credit · opening_credit_void · opening_apply · opening_apply_void) · 「Refunds」(refund · refund_void · refund_apply · refund_apply_void) · KIND_LABEL 여덟 · 미리 보기 refPreview — Purchase(환불) · 0 원 Payment(잇기 · Expense + CreditMemo) · void 몸을 그대로 그린다(줄 계정 · 손님 · 세금 코드 · LinkedTxn) · 이월 크레딧 노트(opening_credit)는 옛 문서 미리 보기 그대로 · DB 무변 ← 2026-11-04 · qs apply v1: 대화 Claude — qs apply v1(qbo-sync-2e-2-1 · 2e-2-1b · 판정 1009 ~ 1017): 종류 고르기에 「Credits applied to invoices」(credit_apply · credit_apply_void) · KIND_LABEL 둘 · 크레딧 붙임 미리 보기(날짜 · 매장 손님 · 크레딧 노트 · 인보이스 · 붙인 금액 · check_lines 두 줄 · 떼기는 Id 만) ← 대화 Claude — qs pay v1(qbo-sync-2e-1b 6d37cea · 1c 7047a80 · 판정 978 ~ 991 · 988): 종류 고르기에 「Payments」(payment · payment_void) · KIND_LABEL 둘 · 결제 미리 보기(날짜 · 손님 · 금액 · 수단 · 입금 계좌 · 참조 · 붙는 인보이스 check_lines · 합계 · void 는 Id 만) · 찾기 글에 payment reference · 보내기 · Retry · Skip 은 창구 그대로 ← 2026-11-02 · qs v1: 판정 971 · qbo-sync-2d1(c0cf4c0): 목록(상태 · 종류 · 날짜 · 찾기 · 쪽) · 줄 체크 → Send selected(10 장씩 차례로 · 진행 표시) · 줄마다 Preview(QBO 에 갈 몸 · needs · wait · error) · Send · Skip · Retry(메모 필수)
 console.log("qbo-send.html build:", QS_BUILD);
 
 const PAGE = 50, SEND_MAX = 10;
@@ -203,7 +203,7 @@ function draw(){
   const box = document.getElementById("rows");
   if(!rows.length){ box.innerHTML = '<div class="msg">Nothing here for these filters.</div>'; drawPager(); syncSel(); return; }
   box.innerHTML = `<table><thead><tr>
-      <th class="ck"></th><th>Document</th><th>Kind</th><th>Customer</th><th>Date</th><th class="num">Total</th><th>Status</th><th>QuickBooks</th><th>Why · result</th><th></th>
+      <th class="ck"></th><th>Document</th><th>Kind</th><th>Customer · supplier</th><th>Date</th><th class="num">Total</th><th>Status</th><th>QuickBooks</th><th>Why · result</th><th></th>
     </tr></thead><tbody>${rows.map(r => {
       const lr = last[r.id];
       const why = r.state === "blocked" && r.blocked_name
@@ -365,6 +365,89 @@ function payPreview(p, b, doc, needs, kv){
         <span>Not applied <b class="mono">${money(t.unapplied)}</b></span>
       </div>
       <div class="dim" style="font-size:12px;margin-top:6px">Before it writes, IMS reads each invoice in QuickBooks and does not send if QuickBooks already shows it paid.</div>`;
+}
+/* qs sup v2 — 공급처 쪽 미리 보기(deferred 534). QuickBooks 몸 그대로: 참조는 QuickBooks 번호(#) — 이름은 IMS 쪽(doc.name)만 안다.
+   Bill · VendorCredit 줄은 어느 *LineDetail 이든 계정 · 품목 · 세금 코드를 찾아 그린다(줄 꼴을 짐작하지 않는다). */
+const SUP_KINDS = ["vendor", "bill", "vendor_credit", "bill_delete_manual", "bill_payment", "bill_payment_void"];
+function supPreview(p, b, doc, kv, kind, j){
+  const ref = (o) => o && o.value ? `<span class="mono">#${esc(o.value)}</span>${o.name ? " " + esc(o.name) : ""}` : dash;
+  const cur = (b.CurrencyRef && b.CurrencyRef.value) || doc.currency || "";
+  const rate = Number(b.ExchangeRate) || null;
+  const cad = (v) => (rate && cur && cur !== "CAD" && v !== undefined && v !== null) ? ` <span class="dim">≈ ${money(Number(v) * rate)} CAD</span>` : "";
+  const rateRow = cur && cur !== "CAD" ? kv("Exchange rate", rate ? `<span class="mono">${esc(String(b.ExchangeRate))}</span> <span class="dim">CAD per 1 ${esc(cur)}</span>` : '<span class="bad">none</span>') : "";
+  if(kind === "bill_delete_manual") return `
+      <div class="needbox" style="margin-top:10px"><b>Delete by hand in QuickBooks.</b> IMS never deletes a bill in QuickBooks. Open
+        ${j && j.qbo_id ? `bill <span class="mono">#${esc(j.qbo_id)}</span>` : "the bill"} ${doc.doc_number ? `(<span class="mono">${esc(doc.doc_number)}</span>)` : ""} in QuickBooks, delete it,
+        then press <b>Skip</b> here with the note “deleted in QuickBooks”. If a supplier payment is still on that bill in QuickBooks, it waits for that payment's void first.</div>`;
+  if(kind === "vendor") return Object.keys(b).length ? `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("New supplier in QuickBooks", esc(b.DisplayName || doc.name || "") || dash)}
+        ${kv("Currency", esc(cur) || dash)}
+        ${kv("What happens", "QuickBooks gets a new Vendor with this name and currency only. If a customer or supplier with the same name already exists there, it stops and asks a person.")}
+      </tbody></table>` : "";
+  if(kind === "bill_payment_void" || (kind === "bill_payment" && b.Id && !b.Line)) return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("QuickBooks bill payment", b.Id ? `<span class="mono">#${esc(b.Id)}</span> · version ${esc(b.SyncToken || "")}` : dash)}
+        ${kv("What happens", "QuickBooks keeps the bill payment with amount 0 and marks it Voided — the bills it paid go back to open. IMS then sends the payment again if it still applies to bills.")}
+      </tbody></table>`;
+  if(!Object.keys(b).length) return "";
+  if(kind === "bill_payment"){
+    const cl = p.check_lines || [], t = p.totals || {};
+    const card = b.PayType === "CreditCard";
+    const acc = card ? (b.CreditCardPayment || {}).CCAccountRef : (b.CheckPayment || {}).BankAccountRef;
+    const print = card ? "" : ((b.CheckPayment || {}).PrintStatus || "");
+    return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("Reference", `<span class="mono">${esc(b.DocNumber || "")}</span>` || dash)}
+        ${kv("Paid on", esc(b.TxnDate || "") || dash)}
+        ${kv("Supplier (QuickBooks)", `${ref(b.VendorRef)} · ${esc(doc.name || "")}`)}
+        ${kv("Paid from", `${card ? "Credit card" : "Bank (cheque type)"} · QuickBooks account ${ref(acc)}${print ? ` <span class="dim">· print: ${esc(print === "NotSet" ? "no (already paid)" : print)}</span>` : ""}`)}
+        ${kv("A/P account (QuickBooks)", ref(b.APAccountRef))}
+        ${kv("Amount", `<b class="mono">${money(b.TotalAmt)}</b> ${esc(cur)}${cad(b.TotalAmt)}`)}
+        ${rateRow}
+        ${kv("Private note", esc(b.PrivateNote || "") || dash)}
+      </tbody></table>
+      <table style="margin-top:10px"><thead><tr><th>Pays bill</th><th>QuickBooks bill</th><th class="num">Amount</th></tr></thead>
+        <tbody>${cl.length ? cl.map(c => `<tr><td class="mono">${esc(c.doc_number || c.invoice_number || "")}</td><td class="mono">${c.qbo_bill_id ? "#" + esc(c.qbo_bill_id) : dash}</td><td class="num">${money(c.amount)}</td></tr>`).join("")
+          : '<tr><td colspan="3" class="dim">No bill applied.</td></tr>'}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Payment <b class="mono">${money(t.amount !== undefined ? t.amount : b.TotalAmt)}</b></span>
+        <span>Applied <b class="mono">${money(t.applied)}</b></span>
+      </div>
+      <div class="dim" style="font-size:12px;margin-top:6px">Before it writes, IMS reads each bill in QuickBooks and does not send if QuickBooks already shows it paid. Afterwards, match the bank-feed line to this bill payment in QuickBooks.</div>`;
+  }
+  // bill · vendor_credit
+  const lines = b.Line || [];
+  const det = (l) => { const k = Object.keys(l).find(x => /LineDetail$/.test(x)); return k ? (l[k] || {}) : {}; };
+  let sum = 0;
+  const rowsH = lines.map((l, i) => {
+    const d = det(l); sum += Number(l.Amount) || 0;
+    const what = d.AccountRef ? `account ${ref(d.AccountRef)}` : d.ItemRef ? `item ${ref(d.ItemRef)}` : dash;
+    return `<tr><td class="num">${esc(l.LineNum ?? i + 1)}</td><td>${esc(l.Description || "")}</td><td>${what}</td>
+      <td class="num">${money(l.Amount)}</td><td class="mono">${d.TaxCodeRef ? esc(d.TaxCodeRef.value) : ""}</td></tr>`;
+  }).join("");
+  const tax = b.TxnTaxDetail && b.TxnTaxDetail.TotalTax !== undefined ? Number(b.TxnTaxDetail.TotalTax) : null;
+  const total = b.TotalAmt !== undefined ? Number(b.TotalAmt) : (tax !== null ? sum + tax : sum);
+  return `
+      <table class="kv" style="margin-top:10px"><tbody>
+        ${kv("Number", `<span class="mono">${esc(b.DocNumber || "")}</span>`)}
+        ${kv(kind === "bill" ? "Date · due" : "Date", esc([b.TxnDate, kind === "bill" ? b.DueDate : null].filter(Boolean).join(" · ")) || dash)}
+        ${kv("Supplier (QuickBooks)", b.VendorRef ? `${ref(b.VendorRef)} · ${esc(doc.name || "")}` : `${esc(doc.name || "")} <span class="dim">· created first</span>`)}
+        ${kv("A/P account (QuickBooks)", ref(b.APAccountRef))}
+        ${kv("Currency", esc(cur) || dash)}
+        ${rateRow}
+        ${kv("Private note", esc(b.PrivateNote || "") || dash)}
+      </tbody></table>
+      <table style="margin-top:10px"><thead><tr><th class="num">#</th><th>Line</th><th>Goes to</th><th class="num">Amount</th><th>Tax code</th></tr></thead>
+        <tbody>${rowsH || '<tr><td colspan="5" class="dim">No lines.</td></tr>'}</tbody></table>
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:10px;font-size:13px">
+        <span>Lines <b class="mono">${money(sum)}</b></span>
+        <span>Tax <b class="mono">${tax === null ? "—" : money(tax)}</b></span>
+        <span>Total <b class="mono">${money(total)}</b> ${esc(cur)}${cad(total)}</span>
+      </div>
+      <div class="dim" style="font-size:12px;margin-top:6px">${kind === "bill"
+        ? "QuickBooks takes the tax as IMS sends it and does not recalculate it. Pay this bill from IMS (Supplier Payments), not in QuickBooks."
+        : "A supplier credit lowers what is owed to this supplier in QuickBooks."}</div>`;
 }
 /* qs apply v1 — 크레딧 붙임 미리 보기(qbo-sync-2e-2-1 · 판정 1009 · 1011 · 1014): 금액 0 Payment 한 장이 크레딧 노트를 인보이스에 잇는다 · 줄은 check_lines(Invoice · CreditMemo) · 떼기는 Id · SyncToken 만 */
 function applyPreview(p, b, doc, kv){
@@ -662,6 +745,7 @@ async function openPreview(id){
   const isPay = (j.kind || r.kind) === "payment" || (j.kind || r.kind) === "payment_void";   // qs pay v1
   const isApply = (j.kind || r.kind) === "credit_apply" || (j.kind || r.kind) === "credit_apply_void";   // qs apply v1
   const isRef = REF_NOTE[j.kind || r.kind] !== undefined;
+  const isSup = SUP_KINDS.includes(j.kind || r.kind);   // qs sup v2
   const isCost = (j.kind || r.kind) === "cost_day";   // qs cost v1   // qs refund v1 — refund 넷 · opening 셋(opening_credit 은 문서 미리 보기)
   modalOpen(`
     <h4>${esc(KIND_LABEL[j.kind || r.kind] || "")} ${esc(p.doc_number || doc.doc_number || p.name || "")}${isCost ? "" : " · " + esc(doc.name || r.name || "")}</h4>
@@ -674,7 +758,7 @@ async function openPreview(id){
       ${(p.warnings || []).length ? `<div class="needbox">${(p.warnings || []).map(w => esc(typeof w === "string" ? w : JSON.stringify(w))).join("<br>")}</div>` : ""}
       ${p.hold ? `<div class="errbox"><b>On hold:</b> ${esc(p.hold)}</div>` : ""}
       ${p.empty ? '<div class="needbox">Nothing left to send on this sheet — it will be marked empty and skipped.</div>' : ""}
-      ${isCost && b && Object.keys(b).length ? jePreview(p, b) : isRef && b && Object.keys(b).length ? refPreview(p, b, doc, kv, j.kind || r.kind) : isApply && b && Object.keys(b).length ? applyPreview(p, b, doc, kv) : isPay && b && Object.keys(b).length ? payPreview(p, b, doc, needs, kv) : b && Object.keys(b).length ? `
+      ${isSup ? supPreview(p, b || {}, doc, kv, j.kind || r.kind, j) : isCost && b && Object.keys(b).length ? jePreview(p, b) : isRef && b && Object.keys(b).length ? refPreview(p, b, doc, kv, j.kind || r.kind) : isApply && b && Object.keys(b).length ? applyPreview(p, b, doc, kv) : isPay && b && Object.keys(b).length ? payPreview(p, b, doc, needs, kv) : b && Object.keys(b).length ? `
       <table class="kv" style="margin-top:10px"><tbody>
         ${kv("Number", `<span class="mono">${esc(b.DocNumber || "")}</span>`)}
         ${kv("Date · due", esc([b.TxnDate, b.DueDate].filter(Boolean).join(" · ")) || dash)}
