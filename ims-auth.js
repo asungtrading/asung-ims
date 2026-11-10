@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v16";     // [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v17";     // [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -298,6 +298,57 @@
       h.onclick=()=>window.open("help.html","_blank","noopener");
       lo.parentNode.insertBefore(h, b);
     }
+    try{ buildAcctMenu(); }catch(e){ console.warn("account menu failed", e); }   // nav v17 · 판정 1137
+  }
+
+  /* nav v17 · 판정 1137 — 이름 펼침. IMS 화면에서만(WMS · POS 머리는 그대로).
+     #who 를 단추 안으로 · #imsPwBtn · #logoutBtn · #buildTag · .ims-authtag 를 펼침 안으로 **옮긴다**(새로 만들지 않는다 — 화면 · ims-ui.js imsHeader 가 건 onclick · textContent 가 그대로 산다).
+     setupHeader 가 나중에 돌면 .ims-authtag 를 이 펼침에 넣는다(아래 setupHeader 한 줄). */
+  function hdrFitCss(){
+    if(document.getElementById("imsHdrFitCss")) return;
+    const st=document.createElement("style"); st.id="imsHdrFitCss";
+    st.textContent='header .ims-acct{position:relative;display:flex;align-items:center}'
+      +'header .ims-acct-btn{display:flex;align-items:center;gap:6px;border:0;background:none;padding:6px 8px;color:var(--muted,#6b7280);max-width:280px}'
+      +'header .ims-acct-btn .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+      +'header .ims-acct-btn .car{font-size:10px}'
+      +'header .ims-acct-btn:hover,header .ims-acct.open>.ims-acct-btn{background:#f2f4f8;color:var(--ink,#1e2430)}'
+      +'header .ims-acct-drop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:200px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px}'
+      +'header .ims-acct.open>.ims-acct-drop{display:block}'
+      +'header .ims-acct-drop button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430}'
+      +'header .ims-acct-drop button:hover{background:#f2f4f8}'
+      +'header .ims-acct-build{display:flex;flex-direction:column;gap:2px;border-top:1px solid #e3e6eb;margin:4px 6px 0;padding:8px 7px 4px;color:var(--muted,#6b7280)}'
+      +'header .ims-acct-build span{font-size:10.5px !important;white-space:normal}'
+      +'header .ims-drop.ims-drop-r{left:auto;right:0}'
+      +'header .ims-drop{max-width:calc(100vw - 24px)}'
+      +'@media (max-width:600px){header .ims-drop a{white-space:normal}}'
+      +'.ims-tabs{flex-wrap:wrap}';
+    document.head.appendChild(st);
+  }
+  function buildAcctMenu(){
+    if(hereMode!=="ims" || document.getElementById("imsAcct")) return;
+    const who=document.getElementById("who"), lo=document.getElementById("logoutBtn");
+    if(!who || !lo) return;
+    hdrFitCss();
+    const wrap=document.createElement("div"); wrap.id="imsAcct"; wrap.className="ims-acct";
+    const btn=document.createElement("button"); btn.type="button"; btn.className="ims-acct-btn";
+    btn.setAttribute("aria-haspopup","true"); btn.setAttribute("aria-expanded","false"); btn.title="Account";
+    who.parentNode.insertBefore(wrap, who);
+    btn.appendChild(who);
+    const car=document.createElement("span"); car.className="car"; car.textContent="\u25BE"; btn.appendChild(car);
+    const drop=document.createElement("div"); drop.className="ims-acct-drop";
+    const pw=document.getElementById("imsPwBtn");
+    [pw, lo].forEach(el=>{ if(el){ el.removeAttribute("style"); el.className=""; drop.appendChild(el); } });
+    const info=document.createElement("div"); info.className="ims-acct-build"; info.title="Build (screen · ims-auth.js)";
+    const bt=document.getElementById("buildTag"); if(bt) info.appendChild(bt);
+    const at=document.querySelector("header .ims-authtag"); if(at) info.appendChild(at);
+    drop.appendChild(info);
+    wrap.appendChild(btn); wrap.appendChild(drop);
+    const setOpen=(on)=>{ wrap.classList.toggle("open",on); btn.setAttribute("aria-expanded",on?"true":"false"); };
+    btn.addEventListener("click",(e)=>{ e.stopPropagation(); setOpen(!wrap.classList.contains("open")); });
+    drop.addEventListener("click",(e)=>{ if(e.target.closest("button")) setOpen(false); });
+    document.addEventListener("click",(e)=>{ if(!wrap.contains(e.target)) setOpen(false); });
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") setOpen(false); });
+    try{ setHeaderVars(); }catch(e){}
   }
 
   async function resolveIdentity(){
@@ -358,6 +409,7 @@
     const header=document.querySelector("header");
     if(!header || header.querySelector(".ims-logo")) return;
     header.classList.add("ims-hdr","ims-hdr-"+hereMode);
+    try{ hdrFitCss(); }catch(e){}   // nav v17 — 탭 줄 줄바꿈 · 펼침 맞춤
     const modes=modeCandidates(vis);
     // 로고 → 지금 모드의 첫 화면(IMS 면 Dashboard) · 지금 모드에 못 들어가는 사람(WMS 직원이 IMS 주소를 친 경우)은 그 사람의 첫 화면
     const homeOf=canEnter(hereMode)?firstOfMode(vis,hereMode):null;
@@ -379,7 +431,9 @@
     // 빌드 표시 — 화면의 #buildTag(화면 판) 바로 뒤에 공통 js 판을 작게 (화면이 뒤에 textContent 를 써도 안 지워진다 · 별 요소)
     const tag=document.createElement("span"); tag.className="dim ims-authtag"; tag.title="ims-auth.js build"; tag.textContent=IMS_AUTH_BUILD;
     const bt=document.getElementById("buildTag");
-    if(bt && bt.parentNode===header) bt.insertAdjacentElement("afterend", tag); else anchor.insertAdjacentElement("afterend", tag);
+    const acctInfo=header.querySelector("#imsAcct .ims-acct-build");   // nav v17 — 이름 펼침이 먼저 섰으면 그 안으로
+    if(acctInfo) acctInfo.appendChild(tag);
+    else if(bt && bt.parentNode===header) bt.insertAdjacentElement("afterend", tag); else anchor.insertAdjacentElement("afterend", tag);
     // ☰ — IMS · POS 는 감춘다(내용이 윗줄 펼침 · POS 는 화면 하나) · WMS 는 setupNavMenu 가 그대로 쓴다
     const menuBtn=header.querySelector('button[title="Main menu"]');
     if(menuBtn && hereMode!=="wms") menuBtn.style.display="none";
@@ -464,7 +518,9 @@
     const grps=Array.from(nav.querySelectorAll(".ims-grp"));
     let closeTimer=null, pendingGrp=null, lastPointer=null;
     const cancelClose=()=>{ if(closeTimer){ clearTimeout(closeTimer); } closeTimer=null; pendingGrp=null; };
-    const setOpen=(g,on)=>{ g.classList.toggle("open",on); const b=g.querySelector(".ims-grpbtn"); if(b) b.setAttribute("aria-expanded",on?"true":"false"); };
+    const setOpen=(g,on)=>{ g.classList.toggle("open",on); const b=g.querySelector(".ims-grpbtn"); if(b) b.setAttribute("aria-expanded",on?"true":"false"); if(on) fitDrop(g); };
+    /* nav v17 — 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춘다(같은 좌표계끼리 견준다 — zoom 아래에서도 머리 · 펼침 둘 다 getBoundingClientRect) */
+    const fitDrop=(g)=>{ try{ const d=g.querySelector(".ims-drop"), hd=g.closest("header"); if(!d||!hd) return; d.classList.remove("ims-drop-r"); if(d.getBoundingClientRect().right>hd.getBoundingClientRect().right-4) d.classList.add("ims-drop-r"); }catch(e){} };
     const closeAll=()=>{ cancelClose(); grps.forEach(g=>setOpen(g,false)); };
     const openOnly=(g)=>{ cancelClose(); grps.forEach(x=>{ if(x!==g) setOpen(x,false); }); setOpen(g,true); };
     const scheduleClose=(g)=>{ cancelClose(); pendingGrp=g; closeTimer=setTimeout(()=>{ closeTimer=null; if(pendingGrp===g) setOpen(g,false); pendingGrp=null; },CLOSE_MS); };
