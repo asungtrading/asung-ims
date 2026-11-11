@@ -17,6 +17,16 @@
   .mltabs select,.mltabs input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
   .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
   h4.sec{margin:14px 14px 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  /* ml v1.6 — Count & check window (nb-4b) */
+  .pobox input,.pobox textarea{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:13px}
+  .pobox .pbody > *{flex-shrink:0}
+  .cc-qty{width:90px;text-align:right}
+  .cc-bin{width:130px}
+  .cc-must{color:#c92a2a;font-size:11.5px}
+  .cc-box{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:10px;font-size:12.5px}
+  .cc-box.bad{border-color:#ffc9c9;background:#fff5f5;color:#c92a2a}
+  .cc-box.warn{border-color:#ffe066;background:#fff9db}
+  .cc-box.good{border-color:#b2f2bb;background:#ebfbee}
 </style>
 </head>
 <body>
@@ -46,6 +56,8 @@
   </div>
 </div>
 
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
@@ -62,7 +74,7 @@
      Counter orders         WMS 를 거치지 않고 나간 두 번째 길(6-b ③) — 최근 30일 · 누가 내보냈나
    ⚠️ 남은 금액 · 부족분 · stale 판정은 DB 가 준다 — 화면이 다시 계산하지 마라
    ───────────────────────────────────────────────────────────── */
-const ML_BUILD = "2026-11-06 · ml v1.5";   // 대화 Claude — ml v1.5(fc-pickup-4 · ac-count-1): 여섯째 탭 Pickups not scheduled(fc_pickup_attention_list · Check pickup = EF freightcom pickup_poll) · 배지 다섯을 ims_action_counts 한 번으로(함수가 없으면 옛 길) · All branches 면 바깥 메뉴 배지도 같은 숫자로(window.imsActionBadgeSet) ← 2026-11-03 · ml v1.4: 대화 Claude — ml v1.4(판정 994 · so-inv-branch-1): Unpaid at hand-over 목록 · 배지가 Branch 를 따른다(so_invoice_list.warehouse_id) · All branches 일 때 Branch 칸(이월 인보이스는 「customer's branch」) ← ml v1.3: manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
+const ML_BUILD = "2026-11-11 · ml v1.6";   // 대화 Claude — ml v1.6(nb-4b · asung-wms nb-3 6526ce4 · 판정 1176 · Caleb 「mark checked 할때 바로 정리되는게 가장 깔끔」): Sold without stock 의 확인 안 된 줄에 「Count & check…」(매니저 이상) — 창 = so_stock_short_count_view(칸별 장부 · picked · 선반에 있어야 할 수 · 확인 안 된 오더 · seen) · 칸마다 센 개수(음수 칸은 필수 · 다른 칸 더하기 · UNASSIGNED 「no shelf yet」 · 옛 칸 없음 행은 보이기만) → Preview(so_stock_short_count p_commit false) → Count & check(p_commit true · 미리 본 입력 그대로일 때만) · stock_adjust + 그 창고가 없으면(can_count false) 입력 없이 안내 + Mark checked 길 · 확인된 줄에 ADJ 번호 · 같은 줄 동시 확인(23505)은 사람 말 ← 2026-11-06 · ml v1.5;   // 대화 Claude — ml v1.5(fc-pickup-4 · ac-count-1): 여섯째 탭 Pickups not scheduled(fc_pickup_attention_list · Check pickup = EF freightcom pickup_poll) · 배지 다섯을 ims_action_counts 한 번으로(함수가 없으면 옛 길) · All branches 면 바깥 메뉴 배지도 같은 숫자로(window.imsActionBadgeSet) ← 2026-11-03 · ml v1.4: 대화 Claude — ml v1.4(판정 994 · so-inv-branch-1): Unpaid at hand-over 목록 · 배지가 Branch 를 따른다(so_invoice_list.warehouse_id) · All branches 일 때 Branch 칸(이월 인보이스는 「customer's branch」) ← ml v1.3: manual-6 이견 4 · 5: ① New customers to review 배지가 Branch 를 무시했다(목록은 따른다 · 숫자가 어긋남) → 배지도 default_location_name 으로 거른다 ② Sold without stock 의 POS 줄 링크가 pos.html 로 가 빈 화면(끝난 판매는 POS 가 비운다 · pos.html:581) → 모든 줄을 so.html?so= 로 · 채널 꼬리표는 그대로 ← 2026-10-05 · ml v1.2: 대화 Claude — cs-5 ②(판정 240): 탭 「New customers to review」(뷰 customer_review_list · 줄 → customers.html?id= · 그 화면의 Reviewed 는 master 만) ← ml v1.1 대화 Claude — 탭 제목 Action Centre(캐나다 철자 · Caleb 2026-10-01) ← ml v1
 console.log("manager-list.html build:", ML_BUILD);
 
 let sb = null, me = null, rank = 0, tab = "short", whId = "", whName = "", WHS = [], IMMEDIATE = [];
@@ -137,8 +149,9 @@ async function showShort(box){
       <td class="mono">${esc(r.sku)}</td><td>${esc(r.warehouse || "")}</td>
       <td class="num">${qty(r.qty)}</td>
       <td>${r.unknown ? '<span class="off" style="font-size:11.5px">cost unknown</span>' : `<span class="dim" style="font-size:11.5px">${esc(r.cost_source || "")}</span>`}</td>
-      <td>${done ? `<span class="on" style="font-size:11.5px">checked</span> <span class="dim" style="font-size:11.5px">${esc(r.checked_by_name || "")} · ${imsTs(r.checked_at)}</span>${r.note ? `<div class="dim" style="font-size:11.5px">${esc(r.note)}</div>` : ""}`
-             : (isMgr() ? `<button class="xbtn" data-chk="${esc(r.doc_number)}" data-sku="${esc(r.sku)}" data-wh="${esc(r.warehouse)}">Mark checked…</button>` : "")}</td>
+      <td>${done ? `<span class="on" style="font-size:11.5px">checked</span> <span class="dim" style="font-size:11.5px">${esc(r.checked_by_name || "")} · ${imsTs(r.checked_at)}</span>${r.adjust_number ? ` <span class="tag mono">${esc(r.adjust_number)}</span>` : ""}${r.note ? `<div class="dim" style="font-size:11.5px">${esc(r.note)}</div>` : ""}`
+             : (isMgr() ? `<button class="xbtn" data-cc="${esc(r.doc_number)}" data-sku="${esc(r.sku)}" data-wh="${esc(r.warehouse)}" title="Count the shelf — fix the stock and check it in one go">Count &amp; check…</button>
+                 <button class="xbtn" data-chk="${esc(r.doc_number)}" data-sku="${esc(r.sku)}" data-wh="${esc(r.warehouse)}" title="The books are right — check it without changing stock">Mark checked…</button>` : "")}</td>
     </tr>`;
   const head = `<thead><tr><th>Sold on</th><th>Order</th><th>Customer</th><th>SKU</th><th>Branch</th><th class="num">Qty short</th><th>Cost</th><th></th></tr></thead>`;
   box.innerHTML = `
@@ -146,7 +159,10 @@ async function showShort(box){
     ${(data.unchecked || []).length ? `<table>${head}<tbody>${data.unchecked.map(r => row(r, false)).join("")}</tbody></table>` : '<div class="msg">Nothing to check.</div>'}
     <h4 class="sec">Checked — ${esc(data.from)} to ${esc(data.to)} · ${esc(data.checked_in_range)}</h4>
     ${(data.checked || []).length ? `<table>${head}<tbody>${data.checked.map(r => row(r, true)).join("")}</tbody></table>` : '<div class="msg">None in this period.</div>'}
-    <div class="sosub">These sold more than the book showed in that branch — the goods were there, the count was not. Count the shelf, fix the stock the usual way, then mark it checked with what you found. Checking does not change stock.</div>`;
+    <div class="sosub">These sold more than the book showed in that branch — the goods were there, the count was not.
+      <b>Count &amp; check</b>: count the shelf, type what you found, and IMS fixes the stock and checks every open line of that SKU in one go (needs the Stock adjustments key for that branch).
+      <b>Mark checked</b>: the books are already right — it only records that you looked and does not change stock.</div>`;
+  box.querySelectorAll("[data-cc]").forEach(b => { b.onclick = () => openCount(b.dataset.sku, b.dataset.wh); });   // ml v1.6
   box.querySelectorAll("[data-chk]").forEach(b => {
     b.onclick = async () => {
       const note = prompt(`${b.dataset.chk} · ${b.dataset.sku} at ${b.dataset.wh}\n\nWhat did you find? (counted, fixed, reason)`);
@@ -156,6 +172,125 @@ async function showShort(box){
       loadBadges(); show();
     };
   });
+}
+
+/* ── ml v1.6 · nb-4b — Count & check(so_stock_short_count_view · so_stock_short_count · 판정 1176) ──
+   ⭐ 숫자는 DB 가 준다 — 화면은 센 개수를 모아 보낼 뿐 · 미리 보기(p_commit false)가 지금 입력으로 돈 뒤에만 실행 단추가 켜진다
+   ⭐ seen = 읽기가 준 지문 — 미리 보기 · 실행에 그대로(그 사이 장부나 줄이 바뀌면 DB 가 거부 → 다시 읽기) */
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !document.getElementById("modal").hidden) modalClose(); });
+const binLabel = (name) => name === "UNASSIGNED" ? `${esc(name)} <span class="dim">(no shelf yet)</span>` : esc(name);
+const signedQ = (v) => { const n = Number(v || 0); return n > 0 ? `<span class="on">+${qty(n)}</span>` : n < 0 ? `<span class="off">−${qty(-n)}</span>` : '<span class="dim">0</span>'; };
+const CC_COST = { manual: "unit cost given", layer_avg: "average cost here", layer_recent: "last cost here", layer_recent_other_wh: "last cost in the other warehouse",
+                  price_history: "last purchase price", filled: "fills stock sold without stock — no new cost", fifo: "oldest cost first", unknown: "cost unknown", none: "—" };
+function ccCost(l){
+  const d = Number(l.delta || 0);
+  if(d <= 0) return d < 0 ? CC_COST.fifo : '<span class="dim">—</span>';
+  const fill = Number(l.fill_qty || 0), lay = Number(l.layer_qty || 0), out = [];
+  if(fill > 0) out.push(`<div>${qty(fill)} ${CC_COST.filled}</div>`);
+  if(lay > 0){
+    const unit = (l.layer_unit_cost !== null && l.layer_unit_cost !== undefined) ? Number(l.layer_unit_cost) : null;
+    if(l.cost_branch === "unknown") out.push(`<div class="off">${qty(lay)} ${CC_COST.unknown} — goes in at 0</div>`);
+    else out.push(`<div>${qty(lay)} go in ${unit !== null ? `at <b>$${esc(unit.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 4 }))}</b> — ` : "at "}${esc(CC_COST[l.cost_branch] || l.cost_branch || "")}</div>`);
+  }
+  return out.join("") || '<span class="dim">—</span>';
+}
+let cc = null;   // { sku, wh, view, seen, pvKey }
+async function openCount(sku, wh){
+  modalOpen(`<h4>Count &amp; check · <span class="mono">${esc(sku)}</span> · ${esc(wh)}</h4>
+    <div class="pbody"><div id="ccOut"><div class="msg">Loading…</div></div><div id="ccRes"></div><div id="ccMsg" style="margin-top:8px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="ccClose">Cancel</button>
+      <button class="pobtn" id="ccPv" disabled>Preview</button><button class="pobtn go" id="ccGo" disabled>Count &amp; check</button></div>`);
+  document.getElementById("ccClose").onclick = modalClose;
+  const { data, error } = await sb.rpc("so_stock_short_count_view", { p_sku: sku, p_warehouse: wh });
+  if(error){ document.getElementById("ccOut").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  cc = { sku, wh, view: data, seen: data.seen, pvKey: null };
+  const v = data, bins = v.bins || [], shorts = v.shorts || [];
+  const shortsHtml = shorts.length
+    ? shorts.map(x => `<a class="lnk mono" href="so.html?so=${encodeURIComponent(x.doc_number)}">${esc(x.doc_number)}</a> ${qty(x.qty)} EA <span class="dim">${esc(x.received_on || "")}${x.channel ? " · " + esc(x.channel) : ""}</span>`).join("<br>")
+    : '<span class="dim">none open</span>';
+  const rowHtml = (b) => `<tr data-bin="${esc(b.bin)}">
+      <td class="mono">${b.kind === "no_bin" ? '<span class="dim">(no bin)</span>' : binLabel(b.bin)}</td>
+      <td class="num">${qty(b.ledger)}</td><td class="num">${qty(b.picked)}</td><td class="num"><b>${qty(b.shelf)}</b></td>
+      <td>${b.countable ? `<input class="cc-qty" type="number" step="any" min="0" data-cq placeholder="count">${b.must_count ? ' <span class="cc-must">must count — below zero</span>' : ""}`
+                        : `<span class="dim" style="font-size:11.5px">${esc(b.why_not || "")}</span>`}</td></tr>`;
+  document.getElementById("ccOut").innerHTML = `
+    <div style="font-size:13px"><b>${esc(v.name || "")}</b></div>
+    <div class="cc-box"><b>Open lines sold without stock</b> — ${qty(v.short_qty)} EA<br>${shortsHtml}</div>
+    ${v.can_count ? "" : `<div class="cc-box warn">You can see this but not change stock here — that needs the Stock adjustments key for ${esc(wh)}.
+        If the books are right, close this and use <b>Mark checked</b>. Otherwise ask someone with the key to count it.</div>`}
+    <table style="margin-top:10px"><thead><tr><th>Bin</th><th class="num">Book</th><th class="num">Picked, not shipped</th><th class="num">Shelf should be</th><th>${v.can_count ? "You counted" : ""}</th></tr></thead>
+      <tbody id="ccRows">${bins.map(rowHtml).join("") || '<tr><td colspan="5" class="dim">The book has no bin for this SKU here.</td></tr>'}</tbody></table>
+    ${v.can_count ? `<div style="margin-top:8px;font-size:12.5px">Found it on another shelf? <input class="cc-bin" id="ccNewBin" placeholder="bin"> <button class="xbtn" id="ccAddBin">+ add bin</button></div>
+      <div style="margin-top:10px;font-size:12.5px">Note <input id="ccNote" style="width:70%" placeholder="optional — what you found"></div>
+      <div class="dim" style="font-size:12px;margin-top:8px">Type what is on each shelf you counted. Leave a bin empty if you did not count it — it stays as it is (a bin below zero has to be counted).
+        IMS makes and confirms one stock adjustment for the difference and checks every open line above. Units that fill stock sold without stock take no new cost.</div>` : ""}`;
+  if(!v.can_count) return;
+  document.getElementById("ccAddBin").onclick = () => {
+    const nb = document.getElementById("ccNewBin").value.trim();
+    if(!nb) return;
+    if(document.querySelector(`#ccRows tr[data-bin="${CSS.escape(nb)}"]`)){ document.getElementById("ccNewBin").value = ""; return; }
+    document.getElementById("ccRows").insertAdjacentHTML("beforeend", `<tr data-bin="${esc(nb)}" data-added="1"><td class="mono">${binLabel(nb)} <span class="dim" style="font-size:11px">added</span></td>
+      <td class="num dim">—</td><td class="num dim">—</td><td class="num dim">—</td><td><input class="cc-qty" type="number" step="any" min="0" data-cq placeholder="count"></td></tr>`);
+    document.getElementById("ccNewBin").value = "";
+    wireCount();
+  };
+  wireCount();
+}
+function readCounts(){
+  const out = [];
+  document.querySelectorAll("#ccRows tr[data-bin]").forEach(tr => {
+    const i = tr.querySelector("[data-cq]");
+    if(i && i.value.trim() !== "") out.push({ bin: tr.dataset.bin, qty: Number(i.value) });
+  });
+  return out;
+}
+const countKey = () => JSON.stringify(readCounts()) + "|" + ((document.getElementById("ccNote") || {}).value || "");
+function wireCount(){
+  const pv = document.getElementById("ccPv"), go = document.getElementById("ccGo");
+  const sync = () => { pv.disabled = !readCounts().length; go.disabled = !(cc.pvKey && cc.pvKey === countKey()); };
+  document.querySelectorAll("#ccRows [data-cq], #ccNote").forEach(i => { i.oninput = sync; });
+  pv.onclick = () => runCount(false);
+  go.onclick = () => runCount(true);
+  sync();
+}
+function ccErr(e){
+  if(e && e.code === "23505") return "Someone else just checked this line. Close this window and reload the list.";
+  return (e && e.message) || String(e);
+}
+async function runCount(commit){
+  const pv = document.getElementById("ccPv"), go = document.getElementById("ccGo"), msg = document.getElementById("ccMsg"), res = document.getElementById("ccRes");
+  const counts = readCounts();
+  if(!counts.length){ msg.className = "err"; msg.textContent = "Type the count for at least one bin."; return; }
+  const key = countKey();
+  if(commit && key !== cc.pvKey){ msg.className = "err"; msg.textContent = "Preview again — the counts changed."; go.disabled = true; return; }
+  pv.disabled = true; go.disabled = true; msg.className = ""; msg.textContent = commit ? "Fixing the stock and checking…" : "Working out the change…";
+  const note = ((document.getElementById("ccNote") || {}).value || "").trim();
+  const { data, error } = await sb.rpc("so_stock_short_count", { p_sku: cc.sku, p_warehouse: cc.wh, p_counts: counts, p_seen: cc.seen, p_note: note || null, p_commit: commit });
+  if(error){ msg.className = "err"; msg.textContent = ccErr(error); pv.disabled = false; return; }
+  const ls = data.lines || [];
+  const table = `<table style="margin-top:10px"><thead><tr><th>Bin</th><th class="num">Counted</th><th class="num">Shelf should be</th><th class="num">Change</th><th class="num">Book after</th><th>Cost</th></tr></thead>
+    <tbody>${ls.map(l => `<tr><td class="mono">${binLabel(l.bin)}</td><td class="num">${qty(l.qty_input)}</td><td class="num">${qty(l.basis)}</td>
+      <td class="num">${signedQ(l.delta)}</td><td class="num">${qty(l.result)}</td><td style="font-size:12px">${ccCost(l)}</td></tr>`).join("")}</tbody></table>`;
+  const rej = (data.rejects || []).length ? `<div class="cc-box bad"><b>Cannot do this yet</b><br>${data.rejects.map(esc).join("<br>")}</div>` : "";
+  const warn = (data.warnings || []).length ? `<div class="cc-box warn">${data.warnings.map(w => "⚠ " + esc(w)).join("<br>")}</div>` : "";
+  const nob = Number(data.no_bin_qty || 0) ? `<div class="cc-box warn">This SKU also has an old row without a bin (${qty(data.no_bin_qty)}). It is fixed separately — not by this count.</div>` : "";
+  if(!commit){
+    const what = data.action === "adjust_and_check"
+      ? `<div class="cc-box">Pressing <b>Count &amp; check</b> makes and confirms one stock adjustment with these lines, then checks ${qty((data.shorts || []).length)} open line(s). It cannot be undone — a mistake is fixed with a new adjustment.</div>`
+      : `<div class="cc-box good">Your count matches the book — nothing changes. <b>Count &amp; check</b> only checks ${qty((data.shorts || []).length)} open line(s).</div>`;
+    res.innerHTML = table + rej + warn + nob + (data.can_commit ? what : "");
+    if(data.seen) cc.seen = data.seen;
+    cc.pvKey = data.can_commit ? key : null;
+    msg.textContent = data.can_commit ? "" : "Fix the counts above and preview again.";
+    pv.disabled = false; go.disabled = !cc.pvKey;
+    return;
+  }
+  res.innerHTML = `<div class="cc-box good">${data.adjust_number ? `<b>${esc(data.adjust_number)}</b> confirmed — stock fixed. ` : "No stock change. "}Checked: ${(data.checked || []).map(n => `<span class="mono">${esc(n)}</span>`).join(", ") || "—"}.</div>` + table + nob;
+  msg.textContent = "Done.";
+  document.querySelectorAll("#ccRows [data-cq], #ccNote, #ccNewBin, #ccAddBin").forEach(i => { i.disabled = true; });
+  const cl = document.getElementById("ccClose"); cl.textContent = "Close"; cl.onclick = () => { modalClose(); loadBadges(); show(); };
 }
 
 /* ② 즉시 결제인데 미수 */
