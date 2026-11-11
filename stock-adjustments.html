@@ -110,7 +110,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-11-02 · adj pad v1";   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← adj bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← adj thumb v1 · 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
+const ADJ_BUILD = "2026-11-11 · adj nb v1";   // 대화 Claude — nb-4a(판정 1177 「가」 · asung-wms nb-1 0f1afd8 · nb-2 a92e43e): 초안 줄의 Cost 칸 = inv_adjust_eval 의 fill_qty · layer_qty · layer_unit_cost · cost_from(「Goes in at $x — 출처」 · 메움 「fills stock sold without stock — no new cost」 · 원가 열쇠가 없으면 금액 없이 갈래만) · Unit cost 안내 「Leave it empty — the right cost is filled in for you」(Caleb 11-11) · 확정 창에 메움 줄 · 확정된 줄의 raw.cost filled · UNASSIGNED 칸에 「no shelf yet」 ← 2026-11-02 · adj pad v1;   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← adj bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← adj thumb v1 · 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
 console.log("stock-adjustments.html build:", ADJ_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -144,16 +144,47 @@ const REASON = {
 const reasonText = (r) => REASON[r] || r;
 
 const COST = {
-  manual:    "unit cost given",
-  layer_avg: "average cost here",
-  fifo:      "oldest cost first",
-  unknown:   "cost unknown",
-  none:      "—"
+  manual:                "unit cost given",
+  layer_avg:             "average cost here",
+  layer_recent:          "last cost here",
+  layer_recent_other_wh: "last cost in the other warehouse",
+  price_history:         "last purchase price",
+  filled:                "fills stock sold without stock — no new cost",
+  fifo:                  "oldest cost first",
+  unknown:               "cost unknown",
+  none:                  "—"
 };
+/* nb-4a — the bin that is not a shelf (nb-2 · rulings 1172 · 1173): POS and counter sales of a SKU with no bin here land on it */
+const binLabel = (name) => name === "UNASSIGNED" ? `${esc(name)} <span class="dim">(no shelf yet)</span>` : esc(name);
+/* nb-4a — where the cost a draft line will use comes from (inv_adjust_eval.cost_from · only for people who may see cost) */
+function costFromText(br, cf){
+  if(!cf) return "";
+  if(br === "price_history") return [cf.invoice_number ? "invoice " + cf.invoice_number : "", cf.invoice_date || "", cf.supplier_name || ""].filter(Boolean).join(" · ");
+  if(br === "layer_recent" || br === "layer_recent_other_wh") return [cf.warehouse || "", cf.received_on ? "received " + cf.received_on : "", cf.doc_number || ""].filter(Boolean).join(" · ");
+  return "";
+}
+/* nb-4a — the Cost cell of a draft line, read off inv_adjust_eval (rulings 1170 · 1171 · 1177) */
+function draftCost(l){
+  const d = Number(l.delta || 0);
+  if(d <= 0) return esc(COST[l.cost_branch] || l.cost_branch || "");
+  const fill = Number(l.fill_qty || 0), lay = Number(l.layer_qty || 0);
+  const out = [];
+  if(fill > 0) out.push(`<div><span class="pos">${qty(fill)}</span> ${COST.filled}</div>`);
+  if(lay > 0){
+    const br = l.cost_branch;
+    const unit = (l.layer_unit_cost !== null && l.layer_unit_cost !== undefined) ? Number(l.layer_unit_cost) : null;
+    const from = costFromText(br, l.cost_from);
+    const pre = fill > 0 ? `${qty(lay)} ` : "";
+    if(br === "unknown") out.push(`<div><span class="bad">${pre}${COST.unknown} — goes in at 0</span></div>`);
+    else out.push(`<div>${pre}${unit !== null ? "Goes in at <b>$" + esc(unit.toLocaleString("en-CA", { minimumFractionDigits:2, maximumFractionDigits:4 })) + "</b> — " : "Cost: "}${esc(COST[br] || br || "")}` +
+                  `${from ? `<div class="dim" style="font-size:11px">${esc(from)}</div>` : ""}</div>`);
+  }
+  return out.join("") || esc(COST[l.cost_branch] || l.cost_branch || "");
+}
 
 /* ⚠️ Warning codes come back as codes — the person needs a sentence. Unknown codes are shown as they came. */
 const WARN = {
-  cost_unknown:         "A line adds stock and no cost is known for this SKU in this warehouse — it will go in at 0 until someone fixes it. Give a unit cost on that line if you know it.",
+  cost_unknown:         "A line adds stock and no cost could be found for this SKU anywhere — it will go in at 0 until someone fixes it. Give a unit cost on that line if you know it.",
   lines_without_change: "Some lines change nothing. They stay on the document but write nothing to the stock book."
 };
 const warnText = (w) => WARN[w] || w;
@@ -335,17 +366,16 @@ function linesTable(lines, h, ed){
       const input = l.mode === "set" ? `set to ${qty(l.qty_input)}` : (Number(l.qty_input) > 0 ? `add ${qty(l.qty_input)}` : `take ${qty(-Number(l.qty_input))}`);
       /* a confirmed line shows the cost the book actually took (raw.cost) — the live evaluation would describe today's layers */
       const lc = conf && (l.ledger_rows || []).length ? (l.ledger_rows[0].cost || {}) : null;
-      const cost = lc ? `${esc(COST[lc.branch] || lc.branch || "")}${lc.unit_cost !== undefined && lc.unit_cost !== null ? " " + esc(lc.unit_cost) : ""}${lc.amount !== undefined && lc.amount !== null ? ` <span class="dim">(${esc(lc.amount)})</span>` : ""}`
+      const lcFill = lc && Number(lc.fill_qty || 0) > 0 && lc.branch !== "filled" ? `<div><span class="pos">${qty(lc.fill_qty)}</span> ${COST.filled}</div>` : "";   /* nb-4a — part filled, part new */
+      const cost = lc ? `${lcFill}${esc(COST[lc.branch] || lc.branch || "")}${lc.unit_cost !== undefined && lc.unit_cost !== null ? " " + esc(lc.unit_cost) : ""}${lc.amount !== undefined && lc.amount !== null ? ` <span class="dim">(${esc(lc.amount)})</span>` : ""}`
         : conf ? '<span class="dim">—</span>'
-        : l.cost_branch === "manual" ? `${COST.manual} ${esc(l.unit_cost)}`
-        : l.cost_branch === "layer_avg" ? `${COST.layer_avg}${l.avg_unit_cost !== null && l.avg_unit_cost !== undefined ? " " + esc(l.avg_unit_cost) : ""}`
-        : l.cost_branch === "unknown" ? `<span class="bad">${COST.unknown}</span>` : esc(COST[l.cost_branch] || l.cost_branch || "");
+        : draftCost(l);   /* nb-4a */
       const posted = conf ? ((l.ledger_rows || []).length ? '<div class="dim" style="font-size:11.5px">posted</div>'
                                                           : '<div class="dim" style="font-size:11.5px">no change — nothing posted</div>') : "";
       return `<tr>
         <td class="num">${esc(l.line_no)}</td>
         <td><div class="lnth">${thumbOf(l.sku)}<div><span class="mono">${esc(l.sku)}</span><div class="dim" style="font-size:11.5px">${esc(l.product_name || "")}</div></div></div></td>
-        <td><span class="mono">${esc(l.bin)}</span></td>
+        <td><span class="mono">${binLabel(l.bin)}</span></td>
         <td>${input}</td>
         <td>${esc(reasonText(l.reason))}${l.reason_note ? `<div class="dim" style="font-size:11.5px">${esc(l.reason_note)}</div>` : ""}</td>
         <td class="num">${qty(conf ? l.seen_ledger : l.ledger)}</td>
@@ -408,8 +438,10 @@ function openLine(h, line, pre){
     <div class="frow"><label>Note</label><input id="ln" style="flex:1" value="${esc(line ? (line.reason_note || "") : "")}" placeholder="Needed when the reason is Other"></div>
     <div class="frow"><label>Unit cost</label>
       <input id="lc" type="number" step="any" min="0" style="width:130px" value="${esc(line && line.unit_cost !== null && line.unit_cost !== undefined ? line.unit_cost : "")}">
-      <span class="dim" style="font-size:12px">Only for stock that is new to the books. Left empty, the stock goes in at the average cost of this SKU still in this warehouse —
-        <b>if none is left, it goes in at 0</b>, and the saved line shows <span class="bad">cost unknown</span>.</span></div>
+      <span class="dim" style="font-size:12px"><b>Leave it empty — the right cost is filled in for you.</b> Only type a cost if you know the real one.
+        After you save the line, the Cost column shows what it will use and where it came from.
+        <span style="display:block;margin-top:3px">Empty uses, in order: the average cost of this SKU still in this warehouse → the last cost here → the last cost in the other warehouse → the last purchase price.
+        If this SKU was sold here without stock, the units you add first fill that and take no new cost.</span></span></div>
 
     <div id="lMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
@@ -539,12 +571,12 @@ function openLine(h, line, pre){
     let html = "";
     if(live.length){
       html = `<div class="dim" style="font-size:12px;margin-top:4px">Where the book says it is now:</div>
-        <div class="herebins">${live.map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · ${qty(r.qty)}`)).join("")}
-        ${zero.map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · 0`, "zero")).join("")}</div>`;
+        <div class="herebins">${live.map(r => btn(r.bin_id, r.bin, `${binLabel(r.bin)} · ${qty(r.qty)}`)).join("")}
+        ${zero.map(r => btn(r.bin_id, r.bin, `${binLabel(r.bin)} · 0`, "zero")).join("")}</div>`;
     } else if(last && last.bin_id){
       html = `<div class="dim" style="font-size:12px;margin-top:4px">The book has none of this SKU in this warehouse now. Last bin it was in:</div>
-        <div class="herebins">${btn(last.bin_id, last.bin, `Last here: ${esc(last.bin)} · 0 now`, "zero")}
-        ${zero.filter(r => r.bin_id !== last.bin_id).map(r => btn(r.bin_id, r.bin, `${esc(r.bin)} · 0`, "zero")).join("")}</div>`;
+        <div class="herebins">${btn(last.bin_id, last.bin, `Last here: ${binLabel(last.bin)} · 0 now`, "zero")}
+        ${zero.filter(r => r.bin_id !== last.bin_id).map(r => btn(r.bin_id, r.bin, `${binLabel(r.bin)} · 0`, "zero")).join("")}</div>`;
     } else {
       html = '<div class="dim" style="font-size:12px;margin-top:4px">The book has never had this SKU in this warehouse — pick the bin from the list.</div>';
     }
@@ -557,7 +589,7 @@ function openLine(h, line, pre){
     const { data, error } = await qy.order("name").limit(300);
     if(error){ bHits.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
     bHits.innerHTML = data.length ? data.map(b => `<div class="prow" data-bid="${esc(b.id)}" data-name="${esc(b.name)}">
-        <span class="mono">${esc(b.name)}</span>${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}</div>`).join("") +
+        <span class="mono">${binLabel(b.name)}</span>${b.zone ? `<span class="dim" style="margin-left:8px">${esc(b.zone)}</span>` : ""}</div>`).join("") +
         (data.length === 300 ? '<div class="msg dim">First 300 — type more to narrow.</div>' : "")
       : '<div class="msg">No bin matches.</div>';
     bHits.querySelectorAll("[data-bid]").forEach(el => { el.onclick = () => pickBin({ id: el.dataset.bid, name: el.dataset.name }); });
@@ -627,6 +659,7 @@ function openConfirm(h, lines, rep, up, down){
      has to tick that they know before the button wakes up. It is not refused: the quantity
      still has to be right even when nobody knows the cost. */
   const zeroCost = lines.filter(l => Number(l.delta) > 0 && l.cost_branch === "unknown");
+  const filled = lines.filter(l => Number(l.delta) > 0 && Number(l.fill_qty || 0) > 0);   /* nb-4a — rulings 1170 */
   modalOpen(`
     <h3 style="margin:0 0 10px">Confirm ${esc(h.adjust_number)}</h3>
     <div style="font-size:13px">
@@ -637,8 +670,9 @@ function openConfirm(h, lines, rep, up, down){
       <tbody>${moving.map(l => `<tr><td class="mono">${esc(l.sku)}</td><td class="mono">${esc(l.bin)}</td>
         <td class="num">${signed(l.delta)}</td><td class="num">${qty(l.result)}</td></tr>`).join("")}</tbody></table>
     ${lines.length > moving.length ? `<div class="dim" style="font-size:12px;margin-top:4px">${esc(lines.length - moving.length)} line(s) change nothing and write nothing.</div>` : ""}
-    ${zeroCost.length ? `<div class="rejbox" style="margin:10px 0 0"><b>These go into the books at cost 0</b> — no cost is left for them
-        in this warehouse and no unit cost was given:<br>${zeroCost.map(l => `<span class="mono">${esc(l.sku)}</span> <span class="mono">${esc(l.bin)}</span> +${qty(l.delta)}`).join("<br>")}
+    ${filled.length ? `<div class="repbox" style="margin-top:10px"><b>Fills stock sold without stock</b> — these units were already costed when they were sold, so they add no new cost:<br>${filled.map(l => `<span class="mono">${esc(l.sku)}</span> <span class="mono">${esc(l.bin)}</span> ${qty(l.fill_qty)} EA`).join("<br>")}</div>` : ""}
+    ${zeroCost.length ? `<div class="rejbox" style="margin:10px 0 0"><b>These go into the books at cost 0</b> — no cost could be found for them
+        (not in this warehouse, not in the other warehouse, not in past purchases) and no unit cost was given:<br>${zeroCost.map(l => `<span class="mono">${esc(l.sku)}</span> <span class="mono">${esc(l.bin)}</span> +${qty(Number(l.layer_qty || 0) > 0 ? l.layer_qty : l.delta)}`).join("<br>")}
         <div style="margin-top:6px">Cancel and give a unit cost on the line if you know it. When they are sold, their cost of goods will be 0.</div>
         <label style="display:flex;gap:8px;align-items:center;margin-top:8px;color:var(--fg, #222)"><input type="checkbox" id="cAck"> I know these go in at cost 0 — confirm anyway</label></div>` : ""}
     ${rep && !rep.resolved_at ? `<div class="repbox">The "Not enough stock" report on <span class="mono">${esc(rep.order_number || "")}</span> will be marked resolved.</div>` : ""}
