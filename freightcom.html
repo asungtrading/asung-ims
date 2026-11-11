@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freightcom · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 공용 꼴은 ims-ui.css(.card · .pobtn · .pomodal/.pobox · .chip · .tag) */
+  .fwrap{max-width:1320px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .facc{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+  .acc{padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+  .acc .top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .acc .who{font-weight:800;font-size:15px}
+  .acc .whs{font-size:12px;color:var(--muted)}
+  .acc .avail{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .acc .of{font-size:13px;color:var(--muted)}
+  .meter{height:10px;border-radius:999px;background:#eef1f5;overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:999px}
+  .acc .inv{font-size:12.5px;line-height:1.6}
+  .acc .inv table{width:100%;border-collapse:collapse}
+  .acc .inv td{padding:2px 0}
+  .acc .foot{font-size:11.5px;color:var(--muted)}
+  .fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px}
+  .fbar h2{margin:0 6px 0 0;font-size:19px}
+  .fbar input,.fbar select{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:inherit;font-size:13px;background:#fff}
+  .fbar input[type=search]{min-width:220px}
+  .ftabs{display:flex;gap:4px;flex-wrap:wrap;padding:0 14px 10px}
+  .ftabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .ftabs button.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .ftabs button .n{font-variant-numeric:tabular-nums;margin-left:4px;opacity:.75}
+  .ftabs button.hot:not(.cur) .n{color:var(--bad);opacity:1;font-weight:800}
+  table.fb{width:100%;border-collapse:collapse;font-size:13px}
+  table.fb th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:700;padding:8px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fafbfd;white-space:nowrap}
+  table.fb td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.fb tr[data-b]{cursor:pointer}
+  table.fb tr[data-b]:hover td{background:#f7f9fc}
+  table.fb tr.pick td{background:#eef4ff}
+  .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .mono{font-family:var(--mono)}
+  .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .st{display:inline-block;font-weight:700;font-size:12.5px}
+  .st.ok{color:var(--good)} .st.bad{color:var(--bad)} .st.warn{color:var(--warn)} .st.mut{color:var(--muted)}
+  .fl{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin:2px 3px 0 0;background:#fdecec;color:var(--bad);white-space:nowrap}
+  .fl.w{background:#fff6dc;color:var(--warn)}
+  .acct{font-size:11px;font-weight:800;border-radius:999px;padding:1px 7px;border:1px solid}
+  .pager{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12.5px;color:var(--muted)}
+  .fsub{padding:9px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line);line-height:1.55}
+  .det{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .det h3{margin:0;font-size:16px}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:900px){.dgrid{grid-template-columns:1fr}}
+  .tl{list-style:none;margin:0;padding:0}
+  .tl li{position:relative;padding:0 0 10px 18px;font-size:13px;line-height:1.45}
+  .tl li:before{content:"";position:absolute;left:4px;top:6px;width:7px;height:7px;border-radius:50%;background:#c8d0db}
+  .tl li:first-child:before{background:var(--accent)}
+  .tl li:after{content:"";position:absolute;left:7px;top:15px;bottom:0;width:1px;background:#e3e8ef}
+  .tl li:last-child:after{display:none}
+  .tl .when{font-size:11.5px;color:var(--muted)}
+  .mt{width:100%;border-collapse:collapse;font-size:12.5px}
+  .mt td,.mt th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left}
+  .mt th{font-size:11px;color:var(--muted);font-weight:700}
+  .box{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .msg{padding:16px;color:var(--muted)}
+  #detMsg{font-size:12.5px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="fwrap">
+  <div class="facc" id="accts"></div>
+  <div class="card">
+    <div class="fbar">
+      <h2>Freightcom shipments</h2>
+      <span class="sp"></span>
+      <select id="whSel" title="Warehouse"><option value="">All warehouses</option></select>
+      <input type="date" id="dFrom" title="Booked from">
+      <input type="date" id="dTo" title="Booked to">
+      <span class="sub" id="winTag" style="margin:0"></span>
+      <input type="search" id="qIn" placeholder="SO, customer, tracking or transaction no." autocomplete="off">
+      <button class="pobtn" id="goBtn">Search</button>
+      <button class="pobtn" id="rfBtn" title="Read the list again">Refresh</button>
+    </div>
+    <div class="ftabs" id="tabs"></div>
+    <div id="body"><div class="msg">Loading…</div></div>
+    <div class="pager" id="pager"></div>
+    <div class="fsub">
+      Every shipment booked with Freightcom through IMS. IMS reads each live shipment's status from Freightcom by itself (about every 3 hours, hourly when it is out for delivery) and Freightcom's charges four times a day.
+      Shipments still on the way are always listed, whatever the dates. <b>Late</b> means not delivered a day after the expected date (pickup day + the carrier's transit days, weekends skipped — public holidays are not counted).
+      <b>Extra</b> is what Freightcom billed beyond the quote, before tax. Amounts and credit are shown only to staff with freight booking or purchasing rights. Payment is made on the Freightcom site — IMS only shows it.
+    </div>
+  </div>
+  <div id="detail"></div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Freightcom 쉽먼트 보드(fc-track-4 · 판정 1167 · 1168) — 대화 Claude
+   읽기: fc_board(p_from, p_to, p_warehouse_id, p_view, p_q, p_limit, p_offset) · fc_board_detail(p_booking_id)
+         — 문은 DB(상태 = sales 보기 ∨ fulfillment 보기 ∨ freight_booking 쓰기 ∨ 돈 문 · 돈 = freight_booking ∨ purchasing 쓰기 · 창고 경계)
+         — 돈 칸은 센트 정수 · 돈 문이 아니면 money null · accounts []
+   쓰기: Check status = EF freightcom track_poll(GET 둘 · 청구 없음) · Mark cancelled in IMS = fc_book_mark_cancelled(Freightcom 호출 없음)
+   fc_ 표는 전부 닫혔다(1168) — 표를 직접 읽지 마라
+   ───────────────────────────────────────────────────────────── */
+const FB_BUILD = "2026-11-10 · fcb v1";
+let sb = null, me = null, view = "all", offset = 0, D = null, pickId = null, busy = false;
+const LIMIT = 50;
+const ACC_COL = { TOR: ["#1d4ed8", "#dbeafe"], EDM: ["#047857", "#d1fae5"] };
+const EVT = { "label-created": "Label created", "picked-up": "Picked up", "in-transit": "In transit", "out-for-delivery": "Out for delivery", "delivered": "Delivered", "exception": "Exception", "missing": "Missing", "ready-for-shipping": "Ready for shipping", "cancelled": "Cancelled" };
+const FLAG = { exception: ["Exception", ""], late: ["Late", "w"], fc_cancelled: ["Cancelled on Freightcom", ""], pickup_not_scheduled: ["Pickup not scheduled", "w"], extra: ["Extra charge", ""], cancelled_billed: ["Billed after cancel", ""] };
+
+const $ = (id) => document.getElementById(id);
+const cents = (c) => c === null || c === undefined ? "—" : (c < 0 ? "−$" : "$") + (Math.abs(Number(c)) / 100).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const tz = { timeZone: "America/Toronto" };
+const fDay = (t) => t ? new Date(String(t).length === 10 ? t + "T12:00:00" : t).toLocaleDateString("en-CA", { ...tz, month: "short", day: "numeric" }) : "";
+const fWhen = (t) => t ? new Date(t).toLocaleString("en-CA", { ...tz, month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+const accTag = (a) => { if(!a) return ""; const c = ACC_COL[a] || ["#6d28d9", "#ede9fe"]; return `<span class="acct" style="color:${c[0]};background:${c[1]};border-color:${c[0]}33">${esc(a)}</span>`; };
+const placeOf = (t) => t ? [t.city, t.region].filter(Boolean).join(", ") : "";
+
+function statusHtml(r){
+  if(r.status === "cancelled") return `<span class="st mut">Cancelled in IMS</span>${r.cancelled_at ? `<div class="sub">${esc(fDay(r.cancelled_at))}</div>` : ""}`;
+  if(r.fc_cancelled) return `<span class="st bad">Cancelled on Freightcom</span><div class="sub">IMS still shows it booked</div>`;
+  if(r.state_kind === "delivered") return `<span class="st ok">✓ Delivered ${esc(fDay(r.delivered_at))}</span>${placeOf(r.track_last) ? `<div class="sub">${esc(placeOf(r.track_last))}</div>` : ""}`;
+  const t = r.track_last;
+  const lbl = t && t.type ? (EVT[String(t.type).toLowerCase()] || t.type) : (r.state || "Not read yet");
+  const cls = r.exception ? "bad" : (r.late ? "warn" : "");
+  const msg = t && t.message ? t.message : "";
+  return `<span class="st ${cls}">${esc(lbl)}</span>${placeOf(t) ? ` <span class="sub" style="display:inline">· ${esc(placeOf(t))}</span>` : ""}`
+    + (msg ? `<div class="sub" title="${esc(msg)}">${esc(msg.length > 70 ? msg.slice(0, 68) + "…" : msg)}</div>` : "")
+    + (t && t.at ? `<div class="sub">${esc(fWhen(t.at))}</div>` : "");
+}
+function trkHtml(r){
+  const tn = (r.tracking_numbers && r.tracking_numbers.length) ? r.tracking_numbers : (r.tracking_number ? [r.tracking_number] : []);
+  if(!tn.length) return '<span class="dim">—</span>';
+  const first = r.tracking_url ? `<a class="mono" href="${esc(r.tracking_url)}" target="_blank" rel="noopener">${esc(tn[0])}</a>` : `<span class="mono">${esc(tn[0])}</span>`;
+  return first + (tn.length > 1 ? ` <span class="sub" style="display:inline">+${tn.length - 1}</span>` : "") + (r.transaction_number ? `<div class="sub">FC ${esc(r.transaction_number)}</div>` : "");
+}
+function moneyHtml(r){
+  const m = r.money; if(!m) return "";
+  let h = `<div>${cents(m.booked_total)}</div>`;
+  if(m.billed_total !== null && m.billed_total !== undefined && m.billed_total !== m.booked_total) h += `<div class="sub">billed ${cents(m.billed_total)}</div>`;
+  if(Number(m.extra_cents) > 0) h += `<div class="sub" style="color:var(--bad);font-weight:700">+${cents(m.extra_cents)} extra</div>`;
+  else if(m.charge_state === "unread") h += `<div class="sub">charges not read yet</div>`;
+  return h;
+}
+function flagsHtml(r){ return (r.flags || []).map(f => { const d = FLAG[f] || [f, ""]; return `<span class="fl ${d[1]}">${esc(d[0])}</span>`; }).join(""); }
+
+function renderAccounts(){
+  const box = $("accts");
+  if(!D || !D.can_see_money || !(D.accounts || []).length){ box.innerHTML = ""; return; }
+  box.innerHTML = D.accounts.map(a => {
+    const lim = Number(a.limit_cents) || 0, av = Number(a.available_cents);
+    const usedPct = lim > 0 && isFinite(av) ? Math.max(0, Math.min(100, (lim - av) / lim * 100)) : null;
+    const left = lim > 0 && isFinite(av) ? av / lim : null;
+    const col = left === null ? "var(--muted)" : left < 0.1 ? "var(--bad)" : left < 0.25 ? "var(--warn)" : "var(--good)";
+    const inv = (a.invoices_owing || []);
+    const invHtml = inv.length
+      ? `<table>${inv.map(i => `<tr><td class="mono">${esc(i.number || "")}</td><td>due ${esc(fDay(i.due_date))}</td><td class="num">${cents(i.owing_cents)}</td></tr>`).join("")}</table>`
+      : `<span class="dim">No unpaid invoices — every Freightcom invoice is paid.</span>`;
+    return `<div class="card acc">
+      <div class="top">${accTag(a.account)} <span class="who">${esc(a.account === "TOR" ? "Toronto account" : a.account === "EDM" ? "Edmonton account" : a.account)}</span><span class="whs">${esc((a.warehouses || []).join(", "))}</span></div>
+      <div><span class="avail" style="color:${col}">${isFinite(av) ? cents(av) : "—"}</span> <span class="of">left of ${lim ? cents(lim) : "—"} credit</span></div>
+      ${usedPct !== null ? `<div class="meter" title="${usedPct.toFixed(0)}% used"><i style="width:${usedPct}%;background:${col}"></i></div>` : ""}
+      <div class="of">${a.used_cents !== null && a.used_cents !== undefined ? `Using ${cents(a.used_cents)} (limit set in IMS, balance from Freightcom)` : ""}</div>
+      <div class="inv">${invHtml}</div>
+      <div class="foot">Balance read ${esc(fWhen(a.balance_checked_at)) || "—"} · Pay on the Freightcom site.</div>
+    </div>`;
+  }).join("");
+}
+function renderTabs(){
+  const c = (D && D.counts) || {};
+  const T = [["all", "All"], ["moving", "On the way"], ["problems", "Needs a look"], ["delivered", "Delivered"], ["cancelled", "Cancelled"]];
+  $("tabs").innerHTML = T.map(([k, l]) => `<button data-v="${k}" class="${k === view ? "cur" : ""}${k === "problems" && Number(c.problems) > 0 ? " hot" : ""}">${l}<span class="n">${c[k] === undefined || c[k] === null ? "" : esc(c[k])}</span></button>`).join("");
+  $("tabs").querySelectorAll("[data-v]").forEach(b => b.onclick = () => { view = b.dataset.v; offset = 0; load(); });
+}
+function renderTable(){
+  const rows = (D && D.rows) || [], money = !!(D && D.can_see_money);
+  if(!rows.length){ $("body").innerHTML = `<div class="msg">No shipments here${view !== "all" ? " — try another tab" : ""}.</div>`; $("pager").innerHTML = ""; return; }
+  $("body").innerHTML = `<div style="overflow-x:auto"><table class="fb"><thead><tr>
+      <th>Booked</th><th>Order</th><th>Customer</th><th>Carrier</th><th>Tracking</th><th>Status</th><th>Expected</th>${money ? '<th class="num">Freight</th>' : ""}<th></th></tr></thead><tbody>
+    ${rows.map(r => `<tr data-b="${esc(r.booking_id)}" class="${r.booking_id === pickId ? "pick" : ""}">
+      <td style="white-space:nowrap">${esc(fDay(r.booked_at))}<div class="sub">${esc(r.warehouse_name || "")}</div></td>
+      <td>${(r.so_numbers && r.so_numbers.length ? r.so_numbers : [r.charge_so_number]).filter(Boolean).map(n => `<a class="mono" href="so.html?so=${encodeURIComponent(n)}" onclick="event.stopPropagation()">${esc(n)}</a>`).join("<br>")}</td>
+      <td>${esc(r.customer_name || "")}</td>
+      <td>${esc(r.carrier_name || "")}<div class="sub">${esc(r.service_name || "")} ${accTag(r.account)}</div></td>
+      <td>${trkHtml(r)}</td>
+      <td>${statusHtml(r)}</td>
+      <td style="white-space:nowrap">${r.expected_by && r.state_kind === "open" && r.status !== "cancelled" ? esc(fDay(r.expected_by)) : '<span class="dim">—</span>'}</td>
+      ${money ? `<td class="num">${moneyHtml(r)}</td>` : ""}
+      <td>${flagsHtml(r)}</td></tr>`).join("")}</tbody></table></div>`;
+  $("body").querySelectorAll("tr[data-b]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.b));
+  const tot = Number(D.total) || 0;
+  $("pager").innerHTML = `${offset + 1}–${Math.min(offset + rows.length, tot)} of ${tot} <button class="pobtn" id="pgPrev" ${offset ? "" : "disabled"}>←</button><button class="pobtn" id="pgNext" ${offset + rows.length < tot ? "" : "disabled"}>→</button>`;
+  $("pgPrev").onclick = () => { offset = Math.max(0, offset - LIMIT); load(); };
+  $("pgNext").onclick = () => { offset += LIMIT; load(); };
+}
+
+async function load(){
+  $("body").innerHTML = '<div class="msg">Loading…</div>';
+  const args = { p_from: $("dFrom").value || null, p_to: $("dTo").value || null, p_warehouse_id: $("whSel").value || null,
+                 p_view: view, p_q: $("qIn").value.trim() || null, p_limit: LIMIT, p_offset: offset };
+  const { data, error } = await sb.rpc("fc_board", args);
+  if(error){ D = null; $("accts").innerHTML = ""; $("tabs").innerHTML = ""; $("pager").innerHTML = ""; $("body").innerHTML = `<div class="msg" style="color:var(--bad)">${esc(error.message)}</div>`; return; }
+  D = data || {};
+  $("winTag").textContent = (!$("dFrom").value && !$("dTo").value && D.from) ? `Booked ${fDay(D.from)} – ${fDay(D.to)} (last 30 days)` : "";
+  renderAccounts(); renderTabs(); renderTable();
+  if(pickId && !(D.rows || []).some(r => r.booking_id === pickId)) { /* 고른 줄이 이 쪽에 없어도 상세는 그대로 둔다 */ }
+}
+
+/* 상세 — 이벤트 · 청구 · 단추 */
+async function openDetail(id){
+  pickId = id;
+  document.querySelectorAll("table.fb tr[data-b]").forEach(tr => tr.classList.toggle("pick", tr.dataset.b === id));
+  const box = $("detail");
+  box.innerHTML = '<div class="card det"><div class="dim">Loading…</div></div>';
+  const { data, error } = await sb.rpc("fc_board_detail", { p_booking_id: id });
+  if(pickId !== id) return;
+  if(error){ box.innerHTML = `<div class="card det"><div style="color:var(--bad)">${esc(error.message)}</div></div>`; return; }
+  renderDetail(data || {});
+  if(box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function renderDetail(d, note){
+  const r = d.row || {}, ev = d.events || [], m = d.money;
+  const canMark = r.status === "booked" && r.fc_cancelled;
+  const live = r.status === "booked" && r.state_kind !== "delivered" && !r.fc_cancelled;
+  const evHtml = ev.length ? `<ul class="tl">${ev.map(e => `<li><b>${esc(EVT[String(e.type || "").toLowerCase()] || e.type || "")}</b>${placeOf(e) ? " — " + esc(placeOf(e)) : ""}${e.message ? `<div>${esc(e.message)}</div>` : ""}<div class="when">${esc(fWhen(e.at))}</div></li>`).join("")}</ul>`
+    : `<div class="dim">No tracking events yet${r.state_checked_at ? "" : " — IMS has not read this shipment yet"}.</div>`;
+  let moneyHtml2 = "";
+  if(m){
+    const c = m.charge || {};
+    const xl = (c.extra_lines || []).filter(x => Number(x.delta) !== 0);
+    moneyHtml2 = `<div class="box"><b>Freight charges</b>
+      <table class="mt" style="margin-top:6px"><tr><th></th><th class="num">Quote</th><th class="num">Billed</th></tr>
+        <tr><td>Before tax</td><td class="num">${cents(c.booked_pretax)}</td><td class="num">${cents(c.billed_pretax)}</td></tr>
+        <tr><td>Tax</td><td class="num">${cents(c.tax_booked)}</td><td class="num">${cents(c.tax_billed)}</td></tr>
+        <tr><td><b>Total</b></td><td class="num"><b>${cents(c.booked_total)}</b></td><td class="num"><b>${cents(c.billed_total)}</b></td></tr></table>
+      ${c.state === "cancelled_billed" ? `<div style="margin-top:6px;color:var(--bad);font-weight:700">Cancelled in IMS, but Freightcom billed it — ask Freightcom for a credit.</div>` : ""}
+      ${Number(c.extra_cents) > 0 ? `<div style="margin-top:6px;color:var(--bad);font-weight:700">${cents(c.extra_cents)} more than the quote (before tax)</div>` : ""}
+      ${xl.length ? `<table class="mt" style="margin-top:6px"><tr><th>Line</th><th class="num">Quote</th><th class="num">Billed</th><th class="num">Change</th></tr>${xl.map(x => `<tr><td>${esc(x.sub_type || "base")}</td><td class="num">${cents(x.booked)}</td><td class="num">${cents(x.billed)}</td><td class="num">${cents(x.delta)}</td></tr>`).join("")}</table>` : ""}
+      ${(c.warnings || []).length ? `<div class="sub" style="margin-top:6px">Note: ${esc((c.warnings || []).join(", "))}</div>` : ""}
+      ${(m.lines || []).length ? `<details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Billed lines (${(m.lines || []).length})</summary><table class="mt">${m.lines.map(l => `<tr><td>${esc(l.type || "")}${l.sub_type ? " · " + esc(l.sub_type) : ""}</td><td class="num">${cents(l.amount_cents)}</td></tr>`).join("")}</table></details>` : ""}
+      ${(m.documents || []).length ? `<details style="margin-top:4px"><summary class="sub" style="cursor:pointer">Freightcom documents (${m.documents.length})</summary><table class="mt">${m.documents.map(x => `<tr><td>${esc(x.type === "net-terms-invoice" ? "Invoice" : "Shipment charge")}</td><td class="mono">${esc(x.number || "")}</td><td>${esc(fDay(x.doc_date))}</td><td class="num">${cents(x.amount_cents)}</td><td class="num">${Number(x.owing_cents) > 0 ? `<span style="color:var(--bad)">owing ${cents(x.owing_cents)}</span>` : '<span class="dim">paid</span>'}</td></tr>`).join("")}</table></details>` : ""}
+    </div>`;
+  }
+  $("detail").innerHTML = `<div class="card det">
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <h3>${esc((r.so_numbers || []).join(", ") || r.charge_so_number || "")}</h3>
+      <span>${esc(r.customer_name || "")}</span> ${accTag(r.account)}
+      <span class="sp" style="flex:1"></span>
+      ${live ? `<button class="pobtn" id="dtPoll" ${busy ? "disabled" : ""} title="Ask Freightcom for the latest status (no charge)">Check status</button>` : ""}
+      ${canMark ? `<button class="pobtn" id="dtMark" ${busy ? "disabled" : ""} style="color:var(--bad)" title="Freightcom already cancelled it — close the booking in IMS too (nothing is sent to Freightcom)">Mark cancelled in IMS</button>` : ""}
+      <button class="pobtn" id="dtClose">Close</button>
+    </div>
+    <div style="font-size:13px">${esc(r.carrier_name || "")} ${esc(r.service_name || "")} · ${trkHtml(r)}</div>
+    <div>${statusHtml(r)} ${flagsHtml(r)}</div>
+    ${r.cancel_note ? `<div class="sub">Note: ${esc(r.cancel_note)}</div>` : ""}
+    <div id="detMsg">${esc(note || "")}</div>
+    <div class="dgrid"><div class="box"><b>Tracking</b><div style="margin-top:8px">${evHtml}</div>${r.state_checked_at ? `<div class="sub">Status read ${esc(fWhen(r.state_checked_at))}</div>` : ""}</div>${moneyHtml2 || '<div></div>'}</div>
+  </div>`;
+  $("dtClose").onclick = () => { pickId = null; $("detail").innerHTML = ""; document.querySelectorAll("table.fb tr.pick").forEach(tr => tr.classList.remove("pick")); };
+  if($("dtPoll")) $("dtPoll").onclick = () => pollStatus(r.booking_id);
+  if($("dtMark")) $("dtMark").onclick = () => markCancelled(r.booking_id);
+}
+async function pollStatus(id){
+  if(busy) return; busy = true; const b = $("dtPoll"); if(b){ b.disabled = true; b.textContent = "Checking…"; }
+  let msg = "";
+  try{
+    const { data, error } = await sb.functions.invoke("freightcom", { body: { action: "track_poll", booking_id: id } });
+    if(error){ let t = error.message || String(error); try{ const j = await error.context.json(); if(j && (j.error || j.message)) t = j.error || j.message; }catch(e){} throw new Error(t); }
+    const t = (data && data.track) || {};
+    msg = t.state_changed ? `Freightcom status now: ${t.state || "?"}` : (t.events_added ? `${t.events_added} new update${t.events_added === 1 ? "" : "s"}` : "No change at Freightcom.");
+  }catch(e){ msg = "Check status: " + (e.message || e); }
+  busy = false;
+  await load();
+  const { data } = await sb.rpc("fc_board_detail", { p_booking_id: id });
+  if(pickId === id && data) renderDetail(data, msg);
+}
+async function markCancelled(id){
+  if(busy) return;
+  if(!confirm("Freightcom shows this shipment as cancelled.\n\nMark the booking cancelled in IMS too? Nothing is sent to Freightcom. Carrier and tracking on the orders are cleared only if they still match this booking.")) return;
+  const note = prompt('Note (optional) — e.g. "cancelled on the Freightcom site, rebooked by hand"', ""); if(note === null) return;
+  busy = true;
+  const { data, error } = await sb.rpc("fc_book_mark_cancelled", { p_booking_id: id, p_note: note.trim() || null });
+  busy = false;
+  let msg;
+  if(error) msg = "Mark cancelled: " + error.message;
+  else { const kept = (data && data.orders_kept) || [], rest = (data && data.orders_restored) || [];
+    msg = "Booking closed in IMS." + (rest.length ? ` Carrier · tracking cleared on ${rest.length} order${rest.length === 1 ? "" : "s"}.` : "") + (kept.length ? ` ${kept.length} order${kept.length === 1 ? "" : "s"} already had other tracking — left as is.` : ""); }
+  await load();
+  const r2 = await sb.rpc("fc_board_detail", { p_booking_id: id });
+  if(pickId === id && r2.data) renderDetail(r2.data, msg);
+}
+
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData;
+  imsHeader(me);
+  $("buildTag").textContent = FB_BUILD;
+  try{ const wh = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+       if(!wh.error) $("whSel").insertAdjacentHTML("beforeend", (wh.data || []).map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join("")); }catch(e){}
+  $("goBtn").onclick = () => { offset = 0; load(); };
+  $("rfBtn").onclick = () => load();
+  $("qIn").onkeydown = (e) => { if(e.key === "Enter"){ e.preventDefault(); offset = 0; load(); } };
+  ["whSel", "dFrom", "dTo"].forEach(id => $(id).onchange = () => { offset = 0; load(); });
+  await load();
+});
+</script>
+</body>
+</html>
