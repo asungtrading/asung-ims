@@ -11,7 +11,8 @@
   main{display:flex;flex-direction:column;gap:14px;padding:14px}
   .pobox input,.pobox select,.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
   .pobox textarea{width:100%;min-height:54px;box-sizing:border-box}
-  .pobox{max-width:720px;padding:16px 18px;overflow:auto;box-sizing:border-box}   /* pad v1 — 옛 꼴 팝업에 안쪽 여백(공통 .pobox 는 여백 없음) */
+  .pobox{max-width:720px;padding:16px 18px;overflow:auto;box-sizing:border-box}
+  .pobox > *{flex-shrink:0}   /* nb v1a — the shared .pobox is a column flex box with a max height: long text squeezed the Product · Bin lists flat — the box scrolls instead */   /* pad v1 — 옛 꼴 팝업에 안쪽 여백(공통 .pobox 는 여백 없음) */
 
   .gap{display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;align-items:baseline}
   .gap .g{display:flex;flex-direction:column;gap:2px}
@@ -110,7 +111,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const ADJ_BUILD = "2026-11-11 · adj nb v1";   // 대화 Claude — nb-4a(판정 1177 「가」 · asung-wms nb-1 0f1afd8 · nb-2 a92e43e): 초안 줄의 Cost 칸 = inv_adjust_eval 의 fill_qty · layer_qty · layer_unit_cost · cost_from(「Goes in at $x — 출처」 · 메움 「fills stock sold without stock — no new cost」 · 원가 열쇠가 없으면 금액 없이 갈래만) · Unit cost 안내 「Leave it empty — the right cost is filled in for you」(Caleb 11-11) · 확정 창에 메움 줄 · 확정된 줄의 raw.cost filled · UNASSIGNED 칸에 「no shelf yet」 ← 2026-11-02 · adj pad v1;   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← adj bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← adj thumb v1 · 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
+const ADJ_BUILD = "2026-11-11 · adj nb v1a";   // 대화 Claude — nb v1a(Caleb 「전보다 약간 좁아진 느낌」): 공통 .pobox 가 flex 세로 · max-height 86vh 라 긴 Unit cost 안내가 Product · Bin 목록을 납작하게 눌렀다 → 이 화면 .pobox > * 는 줄이지 않는다(상자가 스크롤) · 안내 두 줄로 ← adj nb v1;   // 대화 Claude — nb-4a(판정 1177 「가」 · asung-wms nb-1 0f1afd8 · nb-2 a92e43e): 초안 줄의 Cost 칸 = inv_adjust_eval 의 fill_qty · layer_qty · layer_unit_cost · cost_from(「Goes in at $x — 출처」 · 메움 「fills stock sold without stock — no new cost」 · 원가 열쇠가 없으면 금액 없이 갈래만) · Unit cost 안내 「Leave it empty — the right cost is filled in for you」(Caleb 11-11) · 확정 창에 메움 줄 · 확정된 줄의 raw.cost filled · UNASSIGNED 칸에 「no shelf yet」 ← 2026-11-02 · adj pad v1;   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← adj bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← adj thumb v1 · 대화 Claude — 판정 208 · 213: 줄 표 · 제품 고르기 후보의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← adj v1.2: adj-c(대화 Claude) — 판정 47 ~ 53 · 묶음 열둘 · 창구 4ac54e2 · v1.1: 0 인 칸 · Last here(ims_last_bin) · 칸 목록 처음부터 · v1.2: 판정 56 원가 0 경고(확정 창 체크) · 신고에 뽑은 칸이 없으면 Last bin 으로 줄 제안 · 없으면 SKU 채운 줄 창
 console.log("stock-adjustments.html build:", ADJ_BUILD);
 /* 줄 사진(판정 208 · 213) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다 */
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
@@ -438,10 +439,8 @@ function openLine(h, line, pre){
     <div class="frow"><label>Note</label><input id="ln" style="flex:1" value="${esc(line ? (line.reason_note || "") : "")}" placeholder="Needed when the reason is Other"></div>
     <div class="frow"><label>Unit cost</label>
       <input id="lc" type="number" step="any" min="0" style="width:130px" value="${esc(line && line.unit_cost !== null && line.unit_cost !== undefined ? line.unit_cost : "")}">
-      <span class="dim" style="font-size:12px"><b>Leave it empty — the right cost is filled in for you.</b> Only type a cost if you know the real one.
-        After you save the line, the Cost column shows what it will use and where it came from.
-        <span style="display:block;margin-top:3px">Empty uses, in order: the average cost of this SKU still in this warehouse → the last cost here → the last cost in the other warehouse → the last purchase price.
-        If this SKU was sold here without stock, the units you add first fill that and take no new cost.</span></span></div>
+      <span class="dim" style="font-size:12px" title="Empty uses, in order: the average cost of this SKU still in this warehouse → the last cost here → the last cost in the other warehouse → the last purchase price. If this SKU was sold here without stock, the units you add first fill that and take no new cost."><b>Leave it empty — the right cost is filled in for you.</b> Only type a cost if you know the real one.
+        Save the line to see the cost and where it came from.</span></div>
 
     <div id="lMsg" style="font-size:12.5px;margin-top:8px"></div>
     <div class="frow" style="margin-top:10px"><span class="sp"></span>
