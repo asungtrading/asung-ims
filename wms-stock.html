@@ -81,6 +81,23 @@
   .sub .foot{font-size:11.5px;color:var(--mut);margin-top:4px}
   .mono{font-family:var(--mono)}
   .dimt{color:var(--mut)}
+  /* ws v2 — 폰 카메라 스캔(Caleb 2026-11-13 「모바일 폰 카메라로 스캔하는 모듈」 · Stock Lookup 만) */
+  .scanrow{display:flex;gap:8px;align-items:stretch}
+  .scanrow .scanin{flex:1;min-width:0}
+  .camb{flex:0 0 auto;border:2px solid var(--accent);background:#fff;color:var(--accent);border-radius:12px;padding:0 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px}
+  .camb:active{background:#eef3ff}
+  .cam{position:fixed;inset:0;z-index:5000;background:#000;display:flex;flex-direction:column}
+  .cam[hidden]{display:none}
+  .cam .cv{position:relative;flex:1;min-height:0;overflow:hidden}
+  .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .cam .guide{position:absolute;left:8%;right:8%;top:50%;height:28%;transform:translateY(-50%);border:3px solid rgba(255,255,255,.9);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+  .cam .guide::after{content:"";position:absolute;left:6%;right:6%;top:50%;border-top:2px solid #e03131;opacity:.85}
+  .cam .cst{color:#fff;font-size:14px;text-align:center;padding:12px 16px 4px;min-height:22px}
+  .cam .cst.bad{color:#ffb4b4}
+  .cam .cbar{display:flex;gap:10px;padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px))}
+  .cam .cbar button{flex:1;border:0;border-radius:12px;padding:14px;font:inherit;font-size:15px;font-weight:700;background:#fff;color:#12161c;cursor:pointer}
+  .cam .cbar button.tor{background:#2a2f38;color:#fff}
+  .cam .cbar button.tor.on{background:#ffd43b;color:#12161c}
 </style>
 </head>
 <body>
@@ -102,11 +119,20 @@
     <span class="sp"></span>
     <label><input type="checkbox" id="zero" checked> Show zero stock</label>
   </div>
-  <input class="scanin" id="scan" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan a barcode, or type a SKU or name…">
+  <div class="scanrow">
+    <input class="scanin" id="scan" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Scan a barcode, or type a SKU or name…">
+    <button class="camb" id="camBtn" type="button" title="Scan with the phone camera" hidden>📷 Camera</button>
+  </div>
   <div class="scanhint"><span class="live"></span><span id="hint">Scan or type — both branches are shown</span></div>
   <div id="err" class="err" hidden></div>
   <div id="out"><div class="empty">Scan a product to see its stock.</div></div>
 </main>
+
+<div class="cam" id="cam" hidden>
+  <div class="cv"><video id="camVideo" playsinline muted autoplay></video><div class="guide"></div></div>
+  <div class="cst" id="camSt">Starting the camera…</div>
+  <div class="cbar"><button class="tor" id="camTorch" type="button" hidden>Light</button><button id="camClose" type="button">Close</button></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
@@ -129,7 +155,7 @@
    ⭐ Every number comes from the database — this screen does not count (ruling 262 for cost: only stk_value_*).
    ⚠️ Screen state lives in memory only.
    ───────────────────────────────────────────────────────────── */
-const WS_BUILD = "2026-10-27 · ws v1c";   // 대화 Claude — ws v1c: 라벨 창에서 세트를 기본으로 고르는 것은 찾은 글자가 세트 SKU 와 같거나 숫자 바코드 스캔일 때만(SKU 를 쳐서 찾아도 stk_availability 가 matched_set_* 를 줘서 세트가 골라졌다 — Caleb AS01282) ← ws v1b: 카드마다 「Print label」(공용 ims-label.js · lbl v1 · Caleb 2026-10-27 「WMS 만 접근이 있는 사람도 프린트」) · 세트를 스캔해 들어왔으면 그 세트가 기본 ← ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
+const WS_BUILD = "2026-11-13 · ws v2";   // 대화 Claude — ws v2: 폰 카메라 스캔(Caleb 2026-11-13 「wms stock lookup에서 … 모바일 폰 카메라로 스캔하는 모듈」 · 「일단은 스탁 룩업만」) — 스캔 칸 옆 「📷 Camera」(손가락 화면 · 카메라를 쓸 수 있는 브라우저에서만 · 데스크톱 무변) · 누르면 전체 화면 카메라 · 읽히면 곧바로 닫고 그 글자로 찾는다(스캐너 Enter 와 같은 search) · 형식 UPC-A · EAN-13 · EAN-8 · Code 128(ims-label.js 가 찍는 넷) · 라이브러리 @zxing/library 0.21.3 UMD(jsdelivr · 처음 누를 때 한 번 싣는다) · 손전등은 폰이 지원할 때만 · 화면을 떠나면 카메라를 끈다 · DB 무변 ← 대화 Claude — ws v1c: 라벨 창에서 세트를 기본으로 고르는 것은 찾은 글자가 세트 SKU 와 같거나 숫자 바코드 스캔일 때만(SKU 를 쳐서 찾아도 stk_availability 가 matched_set_* 를 줘서 세트가 골라졌다 — Caleb AS01282) ← ws v1b: 카드마다 「Print label」(공용 ims-label.js · lbl v1 · Caleb 2026-10-27 「WMS 만 접근이 있는 사람도 프린트」) · 세트를 스캔해 들어왔으면 그 세트가 기본 ← ws v1a: 작은 표의 날짜 · 문서 번호 · bin 을 한 줄로(좁은 브랜치 칸에서 꺾였다 · 넘치면 표 안에서 가로 스크롤) ← ws v1 · WMS Stock Lookup 첫 판(Caleb 「wms만 사용하는 사람들이 제품 검색을 할 수 있게 stock lookup 탭」 · 판정 569 · 571 · 566 · 567): 스캔 · 입력 → 카드 · 두 브랜치 숫자 · bin · Allocated · Transfer res. 누르면 SO · TRF(손님 이름 없음) · 최근 움직임 · 원가 열쇠면 금액
 console.log("wms-stock.html build:", WS_BUILD);
 
 let sb = null, me = null, canCost = false;
@@ -302,6 +328,76 @@ function mvHtml(rows){
     <div class="foot">Opening stock from the starting count is not listed as a movement here.</div>`;
 }
 
+/* ── ws v2 · 폰 카메라 스캔 ──────────────────────────────────────
+   @zxing/library 0.21.3 UMD(전역 ZXing) — 처음 누를 때만 싣는다. 스트림은 이 화면이 직접 열고(getUserMedia) 닫는다 — 손전등과 끄기를 확실히.
+   읽히면 첫 결과 하나로 끝(같은 바코드가 여러 번 잡혀도 한 번만 찾는다). ⚠️ 판독 글자는 스캐너처럼 그대로 넘긴다 — 숫자를 고치지 않는다. */
+const ZX_URL = "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js";
+const cam = { reader: null, stream: null, busy: false, torch: false, loading: null };
+const camCan = () => !!(window.isSecureContext && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+function camLib(){
+  if(window.ZXing) return Promise.resolve(window.ZXing);
+  if(cam.loading) return cam.loading;
+  cam.loading = new Promise((ok, bad) => {
+    const sc = document.createElement("script"); sc.src = ZX_URL; sc.async = true;
+    sc.onload = () => window.ZXing ? ok(window.ZXing) : bad(new Error("no ZXing"));
+    sc.onerror = () => { cam.loading = null; sc.remove(); bad(new Error("load failed")); };
+    document.head.appendChild(sc);
+  });
+  return cam.loading;
+}
+function camSt(m, bad){ const e = $("camSt"); e.textContent = m; e.classList.toggle("bad", !!bad); }
+function camStop(){
+  try{ if(cam.reader) cam.reader.reset(); }catch(e){}
+  if(cam.stream){ cam.stream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} }); }
+  cam.reader = null; cam.stream = null; cam.busy = false; cam.torch = false;
+  const v = $("camVideo"); try{ v.pause(); }catch(e){} v.srcObject = null;
+  $("camTorch").hidden = true; $("camTorch").classList.remove("on");
+  $("cam").hidden = true;
+}
+async function camOpen(){
+  if(cam.busy) return;
+  cam.busy = true;
+  $("cam").hidden = false; camSt("Starting the camera…");
+  let Z;
+  try{ Z = await camLib(); }
+  catch(e){ camSt("Could not load the scanner. Check the connection and try again.", true); cam.busy = false; return; }
+  if($("cam").hidden){ cam.busy = false; return; }   // 싣는 동안 닫았다
+  try{
+    cam.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+  }catch(e){
+    const n = e && e.name;
+    camSt(n === "NotAllowedError" ? "Camera permission was denied. Allow the camera for this site in the browser settings, then try again."
+        : n === "NotFoundError" || n === "OverconstrainedError" ? "No camera was found on this device."
+        : n === "NotReadableError" ? "The camera is in use by another app. Close it and try again."
+        : "The camera could not start.", true);
+    cam.busy = false; return;
+  }
+  if($("cam").hidden){ camStop(); return; }   // 허락을 묻는 동안 닫았다
+  const tr = cam.stream.getVideoTracks()[0];
+  try{ const caps = tr && tr.getCapabilities ? tr.getCapabilities() : {}; $("camTorch").hidden = !caps.torch; }catch(e){}
+  const hints = new Map();
+  hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.CODE_128]);
+  cam.reader = new Z.BrowserMultiFormatReader(hints, 200);
+  camSt("Point at a barcode inside the box.");
+  let done = false;
+  cam.reader.decodeFromStream(cam.stream, $("camVideo"), (res) => {
+    if(!res || done) return;
+    done = true;
+    const code = String(res.getText() || "").trim();
+    try{ if(navigator.vibrate) navigator.vibrate(60); }catch(e){}
+    camStop();
+    if(!code) return;
+    const scan = $("scan");
+    scan.value = code;
+    search(code);
+    scan.blur();   // 폰 자판이 올라오지 않게
+  }).catch(() => { if(!done && !$("cam").hidden) camSt("The camera stopped. Close and try again.", true); });
+}
+async function camTorch(){
+  const tr = cam.stream && cam.stream.getVideoTracks()[0]; if(!tr) return;
+  try{ await tr.applyConstraints({ advanced: [{ torch: !cam.torch }] }); cam.torch = !cam.torch; $("camTorch").classList.toggle("on", cam.torch); }catch(e){ $("camTorch").hidden = true; }
+}
+
 /* ── 시작 ── */
 imsAuth.start({}, async (client, meData) => {   // 열쇠 없음 = WMS 에 들어올 수 있는 직원 누구나(창구 문 = 활성 직원 · 판정 268)
   sb = client; me = meData;
@@ -330,6 +426,15 @@ imsAuth.start({}, async (client, meData) => {   // 열쇠 없음 = WMS 에 들�
   $("zero").onchange = () => { if(lastQ) search(lastQ); scan.focus(); };
   const q0 = imsParam("q");
   if(q0){ scan.value = q0; search(q0); }
+  // ws v2 — 카메라 단추: 손가락 화면 + 카메라를 쓸 수 있을 때만(데스크톱 스캐너 화면은 그대로)
+  if(camCan() && window.matchMedia("(pointer: coarse)").matches){
+    $("camBtn").hidden = false;
+    $("camBtn").onclick = camOpen;
+    $("camClose").onclick = camStop;
+    $("camTorch").onclick = camTorch;
+    document.addEventListener("visibilitychange", () => { if(document.hidden && !$("cam").hidden) camStop(); });
+    window.addEventListener("pagehide", () => { if(!$("cam").hidden) camStop(); });
+  }
   scan.focus();
 });
 </script>
