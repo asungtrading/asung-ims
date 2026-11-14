@@ -119,7 +119,7 @@
    ⚠️⚠️ 남은 금액 · 받은 돈 · 연체 일수는 DB 가 준다(so_invoice_remaining 한 곳) — 화면에서 다시 계산하지 마라
    ⚠️ 인쇄는 다음 판(Caleb 2026-09-25) · 받아 둔 돈을 손으로 붙이기 · 크레딧 붙이기는 Customer Payments · Credit Notes 화면에서
    ───────────────────────────────────────────────────────────── */
-const INV_BUILD = "2026-11-03 · inv pd v1";   // 대화 Claude — pd v1(판정 979 · 991 · 2e-1a f7ca811): 결제 날짜 칸 상한 오늘 → 오늘 + 365(post-dated 수표 · 수표 날짜로) · 안내 한 줄 · 미래 날짜 결제에 「post-dated」 칩 ← 2026-10-27 · inv open v1: 대화 Claude — ar-4(판정 775 · 783 ~ 785 · asung-wms ar-2 bfba536): 이월 인보이스(kind opening) — 목록 · 좁은 목록에 「before IMS」 꼬리표 · 매장(store_name) · 이전에 받은 돈(prior_settled) · 거르기 「Carried over」 · 상세: 안내(원본은 QuickBooks) · Print · Email · Delivery receipt · CSV · Cancel · Raise a credit note 단추를 안 보인다(서버도 인쇄 · 메일 · 취소를 거부 · 785 · 784) · 숫자 칸은 Total · Paid before IMS · Paid · Credited · Still owed ← 2026-10-22 · inv csv v5:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · inv csv v4 ·   // v4 — Caleb 「모양과 내용이 별로 · 아이템이 많아지면 쓰기 어렵다 · 바코드도」: Invoice CSV 를 한 표(한 줄 = 인보이스 줄 하나 · 인보이스 · 오더 칸 되풀이 · 끝에 합계 줄)로 · Barcode 칸(대표 → 없으면 첫 활성 바코드) · 목록 Lines CSV 에도 Barcode ←   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
+const INV_BUILD = "2026-11-14 · inv svc v1";   // 대화 Claude — inv svc v1(docsvc-1 · 판정 1222 · 1228): 서비스 줄을 운임과 따로 — 합계 칸 「Services / Final sale items」(so_invoice_detail.invoice.services_amount) + 「Charges」(charges_amount − services_amount) · 오더 표에 Services 칸(있을 때만 · orders[].services_amount) · 줄 표 둘(서비스 표 · 「Freight and charges」 — lines[].is_service) ← inv pd v1:   // 대화 Claude — pd v1(판정 979 · 991 · 2e-1a f7ca811): 결제 날짜 칸 상한 오늘 → 오늘 + 365(post-dated 수표 · 수표 날짜로) · 안내 한 줄 · 미래 날짜 결제에 「post-dated」 칩 ← 2026-10-27 · inv open v1: 대화 Claude — ar-4(판정 775 · 783 ~ 785 · asung-wms ar-2 bfba536): 이월 인보이스(kind opening) — 목록 · 좁은 목록에 「before IMS」 꼬리표 · 매장(store_name) · 이전에 받은 돈(prior_settled) · 거르기 「Carried over」 · 상세: 안내(원본은 QuickBooks) · Print · Email · Delivery receipt · CSV · Cancel · Raise a credit note 단추를 안 보인다(서버도 인쇄 · 메일 · 취소를 거부 · 785 · 784) · 숫자 칸은 Total · Paid before IMS · Paid · Credited · Still owed ← 2026-10-22 · inv csv v5:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · inv csv v4 ·   // v4 — Caleb 「모양과 내용이 별로 · 아이템이 많아지면 쓰기 어렵다 · 바코드도」: Invoice CSV 를 한 표(한 줄 = 인보이스 줄 하나 · 인보이스 · 오더 칸 되풀이 · 끝에 합계 줄)로 · Barcode 칸(대표 → 없으면 첫 활성 바코드) · 목록 Lines CSV 에도 Barcode ←   // v3 — Caleb 「해당 오더 안에서 라인 아이템과 오더 정보까지」: 인보이스 상세 「↓ Invoice CSV」 — 인보이스 머리 · 주문(SO · 손님 PO · 배송지 · 세금) · 줄을 한 파일에(구역 셋) ←   // v2 — Caleb 「인보이스 라인아이템까지」: ↓ Lines CSV — 지금 거르기의 인보이스 전부의 줄(so_invoice_line · 읽기 열림) · 줄마다 인보이스 · 오더 · 손님 칸을 되풀이 ←   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-19 · inv v2g: 대화 Claude — 문서 메일(판정 526 · 529 · 530 · ims-doc v3): Email to customer…(미리 보기 · 받는 주소 · 제목 · 본문 고치기 · PDF 첨부) · Emails 칸(보낸 메일 · 자동 · 건너뜀 · 취소) · Note 고치기 ← inv v2f: 대화 Claude — doc 인쇄(판정 521 ~ 528 · ims-doc v2): Print invoice(final_invoice) · Print delivery receipt(internal_receipt) — 쓰는 판 · doc_data · 숨은 iframe 브라우저 인쇄 ← inv v2e1: 대화 Claude — Caleb 화면 시험: 좁은 목록의 web 꼬리표가 날짜 줄 끝에 붙어 말줄임(…)에 가려졌다 → 고객 이름 줄 아래 따로 한 줄 ← inv v2e:   // 대화 Claude — 화면 안 A 셋째: 웹 오더 인보이스에 웹 번호 — 목록(넓은 Orders 칸 · 좁은 줄)에 web #… 꼬리표 · 상세 Orders 줄 옆에 Web order(#… · Shopify 결제 상태 · Open web order) · 검색은 이미 search_text 가 오더 ref(웹 번호)를 담는다 ← inv v2d:   // 대화 Claude — Caleb 화면 시험 60019 「money on account −4.37」: balance_forward 는 종이의 「이전 잔액」 한 줄 = −(붙인 크레딧 + 붙인 받아 둔 돈)인데 화면이 그대로 「money on account」 로 보여 크레딧이 두 번 · 음수로 보였다 → 받아 둔 돈 몫 = −balance_forward − credit_applied(양수) · balance_forward 가 null(ⓑ 전 발행분)이면 「—」 ← inv v2c 2026-10-07 · 대화 Claude — Caleb 화면 시험 60020: Orders on this invoice 의 Charges 가 정가(10.00)라 그 줄이 Total 로 더해지지 않았다 → 할인을 뺀 운임(5.00) + 작은 글 「10.00 − 5.00」(오더 행 charges_discount_amount) ← inv v2b 2026-10-07 · 대화 Claude — 운임 자리 · 운임 할인(판정 352 · 357-6 · fr-2 20261007173939): 운임(kind charge)과 운임 할인(kind charge_discount) 줄을 제품 줄 표에서 빼 「Freight and charges」 따로 · 합계 칸에 Freight discount(머리 charges_discount_amount) ← inv v2a 2026-10-07 · 대화 Claude — 할인 표시(판정 284 · 미룬 120 · Caleb 2026-10-07 「가」): 줄 표에 Net unit 칸(이 인보이스의 오더 중 오더 할인 % 가 있을 때만 · 상품 줄 단가 × (1 − 그 줄 오더의 so_invoice_order.order_discount_pct/100) · 그릴 때 계산) · 종류 글자 order_discount → 「order discount」 · Order discount 칸이 음수 저장값에 「−」 를 또 붙여 「−-0.97」 로 보이던 것(짐작 아님 — so_invoice_taxable_ck) · 손님에게 보일 단가 설정(inv_config so_invoice_unit_display)은 인보이스 인쇄 차수에서 ← inv v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 5): 콤보 줄 아래 「Includes (each): 2 × …, 1 × …」(발행 때 굳힌 so_invoice_line.combo_components · asm-2b2) · 구성품 줄은 인보이스에 없다 ← inv sc v1 // 대화 Claude — surcharge-3(묶음 7): surcharge 줄을 그 상품 줄 아래 「↳」 로 · 합계 · 오더 표에 Surcharge(값은 발행 때 얼린 인보이스 줄 · surcharge-2b) ← 「inv thumb v1」 대화 Claude — 판정 214: 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← inv v1.2
 console.log("so-invoices.html build:", INV_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -590,11 +590,16 @@ async function loadDetail(id){
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
 
+/* svc v1 (docsvc-1 · 판정 1222): 서비스 칸 제목은 내용에 따라 — 떨이만 Final sale items · 일반 서비스만 Services · 둘 다 Services & final sale */
+const svcTitle = (rows) => { const r = (rows || []).filter(x => x.kind !== "charge_discount"); const fs = r.filter(x => x.final_sale).length; return !r.length ? "Services" : fs === r.length ? "Final sale items" : fs ? "Services & final sale" : "Services"; };
+  const svcA = Number(v.services_amount) || 0, frA = Math.round((Number(v.charges_amount || 0) - svcA) * 100) / 100;   // inv svc v1
+  const svcL = (data.lines || []).filter(l => (l.kind === "charge" || l.kind === "charge_discount") && l.is_service);
   const stats = `
     <div class="stats">
       <div class="stat">Lines<b>${money(v.lines_amount)}</b></div>
       <div class="stat">Order discount<b>${Number(v.order_discount_amount) ? "−" + money(Math.abs(Number(v.order_discount_amount))) : money(0)}</b></div>   <!-- inv v2a: 인보이스의 오더 할인 금액은 음수로 저장된다(taxable = lines + order_discount + charges) — 「−-0.97」 이 되지 않게 -->
-      <div class="stat">Charges<b>${money(v.charges_amount)}</b></div>
+      ${svcA ? `<div class="stat">${esc(svcTitle(svcL))}<b>${money(svcA)}</b></div>` : ""}
+      ${!svcA || Math.abs(frA) >= 0.005 ? `<div class="stat">Charges<b>${money(frA)}</b></div>` : ""}
       ${Number(v.charges_discount_amount) ? `<div class="stat">Freight discount<b>−${money(Math.abs(Number(v.charges_discount_amount)))}</b></div>` : ""}
       ${Number(v.surcharge_amount) ? `<div class="stat">Surcharge<b>${money(v.surcharge_amount)}</b></div>` : ""}
       <div class="stat">Tax<b>${money(v.tax_amount)}</b></div>
@@ -607,14 +612,15 @@ async function loadDetail(id){
     <div class="sosub">Due at issue ${money(v.amount_due)} — deposit applied ${money(v.deposit_applied)} · credit applied ${money(v.credit_applied)} · money on account applied ${v.balance_forward === null || v.balance_forward === undefined ? "—" : money(Math.max(0, -Number(v.balance_forward) - Number(v.credit_applied || 0)))}
       — these are what attached itself the moment it was issued. Still owed is today's figure.</div>`;
 
-  const anySc = (data.orders || []).some(o => Number(o.surcharge_amount));   // surcharge-3 — 오더 표의 Surcharge 열은 있을 때만
+  const anySc = (data.orders || []).some(o => Number(o.surcharge_amount));
+  const anySv = (data.orders || []).some(o => Number(o.services_amount));   // inv svc v1   // surcharge-3 — 오더 표의 Surcharge 열은 있을 때만
   const orders = (data.orders || []).map(o => `<tr>
       <td><a class="lnk mono" href="so.html?so=${encodeURIComponent(o.so_number)}">${esc(o.so_number)}</a>${o.cancelled_at ? ' <span class="tag off">detached</span>' : ""}</td>
       <td>${esc(o.so_status || "")}${o.channel && o.channel !== "warehouse" ? ` <span class="tag">${esc(o.channel)}</span>` : ""}</td>
       <td class="mono">${dim(o.ref)}</td>
       <td>${esc(o.ship_to_company || o.store_name || "")}<div class="dim" style="font-size:11.5px">${esc(addrOf(o, "ship_to_"))}</div></td>
       <td>${esc(o.tax_rule || "")}${o.rate_pct !== null && o.rate_pct !== undefined ? ` <span class="dim">${esc(Number(o.rate_pct))}%</span>` : ""}</td>
-      <td class="num">${money(o.lines_amount)}</td><td class="num">${Number(o.charges_discount_amount) ? `${money(Number(o.charges_amount) - Number(o.charges_discount_amount))}<div class="dim" style="font-size:11px" title="Freight less its freight discount">${money(o.charges_amount)} − ${money(o.charges_discount_amount)}</div>` : money(o.charges_amount)}</td>${anySc ? `<td class="num">${money(o.surcharge_amount)}</td>` : ""}<td class="num">${money(o.tax_amount)}</td><td class="num">${money(o.total)}</td>
+      <td class="num">${money(o.lines_amount)}</td>${anySv ? `<td class="num">${Number(o.services_amount) ? money(o.services_amount) : '<span class="dim">—</span>'}</td>` : ""}<td class="num">${(() => { const fc = Math.round((Number(o.charges_amount || 0) - Number(o.services_amount || 0)) * 100) / 100; return Number(o.charges_discount_amount) ? `${money(fc - Number(o.charges_discount_amount))}<div class="dim" style="font-size:11px" title="Freight less its freight discount">${money(fc)} − ${money(o.charges_discount_amount)}</div>` : money(fc); })()}</td>${anySc ? `<td class="num">${money(o.surcharge_amount)}</td>` : ""}<td class="num">${money(o.tax_amount)}</td><td class="num">${money(o.total)}</td>
     </tr>`);
 
   /* asm-3d(묶음 5) — 콤보 줄의 「includes …」 · 콤보 하나에 든 것(qty_per_combo) · 발행 때 굳힌 값이라 오더 줄이 뒤에 바뀌어도 그대로 */
@@ -633,12 +639,13 @@ async function loadDetail(id){
   const KIND_LBL = { order_discount: "order discount", charge_discount: "freight discount" };
   /* inv v2b — 판정 357-6: 운임 · 운임 할인은 제품 줄 표 밖(합계 가까이) */
   const isChg = (l) => l.kind === "charge" || l.kind === "charge_discount";
-  const chgRows = (data.lines || []).filter(isChg).map(l => `<tr>
+  const chgRow = (l) => `<tr>
       <td class="num">${esc(l.line_no)}</td>
       <td>${l.kind === "charge_discount" ? `<span class="dim">↳</span> ${esc(l.description || "Freight discount")}` : esc(l.description || "Charge")}</td>
       <td class="num">${l.kind === "charge_discount" ? `<span class="neutral">${money(l.amount)}</span>` : money(l.amount)}</td>
       <td class="num">${money(l.tax_amount)}</td>
-      <td><span class="mono dim" style="font-size:11.5px">${esc(l.account_code || "")}</span></td></tr>`);
+      <td><span class="mono dim" style="font-size:11.5px">${esc(l.account_code || "")}</span></td></tr>`;
+  const chgRows = (data.lines || []).filter(l => isChg(l) && !l.is_service).map(chgRow), svcRows = (data.lines || []).filter(l => isChg(l) && l.is_service).map(chgRow);   // inv svc v1
   const lines = (data.lines || []).filter(l => !isChg(l)).map(l => l.kind === "surcharge" ? `<tr>
       <td class="num">${esc(l.line_no)}</td>
       <td>surcharge</td>
@@ -711,12 +718,15 @@ async function loadDetail(id){
     </div>
 
     ${tbl("Orders on this invoice", orders.length,
-      [["Order",""],["Status",""],["Reference",""],["Ship to",""],["Tax",""],["Lines","num"],["Charges","num"]].concat(anySc ? [["Surcharge","num"]] : []).concat([["Tax","num"],["Total","num"]]), orders,
+      [["Order",""],["Status",""],["Reference",""],["Ship to",""],["Tax",""],["Lines","num"]].concat(anySv ? [["Services","num"]] : []).concat([["Charges","num"]]).concat(anySc ? [["Surcharge","num"]] : []).concat([["Tax","num"],["Total","num"]]), orders,
       "Each order keeps its own ship-to and tax rule — one invoice can carry several orders of the same bill-to customer.")}
 
     ${tbl("Lines", lines.length,
       [["#","num"],["Kind",""],["Item",""],["Qty","num"],["List","num"],["Disc %","num"],["Unit","num"]].concat(showNet ? [["Net unit","num"]] : []).concat([["Amount","num"],["Tax","num"]]), lines,
       "Each line's tax is rounded on its own and added up." + (showNet ? " Disc % is the line discount only; Net unit shows the unit after the order's order discount, which is its own line (amounts are not changed)." : ""))}
+
+    ${svcRows.length ? tbl(svcTitle(svcL), svcRows.length, [["#","num"],["Item",""],["Amount","num"],["Tax","num"],["Account",""]], svcRows,
+      "Services and final sale items — they print in their own section on the invoice, apart from freight.") : ""}
 
     ${chgRows.length ? tbl("Freight and charges", chgRows.length, [["#","num"],["Charge",""],["Amount","num"],["Tax","num"],["Account",""]], chgRows,
       "Freight is listed apart from the products, next to the totals. A freight discount is its own line right under its freight, so freight sales and the discount stay apart in the books.") : ""}
