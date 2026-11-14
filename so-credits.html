@@ -124,7 +124,7 @@
    ⚠️ 단가 · 세율은 인보이스 줄에서 굳는다 — 화면은 보내지 않는다 · 금액 · 세금 · 수수료 제안은 미리 보기가 준다
    ⭐ IMS 인보이스의 크레딧 + cr v3: 인보이스 없는 크레딧(참조 번호 · 판정 602 · 609 · 610 · crn-1 20261021194405) · 환불은 Customer Payments 의 Refund
    ───────────────────────────────────────────────────────────── */
-const CR_BUILD = "2026-11-10 · cr v7a";   // 대화 Claude — cr v7a(fsale-1 · 판정 1162-5): 경고 final_sale:<이름> 의 글 — 이름에 FINAL SALE 이 있으면(서비스 떨이 줄) 「was sold as a FINAL SALE item」 · 아니면 그대로 B-grade ← cr v7:   // 대화 Claude — cr-ref-fee-1(서버 수리 없음 · 참조 갈래가 restocking_fee 를 이미 받는다 실측): 참조(이력) 크레딧 창에 Restocking fee(Charge a fee · % · Fee account) — 원래 인보이스 날짜를 넣으면 inv_config so_credit_restock_fee_days · _pct 로 바로 알림(판정 5 알림만 · 늘 꺼진 채) · Fee account 목록은 두 창 모두 REVENUE 활성 계정만 · so_credit_restock_fee_account_code 가 있으면 기본 ← 2026-10-27 · cr v6b:   // 대화 Claude — ar-4(hcr 기술 ⓘ · 판정 775 · ar-2): 옛 번호의 이월 인보이스(kind opening)가 남은 돈이 있으면 Find 결과 아래에 「남은 $X — 발행 뒤 이 크레딧을 그 인보이스에 붙여라」 + Sales Invoices 링크 · 참조 크레딧은 이월 인보이스를 저절로 줄이지 않는다(받아 둔 크레딧이 된다 · Attach 로 붙인다) ← 2026-10-26 · cr v6a:   // 대화 Claude — Caleb 화면 시험 「레퍼런스 없는 크레딧노트는 어떻게 만들어. 그게 사라진것 같은데?」: Find 옆에 「Enter by hand」 — 이력을 찾지 않고 바로 손님 고르기 → 손 입력(번호는 칸 그대로 · 비어도 된다 · 서버는 이력에 있는 번호면 여전히 단가를 대조해 경고) ← 2026-10-26 · cr v6:   // 대화 Claude — hcr-2(판정 774 · 778 ~ 782 · asung-wms 818ffa9 hcr-1): 참조 크레딧이 옛 이력을 보고 채운다 — 옛 인보이스 번호 → hist_credit_source → 손님(돈 = 청구처 · 종이 = 매장 · 779) · 날짜 · 오더 · 제품 줄(778 단가 · 판 · 이미 돌아온 · 남은 수량 · 반품 수량만 입력) · 운임 줄(782 · 기본 해제) · 세금(781 · 비우면 옛 세율 규칙 · 여럿이면 고르라) · 이미 낸 크레딧 · 못 찾으면 옛 손 입력 그대로 · store_customer_id 를 보낸다 · 새 경고 글 넷 · 목록 · 상세에 매장 · 상세에 발행 때 경고 ← 2026-10-25 · cr v5a:   // 대화 Claude — 판정 5(3431 행 「자동으로 붙이지 말아줘」) 그대로 · manual-1d 이견 1: 60 일이 지나면 Charge a fee 가 미리 체크돼 있었다 — 같은 화면의 안내 글(「Tick Charge a fee above to include it」 · 「not added automatically」)과도 어긋났다 → 늘 꺼진 채 시작 · 알림 · 제안 금액은 그대로 · 사람이 체크하면 20 % 줄 ← 2026-10-23 · cr v5: 대화 Claude — bgr-1d(3d0d7fe) · 1e(87a00e5) · 판정 640 · 649 · 650 · 651: 「not restocked」 고르기에서 b_grade 를 뺀다(옛 줄 표시는 그대로) · B급으로 판 줄에 Final sale 꼬리표 · 그 줄의 칸 기본 = 그 B급 칸(B-grade 꼬리표) · B급 칸이 사라졌으면 알림 · 크레딧 창 아래 이 창고의 B급 칸 이름(상자 상한 반품을 바로 B급 칸으로 · 650) · 경고 final_sale · bgrade_bin_gone 글 · Final sale 줄이 있으면 Issue 때 「Issue anyway?」 확인(막지 않는다) ← cr csv v3:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · cr csv v2 ·   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 크레딧 상세 ↓ Credit CSV(한 줄 = 크레딧 줄 · Barcode · 끝에 합계) ← 2026-10-22 · cr csv v1 ·   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
+const CR_BUILD = "2026-11-14 · cr v8";   // 대화 Claude — cr v8(crtax-1 · 판정 1215 ~ 1220): 이월 인보이스(오더 없음) 크레딧의 세금 규칙 — ① 상세: 규칙이 비어 채울 수 있으면(so_credit_detail.tax_rule_fillable) 머리에 경고 + 「Set tax rule…」(manager 이상 · so_credit_tax_rule_fill · 고를 수 있는 것 = tax_rule_options[] — 세율 0 · QuickBooks 짝) · 채운 뒤 Tax 줄에 「set <시각> · <사람>」 · 채운 뒤 QuickBooks 는 사람이 Retry(Sales → QuickBooks) ② Raise a credit note: invoice.needs_tax_rule 이면 「Tax rule」 고르기(tax_rule_options[] · 미리 고르지 않음 — 1218 · 제안은 글로만) · 안 고르면 Issue 를 화면에서 먼저 막는다(서버도 거부) · 미리 보기에 쓰인 규칙과 출처 ← cr v7a:   // 대화 Claude — cr v7a(fsale-1 · 판정 1162-5): 경고 final_sale:<이름> 의 글 — 이름에 FINAL SALE 이 있으면(서비스 떨이 줄) 「was sold as a FINAL SALE item」 · 아니면 그대로 B-grade ← cr v7:   // 대화 Claude — cr-ref-fee-1(서버 수리 없음 · 참조 갈래가 restocking_fee 를 이미 받는다 실측): 참조(이력) 크레딧 창에 Restocking fee(Charge a fee · % · Fee account) — 원래 인보이스 날짜를 넣으면 inv_config so_credit_restock_fee_days · _pct 로 바로 알림(판정 5 알림만 · 늘 꺼진 채) · Fee account 목록은 두 창 모두 REVENUE 활성 계정만 · so_credit_restock_fee_account_code 가 있으면 기본 ← 2026-10-27 · cr v6b:   // 대화 Claude — ar-4(hcr 기술 ⓘ · 판정 775 · ar-2): 옛 번호의 이월 인보이스(kind opening)가 남은 돈이 있으면 Find 결과 아래에 「남은 $X — 발행 뒤 이 크레딧을 그 인보이스에 붙여라」 + Sales Invoices 링크 · 참조 크레딧은 이월 인보이스를 저절로 줄이지 않는다(받아 둔 크레딧이 된다 · Attach 로 붙인다) ← 2026-10-26 · cr v6a:   // 대화 Claude — Caleb 화면 시험 「레퍼런스 없는 크레딧노트는 어떻게 만들어. 그게 사라진것 같은데?」: Find 옆에 「Enter by hand」 — 이력을 찾지 않고 바로 손님 고르기 → 손 입력(번호는 칸 그대로 · 비어도 된다 · 서버는 이력에 있는 번호면 여전히 단가를 대조해 경고) ← 2026-10-26 · cr v6:   // 대화 Claude — hcr-2(판정 774 · 778 ~ 782 · asung-wms 818ffa9 hcr-1): 참조 크레딧이 옛 이력을 보고 채운다 — 옛 인보이스 번호 → hist_credit_source → 손님(돈 = 청구처 · 종이 = 매장 · 779) · 날짜 · 오더 · 제품 줄(778 단가 · 판 · 이미 돌아온 · 남은 수량 · 반품 수량만 입력) · 운임 줄(782 · 기본 해제) · 세금(781 · 비우면 옛 세율 규칙 · 여럿이면 고르라) · 이미 낸 크레딧 · 못 찾으면 옛 손 입력 그대로 · store_customer_id 를 보낸다 · 새 경고 글 넷 · 목록 · 상세에 매장 · 상세에 발행 때 경고 ← 2026-10-25 · cr v5a:   // 대화 Claude — 판정 5(3431 행 「자동으로 붙이지 말아줘」) 그대로 · manual-1d 이견 1: 60 일이 지나면 Charge a fee 가 미리 체크돼 있었다 — 같은 화면의 안내 글(「Tick Charge a fee above to include it」 · 「not added automatically」)과도 어긋났다 → 늘 꺼진 채 시작 · 알림 · 제안 금액은 그대로 · 사람이 체크하면 20 % 줄 ← 2026-10-23 · cr v5: 대화 Claude — bgr-1d(3d0d7fe) · 1e(87a00e5) · 판정 640 · 649 · 650 · 651: 「not restocked」 고르기에서 b_grade 를 뺀다(옛 줄 표시는 그대로) · B급으로 판 줄에 Final sale 꼬리표 · 그 줄의 칸 기본 = 그 B급 칸(B-grade 꼬리표) · B급 칸이 사라졌으면 알림 · 크레딧 창 아래 이 창고의 B급 칸 이름(상자 상한 반품을 바로 B급 칸으로 · 650) · 경고 final_sale · bgrade_bin_gone 글 · Final sale 줄이 있으면 Issue 때 「Issue anyway?」 확인(막지 않는다) ← cr csv v3:   // Caleb 「바코드가 깨지는 것을 막을 방법」: 바코드 · SKU 칸을 ="…" 로(엑셀이 글자로 읽는다) ← 2026-10-22 · cr csv v2 ·   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 크레딧 상세 ↓ Credit CSV(한 줄 = 크레딧 줄 · Barcode · 끝에 합계) ← 2026-10-22 · cr csv v1 ·   // 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-22 · cr gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-22 · cr v4b: 대화 Claude — Caleb 화면 시험(참조 크레딧 · 날짜 없음): 경고 열쇠가 글자 그대로 보였다(fee_window_unknown) → 넷을 사람 말로(fee_window_unknown · restock_fee_window:N · fee_rate_mixed · inactive_bin:칸) ← cr v4a: 대화 Claude — Caleb 화면 시험: 가격 조정 표 제목 「Adjust」 · 「Units」 → 「Qty to adjust」(두 표 같은 글) · 칸에 qty 힌트 ← cr v4: 대화 Claude — crn-2(판정 603 · 611 ~ 614): 가격 조정 줄(지난 세일 차액) — 인보이스 크레딧은 「Price adjustment」 표(낸 단가 · 지금 가격 층 · 수량 · 새 단가 → 층마다 줄을 저절로 나눠 보낸다 · 검사는 서버) · 참조 크레딧은 손 줄(낸 단가 · 새 단가) · 사유 Price adjustment · 미리 보기 · 상세에 「9.49 → 7.99」 · 재고 없음 · 경고 글 둘 ← cr v3: 대화 Claude — crn-1(판정 602 · 609 · 610): 인보이스 없는 크레딧(참조 번호 · 손 단가 · 세금은 손님 기본 배송지 규칙 제안 · 원가는 평균부터) 만들기 창 · 칸 이름 cin7_* → ref_* (목록 select · 목록 · 상세) · 경고 글(manual_unit_price · reference_seen · origin_sale_untraced) ← cr v2f 2026-10-19 · 대화 Claude — 문서 메일(ims-doc v3): Email to customer… · Emails 칸 · Note 고치기(so_credit_note_set) ← cr v2e: 대화 Claude — doc 인쇄(ims-doc v2): Print credit note(credit_note) ← cr v2d: 대화 Claude — Caleb 화면 시험 60020 크레딧 미리 보기: 「Products 4.00」 이 실은 운임이었다(lines_amount = 제품 + 운임 + 그 밖 줄) → 「Lines」 로(미리 보기 · 상세) ← cr v2c 2026-10-07 — 대화 Claude — 운임 할인 크레딧(판정 355 · fr-3 20261007181109): 줄 종류 「freight discount」 · 만들기 창의 운임 줄에 할인 · 순액 · 남은 순액(so_credit_prepare 새 열쇠) · 「할인은 같은 비율로 저절로 따라온다」 안내 · 미리 보기 · 상세 합계에 Freight discount · 순액 0(무료 배송)이면 「손님에게 돌아가는 돈 없음」 ← cr v2b 2026-10-07 — 대화 Claude — 만들기 창 미리 보기 표의 줄 종류도 「order discount」(cr v2a 는 상세 표만 고쳤다 · Caleb 화면 시험 CR-01005) ← cr v2a 2026-10-07 — 대화 Claude — 할인 표시(판정 316 · 325 · 미룬 120): 줄 종류 order_discount → 「order discount」 · 합계 칸에 Order discount(so_credit.order_discount_amount · 음수 저장 · 있을 때만) — 지금까지 칸이 없어 Products + Fee + Tax 가 Total 과 안 맞아 보였다 ← cr v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · 245 · asm 묶음 7): 콤보 인보이스 줄 = 반품 단위(수량 = 콤보 수) · 그 아래 구성품마다 돌아갈 칸 또는 안 돌아옴(요청 lines[].components[] · 기본 칸 = so_credit_prepare 의 combo_components[].restock_bin_default) · 미리 보기 · 상세에서 구성품 크레딧 줄을 콤보 줄 아래로 · 구성품 하나는 Other adjustment(금액만 · 재고 없음 · 판정 245) ← cr sc v1 // 대화 Claude — surcharge-3(묶음 7): 반품 수량만큼 자동으로 붙는 surcharge 줄을 보이기만(손으로 못 넣는다 · surcharge-2b) · 합계 Surcharge ← 「cr thumb v1」 대화 Claude — 판정 214: 크레딧 만들기의 Products 표 · 상세 줄 표의 SKU 왼쪽에 대표 사진(imsThumb · thumb-1) ← cr v1.1
 console.log("so-credits.html build:", CR_BUILD);
 /* 줄 사진(판정 214 · 화면만 — 인쇄 인보이스에는 넣지 않는다) — 공통 js 가 옛 판으로 캐시돼 있으면 칸 없이 그린다
    ⭐ 채우기는 그린 뒤 저절로 — 화면이 바뀌면(MutationObserver) 안 채운 칸만 모아 한 번에 읽는다 · 채울 칸이 없으면 아무것도 안 묻는다 */
@@ -453,6 +453,7 @@ function drawForm(){
     <div class="frow"><label>Reason</label><select id="fReason" class="sofield">${Object.entries(REASON).map(([k, l]) => `<option value="${k}">${l}</option>`).join("")}</select></div>
     <div class="frow"><label>Note</label><input id="fNote" class="sofield" placeholder="required when the reason is Other"></div>
     <div class="frow"><label>Credit date</label><input id="fDate" class="sofield" type="date" value="${torontoToday()}" max="${torontoToday()}"></div>
+    ${v.needs_tax_rule ? itaxRow() : ""}
     <div class="frow"><label>Goods come back to</label><select id="fWh" class="sofield">${WHS.map(w => `<option value="${w.id}" ${w.id === wh.warehouse_id ? "selected" : ""}>${esc(w.name)}</option>`).join("")}</select></div>
 
     <h5 class="sec">Products</h5>
@@ -509,6 +510,14 @@ function drawForm(){
   document.getElementById("isGo").onclick = () => runIssue(true);
 }
 function stale(){ const b = document.getElementById("isGo"); if(b) b.disabled = true; }
+/* cr v8 — 판정 1217 · 1218: 이월 인보이스(오더 없음)에서 낼 때는 세금 규칙을 고른다 · 미리 고르지 않는다(제안은 글로만 — 조용히 13 % 가 붙는 일을 막는다) */
+function itaxRow(){
+  const opts = prep.tax_rule_options || (prep.invoice || {}).tax_rule_options || [];
+  const sg = prep.tax_rule_suggested || (prep.invoice || {}).tax_rule_suggested || null;
+  return `<div class="frow"><label>Tax rule</label><select id="fITax" class="sofield" style="border:2px solid #f0b429">
+      <option value="">— pick a tax rule</option>${opts.map(o => `<option value="${esc(o.tax_rule)}">${esc(o.tax_rule)} · ${esc(Number(o.rate_pct))}%${o.has_qbo ? "" : " · no QuickBooks code"}</option>`).join("")}</select></div>
+    <div class="sohint">This invoice was carried over from before IMS — it has no order to take a tax rule from, so pick one for this credit note. A sponsorship or goodwill credit with no tax takes a 0 percent rule.${sg ? ` The customer's default ship-to suggests <b>${esc(sg.tax_rule)}</b> (${esc(Number(sg.rate_pct))}%) — the preview uses it until you pick.` : ""}</div>`;
+}
 /* cr v5 — 판정 650: 상자가 상한 반품은 바로 B급 칸으로 받을 수 있다 — 그 창고의 B급 칸 이름을 알려 준다(칸 칸에 그 이름을 친다 · 값은 B-grade Stock 에서) */
 async function fillBgHint(){
   const el = () => document.getElementById("bgHint");
@@ -573,6 +582,7 @@ function buildP(){
     invoice_id: prep.invoice.id,
     warehouse_id: document.getElementById("fWh").value || null,
     lines: lines,
+    ...(prep.invoice.needs_tax_rule && (document.getElementById("fITax") || {}).value ? { tax_rule: document.getElementById("fITax").value } : {}),   // cr v8
   };
 }
 
@@ -580,6 +590,7 @@ async function runIssue(commit){
   const p = mode === "ref" ? buildRefP() : buildP();
   if(!p) return;
   if(!p.lines.length){ say("nwMsg", "err", "Put a quantity on at least one product, a price adjustment, a freight amount or an adjustment."); return; }
+  if(commit && mode !== "ref" && prep && prep.invoice && prep.invoice.needs_tax_rule && !p.tax_rule){ say("nwMsg", "err", "Pick a tax rule first — this invoice was carried over and has none to take."); return; }   // cr v8 — 1218(서버도 거부)
   if(commit && lastWarn.some(w => String(w).startsWith("final_sale:"))){   // cr v5 — 판정 640: 막지 않는다 · 묻기만
     const skus = lastWarn.filter(w => String(w).startsWith("final_sale:")).map(w => String(w).slice(11)).join(", ");
     const fsWhy = /FINAL SALE/i.test(skus) ? "was sold as a FINAL SALE item" : "was sold as B-grade";   // cr v7a
@@ -599,6 +610,7 @@ async function runIssue(commit){
   document.getElementById("pvOut").innerHTML = `
     <div class="card" style="padding:10px 14px">
       ${mode === "ref" ? refPvHead(og, data.warnings) : ""}
+      ${mode !== "ref" && og.needs_tax_rule ? `<div class="socols" style="margin:0 0 10px"><div class="stat" style="border:2px solid #f0b429;border-radius:10px;padding:6px 10px">Tax rule<b style="font-family:inherit;font-size:15px">${esc(og.tax_rule || "—")}${og.rate_pct !== null && og.rate_pct !== undefined ? " · " + esc(Number(og.rate_pct)) + "%" : ""}</b><span class="dim" style="font-size:11px">${og.tax_rule_source === "given" ? "picked by you" : og.tax_rule_source === "ship_to" ? "suggested from the customer's default ship-to — pick a rule before issuing" : "no rule — pick one before issuing"}</span></div></div>` : ""}
       <table><thead><tr><th>Kind</th><th>Item</th><th class="num">Qty</th><th>Stock</th><th class="num">Unit</th><th class="num">Amount</th><th class="num">Tax</th></tr></thead>
       <tbody>${(data.lines || []).map(l => `<tr${l.combo_parent_line_no ? ' class="comp"' : ""}>
         <td>${esc(CR_KIND[l.kind] || l.kind || "")}</td><td>${l.combo_parent_line_no ? '<span class="cind">↳</span>' : ""}<span class="mono">${esc(l.sku || "")}</span>${Array.isArray(l.combo_components) ? ' <span class="tag">combo</span>' : ""} <span class="dim">${esc(l.description || "")}</span></td>
@@ -1060,6 +1072,43 @@ async function detachAlloc(allocId, label){
   if(error){ alert(error.message); return; }
   await reloadHere();
 }
+/* cr v8 — 판정 1215 · 1216: 이월 인보이스 크레딧의 빈 세금 규칙 채우기(manager 이상 · 세율 0 · QuickBooks 짝 — 목록은 so_credit_detail.tax_rule_options 가 준다)
+   ⚠️ 금액 · 세금 · 합계는 바뀌지 않는다 · 한 번 채우면 여기서 못 바꾼다 · QuickBooks 일감은 건드리지 않는다(사람이 Retry) */
+function openTaxFill(){
+  const v = cur.credit_row, opts = cur.tax_rule_options || [];
+  if(!opts.length){ alert("No 0 percent tax rule with a QuickBooks tax code is set up — link one under Settings → QuickBooks matching first."); return; }
+  modalOpen(`
+    <h4>Set tax rule — ${esc(v.credit_number)}</h4>
+    <div class="pbody">
+      <div class="sohint" style="margin-top:0">This records which tax code QuickBooks uses for this credit note. Only 0 percent rules are offered — the amounts (${money(v.total)} ${esc(v.currency_code || "")}, tax ${money(v.tax_amount)}) do not change. Once set, it cannot be changed here — cancel and raise the credit note again instead.</div>
+      <div style="margin-top:10px">${opts.map(o => `<label style="display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-bottom:1px solid var(--line,#e3e6eb);cursor:pointer">
+        <input type="radio" name="tfR" value="${esc(o.tax_rule)}" style="margin-top:3px">
+        <span><b>${esc(o.tax_rule)}</b> <span class="dim">${esc(Number(o.rate_pct))}%</span>
+        <div class="dim" style="font-size:11.5px">QuickBooks tax code ${esc(o.qbo_code || "")}${o.qbo_code_name ? " · " + esc(o.qbo_code_name) : ""}</div></span></label>`).join("")}</div>
+      <div id="tfMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="tfGo">Set tax rule</button>
+    </div>`);
+  wireModalClose();
+  document.getElementById("tfGo").onclick = async () => {
+    const pick = document.querySelector('#modalBox input[name="tfR"]:checked');
+    if(!pick){ say("tfMsg", "err", "Pick a tax rule."); return; }
+    const bt = document.getElementById("tfGo");
+    bt.disabled = true; say("tfMsg", "", "Saving…");
+    const { data, error } = await sb.rpc("so_credit_tax_rule_fill", { p_credit_id: v.id, p_tax_rule: pick.value });
+    if(error){ say("tfMsg", "err", error.message); bt.disabled = false; return; }
+    const j = (data && data.qbo_job) || null;
+    const qb = j ? (j.state === "failed" || j.state === "skipped"
+        ? `Next: open <a class="lnk" href="qbo-send.html">Sales → QuickBooks</a> and press Retry on ${esc(v.credit_number)} (it is ${esc(j.state)} now). Its attachment to the invoice follows by itself.`
+        : `QuickBooks job is ${esc(j.state)} — it goes on its own.`)
+      : "No QuickBooks job yet for this credit note.";
+    document.querySelector("#modalBox .pbody").innerHTML = `<div class="msg" style="padding:6px 0">Tax rule <b>${esc((data && data.tax_rule) || pick.value)}</b> is set on ${esc(v.credit_number)}.</div><div class="sohint">${qb}</div>`;
+    document.querySelector("#modalBox .pfoot").innerHTML = '<span class="sp"></span><button class="pobtn go" id="tfDone">Done</button>';
+    document.getElementById("tfDone").onclick = async () => { modalClose(); await reloadHere(); };
+  };
+}
 async function cancelCredit(){
   const v = cur.credit_row;
   const note = prompt(`Cancel credit note ${v.credit_number}? Returned stock goes back out of the bins it came into. It must not be attached to anything first.\n\nReason (required):`);
@@ -1153,6 +1202,8 @@ async function loadDetail(id){
     ["Note",         dim(v.note) + (live ? ' <button class="xbtn" data-act="note" title="The note prints on the credit note">Edit</button>' : "")],   // cr v2f
     /* v1.1 — IMS 인보이스에서 낸 크레딧은 세율을 줄마다(인보이스 줄) 굳히고 머리에는 비워 둔다 → 머리가 비면 줄의 세율을 보인다(Caleb 화면 시험 2026-09-25) */
     ["Tax",          c.tax_rule ? esc(c.tax_rule) + (c.rate_pct !== null && c.rate_pct !== undefined ? ` <span class="dim">${esc(Number(c.rate_pct))}%</span>` : "")
+                         + (c.tax_rule_filled_at ? ` <span class="dim" style="font-size:11.5px">set ${imsTs(c.tax_rule_filled_at)}${data.tax_rule_filled_by_name ? " · " + esc(data.tax_rule_filled_by_name) : ""}</span>` : "")   // cr v8 — 1220
+                       : data.tax_rule_fillable ? '<span class="chip warn">⚠ No tax rule</span>'   // cr v8
                        : (() => { const rs = [...new Set((data.lines || []).filter(l => l.rate_pct !== null && l.rate_pct !== undefined).map(l => Number(l.rate_pct) + "%"))];
                                   return rs.length ? esc(rs.join(" · ")) + ' <span class="dim">from the invoice lines</span>' : '<span class="dim">—</span>'; })()],
     ...((Array.isArray(c.warnings) && c.warnings.length) ? [["Warnings at issue", c.warnings.map(w => `<span class="chip warn" style="margin:0 4px 4px 0">⚠ ${esc(warnText(w))}</span>`).join("")]] : []),   // cr v6 — hcr-1 기술 3: 발행 때 경고가 기록에 남는다
@@ -1215,6 +1266,8 @@ async function loadDetail(id){
       <div class="head">
         <div class="sobar"><span class="pn">${esc(v.credit_number)}</span><span class="chips">${crChip(v)}</span></div>
         <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">${acts.join("")}</div>
+        ${live && data.tax_rule_fillable ? `<div class="sowarn" style="padding-left:0;margin-top:10px"><span class="chip warn" style="font-size:13px">⚠ No tax rule — this credit note was raised on an invoice carried over from before IMS, so QuickBooks cannot take it until a tax rule is set. The amounts do not change.</span>
+          ${isMgr() ? '<button class="pobtn go" data-act="taxfill" style="margin-left:6px">Set tax rule…</button>' : '<span class="dim" style="font-size:12px;margin-left:6px">A manager sets it.</span>'}</div>` : ""}
       </div>
       ${stats}
       <div class="sogrid">${kvTbl(kvL)}${kvTbl(kvR)}</div>
@@ -1246,6 +1299,7 @@ async function loadDetail(id){
       if(a === "wide")   showWide();
       if(a === "attach") openAttach();
       if(a === "cancel") cancelCredit();
+      if(a === "taxfill") openTaxFill();   // cr v8
       if(a === "print")  imsDoc.printBtn(bt, sb, "credit_note", { credit_id: v.id });   // cr v2e
       if(a === "csvcr")  { bt.disabled = true; exportOneCredit().finally(() => { bt.disabled = false; }); }   // cr csv v2
       if(a === "mail")   imsDoc.mailDialog(sb, "credit_note", { credit_id: v.id }, { onDone: () => imsDoc.mailList(sb, "credit_note", { credit_id: v.id }, document.getElementById("docMails")) });   // cr v2f
