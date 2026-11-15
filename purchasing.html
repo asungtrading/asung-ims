@@ -480,8 +480,8 @@ body{font-family:var(--sans)}
         <button class="mtab active" onclick="setTab('order',this)">발주 추천</button>
         <button class="mtab" onclick="setTab('forecast',this)">Forecast</button>
         <button class="mtab" onclick="setTab('deadstock',this)">데드 스톡</button>
-        <button class="mtab" style="display:none" title="판정 1253 — IMS 이력 자료로 다시 만들 때까지 숨김" onclick="setTab('supplier',this)">📊 Supplier 분석</button>
-        <button class="mtab" style="display:none" title="판정 1253 — IMS 이력 자료로 다시 만들 때까지 숨김" onclick="setTab('receiving',this)">📦 입고 검증</button>
+        <button class="mtab" onclick="setTab('supplier',this)">📊 Supplier 분석</button>
+        <button class="mtab" onclick="setTab('receiving',this)">📦 입고 검증</button>
       </div>
       <!-- 모바일: 컬럼 토글 펼치기 버튼 -->
       <button class="col-toggle-mobile-btn" onclick="toggleColBar()"
@@ -859,8 +859,8 @@ const STOCK_DATE = '2026-04-20';
    · 공급처 목록 = IMS pur_supplier_skus · 백오더 = IMS pur_backorders
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 · pur-3)
-   · Supplier 분석 · 입고 검증 두 탭은 숨김(판정 1253) — 「BigQuery 전체 이력을 IMS 로」(deferred 626) 뒤 IMS 자료로 다시 */
-const PUR_BUILD = '2026-11-15 · pur v3a';   // v3a — 판정 1257(Caleb 화면 시험: New 447 이 모두 2025-11 뒤 등록 · 52 는 IMS 에서 만든 제품 — 1 년 가까이 안 팔린 것도 New 로 묻힘): 데드 스톡 — 판매 0 은 등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90 일 안이면 New · 지났으면 Dead(판매 이력 없음 · 마지막 판매 칸 「판매 없음」 · 무판매 일수 = 등록 뒤 날수) · 등록일은 판매 0 SKU 만 product 에서 200 개씩 · 못 읽으면 옛 규칙(New) · 단추 글 ← v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+   · Supplier 분석 · 입고 검증 = IMS 창구 pur_supplier_analysis · pur_receiving_audit(pur v4 · hist-bq-6 · 판정 1253 · 1273) */
+const PUR_BUILD = '2026-11-15 · pur v4';   // v4 — 대화 Claude(hist-bq-6 · asung-wms 20261116030000 · 판정 1253 · 1269 · 1270 · 1273): Supplier 분석 · 입고 검증 탭을 다시 보이고 IMS 창구로 — 입고 검증 = pur_receiving_audit(p_days)(판매 이력을 기다리지 않음 · 상태 줄에 「받은 수량 기록이 없는 Core PO」) · Supplier 분석 = pur_supplier_analysis(공급처 id · BigQuery 쿼리 다섯을 한 번에 · 렌더 코드 무변) · 평균 리드타임은 IMS 발주만 · 총 발주 금액에 ≈(옛 금액) · 상태 줄 안내(≈ 옛 금액 · Core 주문 수량 기준 · 발주 이력 공백 · 미충족 수요 구간) · BigQuery 상수 · runBQQuery 멈춤 함수 · 쿼리 다섯 걷음 · 낡은 주석(마지막 판매일 표) 고침 ← v3a — 판정 1257(Caleb 화면 시험: New 447 이 모두 2025-11 뒤 등록 · 52 는 IMS 에서 만든 제품 — 1 년 가까이 안 팔린 것도 New 로 묻힘): 데드 스톡 — 판매 0 은 등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90 일 안이면 New · 지났으면 Dead(판매 이력 없음 · 마지막 판매 칸 「판매 없음」 · 무판매 일수 = 등록 뒤 날수) · 등록일은 판매 0 SKU 만 product 에서 200 개씩 · 못 읽으면 옛 규칙(New) · 단추 글 ← v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -1227,15 +1227,10 @@ function checkStockFreshness(latestDateStr){
   dot.className = 'dot ok';
   lbl.textContent = '재고 ' + (latestDateStr || purToday()) + ' ✓';
 }
-/* pur v3 — BigQuery 는 이 화면에서 걷었다(판정 616 B · 1253). 숨긴 두 탭(Supplier 분석 · 입고 검증)의 코드만 이 이름을 부른다 —
-   두 탭은 「BigQuery 전체 이력을 IMS 로」(deferred 626) 뒤 IMS 자료로 다시 만든다. 그때까지 부르면 이 글로 멈춘다. */
-async function runBQQuery(){
-  throw new Error('이 탭은 IMS 이력 자료로 다시 만들 때까지 쉽니다(BigQuery 연결을 걷었습니다).');
-}
 
 // ═══════════════════════════════════════════════════════
 //  LOAD SALES DATA — pur v3(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51)
-//  IMS 창구 pur_sales_summary 하나: 경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일(pur_last_sale_pre)
+//  IMS 창구 pur_sales_summary 하나: 경계 전 hist_so_line + 경계부터 IMS 인보이스 (hist-bq-4 뒤 hist_so_line 은 2022-02 부터 · 마지막 판매일도 이력 전체에서)
 //  · 이미 낱개로 접혀 온다(주로 콤보 · product_id) · 열쇠는 소문자 sku → 아래 계산이 쓰던 SKU 로 옮겨 담는다
 //  · adu_daily = 오늘-90 ~ 어제 판 날만 · sea = 작년 같은 철 합 · dead = 마지막 판매일 · 90 · 365 일 합(오늘 포함) · order_adu = 창 넷
 //  · 백오더 = IMS pur_backorders · 구 SKU → 신 SKU 연결(getSkuLinkMap)은 그대로 화면 몫
@@ -2700,8 +2695,6 @@ function dlDeadStockCSV(){
 //   - 재고 적정성 테이블에 가용재고 컬럼 추가 (bv 헬퍼 — TOR/EDM/합산 토글 연동)
 //   - 판매 확정 판별 = UPPER(Status) IN ('CLOSED','COMPLETED') (data-contract R3)
 // ═══════════════════════════════════════════════════════
-const BQ_PURCHASE = 'asung_purchase_history';
-const BQ_PUR_DATASET = 'Cin7_Purchase_Data';
 S.siSupplier = null;
 S.siData = null;
 S.siCache = {};   // { "SupplierName::period": { data, skuMonthly, ts } }
@@ -2715,11 +2708,6 @@ S.rvFilter = 'all';
 S.rvSort   = { col:'diff_pct', dir:-1 };
 
 function initReceivingAudit(){
-  if(!S.salesReady){
-    document.getElementById('rv-status').textContent='⚠ BQ 연결 필요';
-    document.getElementById('rv-status').style.color='var(--yellow)';
-    return;
-  }
   const days = document.getElementById('rv-period').value;
   const cached = S.rvCache[days];
   const TTL = 15*60*1000;
@@ -2741,87 +2729,24 @@ function rvForceRefresh(){
 }
 
 async function loadReceivingAudit(){
-  if(!S.salesReady) return;
+  // pur v4(hist-bq-6 · 판정 1253 · 1273) — IMS 창구 pur_receiving_audit 하나: 옛 시스템(2022 ~ 2024) · Core(2025-11 ~ 2026-10) · IMS 발주를 (PO, SKU) 한 꼴로
+  //   · Core 448 PO 는 받은 수량이 원천에 없어 이상 판정에서 빠진다(머리 not_recorded) · 줄 칸은 옛 BigQuery 쿼리와 같은 이름 + era · po_status
   const days=parseInt(document.getElementById('rv-period').value)||0;
-  // 기간 필터: order_date 기준 (received_date가 NULL인 부족입고도 커버)
-  // received_date OR order_date 둘 중 하나라도 기간 내이면 포함
-  const dateFilter=days>0
-    ? `AND (order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ${days} DAY)
-           OR received_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ${days} DAY))`
-    : '';
   document.getElementById('rv-status').textContent='⟳ 조회 중...';
   document.getElementById('rv-status').style.color='var(--accent)';
   document.getElementById('rv-kpi').innerHTML='';
   document.getElementById('rv-table-wrap').innerHTML='';
-
-  const sql=`
-    WITH latest AS (
-      -- (po_number, sku)별 최신 적재 행 1개 채택 (최대 41배 재적재 중복 + 입고 하향정정 정확 처리)
-      -- ⚠ VOIDED/기간 필터는 dedup "후" 적용 — 최신 행이 VOIDED인데 필터를 먼저 걸면
-      --   옛 비VOIDED 행이 대표로 부활하는 오류가 생김
-      SELECT * EXCEPT(rn) FROM (
-        SELECT
-          po_number, supplier_name, sku, product_name,
-          order_date, received_date, status, po_complete,
-          quantity, received_quantity,
-          ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-        FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-      )
-      WHERE rn = 1
-        AND IFNULL(UPPER(TRIM(status)),'') != 'VOIDED'
-        ${dateFilter}
-    ),
-    base AS (
-      SELECT
-        po_number, supplier_name, sku, product_name,
-        order_date, received_date, status, po_complete,
-        quantity, received_quantity
-      FROM latest
-    ),
-    anomalies AS (
-      SELECT
-        po_number, supplier_name, sku, product_name,
-        order_date, received_date,
-        quantity          AS ordered_qty,
-        received_quantity AS received_qty,
-        received_quantity - quantity                                    AS diff_qty,
-        ROUND(SAFE_DIVIDE(ABS(received_quantity-quantity),NULLIF(quantity,0))*100,1) AS diff_pct,
-        CASE
-          WHEN quantity = 0 AND received_quantity > 0                  THEN 'unordered'
-          WHEN received_quantity > quantity                             THEN 'over'
-          WHEN received_quantity > 0 AND received_quantity < quantity   THEN 'under'
-          ELSE NULL
-        END AS anomaly_type
-      FROM base
-      WHERE
-        -- 초과 입고: 발주보다 많이 받음
-        (received_quantity > quantity)
-        -- 미발주 입고: PO 없이 입고
-        OR (quantity = 0 AND received_quantity > 0)
-        -- 부족 입고: 입고 기록은 있는데 발주량보다 적음
-        OR (received_quantity > 0 AND received_quantity < quantity)
-    )
-    SELECT * FROM anomalies
-    ORDER BY
-      CASE anomaly_type
-        WHEN 'unordered' THEN 0
-        WHEN 'over'      THEN 1
-        WHEN 'under'     THEN 2
-        ELSE 3
-      END,
-      diff_pct DESC
-  `;
-
   try{
-    const rows=await runBQQuery(sql);
-    S.rvCache[String(days)]={rows,ts:Date.now()};
+    const j=await purRpc('pur_receiving_audit',{p_days:days});
+    const rows=(j&&j.rows)||[];
+    S.rvCache[String(days)]={rows,ts:Date.now(),head:j};
     window._rvRows=rows;
     renderReceivingAudit(rows);
     const label=days>0?`최근 ${days}일`:'전체 기간';
-    document.getElementById('rv-status').textContent=`✅ ${label} — ${rows.length}건 이상 감지`;
+    const nr=j&&j.not_recorded&&j.not_recorded.po ? ` · ${j.not_recorded.po}개 PO(${j.not_recorded.from} ~ ${j.not_recorded.to})는 받은 수량 기록이 없어 빠짐` : '';
+    document.getElementById('rv-status').textContent=`✅ ${label} — ${(j&&j.row_count)||rows.length}건 이상 감지${nr}`;
     document.getElementById('rv-status').style.color=rows.length>0?'var(--red)':'var(--green)';
   }catch(e){
-    if(e.message==='TOKEN_EXPIRED') return;
     document.getElementById('rv-status').textContent='❌ '+e.message;
     document.getElementById('rv-status').style.color='var(--red)';
   }
@@ -3038,13 +2963,17 @@ function initSupplierIntelligence(){
   }
 }
 
+/* pur v4 — Supplier 분석 상태 줄의 안내(창구 머리 값) */
+function purSiNotes(){
+  const h = S.siHead || {}, out = [];
+  if(h.approx) out.push('≈ 2022 ~ 2024 금액은 옛 시스템의 반올림 값');
+  if(h.core_assumed) out.push(`Core PO ${h.core_assumed}건은 받은 수량 대신 주문 수량 기준`);
+  if(h.po_gap && h.po_gap.from) out.push(`${h.po_gap.from} ~ ${h.po_gap.to} 발주 이력 없음`);
+  if(h.lost_from) out.push(`미충족 수요는 ${h.lost_from} ~ ${h.lost_to} 만`);
+  return out.length ? ' · ' + out.join(' · ') : '';
+}
 async function loadSupplierIntelligence(supplier){
   if(!supplier){ return; }
-  if(!S.salesReady){
-    document.getElementById('si-status').textContent='⚠ BigQuery 연결 필요 — 상단 BQ 버튼을 클릭하세요';
-    document.getElementById('si-status').style.color='var(--yellow)';
-    return;
-  }
   S.siSupplier = supplier;
   document.getElementById('si-empty').style.display='none';
   document.getElementById('si-content').style.display='flex';
@@ -3062,7 +2991,8 @@ async function loadSupplierIntelligence(supplier){
     S.siSkuMonthly = cached.skuMonthly;
     renderSupplierIntelligence();
     const age = Math.round((Date.now() - cached.ts) / 1000);
-    document.getElementById('si-status').textContent=`✅ 캐시 (${age}초 전) — ${cached.data.poRows.length}개 PO`;
+    S.siHead = cached.head || S.siHead;
+    document.getElementById('si-status').textContent=`✅ 캐시 (${age}초 전) — ${cached.data.poRows.length}개 PO` + purSiNotes();
     document.getElementById('si-status').style.color='var(--green)';
     document.getElementById('si-refresh-btn').style.display = 'inline-block';
     return;
@@ -3071,367 +3001,16 @@ async function loadSupplierIntelligence(supplier){
   document.getElementById('si-status').textContent='⟳ 데이터 로딩 중...';
   document.getElementById('si-status').style.color='var(--accent)';
 
-  // ── 기간 필터 2종 (2026-07 정합성 수정)
-  //  poDateFilter  : order_date 기준 — PO 요약 / 연도별 / 월별 계절성 (쿼리 1~3)
-  //                  ⚠ 기존 received_date 필터는 미입고 PO(received_date=NULL)를
-  //                    기간 선택 시 통째로 누락시키고, 발주월≠입고월 PO의 귀속을 흔들었음
-  //  rcvDateFilter : received_date 기준 — SKU 실입고량 집계 (쿼리 4 전용, "실입고" 의미 유지)
-  const PERIOD_INT = period==='3m' ? '3 MONTH' : period==='6m' ? '6 MONTH'
-                   : period==='9m' ? '9 MONTH' : period==='1y' ? '1 YEAR'
-                   : period==='2y' ? '2 YEAR'  : period==='3y' ? '3 YEAR' : null;
-  const poDateFilter  = PERIOD_INT ? `AND order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ${PERIOD_INT})` : '';
-  const rcvDateFilter = PERIOD_INT ? `AND received_date >= DATE_SUB(CURRENT_DATE(), INTERVAL ${PERIOD_INT})` : '';
-  // VOIDED 제외: 대소문자 혼재 방어(R6) + status NULL 행 무단 탈락 방지
-  const NOT_VOIDED = `AND IFNULL(UPPER(TRIM(status)),'') != 'VOIDED'`;
-  // skuCompare sales 스캔 범위: '전체 기간'이면 캡 없음(sold_all이 진짜 전체가 되도록), 그 외 3년 캡
-  const saleScanFilter = period==='all' ? '' : `AND sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 YEAR)`;
-  // skuMonthlySQL(호버 차트)용 날짜 필터 — 항상 3년 캡 유지 (스캔량 제한)
-  const saleDateFilter = `AND sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3 YEAR)`;
-  // 매출/판매 확정 판별 표준 (data-contract R3): 뷰의 Status가 권위 신호
-  // ⚠ 단, Omni 시절 파티션(~2025-10-31, asung_sales_historical_data)은 Core의
-  //   Status 체계(CLOSED/COMPLETED)가 없는 이미 확정된 판매 데이터이므로 필터에서 면제.
-  //   면제 없이 걸면 2022-02~2025-10 판매가 전부 사라짐 (2026-07-12 실측 버그).
-  const SOLD_STATUS = `AND (UPPER(Status) IN ('CLOSED','COMPLETED') OR sale_date < DATE '2025-11-01')`;
-
-  // ── SKU 연결 매핑 → SQL CASE 식 (구 SKU 판매/발주/백오더/미충족수요를 신 SKU로 합산)
-  //    발주추천 탭의 dailyMap 합산과 동일 취지 — Supplier 분석은 SQL 집계라 쿼리에 주입
-  //    실입고(발주)와 수요(판매)가 같은 SKU 기준으로 만나도록 "양쪽 모두" 동일 매핑 적용
-  const _linkMap = (typeof getSkuLinkMap === 'function') ? getSkuLinkMap() : {};
-  const _linkPairs = [];
-  Object.entries(_linkMap).forEach(([newSku, oldSkus]) => {
-    (oldSkus||[]).forEach(o => { if(o && newSku) _linkPairs.push({ o: String(o), n: String(newSku) }); });
-  });
-  const _sqlEsc = s => String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  // mapSku('sku') → CASE WHEN UPPER(sku)='OLD' THEN 'NEW' ... ELSE sku END (연결 없으면 원본 그대로)
-  const mapSku = col => _linkPairs.length
-    ? 'CASE ' + _linkPairs.map(p =>
-        `WHEN UPPER(${col}) = '${_sqlEsc(p.o.toUpperCase())}' THEN '${_sqlEsc(p.n)}'`
-      ).join(' ') + ` ELSE ${col} END`
-    : col;
-
-  // ── 미충족 수요 (lost demand): void된 백오더의 수요 보존 테이블
-  //    is_recovered=TRUE(재주문 등으로 회복된 수요)는 판매에 다시 잡히므로 제외 (이중계산 방지)
-  //    demand_id별 최신 행만 채택, 기간 귀속은 order_date(수요 발생 시점, 없으면 voided_date)
-  const BQ_UNFULFILLED = 'asung_unfulfilled_demand';
-
-  const supEsc = supplier.replace(/'/g, "\\'");
-
+  // pur v4(hist-bq-6 · 판정 1253 · 1269 · 1270 · 1273) — IMS 창구 pur_supplier_analysis 하나가 옛 BigQuery 쿼리 다섯(po · yearly · monthly · sku · sku_monthly)을 같은 칸 이름으로
+  //   · 공급처는 id 로(PUR.supId) · SKU 연결 · 세트 · 콤보 접기 · 크레딧 제외 · 백오더 · lost demand 는 창구 몫(화면에서 다시 하지 않는다)
+  //   · 옛 시스템(2022 ~ 2024) 금액은 정수로 깎인 값(amount_approx · ≈) · Core 발주는 받은 수량이 없어 주문 수량 기준(basis ordered · core_assumed) · 2024-11 ~ 2025-10 발주 이력 없음(po_gap)
+  const supId = PUR.supId[supplier];
   try {
-    // ── 쿼리 1: PO 요약 (PO별 집계)
-    // latest: (po_number, sku)별 최신 적재 행 1개 (loaded_at 기준)
-    //   - insertId 재적재로 최대 41배 쌓인 중복 + 입고 하향정정을 모두 정확 처리
-    //   - VOIDED/기간 필터는 dedup 후 최신 행 기준으로 적용 (옛 행 부활 방지)
-    const poSummarySQL = `
-      WITH latest AS (
-        SELECT * EXCEPT(rn) FROM (
-          SELECT
-            po_number, sku, order_date, received_date, currency,
-            quantity, line_total, po_complete, status,
-            ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-          WHERE supplier_name = '${supEsc}'
-        )
-        WHERE rn = 1
-          ${NOT_VOIDED}
-          AND order_date IS NOT NULL
-          ${poDateFilter}
-      )
-      SELECT
-        po_number,
-        MIN(order_date)     AS order_date,
-        MIN(received_date)  AS received_date,
-        MIN(currency)       AS currency,
-        COUNT(DISTINCT sku) AS sku_count,
-        SUM(quantity)       AS total_qty,
-        SUM(line_total)     AS total_amount,
-        LOGICAL_OR(po_complete = true) AS is_complete
-      FROM latest
-      GROUP BY po_number
-      ORDER BY order_date DESC
-    `;
-
-    // ── 쿼리 2: 연도별 집계 (order_date = 발주 활동 기준)
-    const yearlySQL = `
-      WITH latest AS (
-        SELECT * EXCEPT(rn) FROM (
-          SELECT
-            po_number, sku, order_date, quantity, line_total, status,
-            ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-          WHERE supplier_name = '${supEsc}'
-        )
-        WHERE rn = 1
-          ${NOT_VOIDED}
-          AND order_date IS NOT NULL
-          ${poDateFilter}
-      )
-      SELECT
-        EXTRACT(YEAR FROM order_date) AS yr,
-        COUNT(DISTINCT po_number)     AS po_count,
-        SUM(quantity)                 AS total_qty,
-        SUM(line_total)               AS total_amount,
-        COUNT(DISTINCT sku)           AS sku_count
-      FROM latest
-      GROUP BY yr
-      ORDER BY yr
-    `;
-
-    // ── 쿼리 3: 월별 계절성 (order_date 기준)
-    const monthlySQL = `
-      WITH latest AS (
-        SELECT * EXCEPT(rn) FROM (
-          SELECT
-            po_number, sku, order_date, quantity, line_total, status,
-            ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-          WHERE supplier_name = '${supEsc}'
-        )
-        WHERE rn = 1
-          ${NOT_VOIDED}
-          AND order_date IS NOT NULL
-          ${poDateFilter}
-      )
-      SELECT
-        EXTRACT(YEAR  FROM order_date) AS yr,
-        EXTRACT(MONTH FROM order_date) AS mo,
-        COUNT(DISTINCT po_number)      AS po_count,
-        SUM(line_total)                AS total_amount,
-        SUM(quantity)                  AS total_qty
-      FROM latest
-      GROUP BY yr, mo
-      ORDER BY yr, mo
-    `;
-
-    // ── 쿼리 4: SKU별 발주 vs 판매 비교 (정합성 강화 v4, 2026-07)
-    // [v4 수정 내용]
-    // 1. line: latest-row dedup — (po_number, sku)별 loaded_at 최신 행 1개만 채택
-    //    (MAX 방식은 입고 하향정정 8,942건에서 옛 값을 잡음 → latest-row가 정확.
-    //     VOIDED 판정도 dedup 후 최신 행 기준 — 옛 행 부활 방지)
-    // 2. SKU 연결(asung_sku_links) 합산 — 구 SKU의 발주·판매·백오더·미충족수요를
-    //    신 SKU로 매핑해 실입고와 수요가 같은 SKU 기준으로 만나도록
-    // 3. 미충족 수요(asung_unfulfilled_demand) 반영 —
-    //    실질수요 = 기간판매 + 현재 백오더 + 기간내 lost demand
-    //    (is_recovered 제외: 회복된 수요는 판매에 다시 잡히므로 이중계산 방지)
-    // 4. sales: UPPER(Status) IN ('CLOSED','COMPLETED') 확정 필터 (data-contract R3)
-    const skuCompareSQL = `
-      WITH
-      -- ── 발주 라인: (po_number, sku)별 최신 적재 행 1개 (물리 라인 기준 dedup)
-      line AS (
-        SELECT * EXCEPT(rn) FROM (
-          SELECT
-            po_number, sku, product_name, received_quantity, line_total,
-            order_date, received_date, status,
-            ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-          WHERE supplier_name = '${supEsc}'
-        )
-        WHERE rn = 1
-          ${NOT_VOIDED}
-      ),
-      -- ── 실입고 기준 발주 집계 (received_date 기준, received_quantity > 0)
-      --    SKU 연결 매핑을 집계 단계에 적용 (구 SKU 라인 → 신 SKU 합산)
-      purchase AS (
-        SELECT
-          ${mapSku('sku')}           AS sku,
-          MAX(product_name)          AS product_name,
-          SUM(received_quantity)     AS total_received,
-          SUM(line_total)            AS total_amount,
-          MIN(order_date)            AS first_order,
-          MAX(order_date)            AS last_order,
-          COUNT(DISTINCT po_number)  AS po_count
-        FROM line
-        WHERE received_quantity > 0
-          AND received_date IS NOT NULL
-          ${rcvDateFilter}
-        GROUP BY 1
-      ),
-      -- ── 이 공급사 SKU 집합 (매핑 후 기준 — 판매/백오더/미충족수요 필터에 공용)
-      supplier_skus AS (
-        SELECT DISTINCT ${mapSku('sku')} AS sku FROM line
-      ),
-      -- ── 판매량: asung_sales_unified 뷰 (Omni+confirmed+당월 통합)
-      -- 확정 판별 = UPPER(Status) IN ('CLOSED','COMPLETED') — 인보이스 발행된 판매만 집계
-      -- (Order_Progress 아님 — data-contract R3. 미확정/백오더 행 제외)
-      sales AS (
-        SELECT
-          ${mapSku('SKU')} AS sku,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 3  MONTH) THEN Quantity ELSE 0 END) AS sold_3m,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6  MONTH) THEN Quantity ELSE 0 END) AS sold_6m,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 9  MONTH) THEN Quantity ELSE 0 END) AS sold_9m,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH) THEN Quantity ELSE 0 END) AS sold_1y,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH) THEN Quantity ELSE 0 END) AS sold_2y,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 36 MONTH) THEN Quantity ELSE 0 END) AS sold_3y,
-          SUM(Quantity)                                                                                      AS sold_all,
-          SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)   THEN Quantity ELSE 0 END) AS sold_90d
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_SALES}\`
-        WHERE Quantity > 0
-          ${SOLD_STATUS}
-          ${saleScanFilter}
-          AND ${mapSku('SKU')} IN (SELECT sku FROM supplier_skus)
-        GROUP BY 1
-      ),
-      -- ── 현재 미처리 백오더 (이 공급사 SKU 한정)
-      --    append-only 테이블이므로 (Order_Number, SKU)별 최신 상태 행만 채택
-      --    → 해소된 백오더의 유령 행 제외 (발주추천 boSQL과 동일 패턴)
-      backorders AS (
-        SELECT ${mapSku('sku')} AS sku, SUM(qty) AS bo_qty
-        FROM (
-          SELECT
-            SKU AS sku,
-            Quantity AS qty,
-            ROW_NUMBER() OVER (
-              PARTITION BY Order_Number, SKU
-              ORDER BY
-                CASE WHEN cin7_updated IS NULL THEN 1 ELSE 0 END ASC,
-                cin7_updated DESC,
-                loaded_at DESC
-            ) AS rn,
-            Order_Progress, Status
-          FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-          WHERE Quantity > 0
-            AND ${mapSku('SKU')} IN (SELECT sku FROM supplier_skus)
-        )
-        WHERE rn = 1
-          AND UPPER(TRIM(Order_Progress)) = 'BACKORDERED'
-          AND UPPER(TRIM(Status)) = 'ORDERED'
-        GROUP BY 1
-      ),
-      -- ── 미충족 수요 (lost demand): void된 백오더의 보존 수요
-      --    demand_id별 최신 행(updated_at)만, is_recovered=TRUE 제외(이중계산 방지)
-      --    기간 귀속 = order_date(수요 발생 시점), 없으면 voided_date
-      lost AS (
-        SELECT
-          ${mapSku('sku')} AS sku,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 3  MONTH) THEN quantity ELSE 0 END) AS lost_3m,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 6  MONTH) THEN quantity ELSE 0 END) AS lost_6m,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 9  MONTH) THEN quantity ELSE 0 END) AS lost_9m,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 12 MONTH) THEN quantity ELSE 0 END) AS lost_1y,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 24 MONTH) THEN quantity ELSE 0 END) AS lost_2y,
-          SUM(CASE WHEN d >= DATE_SUB(CURRENT_DATE(), INTERVAL 36 MONTH) THEN quantity ELSE 0 END) AS lost_3y,
-          SUM(quantity)                                                                             AS lost_all
-        FROM (
-          SELECT
-            sku, quantity,
-            COALESCE(order_date, voided_date) AS d,
-            ROW_NUMBER() OVER (PARTITION BY demand_id ORDER BY updated_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_UNFULFILLED}\`
-          WHERE IFNULL(is_recovered, FALSE) = FALSE
-        )
-        WHERE rn = 1
-          AND ${mapSku('sku')} IN (SELECT sku FROM supplier_skus)
-        GROUP BY 1
-      )
-      SELECT
-        p.sku,
-        p.product_name,
-        p.total_received                                        AS total_ordered,
-        p.total_amount,
-        p.first_order,
-        p.last_order,
-        p.po_count,
-        COALESCE(s.sold_3m,  0)                                AS sold_3m,
-        COALESCE(s.sold_6m,  0)                                AS sold_6m,
-        COALESCE(s.sold_9m,  0)                                AS sold_9m,
-        COALESCE(s.sold_1y,  0)                                AS sold_1y,
-        COALESCE(s.sold_2y,  0)                                AS sold_2y,
-        COALESCE(s.sold_3y,  0)                                AS sold_3y,
-        COALESCE(s.sold_all, 0)                                AS sold_all,
-        COALESCE(s.sold_90d, 0)                                AS sold_90d,
-        COALESCE(s.sold_1y,  0)                                AS total_sold,
-        COALESCE(b.bo_qty,   0)                                AS bo_qty,
-        COALESCE(l.lost_3m,  0)                                AS lost_3m,
-        COALESCE(l.lost_6m,  0)                                AS lost_6m,
-        COALESCE(l.lost_9m,  0)                                AS lost_9m,
-        COALESCE(l.lost_1y,  0)                                AS lost_1y,
-        COALESCE(l.lost_2y,  0)                                AS lost_2y,
-        COALESCE(l.lost_3y,  0)                                AS lost_3y,
-        COALESCE(l.lost_all, 0)                                AS lost_all,
-        -- 실질수요 = 해당 기간 판매 + 현재 백오더 + 기간내 미충족 수요 (period별 동적)
-        COALESCE(s.sold_3m,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_3m,  0) AS total_demand_3m,
-        COALESCE(s.sold_6m,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_6m,  0) AS total_demand_6m,
-        COALESCE(s.sold_9m,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_9m,  0) AS total_demand_9m,
-        COALESCE(s.sold_1y,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_1y,  0) AS total_demand_1y,
-        COALESCE(s.sold_2y,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_2y,  0) AS total_demand_2y,
-        COALESCE(s.sold_3y,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_3y,  0) AS total_demand_3y,
-        COALESCE(s.sold_all, 0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_all, 0) AS total_demand_all,
-        -- 기본 total_demand (1y 기준, 하위 호환)
-        COALESCE(s.sold_1y,  0) + COALESCE(b.bo_qty, 0) + COALESCE(l.lost_1y,  0) AS total_demand,
-        -- 발주/수요 비율 (기본 1y 기준, JS에서 period에 맞게 재계산)
-        SAFE_DIVIDE(
-          p.total_received,
-          NULLIF(COALESCE(s.sold_1y,0) + COALESCE(b.bo_qty,0) + COALESCE(l.lost_1y,0), 0)
-        ) AS order_to_sales_ratio
-      FROM purchase p
-      LEFT JOIN sales s USING(sku)
-      LEFT JOIN backorders b USING(sku)
-      LEFT JOIN lost l USING(sku)
-      ORDER BY p.total_amount DESC
-    `;
-
-    // ── 쿼리 5: SKU별 월별 발주 vs 판매 추이 (호버 차트용)
-    //    latest-row dedup + SKU 연결 매핑 (발주·판매 양쪽 동일 매핑)
-    const skuMonthlySQL = `
-      WITH
-      line AS (
-        SELECT * EXCEPT(rn) FROM (
-          SELECT
-            po_number, sku, order_date, quantity, line_total, status,
-            ROW_NUMBER() OVER (PARTITION BY po_number, sku ORDER BY loaded_at DESC) AS rn
-          FROM \`${BQ_PROJECT}.${BQ_PUR_DATASET}.${BQ_PURCHASE}\`
-          WHERE supplier_name = '${supEsc}'
-        )
-        WHERE rn = 1
-          ${NOT_VOIDED}
-          AND order_date IS NOT NULL
-      ),
-      sset AS (
-        SELECT DISTINCT ${mapSku('sku')} AS sku FROM line
-      ),
-      pur AS (
-        SELECT
-          ${mapSku('sku')} AS sku,
-          FORMAT_DATE('%Y-%m', order_date) AS ym,
-          SUM(quantity)   AS ordered_qty,
-          SUM(line_total) AS ordered_amt
-        FROM line
-        GROUP BY 1, 2
-      ),
-      sal AS (
-        SELECT
-          ${mapSku('SKU')} AS sku,
-          FORMAT_DATE('%Y-%m', sale_date) AS ym,
-          SUM(Quantity) AS sold_qty
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_SALES}\`
-        WHERE Quantity > 0
-          ${SOLD_STATUS}
-          AND sale_date IS NOT NULL
-          ${saleDateFilter}
-          AND ${mapSku('SKU')} IN (SELECT sku FROM sset)
-        GROUP BY 1, 2
-      ),
-      combined AS (
-        SELECT
-          COALESCE(p.sku, s.sku)         AS sku,
-          COALESCE(p.ym,  s.ym)          AS ym,
-          COALESCE(p.ordered_qty, 0)     AS ordered_qty,
-          COALESCE(s.sold_qty, 0)        AS sold_qty
-        FROM pur p
-        FULL OUTER JOIN sal s USING(sku, ym)
-      )
-      SELECT sku, ym, ordered_qty, sold_qty
-      FROM combined
-      WHERE sku IN (SELECT sku FROM sset)
-      ORDER BY sku, ym
-    `;
-
-    // 병렬 실행
-    const [poRows, yearlyRows, monthlyRows, skuRows, skuMonthlyRows] = await Promise.all([
-      runBQQuery(poSummarySQL),
-      runBQQuery(yearlySQL),
-      runBQQuery(monthlySQL),
-      runBQQuery(skuCompareSQL),
-      runBQQuery(skuMonthlySQL),
-    ]);
+    if(!supId) throw new Error('IMS 에서 이 공급처를 찾지 못했습니다: ' + supplier);
+    const j = await purRpc('pur_supplier_analysis', { p_supplier_id: supId, p_period: period });
+    const poRows = j.po || [], yearlyRows = j.yearly || [], monthlyRows = j.monthly || [], skuRows = j.sku || [], skuMonthlyRows = j.sku_monthly || [];
+    S.siHead = { core_assumed: j.core_assumed || 0, po_gap: j.po_gap || null, lost_from: j.lost_from || null, lost_to: j.lost_to || null,
+                 approx: poRows.some(r => r.amount_approx) };
 
     // SKU별 월별 데이터 맵 생성
     S.siSkuMonthly = {};
@@ -3447,15 +3026,14 @@ async function loadSupplierIntelligence(supplier){
     S.siData = { poRows, yearlyRows, monthlyRows, skuRows, supplier };
 
     // ── 캐시 저장
-    S.siCache[cacheKey] = { data: S.siData, skuMonthly: S.siSkuMonthly, ts: Date.now() };
+    S.siCache[cacheKey] = { data: S.siData, skuMonthly: S.siSkuMonthly, ts: Date.now(), head: S.siHead };
 
     renderSupplierIntelligence();
-    document.getElementById('si-status').textContent=`✅ ${poRows.length}개 PO 분석 완료`;
+    document.getElementById('si-status').textContent=`✅ ${poRows.length}개 PO 분석 완료` + purSiNotes();
     document.getElementById('si-status').style.color='var(--green)';
     document.getElementById('si-refresh-btn').style.display = 'none';
 
   } catch(e) {
-    if(e.message === 'TOKEN_EXPIRED') return; // 배너로 이미 처리됨
     document.getElementById('si-status').textContent='❌ 오류: ' + e.message;
     document.getElementById('si-status').style.color='var(--red)';
     console.error('SI error:', e);
@@ -3487,7 +3065,7 @@ function renderSupplierIntelligence(){
   const uniqueSkus  = new Set(skuRows.map(r=>r.sku)).size;
 
   // 리드타임 계산 (발주 → 입고 평균)
-  const ltDays = poRows.filter(r=>r.order_date&&r.received_date).map(r=>{
+  const ltDays = poRows.filter(r=>r.era==='ims'&&r.order_date&&r.received_date).map(r=>{   // pur v4 — IMS 발주만(옛 시스템 주문일은 믿기 어렵고 Core 는 받은 날짜가 없다 · 판정 1270)
     const d1=new Date(r.order_date), d2=new Date(r.received_date);
     return Math.round((d2-d1)/(1000*60*60*24));
   }).filter(d=>d>0&&d<365);
@@ -3495,10 +3073,10 @@ function renderSupplierIntelligence(){
 
   const kpiData = [
     {label:'총 PO 횟수',     val:totalPOs+'건',           sub:`${firstOrder} ~ ${lastOrder}`, color:'var(--accent)'},
-    {label:'총 발주 금액',   val:fmt2(totalAmt),           sub:`평균 ${fmt2(avgPerPO)}/PO`, color:'var(--green)'},
+    {label:'총 발주 금액',   val:(S.siHead&&S.siHead.approx?'≈ ':'')+fmt2(totalAmt), sub:`평균 ${fmt2(avgPerPO)}/PO`+(S.siHead&&S.siHead.approx?' · 옛 금액 반올림 포함':''), color:'var(--green)'},
     {label:'총 발주 수량',   val:fmt0(totalQty)+'개',      sub:`${uniqueSkus} SKU`, color:'var(--text)'},
     {label:'연평균 PO 횟수', val:avgPOPerYear+(avgPOPerYear!=='—'?'회/년':''), sub:spanYears>=0.5?`${spanYears.toFixed(1)}년 기간 기준`:'데이터 기간 6개월 미만', color:'var(--yellow)'},
-    {label:'평균 리드타임',  val:avgLT!==null?avgLT+'일':'—', sub:`${ltDays.length}건 기준`, color:'var(--purple)'},
+    {label:'평균 리드타임',  val:avgLT!==null?avgLT+'일':'—', sub:`IMS 입고 ${ltDays.length}건 기준`, color:'var(--purple)'},
   ];
 
   document.getElementById('si-kpi').innerHTML = kpiData.map(k=>`
