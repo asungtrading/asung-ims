@@ -142,7 +142,7 @@
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-11-08 · sup v4a";   // 대화 Claude — sup v4a(qbo-sync-3-1 · 판정 1088 · 1091 · asung-wms 20261108150000): Account payable 고르기 글에 계정 통화(ref_account.currency_code · 빈 값 = 본사 CAD) · 통화를 바꾸면 같은 종류의 그 통화 계정이 하나뿐일 때 그것으로 바꾸고 한 줄로 알림(여럿 · 없음이면 알림만) — DB 는 통화 ≠ 계정 통화를 거부한다(지연 트리거 · 창구 block) · 저장 길 무변 ← sup v4: 대화 Claude — Caleb 「supplier화면에도 overdue와 a/p balance 그리고 credit amount」: ① 넓은 목록 A/P · Overdue · Credit 칸 + Sort(Name · A/P 큰 순 · Overdue 가장 늦은 순) ② 상세 머리 기한 지남 칩 + Payables 카드(통화마다 A/P · Overdue · Credit · 기한 지난 문서 — 인보이스 · 비용 문서로 링크) · 셈 = 확정(status confirmed)된 po_invoice_list · po_charge_list 의 unpaid — 양수 = 갚을 돈 · 음수 = 크레딧(정본 「음수 미지급은 받을 돈」) · 기한 = due_date < 토론토 오늘 · ⚠️ IMS 에 넣은 매입 문서만 — 컷오버 전 미지급은 QuickBooks(Caleb 10-31 · 이월 안 함) · 화면 안내 · DB 무변 ← sup v3d: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-11-15 · sup v5";   // 대화 Claude — sup v5(hist-bq-3 · 판정 1259 · 1263 · 1269 ~ 1271): Purchase history 의 IMS 이전 발주에 2022 ~ 2024 옛 시스템 발주(hist_po era omni)가 섞인다 — era 로 갈라 그린다: 상태 APPROVED → Completed 칩(원문은 풍선글) · 금액 앞에 ≈ · 「옛 시스템이 정수로 반올림 — 대략」(1269 · 원가로 쓰지 마라) · Received 칸 = 받은 날짜(Omni 는 받은 날짜 · 수량이 온전) · 펼친 줄에 Received 칸 · 단가 · 줄 금액도 ≈ · 머리 안내 글에 한 문장 · Core 시절(era core) · IMS 발주는 무변 ← sup v4a(qbo-sync-3-1 · 판정 1088 · 1091 · asung-wms 20261108150000): Account payable 고르기 글에 계정 통화(ref_account.currency_code · 빈 값 = 본사 CAD) · 통화를 바꾸면 같은 종류의 그 통화 계정이 하나뿐일 때 그것으로 바꾸고 한 줄로 알림(여럿 · 없음이면 알림만) — DB 는 통화 ≠ 계정 통화를 거부한다(지연 트리거 · 창구 block) · 저장 길 무변 ← sup v4: 대화 Claude — Caleb 「supplier화면에도 overdue와 a/p balance 그리고 credit amount」: ① 넓은 목록 A/P · Overdue · Credit 칸 + Sort(Name · A/P 큰 순 · Overdue 가장 늦은 순) ② 상세 머리 기한 지남 칩 + Payables 카드(통화마다 A/P · Overdue · Credit · 기한 지난 문서 — 인보이스 · 비용 문서로 링크) · 셈 = 확정(status confirmed)된 po_invoice_list · po_charge_list 의 unpaid — 양수 = 갚을 돈 · 음수 = 크레딧(정본 「음수 미지급은 받을 돈」) · 기한 = due_date < 토론토 오늘 · ⚠️ IMS 에 넣은 매입 문서만 — 컷오버 전 미지급은 QuickBooks(Caleb 10-31 · 이월 안 함) · 화면 안내 · DB 무변 ← sup v3d: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
@@ -392,7 +392,8 @@ async function apLoad(r, seq){
    ⚠️ [sup v3a] 받은 수량 · 받은 날짜는 원천(BQ asung_purchase_history)에 없다(17,939 줄 전부 0 · null) — 보이지 않는다 · 「0 개 받음」 으로 읽히지 않게
    ⭐ 펼치기 = hist_po_line 바로 읽기(가장 큰 발주 419 줄 · 1,000 캡 아래) · 줄 = 주문 줄(세전) · 제품 줄과 IMS 에 아직 없는 SKU 를 따로
    ⚠️ PO_STAGE · poStage · unpaidCell 은 po.html 을 복사 — 그쪽이 바뀌면 여기도
-   ⚠️ hist_po 를 못 읽으면(보기 문 purchasing · master · 오류) IMS 발주만 그리고 머리에 한 줄 */
+   ⚠️ hist_po 를 못 읽으면(보기 문 purchasing · master · 오류) IMS 발주만 그리고 머리에 한 줄
+   ⭐ [sup v5 · hist-bq-3] era omni(옛 시스템 2022 ~ 2024 · 1,051 PO) — 상태 APPROVED(완료) · 금액은 정수로 깎인 값(≈ · 판정 1269 · 원가로 쓰지 마라) · 받은 날짜 · 받은 수량은 온전 · 주문일은 원문(받은 날짜보다 늦은 것이 많다 · 판정 1270) */
 const HIST_N = 20;
 const HIST_STAGE = {
   draft: ["Draft", "The office is writing it"], ordered: ["Ordered", "Confirmed — waiting for the supplier to send"],
@@ -421,7 +422,7 @@ function histUnpaid(v){
   return `<span class="neutral">${histMoney(n)}</span>`;
 }
 /* 이전 발주 상태 — Cin7 원문 · 첫 조각 = 칩 · 나머지 = 꼬리표 */
-const OLD_STAGE = { COMPLETED: "completed", RECEIVED: "received", ORDERED: "ordered", RECEIVING: "receiving", INVOICED: "hold", CREDITED: "hold" };
+const OLD_STAGE = { COMPLETED: "completed", RECEIVED: "received", ORDERED: "ordered", RECEIVING: "receiving", INVOICED: "hold", CREDITED: "hold", APPROVED: "completed" };   // sup v5 — APPROVED = 옛 시스템(2022 ~ 2024)의 완료된 발주(po_complete 전부 true · hist-bq-3)
 const oldWord = (w) => w.toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
 function oldChip(status){
   const parts = String(status || "").split("/").map(x => x.trim()).filter(Boolean);
@@ -435,7 +436,7 @@ async function histLoad(r, seq, n){
   const [q, h] = await Promise.all([
     sb.from("po_list").select("id,po_number,status,order_date,required_by,currency_code,net_total,tax_amount,line_count,ordered_qty,received_qty,receipt_phase,invoice_count,invoiced_total,unpaid_total,split_to_count", { count: "exact" })
       .eq("supplier_id", r.id).order("order_date", { ascending: false }).order("po_number", { ascending: false }).range(0, n - 1),
-    sb.from("hist_po").select("id,po_number,order_date,required_by,received_date,status,currency,po_total,line_count", { count: "exact" })
+    sb.from("hist_po").select("id,era,po_number,order_date,required_by,received_date,status,currency,po_total,line_count", { count: "exact" })
       .eq("supplier_id", r.id).order("order_date", { ascending: false, nullsFirst: false }).order("po_number", { ascending: false }).range(0, n - 1),
   ]);
   if(seq !== detailSeq) return;
@@ -463,7 +464,17 @@ async function histLoad(r, seq, n){
         <td class="num">${Number(x.ordered_qty) ? histQty(x.received_qty) + ' <span class="dim">/ ' + histQty(x.ordered_qty) + "</span>" : '<span class="dim">—</span>'}</td>
         <td class="num">${Number(x.invoice_count) ? histMoney(x.invoiced_total) : '<span class="dim">—</span>'}</td>
         <td class="num">${histUnpaid(x.unpaid_total)}</td></tr>`;
-  const oldRow = (x) => `
+  const oldRow = (x) => x.era === "omni" ? `
+      <tr><td class="hxc"><button class="hxb" data-hx="${esc(x.id)}" data-era="omni" title="Show the lines of this purchase order">▸</button></td>
+        <td class="mono">${esc(x.po_number)} <span class="tag old" title="Purchase order from the older system (2022 – 2024) — read only, not linked to stock, cost or payments">Before IMS · older</span></td>
+        <td class="mono">${dim(x.order_date)}</td>
+        <td>${oldChip(x.status)}</td>
+        <td class="num">${esc(x.line_count)}</td>
+        <td class="num"><span title="The older system kept whole-dollar amounts only — approximate, do not use as cost">≈ ${histMoney(x.po_total)}</span> <span class="dim">${esc(x.currency || supCur)}</span><div class="dim" style="font-size:11px">approx. · rounded to whole dollars</div></td>
+        <td class="num">${x.received_date ? `<span class="mono" title="Date received in the older system">${esc(x.received_date)}</span>` : '<span class="dim">—</span>'}</td>
+        <td class="num"><span class="dim">—</span></td>
+        <td class="num"><span class="dim">—</span></td></tr>
+      <tr class="hx" id="hx-${esc(x.id)}" hidden><td colspan="9"><div class="msg">Loading…</div></td></tr>` : `
       <tr><td class="hxc"><button class="hxb" data-hx="${esc(x.id)}" title="Show the lines of this purchase order">▸</button></td>
         <td class="mono">${esc(x.po_number)} <span class="tag old" title="Purchase order from before IMS — read only, not linked to stock, cost or payments">Before IMS</span></td>
         <td class="mono">${dim(x.order_date)}</td>
@@ -474,7 +485,8 @@ async function histLoad(r, seq, n){
         <td class="num"><span class="dim">—</span></td>
         <td class="num"><span class="dim">—</span></td></tr>
       <tr class="hx" id="hx-${esc(x.id)}" hidden><td colspan="9"><div class="msg">Loading…</div></td></tr>`;
-  const note = oldTotal ? `<div class="histnote">Purchase orders in IMS show Net before tax. Purchase orders from before IMS show the order total — order lines, additional costs and tax — and are read only; their invoices and payments are not here.</div>` : "";
+  const hasOmni = oldRows.some(x => x.era === "omni");
+  const note = oldTotal ? `<div class="histnote">Purchase orders in IMS show Net before tax. Purchase orders from before IMS show the order total — order lines, additional costs and tax — and are read only; their invoices and payments are not here.${hasOmni ? " Purchase orders from the older system (2022 – 2024, marked “older”) kept whole-dollar amounts only — the amounts are approximate; their received dates and quantities are shown." : ""}</div>` : "";
   box.innerHTML = `<div class="card">${head(total)}${errNote}${note}
     <table class="hist"><thead><tr><th></th><th>PO</th><th>Ordered</th><th>Status</th><th class="num">Lines</th><th class="num">Net</th><th class="num">Received</th><th class="num">Invoiced</th><th class="num">Unpaid</th></tr></thead><tbody>${all.map(e => e.src === "ims" ? imsRow(e.x) : oldRow(e.x)).join("")}</tbody></table>
     <div class="histfoot"><span>Showing ${all.length} of ${total} · newest first · ${imsTotal} in IMS · ${hErr ? "before IMS not read" : oldTotal + " from before IMS"} · Unpaid is per document, not per PO — do not add it up</span><span class="sp" style="flex:1"></span>${total > all.length ? `<button class="xs" id="histMore">Show ${Math.min(HIST_N, total - all.length)} more</button>` : ""}</div></div>`;
@@ -483,7 +495,7 @@ async function histLoad(r, seq, n){
 }
 /* 펼치기 — 한 번 읽고 접었다 폈다 · 주문 줄(세전) · 제품 줄 / IMS 에 없는 SKU */
 async function histLines(btn, seq){
-  const id = btn.dataset.hx, tr = $("hx-" + id); if(!tr) return;
+  const id = btn.dataset.hx, tr = $("hx-" + id), omni = btn.dataset.era === "omni"; if(!tr) return;
   if(!tr.hidden){ tr.hidden = true; btn.textContent = "▸"; return; }
   tr.hidden = false; btn.textContent = "▾";
   if(tr.dataset.done) return;
@@ -497,11 +509,12 @@ async function histLines(btn, seq){
   const body = (list, link) => list.map(x => `
       <tr><td class="mono">${link ? `<a class="lk" href="products.html?id=${encodeURIComponent(x.product_id)}" title="Open this product">${esc(x.sku)}</a>` : esc(x.sku)}</td>
         <td>${esc(x.product_name || "")}</td>
-        <td class="num">${histQty(x.quantity)}</td>
-        <td class="num">${histUnit(x.unit_price)}</td><td class="num">${histMoney(x.line_total)}</td></tr>`).join("");
-  const th = '<thead><tr><th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead>';
-  const pTable = prod.length ? `<div class="sub">Products <span class="dim">· ${prod.length} line${prod.length === 1 ? "" : "s"} · order lines before tax · received quantities were not recorded before IMS</span></div><table>${th}<tbody>${body(prod, true)}</tbody></table>` : "";
-  const oTable = other.length ? `<div class="sub">Not in IMS <span class="dim">· ${other.length} line${other.length === 1 ? "" : "s"} · SKUs not linked to a product in IMS (yet) · order lines before tax</span></div><table>${th}<tbody>${body(other, false)}</tbody></table>` : "";
+        <td class="num">${histQty(x.quantity)}</td>${omni ? `<td class="num">${histQty(x.received_quantity)}</td>` : ""}
+        <td class="num">${omni ? "≈ " : ""}${histUnit(x.unit_price)}</td><td class="num">${omni ? "≈ " : ""}${histMoney(x.line_total)}</td></tr>`).join("");
+  const th = omni ? '<thead><tr><th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Received</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead>'
+    : '<thead><tr><th>SKU</th><th>Product</th><th class="num">Ordered</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead>';
+  const pTable = prod.length ? `<div class="sub">Products <span class="dim">· ${prod.length} line${prod.length === 1 ? "" : "s"} · ${omni ? "older system · prices rounded to whole dollars (approximate)" : "order lines before tax · received quantities were not recorded before IMS"}</span></div><table>${th}<tbody>${body(prod, true)}</tbody></table>` : "";
+  const oTable = other.length ? `<div class="sub">Not in IMS <span class="dim">· ${other.length} line${other.length === 1 ? "" : "s"} · SKUs not linked to a product in IMS (yet)${omni ? " · prices approximate" : " · order lines before tax"}</span></div><table>${th}<tbody>${body(other, false)}</tbody></table>` : "";
   cell.innerHTML = pTable + oTable;
   tr.dataset.done = "1";
 }
