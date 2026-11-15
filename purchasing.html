@@ -381,6 +381,13 @@ body{font-family:var(--sans)}
 .ds-badge.active{background:#e9f6ee;border-color:#c9e8d5}
 .ds-badge.new{background:#eef3ff;border-color:#cfdcfd}
 #tbl-body::-webkit-scrollbar-thumb,#sup-list::-webkit-scrollbar-thumb{background:#d5dbe3}
+/* pur v2a — 노트북 폭에서 한 화면에(칸 16 개) */
+#sidebar{width:184px}
+#sidebar-toggle{left:184px}
+.sku-tbl thead th{padding:5px 6px;letter-spacing:.02em}
+.sku-tbl tbody td{padding:5px 6px;font-size:11.5px}
+.sku-tbl tbody td:nth-child(2){max-width:160px}
+.qov{width:56px}
 </style>
 </head>
 <body>
@@ -889,7 +896,7 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-11-15 · pur v2';   // v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-11-15 · pur v2a';   // v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -4898,6 +4905,7 @@ function purStartBQ(){
 }
 imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client;
+  if(typeof imsHeader === 'function') imsHeader(meData);   // pur v2a — IMS 머리 줄 이름 · 역할(옛 화면을 옮기며 빠졌다)
   const bt = document.getElementById('buildTag'); if(bt) bt.textContent = PUR_BUILD;
   document.getElementById('pur-root').hidden = false;
   purFitHeader();
@@ -4940,7 +4948,7 @@ function toggleSidebar() {
   const btn = document.getElementById('sidebar-toggle');
   sb.classList.toggle('collapsed');
   const collapsed = sb.classList.contains('collapsed');
-  btn.style.left = collapsed ? '0' : '200px';
+  btn.style.left = collapsed ? '0' : '184px';   // pur v2a — 목록 폭 184
   btn.textContent = collapsed ? '▶' : '◀';
   btn.title = collapsed ? '사이드바 보이기' : '사이드바 숨기기';
 }
