@@ -4,23 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reorder Planner · Asung IMS</title>
-<script>
-/* pur-2 — ⚠️ 구글 로그인(BigQuery 읽기)이 돌아오면 주소 해시에 access_token 이 붙는다.
-   supabase-js 가 그 해시를 자기 세션으로 읽지 않게, 어떤 스크립트보다 먼저 거두고 지운다(판정 616 A). */
-(function(){
-  try{
-    var h = window.location.hash || "";
-    if(h.indexOf("access_token=") >= 0 && h.indexOf("token_type=") >= 0){
-      var p = new URLSearchParams(h.substring(1));
-      var t = p.get("access_token");
-      if(t){
-        window.__PUR_GTOKEN = { token: t, expires_in: parseInt(p.get("expires_in") || "3600", 10) };
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      }
-    }
-  }catch(e){}
-})();
-</script>
 <style>@import url("ims-ui.css") layer(ims);</style>
 <style>
 :root{
@@ -412,10 +395,6 @@ body{font-family:var(--sans)}
     </div>
     <div class="hsep"></div>
     <div class="spill" id="stock-freshness-pill"><div class="dot ok" id="stock-freshness-dot"></div><span id="stock-freshness-lbl">재고 확인 중...</span></div>
-    <div class="spill" id="bq-pill" onclick="connectBQ()" style="cursor:pointer">
-      <div class="dot warn" id="bq-dot"></div>
-      <span id="bq-lbl">판매 BQ 미연결 — 클릭하여 연결</span>
-    </div>
     <div class="hsep"></div>
     <button class="btn primary" id="send-po-btn" onclick="sendDraftPO()" title="현재 선택된 Supplier의 발주 목록을 IMS 발주 초안(draft PO)으로 생성
 
@@ -476,7 +455,7 @@ body{font-family:var(--sans)}
       <!-- 계절/트렌드 Supplier 전체 override -->
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
         <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">보정 Override</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5">비워두면 BQ 자동값 사용<br>입력 시 Supplier 전체 적용</div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5">비워두면 자동값 사용<br>입력 시 Supplier 전체 적용</div>
         <div class="sr">
           <span class="sl">계절보정</span>
           <input type="number" class="si" id="inp-sea" step="0.1" min="0.3" max="3.0" placeholder="auto" onchange="saveOverride('sea',this.value)" style="width:54px">
@@ -501,8 +480,8 @@ body{font-family:var(--sans)}
         <button class="mtab active" onclick="setTab('order',this)">발주 추천</button>
         <button class="mtab" onclick="setTab('forecast',this)">Forecast</button>
         <button class="mtab" onclick="setTab('deadstock',this)">데드 스톡</button>
-        <button class="mtab" onclick="setTab('supplier',this)">📊 Supplier 분석</button>
-        <button class="mtab" onclick="setTab('receiving',this)">📦 입고 검증</button>
+        <button class="mtab" style="display:none" title="판정 1253 — IMS 이력 자료로 다시 만들 때까지 숨김" onclick="setTab('supplier',this)">📊 Supplier 분석</button>
+        <button class="mtab" style="display:none" title="판정 1253 — IMS 이력 자료로 다시 만들 때까지 숨김" onclick="setTab('receiving',this)">📦 입고 검증</button>
       </div>
       <!-- 모바일: 컬럼 토글 펼치기 버튼 -->
       <button class="col-toggle-mobile-btn" onclick="toggleColBar()"
@@ -525,10 +504,7 @@ body{font-family:var(--sans)}
     </div>
     <div id="content">
       <div id="order-view">
-        <div class="banner warn" id="bq-banner">
-          ⚠ 판매 BigQuery 미연결 — ADU/계절성/추천발주 비활성.
-          <a onclick="connectBQ()">지금 연결 →</a>
-        </div>
+        <div class="banner load" id="sales-banner">⟳ 판매 이력 읽는 중...</div>
         <div id="sum-bar">
           <div class="sc-card">
             <div class="sc-lbl">발주 필요</div>
@@ -603,7 +579,7 @@ body{font-family:var(--sans)}
         </div>
         <!-- Forecast 테이블 -->
         <div id="fc-empty" style="padding:40px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:11.5px;line-height:2">
-          판매 BigQuery 연결 후 Forecast가 활성화됩니다.<br>
+          판매 이력을 읽으면 Forecast가 활성화됩니다(몇 초).<br>
           <span style="font-size:10px">ADU × 계절성 × 트렌드 기반 30/60/90일 예측</span>
         </div>
         <div id="fc-tbl-wrap" style="display:none;overflow:auto;flex:1">
@@ -658,7 +634,7 @@ body{font-family:var(--sans)}
         </div>
         <div id="ds-stats" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"></div>
         <div id="ds-empty" style="padding:40px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:11.5px;line-height:2">
-          판매 BigQuery 연결 후 데드 스톡 분석이 활성화됩니다.<br>
+          판매 이력을 읽으면 데드 스톡 분석이 활성화됩니다(몇 초).<br>
           <span style="font-size:10px">재고 보유 SKU의 마지막 판매일·90일·365일 판매·재고가치를 분석</span>
         </div>
         <div id="ds-tbl-wrap" class="ds-tbl-wrap" style="display:none">
@@ -805,7 +781,7 @@ body{font-family:var(--sans)}
           <div id="rv-status" style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-left:4px"></div>
           <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <!-- 기간 -->
-            <select id="rv-period" onchange="if(S.bqReady)loadReceivingAudit()"
+            <select id="rv-period" onchange="if(S.salesReady)loadReceivingAudit()"
               style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:11px;padding:4px 8px;outline:none;cursor:pointer">
               <option value="0" selected>전체 기간</option>
               <option value="30">최근 30일</option>
@@ -875,33 +851,21 @@ body{font-family:var(--sans)}
 let MASTER = {}, STOCK = {};
 const STOCK_DATE = '2026-04-20';
 
-// ═══════════════════════════════════════════════════════
-//  BQ CONFIG
-// ═══════════════════════════════════════════════════════
-const BQ_PROJECT = 'geometric-rock-487814-k4';
-const BQ_DATASET = 'Cin7_Sales_Data';
-const BQ_SALES   = 'asung_sales_unified';
-const BQ_ORDERS  = 'asung_order_details_historical';
-const BQ_STOCK   = 'asung_stock_daily';
-const CLIENT_ID  = '105948904172-t1fvd0e8t2tl3ki6u17a4ok9vp0catp2';
-const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid email';
-
 /* ═══════════════════════════════════════════════════════
-   pur-2 — IMS 데이터 층(판정 604 ~ 608 · 616 · pur-1 f8fe69d)
-   ⭐ 계산 코드는 그대로 — 바뀌는 것은 「어디서 읽느냐 · 어디에 쓰느냐」 뿐(po-module §10-d)
-   · 판매: 경계 날짜(pur_ims_sales_from · 2026-11-01) 전 = BigQuery(각자 구글 로그인 · 판정 616 A) · 경계부터 = IMS pur_sales_daily
-     둘 다 낱개 기준(판정 605 — BigQuery 줄은 pur_set_map 으로 세트 × 계수 · 콤보 구성품으로 접는다)
-   · 재고 = IMS pur_stock()(실시간 · v1c · pur-1c — 옛 판은 stk_availability 쪽 나눔) · 원가 = stk_value_many(원가 열쇠가 있을 때만 · 판정 608)
-   · 공급처 목록 = IMS pur_supplier_skus · 백오더 = 경계 전 BigQuery · 경계부터 IMS pur_backorders
+   pur-2 — IMS 데이터 층(판정 604 ~ 608 · 616 · pur-1 f8fe69d) → pur v3(판정 616 B · 1249 ~ 1256 · 2026-11-15)
+   ⭐ 계산 코드는 그대로 — 바뀌는 것은 「어디서 읽느냐」 뿐(po-module §10-d)
+   · 판매 = IMS 창구 pur_sales_summary 하나(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴) — 구글 로그인 · BigQuery 없음
+   · 재고 = IMS pur_stock()(실시간) · 원가 = stk_value_many(원가 열쇠가 있을 때만 · 판정 608)
+   · 공급처 목록 = IMS pur_supplier_skus · 백오더 = IMS pur_backorders
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
-   · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
-   · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-11-15 · pur v2a';   // v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+   · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 · pur-3)
+   · Supplier 분석 · 입고 검증 두 탭은 숨김(판정 1253) — 「BigQuery 전체 이력을 IMS 로」(deferred 626) 뒤 IMS 자료로 다시 */
+const PUR_BUILD = '2026-11-15 · pur v3';   // v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
-  supId: {}, setMap: {}, whs: [], canCost: false, costLoaded: false, skuLinks: [], ovHist: {}, ovLoaded: {}, basePromise: null,
-  headPromise: null, t0: 0, tIms: null, tBq: null, imsParts: {}, bqParts: {}, bqPending: false,
+  supId: {}, whs: [], canCost: false, costLoaded: false, skuLinks: [], ovHist: {}, ovLoaded: {}, basePromise: null,
+  headPromise: null, t0: 0, tIms: null, tSales: null, imsParts: {}, salesParts: {}, salesPending: false,
 };
 const purNum = v => (v === null || v === undefined || v === '') ? 0 : (parseFloat(v) || 0);
 function purToday(){ return new Intl.DateTimeFormat('en-CA', { timeZone:'America/Toronto', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date()); }
@@ -915,39 +879,16 @@ async function purRpc(name, args){
   if(error) throw new Error(name + ': ' + error.message);
   return data;
 }
-/* 판정 605 — 세트 · 콤보 SKU 를 낱개로 접는다(BigQuery 줄만 · IMS 줄은 창구가 이미 낱개) */
-function purFold(rows, key, qtyKeys){
-  const out = [];
-  (rows || []).forEach(r => {
-    const m = PUR.setMap[r[key]];
-    if(!m){ out.push(r); return; }
-    m.forEach(x => {
-      const c = Object.assign({}, r); c[key] = x.base;
-      qtyKeys.forEach(q => { c[q] = purNum(r[q]) * x.factor; });
-      out.push(c);
-    });
-  });
-  return out;
-}
-function purSumBy(rows, keyFn, qtyKeys, make){
-  const m = new Map();
-  rows.forEach(r => {
-    const k = keyFn(r);
-    let a = m.get(k);
-    if(!a){ a = make(r); qtyKeys.forEach(q => a[q] = 0); m.set(k, a); }
-    qtyKeys.forEach(q => { a[q] += purNum(r[q]); });
-  });
-  return Array.from(m.values());
-}
+/* pur v3 — 세트 · 콤보 접기(purFold · purSumBy)는 창구 pur_sales_summary 가 한다(product_id · 판정 605 · 1249) — 화면 몫 없음 */
 /* v1a — 시간 재기(초 · 소수 한 자리) */
 function purSec(t){ return Math.round((performance.now() - t) / 100) / 10; }
 function purTimed(bag, k, p){ const t = performance.now(); return Promise.resolve(p).then(v => { bag[k] = purSec(t); return v; }); }
-/* v1a — 머리(설정 · 세트 지도)를 먼저 따로 세운다: BigQuery 는 이것만 기다린다(경계 날짜 · 접기) · 나머지(마스터 · 창고 · 재고 · 원가 열쇠)는 동시에 */
+/* v1a — 머리(설정)를 먼저 따로 세운다: 판매 이력 읽기는 이것만 기다린다(리드타임 · 경계 날짜) · 나머지(마스터 · 창고 · 재고 · 원가 열쇠)는 동시에
+   pur v3 — 세트 지도(pur_set_map)는 더 안 읽는다(접기는 창구 몫) */
 function purLoadHead(){
   return Promise.all([
     purTimed(PUR.imsParts, 'settings', purRpc('pur_settings', {})),
-    purTimed(PUR.imsParts, 'set_map', purRpc('pur_set_map', {})),
-  ]).then(([st, setmap]) => {
+  ]).then(([st]) => {
     PUR.boundary = st.boundary_date ? String(st.boundary_date).slice(0, 10) : '2026-11-01';
     if(st.defaults) Object.keys(PUR.defaults).forEach(k => { if(st.defaults[k] !== undefined && st.defaults[k] !== null) PUR.defaults[k] = Number(st.defaults[k]); });
     const w = st.weights || {};
@@ -960,12 +901,10 @@ function purLoadHead(){
       PUR.supId[x.name] = x.supplier_id;
     });
     PUR.skuLinks = (st.sku_links || []).map(l => ({ oldSku: l.oldSku, newSku: l.newSku }));
-    PUR.setMap = {};
-    (setmap.rows || []).forEach(r => { (PUR.setMap[r.set_sku] = PUR.setMap[r.set_sku] || []).push({ base: r.base_sku, factor: purNum(r.factor) || 1 }); });
   });
 }
 async function purLoadBase(){
-  PUR.headPromise = purLoadHead();                                       // ⚠️ 첫 await 앞 — 부른 자리에서 곧바로 선다(BigQuery 가 이것을 기다린다)
+  PUR.headPromise = purLoadHead();                                       // ⚠️ 첫 await 앞 — 부른 자리에서 곧바로 선다(판매 이력 읽기가 이것을 기다린다)
   const [master, wh, , canCost] = await Promise.all([
     purTimed(PUR.imsParts, 'master', purRpc('pur_supplier_skus', {})),
     purTimed(PUR.imsParts, 'warehouse', sb.from('ref_warehouse').select('id,name').eq('is_active', true).order('name')),
@@ -1021,59 +960,9 @@ async function purLoadSupplier(sup){
   PUR.ovLoaded[sup] = true;
   return true;
 }
-async function purImsSales(){
-  const today = purToday();
-  if(today < PUR.boundary) return [];                                    // 경계 전 — IMS 판매는 아직 셈에 안 든다
-  const d = await purRpc('pur_sales_daily', { p_supplier_id: null, p_from: purAddDays(today, -366), p_to: purAddDays(today, 1) });
-  return (d && d.rows) || [];
-}
 async function purImsBackorders(){
   const d = await purRpc('pur_backorders', {});
   return ((d && d.rows) || []).map(r => ({ SKU: r.sku, bo_0_30: r.bo_0_30, bo_30_60: r.bo_30_60, bo_60_90: r.bo_60_90, bo_qty: r.bo_qty }));
-}
-function purBar(id, html, warn){
-  let el = document.getElementById(id);
-  if(!el){
-    el = document.createElement('div'); el.id = id;
-    const ov = document.getElementById('order-view');
-    if(ov) ov.insertBefore(el, ov.firstChild);
-  }
-  el.className = 'pur-imsbar' + (warn ? ' warn' : '');
-  el.innerHTML = html + '<span class="x" onclick="this.parentElement.style.display=\'none\'">✕</span>';
-  el.style.display = 'flex';
-  return el;
-}
-/* 판정 606 — 이 PC 브라우저에 옛 발주앱 설정이 있으면 한 번 옮겨 담기(미리 보기 → 실행 · 다시 해도 같다) */
-const PUR_LS_KEYS = ['asung_po_v5', 'asung_ov_history', 'asung_sku_links', 'asung_wma'];
-function purImportOffer(){
-  let has = false;
-  try{ has = PUR_LS_KEYS.some(k => localStorage.getItem(k)) && !localStorage.getItem('asung_pur_imported'); }catch(e){}
-  if(!has) return;
-  purBar('pur-import-bar', '📦 이 브라우저에 옛 발주앱 설정(리드타임 · 주기 · 목표 · SKU 연결 · 가중치 · 보정 이력)이 있습니다. IMS 로 한 번 옮기면 누구나 같은 설정을 봅니다. <button onclick="purImport()">IMS 로 옮기기…</button>', false);
-}
-async function purImport(){
-  const p = {};
-  try{ PUR_LS_KEYS.forEach(k => { const v = localStorage.getItem(k); if(v) p[k] = JSON.parse(v); }); }
-  catch(e){ purErr('브라우저 설정을 읽지 못했습니다', e); return; }
-  try{
-    const pv = await purRpc('pur_settings_import', { p: p, p_commit: false });
-    const ss = pv.supplier_settings || {}, oh = pv.override_history || {}, sl = pv.sku_links || {};
-    const msg = '옮겨 담기 미리 보기\n\n'
-      + '공급처 설정 ' + (ss.written || 0) + '곳'
-      + ((ss.unknown_suppliers || []).length ? '\n  · IMS 에 없는 공급처(건너뜀): ' + ss.unknown_suppliers.join(', ') : '')
-      + ((ss.invalid || []).length ? '\n  · 값이 이상한 것(건너뜀): ' + ss.invalid.join(', ') : '')
-      + '\n보정 이력 새로 ' + (oh.new || 0) + '건 · 이미 있음 ' + (oh.already_there || 0)
-      + '\nSKU 연결 새로 ' + (sl.new || 0) + ' · 이미 있음 ' + (sl.already_there || 0) + ' · 이상한 것 ' + (sl.invalid || 0)
-      + '\n가중치 ' + (pv.weights ? [pv.weights.w1, pv.weights.w2, pv.weights.w3].join(' · ') : '—')
-      + '\n\nIMS 에 저장할까요? (이 브라우저의 옛 설정은 지우지 않습니다)';
-    if(!confirm(msg)) return;
-    await purRpc('pur_settings_import', { p: p, p_commit: true });
-    try{ localStorage.setItem('asung_pur_imported', purToday()); }catch(e){}
-    const b = document.getElementById('pur-import-bar'); if(b) b.style.display = 'none';
-    PUR.ovLoaded = {};
-    await purLoadBase(); buildNav(); updateSettingsDisplay(); loadWMASettings(); recompute(); renderTable();
-    alert('옮겨 담았습니다.');
-  }catch(e){ purErr('옮겨 담기 실패', e); }
 }
 function purFitHeader(){
   const h = document.querySelector('body > header');
@@ -1206,7 +1095,7 @@ const S = { brandFilter:'', abcFilter:'', skuOverrides:{}, sortCol:null, sortDir
   branch:'toronto', supplier:null, filter:'all', search:'',
   fcPeriod:30, settings:{},
   computed:[], salesData:{}, salesAgg:{}, backorderData:{},
-  bqReady:false, accessToken:null,
+  salesReady:false,
 };
 
 // ═══════════════════════════════════════════════════════
@@ -1238,7 +1127,7 @@ function saveWMA(key,val){
     try{ await purRpc('pur_weights_set', { p: { w1:S.wmaW1, w2:S.wmaW2, w3:S.wmaW3 } }); }
     catch(e){ purErr('가중치 저장 실패 — IMS 에 저장되지 않았습니다', e); }
   });
-  if(S.bqReady){ recompute(); renderTable(); }
+  if(S.salesReady){ recompute(); renderTable(); }
 }
 function loadWMASettings(){
   // pur-2: 값은 purLoadBase 가 IMS 에서 S.wmaW* 로 채웠다 — 칸에만 옮긴다
@@ -1316,7 +1205,7 @@ function updateSettingsDisplay(){
   document.getElementById('inp-tg').value=tg;
   document.getElementById('sv-tg').textContent=`목표: ${tg}일 / Lead: ${lt}일 / 주기: ${cycle}일${ltSigma>0?' / LTσ:'+ltSigma+'일':''}`;
   document.getElementById('settings-sup-name').textContent=sup||'← Supplier 선택';
-  // BQ 배너 우측에 LT/주기/목표 표시
+  // 배너 우측에 LT/주기/목표 표시
   const bs=document.getElementById('banner-settings');
   if(bs && sup){
     bs.style.display='flex';
@@ -1329,538 +1218,64 @@ function updateSettingsDisplay(){
 }
 
 // ═══════════════════════════════════════════════════════
-//  BIGQUERY OAUTH
+//  재고 날짜 표시 — pur v3: 재고는 IMS 실시간(pur_stock)이라 늘 오늘 · 옛 「재고 지연」 배너(Apps Script 링크)는 걷었다(판정 1256)
 // ═══════════════════════════════════════════════════════
-// ── 재고 데이터 freshness 체크
 function checkStockFreshness(latestDateStr){
-  const pill = document.getElementById('stock-freshness-pill');
-  const dot  = document.getElementById('stock-freshness-dot');
-  const lbl  = document.getElementById('stock-freshness-lbl');
-  if(!pill||!dot||!lbl) return;
-
-  if(!latestDateStr){
-    dot.className='dot err';
-    lbl.textContent='재고 날짜 없음 ❌';
-    pill.style.borderColor='var(--red)';
-    showStockWarningBanner('알 수 없음', 999);
-    return;
-  }
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const stockDate = new Date(latestDateStr);
-  stockDate.setHours(0,0,0,0);
-  const diffMs = today - stockDate;
-  const diffDays = Math.round(diffMs / (1000*60*60*24));
-
-  if(diffDays <= 1){
-    // 정상: 오늘 또는 어제
-    dot.className='dot ok';
-    lbl.textContent=`재고 ${latestDateStr} ✓`;
-    pill.style.borderColor='';
-    hideStockWarningBanner();
-  } else if(diffDays <= 3){
-    // 경고: 2~3일 지연
-    dot.className='dot warn';
-    lbl.textContent=`재고 ${latestDateStr} ⚠ ${diffDays}일 지연`;
-    pill.style.borderColor='var(--yellow)';
-    pill.style.color='var(--yellow)';
-    showStockWarningBanner(latestDateStr, diffDays);
-  } else {
-    // 위험: 4일 이상 지연
-    dot.className='dot err';
-    lbl.textContent=`재고 ${latestDateStr} ❌ ${diffDays}일 지연`;
-    pill.style.borderColor='var(--red)';
-    pill.style.color='var(--red)';
-    showStockWarningBanner(latestDateStr, diffDays);
-  }
+  const dot = document.getElementById('stock-freshness-dot');
+  const lbl = document.getElementById('stock-freshness-lbl');
+  if(!dot || !lbl) return;
+  dot.className = 'dot ok';
+  lbl.textContent = '재고 ' + (latestDateStr || purToday()) + ' ✓';
 }
-
-function showStockWarningBanner(dateStr, diffDays){
-  let banner = document.getElementById('stock-warning-banner');
-  if(!banner){
-    banner = document.createElement('div');
-    banner.id = 'stock-warning-banner';
-    // order-view 맨 위에 삽입
-    const orderView = document.getElementById('order-view');
-    const bqBanner  = document.getElementById('bq-banner');
-    if(orderView && bqBanner) orderView.insertBefore(banner, bqBanner.nextSibling);
-  }
-  const isError = diffDays >= 4;
-  banner.style.cssText=`
-    padding:7px 14px;
-    font-family:var(--mono);
-    font-size:11px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-shrink:0;
-    border-bottom:1px solid ${isError?'rgba(247,111,111,.3)':'rgba(247,196,79,.3)'};
-    background:${isError?'rgba(247,111,111,.08)':'rgba(247,196,79,.06)'};
-    color:${isError?'var(--red)':'var(--yellow)'};
-  `;
-  banner.innerHTML=`
-    <span>${isError?'❌':'⚠'} 재고 데이터 <b>${diffDays}일 지연</b>
-    (최종: ${dateStr}) — 발주 판단에 주의하세요.</span>
-    <span style="margin-left:auto;font-size:10px;color:var(--text3)">
-      System_Automation 트리거를 확인하세요
-      <a href="https://script.google.com" target="_blank"
-         style="color:var(--accent);text-decoration:underline;margin-left:6px">
-        Apps Script →
-      </a>
-    </span>
-    <span onclick="this.parentElement.style.display='none'"
-          style="cursor:pointer;color:var(--text3);padding:0 4px;font-size:13px">✕</span>
-  `;
-}
-
-function hideStockWarningBanner(){
-  const b=document.getElementById('stock-warning-banner');
-  if(b) b.style.display='none';
-}
-
-function connectBQ(){
-  const redirectUri = window.location.href.split('?')[0].split('#')[0];
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-    `client_id=${CLIENT_ID}` +
-    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&response_type=token` +
-    `&scope=${encodeURIComponent(SCOPES)}` +
-    `&prompt=select_account` +
-    `&hd=asung.ca`;
-  window.location.href = authUrl;
-}
-
-function checkOAuthCallback(){
-  // pur-2: <head> 의 첫 스크립트가 해시를 거두고 지웠다(supabase-js 가 구글 토큰을 자기 세션으로 읽지 않게)
-  const g = window.__PUR_GTOKEN;
-  if(!g || !g.token) return;
-  window.__PUR_GTOKEN = null;
-  S.accessToken = g.token;
-  // localStorage에 저장 (탭 닫아도 유지) + 만료 시각 기록
-  const expireAt = Date.now() + (g.expires_in || 3600) * 1000;
-  localStorage.setItem('bq_token', g.token);
-  localStorage.setItem('bq_token_expire', String(expireAt));
-  sessionStorage.removeItem('bq_token'); // 구버전 정리
-  updateBQStatus('load','토큰 확인 중...');
-  loadSalesDataFromBQ();
-}
-
-function updateBQStatus(state, txt){
-  const dot = document.getElementById('bq-dot');
-  const lbl = document.getElementById('bq-lbl');
-  const banner = document.getElementById('bq-banner');
-  const pill = document.getElementById('bq-pill');
-  dot.className = 'dot ' + state;
-  lbl.textContent = txt;
-  if(state==='ok'){
-    banner.className='banner ok';
-    banner.innerHTML='✅ 판매 BigQuery 연결됨 — ADU·계절성·추천발주 활성 <span style="color:var(--text2);margin-left:8px">· 판매 = ' + (PUR.boundary ? PUR.boundary + ' 전 BigQuery + 그날부터 IMS' : 'BigQuery') + ' · 재고 · 공급처 = IMS(실시간)</span>';
-    pill.onclick = null;
-    pill.style.cursor='default';
-  } else if(state==='load'){
-    banner.className='banner load';
-    banner.innerHTML='⟳ ' + txt;
-  }
+/* pur v3 — BigQuery 는 이 화면에서 걷었다(판정 616 B · 1253). 숨긴 두 탭(Supplier 분석 · 입고 검증)의 코드만 이 이름을 부른다 —
+   두 탭은 「BigQuery 전체 이력을 IMS 로」(deferred 626) 뒤 IMS 자료로 다시 만든다. 그때까지 부르면 이 글로 멈춘다. */
+async function runBQQuery(){
+  throw new Error('이 탭은 IMS 이력 자료로 다시 만들 때까지 쉽니다(BigQuery 연결을 걷었습니다).');
 }
 
 // ═══════════════════════════════════════════════════════
-//  BQ QUERY HELPER
+//  LOAD SALES DATA — pur v3(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51)
+//  IMS 창구 pur_sales_summary 하나: 경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일(pur_last_sale_pre)
+//  · 이미 낱개로 접혀 온다(주로 콤보 · product_id) · 열쇠는 소문자 sku → 아래 계산이 쓰던 SKU 로 옮겨 담는다
+//  · adu_daily = 오늘-90 ~ 어제 판 날만 · sea = 작년 같은 철 합 · dead = 마지막 판매일 · 90 · 365 일 합(오늘 포함) · order_adu = 창 넷
+//  · 백오더 = IMS pur_backorders · 구 SKU → 신 SKU 연결(getSkuLinkMap)은 그대로 화면 몫
+//  · 아래 「ADU + 계절성 + 트렌드」 계산은 pur v2a 까지와 같은 코드
 // ═══════════════════════════════════════════════════════
-
-// ── 토큰 만료 배너 표시
-function showTokenExpiredBanner(){
-  let banner = document.getElementById('token-expired-banner');
-  if(!banner){
-    banner = document.createElement('div');
-    banner.id = 'token-expired-banner';
-    banner.style.cssText = `
-      padding:8px 14px;font-family:var(--mono);font-size:11.5px;
-      display:flex;align-items:center;gap:10px;flex-shrink:0;
-      border-bottom:1px solid rgba(247,111,111,.3);
-      background:rgba(247,111,111,.08);color:var(--red);
-      position:sticky;top:0;z-index:50;
-    `;
-    banner.innerHTML = `
-      <span>🔑 BQ 토큰이 만료됐어요 (1시간 제한). 재연결하면 계속 사용할 수 있어요.</span>
-      <button onclick="connectBQ()" style="margin-left:8px;background:var(--red);border:none;border-radius:4px;
-        color:#fff;font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer">
-        재연결 →
-      </button>
-      <span onclick="this.parentElement.style.display='none'"
-            style="margin-left:auto;cursor:pointer;color:var(--text3);font-size:13px;padding:0 4px">✕</span>
-    `;
-    // order-view 최상단에 삽입
-    const orderView = document.getElementById('order-view');
-    if(orderView) orderView.insertBefore(banner, orderView.firstChild);
-  }
+function purSalesStatus(state, txt){
+  const banner = document.getElementById('sales-banner');
+  if(!banner) return;
+  if(state === 'ok'){ banner.style.display = 'none'; return; }
   banner.style.display = 'flex';
-  // BQ 상태 표시 업데이트
-  updateBQStatus('warn', '토큰 만료 — 재연결 필요');
-  S.bqReady = false;
-  // localStorage/sessionStorage 토큰 제거
-  localStorage.removeItem('bq_token');
-  sessionStorage.removeItem('bq_token');
-  S.accessToken = null;
+  banner.className = 'banner ' + (state === 'load' ? 'load' : 'warn');
+  banner.innerHTML = state === 'load' ? '⟳ ' + txt
+    : '⚠ ' + txt + ' <a onclick="loadSalesData()">다시 읽기 →</a>';
 }
-
-async function runBQQuery(sql){
-  const url = `https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries`;
-  const resp = await fetch(url, {
-    method:'POST',
-    headers:{'Authorization':'Bearer '+S.accessToken,'Content-Type':'application/json'},
-    body: JSON.stringify({ query:sql, useLegacySql:false, timeoutMs:60000, maxResults:100000 })
-  });
-  if(!resp.ok){
-    const err = await resp.json();
-    // 401: 토큰 만료 → 배너로 안내
-    if(resp.status === 401){
-      showTokenExpiredBanner();
-      throw new Error('TOKEN_EXPIRED');
-    }
-    throw new Error(err.error?.message || resp.statusText);
-  }
-  const data = await resp.json();
-  // handle pagination
-  let rows = data.rows || [];
-  let pageToken = data.pageToken;
-  const jobId = data.jobReference?.jobId;
-  while(pageToken && jobId){
-    const pageUrl = `https://bigquery.googleapis.com/bigquery/v2/projects/${BQ_PROJECT}/queries/${jobId}?pageToken=${pageToken}&maxResults=100000`;
-    const pageResp = await fetch(pageUrl, {headers:{'Authorization':'Bearer '+S.accessToken}});
-    const pageData = await pageResp.json();
-    rows = rows.concat(pageData.rows||[]);
-    pageToken = pageData.pageToken;
-  }
-  const fields = data.schema?.fields || [];
-  return rows.map(row => {
-    const obj={};
-    fields.forEach((f,i)=>{ obj[f.name] = row.f?.[i]?.v ?? null; });
-    return obj;
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-//  LOAD SALES DATA FROM BQ
-//  - 90일 ADU (Z-score 이상치 제거)
-//  - 작년 동기 계절성
-//  - 선형 트렌드
-//  - 백오더 (order_details 기반)
-// ═══════════════════════════════════════════════════════
-/* v1a — 초록 배너 끝에 걸린 시간 · 마우스를 올리면 갈래마다 */
-function purTimeTag(){
-  const bn = document.getElementById('bq-banner');
-  if(!bn) return;
-  const fmt = o => Object.keys(o).map(k => k + ' ' + o[k] + 's').join(' · ');
-  const tip = 'IMS: ' + fmt(PUR.imsParts) + ' | BigQuery: ' + fmt(PUR.bqParts);
-  const span = document.createElement('span');
-  span.style.cssText = 'color:var(--text2);margin-left:8px;cursor:help';
-  span.title = tip;
-  span.textContent = '· 걸린 시간 IMS ' + (PUR.tIms === null ? '—' : PUR.tIms + '초') + ' · BigQuery ' + (PUR.tBq === null ? '—' : PUR.tBq + '초');
-  bn.appendChild(span);
-  console.log('[pur 시간 · ' + PUR_BUILD + '] ' + tip);
-}
-async function loadSalesDataFromBQ(){
-  const tB0 = performance.now();
-  PUR.bqPending = true; PUR.bqParts = {};
-  const imsGate = p => p ? p.catch(() => { throw new Error('IMS_FAIL'); }) : null;   // IMS 가 실패하면 그쪽이 알린다 — 여기서는 조용히
+async function loadSalesData(){
+  const t0 = performance.now();
+  PUR.salesPending = true; PUR.salesParts = {};
+  const imsGate = p => p ? p.catch(() => { throw new Error('IMS_FAIL'); }) : null;   // IMS 기본이 실패하면 시작 자리가 알린다
   try {
-    if(PUR.headPromise) await imsGate(PUR.headPromise);                  // v1a: 머리(경계 · 세트 지도)만 기다리고 쿼리를 띄운다 — 재고 · 마스터는 쿼리와 동시에
-    const B = PUR.boundary || '2026-11-01';
-    showLoading(PUR.tIms === null ? 'IMS 데이터 · 판매 데이터 읽는 중...' : '판매 데이터 쿼리 중...');
-    updateBQStatus('load','판매 데이터 로딩 중...');
-
-    // ── Supplier SKU 마스터 쿼리: purchase_history + sales brand 조인
-    // master.json에 없는 SKU도 발주추천에 포함, brand는 판매 테이블에서 보완
-    // asung_product_master: Cin7 /product API 전체 제품 마스터 (발주이력 무관)
-    // master.json 대체 — supplier/brand/product_name 최신 정보 제공
-    const supplierSkuSQL = `
-      SELECT
-        m.sku,
-        m.product_name,
-        m.supplier_name,
-        COALESCE(NULLIF(m.brand,''), '—') AS brand
-      FROM \`${BQ_PROJECT}.Cin7_Master_Data.asung_product_master\` m
-      WHERE m.sku IS NOT NULL
-        AND m.supplier_name IS NOT NULL
-        AND m.supplier_name != ''
-        AND m.is_active = true
-    `;
-
-    // ── ADU 쿼리: SKU별 최근 90일 일별 판매량
-    // asung_sales_historical_data 컬럼: Date, SKU, Quantity
-    const aduSQL = `
-      SELECT
-        SKU,
-        CAST(sale_date AS STRING) AS sale_date,
-        SUM(Quantity) AS qty
-      FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_SALES}\`
-      WHERE sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-        AND sale_date < CURRENT_DATE()
-        AND sale_date < DATE '${B}'
-        AND Quantity > 0
-      GROUP BY SKU, sale_date
-      ORDER BY SKU, sale_date
-    `;
-
-    // ── 계절성 쿼리 [개선 A]: 미래 기준점 (발주 도착일 기준 향후 90일)
-    // 오늘 발주 → LT일 후 입고 → 그 시점부터 90일이 실제 판매 시즌
-    // 따라서 작년의 "입고예정일 ~ 입고예정일+90일" 구간과 비교
-    // DEFAULT_LT=30 사용 (BQ 쿼리 시점에 Supplier LT 미확정이므로 보수적 기본값)
-    const SEA_LT = getSetting(S.supplier, 'leadtime') || 30;
-    const seaSQL = `
-      SELECT
-        SKU,
-        SUM(Quantity) AS qty_ly
-      FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_SALES}\`
-      WHERE sale_date >= DATE_SUB(
-              DATE_ADD(CURRENT_DATE(), INTERVAL ${SEA_LT} DAY),
-              INTERVAL 1 YEAR)
-        AND sale_date < DATE_SUB(
-              DATE_ADD(DATE_ADD(CURRENT_DATE(), INTERVAL ${SEA_LT} DAY), INTERVAL 90 DAY),
-              INTERVAL 1 YEAR)
-        AND sale_date < DATE '${B}'
-        AND Quantity > 0
-      GROUP BY SKU
-    `;
-
-    // ── 주문기반 ADU 쿼리 (4개 기간 평균) — 참고용 컬럼 (추천발주 계산에는 미사용)
-    // 전달 마지막날 기준 3개월/6개월/1년 + 오늘 기준 3개월
-    // [2026-07 수정] 판매 판별을 Order_Progress='Invoiced' → Status 기준으로 교체.
-    //   'Invoiced' 표기는 2026-01을 끝으로 소멸(표기 체계가 4.Invoiced/5.Fulfilled로 전환)해
-    //   이 쿼리가 사실상 0건만 잡고 있었음. 확정 판별의 권위 = Status (data-contract R3).
-    //   Credit Issued(반품 표기)는 제외.
-    const orderAduSQL = `
-      WITH
-      last_month_end AS (
-        SELECT DATE_SUB(DATE_TRUNC(CURRENT_DATE(), MONTH), INTERVAL 1 DAY) AS eom
-      ),
-      p1 AS (  -- 전달 말 ~ -3개월
-        SELECT SKU, SUM(Quantity) AS qty, 90.0 AS days
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-        WHERE Invoice_Date >= DATE_SUB((SELECT eom FROM last_month_end), INTERVAL 90 DAY)
-          AND Invoice_Date <= (SELECT eom FROM last_month_end)
-          AND UPPER(TRIM(Status)) IN ('CLOSED','COMPLETED')
-          AND UPPER(TRIM(IFNULL(Order_Progress,''))) != 'CREDIT ISSUED'
-          AND Quantity > 0
-        GROUP BY SKU
-      ),
-      p2 AS (  -- 전달 말 ~ -6개월
-        SELECT SKU, SUM(Quantity) AS qty, 180.0 AS days
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-        WHERE Invoice_Date >= DATE_SUB((SELECT eom FROM last_month_end), INTERVAL 180 DAY)
-          AND Invoice_Date <= (SELECT eom FROM last_month_end)
-          AND UPPER(TRIM(Status)) IN ('CLOSED','COMPLETED')
-          AND UPPER(TRIM(IFNULL(Order_Progress,''))) != 'CREDIT ISSUED'
-          AND Quantity > 0
-        GROUP BY SKU
-      ),
-      p3 AS (  -- 전달 말 ~ -1년
-        SELECT SKU, SUM(Quantity) AS qty, 365.0 AS days
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-        WHERE Invoice_Date >= DATE_SUB((SELECT eom FROM last_month_end), INTERVAL 365 DAY)
-          AND Invoice_Date <= (SELECT eom FROM last_month_end)
-          AND UPPER(TRIM(Status)) IN ('CLOSED','COMPLETED')
-          AND UPPER(TRIM(IFNULL(Order_Progress,''))) != 'CREDIT ISSUED'
-          AND Quantity > 0
-        GROUP BY SKU
-      ),
-      p4 AS (  -- 오늘 기준 최근 3개월
-        SELECT SKU, SUM(Quantity) AS qty, 90.0 AS days
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-        WHERE Invoice_Date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-          AND Invoice_Date < CURRENT_DATE()
-          AND UPPER(TRIM(Status)) IN ('CLOSED','COMPLETED')
-          AND UPPER(TRIM(IFNULL(Order_Progress,''))) != 'CREDIT ISSUED'
-          AND Quantity > 0
-        GROUP BY SKU
-      ),
-      all_skus AS (
-        SELECT DISTINCT SKU FROM (
-          SELECT SKU FROM p1 UNION ALL SELECT SKU FROM p2
-          UNION ALL SELECT SKU FROM p3 UNION ALL SELECT SKU FROM p4
-        )
-      )
-      SELECT
-        s.SKU,
-        -- 각 기간 ADU (없으면 NULL)
-        SAFE_DIVIDE(p1.qty, p1.days) AS adu_p1,
-        SAFE_DIVIDE(p2.qty, p2.days) AS adu_p2,
-        SAFE_DIVIDE(p3.qty, p3.days) AS adu_p3,
-        SAFE_DIVIDE(p4.qty, p4.days) AS adu_p4,
-        -- 주문ADU = (P1+P2+P3+P4) ÷ 4 (데이터 없는 기간은 0으로 포함)
-        (
-          COALESCE(SAFE_DIVIDE(p1.qty,p1.days),0) +
-          COALESCE(SAFE_DIVIDE(p2.qty,p2.days),0) +
-          COALESCE(SAFE_DIVIDE(p3.qty,p3.days),0) +
-          COALESCE(SAFE_DIVIDE(p4.qty,p4.days),0)
-        ) / 4.0 AS order_adu
-      FROM all_skus s
-      LEFT JOIN p1 ON s.SKU = p1.SKU
-      LEFT JOIN p2 ON s.SKU = p2.SKU
-      LEFT JOIN p3 ON s.SKU = p3.SKU
-      LEFT JOIN p4 ON s.SKU = p4.SKU
-    `;
-
-    // ── 백오더 쿼리 (2026-07 개편, rev2)
-    //   테이블이 append-only(streaming insert)라 같은 주문의 옛 상태 행이 남는다.
-    //   1단계 latest_state: (Order_Number, SKU)별 최신 행 1건만 채택
-    //     → 해소된 백오더의 유령 행(Backordered 잔재) 제거
-    //     → cin7_updated 없는(null) 행은 뒤로 밀어 진짜 최신 행이 대표가 되게 함
-    //       (COALESCE(cin7_updated, loaded_at)만 쓰면 null 행이 loaded_at으로
-    //        최신처럼 뽑혀 옛 상태가 대표가 되는 버그가 있었음)
-    //   2단계 customer_latest: 동일 고객+SKU는 가장 최근 주문 1건만
-    //     → 같은 고객이 재차 백오더 걸면 "새 수량"이 반영됨
-    //   ⚠️ 상태 비교는 반드시 UPPER()로 — BQ에 'ORDERED'(대문자)와 'Ordered'가
-    //      섞여 있어, Status='Ordered'로 걸면 대문자 행이 통째로 누락됨 (실제 사고 원인).
-    const boSQL = `
-      WITH latest_state AS (
-        SELECT
-          SKU, Customer, Order_Number, Quantity, Order_Date,
-          Order_Progress, Status,
-          ROW_NUMBER() OVER (
-            PARTITION BY Order_Number, SKU
-            ORDER BY
-              CASE WHEN cin7_updated IS NULL THEN 1 ELSE 0 END ASC,
-              cin7_updated DESC,
-              loaded_at DESC
-          ) AS rn
-        FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_ORDERS}\`
-        WHERE Order_Date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-          AND Quantity > 0
-      ),
-      open_backorders AS (
-        SELECT SKU, Customer, Quantity AS qty, Order_Date AS last_order_date
-        FROM latest_state
-        WHERE rn = 1
-          AND UPPER(TRIM(Order_Progress)) = 'BACKORDERED'
-          AND UPPER(TRIM(Status)) = 'ORDERED'
-      ),
-      customer_latest AS (
-        SELECT SKU, qty, last_order_date,
-          ROW_NUMBER() OVER (
-            PARTITION BY SKU, Customer
-            ORDER BY last_order_date DESC
-          ) AS rn2
-        FROM open_backorders
-      )
-      SELECT
-        SKU,
-        SUM(CASE WHEN last_order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) THEN qty ELSE 0 END) AS bo_0_30,
-        SUM(CASE WHEN last_order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
-                  AND last_order_date < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) THEN qty ELSE 0 END) AS bo_30_60,
-        SUM(CASE WHEN last_order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
-                  AND last_order_date < DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) THEN qty ELSE 0 END) AS bo_60_90,
-        SUM(qty) AS bo_qty
-      FROM customer_latest
-      WHERE rn2 = 1
-      GROUP BY SKU
-    `;
-
-    // 재고 최신 날짜 조회 + 최신 스냅샷 데이터 로드 (Ordered/On Order 실시간 반영)
-    const dateSQL = `SELECT FORMAT_DATE('%Y-%m-%d', MAX(snapshot_date)) as latest_date FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_STOCK}\``;
-    const stockSQL = `
-      SELECT sku, location, qty_on_hand, allocated, on_order, in_transit, available, unit_cost
-      FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_STOCK}\`
-      WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_STOCK}\`)
-    `;
-    // 데드 스톡 분석용: SKU별 마지막 판매일 + 90/365일 판매 합계
-    const deadSQL = `
-      SELECT
-        SKU,
-        FORMAT_DATE('%Y-%m-%d', MAX(sale_date)) AS last_sale_date,
-        SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 90  DAY) THEN Quantity ELSE 0 END) AS qty_90d,
-        SUM(CASE WHEN sale_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY) THEN Quantity ELSE 0 END) AS qty_365d
-      FROM \`${BQ_PROJECT}.${BQ_DATASET}.${BQ_SALES}\`
-      WHERE Quantity > 0
-        AND sale_date < DATE '${B}'
-      GROUP BY SKU
-    `;
-    updateBQStatus('load','ADU 계산 중...');
-    // pur-2: 재고(dateSQL · stockSQL) · 공급처 목록(supplierSkuSQL)은 IMS 가 시작 때 읽었다 — BigQuery 로 안 부른다
-    //        백오더는 경계 전 BigQuery · 경계부터 IMS(11-01 부터 열린 백오더는 IMS 에만 있다)
-    const today = purToday(), useImsBo = today >= B;
-    const BT = PUR.bqParts;
-    const [aduRowsBQ, seaRowsBQ, boRowsBQ, orderAduRows, deadRowsBQ, imsSales, imsBo] = await Promise.all([
-      purTimed(BT, 'adu', runBQQuery(aduSQL)),
-      purTimed(BT, 'sea', runBQQuery(seaSQL)),
-      useImsBo ? Promise.resolve([]) : purTimed(BT, 'bo', runBQQuery(boSQL)),
-      purTimed(BT, 'orderAdu', runBQQuery(orderAduSQL)),
-      purTimed(BT, 'dead', runBQQuery(deadSQL).catch(e => { console.warn('[dead stock] 쿼리 실패:', e.message); return []; })),
-      purTimed(BT, 'ims_sales', purImsSales()),
-      useImsBo ? purTimed(BT, 'ims_bo', purImsBackorders()) : Promise.resolve([]),
+    if(PUR.headPromise) await imsGate(PUR.headPromise);                    // 설정(리드타임)을 먼저
+    const SEA_LT = Math.max(0, Math.min(365, Math.round(Number(getSetting(S.supplier, 'leadtime')) || 30)));
+    purSalesStatus('load', '판매 이력 읽는 중...');
+    const [sum, boRows] = await Promise.all([
+      purTimed(PUR.salesParts, 'summary', purRpc('pur_sales_summary', { p_sea_lt: SEA_LT })),
+      purTimed(PUR.salesParts, 'backorders', purImsBackorders()),
     ]);
-    PUR.tBq = purSec(tB0);
-    if(PUR.basePromise) await imsGate(PUR.basePromise);                  // v1a: 줄을 셈하려면 마스터 · 재고가 있어야 한다
-    const dateRows = [{ latest_date: today }], stockRows = [], supplierSkuRows = [];
-    void dateSQL; void stockSQL; void supplierSkuSQL;
-    // ── 판정 605 — BigQuery 줄의 세트 · 콤보를 낱개로 접고(× 계수) · 경계부터의 IMS 판매(이미 낱개)를 합친다
-    const aduFrom = purAddDays(today, -90);
-    const aduRows = purSumBy(
-      purFold(aduRowsBQ, 'SKU', ['qty']).concat(imsSales.filter(r => r.sale_date >= aduFrom && r.sale_date < today).map(r => ({ SKU: r.sku, sale_date: String(r.sale_date).slice(0, 10), qty: r.qty }))),
-      r => r.SKU + '|' + r.sale_date, ['qty'], r => ({ SKU: r.SKU, sale_date: r.sale_date })
-    ).sort((a, b) => a.SKU < b.SKU ? -1 : a.SKU > b.SKU ? 1 : (a.sale_date < b.sale_date ? -1 : a.sale_date > b.sale_date ? 1 : 0));
-    const seaFrom = purAddYears(purAddDays(today, SEA_LT), -1), seaTo = purAddYears(purAddDays(purAddDays(today, SEA_LT), 90), -1);
-    const seaRows = purSumBy(
-      purFold(seaRowsBQ, 'SKU', ['qty_ly']).concat(imsSales.filter(r => r.sale_date >= seaFrom && r.sale_date < seaTo).map(r => ({ SKU: r.sku, qty_ly: r.qty }))),
-      r => r.SKU, ['qty_ly'], r => ({ SKU: r.SKU })
-    );
-    const boRows = useImsBo ? imsBo : purSumBy(purFold(boRowsBQ, 'SKU', ['bo_0_30','bo_30_60','bo_60_90','bo_qty']), r => r.SKU, ['bo_0_30','bo_30_60','bo_60_90','bo_qty'], r => ({ SKU: r.SKU }));
-    const d90 = purAddDays(today, -90), d365 = purAddDays(today, -365);
-    const deadMap = new Map();
-    const deadAdd = (sku, last, q90, q365) => {
-      const a = deadMap.get(sku) || { SKU: sku, last_sale_date: null, qty_90d: 0, qty_365d: 0 };
-      if(last && (!a.last_sale_date || last > a.last_sale_date)) a.last_sale_date = last;
-      a.qty_90d += q90; a.qty_365d += q365; deadMap.set(sku, a);
-    };
-    purFold(deadRowsBQ, 'SKU', ['qty_90d','qty_365d']).forEach(r => deadAdd(r.SKU, r.last_sale_date || null, purNum(r.qty_90d), purNum(r.qty_365d)));
-    imsSales.forEach(r => { const dd = String(r.sale_date).slice(0, 10), q = purNum(r.qty); deadAdd(r.sku, dd, dd >= d90 ? q : 0, dd >= d365 ? q : 0); });
-    const deadRows = Array.from(deadMap.values());
-    // 재고 날짜 업데이트 + 지연 경고
-    if(dateRows[0]?.latest_date){
-      const latestDate = dateRows[0].latest_date;
-      document.getElementById('sv-date').textContent = latestDate;
-      document.querySelectorAll('.stock-date-lbl').forEach(el=>el.textContent=`재고 ${latestDate}`);
-      checkStockFreshness(latestDate);
-    } else {
-      checkStockFreshness(null);
-    }
-
-    // ── 재고 스냅샷 실시간 덮어쓰기 (Ordered/OnOrder 최신화)
-    // BQ 가 반환하는 location 만 갱신 — 없는 location(예: Toronto)은 임베드 값 유지
-    if(stockRows.length){
-      const num = v => (v===null||v===undefined||v==='') ? null : (parseFloat(v) || 0);
-      stockRows.forEach(r => {
-        const sku = r.sku || r.SKU;
-        if(!sku) return;
-        const loc = String(r.location||'').toLowerCase();
-        // Cin7 location naming: "Asung - Edmonton" = 에드몬튼, "Asung Trading Inc." = 토론토 본사
-        // includes('tor') 만으로는 "Asung Trading Inc."를 잡지 못해 Toronto On Order 가 통째로 누락됨
-        const key = loc.includes('edmonton') || loc.includes('edm ') || /\bedm\b/.test(loc)
-          ? 'edmonton'
-          : 'toronto';  // 기본값: Toronto 본사 (Asung Trading Inc. 포함)
-        if(!STOCK[sku]) STOCK[sku] = {toronto:{qoh:0,alloc:0,oo:0,it:0,avail:0}, edmonton:{qoh:0,alloc:0,oo:0,it:0,avail:0}};
-        if(!STOCK[sku][key]) STOCK[sku][key] = {qoh:0,alloc:0,oo:0,it:0,avail:0};
-        // 각 필드 null-safe 병합: BQ 가 해당 컬럼을 돌려주지 않으면 기존 값 유지
-        const qoh   = num(r.qty_on_hand);  if(qoh   !== null) STOCK[sku][key].qoh   = qoh;
-        const alloc = num(r.allocated);    if(alloc !== null) STOCK[sku][key].alloc = alloc;
-        const oo    = num(r.on_order);     if(oo    !== null) STOCK[sku][key].oo    = oo;
-        const it    = num(r.in_transit);   if(it    !== null) STOCK[sku][key].it    = it;
-        const avail = num(r.available);
-        STOCK[sku][key].avail = avail !== null
-          ? avail
-          : (STOCK[sku][key].qoh - STOCK[sku][key].alloc);
-        // unit_cost 는 location 무관하게 SKU 단위로 보존 (마지막 본 값 유지)
-        const uc = num(r.unit_cost);
-        if(uc !== null && uc > 0) STOCK[sku].unit_cost = uc;
-      });
-      console.log(`[stock refresh] ${stockRows.length}건 스냅샷 반영 완료 (Ordered 최신화)`);
-    }
+    PUR.tSales = purSec(t0);
+    if(PUR.basePromise) await imsGate(PUR.basePromise);                    // 줄을 셈하려면 마스터 · 재고가 있어야 한다
+    const S_ = r => String(r.sku || '');
+    const aduRows = (sum.adu_daily || []).map(r => ({ SKU: S_(r), sale_date: String(r.sale_date).slice(0, 10), qty: r.qty }));
+    const seaRows = (sum.sea || []).map(r => ({ SKU: S_(r), qty_ly: r.qty_ly }));
+    const orderAduRows = (sum.order_adu || []).map(r => ({ SKU: S_(r), adu_p1: r.adu_p1, adu_p2: r.adu_p2, adu_p3: r.adu_p3, adu_p4: r.adu_p4, order_adu: r.order_adu }));
+    const deadRows = (sum.dead || []).map(r => ({ SKU: S_(r), last_sale_date: r.last_sale_date ? String(r.last_sale_date).slice(0, 10) : null, qty_90d: r.qty_90d, qty_365d: r.qty_365d }));
+    PUR.salesHead = { today: sum.today, boundary: sum.boundary, pre_rows: sum.pre_rows, counts: sum.counts };
+    console.log('[pur 판매 · ' + PUR_BUILD + '] ' + PUR.tSales + 's', PUR.salesParts, PUR.salesHead);
 
     // ── 데드 스톡 분석 데이터 (SKU → {last_sale_date, qty_90d, qty_365d})
     S.salesAgg = {};
     deadRows.forEach(r => {
-      const sku = r.SKU || r.sku;
+      const sku = r.SKU;
       if(!sku) return;
       S.salesAgg[sku] = {
         last_sale_date: r.last_sale_date || null,
@@ -1868,7 +1283,6 @@ async function loadSalesDataFromBQ(){
         qty_365d:       parseFloat(r.qty_365d) || 0,
       };
     });
-    console.log(`[dead stock] ${deadRows.length}건 판매 집계 로드 완료`);
 
     // ── ADU 계산 (SKU별 일별 데이터 집계)
     const dailyMap = {};  // sku -> [qty per day over 90 days]
@@ -1898,10 +1312,10 @@ async function loadSalesDataFromBQ(){
       if(r.order_adu !== null && r.order_adu !== undefined) {
         orderAduMap[r.SKU] = {
           adu:   parseFloat(r.order_adu)||0,
-          adu_p1: r.adu_p1 !== null ? parseFloat(r.adu_p1) : null,
-          adu_p2: r.adu_p2 !== null ? parseFloat(r.adu_p2) : null,
-          adu_p3: r.adu_p3 !== null ? parseFloat(r.adu_p3) : null,
-          adu_p4: r.adu_p4 !== null ? parseFloat(r.adu_p4) : null,
+          adu_p1: r.adu_p1 !== null && r.adu_p1 !== undefined ? parseFloat(r.adu_p1) : null,
+          adu_p2: r.adu_p2 !== null && r.adu_p2 !== undefined ? parseFloat(r.adu_p2) : null,
+          adu_p3: r.adu_p3 !== null && r.adu_p3 !== undefined ? parseFloat(r.adu_p3) : null,
+          adu_p4: r.adu_p4 !== null && r.adu_p4 !== undefined ? parseFloat(r.adu_p4) : null,
         };
       }
     });
@@ -1965,57 +1379,25 @@ async function loadSalesDataFromBQ(){
 
     S.backorderData = boMap; // { SKU: { bo0_30, bo30_60, bo60_90, total } }
 
-    // ── MASTER 보강: purchase_history 기반 supplier SKU
-    // master.json에 없거나 supplier가 누락된 SKU를 BQ에서 채움
-    // → 판매 이력 없는 신규 상품도 발주 추천에 표시
-    let masterPatchCount = 0;
-    (supplierSkuRows || []).forEach(r => {
-      const sku = r.sku || r.SKU;
-      const sup = r.supplier_name || r.SUPPLIER_NAME || '';
-      const nm  = r.product_name  || r.PRODUCT_NAME  || '';
-      if (!sku || !sup) return;
-      const br = r.brand || r.BRAND || '—';
-      if (!MASTER[sku]) {
-        // 완전 신규 SKU
-        MASTER[sku] = { name: nm, brand: br, supplier: sup };
-        masterPatchCount++;
-      } else {
-        // 기존 SKU: BQ 데이터 항상 우선 적용 (master.json 덮어씀)
-        let changed = false;
-        if (sup && sup !== '—') { MASTER[sku].supplier = sup; changed = true; }
-        if (br  && br  !== '—') { MASTER[sku].brand    = br;  changed = true; }
-        if (nm && !MASTER[sku].name) { MASTER[sku].name = nm; changed = true; }
-        if (changed) masterPatchCount++;
-      }
-    });
-    if (masterPatchCount > 0) {
-      console.log(`[MASTER 보강] ${masterPatchCount}개 SKU supplier 정보 추가/수정`);
-      buildNav(); // supplier 목록 및 카운트 재빌드
-    }
-
-    S.bqReady = true;
-
-    const skuCount = Object.keys(S.salesData).length;
-    updateBQStatus('ok', `BQ 연결됨 — ${skuCount}개 SKU`);
-    purTimeTag();
+    S.salesReady = true;
+    purSalesStatus('ok');
     hideLoading();
 
     recompute();
     renderTable();
     if(document.getElementById('fc-view').style.display!=='none') renderForecast();
+    if(document.getElementById('ds-view').style.display!=='none' && typeof renderDeadStock === 'function') renderDeadStock();
 
   } catch(err) {
     hideLoading();
-    if(err.message === 'IMS_FAIL') return;                               // v1a: IMS 실패는 시작 자리가 이미 알렸다
-    // TOKEN_EXPIRED는 runBQQuery에서 배너로 이미 처리됨 — alert 생략
-    if(err.message !== 'TOKEN_EXPIRED'){
-      updateBQStatus('warn','연결 실패: '+err.message);
-      alert('BigQuery 연결 오류: '+err.message);
-    }
+    if(err.message === 'IMS_FAIL') return;                                 // IMS 실패는 시작 자리가 이미 알렸다
+    console.error('[pur 판매] ', err);
+    purSalesStatus('warn', '판매 이력을 읽지 못했습니다: ' + err.message);
   } finally {
-    PUR.bqPending = false;
+    PUR.salesPending = false;
   }
 }
+
 
 // ═══════════════════════════════════════════════════════
 //  BRANCH / TAB / SUPPLIER
@@ -2474,7 +1856,7 @@ function recompute(){
   if(!S.supplier){ S.computed=[]; updateSummary(); return; }
   const lt=getSetting(S.supplier,'leadtime'), tg=getSetting(S.supplier,'target'), cycle=getSetting(S.supplier,'cycle');
   const ltSigma=getSetting(S.supplier,'lt_sigma')||0;  // [개선 B] LT 변동성
-  if(S.bqReady) buildABCThresholds();
+  if(S.salesReady) buildABCThresholds();
   // 영업일수 캐시 (주말·캐나다 공휴일 제외한 90일 내 실 영업일수)
   if(!S._workingDays90) S._workingDays90 = countWorkingDays(90);
 
@@ -2533,13 +1915,13 @@ function recompute(){
       const adj = Math.min(1.2, finalSea * finalTrd);
 
       // ── Safety Stock [개선 B]: LT 변동성(ltSigma) 포함
-      const ss = S.bqReady ? calcSafetyStock(rawDays, lt, adu, ltSigma) : 0;
+      const ss = S.salesReady ? calcSafetyStock(rawDays, lt, adu, ltSigma) : 0;
 
       // ── 백오더: Toronto 재고=0인 경우만, 중복 제거됨
       const torAvail=STOCK[sku]?.toronto?.avail??0;
-      const boData=S.bqReady?(S.backorderData[sku]||{bo0_30:0,bo30_60:0,bo60_90:0,total:0}):{bo0_30:0,bo30_60:0,bo60_90:0,total:0};
+      const boData=S.salesReady?(S.backorderData[sku]||{bo0_30:0,bo30_60:0,bo60_90:0,total:0}):{bo0_30:0,bo30_60:0,bo60_90:0,total:0};
       // 추천발주에는 0~30일 백오더만 반영 (재고 차감 후)
-      const bo=S.bqReady?Math.max(0,(boData.bo0_30||0)-Math.max(0,torAvail)):0;
+      const bo=S.salesReady?Math.max(0,(boData.bo0_30||0)-Math.max(0,torAvail)):0;
 
       // ── ABC 분류
       const abc = calcABC(sku);
@@ -2549,7 +1931,7 @@ function recompute(){
       // 최대재고 = ADU × 커버일수 × adj + 안전재고
       // 발주량   = 최대재고 - 가용재고 - 기발주 + 백오더
       const coverDays = Math.max(tg, lt + cycle);
-      const maxStock = S.bqReady&&adu>0 ? Math.round(adu*coverDays*adj + ss) : null;
+      const maxStock = S.salesReady&&adu>0 ? Math.round(adu*coverDays*adj + ss) : null;
       const recRaw = maxStock !== null
         ? maxStock - avail - extOO + bo
         : null;
@@ -2878,7 +2260,7 @@ async function addSkuLink(){
   document.getElementById('slm-new').value='';
   renderSkuLinkList();
   // BQ 연결된 상태면 데이터 재계산
-  if(S.bqReady){ recompute(); renderTable(); if(document.getElementById('fc-view').style.display!=='none') renderForecast(); }
+  if(S.salesReady){ recompute(); renderTable(); if(document.getElementById('fc-view').style.display!=='none') renderForecast(); }
 }
 async function removeSkuLink(idx){
   const l = PUR.skuLinks[idx];
@@ -2887,7 +2269,7 @@ async function removeSkuLink(idx){
   catch(e){ purErr('연결 삭제 실패', e); return; }
   PUR.skuLinks.splice(idx,1);
   renderSkuLinkList();
-  if(S.bqReady){ recompute(); renderTable(); if(document.getElementById('fc-view').style.display!=='none') renderForecast(); }
+  if(S.salesReady){ recompute(); renderTable(); if(document.getElementById('fc-view').style.display!=='none') renderForecast(); }
 }
 function renderSkuLinkList(){
   const links=loadSkuLinks();
@@ -2938,7 +2320,7 @@ function setOv(sku,v){ const r=S.computed.find(r=>r.sku===sku); if(r)r._ov=v==='
 function editSkuOverride(sku,key,curVal,evt){
   evt.stopPropagation();
   const newVal = prompt(`${sku} ${key==='sea'?'계절보정':'트렌드'} 수동 입력
-(BQ 자동값: ×${curVal.toFixed(2)}, 비우면 자동으로 복원)`, curVal.toFixed(2));
+(자동값: ×${curVal.toFixed(2)}, 비우면 자동으로 복원)`, curVal.toFixed(2));
   if(newVal===null) return; // 취소
   if(!S.skuOverrides) S.skuOverrides={};
   if(!S.skuOverrides[sku]) S.skuOverrides[sku]={};
@@ -2979,7 +2361,7 @@ function sortFc(col){
 function renderForecast(){
   const empty=document.getElementById('fc-empty');
   const wrap=document.getElementById('fc-tbl-wrap');
-  if(!S.bqReady){ empty.style.display='block'; if(wrap)wrap.style.display='none'; return; }
+  if(!S.salesReady){ empty.style.display='block'; if(wrap)wrap.style.display='none'; return; }
   empty.style.display='none';
   if(wrap)wrap.style.display='block';
 
@@ -3074,7 +2456,7 @@ function renderForecast(){
 
 // Forecast CSV 다운로드
 function dlForecastCSV(){
-  if(!S.bqReady){alert('BigQuery 연결 후 사용 가능합니다.');return;}
+  if(!S.salesReady){alert('판매 이력을 읽는 중입니다 — 잠시 뒤 다시 눌러 주세요.');return;}
   const q=(document.getElementById('fc-srch').value||'').toLowerCase();
   let rows = S.supplier ? S.computed.filter(r=>r.adu>0) :
     Object.entries(MASTER).filter(([sku])=>S.salesData[sku]).map(([sku,meta])=>{
@@ -3151,7 +2533,7 @@ function _dsBuildRows(){
 }
 
 function renderDeadStock(){
-  if(!S.bqReady){
+  if(!S.salesReady){
     document.getElementById('ds-empty').style.display='block';
     document.getElementById('ds-tbl-wrap').style.display='none';
     document.getElementById('ds-stats').innerHTML='';
@@ -3259,7 +2641,7 @@ document.addEventListener('click', e => {
 });
 
 function dlDeadStockCSV(){
-  if(!S.bqReady){alert('BigQuery 연결 후 사용 가능합니다.');return;}
+  if(!S.salesReady){alert('판매 이력을 읽는 중입니다 — 잠시 뒤 다시 눌러 주세요.');return;}
   let rows = _dsBuildRows();
   if(S.dsStock === 'instock') rows = rows.filter(r=>r.total > 0);
   else if(S.dsStock === 'zero') rows = rows.filter(r=>r.total === 0);
@@ -3303,7 +2685,7 @@ S.rvFilter = 'all';
 S.rvSort   = { col:'diff_pct', dir:-1 };
 
 function initReceivingAudit(){
-  if(!S.bqReady){
+  if(!S.salesReady){
     document.getElementById('rv-status').textContent='⚠ BQ 연결 필요';
     document.getElementById('rv-status').style.color='var(--yellow)';
     return;
@@ -3329,7 +2711,7 @@ function rvForceRefresh(){
 }
 
 async function loadReceivingAudit(){
-  if(!S.bqReady) return;
+  if(!S.salesReady) return;
   const days=parseInt(document.getElementById('rv-period').value)||0;
   // 기간 필터: order_date 기준 (received_date가 NULL인 부족입고도 커버)
   // received_date OR order_date 둘 중 하나라도 기간 내이면 포함
@@ -3628,7 +3010,7 @@ function initSupplierIntelligence(){
 
 async function loadSupplierIntelligence(supplier){
   if(!supplier){ return; }
-  if(!S.bqReady){
+  if(!S.salesReady){
     document.getElementById('si-status').textContent='⚠ BigQuery 연결 필요 — 상단 BQ 버튼을 클릭하세요';
     document.getElementById('si-status').style.color='var(--yellow)';
     return;
@@ -4763,9 +4145,9 @@ function dlCSV(mode){
         const adu = sd?.adu??0;
         const sea = sd?.sea??1, trd2 = sd?.trd??1;
         const adj = Math.min(1.2, sea*trd2);
-        const bo = (S.bqReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
+        const bo = (S.salesReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
         const rawDays = sd?.days||[];
-        const ss = S.bqReady&&rawDays.length>=7 ? calcSafetyStock(rawDays,lt,adu) : 0;
+        const ss = S.salesReady&&rawDays.length>=7 ? calcSafetyStock(rawDays,lt,adu) : 0;
         const coverDays = Math.max(tg, lt+cycle);
         const maxStock = adu>0 ? Math.round(adu*coverDays*adj+ss) : null;
         const recRaw = maxStock!==null ? maxStock-avail-extOO+bo : null;
@@ -4791,12 +4173,12 @@ function dlCSV(mode){
       const extOO=S.branch==='edmonton'?edmSupOO2:S.branch==='toronto'?torOO2:torOO2+edmSupOO2;
       const sd=S.salesData[sku];
       const adu=sd?.adu??0,sea=sd?.sea??1,trd=sd?.trd??1,adj=Math.min(1.2,sea*trd);
-      const bo=(S.bqReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
+      const bo=(S.salesReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
       const sup=meta.supplier,lt=getSetting(sup,'leadtime'),tg=getSetting(sup,'target'),cycle=getSetting(sup,'cycle');
       const rawDays=sd?.days||[];
-      const ss=S.bqReady?calcSafetyStock(rawDays,lt,adu):0;
+      const ss=S.salesReady?calcSafetyStock(rawDays,lt,adu):0;
       const coverDays2=Math.max(tg,lt+cycle);
-      const maxStock=S.bqReady&&adu>0?Math.round(adu*coverDays2*adj+ss):null;
+      const maxStock=S.salesReady&&adu>0?Math.round(adu*coverDays2*adj+ss):null;
       const recRaw=maxStock!==null?maxStock-avail-extOO+bo:null;
       const rec=recRaw!==null?Math.max(0,recRaw):null;
       const r=S.computed.find(r=>r.sku===sku);
@@ -4830,12 +4212,12 @@ function dlCSV(mode){
       const extOO=S.branch==='edmonton'?edmSupOO2:S.branch==='toronto'?torOO2:torOO2+edmSupOO2;
       const sd=S.salesData[sku];
       const adu=sd?.adu??0,sea=sd?.sea??1,trd=sd?.trd??1,adj=sd?.adj??1;
-      const bo=(S.bqReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
+      const bo=(S.salesReady&&(STOCK[sku]?.toronto?.avail??0)<=0)?(S.backorderData[sku]||0):0;
       const sup=meta.supplier,lt=getSetting(sup,'leadtime'),tg=getSetting(sup,'target'),cycle=getSetting(sup,'cycle');
       const rawDays2=sd?.days||[];
-      const ss2=S.bqReady?calcSafetyStock(rawDays2,lt,adu):0;
+      const ss2=S.salesReady?calcSafetyStock(rawDays2,lt,adu):0;
       const coverDays3=Math.max(tg,lt+cycle);
-      const maxStock2=S.bqReady&&adu>0?Math.round(adu*coverDays3*adj+ss2):null;
+      const maxStock2=S.salesReady&&adu>0?Math.round(adu*coverDays3*adj+ss2):null;
       const recRaw2=maxStock2!==null?maxStock2-avail-extOO+bo:null;
       const rec=recRaw2!==null?Math.max(0,recRaw2):null;
       const r=S.computed.find(r=>r.sku===sku);
@@ -4877,32 +4259,6 @@ function hideLoading(){ document.getElementById('loading').classList.remove('sho
 // ═══════════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════════
-/* v1a — 구글 토큰이 있으면 BigQuery 를 곧바로(IMS 읽기와 동시에) · 없으면 'bar'(연결 막대는 IMS 기본 뒤 · 경계 날짜가 든다) */
-function purStartBQ(){
-  checkOAuthCallback();
-  if(S.accessToken) return 'started';
-  // localStorage에서 토큰 복원 (sessionStorage 구버전도 폴백 처리)
-  const savedToken = localStorage.getItem('bq_token') || sessionStorage.getItem('bq_token');
-  const savedExpire = parseInt(localStorage.getItem('bq_token_expire') || '0');
-  if(savedToken){
-    if(savedExpire && Date.now() > savedExpire){
-      // 이미 만료된 토큰: 조용히 제거하고 수동 연결 대기
-      localStorage.removeItem('bq_token');
-      localStorage.removeItem('bq_token_expire');
-      sessionStorage.removeItem('bq_token');
-      updateBQStatus('warn', '토큰 만료 — 재연결 필요');
-      document.getElementById('bq-banner').className = 'banner warn';
-      document.getElementById('bq-banner').innerHTML =
-        '🔑 저장된 BQ 토큰이 만료됐어요. <a onclick="connectBQ()">재연결 →</a>';
-      return 'expired';
-    }
-    S.accessToken = savedToken;
-    updateBQStatus('load', '저장된 토큰으로 연결 중...');
-    loadSalesDataFromBQ();
-    return 'started';
-  }
-  return 'bar';
-}
 imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client;
   if(typeof imsHeader === 'function') imsHeader(meData);   // pur v2a — IMS 머리 줄 이름 · 역할(옛 화면을 옮기며 빠졌다)
@@ -4912,7 +4268,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   showLoading('IMS 데이터 읽는 중...');
   PUR.t0 = performance.now();
   PUR.basePromise = purLoadBase();
-  const bqStart = purStartBQ();                                          // v1a: IMS 기본을 기다리지 않는다
+  PUR.salesPromise = loadSalesData();                                   // pur v3 — 판매 이력(IMS 창구 pur_sales_summary)도 동시에 · 판정 616 B
   try {
     await PUR.basePromise;
     PUR.tIms = purSec(PUR.t0);
@@ -4922,7 +4278,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     alert('IMS 데이터 로드 실패: ' + e.message + '\n\n' + (/timeout/i.test(e.message || '') ? '(DB 가 시간 안에 답하지 못했습니다 — 권한 문제가 아닙니다 · 잠시 뒤 다시 열어 보세요)' : '(구매 권한(purchasing)이 있어야 열립니다)'));
     return;
   }
-  if(PUR.bqPending) showLoading('판매 데이터 쿼리 중...'); else hideLoading();
+  if(PUR.salesPending) showLoading('판매 이력 읽는 중...'); else hideLoading();
   loadWMASettings();
   buildNav();
   renderTable();
@@ -4934,12 +4290,7 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   document.getElementById('sv-date').textContent = today;
   document.querySelectorAll('.stock-date-lbl').forEach(el=>el.textContent=`재고 ${today} (IMS)`);
   checkStockFreshness(today);
-  purImportOffer();
   purLoadCost();
-  if(bqStart === 'bar'){
-    // 판정 616 A — 경계 전 판매 이력은 각자 구글 로그인으로 BigQuery 에서 읽는다 · 없으면 추천 발주를 세지 않는다
-    purBar('pur-bq-bar', '🔑 지난 판매 이력(' + (PUR.boundary || '2026-11-01') + ' 전)은 BigQuery 에 있습니다 — 구글(@asung.ca)로 연결해야 추천 발주가 계산됩니다. <button onclick="connectBQ()">Google 연결 →</button>', true);
-  }
 });
 
 // ── 사이드바 토글
