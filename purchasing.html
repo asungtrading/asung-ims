@@ -610,10 +610,10 @@ body{font-family:var(--sans)}
           <div class="ds-title">데드 스톡 분석</div>
           <div class="ptog" id="ds-status-tog">
             <button class="active" data-st="all" onclick="setDsStatus('all',this)">전체</button>
-            <button data-st="dead" onclick="setDsStatus('dead',this)">Dead (365일+ 무판매)</button>
+            <button data-st="dead" onclick="setDsStatus('dead',this)" title="365일 넘게 안 팔림 · 또는 등록 90일이 지났는데 한 번도 안 팔림">Dead (365일+ 무판매 · 등록 90일+ 판매 0)</button>
             <button data-st="slow" onclick="setDsStatus('slow',this)">Slow (90~365일)</button>
             <button data-st="active" onclick="setDsStatus('active',this)">Active</button>
-            <button data-st="new" onclick="setDsStatus('new',this)">New (판매 이력 없음)</button>
+            <button data-st="new" onclick="setDsStatus('new',this)" title="등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90일 안 · 아직 판매 0">New (등록 90일 안 · 판매 0)</button>
           </div>
           <div class="ptog" id="ds-stock-tog">
             <button class="active" data-sk="instock" onclick="setDsStock('instock',this)">재고있음</button>
@@ -860,7 +860,7 @@ const STOCK_DATE = '2026-04-20';
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 · pur-3)
    · Supplier 분석 · 입고 검증 두 탭은 숨김(판정 1253) — 「BigQuery 전체 이력을 IMS 로」(deferred 626) 뒤 IMS 자료로 다시 */
-const PUR_BUILD = '2026-11-15 · pur v3';   // v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-11-15 · pur v3a';   // v3a — 판정 1257(Caleb 화면 시험: New 447 이 모두 2025-11 뒤 등록 · 52 는 IMS 에서 만든 제품 — 1 년 가까이 안 팔린 것도 New 로 묻힘): 데드 스톡 — 판매 0 은 등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90 일 안이면 New · 지났으면 Dead(판매 이력 없음 · 마지막 판매 칸 「판매 없음」 · 무판매 일수 = 등록 뒤 날수) · 등록일은 판매 0 SKU 만 product 에서 200 개씩 · 못 읽으면 옛 규칙(New) · 단추 글 ← v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -1241,6 +1241,26 @@ async function runBQQuery(){
 //  · 백오더 = IMS pur_backorders · 구 SKU → 신 SKU 연결(getSkuLinkMap)은 그대로 화면 몫
 //  · 아래 「ADU + 계절성 + 트렌드」 계산은 pur v2a 까지와 같은 코드
 // ═══════════════════════════════════════════════════════
+/* pur v3a(판정 1257) — 판매 기록이 없는 SKU 만 등록일을 읽는다(product 는 직원이면 읽힘 · 200 개씩) · Cin7 등록일 → 없으면 IMS 에서 만든 날 */
+async function purLoadRegDates(){
+  PUR.regDate = PUR.regDate || {};
+  const want = {};
+  new Set([...Object.keys(STOCK), ...Object.keys(MASTER)]).forEach(sku => {
+    if(S.salesAgg && S.salesAgg[sku] && S.salesAgg[sku].last_sale_date) return;
+    if(PUR.regDate[sku]) return;
+    const pid = (MASTER[sku] && MASTER[sku].product_id) || (STOCK[sku] && STOCK[sku].product_id);
+    if(pid) want[pid] = sku;
+  });
+  const ids = Object.keys(want);
+  try{
+    for(let i = 0; i < ids.length; i += 200){
+      const { data, error } = await sb.from('product').select('id,cin7_created_on,created_at').in('id', ids.slice(i, i + 200));
+      if(error) throw error;
+      (data || []).forEach(p => { const d = p.cin7_created_on || p.created_at; if(d) PUR.regDate[want[p.id]] = String(d).slice(0, 10); });
+    }
+  }catch(e){ console.warn('[등록일] ' + (e && e.message ? e.message : e)); return; }
+  if(document.getElementById('ds-view') && document.getElementById('ds-view').style.display !== 'none' && typeof renderDeadStock === 'function') renderDeadStock();
+}
 function purSalesStatus(state, txt){
   const banner = document.getElementById('sales-banner');
   if(!banner) return;
@@ -1378,6 +1398,7 @@ async function loadSalesData(){
     });
 
     S.backorderData = boMap; // { SKU: { bo0_30, bo30_60, bo60_90, total } }
+    purLoadRegDates();                                                     // pur v3a(판정 1257) — 판매 0 SKU 의 등록일(기다리지 않는다 · 오면 데드 스톡을 다시 그림)
 
     S.salesReady = true;
     purSalesStatus('ok');
@@ -2519,14 +2540,23 @@ function _dsBuildRows(){
     }
     const q90  = agg?.qty_90d  || 0;
     const q365 = agg?.qty_365d || 0;
-    let status;
-    if(!last)          status = 'new';     // 판매 이력 자체가 없음 (신제품 등)
+    let status, noSale = false;
+    if(!last){
+      // pur v3a(판정 1257) — 판매 0 은 등록 90 일 안이면 New · 지났으면 Dead(판매 이력 없음) · 무판매 일수 = 등록 뒤 날수 · 등록일을 못 읽었으면 New(옛 규칙)
+      const rd = PUR.regDate && PUR.regDate[sku];
+      if(rd){
+        const d = new Date(rd); d.setHours(0,0,0,0);
+        const since = Math.round((today - d)/(1000*60*60*24));
+        if(since > 90){ status = 'dead'; noSale = true; dsls = since; }
+        else status = 'new';
+      } else status = 'new';
+    }
     else if(q90 > 0)   status = 'active';
     else if(q365 > 0)  status = 'slow';
     else               status = 'dead';    // 365일+ 무판매 (판매 이력은 있음)
     out.push({
       sku, product:meta.name||'', brand:meta.brand||'—', supplier:meta.supplier||'—',
-      tor, edm, total, last, dsls, qty90:q90, qty365:q365, cost, value, status
+      tor, edm, total, last, dsls, qty90:q90, qty365:q365, cost, value, status, noSale
     });
   });
   return out;
@@ -2619,7 +2649,7 @@ function renderDeadStock(){
       <td>${fmt0(r.tor)}</td>
       <td>${fmt0(r.edm)}</td>
       <td><b>${fmt0(r.total)}</b></td>
-      <td>${r.last||'—'}</td>
+      <td>${r.last || (r.noSale ? '<span title="한 번도 안 팔림 — 무판매 일수는 등록 뒤 날수">판매 없음</span>' : '—')}</td>
       <td style="color:${r.dsls>=365?'#b42318':r.dsls>=90?'#92640a':'var(--text2)'}">${dsls(r.dsls)}</td>
       <td>${fmt0(r.qty90)}</td>
       <td>${fmt0(r.qty365)}</td>
