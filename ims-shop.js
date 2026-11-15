@@ -1,6 +1,7 @@
 /* Asung IMS — Shopify 카드(shop-2c · 판정 404 ~ 415 · DB shop-2a1 81d779c · shop-2a2 0d3eb6e · EF shop-2b 2f6136f)
    ─────────────────────────────────────────────
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-shop.js (esc · imsTs · imsPhotoUrl · imsAuth 를 쓴다)
+   📌 2026-11-14 · 대화 Claude · shop v3(판정 1232 · deferred 599 · Shopify 사진 가져오기 뒤): family 웹 대표 표시 · 고르기가 **패밀리 사진**(product_image.family_id)도 읽는다 — 가져오기(1198)로 444 패밀리의 웹 대표가 패밀리 사진이 되어, 구성원 사진만 읽던 카드가 「The chosen photo is no longer an active photo of a variant」 를 잘못 띄웠다 · 고르기 창은 패밀리 사진 먼저(「family photo」) → 구성원 사진 · 경고 글은 「of a variant or of the family」 · DB 무변(shop_listing_set 은 imp-1 부터 패밀리 사진을 받는다 · shop_product_payload 도) · 상품(kind product) 카드 무변
    📌 2026-10-10 · 대화 Claude · shop v2(stock-1c · 판정 421 ~ 425): 스토어 줄마다 위치별 「Stock on Shopify」 표(뷰 shop_stock_list · 변형 × 위치 · 보낸 숫자 · 시각 · 에러 · 보내는 중) · 「Send stock now」(EF stock_push · 바로 · 판정 415 결) · family 구성원 화면에도 그 변형의 위치별 숫자 · 안내 글 sold out → not available(판정 425)
    📌 2026-10-10 · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험) · shop v1b(판정 416: products.html Edit 안에서도 읽기만으로 보인다 — card(kind, { readOnly }) · wire opts.readOnly → 단추 없음)
 
@@ -307,36 +308,38 @@
     const { row, sb } = opts;
     const box = el.querySelector("[data-ishop-web]"); if (!box) return;
     const ids = (opts.members || []).map(m => m.id);
-    let imgs = [];
-    if (ids.length) {
-      const { data } = await sb.from("product_image").select("id,product_id,storage_path,is_primary,sort_order").in("product_id", ids).eq("is_active", true);
-      imgs = data || [];
-    }
+    let imgs = [], fimgs = [];
+    const [mi, fi] = await Promise.all([
+      ids.length ? sb.from("product_image").select("id,product_id,storage_path,is_primary,sort_order").in("product_id", ids).eq("is_active", true) : Promise.resolve({ data: [] }),
+      row.id ? sb.from("product_image").select("id,family_id,storage_path,sort_order").eq("family_id", row.id).eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),   // shop v3 — 패밀리 사진
+    ]);
+    imgs = (mi && mi.data) || []; fimgs = (fi && fi.data) || [];
     if (!el.isConnected) return;
     const skuOf = {}; (opts.members || []).forEach(m => { skuOf[m.id] = m.sku; });
-    const curImg = row.web_image_id ? imgs.find(x => x.id === row.web_image_id) : null;
+    const curImg = row.web_image_id ? (fimgs.find(x => x.id === row.web_image_id) || imgs.find(x => x.id === row.web_image_id)) : null;
     const firstPrimary = imgs.filter(x => x.is_primary).sort((a, b) => String(skuOf[a.product_id]).localeCompare(String(skuOf[b.product_id])))[0] || null;
     const shown = curImg || firstPrimary;
     box.innerHTML = `<div class="ishop-web">
       ${shown ? `<img src="${esc(imsPhotoUrl(shown.storage_path))}" alt="">` : `<span class="dim">No photo</span>`}
       <div style="flex:1;font-size:12.5px"><b>First photo on Shopify</b><br>
-        ${curImg ? `Chosen: photo of <span class="mono">${esc(skuOf[curImg.product_id] || "")}</span>`
-          : row.web_image_id ? `<span style="color:var(--warn,#b54708)">The chosen photo is no longer an active photo of a variant — the default is used.</span>`
+        ${curImg ? (curImg.family_id ? `Chosen: a family photo` : `Chosen: photo of <span class="mono">${esc(skuOf[curImg.product_id] || "")}</span>`)
+          : row.web_image_id ? `<span style="color:var(--warn,#b54708)">The chosen photo is no longer an active photo of a variant or of the family — the default is used.</span>`
           : `<span class="dim">Not chosen — uses the first variant's main photo${firstPrimary ? ` (<span class="mono">${esc(skuOf[firstPrimary.product_id] || "")}</span>)` : ""}.</span>`}</div>
-      ${can && imgs.length ? `<button class="pobtn" data-ishop-webpick>Choose photo</button>` : ""}
+      ${can && (imgs.length || fimgs.length) ? `<button class="pobtn" data-ishop-webpick>Choose photo</button>` : ""}
     </div>`;
     const pb = box.querySelector("[data-ishop-webpick]");
-    if (pb) pb.onclick = () => openPicker(el, opts, imgs, skuOf);
+    if (pb) pb.onclick = () => openPicker(el, opts, imgs, skuOf, fimgs);
   }
 
-  function openPicker(el, opts, imgs, skuOf) {
+  function openPicker(el, opts, imgs, skuOf, fimgs) {
     const { row, sb } = opts;
-    const list = imgs.slice().sort((a, b) => String(skuOf[a.product_id]).localeCompare(String(skuOf[b.product_id])) || (b.is_primary - a.is_primary) || (a.sort_order - b.sort_order));
+    const list = (fimgs || []).slice().sort((a, b) => a.sort_order - b.sort_order)   // shop v3 — 패밀리 사진 먼저
+      .concat(imgs.slice().sort((a, b) => String(skuOf[a.product_id]).localeCompare(String(skuOf[b.product_id])) || (b.is_primary - a.is_primary) || (a.sort_order - b.sort_order)));
     const box = modal(`<h4>First photo on Shopify — <span class="mono">${esc(row.sku)}</span></h4>
       <div class="pbody"><div class="ishop-pick">
         <button data-pick="" class="${row.web_image_id ? "" : "cur"}"><div class="none">Default</div>first variant's main photo</button>
         ${list.map(x => `<button data-pick="${esc(x.id)}" class="${x.id === row.web_image_id ? "cur" : ""}">
-          <img src="${esc(imsPhotoUrl(x.storage_path))}" alt=""><span class="mono">${esc(skuOf[x.product_id] || "")}</span>${x.is_primary ? " · main" : ""}</button>`).join("")}
+          <img src="${esc(imsPhotoUrl(x.storage_path))}" alt="">${x.family_id ? `<span>family photo</span>` : `<span class="mono">${esc(skuOf[x.product_id] || "")}</span>${x.is_primary ? " · main" : ""}`}</button>`).join("")}
       </div></div>
       <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button></div>`);
     box.querySelector('[data-m="close"]').onclick = closeModal;
