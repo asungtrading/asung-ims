@@ -22,17 +22,17 @@
 })();
 </script>
 <style>@import url("ims-ui.css") layer(ims);</style>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d0f14;--bg2:#13161e;--bg3:#1a1e28;--bg4:#222736;
-  --border:#2a2f3f;--border2:#353b50;
-  --text:#e2e6f0;--text2:#8b92a8;--text3:#555e78;
-  --accent:#4f8ef7;--accent2:#3a6fd4;
-  --green:#3ecf8e;--red:#f76f6f;--yellow:#f7c44f;--purple:#a78bfa;
-  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans KR',sans-serif;
+  /* pur v2 — IMS 라이트 꼴(판정 619): 값은 ims-ui.css 와 같은 글자 · 이 화면의 옛 이름(--bg2 · --text …)은 그대로 두고 값만 바꿨다 */
+  --bg:#f7f8fa;--bg2:#ffffff;--bg3:#f3f5f8;--bg4:#eef1f5;
+  --border:#e5e9ef;--border2:#d5dbe3;
+  --text:#12161c;--text2:#4b5565;--text3:#6b7686;
+  --accent:#2f6df6;--accent2:#2559d1;
+  --green:#16794a;--red:#b42318;--yellow:#92640a;--purple:#7c3aed;
+  --mono:ui-monospace,Menlo,monospace;--sans:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
 }
-*{margin:0;padding:0;box-sizing:border-box}
+:where(#pur-root,#pur-root *){margin:0;padding:0;box-sizing:border-box}   /* pur v2 · :where 로 우선순위 0(옛 * 와 같게 — id 로 쓰면 아래 단추 · 칸 여백을 이긴다) — 옛 「* 초기화」 가 IMS 머리 줄 단추 여백까지 지웠다(deferred 619 · 298) → 이 화면 안으로 좁힘 */
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;line-height:1.5}
 #header{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;position:fixed;top:0;left:0;right:0;z-index:100}
@@ -90,14 +90,14 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .sup-alert.r{background:var(--red)}
 .sup-alert.y{background:var(--yellow)}
 .sb-settings{border-top:1px solid var(--border);padding:11px 12px;background:var(--bg2);flex-shrink:0}
-.sb-settings-title{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.1em;color:#94a3b8;text-transform:uppercase;margin-bottom:8px}
+.sb-settings-title{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.1em;color:var(--text3);text-transform:uppercase;margin-bottom:8px}
 .sb-sup-name{font-family:var(--mono);font-size:10px;color:var(--accent);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sr{display:grid;grid-template-columns:1fr 64px 20px;align-items:center;gap:6px;margin-bottom:8px}
 .sr:last-child{margin-bottom:0}
 .sl{font-size:12px;color:var(--text);white-space:nowrap}
 .si{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:4px 6px;text-align:right;outline:none;transition:border-color .15s;box-sizing:border-box}
 .si:focus{border-color:var(--accent)}
-.su{font-family:var(--mono);font-size:10px;color:#94a3b8;white-space:nowrap}
+.su{font-family:var(--mono);font-size:10px;color:var(--text3);white-space:nowrap}
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 #tab-bar{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;flex-shrink:0;justify-content:space-between;flex-wrap:wrap;min-height:40px;gap:4px}
 .mtab{background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-family:var(--sans);font-size:12.5px;font-weight:500;padding:8px 10px;cursor:pointer;transition:all .15s;margin-bottom:-1px;white-space:nowrap}
@@ -124,7 +124,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .sc-lbl{font-family:var(--mono);font-size:10.5px;color:var(--text3);letter-spacing:.06em;text-transform:uppercase}
 .sc-val{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text);line-height:1.3}
 .sc-val.g{color:var(--green)}.sc-val.r{color:var(--red)}.sc-val.y{color:var(--yellow)}
-.sc-sub{font-size:11px;color:#94a3b8}
+.sc-sub{font-size:11px;color:var(--text3)}
 #toolbar{display:flex;align-items:center;gap:7px;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;flex-wrap:wrap}
 .sbox{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 9px;width:190px}
 .sbox input{background:none;border:none;color:var(--text);font-family:var(--sans);font-size:12px;outline:none;width:100%}
@@ -151,7 +151,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .bg-stats{display:flex;gap:10px;margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text3)}
 .bg-stats span{color:var(--text)}.bg-stats .urg{color:var(--red)}
 .sku-tbl{width:100%;border-collapse:collapse}
-.sku-tbl thead th{background:var(--bg2);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;padding:5px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:10;box-shadow:0 1px 0 var(--border)}
+.sku-tbl thead th{background:var(--bg2);font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);padding:5px 10px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:10;box-shadow:0 1px 0 var(--border)}
 .sku-tbl thead th:first-child,.sku-tbl thead th:nth-child(2){text-align:left}
 .sku-tbl thead th.sep{border-left:1px solid var(--border2)}
 .sku-tbl tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
@@ -180,18 +180,18 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:8px;padding:10px 12px;
   font-family:var(--mono);font-size:10.5px;color:var(--text);
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  box-shadow:0 4px 20px rgba(16,24,40,.14);
   pointer-events:none;min-width:200px;
 }
 #sparkline-tooltip .sp-title{color:var(--accent);font-size:11px;font-weight:600;margin-bottom:6px}
-#sparkline-tooltip .sp-stats{color:#94a3b8;font-size:10px;margin-top:5px;line-height:1.6}
+#sparkline-tooltip .sp-stats{color:var(--text3);font-size:10px;margin-top:5px;line-height:1.6}
 /* Override 이력 툴팁 */
 #ov-history-tooltip{
   position:fixed;display:none;z-index:9999;
   background:var(--bg2);border:1px solid var(--border2);
   border-radius:8px;padding:10px 12px;
   font-family:var(--mono);font-size:10.5px;color:var(--text);
-  box-shadow:0 4px 20px rgba(0,0,0,.5);
+  box-shadow:0 4px 20px rgba(16,24,40,.14);
   pointer-events:none;min-width:190px;
 }
 #ov-history-tooltip .ovh-title{color:var(--yellow);font-size:11px;font-weight:600;margin-bottom:6px}
@@ -200,7 +200,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 #ov-history-tooltip .ovh-cur{color:var(--accent);font-weight:600}
 #ov-history-tooltip .ovh-empty{color:var(--text3);font-size:10px}
 /* SKU 연결 모달 */
-#sku-link-modal{display:none;position:fixed;inset:0;background:rgba(13,15,20,.8);z-index:400;align-items:center;justify-content:center}
+#sku-link-modal{display:none;position:fixed;inset:0;background:rgba(16,24,40,.35);z-index:400;align-items:center;justify-content:center}
 #sku-link-modal.show{display:flex}
 .slm-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:20px;width:480px;max-height:80vh;display:flex;flex-direction:column;gap:12px}
 .slm-title{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between}
@@ -223,7 +223,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .slm-footer{display:flex;justify-content:flex-end;gap:8px}
 /* CSV 드롭다운 */
 .csv-dropdown{position:relative;display:inline-block}
-.csv-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:200px;z-index:200;overflow:hidden;padding:4px 0}
+.csv-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.14);min-width:200px;z-index:200;overflow:hidden;padding:4px 0}
 .csv-menu.open{display:block}
 .csv-menu-section{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:7px 13px 4px}
 .csv-menu-sep{height:1px;background:var(--border);margin:4px 0}
@@ -232,7 +232,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .csv-menu-badge{margin-left:auto;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 .csv-menu-badge.primary{background:rgba(79,142,247,.15);color:var(--accent);border-color:rgba(79,142,247,.3)}
 /* loading overlay */
-#loading{display:none;position:fixed;inset:0;background:rgba(13,15,20,.75);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#loading{display:none;position:fixed;inset:0;background:rgba(247,248,250,.78);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #loading.show{display:flex}
 .spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -269,10 +269,10 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .ds-tbl .sku{color:var(--accent);font-weight:600}
 .ds-tbl .pname{color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis}
 .ds-badge{display:inline-block;padding:1.5px 7px;border-radius:9px;font-size:10px;font-weight:600;letter-spacing:.04em}
-.ds-badge.dead{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
-.ds-badge.slow{background:rgba(234,179,8,.16);color:#fde68a;border:1px solid rgba(234,179,8,.35)}
-.ds-badge.active{background:rgba(34,197,94,.16);color:#86efac;border:1px solid rgba(34,197,94,.35)}
-.ds-badge.new{background:rgba(59,130,246,.16);color:#93c5fd;border:1px solid rgba(59,130,246,.35)}
+.ds-badge.dead{background:rgba(239,68,68,.18);color:#b42318;border:1px solid rgba(239,68,68,.35)}
+.ds-badge.slow{background:rgba(234,179,8,.16);color:#92640a;border:1px solid rgba(234,179,8,.35)}
+.ds-badge.active{background:rgba(34,197,94,.16);color:#16794a;border:1px solid rgba(34,197,94,.35)}
+.ds-badge.new{background:rgba(59,130,246,.16);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)}
 /* ═══ pur-2 — IMS 안에 앉히기 ═══
    ⚠️ IMS 공통 CSS 는 @layer ims 라 아래(레이어 밖) 규칙이 늘 이긴다 · IMS 머리줄 높이는 --imsH(시작 뒤 잰다) */
 html[data-ims-mode="ims"]{zoom:1}
@@ -288,6 +288,99 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
 .pur-imsbar button{background:var(--accent);border:none;border-radius:4px;color:#fff;font-family:var(--mono);font-size:11px;padding:4px 10px;cursor:pointer}
 .pur-imsbar .x{margin-left:auto;cursor:pointer;color:var(--text3);padding:0 4px}
 .pur-imsbar.warn{border-bottom-color:rgba(247,196,79,.35);background:rgba(247,196,79,.07);color:var(--yellow)}
+/* ═══ pur v2 — IMS 라이트 꼴(판정 619) ═══ 이 블록이 맨 뒤라 위 규칙을 덮는다 · 값은 ims-ui.css(.pobtn · .card · thead th · .chip)와 같게 */
+body{font-family:var(--sans)}
+#pur-root{font-family:var(--sans);color:var(--text)}
+.btn,.btog button,.spill,.ftag,.ptog button,.banner,.pur-imsbar,.pur-imsbar button,.csv-menu-item,.ltxt,.mtab,.slm-title,.sup-chip{font-family:var(--sans)}
+#header{background:#fff;border-bottom:1px solid var(--border);padding:0 16px}
+.logo{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--text);letter-spacing:0}
+.hsep{background:var(--border)}
+.btn{background:#fff;border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12.5px;padding:5px 11px}
+.btn:hover{background:#f2f4f8;color:var(--text);border-color:var(--border)}
+.btn.primary{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+.btn.primary:hover{background:#3550c4;border-color:#3550c4}
+.btog{background:#fff;border-color:var(--border);border-radius:9px}
+.btog button{font-size:12.5px;padding:5px 11px;color:var(--text2);font-weight:600}
+.btog button.active{background:#3b5bdb;color:#fff}
+.ptog{background:#fff;border-color:var(--border);border-radius:9px}
+.ptog button{font-size:12px}
+.ptog button.active{background:#3b5bdb;color:#fff}
+.spill{background:#fff;border-color:var(--border);border-radius:999px;font-size:12px;color:var(--text2)}
+.spill:hover{border-color:var(--border2)}
+.dot.ok{box-shadow:none}
+#app{background:var(--bg)}
+#sidebar{background:#fff}
+#sidebar-toggle{background:#fff;color:var(--text3)}
+#sidebar-toggle:hover{background:#f2f4f8;color:var(--text)}
+.sb-search input,.si,.qov,.slm-row input{background:#fff;border-color:var(--border)}
+.sb-search input{border-radius:8px;font-size:12.5px;padding:6px 9px}
+.si{border-radius:7px}
+.sr{grid-template-columns:1fr 72px 20px}
+.sb-settings{background:#fff}
+.sb-settings-title{color:var(--text3)}
+.sb-sup-name{font-family:var(--sans);font-weight:600;font-size:12px}
+.sup-item .sn{font-size:12.5px}
+.sup-item.active{background:#eef3ff;border-left-color:#2f6df6}
+.sup-item:hover{background:#f7f8fa}
+.sup-item .sc{background:#f1f3f7;color:var(--text3)}
+#tab-bar{background:#fff}
+.mtab{font-size:13px;font-weight:600}
+.mtab.active{color:#2f6df6;border-bottom-color:#2f6df6}
+.col-btn{background:#fff;border-color:var(--border);color:var(--text2);border-radius:999px;font-size:11px;padding:2px 9px}
+.col-btn.active{background:#eef3ff;color:#2f6df6;border-color:#c7d7fe}
+.col-btn:hover{border-color:#2f6df6}
+.banner{font-family:var(--sans);font-size:12.5px;padding:8px 16px}
+.banner.warn{background:#fff8e6;border-color:#f1e1b5;color:#92640a}
+.banner.ok{background:#e9f6ee;border-color:#c9e8d5;color:#16794a}
+.banner.load{background:#eef3ff;border-color:#cfdcfd;color:#2f6df6}
+.pur-imsbar{font-family:var(--sans);font-size:12.5px;padding:8px 16px;background:#eef3ff;border-bottom-color:#cfdcfd;color:var(--text)}
+.pur-imsbar.warn{background:#fff8e6;border-bottom-color:#f1e1b5;color:#92640a}
+.pur-imsbar button{background:#3b5bdb;border-radius:8px;font-family:var(--sans);font-size:12px;padding:5px 11px}
+#sum-bar{background:var(--border)}
+.sc-card{background:#fff;padding:10px 16px}
+.sc-lbl{font-size:10.5px;color:var(--text3)}
+.sc-val{font-size:18px}
+.sc-sub{color:var(--text3)}
+#toolbar{background:#fff;padding:10px 16px}
+.sbox{background:#fff;border-color:var(--border);border-radius:9px;width:220px}
+.ftag{background:#fff;border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:3px 10px}
+.ftag:hover,.ftag.active{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+.select-prompt .sp-icon{opacity:.35}
+.sup-chip{background:#fff;border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:4px 11px}
+.sup-chip:hover{background:#f2f4f8;color:var(--text);border-color:var(--border2)}
+.bg-hdr{background:#f7f8fa}
+.bg-hdr:hover{background:#f1f3f7}
+.bg-name{font-size:12px;color:var(--text)}
+.sku-tbl thead th{background:#fafbfd;color:var(--text3);font-size:10.5px;font-weight:600;box-shadow:0 1px 0 var(--border)}
+.sku-tbl tbody tr{border-bottom-color:#f1f3f7}
+.sku-tbl tbody tr:hover{background:#fafbfd}
+.sku-tbl tbody td:first-child{color:#2f6df6;font-weight:600}
+.badge-tr{background:#f3eefe;color:#7c3aed}
+.badge-urg{background:#fdecea;color:#b42318}
+.abc-a{background:#fdf3e4;color:#b45309}
+.abc-b{background:#eef3ff;color:#2f6df6}
+.abc-c{background:#f1f3f7;color:var(--text3)}
+.qov{border-color:var(--border2);border-radius:5px}
+#sparkline-tooltip,#ov-history-tooltip{background:#fff;border-color:var(--border);box-shadow:0 12px 32px rgba(15,20,30,.16);border-radius:12px}
+.slm-box{background:#fff;border-color:var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16)}
+.slm-add-btn{background:#3b5bdb}
+.slm-list{background:#fafbfd}
+.csv-menu{background:#fff;border-color:#e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16)}
+.csv-menu-item{color:var(--text);font-size:12.5px}
+.csv-menu-item:hover{background:#f2f4f8}
+.csv-menu-badge.primary{background:#eef3ff;color:#2f6df6;border-color:#cfdcfd}
+.fc-card{background:#fff;border-color:var(--border);border-radius:12px;padding:12px}
+.fc-title,.ds-title{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.ds-stat{background:#fff;border-color:var(--border);border-radius:999px;font-family:var(--sans)}
+.ds-tbl-wrap{background:#fff;border-color:var(--border);border-radius:12px}
+.ds-tbl th{background:#fafbfd;color:var(--text3)}
+.ds-tbl td{border-bottom-color:#f1f3f7}
+.ds-tbl tr:hover td{background:#fafbfd}
+.ds-badge.dead{background:#fdecea;border-color:#f6c9c4}
+.ds-badge.slow{background:#fff8e6;border-color:#f1e1b5}
+.ds-badge.active{background:#e9f6ee;border-color:#c9e8d5}
+.ds-badge.new{background:#eef3ff;border-color:#cfdcfd}
+#tbl-body::-webkit-scrollbar-thumb,#sup-list::-webkit-scrollbar-thumb{background:#d5dbe3}
 </style>
 </head>
 <body>
@@ -302,7 +395,7 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
 <div id="pur-root" hidden>
 
 <div id="header">
-  <div class="logo"><img src="asung-logo-white.png" alt="Asung"> <span>/ 발주관리</span></div>
+  <div class="logo">Reorder Planner</div>
   <div class="hsep"></div>
   <div class="hright">
     <div class="btog">
@@ -375,7 +468,7 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
       </div>
       <!-- 계절/트렌드 Supplier 전체 override -->
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-        <div style="font-family:var(--mono);font-size:9px;color:#94a3b8;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">보정 Override</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">보정 Override</div>
         <div style="font-size:10px;color:var(--text3);margin-bottom:6px;line-height:1.5">비워두면 BQ 자동값 사용<br>입력 시 Supplier 전체 적용</div>
         <div class="sr">
           <span class="sl">계절보정</span>
@@ -515,11 +608,11 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
               <th class="sh" data-col-id="sea" onclick="sortBy('sea')">계절보정<span class="sort-arrow"></span></th>
               <th class="sh" data-col-id="trd" onclick="sortBy('trd')">트렌드<span class="sort-arrow"></span></th>
               <th class="sep sh" onclick="sortFc('fc30')" title="ADU×30일×계절×트렌드">30일 예측<span class="sort-arrow" id="fc-sort-30"></span></th>
-              <th style="color:#94a3b8;font-size:10px" title="실제 최근 30일 판매량">실제 30일</th>
+              <th style="color:var(--text3);font-size:10px" title="실제 최근 30일 판매량">실제 30일</th>
               <th class="sh" onclick="sortFc('fc60')" title="ADU×60일×계절×트렌드">60일 예측<span class="sort-arrow" id="fc-sort-60"></span></th>
-              <th style="color:#94a3b8;font-size:10px" title="실제 최근 60일 판매량">실제 60일</th>
+              <th style="color:var(--text3);font-size:10px" title="실제 최근 60일 판매량">실제 60일</th>
               <th class="sh" onclick="sortFc('fc90')" title="ADU×90일×계절×트렌드">90일 예측<span class="sort-arrow" id="fc-sort-90"></span></th>
-              <th style="color:#94a3b8;font-size:10px" title="실제 최근 90일 판매량">실제 90일</th>
+              <th style="color:var(--text3);font-size:10px" title="실제 최근 90일 판매량">실제 90일</th>
               <th class="sep sh" data-col-id="avail" onclick="sortBy('avail')">Available<span class="sort-arrow"></span></th>
               <th class="sh" onclick="sortBy('cov')">재고일수<span class="sort-arrow"></span></th>
               <th class="sh" onclick="sortBy('rec')">추천발주<span class="sort-arrow"></span></th>
@@ -673,14 +766,14 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
               <table id="si-po-tbl" style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;min-width:700px">
                 <thead>
                   <tr style="background:var(--bg3)">
-                    <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">PO 번호</th>
-                    <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">발주일</th>
-                    <th style="padding:7px 10px;text-align:right;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">SKU 수</th>
-                    <th style="padding:7px 10px;text-align:right;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">총 발주량</th>
-                    <th style="padding:7px 10px;text-align:right;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">총 금액</th>
-                    <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">통화</th>
-                    <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">입고일</th>
-                    <th style="padding:7px 10px;text-align:left;color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">상태</th>
+                    <th style="padding:7px 10px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">PO 번호</th>
+                    <th style="padding:7px 10px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">발주일</th>
+                    <th style="padding:7px 10px;text-align:right;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">SKU 수</th>
+                    <th style="padding:7px 10px;text-align:right;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">총 발주량</th>
+                    <th style="padding:7px 10px;text-align:right;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">총 금액</th>
+                    <th style="padding:7px 10px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">통화</th>
+                    <th style="padding:7px 10px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">입고일</th>
+                    <th style="padding:7px 10px;text-align:left;color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap">상태</th>
                   </tr>
                 </thead>
                 <tbody id="si-po-tbody"></tbody>
@@ -796,7 +889,7 @@ const SCOPES     = 'https://www.googleapis.com/auth/bigquery.readonly openid ema
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 이 purchasing 으로 연다 · pur-3)
    · 입고 검증 · 공급처 분석 두 탭은 아직 BigQuery 만(10-31 까지의 숫자 · pur-3) */
-const PUR_BUILD = '2026-10-26 · pur v1d';   // v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-11-15 · pur v2';   // v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -2053,7 +2146,7 @@ function renderGlobalSearch(){
   if(!results.length){body.innerHTML=`<div class="select-prompt"><div class="sp-icon" style="font-size:32px">🔍</div><div class="sp-title">검색 결과 없음</div></div>`;return;}
   const supMap={};
   results.forEach(r=>{if(!supMap[r.supplier])supMap[r.supplier]=[];supMap[r.supplier].push(r);});
-  let h=`<div style="padding:8px 14px;font-family:var(--mono);font-size:11px;color:#94a3b8;border-bottom:1px solid var(--border);background:var(--bg3)">
+  let h=`<div style="padding:8px 14px;font-family:var(--mono);font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);background:var(--bg3)">
     🔍 전체 검색: ${results.length}개 SKU — 행 클릭시 해당 Supplier로 이동</div>`;
   Object.entries(supMap).sort().forEach(([sup,srows])=>{
     h+=`<div class="bg-group">
@@ -2072,7 +2165,7 @@ function renderGlobalSearch(){
       h+=`<tr onclick="selectSupplier('${jse(r.supplier)}')" style="cursor:pointer">
         <td>${xe(r.sku)} ${r.abc?`<span class="abc-${r.abc.toLowerCase()}" title="ABC 등급">${r.abc}</span>`:''}</td>
         <td style="text-align:left">${xe(r.name)}</td>
-        <td style="text-align:left;color:#94a3b8;font-size:11px">${xe(r.brand)}</td>
+        <td style="text-align:left;color:var(--text3);font-size:11px">${xe(r.brand)}</td>
         <td class="sep">${r.adu>0?r.adu.toFixed(2):'—'}</td>
         <td>${r.cov>=9999?'∞':r.cov}</td>
         <td data-col-id="avail" class="sep"><span class="${ac}">${r.avail.toLocaleString()}</span></td>
@@ -2536,7 +2629,7 @@ function renderTable(){
   if(!rows.length){ body.innerHTML=`<div class="select-prompt"><div class="sp-icon" style="font-size:32px">🔍</div><div class="sp-title">검색 결과 없음</div></div>`; return; }
   // ABC 정렬 시 flat 테이블 (Brand 그룹 없음)
   if(S.sortCol==='abc'){
-    let h=`<div style="padding:6px 13px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:#94a3b8">
+    let h=`<div style="padding:6px 13px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text3)">
       ABC 등급 정렬 — A: 상위 20% | B: 상위 21~50% | C: 하위 50% (ADU 기준)</div>
       <div><div class="tscroll"><table class="sku-tbl">
       <thead><tr>
@@ -2560,7 +2653,7 @@ function renderTable(){
         <td style="text-align:center">${r.abc?`<span class="abc-${r.abc.toLowerCase()}" title="A=상위20% B=상위50% C=나머지">${r.abc}</span>`:'-'}</td>
         <td style="color:var(--accent);font-size:12px">${xe(r.sku)}</td>
         <td style="text-align:left;max-width:var(--name-col-width,180px);overflow:hidden;text-overflow:ellipsis" title="${xe(r.name)}"><span style="float:right;margin-left:4px">${fpCell(r.sku)}</span>${xe(r.name)}</td>
-        <td style="text-align:left;color:#94a3b8;font-size:11px">${xe(r.brand)}</td>
+        <td style="text-align:left;color:var(--text3);font-size:11px">${xe(r.brand)}</td>
         <td class="sep">${r.adu>0?r.adu.toFixed(2):'—'}</td>
         <td class="${cc}">${ct}</td>
         <td data-col-id="avail" class="sep"><span class="${r.avail<=0?'vn':r.avail<10?'vw':''}">${r.avail.toLocaleString()}</span></td>
@@ -2714,26 +2807,26 @@ function showSparkline(sku, name, evt){
   svg.innerHTML = `
     <defs>
       <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#4f8ef7" stop-opacity="0.3"/>
-        <stop offset="100%" stop-color="#4f8ef7" stop-opacity="0.0"/>
+        <stop offset="0%" stop-color="#2f6df6" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#2f6df6" stop-opacity="0.0"/>
       </linearGradient>
     </defs>
     <path d="${areaPath}" fill="url(#sg)"/>
-    <polyline points="${polyline}" fill="none" stroke="#4f8ef7" stroke-width="1.5" stroke-linejoin="round"/>
-    <polyline points="${maPolyline}" fill="none" stroke="#f7c44f" stroke-width="1" stroke-dasharray="2,2" opacity="0.8"/>
-    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#2a2f3f" stroke-width="0.5"/>
+    <polyline points="${polyline}" fill="none" stroke="#2f6df6" stroke-width="1.5" stroke-linejoin="round"/>
+    <polyline points="${maPolyline}" fill="none" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2" opacity="0.8"/>
+    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e5e9ef" stroke-width="0.5"/>
   `;
 
   const avg90 = days.reduce((a,b)=>a+b,0)/90;
   const avg30 = days.slice(-Math.min(30,n)).reduce((a,b)=>a+b,0)/30;
   const trend = avg30 > avg90*1.1 ? '↑ 상승' : avg30 < avg90*0.9 ? '↓ 하락' : '→ 보합';
-  const trendColor = avg30>avg90*1.1?'#3ecf8e':avg30<avg90*0.9?'#f76f6f':'#94a3b8';
+  const trendColor = avg30>avg90*1.1?'#16794a':avg30<avg90*0.9?'#b42318':'var(--text3)';
 
   title.textContent = sku;
   const wd90=S._workingDays90||64;
   const linkedFrom = sd.linkedFrom||[];
   const linkTxt = linkedFrom.length ? `<br><span style="color:var(--yellow)">🔗 ${linkedFrom.join(', ')} 데이터 합산</span>` : '';
-  stats.innerHTML = `ADU(영업일): <b style="color:#e2e6f0">${sd.adu.toFixed(2)}</b> &nbsp;|&nbsp; 최근30일평균: <b style="color:#e2e6f0">${avg30.toFixed(1)}</b><br>트렌드: <b style="color:${trendColor}">${trend}</b> &nbsp;|&nbsp; 판매일: <b style="color:#e2e6f0">${n}일/${wd90}영업일</b><br><span style="color:#4f8ef7">━</span> 일별판매 &nbsp;<span style="color:#f7c44f;border-bottom:1px dashed">━</span> 7일이동평균${linkTxt}`;
+  stats.innerHTML = `ADU(영업일): <b style="color:#12161c">${sd.adu.toFixed(2)}</b> &nbsp;|&nbsp; 최근30일평균: <b style="color:#12161c">${avg30.toFixed(1)}</b><br>트렌드: <b style="color:${trendColor}">${trend}</b> &nbsp;|&nbsp; 판매일: <b style="color:#12161c">${n}일/${wd90}영업일</b><br><span style="color:#2f6df6">━</span> 일별판매 &nbsp;<span style="color:#d97706;border-bottom:1px dashed">━</span> 7일이동평균${linkTxt}`;
 
   // 위치
   const vw = window.innerWidth, vh = window.innerHeight;
@@ -2960,11 +3053,11 @@ function renderForecast(){
       <td class="${seaClass}" onclick="editSkuOverride('${jse(r.sku)}','sea',${r.sea},event)" onmouseenter="showOvHistory('${jse(r.supplier??'')}','sea',event)" onmouseleave="hideOvHistory()" style="cursor:pointer" title="클릭해서 수동수정 | 1.0=작년동일 1.5=50%증가 0.7=30%감소">×${r.sea.toFixed(2)}${r.seaOv!==null?'<span style="color:var(--yellow);font-size:8px">✎</span>':''}</td>
       <td class="${trdClass}" onclick="editSkuOverride('${jse(r.sku)}','trd',${r.trd},event)" onmouseenter="showOvHistory('${jse(r.supplier??'')}','trd',event)" onmouseleave="hideOvHistory()" style="cursor:pointer" title="클릭해서 수동수정 | 1.0=보합 2.0=강한상승 0.5=하락">×${r.trd.toFixed(2)}${r.trdOv!==null?'<span style="color:var(--yellow);font-size:8px">✎</span>':''}</td>
       <td class="sep">${fc30.toLocaleString()}</td>
-      <td style="color:#94a3b8" title="실제 최근 ~30일 판매량">${n>0?act30:'—'}</td>
+      <td style="color:var(--text3)" title="실제 최근 ~30일 판매량">${n>0?act30:'—'}</td>
       <td>${fc60.toLocaleString()}</td>
-      <td style="color:#94a3b8" title="실제 최근 ~60일 판매량">${n>0?act60:'—'}</td>
+      <td style="color:var(--text3)" title="실제 최근 ~60일 판매량">${n>0?act60:'—'}</td>
       <td>${fc90.toLocaleString()}</td>
-      <td style="color:#94a3b8" title="실제 최근 90일 판매량 (판매있는 날 기준)">${n>0?act90:'—'}</td>
+      <td style="color:var(--text3)" title="실제 최근 90일 판매량 (판매있는 날 기준)">${n>0?act90:'—'}</td>
       <td data-col-id="avail" class="sep"><span class="${r.avail<=0?'vn':r.avail<10?'vw':''}">${r.avail.toLocaleString()}</span></td>
       <td class="${covClass}">${r.cov>=9999?'∞':r.cov}</td>
       <td class="${recClass}">${r.rec!==null?(r.rec>0?'+':'')+r.rec.toLocaleString():'—'}</td>
@@ -3108,12 +3201,12 @@ function renderDeadStock(){
   const deadValue  = rows.filter(r=>r.status==='dead').reduce((a,r)=>a+r.value, 0);
   document.getElementById('ds-stats').innerHTML = `
     <div class="ds-stat">총 SKU: <b>${total.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead: <b style="color:#fca5a5">${dead.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(234,179,8,.4)">Slow: <b style="color:#fde68a">${slow.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(34,197,94,.4)">Active: <b style="color:#86efac">${active.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(59,130,246,.4)">New: <b style="color:#93c5fd">${fresh.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead: <b style="color:#b42318">${dead.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(234,179,8,.4)">Slow: <b style="color:#92640a">${slow.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(34,197,94,.4)">Active: <b style="color:#16794a">${active.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(59,130,246,.4)">New: <b style="color:#1d4ed8">${fresh.toLocaleString()}</b></div>
     <div class="ds-stat">총 재고가치: <b>$${totalValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
-    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead 재고가치: <b style="color:#fca5a5">$${deadValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
+    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead 재고가치: <b style="color:#b42318">$${deadValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
   `;
 
   // 테이블 정렬 인디케이터
@@ -3138,7 +3231,7 @@ function renderDeadStock(){
       <td>${fmt0(r.edm)}</td>
       <td><b>${fmt0(r.total)}</b></td>
       <td>${r.last||'—'}</td>
-      <td style="color:${r.dsls>=365?'#fca5a5':r.dsls>=90?'#fde68a':'var(--text2)'}">${dsls(r.dsls)}</td>
+      <td style="color:${r.dsls>=365?'#b42318':r.dsls>=90?'#92640a':'var(--text2)'}">${dsls(r.dsls)}</td>
       <td>${fmt0(r.qty90)}</td>
       <td>${fmt0(r.qty365)}</td>
       <td>${r.cost?fmt$(r.cost):'—'}</td>
@@ -3326,7 +3419,7 @@ function renderReceivingAudit(allRows){
   // 필터 버튼
   const mkBtn=(val,label,color,count)=>{
     const active=S.rvFilter===val;
-    const css=active?`background:${color};color:#000;border-color:${color};`:`color:${color};`;
+    const css=active?`background:${color};color:#fff;border-color:${color};`:`color:${color};`;
     return `<button onclick="S.rvFilter='${val}';renderReceivingAudit(window._rvRows||[])"
       style="background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
         font-family:var(--mono);font-size:10px;padding:3px 9px;cursor:pointer;${css}">
@@ -3385,7 +3478,7 @@ function renderReceivingAudit(allRows){
   });
 
   const thS=(align='right')=>
-    `padding:7px 8px;text-align:${align};color:#94a3b8;font-weight:500;
+    `padding:7px 8px;text-align:${align};color:var(--text3);font-weight:500;
      border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap`;
   const thC=c=>
     `onclick="S.rvSort={col:'${c}',dir:S.rvSort.col==='${c}'?-S.rvSort.dir:-1};renderReceivingAudit(window._rvRows||[])"`;
@@ -3451,8 +3544,8 @@ function renderReceivingAudit(allRows){
         <th style="${thS('left')}">상품명</th>
         <th style="${thS('right')}" ${thC('order_date')}>발주일${arr('order_date')}</th>
         <th style="${thS('right')}" ${thC('received_date')}>입고일${arr('received_date')}</th>
-        <th style="${thS('right')};color:rgba(79,142,247,.9)" ${thC('ordered_qty')}>발주수량${arr('ordered_qty')}</th>
-        <th style="${thS('right')};color:rgba(247,111,111,.9)" ${thC('received_qty')}>입고수량${arr('received_qty')}</th>
+        <th style="${thS('right')};color:var(--accent)" ${thC('ordered_qty')}>발주수량${arr('ordered_qty')}</th>
+        <th style="${thS('right')};color:var(--red)" ${thC('received_qty')}>입고수량${arr('received_qty')}</th>
         <th style="${thS('right')}" ${thC('diff_qty')}>차이수량${arr('diff_qty')}</th>
         <th style="${thS('right')}" ${thC('diff_pct')}>차이율${arr('diff_pct')}</th>
       </tr></thead>
@@ -4014,16 +4107,16 @@ function renderSupplierIntelligence(){
       const y   = pad.t + chartH - bH;
       const py  = maxPO>0 ? pad.t + chartH - (po/maxPO)*chartH : pad.t+chartH;
       bars += `<rect x="${x-bW/2}" y="${y}" width="${bW}" height="${bH}" fill="rgba(79,142,247,.5)" rx="2"/>`;
-      bars += `<text x="${x}" y="${y-4}" text-anchor="middle" font-size="9" fill="#8b92a8">${fmt2(amt)}</text>`;
-      labels += `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" fill="#8b92a8">${r.yr}</text>`;
+      bars += `<text x="${x}" y="${y-4}" text-anchor="middle" font-size="9" fill="#6b7686">${fmt2(amt)}</text>`;
+      labels += `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" fill="#6b7686">${r.yr}</text>`;
       labels += `<text x="${x}" y="${H-22}" text-anchor="middle" font-size="9" fill="var(--green)">${po}회</text>`;
       poLine += (i===0?`M${x},${py}`:` L${x},${py}`);
       poPoints += `<circle cx="${x}" cy="${py}" r="3" fill="var(--green)"/>`;
     });
     // Y축
     const yAxis = `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+chartH}" stroke="var(--border)" stroke-width="1"/>
-      <text x="${pad.l-4}" y="${pad.t+8}" text-anchor="end" font-size="9" fill="#555e78">$${(maxAmt/1000).toFixed(0)}K</text>
-      <text x="${pad.l-4}" y="${pad.t+chartH}" text-anchor="end" font-size="9" fill="#555e78">$0</text>`;
+      <text x="${pad.l-4}" y="${pad.t+8}" text-anchor="end" font-size="9" fill="#6b7686">$${(maxAmt/1000).toFixed(0)}K</text>
+      <text x="${pad.l-4}" y="${pad.t+chartH}" text-anchor="end" font-size="9" fill="#6b7686">$0</text>`;
     document.getElementById('si-yearly-chart').innerHTML =
       `<svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${W}px;height:${H}px">
         ${yAxis}${bars}
@@ -4161,7 +4254,7 @@ function renderSupplierIntelligence(){
           : '<span style="color:var(--accent);font-size:9px"> ↑</span>';
       };
       const thStyle = (align='right') =>
-        `padding:7px 8px;text-align:${align};color:#94a3b8;font-weight:500;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap`;
+        `padding:7px 8px;text-align:${align};color:var(--text3);font-weight:500;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap`;
       // dir 판정을 col 대입 "이전"에 수행 — 예전 코드는 col을 먼저 바꿔서
       // 새 컬럼 첫 클릭이 오름차순으로 시작하는 버그가 있었음
       const thClick = (c) => `onclick="S.siSkuSort.dir=(S.siSkuSort.col==='${c}'&&S.siSkuSort.dir===-1)?1:-1;S.siSkuSort.col='${c}';renderSkuTable_()"`;
@@ -4242,9 +4335,9 @@ function renderSupplierIntelligence(){
           <thead><tr style="background:var(--bg3)">
             <th style="${thStyle('left')}" ${thClick('sku')}>SKU${sortArrow('sku')}</th>
             <th style="${thStyle('left')}" ${thClick('product_name')}>상품명${sortArrow('product_name')}</th>
-            <th style="${thStyle('right')};color:rgba(79,142,247,.9)" ${thClick('total_ordered')} title="실입고 기준 (수령완료 PO만)">실입고량${sortArrow('total_ordered')}</th>
+            <th style="${thStyle('right')};color:var(--accent)" ${thClick('total_ordered')} title="실입고 기준 (수령완료 PO만)">실입고량${sortArrow('total_ordered')}</th>
             <th style="${thStyle('left')};min-width:160px">발주 vs 판매</th>
-            <th style="${thStyle('right')};color:rgba(62,207,142,.9)" ${thClick('total_demand')} title="선택기간 판매 + 현재 백오더 + 기간내 미충족수요(void된 백오더)">실질수요${sortArrow('total_demand')}</th>
+            <th style="${thStyle('right')};color:var(--green)" ${thClick('total_demand')} title="선택기간 판매 + 현재 백오더 + 기간내 미충족수요(void된 백오더)">실질수요${sortArrow('total_demand')}</th>
             <th style="${thStyle('right')}" ${thClick('order_to_sales_ratio')} title="실입고량 ÷ (선택기간 판매+백오더+미충족수요)">발주/수요비율${sortArrow('order_to_sales_ratio')}</th>
             <th style="${thStyle('right')}" ${thClick('stock_avail')} title="현재 가용재고 (상단 TOR/EDM/합산 토글 기준) — 비율 판단 보조: 비율 높음+재고 많음=과다발주, 비율 높음+재고 적음=입고 시차">가용재고${sortArrow('stock_avail')}</th>
             <th style="${thStyle('right')}" ${thClick('sold_1y')} title="최근 1년 판매 (발주기간 선택과 무관, 참고용)">1년판매${sortArrow('sold_1y')}</th>
@@ -4321,7 +4414,7 @@ function siSetRatioFilter(val){
 
 // ── 발주 적정성 필터 버튼 렌더 헬퍼
 function _wosFilterBtn(val, label, color, isActive){
-  const activeBg    = isActive ? `background:${color};color:${val==='all'?'var(--bg)':'#000'};border-color:${color};` : '';
+  const activeBg    = isActive ? `background:${color};color:#fff;border-color:${color};` : '';
   const activeColor = isActive ? '' : `color:${color};`;
   return `<button onclick="siSetRatioFilter('${val}')"
     style="background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
@@ -4436,7 +4529,7 @@ function showSkuTooltip(sku, name, ordered, sold, sold1y, sold90d, boQty, demand
       background:var(--bg2);border:1px solid var(--border2);
       border-radius:10px;padding:14px 16px;
       font-family:var(--mono);font-size:11px;color:var(--text);
-      box-shadow:0 8px 32px rgba(0,0,0,.6);
+      box-shadow:0 8px 32px rgba(16,24,40,.16);
       pointer-events:none;min-width:340px;max-width:420px;
     `;
     document.body.appendChild(tip);
@@ -4489,7 +4582,7 @@ function showSkuTooltip(sku, name, ordered, sold, sold1y, sold90d, boQty, demand
     labelIdxs.forEach(i=>{
       if(!recent[i]) return;
       const x = padL + (i/n)*cW + (cW/n/2);
-      labels += `<text x="${x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#555e78">${recent[i].ym.slice(2)}</text>`;
+      labels += `<text x="${x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#6b7686">${recent[i].ym.slice(2)}</text>`;
     });
 
     chartSVG = `
@@ -4515,7 +4608,7 @@ function showSkuTooltip(sku, name, ordered, sold, sold1y, sold90d, boQty, demand
   const tqr1y = sold1y>0       ? (ordered/sold1y)               : null;
   const tqC = v => v===null?'var(--text3)':v>2?'var(--red)':v<0.8?'var(--yellow)':'var(--green)';
   const tqT = v => v===null?'—':v.toFixed(2)+'×';
-  const qBadge = (lbl, v) => `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(0,0,0,.3);color:${tqC(v)}"><span style="opacity:.6">${lbl} </span>${tqT(v)}</span>`;
+  const qBadge = (lbl, v) => `<span style="font-size:9px;padding:2px 6px;border-radius:3px;background:var(--bg3);color:${tqC(v)}"><span style="opacity:.6">${lbl} </span>${tqT(v)}</span>`;
 
   tip.innerHTML = `
     <div style="color:var(--accent);font-size:11px;font-weight:600;margin-bottom:2px">${xe(sku)}</div>
