@@ -261,7 +261,9 @@
      · Day = cal_month(그날) + cal_tasks(그날) + cal_day(ar · received · refund · paid — 열쇠 있는 것만) · 공급처 칸은 cal_month.ap_items
      · 주소: ?v=week|day&d=YYYY-MM-DD(달은 ?m=YYYY-MM) — 메일 링크 ?task= 는 그대로
      · Not paid 칸은 빨간 테두리(Caleb 11-16) — Overdue 는 빨간 테두리 + 붉은 바탕으로 갈린다 */
-const DB_BUILD = "2026-11-16 · db v4";
+/* [db v5 · 2026-11-17 · 대화 Claude · 판정 1302] Day 보기 맨 위에 「그날 매출」 — analytics 열쇠가 있는 사람만(imsAuth.canView('analytics') · 창구 an_daily(그날, 그날) 의 an_gate 가 한 번 더 막는다)
+     · 순매출 · 오더 · 평균 · 지난해 같은 날 · 원가 권한이면 GP % · 운임 등 더한 세금 전 합계 · 지점 고르기는 판매 지점만 넘긴다(그 밖이면 전체) */
+const DB_BUILD = "2026-11-17 · db v5";
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
@@ -517,12 +519,18 @@ async function renderDay(d, k, my){
   const calls = [];
   if(d.can.sales){ calls.push(["ar", sb.rpc("cal_day", { p_date: k, p_kind: "ar", p_warehouse: wh })], ["received", sb.rpc("cal_day", { p_date: k, p_kind: "received", p_warehouse: wh })], ["refund", sb.rpc("cal_day", { p_date: k, p_kind: "refund", p_warehouse: wh })]); }
   if(d.can.purchasing){ calls.push(["paid", sb.rpc("cal_day", { p_date: k, p_kind: "paid", p_warehouse: null })]); }
+  const canSales = imsAuth.canView("analytics") && k <= (d.as_of || k);   // 판정 1302 — 앞날은 매출이 없다
+  if(canSales){
+    const whName = whId ? ((document.querySelector(`#wh option[value="${whId}"]`) || {}).textContent || "") : "";
+    const salesWh = whId && (/^Asung Trading Inc\.$/.test(whName) || /Edmonton/i.test(whName)) ? whId : null;
+    calls.push(["sales", sb.rpc("an_daily", { p_from: k, p_to: k, p_warehouse: salesWh, p_brand: null })]);
+  }
   box.innerHTML = `<div class="card dbmsg">Loading…</div>`;
   const res = await Promise.all(calls.map(c => c[1]));
   if(my !== seq) return;
   const got = {};
   calls.forEach((c, i) => { got[c[0]] = res[i]; });
-  const err = res.find(r => r.error);
+  const err = res.find((r, i) => r.error && calls[i][0] !== "sales");   // 매출 줄이 안 되면 그 줄만 빼고 그린다
   if(err){ box.innerHTML = `<div class="card dbmsg"><b>Could not load the day</b>${esc(err.error.message)}</div>`; return; }
 
   const sec = (title, sum, body, extra) => `<div class="card"><h3>${title}${sum ? ` <span class="sum">${sum}</span>` : ""}<span class="sp"></span>${extra || ""}</h3>${body}</div>`;
@@ -531,6 +539,22 @@ async function renderDay(d, k, my){
     return Object.keys(by).map(c => money(by[c], c)).join(" · ");
   };
   let h = "";
+
+  // 그날 매출(판정 1302)
+  if(got.sales && !got.sales.error && got.sales.data){
+    const sd = got.sales.data, x = (sd.days || [])[0] || {}, p = (sd.prev || [])[0] || null;
+    const ch = (a, b) => { if(!b || a === null || a === undefined) return ""; const r = (a - b) / Math.abs(b) * 100; return ` <span class="${r >= 0 ? "on" : "off"}">${r >= 0 ? "▲" : "▼"} ${Math.abs(r).toFixed(1)}%</span>`; };
+    const m0 = v => (v === null || v === undefined) ? "—" : money(v, "CAD");
+    h += sec("Sales this day", (sd.warehouse ? esc(sd.warehouse.name) : "all branches") + " · net = product lines before tax, after credits",
+      `<div class="tkl" style="flex-direction:row;flex-wrap:wrap;gap:22px">` +
+        `<div><div class="tkmeta" style="margin:0">Net sales</div><div style="font-size:20px;font-weight:800">${m0(x.net)}</div><div class="tkmeta" style="margin:0">${p ? "same day last year " + m0(p.net) + ch(Number(x.net), Number(p.net)) : ""}</div></div>` +
+        `<div><div class="tkmeta" style="margin:0">Orders</div><div style="font-size:20px;font-weight:800">${x.orders ?? 0}</div><div class="tkmeta" style="margin:0">${p ? "last year " + (p.orders ?? 0) : ""}</div></div>` +
+        `<div><div class="tkmeta" style="margin:0">Average order</div><div style="font-size:20px;font-weight:800">${x.aov ? m0(x.aov) : "—"}</div></div>` +
+        (sd.can_cost ? `<div><div class="tkmeta" style="margin:0">GP %</div><div style="font-size:20px;font-weight:800">${x.gp_pct === null || x.gp_pct === undefined ? "—" : Number(x.gp_pct).toFixed(1) + "%"}</div></div>` : "") +
+        `<div><div class="tkmeta" style="margin:0">With freight etc., before tax</div><div style="font-size:20px;font-weight:800">${m0((Number(x.net) || 0) + (Number(x.other) || 0))}</div><div class="tkmeta" style="margin:0">credits ${m0(Math.abs(Number(x.credits) || 0))}</div></div>` +
+      `</div>`,
+      `<a class="pobtn" href="analytics.html" style="text-decoration:none">Analytics</a>`);
+  }
 
   // Task
   const tl = tasks.filter(t => t.date === k && (tkWho === "all" || !taskMe || t.assignee.id === taskMe.id))
