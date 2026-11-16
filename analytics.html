@@ -60,6 +60,13 @@
   .legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
   .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--ims-on-ink);font-size:12px;padding:6px 9px;border-radius:7px;z-index:5000;white-space:nowrap}
 
+  .brk{display:flex;align-items:stretch;flex-wrap:wrap;gap:0;padding:0}
+  .brk .it{padding:10px 14px;min-width:130px}
+  .brk .it .l{font-size:12px;color:var(--muted)}
+  .brk .it .v{font-size:17px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;margin-top:2px}
+  .brk .it.tot .v{font-size:19px;font-weight:800}
+  .brk .op{display:flex;align-items:center;padding:0 4px;font-size:18px;color:var(--muted)}
+  .brk .nt{flex-basis:100%;padding:0 14px 10px;font-size:12px;color:var(--muted)}
   .gaps li{margin:3px 0;font-size:13px}
   .gaps .code{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:6px}
 
@@ -127,7 +134,7 @@
    창구: an_overview(p_from, p_to, p_warehouse, p_brand) — an-1c · 20261116130000
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-16 · an v1";
+const AN_BUILD = "2026-11-16 · an v1b";   // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
@@ -183,7 +190,7 @@ function monthChart(months, canCost){
   const W = 1200, H = 300, L = 56, R = canCost ? 46 : 14, T = 14, B = 34;
   const n = months.length; if(!n) return "";
   const max = Math.max(1, ...months.map(m => Number(m.net) || 0));
-  const step = (W - L - R) / n, bw = Math.max(2, step * 0.72);
+  const step = (W - L - R) / n, bw = Math.min(56, Math.max(2, step * 0.72));
   const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
   const ticks = 4; let g = "";
   for(let i = 0; i <= ticks; i++){ const v = max * i / ticks, yy = y(v); g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 3}" text-anchor="end">${short(v)}</text>`; }
@@ -245,15 +252,49 @@ function renderOverview(d){
   const head = (title, sub, csvId) => `<h3>${title}${sub ? ` <span class="sub">${sub}</span>` : ""}<span class="sp"></span>${csvId ? `<button class="csvb" data-csv="${csvId}">CSV</button>` : ""}</h3>`;
   let h = "";
 
+  const k = (label, va, vb, fmt, vsLabel) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div><div class="c">${vb === undefined ? "&nbsp;" : change(va, vb) + " vs " + fmt(vb) + " " + (vsLabel || "last year")}</div></div>`;
+  // 고른 기간(an v1a) — 월 칸을 더한 값 · 이번 달 하나면 지난해 같은 날까지와
+  const ms = d.months || [];
+  if(ms.length){
+    const sum = f => ms.reduce((s2, m) => s2 + (Number(m[f]) || 0), 0);
+    const pNet = sum("net"), pOrd = sum("orders"), pAov = pOrd ? pNet / pOrd : null;
+    let cmp = null, vsl = "same days last year";
+    const curY = ms.length === 1 ? (d.year_by_month || []).find(y => y.year === +ms[0].m.slice(0, 4)) : null;
+    const curC = curY ? curY.months[+ms[0].m.slice(5, 7) - 1] : null;
+    if(curC && curC.cut && curC.prev_year_same_day) cmp = curC.prev_year_same_day;
+    const first = ms[0].m, lastM = ms[ms.length - 1];
+    const lbl = (first === lastM.m ? MON[+first.slice(5, 7) - 1] + " " + first.slice(0, 4) : first + " → " + lastM.m) + (lastM.partial ? " (to " + lastM.through.slice(5) + ")" : "");
+    let gpTxt = "—", covTxt = "";
+    if(cc){
+      const withCost = ms.filter(m => m.gp !== null && m.gp !== undefined);
+      const g = withCost.reduce((s2, m) => s2 + Number(m.gp), 0), nn = withCost.reduce((s2, m) => s2 + Number(m.net), 0);
+      gpTxt = nn ? (100 * g / nn).toFixed(1) + "%" : "—";
+      const cov = ms.reduce((s2, m) => s2 + (Number(m.cost_coverage) || 0) * (Number(m.sales) || 0), 0) / (sum("sales") || 1);
+      if(cov < 0.95) covTxt = "cost known for " + Math.round(cov * 100) + "% of sales";
+    }
+    h += `<div class="kpis">` +
+      k(`Net sales — ${lbl}`, pNet, cmp ? cmp.net : undefined, money, vsl) +
+      k("Orders", pOrd, cmp ? cmp.orders : undefined, v => num(v), vsl) +
+      k("Average order", pAov, cmp ? cmp.aov : undefined, v => v === null || v === undefined ? "—" : "$" + num(v, 0), vsl) +
+      (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpTxt}</div><div class="c">${covTxt || "&nbsp;"}</div></div>` : "") +
+      `</div>`;
+    // 나눔 줄(an v1b) — 순매출에서 빼는 것까지 보이게
+    const pSales = sum("sales"), pCred = sum("credits"), pOther = sum("other");
+    const it = (l, v, tot) => `<div class="it${tot ? " tot" : ""}"><div class="l">${l}</div><div class="v">${money(v)}</div></div>`;
+    const op = o => `<div class="op">${o}</div>`;
+    h += `<div class="card brk">` +
+      it("Product sales", pSales) + op("−") + it("Credits (returns)", Math.abs(pCred)) + op("=") + it("Net sales", pNet, true) +
+      op("+") + it("Freight, service, surcharge, order discounts", pOther) + op("=") + it("Total before tax", pNet + pOther, true) +
+      `<div class="nt">${esc(lbl)} · tax is not included anywhere on this screen · Omni months have no freight lines (they were not kept), so "Total before tax" there equals net sales.</div></div>`;
+  }
   // 연 누계
   const a = d.ytd && d.ytd.this, b = d.ytd && d.ytd.last;
   if(a && b){
-    const k = (label, va, vb, fmt) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div><div class="c">${change(va, vb)} vs ${fmt(vb)} last year</div></div>`;
     h += `<div class="kpis">` +
-      k(`Net sales — ${a.from.slice(0, 4)} to ${a.to.slice(5)}`, a.net, b.net, money) +
-      k("Orders", a.orders, b.orders, v => num(v)) +
-      k("Average order", a.aov, b.aov, v => v === null || v === undefined ? "—" : "$" + num(v, 0)) +
-      (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpPct(a)}</div><div class="c">${gpPct(b)} last year${(a.cost_coverage !== undefined && a.cost_coverage < 0.95) || (b.cost_coverage !== undefined && b.cost_coverage < 0.95) ? " · cost only partly known" : ""}</div></div>` : "") +
+      k(`Year to date — net sales to ${a.to.slice(5)}`, a.net, b.net, money) +
+      k("YTD orders", a.orders, b.orders, v => num(v)) +
+      k("YTD average order", a.aov, b.aov, v => v === null || v === undefined ? "—" : "$" + num(v, 0)) +
+      (cc ? `<div class="card kpi"><div class="l">YTD GP %</div><div class="v">${gpPct(a)}</div><div class="c">${gpPct(b)} last year${(a.cost_coverage !== undefined && a.cost_coverage < 0.95) || (b.cost_coverage !== undefined && b.cost_coverage < 0.95) ? " · cost only partly known" : ""}</div></div>` : "") +
       `</div>`;
   }
 
@@ -308,7 +349,7 @@ function renderOverview(d){
   $("box").querySelectorAll("#mchart rect.bar").forEach(r => {
     r.addEventListener("mousemove", e => {
       const m = months[+r.dataset.i];
-      tip.innerHTML = `<b>${esc(m.m)}</b> · ${esc(m.era)}${m.partial ? " · through " + esc(m.through) : ""}<br>Net ${money(m.net)} · ${num(m.orders)} orders · avg ${m.aov ? "$" + num(m.aov) : "—"}` +
+      tip.innerHTML = `<b>${esc(m.m)}</b> · ${esc(m.era)}${m.partial ? " · through " + esc(m.through) : ""}<br>Product sales ${money(m.sales)} − credits ${money(Math.abs(Number(m.credits) || 0))} = <b>net ${money(m.net)}</b><br>+ freight etc. ${money(m.other)} = ${money((Number(m.net) || 0) + (Number(m.other) || 0))} before tax<br>${num(m.orders)} orders · avg ${m.aov ? "$" + num(m.aov) : "—"}` +
         (cc ? `<br>GP ${m.gp === null || m.gp === undefined ? "—" : money(m.gp)} · ${gpPct(m)} · cost known ${m.cost_coverage === undefined || m.cost_coverage === null ? "—" : Math.round(m.cost_coverage * 100) + "%"}` : "");
       tip.hidden = false; tip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px"; tip.style.top = (e.clientY + 12) + "px";
     });
