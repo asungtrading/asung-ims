@@ -14,6 +14,22 @@
   --accent:#2f6df6;--accent2:#2559d1;
   --green:#16794a;--red:#b42318;--yellow:#92640a;--purple:#7c3aed;
   --mono:ui-monospace,Menlo,monospace;--sans:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  /* pur v5 — 연한 띠 · 표지 색(라이트 값 = 고치기 전 글자 그대로) */
+  --pur-warn-bg:#fff8e6;--pur-warn-line:#f1e1b5;--pur-ok-bg:#e9f6ee;--pur-ok-line:#c9e8d5;
+  --pur-info-line:#cfdcfd;--pur-info-line2:#c7d7fe;--pur-purple-bg:#f3eefe;--pur-bad-bg:#fdecea;--pur-bad-line:#f6c9c4;
+  --pur-amber-bg:#fdf3e4;--pur-amber:#b45309;--pur-blue-deep:#1d4ed8;--pur-scroll:#d5dbe3;--pur-veil:rgba(247,248,250,.78);
+}
+/* pur v5 · 판정 1278 — 다크(ims-ui.css ui v2 와 같은 값) · ⚠️ 이 화면은 ims-ui.css 를 layer(ims) 로 불러 층 밖인 이 :root 가 공통 다크를 이긴다 ⇒ 다크도 여기서
+   · 공통 이름(--ims-surface · --ims-hover · --ims-sel-bg · --ims-go-bg …)은 이 화면이 다시 정하지 않으니 층 안 다크 값이 그대로 산다 */
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){
+  --bg:#0f1216;--bg2:#171b21;--bg3:#1c2129;--bg4:#232a33;
+  --border:#2a313b;--border2:#3a4350;
+  --text:#e6e9ee;--text2:#b3bcc8;--text3:#98a2b0;
+  --accent:#5b8cff;--accent2:#7b9fff;
+  --green:#45c486;--red:#f06b5d;--yellow:#e0b04f;--purple:#a78bfa;
+  --pur-warn-bg:#2e2614;--pur-warn-line:#574519;--pur-ok-bg:#15291f;--pur-ok-line:#1f4a33;
+  --pur-info-line:#2c3d66;--pur-info-line2:#2c3d66;--pur-purple-bg:#272040;--pur-bad-bg:#3a1f1d;--pur-bad-line:#5a2a26;
+  --pur-amber-bg:#33240f;--pur-amber:#f0a14a;--pur-blue-deep:#8ea6ff;--pur-scroll:#3a4350;--pur-veil:rgba(15,18,22,.78);
 }
 :where(#pur-root,#pur-root *){margin:0;padding:0;box-sizing:border-box}   /* pur v2 · :where 로 우선순위 0(옛 * 와 같게 — id 로 쓰면 아래 단추 · 칸 여백을 이긴다) — 옛 「* 초기화」 가 IMS 머리 줄 단추 여백까지 지웠다(deferred 619 · 298) → 이 화면 안으로 좁힘 */
 html,body{height:100%;overflow:hidden}
@@ -215,7 +231,7 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .csv-menu-badge{margin-left:auto;font-size:9px;font-weight:600;padding:1px 5px;border-radius:3px;background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
 .csv-menu-badge.primary{background:rgba(79,142,247,.15);color:var(--accent);border-color:rgba(79,142,247,.3)}
 /* loading overlay */
-#loading{display:none;position:fixed;inset:0;background:rgba(247,248,250,.78);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+#loading{display:none;position:fixed;inset:0;background:var(--pur-veil);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:12px}
 #loading.show{display:flex}
 .spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -252,10 +268,10 @@ body.hide-bo6090 [data-col-id="bo6090"]{display:none!important}
 .ds-tbl .sku{color:var(--accent);font-weight:600}
 .ds-tbl .pname{color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis}
 .ds-badge{display:inline-block;padding:1.5px 7px;border-radius:9px;font-size:10px;font-weight:600;letter-spacing:.04em}
-.ds-badge.dead{background:rgba(239,68,68,.18);color:#b42318;border:1px solid rgba(239,68,68,.35)}
-.ds-badge.slow{background:rgba(234,179,8,.16);color:#92640a;border:1px solid rgba(234,179,8,.35)}
-.ds-badge.active{background:rgba(34,197,94,.16);color:#16794a;border:1px solid rgba(34,197,94,.35)}
-.ds-badge.new{background:rgba(59,130,246,.16);color:#1d4ed8;border:1px solid rgba(59,130,246,.35)}
+.ds-badge.dead{background:rgba(239,68,68,.18);color:var(--red);border:1px solid rgba(239,68,68,.35)}
+.ds-badge.slow{background:rgba(234,179,8,.16);color:var(--yellow);border:1px solid rgba(234,179,8,.35)}
+.ds-badge.active{background:rgba(34,197,94,.16);color:var(--green);border:1px solid rgba(34,197,94,.35)}
+.ds-badge.new{background:rgba(59,130,246,.16);color:var(--pur-blue-deep);border:1px solid rgba(59,130,246,.35)}
 /* ═══ pur-2 — IMS 안에 앉히기 ═══
    ⚠️ IMS 공통 CSS 는 @layer ims 라 아래(레이어 밖) 규칙이 늘 이긴다 · IMS 머리줄 높이는 --imsH(시작 뒤 잰다) */
 html[data-ims-mode="ims"]{zoom:1}
@@ -275,95 +291,95 @@ body > header{position:fixed;top:0;left:0;right:0;z-index:600}
 body{font-family:var(--sans)}
 #pur-root{font-family:var(--sans);color:var(--text)}
 .btn,.btog button,.spill,.ftag,.ptog button,.banner,.pur-imsbar,.pur-imsbar button,.csv-menu-item,.ltxt,.mtab,.slm-title,.sup-chip{font-family:var(--sans)}
-#header{background:#fff;border-bottom:1px solid var(--border);padding:0 16px}
+#header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px}
 .logo{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--text);letter-spacing:0}
 .hsep{background:var(--border)}
-.btn{background:#fff;border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12.5px;padding:5px 11px}
-.btn:hover{background:#f2f4f8;color:var(--text);border-color:var(--border)}
-.btn.primary{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
-.btn.primary:hover{background:#3550c4;border-color:#3550c4}
-.btog{background:#fff;border-color:var(--border);border-radius:9px}
+.btn{background:var(--bg2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:12.5px;padding:5px 11px}
+.btn:hover{background:var(--ims-hover);color:var(--text);border-color:var(--border)}
+.btn.primary{background:var(--ims-go-bg);border-color:var(--ims-go-bg);color:#fff}
+.btn.primary:hover{background:var(--ims-go-hover);border-color:var(--ims-go-hover)}
+.btog{background:var(--bg2);border-color:var(--border);border-radius:9px}
 .btog button{font-size:12.5px;padding:5px 11px;color:var(--text2);font-weight:600}
-.btog button.active{background:#3b5bdb;color:#fff}
-.ptog{background:#fff;border-color:var(--border);border-radius:9px}
+.btog button.active{background:var(--ims-go-bg);color:#fff}
+.ptog{background:var(--bg2);border-color:var(--border);border-radius:9px}
 .ptog button{font-size:12px}
-.ptog button.active{background:#3b5bdb;color:#fff}
-.spill{background:#fff;border-color:var(--border);border-radius:999px;font-size:12px;color:var(--text2)}
+.ptog button.active{background:var(--ims-go-bg);color:#fff}
+.spill{background:var(--bg2);border-color:var(--border);border-radius:999px;font-size:12px;color:var(--text2)}
 .spill:hover{border-color:var(--border2)}
 .dot.ok{box-shadow:none}
 #app{background:var(--bg)}
-#sidebar{background:#fff}
-#sidebar-toggle{background:#fff;color:var(--text3)}
-#sidebar-toggle:hover{background:#f2f4f8;color:var(--text)}
-.sb-search input,.si,.qov,.slm-row input{background:#fff;border-color:var(--border)}
+#sidebar{background:var(--bg2)}
+#sidebar-toggle{background:var(--bg2);color:var(--text3)}
+#sidebar-toggle:hover{background:var(--ims-hover);color:var(--text)}
+.sb-search input,.si,.qov,.slm-row input{background:var(--bg2);border-color:var(--border)}
 .sb-search input{border-radius:8px;font-size:12.5px;padding:6px 9px}
 .si{border-radius:7px}
 .sr{grid-template-columns:1fr 72px 20px}
-.sb-settings{background:#fff}
+.sb-settings{background:var(--bg2)}
 .sb-settings-title{color:var(--text3)}
 .sb-sup-name{font-family:var(--sans);font-weight:600;font-size:12px}
 .sup-item .sn{font-size:12.5px}
-.sup-item.active{background:#eef3ff;border-left-color:#2f6df6}
-.sup-item:hover{background:#f7f8fa}
-.sup-item .sc{background:#f1f3f7;color:var(--text3)}
-#tab-bar{background:#fff}
+.sup-item.active{background:var(--ims-sel-bg);border-left-color:var(--accent)}
+.sup-item:hover{background:var(--bg)}
+.sup-item .sc{background:var(--ims-line-soft);color:var(--text3)}
+#tab-bar{background:var(--bg2)}
 .mtab{font-size:13px;font-weight:600}
-.mtab.active{color:#2f6df6;border-bottom-color:#2f6df6}
-.col-btn{background:#fff;border-color:var(--border);color:var(--text2);border-radius:999px;font-size:11px;padding:2px 9px}
-.col-btn.active{background:#eef3ff;color:#2f6df6;border-color:#c7d7fe}
-.col-btn:hover{border-color:#2f6df6}
+.mtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.col-btn{background:var(--bg2);border-color:var(--border);color:var(--text2);border-radius:999px;font-size:11px;padding:2px 9px}
+.col-btn.active{background:var(--ims-sel-bg);color:var(--accent);border-color:var(--pur-info-line2)}
+.col-btn:hover{border-color:var(--accent)}
 .banner{font-family:var(--sans);font-size:12.5px;padding:8px 16px}
-.banner.warn{background:#fff8e6;border-color:#f1e1b5;color:#92640a}
-.banner.ok{background:#e9f6ee;border-color:#c9e8d5;color:#16794a}
-.banner.load{background:#eef3ff;border-color:#cfdcfd;color:#2f6df6}
-.pur-imsbar{font-family:var(--sans);font-size:12.5px;padding:8px 16px;background:#eef3ff;border-bottom-color:#cfdcfd;color:var(--text)}
-.pur-imsbar.warn{background:#fff8e6;border-bottom-color:#f1e1b5;color:#92640a}
-.pur-imsbar button{background:#3b5bdb;border-radius:8px;font-family:var(--sans);font-size:12px;padding:5px 11px}
+.banner.warn{background:var(--pur-warn-bg);border-color:var(--pur-warn-line);color:var(--yellow)}
+.banner.ok{background:var(--pur-ok-bg);border-color:var(--pur-ok-line);color:var(--green)}
+.banner.load{background:var(--ims-sel-bg);border-color:var(--pur-info-line);color:var(--accent)}
+.pur-imsbar{font-family:var(--sans);font-size:12.5px;padding:8px 16px;background:var(--ims-sel-bg);border-bottom-color:var(--pur-info-line);color:var(--text)}
+.pur-imsbar.warn{background:var(--pur-warn-bg);border-bottom-color:var(--pur-warn-line);color:var(--yellow)}
+.pur-imsbar button{background:var(--ims-go-bg);border-radius:8px;font-family:var(--sans);font-size:12px;padding:5px 11px}
 #sum-bar{background:var(--border)}
-.sc-card{background:#fff;padding:10px 16px}
+.sc-card{background:var(--bg2);padding:10px 16px}
 .sc-lbl{font-size:10.5px;color:var(--text3)}
 .sc-val{font-size:18px}
 .sc-sub{color:var(--text3)}
-#toolbar{background:#fff;padding:10px 16px}
-.sbox{background:#fff;border-color:var(--border);border-radius:9px;width:220px}
-.ftag{background:#fff;border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:3px 10px}
-.ftag:hover,.ftag.active{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+#toolbar{background:var(--bg2);padding:10px 16px}
+.sbox{background:var(--bg2);border-color:var(--border);border-radius:9px;width:220px}
+.ftag{background:var(--bg2);border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:3px 10px}
+.ftag:hover,.ftag.active{background:var(--ims-go-bg);border-color:var(--ims-go-bg);color:#fff}
 .select-prompt .sp-icon{opacity:.35}
-.sup-chip{background:#fff;border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:4px 11px}
-.sup-chip:hover{background:#f2f4f8;color:var(--text);border-color:var(--border2)}
-.bg-hdr{background:#f7f8fa}
-.bg-hdr:hover{background:#f1f3f7}
+.sup-chip{background:var(--bg2);border-color:var(--border);border-radius:999px;color:var(--text2);font-size:12px;padding:4px 11px}
+.sup-chip:hover{background:var(--ims-hover);color:var(--text);border-color:var(--border2)}
+.bg-hdr{background:var(--bg)}
+.bg-hdr:hover{background:var(--ims-line-soft)}
 .bg-name{font-size:12px;color:var(--text)}
-.sku-tbl thead th{background:#fafbfd;color:var(--text3);font-size:10.5px;font-weight:600;box-shadow:0 1px 0 var(--border)}
-.sku-tbl tbody tr{border-bottom-color:#f1f3f7}
-.sku-tbl tbody tr:hover{background:#fafbfd}
-.sku-tbl tbody td:first-child{color:#2f6df6;font-weight:600}
-.badge-tr{background:#f3eefe;color:#7c3aed}
-.badge-urg{background:#fdecea;color:#b42318}
-.abc-a{background:#fdf3e4;color:#b45309}
-.abc-b{background:#eef3ff;color:#2f6df6}
-.abc-c{background:#f1f3f7;color:var(--text3)}
+.sku-tbl thead th{background:var(--ims-surface-2);color:var(--text3);font-size:10.5px;font-weight:600;box-shadow:0 1px 0 var(--border)}
+.sku-tbl tbody tr{border-bottom-color:var(--ims-line-soft)}
+.sku-tbl tbody tr:hover{background:var(--ims-surface-2)}
+.sku-tbl tbody td:first-child{color:var(--accent);font-weight:600}
+.badge-tr{background:var(--pur-purple-bg);color:var(--purple)}
+.badge-urg{background:var(--pur-bad-bg);color:var(--red)}
+.abc-a{background:var(--pur-amber-bg);color:var(--pur-amber)}
+.abc-b{background:var(--ims-sel-bg);color:var(--accent)}
+.abc-c{background:var(--ims-line-soft);color:var(--text3)}
 .qov{border-color:var(--border2);border-radius:5px}
-#sparkline-tooltip,#ov-history-tooltip{background:#fff;border-color:var(--border);box-shadow:0 12px 32px rgba(15,20,30,.16);border-radius:12px}
-.slm-box{background:#fff;border-color:var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16)}
-.slm-add-btn{background:#3b5bdb}
-.slm-list{background:#fafbfd}
-.csv-menu{background:#fff;border-color:#e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16)}
+#sparkline-tooltip,#ov-history-tooltip{background:var(--bg2);border-color:var(--border);box-shadow:0 12px 32px var(--ims-shadow);border-radius:12px}
+.slm-box{background:var(--bg2);border-color:var(--border);border-radius:12px;box-shadow:0 12px 32px var(--ims-shadow)}
+.slm-add-btn{background:var(--ims-go-bg)}
+.slm-list{background:var(--ims-surface-2)}
+.csv-menu{background:var(--bg2);border-color:var(--ims-line-strong);border-radius:12px;box-shadow:0 12px 32px var(--ims-shadow)}
 .csv-menu-item{color:var(--text);font-size:12.5px}
-.csv-menu-item:hover{background:#f2f4f8}
-.csv-menu-badge.primary{background:#eef3ff;color:#2f6df6;border-color:#cfdcfd}
-.fc-card{background:#fff;border-color:var(--border);border-radius:12px;padding:12px}
+.csv-menu-item:hover{background:var(--ims-hover)}
+.csv-menu-badge.primary{background:var(--ims-sel-bg);color:var(--accent);border-color:var(--pur-info-line)}
+.fc-card{background:var(--bg2);border-color:var(--border);border-radius:12px;padding:12px}
 .fc-title,.ds-title{font-family:var(--mono);font-size:11px;color:var(--text3)}
-.ds-stat{background:#fff;border-color:var(--border);border-radius:999px;font-family:var(--sans)}
-.ds-tbl-wrap{background:#fff;border-color:var(--border);border-radius:12px}
-.ds-tbl th{background:#fafbfd;color:var(--text3)}
-.ds-tbl td{border-bottom-color:#f1f3f7}
-.ds-tbl tr:hover td{background:#fafbfd}
-.ds-badge.dead{background:#fdecea;border-color:#f6c9c4}
-.ds-badge.slow{background:#fff8e6;border-color:#f1e1b5}
-.ds-badge.active{background:#e9f6ee;border-color:#c9e8d5}
-.ds-badge.new{background:#eef3ff;border-color:#cfdcfd}
-#tbl-body::-webkit-scrollbar-thumb,#sup-list::-webkit-scrollbar-thumb{background:#d5dbe3}
+.ds-stat{background:var(--bg2);border-color:var(--border);border-radius:999px;font-family:var(--sans)}
+.ds-tbl-wrap{background:var(--bg2);border-color:var(--border);border-radius:12px}
+.ds-tbl th{background:var(--ims-surface-2);color:var(--text3)}
+.ds-tbl td{border-bottom-color:var(--ims-line-soft)}
+.ds-tbl tr:hover td{background:var(--ims-surface-2)}
+.ds-badge.dead{background:var(--pur-bad-bg);border-color:var(--pur-bad-line)}
+.ds-badge.slow{background:var(--pur-warn-bg);border-color:var(--pur-warn-line)}
+.ds-badge.active{background:var(--pur-ok-bg);border-color:var(--pur-ok-line)}
+.ds-badge.new{background:var(--ims-sel-bg);border-color:var(--pur-info-line)}
+#tbl-body::-webkit-scrollbar-thumb,#sup-list::-webkit-scrollbar-thumb{background:var(--pur-scroll)}
 /* pur v2a — 노트북 폭에서 한 화면에(칸 16 개) */
 #sidebar{width:184px}
 #sidebar-toggle{left:184px}
@@ -860,7 +876,7 @@ const STOCK_DATE = '2026-04-20';
    · 설정 넷 = IMS(pur_settings · pur_*_set · 판정 606) · 발주 초안 = IMS po_create + po_lines_paste
    · 고정 단가 💲 = IMS product_supplier 읽기 · product_update(supplier_set) 쓰기 — 지금 문은 master(판정 607 · pur-3)
    · Supplier 분석 · 입고 검증 = IMS 창구 pur_supplier_analysis · pur_receiving_audit(pur v4 · hist-bq-6 · 판정 1253 · 1273) */
-const PUR_BUILD = '2026-11-15 · pur v4';   // v4 — 대화 Claude(hist-bq-6 · asung-wms 20261116030000 · 판정 1253 · 1269 · 1270 · 1273): Supplier 분석 · 입고 검증 탭을 다시 보이고 IMS 창구로 — 입고 검증 = pur_receiving_audit(p_days)(판매 이력을 기다리지 않음 · 상태 줄에 「받은 수량 기록이 없는 Core PO」) · Supplier 분석 = pur_supplier_analysis(공급처 id · BigQuery 쿼리 다섯을 한 번에 · 렌더 코드 무변) · 평균 리드타임은 IMS 발주만 · 총 발주 금액에 ≈(옛 금액) · 상태 줄 안내(≈ 옛 금액 · Core 주문 수량 기준 · 발주 이력 공백 · 미충족 수요 구간) · BigQuery 상수 · runBQQuery 멈춤 함수 · 쿼리 다섯 걷음 · 낡은 주석(마지막 판매일 표) 고침 ← v3a — 판정 1257(Caleb 화면 시험: New 447 이 모두 2025-11 뒤 등록 · 52 는 IMS 에서 만든 제품 — 1 년 가까이 안 팔린 것도 New 로 묻힘): 데드 스톡 — 판매 0 은 등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90 일 안이면 New · 지났으면 Dead(판매 이력 없음 · 마지막 판매 칸 「판매 없음」 · 무판매 일수 = 등록 뒤 날수) · 등록일은 판매 0 SKU 만 product 에서 200 개씩 · 못 읽으면 옛 규칙(New) · 단추 글 ← v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
+const PUR_BUILD = '2026-11-16 · pur v5';   // v5 — 대화 Claude(판정 1278 · ims-ui.css ui v2 · ims-auth.js nav v21): 다크 모드 — 이 화면은 ims-ui.css 를 layer(ims) 로 불러 자기 :root 가 공통 다크 값을 이긴다 ⇒ 화면 안에 다크 블록(자기 이름 15 + 연한 띠 색 pur- 이름) · 고정 색을 자기 이름 · 공통 변수(--ims-surface · --ims-hover …)로 · 그림 글씨 · 축 선 · 데드 스톡 숫자 색을 변수로 · 눌린 필터 단추 글씨 #fff → var(--bg2)(다크에서 밝은 바탕 위 흰 글씨) · 반투명 그림 색 · 파랑 선은 그대로(어두운 바탕에서도 보인다) · 라이트 값 무변 · 동작 · 글 · 계산 무변 ← v4 — 대화 Claude(hist-bq-6 · asung-wms 20261116030000 · 판정 1253 · 1269 · 1270 · 1273): Supplier 분석 · 입고 검증 탭을 다시 보이고 IMS 창구로 — 입고 검증 = pur_receiving_audit(p_days)(판매 이력을 기다리지 않음 · 상태 줄에 「받은 수량 기록이 없는 Core PO」) · Supplier 분석 = pur_supplier_analysis(공급처 id · BigQuery 쿼리 다섯을 한 번에 · 렌더 코드 무변) · 평균 리드타임은 IMS 발주만 · 총 발주 금액에 ≈(옛 금액) · 상태 줄 안내(≈ 옛 금액 · Core 주문 수량 기준 · 발주 이력 공백 · 미충족 수요 구간) · BigQuery 상수 · runBQQuery 멈춤 함수 · 쿼리 다섯 걷음 · 낡은 주석(마지막 판매일 표) 고침 ← v3a — 판정 1257(Caleb 화면 시험: New 447 이 모두 2025-11 뒤 등록 · 52 는 IMS 에서 만든 제품 — 1 년 가까이 안 팔린 것도 New 로 묻힘): 데드 스톡 — 판매 0 은 등록(Cin7 등록일 · 없으면 IMS 에서 만든 날) 90 일 안이면 New · 지났으면 Dead(판매 이력 없음 · 마지막 판매 칸 「판매 없음」 · 무판매 일수 = 등록 뒤 날수) · 등록일은 판매 0 SKU 만 product 에서 200 개씩 · 못 읽으면 옛 규칙(New) · 단추 글 ← v3 — 대화 Claude(판정 616 B · 1249 ~ 1256 · pur-bq-1 asung-wms 03e5f51): 판매 이력을 IMS 창구 pur_sales_summary 하나로(경계 전 hist_so_line + 경계부터 IMS 인보이스 + 2025-11-01 앞 마지막 판매일 · 낱개로 접혀 옴 · 열쇠 소문자 sku → SKU) — 구글 로그인 · BigQuery 를 걷었다(머리 토큰 거두기 스크립트 · 판매 BQ 표시 · 노란 막대 · connectBQ · 토큰 만료 배너 · runBQQuery 는 숨긴 탭용 멈춤 글만) · Supplier 분석 · 입고 검증 탭 숨김(1253 · 코드는 deferred 626 까지 남김) · 옛 코드 걷음(1256 — 재고 지연 배너 · 「IMS 로 옮기기」 막대(deferred 298) · BigQuery 재고 덮어쓰기 · 마스터 보강 · BigQuery 백오더 · purFold · purSumBy · purImsSales · pur_set_map 읽기) · 계산 코드(ADU · 계절성 · 트렌드 · 데드 스톡) 무변 ← v2a — Caleb 화면 시험: 머리 줄 이름이 안 보였다(imsHeader 를 안 불렀다) → 부름 · 노트북 폭에서 표가 넘쳐 옆으로 밀렸다 → 표 칸 여백 · 글자를 IMS 표 수준으로(10 → 6px · 12 → 11.5px) · 상품명 칸 최대 폭 200 → 160 · 왼쪽 목록 200 → 184px ← v2 — 대화 Claude(판정 619 · deferred 619 · 298 · Caleb 11-15 「IMS 포맷에 맞추기 · 이것만 dark mode」): 모양만 IMS 라이트 꼴로 — 색 변수 값을 ims-ui.css 값으로(이름 그대로) · IBM Plex 웹글꼴 뺌(IMS 글꼴) · 「* 초기화」 를 #pur-root 안으로 좁혀 IMS 머리 줄 단추 납작 고침 · 「아성 / 발주관리」 머리를 「Reorder Planner」 제목 줄로 · 단추 · 칩 · 배너 · 표 머리 · 카드 IMS 꼴 · 그림(스파크라인 · 막대)과 데드 스톡 표지 글자색을 밝은 바탕용으로 · 동작 · 글(한국어) 무변 · 616 B(Google 연결 걷어내기)는 다음 차수 ← v1d — cost-1(판정 759 · 764 · asung-wms cost-1a 20261026173000): 상품명 옆 💲(고정 단가 보기 · 고치기)는 원가 열쇠가 있을 때만 그리고, 값은 product_supplier 에서 직접 읽지 않고 product_supplier_costs 창구로(cost-1b 뒤 직접 읽기는 42501) · ← v1c: v1c — 재고를 pur_stock() 한 번으로(pur-1c eb0d186 · 0.86 s · stk_availability 16 쪽 자리) · ← v1b — 재고 쪽을 4 개씩으로 되돌림(8 개씩이 stk_availability statement timeout · Caleb 10-22) · 시간 초과 문구 · ← v1a 속도 — IMS 읽기와 BigQuery 를 동시에(BigQuery 는 pur_settings · pur_set_map 만 기다린다) · 재고 첫 쪽 뒤 8 개씩 · 배너에 걸린 시간 · ← v1: 대화 Claude — pur-2 첫 판(tools/purchasing.html md5 4857281d… 를 통째로 옮김)
 let sb = null;
 const PUR = {
   boundary: null, defaults: { leadtime:30, target:60, cycle:30, lt_sigma:0, w1:3, w2:2, w3:1 },
@@ -2219,19 +2235,19 @@ function showSparkline(sku, name, evt){
     <path d="${areaPath}" fill="url(#sg)"/>
     <polyline points="${polyline}" fill="none" stroke="#2f6df6" stroke-width="1.5" stroke-linejoin="round"/>
     <polyline points="${maPolyline}" fill="none" stroke="#d97706" stroke-width="1" stroke-dasharray="2,2" opacity="0.8"/>
-    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" stroke="#e5e9ef" stroke-width="0.5"/>
+    <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" style="stroke:var(--border)" stroke-width="0.5"/>
   `;
 
   const avg90 = days.reduce((a,b)=>a+b,0)/90;
   const avg30 = days.slice(-Math.min(30,n)).reduce((a,b)=>a+b,0)/30;
   const trend = avg30 > avg90*1.1 ? '↑ 상승' : avg30 < avg90*0.9 ? '↓ 하락' : '→ 보합';
-  const trendColor = avg30>avg90*1.1?'#16794a':avg30<avg90*0.9?'#b42318':'var(--text3)';
+  const trendColor = avg30>avg90*1.1?'var(--green)':avg30<avg90*0.9?'var(--red)':'var(--text3)';
 
   title.textContent = sku;
   const wd90=S._workingDays90||64;
   const linkedFrom = sd.linkedFrom||[];
   const linkTxt = linkedFrom.length ? `<br><span style="color:var(--yellow)">🔗 ${linkedFrom.join(', ')} 데이터 합산</span>` : '';
-  stats.innerHTML = `ADU(영업일): <b style="color:#12161c">${sd.adu.toFixed(2)}</b> &nbsp;|&nbsp; 최근30일평균: <b style="color:#12161c">${avg30.toFixed(1)}</b><br>트렌드: <b style="color:${trendColor}">${trend}</b> &nbsp;|&nbsp; 판매일: <b style="color:#12161c">${n}일/${wd90}영업일</b><br><span style="color:#2f6df6">━</span> 일별판매 &nbsp;<span style="color:#d97706;border-bottom:1px dashed">━</span> 7일이동평균${linkTxt}`;
+  stats.innerHTML = `ADU(영업일): <b style="color:var(--text)">${sd.adu.toFixed(2)}</b> &nbsp;|&nbsp; 최근30일평균: <b style="color:var(--text)">${avg30.toFixed(1)}</b><br>트렌드: <b style="color:${trendColor}">${trend}</b> &nbsp;|&nbsp; 판매일: <b style="color:var(--text)">${n}일/${wd90}영업일</b><br><span style="color:#2f6df6">━</span> 일별판매 &nbsp;<span style="color:#d97706;border-bottom:1px dashed">━</span> 7일이동평균${linkTxt}`;
 
   // 위치
   const vw = window.innerWidth, vh = window.innerHeight;
@@ -2615,12 +2631,12 @@ function renderDeadStock(){
   const deadValue  = rows.filter(r=>r.status==='dead').reduce((a,r)=>a+r.value, 0);
   document.getElementById('ds-stats').innerHTML = `
     <div class="ds-stat">총 SKU: <b>${total.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead: <b style="color:#b42318">${dead.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(234,179,8,.4)">Slow: <b style="color:#92640a">${slow.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(34,197,94,.4)">Active: <b style="color:#16794a">${active.toLocaleString()}</b></div>
-    <div class="ds-stat" style="border-color:rgba(59,130,246,.4)">New: <b style="color:#1d4ed8">${fresh.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead: <b style="color:var(--red)">${dead.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(234,179,8,.4)">Slow: <b style="color:var(--yellow)">${slow.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(34,197,94,.4)">Active: <b style="color:var(--green)">${active.toLocaleString()}</b></div>
+    <div class="ds-stat" style="border-color:rgba(59,130,246,.4)">New: <b style="color:var(--pur-blue-deep)">${fresh.toLocaleString()}</b></div>
     <div class="ds-stat">총 재고가치: <b>$${totalValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
-    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead 재고가치: <b style="color:#b42318">$${deadValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
+    <div class="ds-stat" style="border-color:rgba(239,68,68,.4)">Dead 재고가치: <b style="color:var(--red)">$${deadValue.toLocaleString('en-US',{maximumFractionDigits:0})}</b></div>
   `;
 
   // 테이블 정렬 인디케이터
@@ -2645,7 +2661,7 @@ function renderDeadStock(){
       <td>${fmt0(r.edm)}</td>
       <td><b>${fmt0(r.total)}</b></td>
       <td>${r.last || (r.noSale ? '<span title="한 번도 안 팔림 — 무판매 일수는 등록 뒤 날수">판매 없음</span>' : '—')}</td>
-      <td style="color:${r.dsls>=365?'#b42318':r.dsls>=90?'#92640a':'var(--text2)'}">${dsls(r.dsls)}</td>
+      <td style="color:${r.dsls>=365?'var(--red)':r.dsls>=90?'var(--yellow)':'var(--text2)'}">${dsls(r.dsls)}</td>
       <td>${fmt0(r.qty90)}</td>
       <td>${fmt0(r.qty365)}</td>
       <td>${r.cost?fmt$(r.cost):'—'}</td>
@@ -2763,7 +2779,7 @@ function renderReceivingAudit(allRows){
   // 필터 버튼
   const mkBtn=(val,label,color,count)=>{
     const active=S.rvFilter===val;
-    const css=active?`background:${color};color:#fff;border-color:${color};`:`color:${color};`;
+    const css=active?`background:${color};color:var(--bg2);border-color:${color};`:`color:${color};`;
     return `<button onclick="S.rvFilter='${val}';renderReceivingAudit(window._rvRows||[])"
       style="background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
         font-family:var(--mono);font-size:10px;padding:3px 9px;cursor:pointer;${css}">
@@ -3104,16 +3120,16 @@ function renderSupplierIntelligence(){
       const y   = pad.t + chartH - bH;
       const py  = maxPO>0 ? pad.t + chartH - (po/maxPO)*chartH : pad.t+chartH;
       bars += `<rect x="${x-bW/2}" y="${y}" width="${bW}" height="${bH}" fill="rgba(79,142,247,.5)" rx="2"/>`;
-      bars += `<text x="${x}" y="${y-4}" text-anchor="middle" font-size="9" fill="#6b7686">${fmt2(amt)}</text>`;
-      labels += `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" fill="#6b7686">${r.yr}</text>`;
+      bars += `<text x="${x}" y="${y-4}" text-anchor="middle" font-size="9" style="fill:var(--text3)">${fmt2(amt)}</text>`;
+      labels += `<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10" style="fill:var(--text3)">${r.yr}</text>`;
       labels += `<text x="${x}" y="${H-22}" text-anchor="middle" font-size="9" fill="var(--green)">${po}회</text>`;
       poLine += (i===0?`M${x},${py}`:` L${x},${py}`);
       poPoints += `<circle cx="${x}" cy="${py}" r="3" fill="var(--green)"/>`;
     });
     // Y축
     const yAxis = `<line x1="${pad.l}" y1="${pad.t}" x2="${pad.l}" y2="${pad.t+chartH}" stroke="var(--border)" stroke-width="1"/>
-      <text x="${pad.l-4}" y="${pad.t+8}" text-anchor="end" font-size="9" fill="#6b7686">$${(maxAmt/1000).toFixed(0)}K</text>
-      <text x="${pad.l-4}" y="${pad.t+chartH}" text-anchor="end" font-size="9" fill="#6b7686">$0</text>`;
+      <text x="${pad.l-4}" y="${pad.t+8}" text-anchor="end" font-size="9" style="fill:var(--text3)">$${(maxAmt/1000).toFixed(0)}K</text>
+      <text x="${pad.l-4}" y="${pad.t+chartH}" text-anchor="end" font-size="9" style="fill:var(--text3)">$0</text>`;
     document.getElementById('si-yearly-chart').innerHTML =
       `<svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:${W}px;height:${H}px">
         ${yAxis}${bars}
@@ -3411,7 +3427,7 @@ function siSetRatioFilter(val){
 
 // ── 발주 적정성 필터 버튼 렌더 헬퍼
 function _wosFilterBtn(val, label, color, isActive){
-  const activeBg    = isActive ? `background:${color};color:#fff;border-color:${color};` : '';
+  const activeBg    = isActive ? `background:${color};color:var(--bg2);border-color:${color};` : '';
   const activeColor = isActive ? '' : `color:${color};`;
   return `<button onclick="siSetRatioFilter('${val}')"
     style="background:var(--bg4);border:1px solid var(--border2);border-radius:4px;
@@ -3579,7 +3595,7 @@ function showSkuTooltip(sku, name, ordered, sold, sold1y, sold90d, boQty, demand
     labelIdxs.forEach(i=>{
       if(!recent[i]) return;
       const x = padL + (i/n)*cW + (cW/n/2);
-      labels += `<text x="${x}" y="${H-4}" text-anchor="middle" font-size="8" fill="#6b7686">${recent[i].ym.slice(2)}</text>`;
+      labels += `<text x="${x}" y="${H-4}" text-anchor="middle" font-size="8" style="fill:var(--text3)">${recent[i].ym.slice(2)}</text>`;
     });
 
     chartSVG = `
