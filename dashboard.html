@@ -17,7 +17,7 @@
   .dblegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
   .lg-paid{background:color-mix(in srgb,var(--good) 16%,var(--ims-surface));border-color:var(--good)!important}
   .lg-part{background:color-mix(in srgb,var(--warn) 18%,var(--ims-surface));border-color:var(--warn)!important}
-  .lg-unpaid{background:var(--ims-surface);border-color:var(--ims-dim)!important}
+  .lg-unpaid{background:var(--ims-surface);border-color:var(--bad)!important}   /* db v4 — Not paid 는 빨간 테두리만(Overdue 는 바탕까지) */
   .lg-over{background:color-mix(in srgb,var(--bad) 16%,var(--ims-surface));border-color:var(--bad)!important}
 
   .dbover{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:10px 14px;font-size:13.5px}
@@ -49,7 +49,7 @@
   .chip .fp{color:var(--muted);font-weight:400}
   .chip.paid{background:color-mix(in srgb,var(--good) 14%,var(--ims-surface));border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
   .chip.partial{background:color-mix(in srgb,var(--warn) 16%,var(--ims-surface));border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
-  .chip.unpaid{border-color:var(--ims-dim)}
+  .chip.unpaid{border-color:var(--bad);border-width:1.5px}
   .chip.overdue{background:color-mix(in srgb,var(--bad) 14%,var(--ims-surface));border-color:color-mix(in srgb,var(--bad) 60%,var(--line))}
   .chip .kind{font-size:10.5px;font-weight:700;color:var(--muted);margin-right:4px}
   .cash{display:block;width:100%;text-align:left;border:0;background:none;padding:1px 2px;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -97,6 +97,30 @@
   .tkcat input[type=text]{flex:1}
   @media (max-width:560px){ .tkf{grid-template-columns:1fr} }
 
+  /* db v4 — 보기(Month · Week · Day · 판정 1300) */
+  .vsel{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px;font-weight:600}
+  .cal .day{cursor:pointer}
+  .cal .day > *{cursor:auto}
+  .cal .day .dn b{cursor:pointer}
+  .cal .day .dn b:hover{text-decoration:underline}
+  .cal.week .day{min-height:420px}
+  .cal.week .chip .t,.cal.week .chip .s,.cal.week .tk .tt,.cal.week .tk .tw{white-space:normal}
+  .cal.week .tk .nt{display:block;font-size:11px;color:var(--muted);white-space:normal}
+  .tk .nt{display:none}
+  .dayv{display:flex;flex-direction:column;gap:12px}
+  .dayv .card{padding:0}
+  .dayv h3{margin:0;padding:10px 14px;font-size:14px;font-weight:700;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center}
+  .dayv h3 .sum{font-weight:400;color:var(--muted);font-size:13px}
+  .dayv h3 .sp{flex:1}
+  .dayv table{width:100%}
+  .dayv td.r,.dayv th.r{text-align:right}
+  .dayv tr[data-href],.dayv tr[data-doc]{cursor:pointer}
+  .dayv .tkl{display:flex;flex-direction:column;gap:6px;padding:10px 14px}
+  .dayv .tkl .tk{font-size:13.5px;padding:6px 9px}
+  .dayv .tkl .tk .tw{font-size:12px}
+  .dayv .tkl .tk .nt{display:block;font-size:12px;color:var(--muted);white-space:pre-wrap}
+  .dayv .empty{padding:12px 14px;color:var(--muted);font-size:13px}
+
   /* 그날 목록 팝업 — 공통 .pomodal · .pobox 를 쓴다 */
   #calModal .pobox{max-width:980px;width:96vw}
   #calModal table{width:100%}
@@ -131,9 +155,10 @@
 <div class="dbwrap">
   <div class="dbtop">
     <h1>Calendar</h1>
-    <button class="pobtn" id="prevM" title="Previous month">‹</button>
-    <span class="dbmonth" id="mLabel">—</span>
-    <button class="pobtn" id="nextM" title="Next month">›</button>
+    <select class="vsel" id="view" title="View"><option value="month">Month</option><option value="week">Week</option><option value="day">Day</option></select>
+    <button class="pobtn" id="prevM" title="Previous">‹</button>
+    <span class="dbmonth" id="mLabel" style="min-width:200px">—</span>
+    <button class="pobtn" id="nextM" title="Next">›</button>
     <button class="pobtn" id="todayM">Today</button>
     <select id="wh" title="Branch — customer side only" hidden><option value="">All branches</option></select>
     <button class="pobtn go" id="newTask">+ Task</button>
@@ -231,11 +256,17 @@
      · 맡긴 뒤 내게 안 보이게 되면(만든 사람도 담당도 아님 · 판정 1293) 안내만 · ?task=<id>(메일 링크)로 들어오면 그 Task 를 연다
      · 「Everyone's / My tasks」 고르기는 모두를 보는 사람(manager 이상)에게만 — 화면 거르기(창구는 그대로)
    ───────────────────────────────────────────────────────────── */
-const DB_BUILD = "2026-11-16 · db v3";
+/* [db v4 · 2026-11-16 · 대화 Claude · 판정 1300] 보기 셋 — Month(기본 · 열 때 늘) · Week(그 주 7 칸을 크게 · 줄임 없이) · Day(그날을 목록으로 다 펼침)
+     · 달 · 주 칸의 날짜 숫자나 빈 곳을 누르면 그날 Day · ‹ › 는 보기에 따라 달 · 주 · 날 · Today 는 지금 보기 그대로 오늘로
+     · Day = cal_month(그날) + cal_tasks(그날) + cal_day(ar · received · refund · paid — 열쇠 있는 것만) · 공급처 칸은 cal_month.ap_items
+     · 주소: ?v=week|day&d=YYYY-MM-DD(달은 ?m=YYYY-MM) — 메일 링크 ?task= 는 그대로
+     · Not paid 칸은 빨간 테두리(Caleb 11-16) — Overdue 는 빨간 테두리 + 붉은 바탕으로 갈린다 */
+const DB_BUILD = "2026-11-16 · db v4";
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
-let cur = null;          // 보는 달의 1 일(Date · 로컬)
+let cur = null;          // 보는 날(Date · 로컬) — 달 보기에서는 그 달의 아무 날
+let view = "month";      // month | week | day(판정 1300 — 열 때 늘 month)
 let whId = "";
 let lastData = null, seq = 0;
 let tasks = [], taskMe = null, staff = null, cats = null, tkWho = "all", editing = null, picked = null;
@@ -257,19 +288,42 @@ const moneyShort = (v, ccy) => {
 const STATE_LABEL = { paid: "Paid", partial: "Part paid", unpaid: "Not paid", overdue: "Overdue" };
 
 function range(){
+  if(view === "day"){ const d = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()); return { from: d, to: new Date(d) }; }
+  if(view === "week"){
+    const from = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() - cur.getDay());
+    const to = new Date(from); to.setDate(from.getDate() + 6);
+    return { from, to };
+  }
   const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
   const last = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
   const from = new Date(first); from.setDate(first.getDate() - first.getDay());
   const to = new Date(last); to.setDate(last.getDate() + (6 - last.getDay()));
   return { from, to };
 }
+function label(){
+  const { from, to } = range();
+  if(view === "day") return WD[cur.getDay()] + ", " + MONTHS[cur.getMonth()] + " " + cur.getDate() + ", " + cur.getFullYear();
+  if(view === "week"){
+    const a = MONTHS[from.getMonth()].slice(0, 3) + " " + from.getDate();
+    const b = (to.getMonth() !== from.getMonth() ? MONTHS[to.getMonth()].slice(0, 3) + " " : "") + to.getDate();
+    return a + " – " + b + ", " + to.getFullYear();
+  }
+  return MONTHS[cur.getMonth()] + " " + cur.getFullYear();
+}
+function step(n){
+  if(view === "day") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + n);
+  else if(view === "week") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7 * n);
+  else cur = new Date(cur.getFullYear(), cur.getMonth() + n, 1);
+  load();
+}
+function goDay(k){ view = "day"; cur = parseYmd(k); document.getElementById("view").value = "day"; load(); window.scrollTo(0, 0); }
 
 async function load(){
   const my = ++seq;
   const { from, to } = range();
-  document.getElementById("mLabel").textContent = MONTHS[cur.getMonth()] + " " + cur.getFullYear();
+  document.getElementById("mLabel").textContent = label();
   document.getElementById("load").textContent = "Loading…";
-  try{ history.replaceState(null, "", "?m=" + cur.getFullYear() + "-" + pad(cur.getMonth() + 1) + (whId ? "&wh=" + whId : "")); }catch(e){}
+  try{ history.replaceState(null, "", (view === "month" ? "?m=" + cur.getFullYear() + "-" + pad(cur.getMonth() + 1) : "?v=" + view + "&d=" + ymd(cur)) + (whId ? "&wh=" + whId : "")); }catch(e){}
   const money = (canAR || canAP) ? sb.rpc("cal_month", { p_from: ymd(from), p_to: ymd(to), p_warehouse: whId || null }) : Promise.resolve({ data: null, error: null });
   const tk = sb.rpc("cal_tasks", { p_from: ymd(from), p_to: ymd(to) });
   const [mr, tr] = await Promise.all([money, tk]);
@@ -285,6 +339,7 @@ async function load(){
   tasks = tr.data.tasks || []; taskMe = tr.data.me || null;
   document.getElementById("tkWho").hidden = !(taskMe && taskMe.sees_all);
   renderOverdue(lastData);
+  if(view === "day") return renderDay(lastData, ymd(from), my);
   renderCal(lastData, from, to);
 }
 
@@ -325,7 +380,7 @@ function renderCal(d, from, to){
   let h = WD.map(w => `<div class="dow">${w}</div>`).join("");
   for(let t = new Date(from); t <= to; t.setDate(t.getDate() + 1)){
     const k = ymd(t), s = by[k];
-    const out = t.getMonth() !== cur.getMonth();
+    const out = view === "month" && t.getMonth() !== cur.getMonth();
     const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length || (s.tk && s.tk.length));
     let c = "";
     if(s && s.tk){
@@ -336,6 +391,7 @@ function renderCal(d, from, to){
         c += `<button class="tk${cls}" data-task="${esc(t.id)}" title="${esc(t.title)}${t.category ? " · " + esc(t.category.name) : ""}">` +
           `<span class="bx"></span><span class="tx"><span class="tt">${t.all_day ? "" : esc(t.start_time) + " "}${esc(t.title)}</span>` +
           (who || t.link ? `<span class="tw">${esc(who || "")}${who && t.link ? " · " : ""}${t.link ? esc(t.link.label || "") : ""}</span>` : "") +
+          (t.notes ? `<span class="nt">${esc(String(t.notes).slice(0, 160))}</span>` : "") +
           `</span></button>`;
       });
     }
@@ -349,7 +405,7 @@ function renderCal(d, from, to){
               `<span class="s">${x.overdue_count ? `<span class="od">${x.overdue_count} overdue</span> ` : ""}${x.paid_count ? `<span class="fp">+${x.paid_count} paid</span>` : ""}</span>`) +
           `</button>`;
       });
-      const show = s.ap.slice(0, 4);
+      const show = view === "week" ? s.ap : s.ap.slice(0, 4);
       show.forEach(x => {
         c += `<button class="chip ${esc(x.state)}" data-doc="${esc(x.doc)}" data-id="${esc(x.id)}" title="${esc(STATE_LABEL[x.state] || x.state)}">` +
           `<span class="t"><span class="kind">${x.doc === "charge" ? "CHG" : "BILL"}</span>${esc(x.supplier || "—")}</span>` +
@@ -357,7 +413,7 @@ function renderCal(d, from, to){
           `<span class="s n">${esc(money(x.payable, x.currency))}${Number(x.unpaid) > 0 && (Number(x.paid) || Number(x.credited)) ? " · left " + esc(moneyShort(x.unpaid, x.currency)) : ""}</span>` +
           `</button>`;
       });
-      if(s.ap.length > 4) c += `<button class="more" data-apmore="${k}">+${s.ap.length - 4} more supplier</button>`;
+      if(s.ap.length > show.length) c += `<button class="more" data-apmore="${k}">+${s.ap.length - show.length} more supplier</button>`;
       s.rec.forEach(x => {
         c += `<button class="cash in" data-day="${k}" data-kind="received">Received <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})${x.post_dated_count ? `<span class="pd">${x.post_dated_count} post-dated</span>` : ""}</button>`;
       });
@@ -368,11 +424,14 @@ function renderCal(d, from, to){
         c += `<button class="cash out" data-day="${k}" data-kind="paid">Paid out <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})</button>`;
       });
     }
-    h += `<div class="day${out ? " out" : ""}${k === today ? " today" : ""}${has ? "" : " empty"}">` +
+    h += `<div class="day${out ? " out" : ""}${k === today ? " today" : ""}${has ? "" : " empty"}" data-dayk="${k}">` +
       `<div class="dn"><span class="wd">${WD[t.getDay()]} ${MONTHS[t.getMonth()].slice(0, 3)}</span><span><button class="add" data-add="${k}" title="New task on ${k}">+</button><b>${t.getDate()}</b></span></div>${c}</div>`;
   }
   const box = document.getElementById("calBox");
-  box.innerHTML = `<div class="cal">${h}</div>`;
+  box.innerHTML = `<div class="cal${view === "week" ? " week" : ""}">${h}</div>`;
+  box.querySelectorAll("[data-dayk]").forEach(dv => dv.addEventListener("click", e => {
+    if(e.target === dv || e.target.closest(".dn b") || (e.target.closest(".dn") && !e.target.closest(".add"))) goDay(dv.dataset.dayk);
+  }));
   box.querySelectorAll("[data-task]").forEach(b => b.onclick = () => openTask(b.dataset.task));
   box.querySelectorAll("[data-add]").forEach(b => b.onclick = e => { e.stopPropagation(); openTask(null, b.dataset.add); });
   box.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => openDay(b.dataset.day, b.dataset.kind));
@@ -418,8 +477,14 @@ async function openDay(k, kind){
   if(error){ document.getElementById("cmBody").innerHTML = `<div class="dbmsg"><b>Could not load</b>${esc(error.message || String(error))}</div>`; return; }
   const rows = data.rows || [];
   let h = data.warehouse && kind !== "paid" && kind !== "overdue_ap" ? `<p class="sub">${esc(data.warehouse)} only</p>` : "";
-  if(!rows.length) h += `<div class="dbmsg">Nothing here.</div>`;
-  else if(kind === "ar" || kind === "overdue_ar"){
+  h += rows.length ? rowsHtml(kind, rows) : `<div class="dbmsg">Nothing here.</div>`;
+  if(data.truncated) h += `<p class="sub">Showing the first ${rows.length} of ${data.count}.</p>`;
+  document.getElementById("cmBody").innerHTML = h;
+  wireRows();
+}
+function rowsHtml(kind, rows){
+  let h = "";
+  if(kind === "ar" || kind === "overdue_ar"){
     h += `<table><thead><tr><th>Invoice</th><th>Bill to</th>${kind === "overdue_ar" ? "<th>Due</th>" : ""}<th>Branch</th><th class="r">Total</th><th class="r">Left</th><th>State</th></tr></thead><tbody>` +
       rows.map(x => `<tr data-href="so-invoices.html?inv=${encodeURIComponent(x.id)}" style="cursor:pointer">` +
         `<td>${esc(x.number || "")}${x.opening ? `<span class="tag">Carried over</span>` : ""}</td><td>${esc(x.bill_to || "—")}</td>` +
@@ -442,9 +507,75 @@ async function openDay(k, kind){
   }else{
     h += apRows(rows);
   }
-  if(data.truncated) h += `<p class="sub">Showing the first ${rows.length} of ${data.count}.</p>`;
-  document.getElementById("cmBody").innerHTML = h;
-  wireRows();
+  return h;
+}
+
+/* ── Day 보기(db v4 · 판정 1300) — 그날을 목록으로 다 ────────── */
+async function renderDay(d, k, my){
+  const box = document.getElementById("calBox");
+  const wh = whId || null;
+  const calls = [];
+  if(d.can.sales){ calls.push(["ar", sb.rpc("cal_day", { p_date: k, p_kind: "ar", p_warehouse: wh })], ["received", sb.rpc("cal_day", { p_date: k, p_kind: "received", p_warehouse: wh })], ["refund", sb.rpc("cal_day", { p_date: k, p_kind: "refund", p_warehouse: wh })]); }
+  if(d.can.purchasing){ calls.push(["paid", sb.rpc("cal_day", { p_date: k, p_kind: "paid", p_warehouse: null })]); }
+  box.innerHTML = `<div class="card dbmsg">Loading…</div>`;
+  const res = await Promise.all(calls.map(c => c[1]));
+  if(my !== seq) return;
+  const got = {};
+  calls.forEach((c, i) => { got[c[0]] = res[i]; });
+  const err = res.find(r => r.error);
+  if(err){ box.innerHTML = `<div class="card dbmsg"><b>Could not load the day</b>${esc(err.error.message)}</div>`; return; }
+
+  const sec = (title, sum, body, extra) => `<div class="card"><h3>${title}${sum ? ` <span class="sum">${sum}</span>` : ""}<span class="sp"></span>${extra || ""}</h3>${body}</div>`;
+  const totals = (rows, f, ccyKey) => {
+    const by = {}; rows.forEach(r => { const c = r[ccyKey || "currency"] || "CAD"; by[c] = (by[c] || 0) + Number(f(r) || 0); });
+    return Object.keys(by).map(c => money(by[c], c)).join(" · ");
+  };
+  let h = "";
+
+  // Task
+  const tl = tasks.filter(t => t.date === k && (tkWho === "all" || !taskMe || t.assignee.id === taskMe.id))
+    .sort((a, b) => (a.status === b.status ? 0 : a.status === "open" ? -1 : 1) || (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
+  h += sec("Tasks", tl.length ? tl.length + "" : "", tl.length
+      ? `<div class="tkl">${tl.map(t => {
+          const cls = t.status === "done" ? " done" : t.overdue ? " over" : "";
+          return `<button class="tk${cls}" data-task="${esc(t.id)}"><span class="bx"></span><span class="tx">` +
+            `<span class="tt">${t.all_day ? "" : esc(t.start_time) + " "}${esc(t.title)}</span>` +
+            `<span class="tw">${esc(t.assignee.name)}${t.category ? " · " + esc(t.category.name) : ""}${t.link ? " · " + esc(t.link.label || "") : ""}${t.created_by.id !== t.assignee.id ? " · from " + esc(t.created_by.name) : ""}</span>` +
+            (t.notes ? `<span class="nt">${esc(t.notes)}</span>` : "") + `</span></button>`;
+        }).join("")}</div>`
+      : `<div class="empty">No tasks.</div>`,
+    `<button class="pobtn go" id="dayAdd">+ Task</button>`);
+
+  // 손님 인보이스 기한
+  if(got.ar){
+    const r = got.ar.data.rows || [];
+    const open = r.filter(x => x.is_open);
+    h += sec("Customer invoices due", r.length ? `${r.length} · ${open.length} open${open.length ? " · " + totals(open, x => x.remaining) + " left" : ""}${got.ar.data.warehouse ? " · " + esc(got.ar.data.warehouse) : ""}` : "",
+      r.length ? rowsHtml("ar", r) + (got.ar.data.truncated ? `<p class="sub" style="padding:0 14px">Showing the first ${r.length} of ${got.ar.data.count}.</p>` : "") : `<div class="empty">None due.</div>`);
+  }
+  // 받은 결제 · 환불
+  if(got.received){
+    const r = got.received.data.rows || [];
+    h += sec("Payments received", r.length ? `${r.length} · ${totals(r, x => x.amount)}` : "", r.length ? rowsHtml("received", r) : `<div class="empty">None.</div>`);
+  }
+  if(got.refund){
+    const r = got.refund.data.rows || [];
+    if(r.length) h += sec("Refunds", `${r.length} · ${totals(r, x => x.amount)}`, rowsHtml("refund", r));
+  }
+  // 공급처 기한 · 지급
+  if(d.can.purchasing){
+    const ap = (d.ap_items || []).filter(x => x.due === k);
+    h += sec("Supplier bills and charges due", ap.length ? `${ap.length} · ${totals(ap, x => x.unpaid)} left` : "", ap.length ? apRows(ap) : `<div class="empty">None due.</div>`);
+  }
+  if(got.paid){
+    const r = got.paid.data.rows || [];
+    h += sec("Supplier payments", r.length ? `${r.length} · ${totals(r, x => x.amount)}` : "", r.length ? rowsHtml("paid", r) : `<div class="empty">None.</div>`);
+  }
+  box.innerHTML = `<div class="dayv">${h}</div>`;
+  box.querySelectorAll("[data-task]").forEach(b => b.onclick = () => openTask(b.dataset.task));
+  box.querySelectorAll("tr[data-href]").forEach(r => r.onclick = () => { location.href = r.dataset.href; });
+  box.querySelectorAll("tr[data-doc]").forEach(r => r.onclick = () => openDoc(r.dataset.doc, r.dataset.id));
+  const add = document.getElementById("dayAdd"); if(add) add.onclick = () => openTask(null, k);
 }
 
 /* ── Task 상자(db v3) ───────────────────────────────────── */
@@ -636,11 +767,14 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     if(error){ $("catMsg").innerHTML = `<div class="tkerr">${esc(error.message)}</div>`; return; }
     $("catNew").value = ""; cats = null; openCats();
   };
-  $("tkWho").onchange = e => { tkWho = e.target.value; renderCal(lastData, range().from, range().to); };
+  $("tkWho").onchange = e => { tkWho = e.target.value; if(view === "day") renderDay(lastData, ymd(cur), seq); else renderCal(lastData, range().from, range().to); };
 
-  const m = imsParam("m");
+  const m = imsParam("m"), v = imsParam("v"), dd = imsParam("d");
   const now = new Date();
-  cur = (m && /^\d{4}-\d{2}$/.test(m)) ? new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1) : new Date(now.getFullYear(), now.getMonth(), 1);
+  if((v === "week" || v === "day") && dd && /^\d{4}-\d{2}-\d{2}$/.test(dd)){ view = v; cur = parseYmd(dd); }
+  else cur = (m && /^\d{4}-\d{2}$/.test(m)) ? new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  document.getElementById("view").value = view;
+  document.getElementById("view").onchange = e => { view = e.target.value; load(); };
   whId = imsParam("wh") || "";
 
   if(canAR){   // 지점 고르기 — 손님 쪽만(판정 1286-6)
@@ -651,9 +785,9 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     sel.value = whId; sel.hidden = false;
     sel.onchange = e => { whId = e.target.value; load(); };
   }
-  document.getElementById("prevM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); load(); };
-  document.getElementById("nextM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); load(); };
-  document.getElementById("todayM").onclick = () => { const n = new Date(); cur = new Date(n.getFullYear(), n.getMonth(), 1); load(); };
+  document.getElementById("prevM").onclick = () => step(-1);
+  document.getElementById("nextM").onclick = () => step(1);
+  document.getElementById("todayM").onclick = () => { const n = new Date(); cur = new Date(n.getFullYear(), n.getMonth(), n.getDate()); load(); };
   const wantTask = imsParam("task");   // 메일 링크(판정 1296) — load() 가 주소를 ?m= 로 다시 쓰기 전에 읽는다
   await load();
   if(wantTask) openTask(wantTask);
