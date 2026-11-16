@@ -6,12 +6,79 @@
 <title>Overview · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
-  /* Overview 자리 — 판정 158: 이번에는 자리만 · 숫자 카드(셈 기준 판정 포함)는 상품 마스터 뒤 따로 한 차수 */
-  .dbwrap{max-width:1100px;margin:0 auto;padding:22px 18px;display:flex;flex-direction:column;gap:16px}
-  .dbwrap h1{margin:0;font-size:22px;font-weight:800;color:var(--ink)}
-  .dbsoon{padding:34px 24px;text-align:center}
-  .dbsoon b{display:block;font-size:15px;margin-bottom:6px;color:var(--ink)}
-  .dbsoon span{font-size:13px;color:var(--muted)}
+  /* db v2 — 기한 달력(판정 1283 ~ 1286 · 1291) · 색은 모두 공통 변수(다크 모드 ui v2 와 함께 바뀐다) */
+  .dbwrap{max-width:1320px;margin:0 auto;padding:18px 18px 40px;display:flex;flex-direction:column;gap:12px}
+  .dbtop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dbtop h1{margin:0 8px 0 0;font-size:21px;font-weight:800;color:var(--ink)}
+  .dbmonth{font-size:17px;font-weight:700;min-width:150px;text-align:center;color:var(--ink)}
+  .dbtop select{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px}
+  .dbtop .sp{flex:1}
+  .dblegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+  .dblegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid}
+  .lg-paid{background:color-mix(in srgb,var(--good) 16%,var(--ims-surface));border-color:var(--good)!important}
+  .lg-part{background:color-mix(in srgb,var(--warn) 18%,var(--ims-surface));border-color:var(--warn)!important}
+  .lg-unpaid{background:var(--ims-surface);border-color:var(--ims-dim)!important}
+  .lg-over{background:color-mix(in srgb,var(--bad) 16%,var(--ims-surface));border-color:var(--bad)!important}
+
+  .dbover{display:flex;gap:18px;flex-wrap:wrap;align-items:center;padding:10px 14px;font-size:13.5px}
+  .dbover b{font-weight:700}
+  .dbover .grp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .dbover .lbl{color:var(--muted)}
+  .dbover button.amt{border:1px solid var(--line);background:var(--ims-surface);border-radius:8px;padding:4px 9px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink)}
+  .dbover button.amt.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--line))}
+  .dbover button.amt:hover{background:var(--ims-hover)}
+  .dbnote{font-size:12px;color:var(--muted);padding:0 2px}
+
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line);gap:1px}
+  .cal .dow{background:var(--ims-surface-2);padding:7px 8px;font-size:12px;font-weight:700;color:var(--muted);text-align:center}
+  .cal .day{background:var(--ims-surface);min-height:118px;padding:6px 6px 8px;display:flex;flex-direction:column;gap:4px;min-width:0}
+  .cal .day.out{background:var(--ims-surface-2)}
+  .cal .day.out .dn{color:var(--ims-dim)}
+  .cal .day .dn{font-size:12.5px;font-weight:700;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .cal .day.today .dn b{background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px}
+  .cal .day .dn .wd{display:none}
+
+  .chip{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:7px;padding:4px 6px;font:inherit;font-size:12px;line-height:1.35;cursor:pointer;background:var(--ims-surface);color:var(--ink);overflow:hidden}
+  .chip:hover{filter:brightness(.97)}
+  .chip .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .chip .s{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+  .chip .n{font-family:var(--mono);font-size:11.5px}
+  .chip.ar{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+  .chip.ar.allpaid{color:var(--muted);border-style:dashed}
+  .chip .od{color:var(--bad);font-weight:700}
+  .chip .fp{color:var(--muted);font-weight:400}
+  .chip.paid{background:color-mix(in srgb,var(--good) 14%,var(--ims-surface));border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
+  .chip.partial{background:color-mix(in srgb,var(--warn) 16%,var(--ims-surface));border-color:color-mix(in srgb,var(--warn) 60%,var(--line))}
+  .chip.unpaid{border-color:var(--ims-dim)}
+  .chip.overdue{background:color-mix(in srgb,var(--bad) 14%,var(--ims-surface));border-color:color-mix(in srgb,var(--bad) 60%,var(--line))}
+  .chip .kind{font-size:10.5px;font-weight:700;color:var(--muted);margin-right:4px}
+  .cash{display:block;width:100%;text-align:left;border:0;background:none;padding:1px 2px;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cash:hover{color:var(--ink);text-decoration:underline}
+  .cash.in b{color:var(--good)} .cash.out b{color:var(--ink)} .cash.ref{opacity:.8}
+  .pd{font-size:10.5px;border:1px solid var(--line);border-radius:6px;padding:0 4px;margin-left:3px;color:var(--muted)}
+  .more{font-size:11.5px;color:var(--accent);background:none;border:0;padding:0 2px;cursor:pointer;text-align:left;font:inherit;font-size:11.5px}
+
+  .dbmsg{padding:30px 20px;text-align:center;color:var(--muted)}
+  .dbmsg b{display:block;color:var(--ink);margin-bottom:4px}
+  .dbload{font-size:12px;color:var(--muted)}
+
+  /* 그날 목록 팝업 — 공통 .pomodal · .pobox 를 쓴다 */
+  #calModal .pobox{max-width:980px;width:96vw}
+  #calModal table{width:100%}
+  #calModal td.r,#calModal th.r{text-align:right}
+  #calModal .tag{margin-left:6px}
+  #calModal .sub{font-size:12.5px;color:var(--muted);margin:0 0 10px}
+
+  @media (max-width:760px){
+    .cal{grid-template-columns:1fr;background:none;border:0;gap:6px}
+    .cal .dow{display:none}
+    .cal .day{min-height:0;border:1px solid var(--line);border-radius:10px}
+    .cal .day.empty,.cal .day.out{display:none}
+    .cal .day .dn .wd{display:inline}
+  }
+  @media print{
+    header,.dbtop button,.dbtop select{display:none!important}
+  }
 </style>
 </head>
 <body>
@@ -26,10 +93,34 @@
 </header>
 
 <div class="dbwrap">
-  <h1>Overview</h1>
-  <div class="card dbsoon">
-    <b>Overview — coming soon</b>
-    <span>Key performance cards for sales, purchasing and payments will appear here.</span>
+  <div class="dbtop">
+    <h1>Calendar</h1>
+    <button class="pobtn" id="prevM" title="Previous month">‹</button>
+    <span class="dbmonth" id="mLabel">—</span>
+    <button class="pobtn" id="nextM" title="Next month">›</button>
+    <button class="pobtn" id="todayM">Today</button>
+    <select id="wh" title="Branch — customer side only" hidden><option value="">All branches</option></select>
+    <span class="dbload" id="load"></span>
+    <span class="sp"></span>
+    <div class="dblegend">
+      <span><i class="lg-paid"></i>Paid</span>
+      <span><i class="lg-part"></i>Part paid</span>
+      <span><i class="lg-unpaid"></i>Not paid</span>
+      <span><i class="lg-over"></i>Overdue</span>
+    </div>
+  </div>
+
+  <div class="card dbover" id="over" hidden></div>
+  <div class="dbnote" id="apNote" hidden>Supplier bills and charges entered in IMS only — bills from before October 30, 2026 are in QuickBooks.</div>
+
+  <div id="calBox"><div class="card dbmsg">Loading…</div></div>
+</div>
+
+<div class="pomodal" id="calModal" hidden>
+  <div class="pobox">
+    <h4 id="cmTitle">—</h4>
+    <div class="pbody" id="cmBody"></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="cmClose">Close</button></div>
   </div>
 </div>
 
@@ -39,18 +130,247 @@
 <script src="ims-auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────────
-   dashboard.html — Overview 자리 1판 (2026-09-30 · 대화 Claude · lay-2)
-   판정 149: IMS 첫 화면은 Cin7 처럼 key performance 를 보는 Overview Dashboard (Settings 가 첫 화면이 아니다)
-   판정 158: 이번 레이아웃 차수에는 자리만 — 헤더 · 모드 · 윗줄 메뉴는 공통 js(ims-auth.js lay-1)가 그린다 · 몸통은 coming soon
-   ⬜ 숫자 카드는 뒤 차수 — 카드마다 셈 기준 판정(예: Revenue 를 인보이스 기준으로 셀지 결제 기준으로 셀지) · 열쇠도 그때 정한다(지금은 로그인만 · items 열쇠 null)
-   ⚠️ 펼침에는 안 선다(갈래 null) — 로고 · IMS 모드 단추 · 문(index)이 여기로 보낸다
+   dashboard.html — IMS 첫 화면 · 기한 달력 (db v2 · 2026-11-16 · 대화 Claude)
+   판정 149 · 158: IMS 첫 화면(로고 · IMS 모드 단추 · 문이 여기로) · 판정 1282: 분석은 따로(Analytics) — 여기 넣지 않는다
+   판정 1283: 기한 달력 — 손님 인보이스 기한 + 공급처 기한 + 결제 여부 색 + 받은 날 · 지급한 날 · Task 는 다음 차수
+   판정 1284: 열쇠는 있는 대로 — sales → 손님 쪽 · purchasing → 공급처 쪽 · 둘 다 없으면 안내 한 줄(창구를 부르지 않는다)
+   판정 1285: 손님 = 날마다 한 칸(통화마다) · 공급처 = 건마다 칸
+   판정 1286 · 1291: 굵게 = 미수 남은 건수 · 금액 / 흐리게 「+n paid」 · 기한 지남은 제 날짜에 + 위 줄 합계 · 이월(opening) 포함 · 「Carried over」
+                     확정 비용 청구서도 공급처 칸 · 공급처 칸 → 인보이스(invoices.html?id=) · 비용(charges.html?id=) · PO 는 글자
+                     받은 돈 = 결제 자기 지점 · post-dated 표시 · 환불 따로 · 지점 고르기는 손님 쪽만 · 통화별(더하지 않음)
+   창구: cal_month(p_from, p_to, p_warehouse) · cal_day(p_date, p_kind, p_warehouse) — cal-1 · 20261116100000
+   ⚠️ 달력 범위 = 그 달을 덮는 일요일 ~ 토요일(최대 42 일) — 창구의 62 일 막기 안
    ───────────────────────────────────────────────────────────── */
-const DB_BUILD = "2026-09-30 · db v1";
+const DB_BUILD = "2026-11-16 · db v2";
 console.log("dashboard.html build:", DB_BUILD);
 
-imsAuth.start({ changePw: true }, (sb, me) => {
+let sb = null, me = null, canAR = false, canAP = false;
+let cur = null;          // 보는 달의 1 일(Date · 로컬)
+let whId = "";
+let lastData = null, seq = 0;
+
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+function money(v, ccy){
+  const n = Number(v || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (ccy && ccy !== "CAD" ? ccy + " " : "$") + n;
+}
+const moneyShort = (v, ccy) => {
+  const x = Number(v || 0), a = Math.abs(x);
+  const s = a >= 1e6 ? (x / 1e6).toFixed(2) + "M" : a >= 1e4 ? (x / 1e3).toFixed(1) + "k" : x.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (ccy && ccy !== "CAD" ? ccy + " " : "$") + s;
+};
+const STATE_LABEL = { paid: "Paid", partial: "Part paid", unpaid: "Not paid", overdue: "Overdue" };
+
+function range(){
+  const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
+  const last = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
+  const from = new Date(first); from.setDate(first.getDate() - first.getDay());
+  const to = new Date(last); to.setDate(last.getDate() + (6 - last.getDay()));
+  return { from, to };
+}
+
+async function load(){
+  const my = ++seq;
+  const { from, to } = range();
+  document.getElementById("mLabel").textContent = MONTHS[cur.getMonth()] + " " + cur.getFullYear();
+  document.getElementById("load").textContent = "Loading…";
+  try{ history.replaceState(null, "", "?m=" + cur.getFullYear() + "-" + pad(cur.getMonth() + 1) + (whId ? "&wh=" + whId : "")); }catch(e){}
+  const { data, error } = await sb.rpc("cal_month", { p_from: ymd(from), p_to: ymd(to), p_warehouse: whId || null });
+  if(my !== seq) return;                       // 더 새 요청이 있다
+  document.getElementById("load").textContent = "";
+  if(error){
+    document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Could not load the calendar</b>${esc(error.message || String(error))}</div>`;
+    return;
+  }
+  lastData = data;
+  renderOverdue(data);
+  renderCal(data, from, to);
+}
+
+function renderOverdue(d){
+  const box = document.getElementById("over");
+  const parts = [];
+  if(d.can.sales){
+    const ar = d.overdue.ar || [];
+    parts.push(`<div class="grp"><span class="lbl">Overdue — customers${d.warehouse ? " (" + esc(d.warehouse) + ")" : ""}</span>` +
+      (ar.length ? ar.map(x => `<button class="amt bad" data-od="overdue_ar"><b>${esc(money(x.amount, x.currency))}</b> · ${x.count}</button>`).join("")
+                 : `<span>none</span>`) + `</div>`);
+  }
+  if(d.can.purchasing){
+    const ap = d.overdue.ap || [];
+    parts.push(`<div class="grp"><span class="lbl">Overdue — suppliers</span>` +
+      (ap.length ? ap.map(x => `<button class="amt bad" data-od="overdue_ap"><b>${esc(money(x.amount, x.currency))}</b> · ${x.count}</button>`).join("")
+                 : `<span>none</span>`) +
+      (d.ap_no_due ? `<span class="lbl">· ${d.ap_no_due} unpaid without a due date</span>` : "") + `</div>`);
+  }
+  box.innerHTML = parts.join("");
+  box.hidden = !parts.length;
+  box.querySelectorAll("[data-od]").forEach(b => b.onclick = () => openDay(null, b.dataset.od));
+  document.getElementById("apNote").hidden = !d.can.purchasing;
+}
+
+function renderCal(d, from, to){
+  const by = {};                                // 날짜 → { ar:[], ap:[], rec:[], ref:[], paid:[] }
+  const slot = k => (by[k] = by[k] || { ar: [], ap: [], rec: [], ref: [], paid: [] });
+  (d.ar_days || []).forEach(x => slot(x.date).ar.push(x));
+  (d.ap_items || []).forEach(x => x.due && slot(x.due).ap.push(x));
+  (d.received_days || []).forEach(x => slot(x.date).rec.push(x));
+  (d.refund_days || []).forEach(x => slot(x.date).ref.push(x));
+  (d.paid_days || []).forEach(x => slot(x.date).paid.push(x));
+
+  const today = d.as_of;
+  let h = WD.map(w => `<div class="dow">${w}</div>`).join("");
+  for(let t = new Date(from); t <= to; t.setDate(t.getDate() + 1)){
+    const k = ymd(t), s = by[k];
+    const out = t.getMonth() !== cur.getMonth();
+    const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length);
+    let c = "";
+    if(s){
+      s.ar.forEach(x => {
+        const allPaid = !x.open_count;
+        c += `<button class="chip ar${allPaid ? " allpaid" : ""}" data-day="${k}" data-kind="ar" title="Customer invoices due ${k}${x.opening_count ? " · " + x.opening_count + " carried over" : ""}">` +
+          (allPaid
+            ? `<span class="t">${x.paid_count} paid <span class="fp">${x.currency !== "CAD" ? esc(x.currency) : ""}</span></span>`
+            : `<span class="t">${x.open_count} due · <span class="n">${esc(moneyShort(x.open_amount, x.currency))}</span></span>` +
+              `<span class="s">${x.overdue_count ? `<span class="od">${x.overdue_count} overdue</span> ` : ""}${x.paid_count ? `<span class="fp">+${x.paid_count} paid</span>` : ""}</span>`) +
+          `</button>`;
+      });
+      const show = s.ap.slice(0, 4);
+      show.forEach(x => {
+        c += `<button class="chip ${esc(x.state)}" data-doc="${esc(x.doc)}" data-id="${esc(x.id)}" title="${esc(STATE_LABEL[x.state] || x.state)}">` +
+          `<span class="t"><span class="kind">${x.doc === "charge" ? "CHG" : "BILL"}</span>${esc(x.supplier || "—")}</span>` +
+          `<span class="s">${esc(x.number || "")}${x.po_numbers ? " · " + esc(x.po_numbers) : ""}</span>` +
+          `<span class="s n">${esc(money(x.payable, x.currency))}${Number(x.unpaid) > 0 && (Number(x.paid) || Number(x.credited)) ? " · left " + esc(moneyShort(x.unpaid, x.currency)) : ""}</span>` +
+          `</button>`;
+      });
+      if(s.ap.length > 4) c += `<button class="more" data-apmore="${k}">+${s.ap.length - 4} more supplier</button>`;
+      s.rec.forEach(x => {
+        c += `<button class="cash in" data-day="${k}" data-kind="received">Received <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})${x.post_dated_count ? `<span class="pd">${x.post_dated_count} post-dated</span>` : ""}</button>`;
+      });
+      s.ref.forEach(x => {
+        c += `<button class="cash ref" data-day="${k}" data-kind="refund">Refunded ${esc(moneyShort(x.amount, x.currency))} (${x.count})</button>`;
+      });
+      s.paid.forEach(x => {
+        c += `<button class="cash out" data-day="${k}" data-kind="paid">Paid out <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})</button>`;
+      });
+    }
+    h += `<div class="day${out ? " out" : ""}${k === today ? " today" : ""}${has ? "" : " empty"}">` +
+      `<div class="dn"><span class="wd">${WD[t.getDay()]} ${MONTHS[t.getMonth()].slice(0, 3)}</span><b>${t.getDate()}</b></div>${c}</div>`;
+  }
+  const none = !d.can.sales && !d.can.purchasing;
+  const box = document.getElementById("calBox");
+  box.innerHTML = none ? "" : `<div class="cal">${h}</div>`;
+  box.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => openDay(b.dataset.day, b.dataset.kind));
+  box.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc, b.dataset.id));
+  box.querySelectorAll("[data-apmore]").forEach(b => b.onclick = () => openApDay(b.dataset.apmore));
+}
+
+function openDoc(doc, id){
+  location.href = (doc === "charge" ? "charges.html?id=" : "invoices.html?id=") + encodeURIComponent(id);
+}
+
+/* ── 그날 목록 ─────────────────────────────────────────── */
+function modal(title, html){
+  document.getElementById("cmTitle").textContent = title;
+  document.getElementById("cmBody").innerHTML = html;
+  document.getElementById("calModal").hidden = false;
+}
+function longDate(s){ const t = parseYmd(s); return WD[t.getDay()] + ", " + MONTHS[t.getMonth()] + " " + t.getDate() + ", " + t.getFullYear(); }
+function apRows(rows){
+  return `<table><thead><tr><th>Kind</th><th>Supplier</th><th>Number</th><th>PO</th><th>Due</th><th class="r">Amount</th><th class="r">Paid</th><th class="r">Left</th><th>State</th></tr></thead><tbody>` +
+    rows.map(x => `<tr class="lnk" data-doc="${esc(x.doc)}" data-id="${esc(x.id)}" style="cursor:pointer">` +
+      `<td>${x.doc === "charge" ? "Charge" : "Bill"}</td><td>${esc(x.supplier || "—")}</td><td>${esc(x.number || "")}</td><td>${esc(x.po_numbers || "")}</td>` +
+      `<td>${esc(x.due || "—")}</td><td class="r">${esc(money(x.payable, x.currency))}</td><td class="r">${esc(money(x.paid, x.currency))}</td>` +
+      `<td class="r">${esc(money(x.unpaid, x.currency))}</td><td><span class="chip ${esc(x.state)}" style="display:inline-block;width:auto;cursor:default">${esc(STATE_LABEL[x.state] || x.state)}</span></td></tr>`).join("") +
+    `</tbody></table>`;
+}
+function wireRows(){
+  document.querySelectorAll("#cmBody tr[data-href]").forEach(r => r.onclick = () => { location.href = r.dataset.href; });
+  document.querySelectorAll("#cmBody tr[data-doc]").forEach(r => r.onclick = () => openDoc(r.dataset.doc, r.dataset.id));
+}
+function openApDay(k){
+  const rows = (lastData.ap_items || []).filter(x => x.due === k);
+  modal("Supplier bills due — " + longDate(k), apRows(rows));
+  wireRows();
+}
+async function openDay(k, kind){
+  const titles = {
+    ar: "Customer invoices due — ", received: "Payments received — ", refund: "Refunds — ", paid: "Supplier payments — ",
+    overdue_ar: "Overdue customer invoices", overdue_ap: "Overdue supplier bills and charges"
+  };
+  modal((titles[kind] || kind) + (k ? longDate(k) : ""), `<div class="dbmsg">Loading…</div>`);
+  const { data, error } = await sb.rpc("cal_day", { p_date: k, p_kind: kind, p_warehouse: (kind === "paid" || kind === "overdue_ap") ? null : (whId || null) });
+  if(error){ document.getElementById("cmBody").innerHTML = `<div class="dbmsg"><b>Could not load</b>${esc(error.message || String(error))}</div>`; return; }
+  const rows = data.rows || [];
+  let h = data.warehouse && kind !== "paid" && kind !== "overdue_ap" ? `<p class="sub">${esc(data.warehouse)} only</p>` : "";
+  if(!rows.length) h += `<div class="dbmsg">Nothing here.</div>`;
+  else if(kind === "ar" || kind === "overdue_ar"){
+    h += `<table><thead><tr><th>Invoice</th><th>Bill to</th>${kind === "overdue_ar" ? "<th>Due</th>" : ""}<th>Branch</th><th class="r">Total</th><th class="r">Left</th><th>State</th></tr></thead><tbody>` +
+      rows.map(x => `<tr data-href="so-invoices.html?inv=${encodeURIComponent(x.id)}" style="cursor:pointer">` +
+        `<td>${esc(x.number || "")}${x.opening ? `<span class="tag">Carried over</span>` : ""}</td><td>${esc(x.bill_to || "—")}</td>` +
+        (kind === "overdue_ar" ? `<td>${esc(x.due || "")}</td>` : "") +
+        `<td>${esc(x.warehouse || "")}</td><td class="r">${esc(money(x.total, x.currency))}</td><td class="r">${esc(money(x.remaining, x.currency))}</td>` +
+        `<td>${!x.is_open ? `<span class="on">Paid</span>` : x.overdue_days > 0 ? `<span class="off">${x.overdue_days} days overdue</span>` : "Open"}</td></tr>`).join("") +
+      `</tbody></table>`;
+  }else if(kind === "received" || kind === "refund"){
+    h += `<table><thead><tr><th>Customer</th><th>Method</th><th>Branch</th><th class="r">Amount</th><th></th></tr></thead><tbody>` +
+      rows.map(x => `<tr data-href="so-payments.html?pay=${encodeURIComponent(x.id)}" style="cursor:pointer">` +
+        `<td>${esc(x.customer || "—")}</td><td>${esc(x.method || "")}</td><td>${esc(x.warehouse || "")}</td>` +
+        `<td class="r">${esc(money(x.amount, x.currency))}</td><td>${x.post_dated ? `<span class="tag">post-dated</span>` : ""}</td></tr>`).join("") +
+      `</tbody></table>`;
+  }else if(kind === "paid"){
+    h += `<table><thead><tr><th>Supplier</th><th>Paid against</th><th class="r">Amount</th><th class="r">Discount</th></tr></thead><tbody>` +
+      rows.map(x => `<tr data-href="payments.html?id=${encodeURIComponent(x.id)}" style="cursor:pointer">` +
+        `<td>${esc(x.supplier || "—")}</td><td>${esc(Array.isArray(x.docs) ? x.docs.join(", ") : (x.docs || ""))}</td>` +
+        `<td class="r">${esc(money(x.amount, x.currency))}</td><td class="r">${Number(x.discount_taken) ? esc(money(x.discount_taken, x.currency)) : ""}</td></tr>`).join("") +
+      `</tbody></table>`;
+  }else{
+    h += apRows(rows);
+  }
+  if(data.truncated) h += `<p class="sub">Showing the first ${rows.length} of ${data.count}.</p>`;
+  document.getElementById("cmBody").innerHTML = h;
+  wireRows();
+}
+
+/* ── 시작 ─────────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; window.sb = sb;
   imsHeader(me);
   document.getElementById("buildTag").textContent = DB_BUILD;
+  canAR = imsAuth.canView("sales"); canAP = imsAuth.canView("purchasing");
+
+  document.getElementById("cmClose").onclick = () => { document.getElementById("calModal").hidden = true; };
+  document.getElementById("calModal").addEventListener("click", e => { if(e.target.id === "calModal") e.target.hidden = true; });
+  document.addEventListener("keydown", e => { if(e.key === "Escape") document.getElementById("calModal").hidden = true; });
+
+  if(!canAR && !canAP){   // 판정 1284 — 창구를 부르지 않는다
+    document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Nothing on your calendar yet</b>Customer due dates need the Sales permission and supplier due dates need the Purchasing permission — ask an admin.</div>`;
+    ["prevM","nextM","todayM"].forEach(id => document.getElementById(id).hidden = true);
+    document.querySelector(".dblegend").hidden = true;
+    return;
+  }
+
+  const m = imsParam("m");
+  const now = new Date();
+  cur = (m && /^\d{4}-\d{2}$/.test(m)) ? new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, 1) : new Date(now.getFullYear(), now.getMonth(), 1);
+  whId = imsParam("wh") || "";
+
+  if(canAR){   // 지점 고르기 — 손님 쪽만(판정 1286-6)
+    const { data: wh } = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+    const sel = document.getElementById("wh");
+    sel.insertAdjacentHTML("beforeend", (wh || []).map(w => `<option value="${esc(w.id)}">${esc(w.name)}</option>`).join(""));
+    if(whId && !(wh || []).some(w => w.id === whId)) whId = "";
+    sel.value = whId; sel.hidden = false;
+    sel.onchange = e => { whId = e.target.value; load(); };
+  }
+  document.getElementById("prevM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); load(); };
+  document.getElementById("nextM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); load(); };
+  document.getElementById("todayM").onclick = () => { const n = new Date(); cur = new Date(n.getFullYear(), n.getMonth(), 1); load(); };
+  load();
 });
 </script>
 </body>
