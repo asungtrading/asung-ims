@@ -62,6 +62,41 @@
   .dbmsg b{display:block;color:var(--ink);margin-bottom:4px}
   .dbload{font-size:12px;color:var(--muted)}
 
+  /* db v3 — Task(판정 1293 ~ 1296 · 1299) */
+  .tk{display:flex;gap:5px;align-items:flex-start;width:100%;text-align:left;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:3px 6px;font:inherit;font-size:12px;line-height:1.35;cursor:pointer;background:var(--ims-surface);color:var(--ink);min-width:0}
+  .tk:hover{background:var(--ims-hover)}
+  .tk .bx{flex:none;width:11px;height:11px;margin-top:2px;border:1.5px solid var(--muted);border-radius:3px}
+  .tk .tx{min-width:0;flex:1}
+  .tk .tt{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tk .tw{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tk.done{border-left-color:var(--good);color:var(--muted)}
+  .tk.done .tt{text-decoration:line-through;font-weight:400}
+  .tk.done .bx{background:var(--good);border-color:var(--good)}
+  .tk.over{border-left-color:var(--bad)}
+  .tk.over .tt{color:var(--bad)}
+  .cal .day .dn .add{visibility:hidden;border:0;background:none;color:var(--accent);font:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0 3px}
+  .cal .day:hover .dn .add{visibility:visible}
+  .tkfilter{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px}
+
+  /* Task 상자 */
+  #tkModal .pobox{max-width:620px;width:96vw}
+  .tkf{display:grid;grid-template-columns:120px 1fr;gap:9px 12px;align-items:center}
+  .tkf label{font-size:12.5px;color:var(--muted)}
+  .tkf input[type=text],.tkf input[type=date],.tkf input[type=time],.tkf select,.tkf textarea{width:100%;font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid var(--ims-input-line);border-radius:7px}
+  .tkf textarea{min-height:84px;resize:vertical}
+  .tkf .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .tkf .row input[type=time]{width:auto}
+  .tkhits{border:1px solid var(--line);border-radius:7px;margin-top:4px;max-height:180px;overflow:auto}
+  .tkhits button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--ims-line-soft);background:var(--ims-surface);color:var(--ink);font:inherit;font-size:13px;padding:6px 9px;cursor:pointer}
+  .tkhits button:hover{background:var(--ims-hover)}
+  .tklink{display:flex;gap:8px;align-items:center}
+  .tkmeta{font-size:12px;color:var(--muted);margin-top:10px}
+  .tkerr{color:var(--bad);font-size:13px;margin-top:8px}
+  .tkok{color:var(--good);font-size:13px;margin-top:8px}
+  .tkcat{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+  .tkcat input[type=text]{flex:1}
+  @media (max-width:560px){ .tkf{grid-template-columns:1fr} }
+
   /* 그날 목록 팝업 — 공통 .pomodal · .pobox 를 쓴다 */
   #calModal .pobox{max-width:980px;width:96vw}
   #calModal table{width:100%}
@@ -75,6 +110,7 @@
     .cal .day{min-height:0;border:1px solid var(--line);border-radius:10px}
     .cal .day.empty,.cal .day.out{display:none}
     .cal .day .dn .wd{display:inline}
+    .cal .day .dn .add{visibility:visible}
   }
   @media print{
     header,.dbtop button,.dbtop select{display:none!important}
@@ -100,9 +136,11 @@
     <button class="pobtn" id="nextM" title="Next month">›</button>
     <button class="pobtn" id="todayM">Today</button>
     <select id="wh" title="Branch — customer side only" hidden><option value="">All branches</option></select>
+    <button class="pobtn go" id="newTask">+ Task</button>
+    <select class="tkfilter" id="tkWho" title="Whose tasks to show" hidden><option value="all">Everyone's tasks</option><option value="mine">My tasks</option></select>
     <span class="dbload" id="load"></span>
     <span class="sp"></span>
-    <div class="dblegend">
+    <div class="dblegend" id="legend">
       <span><i class="lg-paid"></i>Paid</span>
       <span><i class="lg-part"></i>Part paid</span>
       <span><i class="lg-unpaid"></i>Not paid</span>
@@ -124,6 +162,52 @@
   </div>
 </div>
 
+<div class="pomodal" id="tkModal" hidden>
+  <div class="pobox">
+    <h4 id="tkTitle">New task</h4>
+    <div class="pbody">
+      <div class="tkf">
+        <label for="tkName">Title</label><input type="text" id="tkName" maxlength="200" placeholder="What needs doing">
+        <label for="tkDate">Date</label>
+        <div class="row"><input type="date" id="tkDate" style="width:auto"><label style="color:var(--ink)"><input type="checkbox" id="tkAllDay" checked> All day</label><input type="time" id="tkTime" hidden></div>
+        <label for="tkWhoSel">Assigned to</label><select id="tkWhoSel"></select>
+        <label for="tkCat">Category</label>
+        <div class="row"><select id="tkCat" style="flex:1"></select><button class="pobtn" id="tkCatEdit" hidden>Edit list</button></div>
+        <label for="tkLinkKind">Linked to</label>
+        <div>
+          <div class="tklink"><select id="tkLinkKind" style="width:auto">
+            <option value="">Nothing</option><option value="customer">Customer</option><option value="supplier">Supplier</option>
+            <option value="so">Sales order</option><option value="po">Purchase order</option>
+            <option value="so_invoice">Customer invoice</option><option value="po_invoice">Supplier invoice</option></select>
+            <input type="text" id="tkLinkQ" placeholder="Search…" hidden></div>
+          <div id="tkLinkPicked" class="tkmeta" style="margin-top:6px"></div>
+          <div class="tkhits" id="tkHits" hidden></div>
+        </div>
+        <label for="tkNotes">Notes</label><textarea id="tkNotes" maxlength="4000"></textarea>
+      </div>
+      <div class="tkmeta" id="tkMeta"></div>
+      <div id="tkMsg"></div>
+    </div>
+    <div class="pfoot">
+      <button class="pobtn" id="tkDel" hidden style="color:var(--bad)">Delete</button>
+      <span class="sp"></span>
+      <button class="pobtn" id="tkStatus" hidden>Mark done</button>
+      <button class="pobtn" id="tkClose">Close</button>
+      <button class="pobtn go" id="tkSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="pomodal" id="catModal" hidden>
+  <div class="pobox" style="max-width:460px">
+    <h4>Task categories</h4>
+    <div class="pbody"><div id="catList"></div>
+      <div class="tkcat"><input type="text" id="catNew" maxlength="40" placeholder="New category"><button class="pobtn" id="catAdd">Add</button></div>
+      <div class="tkmeta">Categories in use cannot be deleted — switch them off instead.</div><div id="catMsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="catClose">Close</button></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="ims-config.js"></script>
 <script src="ims-ui.js"></script>
@@ -140,14 +224,21 @@
                      받은 돈 = 결제 자기 지점 · post-dated 표시 · 환불 따로 · 지점 고르기는 손님 쪽만 · 통화별(더하지 않음)
    창구: cal_month(p_from, p_to, p_warehouse) · cal_day(p_date, p_kind, p_warehouse) — cal-1 · 20261116100000
    ⚠️ 달력 범위 = 그 달을 덮는 일요일 ~ 토요일(최대 42 일) — 창구의 62 일 막기 안
+   [db v3 · 2026-11-16 · 대화 Claude] Task(cal-2 · 20261116120000 · 판정 1293 ~ 1296 · 1299)
+     · cal_tasks(from, to) — 열쇠 없이 누구나(내 것 · 맡겨진 것 · manager 이상은 모두) → 열쇠가 없는 직원도 달력이 선다(돈 칸만 없음)
+     · 칸 맨 위에 Task(체크 · 시간 · 제목 · 담당) · 지난 Open 은 빨강 · 끝낸 것은 줄 긋기 · 날짜 위 「+」로 그날 새 Task
+     · 상자: 제목 · 날짜 · 종일/시간 · 담당 · 분류(manager 는 목록 고치기) · 연결 대상(검색 → 고르기) · 메모 · Save / Mark done / Delete(can 이 허락할 때만)
+     · 맡긴 뒤 내게 안 보이게 되면(만든 사람도 담당도 아님 · 판정 1293) 안내만 · ?task=<id>(메일 링크)로 들어오면 그 Task 를 연다
+     · 「Everyone's / My tasks」 고르기는 모두를 보는 사람(manager 이상)에게만 — 화면 거르기(창구는 그대로)
    ───────────────────────────────────────────────────────────── */
-const DB_BUILD = "2026-11-16 · db v2";
+const DB_BUILD = "2026-11-16 · db v3";
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
 let cur = null;          // 보는 달의 1 일(Date · 로컬)
 let whId = "";
 let lastData = null, seq = 0;
+let tasks = [], taskMe = null, staff = null, cats = null, tkWho = "all", editing = null, picked = null;
 
 const pad = n => String(n).padStart(2, "0");
 const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
@@ -179,16 +270,22 @@ async function load(){
   document.getElementById("mLabel").textContent = MONTHS[cur.getMonth()] + " " + cur.getFullYear();
   document.getElementById("load").textContent = "Loading…";
   try{ history.replaceState(null, "", "?m=" + cur.getFullYear() + "-" + pad(cur.getMonth() + 1) + (whId ? "&wh=" + whId : "")); }catch(e){}
-  const { data, error } = await sb.rpc("cal_month", { p_from: ymd(from), p_to: ymd(to), p_warehouse: whId || null });
+  const money = (canAR || canAP) ? sb.rpc("cal_month", { p_from: ymd(from), p_to: ymd(to), p_warehouse: whId || null }) : Promise.resolve({ data: null, error: null });
+  const tk = sb.rpc("cal_tasks", { p_from: ymd(from), p_to: ymd(to) });
+  const [mr, tr] = await Promise.all([money, tk]);
   if(my !== seq) return;                       // 더 새 요청이 있다
   document.getElementById("load").textContent = "";
-  if(error){
-    document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Could not load the calendar</b>${esc(error.message || String(error))}</div>`;
+  const err = mr.error || tr.error;
+  if(err){
+    document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Could not load the calendar</b>${esc(err.message || String(err))}</div>`;
     return;
   }
-  lastData = data;
-  renderOverdue(data);
-  renderCal(data, from, to);
+  const empty = { as_of: tr.data.today, can: { sales: false, purchasing: false }, ar_days: [], received_days: [], refund_days: [], ap_items: [], paid_days: [], overdue: { ar: [], ap: [] }, ap_no_due: 0 };
+  lastData = mr.data || empty;
+  tasks = tr.data.tasks || []; taskMe = tr.data.me || null;
+  document.getElementById("tkWho").hidden = !(taskMe && taskMe.sees_all);
+  renderOverdue(lastData);
+  renderCal(lastData, from, to);
 }
 
 function renderOverdue(d){
@@ -221,14 +318,27 @@ function renderCal(d, from, to){
   (d.received_days || []).forEach(x => slot(x.date).rec.push(x));
   (d.refund_days || []).forEach(x => slot(x.date).ref.push(x));
   (d.paid_days || []).forEach(x => slot(x.date).paid.push(x));
+  const shown = tasks.filter(t => tkWho === "all" || !taskMe || t.assignee.id === taskMe.id);
+  shown.forEach(t => { const s = slot(t.date); (s.tk = s.tk || []).push(t); });
 
   const today = d.as_of;
   let h = WD.map(w => `<div class="dow">${w}</div>`).join("");
   for(let t = new Date(from); t <= to; t.setDate(t.getDate() + 1)){
     const k = ymd(t), s = by[k];
     const out = t.getMonth() !== cur.getMonth();
-    const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length);
+    const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length || (s.tk && s.tk.length));
     let c = "";
+    if(s && s.tk){
+      s.tk.sort((a, b) => (a.status === b.status ? 0 : a.status === "open" ? -1 : 1) || (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
+      s.tk.forEach(t => {
+        const cls = t.status === "done" ? " done" : t.overdue ? " over" : "";
+        const who = taskMe && t.assignee.id === taskMe.id ? "" : t.assignee.name;
+        c += `<button class="tk${cls}" data-task="${esc(t.id)}" title="${esc(t.title)}${t.category ? " · " + esc(t.category.name) : ""}">` +
+          `<span class="bx"></span><span class="tx"><span class="tt">${t.all_day ? "" : esc(t.start_time) + " "}${esc(t.title)}</span>` +
+          (who || t.link ? `<span class="tw">${esc(who || "")}${who && t.link ? " · " : ""}${t.link ? esc(t.link.label || "") : ""}</span>` : "") +
+          `</span></button>`;
+      });
+    }
     if(s){
       s.ar.forEach(x => {
         const allPaid = !x.open_count;
@@ -259,11 +369,12 @@ function renderCal(d, from, to){
       });
     }
     h += `<div class="day${out ? " out" : ""}${k === today ? " today" : ""}${has ? "" : " empty"}">` +
-      `<div class="dn"><span class="wd">${WD[t.getDay()]} ${MONTHS[t.getMonth()].slice(0, 3)}</span><b>${t.getDate()}</b></div>${c}</div>`;
+      `<div class="dn"><span class="wd">${WD[t.getDay()]} ${MONTHS[t.getMonth()].slice(0, 3)}</span><span><button class="add" data-add="${k}" title="New task on ${k}">+</button><b>${t.getDate()}</b></span></div>${c}</div>`;
   }
-  const none = !d.can.sales && !d.can.purchasing;
   const box = document.getElementById("calBox");
-  box.innerHTML = none ? "" : `<div class="cal">${h}</div>`;
+  box.innerHTML = `<div class="cal">${h}</div>`;
+  box.querySelectorAll("[data-task]").forEach(b => b.onclick = () => openTask(b.dataset.task));
+  box.querySelectorAll("[data-add]").forEach(b => b.onclick = e => { e.stopPropagation(); openTask(null, b.dataset.add); });
   box.querySelectorAll("[data-kind]").forEach(b => b.onclick = () => openDay(b.dataset.day, b.dataset.kind));
   box.querySelectorAll("[data-doc]").forEach(b => b.onclick = () => openDoc(b.dataset.doc, b.dataset.id));
   box.querySelectorAll("[data-apmore]").forEach(b => b.onclick = () => openApDay(b.dataset.apmore));
@@ -336,6 +447,163 @@ async function openDay(k, kind){
   wireRows();
 }
 
+/* ── Task 상자(db v3) ───────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const LINK_URL = {
+  customer: l => "customers.html?id=" + encodeURIComponent(l.id),
+  supplier: l => "suppliers.html?id=" + encodeURIComponent(l.id),
+  so: l => "so.html?so=" + encodeURIComponent(String(l.label || "").split(" · ")[0]),
+  po: l => "po.html?po=" + encodeURIComponent(String(l.label || "").split(" · ")[0]),
+  so_invoice: l => "so-invoices.html?inv=" + encodeURIComponent(l.id),
+  po_invoice: l => "invoices.html?id=" + encodeURIComponent(l.id)
+};
+function tkMsg(text, ok){ $("tkMsg").innerHTML = text ? `<div class="${ok ? "tkok" : "tkerr"}">${esc(text)}</div>` : ""; }
+async function ensureLists(){
+  if(!staff){
+    const { data, error } = await sb.rpc("cal_task_staff");
+    if(error) throw error;
+    staff = data.staff || [];
+  }
+  if(!cats){
+    const { data, error } = await sb.rpc("cal_task_categories", { p_all: false });
+    if(error) throw error;
+    cats = data;
+  }
+}
+function fillSelects(t){
+  const meId = taskMe && taskMe.id;
+  const wantWho = t ? t.assignee.id : meId;
+  const whoList = staff.slice();
+  if(t && !whoList.some(x => x.id === t.assignee.id)) whoList.push({ id: t.assignee.id, name: t.assignee.name + " (inactive)" });
+  $("tkWhoSel").innerHTML = whoList.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.id === meId ? " (me)" : ""}</option>`).join("");
+  $("tkWhoSel").value = wantWho || "";
+  const list = (cats.categories || []).slice();
+  if(t && t.category && !list.some(c => c.id === t.category.id)) list.push({ id: t.category.id, name: t.category.name + " (off)" });
+  $("tkCat").innerHTML = `<option value="">—</option>` + list.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+  $("tkCat").value = t && t.category ? t.category.id : "";
+  $("tkCatEdit").hidden = !cats.can_edit;
+}
+function showPicked(){
+  const kind = $("tkLinkKind").value;
+  $("tkLinkQ").hidden = !kind || !!picked;
+  $("tkHits").hidden = true;
+  $("tkLinkPicked").innerHTML = picked
+    ? `<a class="lnk" href="${esc(LINK_URL[picked.kind](picked))}">${esc(picked.label || "")}</a> <button class="pobtn" id="tkUnlink" style="padding:2px 8px;margin-left:6px">Change</button>`
+    : "";
+  const u = $("tkUnlink"); if(u) u.onclick = () => { picked = null; showPicked(); $("tkLinkQ").value = ""; $("tkLinkQ").focus(); };
+}
+let qTimer = null;
+async function searchLink(){
+  const kind = $("tkLinkKind").value, q = $("tkLinkQ").value.trim();
+  if(!kind || q.length < 2){ $("tkHits").hidden = true; return; }
+  const pat = "%" + q.replace(/[%_\\]/g, m => "\\" + m) + "%";
+  let r;
+  if(kind === "customer") r = await sb.from("customer").select("id,name").ilike("name", pat).order("name").limit(12);
+  else if(kind === "supplier") r = await sb.from("supplier").select("id,name").ilike("name", pat).order("name").limit(12);
+  else if(kind === "so") r = await sb.from("so").select("id,so_number,bill_to_name").ilike("so_number", pat).order("so_number", { ascending: false }).limit(12);
+  else if(kind === "po") r = await sb.from("po").select("id,po_number").ilike("po_number", pat).order("po_number", { ascending: false }).limit(12);
+  else if(kind === "so_invoice") r = await sb.from("so_invoice").select("id,invoice_number,bill_to_name").ilike("invoice_number", pat).order("invoice_number", { ascending: false }).limit(12);
+  else r = await sb.from("po_invoice").select("id,invoice_number").ilike("invoice_number", pat).order("invoice_number", { ascending: false }).limit(12);
+  if(kind !== $("tkLinkKind").value) return;
+  const rows = (r && r.data) || [];
+  const lab = x => kind === "customer" || kind === "supplier" ? x.name
+    : kind === "so" ? x.so_number + (x.bill_to_name ? " · " + x.bill_to_name : "")
+    : kind === "po" ? x.po_number
+    : x.invoice_number + (x.bill_to_name ? " · " + x.bill_to_name : "");
+  $("tkHits").innerHTML = r && r.error ? `<div class="tkmeta" style="padding:6px 9px">${esc(r.error.message)}</div>`
+    : rows.length ? rows.map(x => `<button data-id="${esc(x.id)}" data-label="${esc(lab(x))}">${esc(lab(x))}</button>`).join("")
+    : `<div class="tkmeta" style="padding:6px 9px">Nothing found.</div>`;
+  $("tkHits").hidden = false;
+  $("tkHits").querySelectorAll("button[data-id]").forEach(b => b.onclick = () => { picked = { kind, id: b.dataset.id, label: b.dataset.label }; showPicked(); });
+}
+async function openTask(id, dateFor){
+  tkMsg("");
+  try{ await ensureLists(); }catch(e){ alert(e.message || e); return; }
+  let t = null;
+  if(id){
+    t = tasks.find(x => x.id === id);
+    if(!t){
+      const { data, error } = await sb.rpc("cal_task_get", { p_id: id });
+      if(error){ alert(error.message); return; }
+      t = data;
+    }
+  }
+  editing = t;
+  const ro = t && !t.can.edit;
+  $("tkTitle").textContent = t ? (ro ? "Task" : "Edit task") : "New task";
+  $("tkName").value = t ? t.title : "";
+  $("tkDate").value = t ? t.date : (dateFor || (lastData && lastData.as_of) || ymd(new Date()));
+  $("tkAllDay").checked = t ? t.all_day : true;
+  $("tkTime").value = t && t.start_time ? t.start_time : "";
+  $("tkTime").hidden = $("tkAllDay").checked;
+  $("tkNotes").value = t ? (t.notes || "") : "";
+  fillSelects(t);
+  $("tkLinkKind").value = t && t.link ? t.link.kind : "";
+  picked = t && t.link ? { kind: t.link.kind, id: t.link.id, label: t.link.label } : null;
+  $("tkLinkQ").value = ""; showPicked();
+  ["tkName","tkDate","tkAllDay","tkTime","tkWhoSel","tkCat","tkLinkKind","tkLinkQ","tkNotes"].forEach(x => $(x).disabled = !!ro);
+  $("tkSave").hidden = !!ro;
+  $("tkDel").hidden = !(t && t.can.delete);
+  $("tkStatus").hidden = !(t && t.can.complete);
+  $("tkStatus").textContent = t && t.status === "done" ? "Reopen" : "Mark done";
+  $("tkMeta").textContent = t ? `Made by ${t.created_by.name}` + (t.status === "done" && t.done_by ? ` · done by ${t.done_by.name}` : "") + (t.overdue ? " · overdue" : "") : "";
+  $("tkModal").hidden = false;
+  if(!ro) $("tkName").focus();
+}
+async function saveTask(){
+  const p = {
+    title: $("tkName").value.trim(), date: $("tkDate").value, all_day: $("tkAllDay").checked,
+    start_time: $("tkAllDay").checked ? null : ($("tkTime").value || null),
+    assignee_id: $("tkWhoSel").value || null, category_id: $("tkCat").value || null,
+    notes: $("tkNotes").value.trim() || null,
+    link_kind: picked ? picked.kind : null, link_id: picked ? picked.id : null
+  };
+  if(editing) p.id = editing.id;
+  $("tkSave").disabled = true; tkMsg("");
+  const { data, error } = await sb.rpc("cal_task_save", { p });
+  $("tkSave").disabled = false;
+  if(error){ tkMsg(error.message); return; }
+  const mail = data.mail && data.mail.queued ? ` · emailed ${data.mail.to || data.assignee.name}` : "";
+  const handed = taskMe && !taskMe.sees_all && data.assignee.id !== taskMe.id && data.created_by.id !== taskMe.id;
+  $("tkModal").hidden = true;
+  toast(handed ? `Saved and handed to ${data.assignee.name} — it is no longer on your calendar${mail}` : `Saved${mail}`);
+  load();
+}
+async function setStatus(){
+  if(!editing) return;
+  const want = editing.status === "done" ? "open" : "done";
+  const { error } = await sb.rpc("cal_task_set_status", { p_id: editing.id, p_status: want });
+  if(error){ tkMsg(error.message); return; }
+  $("tkModal").hidden = true; toast(want === "done" ? "Marked done" : "Reopened"); load();
+}
+async function delTask(){
+  if(!editing || !confirm(`Delete "${editing.title}"?`)) return;
+  const { error } = await sb.rpc("cal_task_delete", { p_id: editing.id });
+  if(error){ tkMsg(error.message); return; }
+  $("tkModal").hidden = true; toast("Deleted"); load();
+}
+function toast(text){
+  const n = document.createElement("div");
+  n.textContent = text;
+  n.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--ims-on-ink);padding:9px 16px;border-radius:9px;font-size:13.5px;z-index:6000;max-width:90vw";
+  document.body.appendChild(n); setTimeout(() => n.remove(), 4200);
+}
+/* 분류 목록 — manager 이상(창구가 막는다) */
+async function openCats(){
+  $("catMsg").innerHTML = "";
+  const { data, error } = await sb.rpc("cal_task_categories", { p_all: true });
+  if(error){ alert(error.message); return; }
+  $("catList").innerHTML = (data.categories || []).map(c => `<div class="tkcat" data-id="${esc(c.id)}">` +
+    `<input type="text" value="${esc(c.name)}" maxlength="40"><label style="font-size:12.5px;white-space:nowrap"><input type="checkbox" ${c.is_active ? "checked" : ""}> On</label>` +
+    `<button class="pobtn">Save</button></div>`).join("");
+  $("catList").querySelectorAll(".tkcat").forEach(r => r.querySelector("button").onclick = async () => {
+    const { error } = await sb.rpc("cal_task_category_save", { p: { id: r.dataset.id, name: r.querySelector("input[type=text]").value.trim(), is_active: r.querySelector("input[type=checkbox]").checked } });
+    $("catMsg").innerHTML = error ? `<div class="tkerr">${esc(error.message)}</div>` : `<div class="tkok">Saved</div>`;
+    if(!error) cats = null;
+  });
+  $("catModal").hidden = false;
+}
+
 /* ── 시작 ─────────────────────────────────────────────── */
 imsAuth.start({ changePw: true }, async (client, meData) => {
   sb = client; me = meData; window.sb = sb;
@@ -345,14 +613,30 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
 
   document.getElementById("cmClose").onclick = () => { document.getElementById("calModal").hidden = true; };
   document.getElementById("calModal").addEventListener("click", e => { if(e.target.id === "calModal") e.target.hidden = true; });
-  document.addEventListener("keydown", e => { if(e.key === "Escape") document.getElementById("calModal").hidden = true; });
+  document.addEventListener("keydown", e => { if(e.key === "Escape"){ ["calModal","tkModal","catModal"].forEach(x => document.getElementById(x).hidden = true); } });
+  ["tkModal","catModal"].forEach(x => document.getElementById(x).addEventListener("click", e => { if(e.target.id === x) e.target.hidden = true; }));
 
-  if(!canAR && !canAP){   // 판정 1284 — 창구를 부르지 않는다
-    document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Nothing on your calendar yet</b>Customer due dates need the Sales permission and supplier due dates need the Purchasing permission — ask an admin.</div>`;
-    ["prevM","nextM","todayM"].forEach(id => document.getElementById(id).hidden = true);
-    document.querySelector(".dblegend").hidden = true;
-    return;
+  if(!canAR && !canAP){   // 판정 1284 — 돈 창구는 부르지 않는다 · Task 만(db v3)
+    document.getElementById("legend").hidden = true;
   }
+  /* Task 상자 단추 */
+  $("newTask").onclick = () => openTask(null);
+  $("tkClose").onclick = () => { $("tkModal").hidden = true; };
+  $("tkSave").onclick = saveTask;
+  $("tkStatus").onclick = setStatus;
+  $("tkDel").onclick = delTask;
+  $("tkAllDay").onchange = () => { $("tkTime").hidden = $("tkAllDay").checked; };
+  $("tkLinkKind").onchange = () => { picked = null; $("tkLinkQ").value = ""; showPicked(); if($("tkLinkKind").value) $("tkLinkQ").focus(); };
+  $("tkLinkQ").oninput = () => { clearTimeout(qTimer); qTimer = setTimeout(searchLink, 250); };
+  $("tkCatEdit").onclick = openCats;
+  $("catClose").onclick = () => { $("catModal").hidden = true; if(!cats){ ensureLists().then(() => fillSelects(editing)).catch(() => {}); } };
+  $("catAdd").onclick = async () => {
+    const name = $("catNew").value.trim(); if(!name) return;
+    const { error } = await sb.rpc("cal_task_category_save", { p: { name } });
+    if(error){ $("catMsg").innerHTML = `<div class="tkerr">${esc(error.message)}</div>`; return; }
+    $("catNew").value = ""; cats = null; openCats();
+  };
+  $("tkWho").onchange = e => { tkWho = e.target.value; renderCal(lastData, range().from, range().to); };
 
   const m = imsParam("m");
   const now = new Date();
@@ -370,7 +654,9 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   document.getElementById("prevM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); load(); };
   document.getElementById("nextM").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); load(); };
   document.getElementById("todayM").onclick = () => { const n = new Date(); cur = new Date(n.getFullYear(), n.getMonth(), 1); load(); };
-  load();
+  const wantTask = imsParam("task");   // 메일 링크(판정 1296) — load() 가 주소를 ?m= 로 다시 쓰기 전에 읽는다
+  await load();
+  if(wantTask) openTask(wantTask);
 });
 </script>
 </body>
