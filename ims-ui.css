@@ -2,13 +2,57 @@
    ─────────────────────────────────────────────
    ⚠️ 여기를 고치면 모든 화면이 바뀐다. 고친 뒤 CHECKLIST.md 를 처음부터 훑는다.
    ⚠️ 화면마다 다른 것(열 너비 · 그 화면에만 있는 덩어리)은 각 html 의 <style> 에 남긴다.
-   📌 2026-09-15 · 화면 다섯에 복사돼 있던 것을 모았다. */
+   📌 2026-09-15 · 화면 다섯에 복사돼 있던 것을 모았다.
+   📌 [2026-11-16 ui v2 · 대화 Claude · 판정 1274 ~ 1277] 색을 전부 변수로 + 다크 팔레트(IMS · POS 만) · 라이트 값은 고치기 전과 같다 · 남긴 고정 색: 썸네일 흰 바탕 · 확대 덮개(사진은 흰 바탕이 맞다) */
 
 :root{
   --line:#e5e9ef; --muted:#6b7686; --ink:#12161c; --bg:#f7f8fa; --accent:#2f6df6;
   --warn:#92640a; --bad:#b42318; --good:#16794a;
   --mono:ui-monospace,Menlo,monospace;
   --ims-logo-h:22px;          /* 헤더 로고 높이(IMS · POS) · WMS 는 아래에서 28px(운영 picker.html 실측 · frontend.md 의 15px 는 낡은 값) */
+  /* ── 색 변수(ui v2 · 2026-11-16 · 판정 1274 ~ 1277) — 이 파일의 고정 색을 전부 이름으로 · 라이트 값 = 고치기 전 값 그대로(라이트 화면 무변)
+     ⭐ 새 이름은 ims- 접두어(화면 <style> 이 자기 :root 에 --surface 같은 이름을 쓸 수 있다) · 원래 다섯(--line · --ink · --bg · --accent · --muted …)은 그대로 */
+  --ims-surface:#fff;         /* 카드 · 머리 · 목록 · 단추 · 상자 바탕 */
+  --ims-surface-2:#fafbfd;    /* 표 머리 · 안내 띠 · 줄 hover */
+  --ims-hover:#f2f4f8;        /* 단추 · 메뉴 hover */
+  --ims-line-soft:#f1f3f7;    /* 표 줄 · 목록 줄 사이 */
+  --ims-line-strong:#e3e6eb;  /* 펼침 상자 테두리 */
+  --ims-input-line:#d5dbe4;   /* 꾸미지 않은 입력칸 테두리 */
+  --ims-ink-2:#1e2430;        /* 메뉴 글씨 */
+  --ims-dim:#9aa4b2;
+  --ims-neutral:#4b5565;
+  --ims-on:#16a34a;           /* .on · 로그인 ok */
+  --ims-err:#dc2626;          /* .err */
+  --ims-brand:#3b5bdb;        /* 지금 메뉴 · 탭 글씨 */
+  --ims-sel-bg:#eef3ff;       /* 지금 메뉴 · 고른 줄 바탕 */
+  --ims-go-bg:#3b5bdb; --ims-go-hover:#3550c4; --ims-on-go:#fff;   /* 주 동작 단추 .pobtn.go */
+  --ims-on-ink:#fff;          /* --ink 바탕 위 글씨(모드 단추 cur · 로그인 단추) */
+  --ims-bad-line:#f3d3cf; --ims-good-line:#cfe9d7; --ims-warn-line:#ecdcb4; --ims-bad-bg:#fdf0ef;
+  --ims-shadow:rgba(15,20,30,.16); --ims-shadow-lg:rgba(15,20,30,.28);
+  --ims-overlay:rgba(16,22,30,.45); --ims-focus:rgba(47,109,246,.12);
+  --ims-logo-filter:none;
+}
+
+/* ── 다크 팔레트(ui v2 · 판정 1274 · 1275) ──────────────────
+   ⭐ IMS · POS 화면만 — WMS 일곱도 이 파일을 쓰지만 data-ims-mode="wms" 라 이 블록이 안 걸린다(판정 1274 · WMS 라이트 고정)
+   · data-theme 은 ims-auth.js 가 읽히는 즉시 단다(기기 설정 · 고른 값 · 1 차는 admin 만 — 판정 1276)
+   · 우선순위 0,2,1 — 화면 <style> 의 :root{--bg:…}(0,1,0)보다 세다 ⇒ 화면이 원래 다섯을 다시 정해도 다크에서는 이 값
+   ⚠️ 화면이 직접 쓴 고정 색(#fff 카드 등)은 여기서 못 바꾼다 — 화면 차수에서 변수로(그 전엔 어두운 바탕에 흰 칸이 남는다) */
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){
+  color-scheme:dark;          /* 브라우저 기본 입력칸 · 스크롤바 · 체크박스도 어둡게 */
+  --bg:#0f1216; --line:#2a313b; --muted:#98a2b0; --ink:#e6e9ee; --accent:#5b8cff;
+  --warn:#e0b04f; --bad:#f06b5d; --good:#45c486;
+  --ims-surface:#171b21; --ims-surface-2:#1c2129; --ims-hover:#232a33;
+  --ims-line-soft:#222831; --ims-line-strong:#313945; --ims-input-line:#3a4350;
+  --ims-ink-2:#d8dde4; --ims-dim:#6f7a88; --ims-neutral:#b3bcc8;
+  --ims-on:#4ade80; --ims-err:#f87171;
+  --ims-brand:#8ea6ff; --ims-sel-bg:#1f2a44;
+  --ims-go-bg:#4263eb; --ims-go-hover:#4c6ef5; --ims-on-go:#fff;
+  --ims-on-ink:#12161c;
+  --ims-bad-line:#5a2a26; --ims-good-line:#1f4a33; --ims-warn-line:#574519; --ims-bad-bg:#3a1f1d;
+  --ims-shadow:rgba(0,0,0,.5); --ims-shadow-lg:rgba(0,0,0,.6);
+  --ims-overlay:rgba(0,0,0,.6); --ims-focus:rgba(91,140,255,.28);
+  --ims-logo-filter:brightness(0) invert(.92);   /* 검은 글씨 로고(asung-logo-dark.png)를 밝은 회색으로 · 그림 파일은 그대로 */
 }
 *{box-sizing:border-box}
 
@@ -26,17 +70,17 @@ body{
 /* ── 헤더 ─────────────────────────────────────
    ⚠️ ☰ Menu 는 이름·역할 바로 옆 · 다른 버튼보다 앞 (WMS UI 규칙과 같다) */
 header{
-  display:flex;align-items:center;gap:8px;padding:12px 18px;background:#fff;
+  display:flex;align-items:center;gap:8px;padding:12px 18px;background:var(--ims-surface);
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10;
 }
 header .brand{font-family:var(--mono);font-weight:800;font-size:14px}
 header .sp{flex:1}
 header .who{font-size:13px;color:var(--muted)}
 header button{
-  border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;
+  border:1px solid var(--line);background:var(--ims-surface);border-radius:9px;padding:7px 11px;
   font:inherit;font-size:13px;font-weight:600;cursor:pointer;
 }
-header button:hover{background:#f2f4f8}
+header button:hover{background:var(--ims-hover)}
 
 /* ── 헤더 — 로고 · 모드 · 윗줄 펼침 (2026-09-30 lay-1 · 판정 149 ~ 167 · ims-auth.js setupHeader 가 그린다 · 마크업은 화면에 없다) ──
    [로고] [IMS · WMS · POS] Purchasing ▾ · Sales ▾ · Inventory ▾ · Action Center · Settings ▾ … 이름 · Sign Out
@@ -47,38 +91,38 @@ header button:hover{background:#f2f4f8}
    · 좁은 폭: 윗줄 펼침이 한 줄에 못 서면 JS 가 header.ims-wrap 을 달아 둘째 줄 전체로 내린다 · 늘어난 높이는 --ims-hdr-extra(.list 의 top 이 더한다) */
 header .ims-brand{display:flex;align-items:center;font:inherit}
 header .ims-logo{display:flex;align-items:center;text-decoration:none}
-header .ims-logo img{height:var(--ims-logo-h);width:auto;display:block}
+header .ims-logo img{height:var(--ims-logo-h);width:auto;display:block;filter:var(--ims-logo-filter)}
 html[data-ims-mode="wms"] header .ims-logo img{height:28px}
 header .ims-modes{display:flex;align-items:center;gap:2px;margin-left:4px;padding-left:10px;border-left:1px solid var(--line)}
 header .ims-modes a.mode{
   font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
   padding:6px 8px;border-radius:7px;color:var(--muted);text-decoration:none;white-space:nowrap;
 }
-header .ims-modes a.mode:hover{background:#f2f4f8;color:var(--ink)}
-header .ims-modes a.mode.cur{color:#fff;background:var(--ink)}
+header .ims-modes a.mode:hover{background:var(--ims-hover);color:var(--ink)}
+header .ims-modes a.mode.cur{color:var(--ims-on-ink);background:var(--ink)}
 header .ims-authtag{font-size:10px;white-space:nowrap}
 header.ims-hdr-ims{flex-wrap:wrap;row-gap:6px}
 header .ims-top{display:flex;align-items:center;gap:2px;margin-left:10px;flex-wrap:wrap}
 header .ims-grp{position:relative}
 header .ims-grpbtn{
-  border:0;background:transparent;border-radius:8px;padding:7px 11px;font:inherit;font-size:13.5px;font-weight:700;color:#1e2430;
+  border:0;background:transparent;border-radius:8px;padding:7px 11px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ims-ink-2);
   cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;line-height:1.2;
 }
 header .ims-grpbtn .car{font-size:10px;color:var(--muted)}
-header .ims-grpbtn:hover,header .ims-grp.open>.ims-grpbtn{background:#f2f4f8;color:var(--ink)}
-header .ims-grp.cur>.ims-grpbtn,header .ims-grpbtn.flat.cur{color:#3b5bdb;background:#eef3ff}
+header .ims-grpbtn:hover,header .ims-grp.open>.ims-grpbtn{background:var(--ims-hover);color:var(--ink)}
+header .ims-grp.cur>.ims-grpbtn,header .ims-grpbtn.flat.cur{color:var(--ims-brand);background:var(--ims-sel-bg)}
 header .ims-grpbtn.flat.cur{pointer-events:none}
 header .ims-drop{
   display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:30;min-width:220px;
-  background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px;
+  background:var(--ims-surface);border:1px solid var(--ims-line-strong);border-radius:12px;box-shadow:0 12px 32px var(--ims-shadow);padding:6px;
 }
 header .ims-grp.open>.ims-drop{display:block}
 header .ims-grp:last-child>.ims-drop{left:auto;right:0}
-header .ims-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430;text-decoration:none;white-space:nowrap}
-header .ims-drop a:hover{background:#f2f4f8}
-header .ims-drop a.cur{background:#eef3ff;color:#3b5bdb;pointer-events:none}
+header .ims-drop a{display:block;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ims-ink-2);text-decoration:none;white-space:nowrap}
+header .ims-drop a:hover{background:var(--ims-hover)}
+header .ims-drop a.cur{background:var(--ims-sel-bg);color:var(--ims-brand);pointer-events:none}
 /* 둘째 줄로 내려간 윗줄 펼침(JS 가 .ims-wrap 을 단다) — 이름 · Sign Out 은 첫 줄 오른쪽에 남는다 */
-header.ims-wrap .ims-top{order:10;flex-basis:100%;margin-left:0;padding-top:4px;border-top:1px solid #f1f3f7}
+header.ims-wrap .ims-top{order:10;flex-basis:100%;margin-left:0;padding-top:4px;border-top:1px solid var(--ims-line-soft)}
 
 /* ── 배치 ───────────────────────────────────── */
 .wrap{display:flex;gap:16px;padding:16px 18px;align-items:flex-start}
@@ -88,7 +132,7 @@ main.stack{display:flex;flex-direction:column;gap:14px}
 /* ── 왼쪽 목록 패널 ───────────────────────────
    폭은 화면마다 다르다 — 각 html 에서 .list{width:…;flex:0 0 …} 로 덮는다 */
 .list{
-  background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  background:var(--ims-surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;
   position:sticky;top:calc(70px + var(--ims-hdr-extra,0px));   /* 헤더(sticky) 아래 12px · 헤더가 두 줄로 꺾이면 그만큼 더(2026-09-30 lay-1 · --ims-hdr-extra 는 ims-auth.js setHeaderVars 가 적는다) */
 }
 .list .top{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
@@ -99,14 +143,14 @@ main.stack{display:flex;flex-direction:column;gap:14px}
 .list .opts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
 .list .opts label{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none}
 .list .rows{overflow:auto}
-.list .row{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-.list .row:hover{background:#fafbfd}
-.list .row.cur{background:#eef3ff}
+.list .row{padding:9px 12px;border-bottom:1px solid var(--ims-line-soft);cursor:pointer;font-size:13.5px}
+.list .row:hover{background:var(--ims-surface-2)}
+.list .row.cur{background:var(--ims-sel-bg)}
 .list .foot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
 .list .foot .sp{flex:1}
 .list .foot button,
 .bar button{
-  border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 9px;
+  border:1px solid var(--line);background:var(--ims-surface);border-radius:8px;padding:5px 9px;
   font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;
 }
 .list .foot button:disabled,
@@ -118,15 +162,20 @@ main.stack{display:flex;flex-direction:column;gap:14px}
    ⭐ :where() = 가장 약한 규칙(0점) — 화면 <style> 이나 클래스(.sofield · .qin · .tin · .mrow input …)가 꾸민 칸은 그 모양이 그대로 이긴다 · 체크박스 · 라디오 · 파일 · 색 · 단추형은 빼고
    ⚠️ 두께가 2px → 1px 이라 칸이 1px 씩 작아진다 · 배경 · 안쪽 여백은 건드리지 않는다(꺼진 칸의 회색이 남게) */
 :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=image]),select,textarea){
-  border:1px solid #d5dbe4;border-radius:6px;
+  border:1px solid var(--ims-input-line);border-radius:6px;
+}
+
+/* [ui v2] 다크에서만 — 꾸미지 않은 켜진 칸의 바탕을 팔레트로(브라우저 기본 다크 회색 #3b3b3b 대신) · 꺼진 칸은 브라우저 모양 그대로(구분이 남게) · 통째로 :where(우선순위 0) — 화면이 칠한 칸은 화면 색이 이긴다 */
+:where(html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"])) :where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=image]):not(:disabled),select:not(:disabled),textarea:not(:disabled)){
+  background-color:var(--ims-surface-2);color:var(--ink);
 }
 
 input:focus,select:focus,textarea:focus{
-  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,109,246,.12);
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--ims-focus);
 }
 
 /* ── 카드 ───────────────────────────────────── */
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card{background:var(--ims-surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .card h3{
   margin:0;padding:11px 14px;border-bottom:1px solid var(--line);
   font-size:12px;font-family:var(--mono);color:var(--muted);
@@ -136,7 +185,7 @@ input:focus,select:focus,textarea:focus{
 .head{padding:16px}
 .head .sk{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .head .nm{font-size:19px;font-weight:700;margin:3px 0 8px}
-.note{padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);background:#fafbfd}
+.note{padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);background:var(--ims-surface-2)}
 
 /* 카드 위쪽 도구 줄 (제목 · 검색 · 페이징) */
 .bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
@@ -158,26 +207,26 @@ input:focus,select:focus,textarea:focus{
   border:1px solid var(--line);border-radius:999px;padding:2px 9px;
   font-size:11.5px;font-family:var(--mono);color:var(--muted);
 }
-.chip.bad{border-color:#f3d3cf;color:var(--bad)}
-.chip.good{border-color:#cfe9d7;color:var(--good)}
-.chip.warn{border-color:#ecdcb4;color:var(--warn)}
+.chip.bad{border-color:var(--ims-bad-line);color:var(--bad)}
+.chip.good{border-color:var(--ims-good-line);color:var(--good)}
+.chip.warn{border-color:var(--ims-warn-line);color:var(--warn)}
 
 /* 목록 행에 붙는 작은 꼬리표 */
 .tag{
   font-size:10.5px;font-family:var(--mono);border:1px solid var(--line);border-radius:999px;
   padding:0 6px;white-space:nowrap;color:var(--muted);font-weight:500;
 }
-.tag.off{color:var(--bad);border-color:#f3d3cf}
-.tag.disc{color:var(--warn);border-color:#ecdcb4}
+.tag.off{color:var(--bad);border-color:var(--ims-bad-line)}
+.tag.disc{color:var(--warn);border-color:var(--ims-warn-line)}
 
 /* ── 표 ─────────────────────────────────────── */
 table{border-collapse:collapse;width:100%;font-size:13px}
 thead th{
-  background:#fafbfd;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
+  background:var(--ims-surface-2);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);
   font-size:10.5px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;white-space:nowrap;
 }
-tbody td{padding:7px 12px;border-bottom:1px solid #f1f3f7;vertical-align:top}
-tbody tr:hover{background:#fafbfd}
+tbody td{padding:7px 12px;border-bottom:1px solid var(--ims-line-soft);vertical-align:top}
+tbody tr:hover{background:var(--ims-surface-2)}
 .kv td:first-child{
   width:150px;color:var(--muted);font-size:10.5px;font-family:var(--mono);
   text-transform:uppercase;white-space:nowrap;
@@ -190,14 +239,14 @@ tbody tr:hover{background:#fafbfd}
    ✅ [2026-09-15 오후] 여섯 화면 전부 — is_default·is_primary 는 yn(v, false) 로 회색 */
 .mono{font-family:var(--mono);font-size:12.5px}
 .num{font-family:var(--mono);text-align:right}
-.dim{color:#9aa4b2}
-.on{color:#16a34a;font-weight:600}
+.dim{color:var(--ims-dim)}
+.on{color:var(--ims-on);font-weight:600}
 .off{color:var(--bad);font-weight:600}
-.neutral{color:#4b5565;font-weight:600}
+.neutral{color:var(--ims-neutral);font-weight:600}
 .lnk{color:var(--accent);text-decoration:none;cursor:pointer}
 .lnk:hover{text-decoration:underline}
 .msg{padding:22px 14px;text-align:center;color:var(--muted);font-size:13.5px}
-.err{color:#dc2626;font-weight:600}
+.err{color:var(--ims-err);font-weight:600}
 
 /* ═══════════════════════════════════════════════════════════════
    ⑤ 문서 화면 공통 — po.html · invoices.html · charges.html 에 같은 내용이 복사돼 있던 것을 올렸다 (2026-09-17 · 규칙 34)
@@ -212,26 +261,26 @@ tbody tr:hover{background:#fafbfd}
    📌 #wide 묶음은 「넓은 목록」 구조를 세 화면이 같은 id 로 쓴다 — 다음 화면이 #wide 를 안 쓰면 이 묶음만 안 듣는다(다른 묶음과 무관) */
 
 /* 버튼 — 문서 화면의 기본 버튼 · .go 는 주 동작(Create · Confirm) */
-.pobtn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;
+.pobtn{border:1px solid var(--line);background:var(--ims-surface);border-radius:9px;padding:6px 12px;
        font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--ink)}
-.pobtn:hover{background:#f2f4f8}
+.pobtn:hover{background:var(--ims-hover)}
 .pobtn:disabled{opacity:.45;cursor:default}
-.pobtn.go{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
-.pobtn.go:hover{background:#3550c4}
+.pobtn.go{background:var(--ims-go-bg);border-color:var(--ims-go-bg);color:var(--ims-on-go)}
+.pobtn.go:hover{background:var(--ims-go-hover)}
 
 /* 인라인 입력 — 표 안에서 바로 고치는 칸(수량·금액 .qin · 글·날짜 .tin) · 줄 지우기 .xbtn */
 .qin{width:104px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;
      font-family:var(--mono);font-size:12.5px;text-align:right}
 .tin{width:180px;border:1px solid var(--line);border-radius:7px;padding:3px 6px;font:inherit;font-size:12.5px}
-.xbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;
+.xbtn{border:1px solid var(--line);background:var(--ims-surface);border-radius:7px;padding:2px 7px;
       font:inherit;font-size:12px;cursor:pointer;color:var(--muted)}
-.xbtn:hover{background:#fdf0ef;color:var(--bad);border-color:#f3d3cf}
+.xbtn:hover{background:var(--ims-bad-bg);color:var(--bad);border-color:var(--ims-bad-line)}
 
 /* 모달 — .pomodal(덮개) 안에 .pobox(상자) · h4 머리 · .pbody 본문 · .pfoot 발 · .frow 는 폼 한 줄(라벨 + 입력) */
-.pomodal{position:fixed;inset:0;z-index:5000;background:rgba(16,22,30,.45);
+.pomodal{position:fixed;inset:0;z-index:5000;background:var(--ims-overlay);
          display:flex;align-items:center;justify-content:center;padding:20px}
-.pobox{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:86vh;
-       display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,20,30,.28)}
+.pobox{background:var(--ims-surface);color:var(--ink);border-radius:14px;max-width:900px;width:100%;max-height:86vh;
+       display:flex;flex-direction:column;box-shadow:0 20px 60px var(--ims-shadow-lg)}
 .pobox h4{margin:0;padding:14px 16px;border-bottom:1px solid var(--line);font-size:14px}
 .pobox .pbody{padding:14px 16px;overflow:auto;flex:1}
 .pobox .pfoot{padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
@@ -245,7 +294,7 @@ tbody tr:hover{background:#fafbfd}
 #wide .card{padding:0}
 #wide table{font-size:12.5px}
 #wide tbody tr{cursor:pointer}
-#wide tbody tr:hover{background:#fafbfd}
+#wide tbody tr:hover{background:var(--ims-surface-2)}
 .wfilt{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
 .wfilt .sp{flex:1}
 .wfilt input[type=search]{min-width:260px;flex:0 1 320px}
@@ -257,7 +306,7 @@ tbody tr:hover{background:#fafbfd}
 .invbar .pn{font-family:var(--mono);font-size:20px;font-weight:700}
 .invgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
 @media (max-width:900px){ .invgrid{grid-template-columns:1fr} }
-.invsub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+.invsub{padding:8px 12px;font-size:12px;color:var(--muted);background:var(--ims-surface-2);border-top:1px solid var(--line)}
 
 /* ⚠️⚠️ [실사고 2026-09-16 · po.html] `hidden` 속성이 안 먹었다 —
    .wrap 에 display:flex 가 걸려 있어 브라우저 기본 [hidden]{display:none} 을 이긴다.
@@ -275,20 +324,20 @@ tbody tr:hover{background:#fafbfd}
    ⚠️ sticky 가 아니다 — 헤더(sticky · top:0)만 남고 이 줄은 함께 스크롤된다.
       스크롤 0 에서 내용이 이 줄 높이만큼 내려온다 — --ims-tabs-h(JS 가 잰다 · 헤더 둘째 줄 높이 + 이 줄 높이)를 .list .rows 의 max-height 가 빼 쓴다(po · so · so-invoices · so-payments · so-credits).
    ⚠️ 이름은 ims- 접두어(ims-nav 선례) · 충돌 없음(2026-09-17 grep). */
-.ims-tabs{display:flex;gap:2px;padding:0 18px;background:#fff;border-bottom:1px solid var(--line)}
+.ims-tabs{display:flex;gap:2px;padding:0 18px;background:var(--ims-surface);border-bottom:1px solid var(--line)}
 .ims-tabs a{
   padding:9px 13px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;
   border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;
 }
-.ims-tabs a:hover{color:var(--ink);background:#fafbfd}
-.ims-tabs a.cur{color:#3b5bdb;border-bottom-color:#3b5bdb;pointer-events:none}
+.ims-tabs a:hover{color:var(--ink);background:var(--ims-surface-2)}
+.ims-tabs a.cur{color:var(--ims-brand);border-bottom-color:var(--ims-brand);pointer-events:none}
 
 /* ═══════════════════════════════════════════════════════════════
    구역 제목 띠 — PO · SO 상세의 Lines · Discounts · Receipts … (2026-09-30 lay-1 · 판정 156 · 167 · 화면에 붙이는 것은 lay-3)
    · 왼쪽 색 막대 + 그 색의 굵은 제목 글씨 · 구역마다 다른 색 · 같은 구역은 PO · SO 같은 색 · 색은 **여기 한 번만**
    · 쓰는 법: <h3 class="ims-sec" data-sec="invoices">Invoices <span class="n">3</span></h3>  (po.html · so.html 의 tbl() 이 내는 .card h3 에 class · data-sec 만 더한다)
    · data-sec 값 = 구역 이름의 소문자 복수형 — 같은 뜻은 같은 값(SO 의 「Invoice」 도 invoices)
-   · 다크 모드 변수 체계는 아직 없다(ims-ui.css 전부 밝은 색) — 생기면 --sec · --sec-bg 만 바꾼다
+   · [ui v2 · 2026-11-16] 다크 모드: 열여덟 쌍을 따로 매기지 않고 아래 다크 규칙 하나가 --sec 에서 섞어 만든다(color-mix · 바탕 = --sec 16 % · 글씨 = --sec 55 % + 흰색)
    · [2026-10-01 thumb-1] 상품 구역 일곱(prices … photos) — products.html · Same family 는 variants(SO 의 family 와 뜻이 다르다) */
 .ims-sec{--sec:#6b7686;--sec-bg:#f7f8fa}                                  /* 모르는 구역 — 회색 */
 .ims-sec[data-sec="lines"]{--sec:#2f6df6;--sec-bg:#eef3ff}                /* Lines — 파랑 */
@@ -312,6 +361,11 @@ tbody tr:hover{background:#fafbfd}
   font-weight:800;font-size:12.5px;letter-spacing:.05em;padding-left:12px;
 }
 .card h3.ims-sec .n{color:var(--sec);font-weight:800}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]) .card h3.ims-sec{
+  background:color-mix(in srgb,var(--sec) 16%,var(--ims-surface));color:color-mix(in srgb,var(--sec) 55%,#fff);
+  border-left-color:color-mix(in srgb,var(--sec) 75%,#fff);
+}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]) .card h3.ims-sec .n{color:inherit}
 
 /* ═══════════════════════════════════════════════════════════════
    썸네일 — 줄 표의 SKU 왼쪽 작은 사진(40px) · 누르면 크게 (2026-10-01 thumb-1 · 판정 208 · 도우미는 ims-ui.js 의 imsThumb · imsThumbFill)
@@ -322,7 +376,7 @@ tbody tr:hover{background:#fafbfd}
 .ims-thumb{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;flex:0 0 40px;
   border:1px solid var(--line);border-radius:6px;background:#fff;overflow:hidden;vertical-align:middle;position:relative;box-sizing:border-box}
 .ims-thumb img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;display:block}
-.ims-thumb.none{border-style:dashed;background:#fafbfd;opacity:.55}
+.ims-thumb.none{border-style:dashed;background:var(--ims-surface-2);opacity:.55}
 .ims-thumb.parent i.p{position:absolute;right:2px;bottom:2px;width:9px;height:9px;border-radius:50%;background:#0e7490;border:1.5px solid #fff;pointer-events:none}
 #imsThumbZoom{display:none;position:fixed;inset:0;z-index:9000;background:rgba(16,22,30,.72);align-items:center;justify-content:center;cursor:zoom-out}
 #imsThumbZoom.open{display:flex}

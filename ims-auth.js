@@ -42,7 +42,7 @@
 */
 (function(){
   const cfg = window.IMS_CONFIG || {};
-  const IMS_AUTH_BUILD = "nav v20";     // [2026-11-13 nav v20 · 대화 Claude] 폰 폭 상세 모양 — Caleb 「모바일에서 레이아웃이 엉클어지는 현상이 아직도 있어」(Products · Stock 캡처): ① v18 의 「카드 안 표는 옆으로 밀기」 가 이름표 표(.kv · 21 화면)까지 block 으로 만들어 값 칸이 잘렸다 → .kv 는 표 그대로 · 이름 칸 38 % 줄바꿈 ② 둘 · 셋 칸 격자(.cols · .sogrid · .pogrid · .cgrid · .invgrid · .dgrid · .socols · .mrow · .arr · .topgrid)는 한 칸 · 제품 머리 사진은 위로 폭 가득 ③ 재고 숫자 타일(.nums · 화면이 style 로 7 ~ 9 칸)은 한 줄 3 개 ④ 머리 단추 줄 줄바꿈 · 안내 글은 다음 줄 ⑤ 입력 창 격자(.fg 4 칸)는 2 칸 · 모두 imsMobileCss 의 @media 안 · 데스크톱 무변 · 화면 파일 무변 ←      // [2026-11-10 nav v19 · 대화 Claude] Integrations 에 Freightcom(freightcom.html · fcb v1 · 열쇠 null) ←     // [2026-11-09 nav v18b · 대화 Claude] 캐럿을 글자 그대로(▾ ▸) — v18a 는 CSS 코드값 \25BE 를 JS 문자열에 넣어 \25 가 8 진 escape 로 먹혀 「BE」 · 「B8」 이 보였다 ← [nav v18a] 폰에서 넓은 목록 건너뛰기 · 넓은 표 카드 줄(아래) ← [nav v18] 판정 1138 — 폰 폭(max-width:760px · IMS 화면만): 목록 + 상세 화면(.wrap · .list · #detail · 13 화면)은 처음엔 목록만 · 줄을 누르면 상세만 화면 가득 + 「‹ Back to list」 · 상세 첫 카드는 펼침 · 나머지 카드는 제목(h3)에 ▸ 캐럿으로 접힘 · 카드 안 넓은 표는 옆으로 밀기 · 넓은 목록 ↔ 상세 화면(9)도 접힘 · 표 밀기 · 모양은 <style id="imsMobileCss"> 한 곳 · 데스크톱 무변 · Caleb 「모바일에서는 전체목록을 볼 필요는 없을것 같아 … 어느 메뉴든」 ⇒ 간단 목록이 있는 화면(#wide + #wrapBox + loadList · 12)은 폰에서 넓은 목록을 건너뛴다(showWide 를 감싸 간단 목록으로) · 넓은 목록뿐인 화면(#wide 표 · 9)은 표를 카드 줄로(머리 줄 감춤 · 첫 칸 굵게 · 칸 감추지 않음) · #backWide 감춤 ← [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
+  const IMS_AUTH_BUILD = "nav v21";     // [2026-11-16 nav v21 · 대화 Claude] 판정 1274 ~ 1277 — 다크 · 라이트 모드: 읽히는 즉시 <html data-theme="dark|light"> (ims-ui.css ui v2 의 다크 팔레트는 IMS · POS 만 · WMS 라이트 고정) · 이름 펼침 맨 위에 「Theme: Auto · Light · Dark」(브라우저가 기억 · Auto = 기기 설정 따름 · 다른 탭도 따라 바뀜) · 1 차는 admin 만(THEME_OPEN=false — 다른 직원은 늘 라이트 · 단추 없음) · 로그인 · 비밀번호 상자 · 이름 펼침 · 폰 폭 모양의 고정 색을 변수로(라이트 값 그대로) ←     // [2026-11-13 nav v20 · 대화 Claude] 폰 폭 상세 모양 — Caleb 「모바일에서 레이아웃이 엉클어지는 현상이 아직도 있어」(Products · Stock 캡처): ① v18 의 「카드 안 표는 옆으로 밀기」 가 이름표 표(.kv · 21 화면)까지 block 으로 만들어 값 칸이 잘렸다 → .kv 는 표 그대로 · 이름 칸 38 % 줄바꿈 ② 둘 · 셋 칸 격자(.cols · .sogrid · .pogrid · .cgrid · .invgrid · .dgrid · .socols · .mrow · .arr · .topgrid)는 한 칸 · 제품 머리 사진은 위로 폭 가득 ③ 재고 숫자 타일(.nums · 화면이 style 로 7 ~ 9 칸)은 한 줄 3 개 ④ 머리 단추 줄 줄바꿈 · 안내 글은 다음 줄 ⑤ 입력 창 격자(.fg 4 칸)는 2 칸 · 모두 imsMobileCss 의 @media 안 · 데스크톱 무변 · 화면 파일 무변 ←      // [2026-11-10 nav v19 · 대화 Claude] Integrations 에 Freightcom(freightcom.html · fcb v1 · 열쇠 null) ←     // [2026-11-09 nav v18b · 대화 Claude] 캐럿을 글자 그대로(▾ ▸) — v18a 는 CSS 코드값 \25BE 를 JS 문자열에 넣어 \25 가 8 진 escape 로 먹혀 「BE」 · 「B8」 이 보였다 ← [nav v18a] 폰에서 넓은 목록 건너뛰기 · 넓은 표 카드 줄(아래) ← [nav v18] 판정 1138 — 폰 폭(max-width:760px · IMS 화면만): 목록 + 상세 화면(.wrap · .list · #detail · 13 화면)은 처음엔 목록만 · 줄을 누르면 상세만 화면 가득 + 「‹ Back to list」 · 상세 첫 카드는 펼침 · 나머지 카드는 제목(h3)에 ▸ 캐럿으로 접힘 · 카드 안 넓은 표는 옆으로 밀기 · 넓은 목록 ↔ 상세 화면(9)도 접힘 · 표 밀기 · 모양은 <style id="imsMobileCss"> 한 곳 · 데스크톱 무변 · Caleb 「모바일에서는 전체목록을 볼 필요는 없을것 같아 … 어느 메뉴든」 ⇒ 간단 목록이 있는 화면(#wide + #wrapBox + loadList · 12)은 폰에서 넓은 목록을 건너뛴다(showWide 를 감싸 간단 목록으로) · 넓은 목록뿐인 화면(#wide 표 · 9)은 표를 카드 줄로(머리 줄 감춤 · 첫 칸 굵게 · 칸 감추지 않음) · #backWide 감춤 ← [2026-11-09 nav v17 · 대화 Claude] 판정 1137 — 이름 펼침(IMS 화면 · changePw 를 준 화면): 「이름 · 역할 ▾」 을 누르면 Change Password · Sign Out · 빌드 표시 둘(화면 판 #buildTag · 공통 js 판) — 원래 요소를 옮긴다(화면이 건 onclick 그대로) · Manual 은 줄에 남는다 · 좁은 폭: 윗줄 펼침이 머리 오른쪽 끝을 넘으면 오른쪽에 맞춰 연다 · 탭 줄은 줄바꿈(폰에서 뒤 탭이 잘리던 것) · 모양은 이 파일이 넣는 <style id="imsHdrFitCss"> 한 곳(ims-ui.css 무변) ← [2026-11-09 nav v16 · 대화 Claude] 판정 1136 — 맨 위 메뉴에 Integrations(Action Centre 뒤 · Settings 앞): QuickBooks(Sales 에서 옮김) · Shopify Stores(Settings 에서 옮김) · 둘 다 탭 줄 · 열쇠 · 보기 그대로(qbo · shopify) · Web Orders 는 Sales 그대로 ← [2026-11-06 nav v15 · 대화 Claude] ac-count-1: Action Centre 메뉴에 할 일 숫자 배지(ims_action_counts · All branches 합 total · sessionStorage 2 분 · 0 이면 숨김 · 함수가 없으면 숨김 · window.imsActionBadgeSet 로 Action Centre 화면이 같은 숫자를 넣는다) ←     // [2026-11-02 nav v14 · Claude Code] qbo-sync-2d1 · 판정 971: Sales 묶음에 QuickBooks(qbo-send.html · 열쇠 qbo · 보기 qbo:read) ←     // [2026-10-25 nav v13 · 대화 Claude] 판정 210 그대로(manual-3a 이견 2) — Product Sheet 가 섰으니 Supplier Products 를 Inventory 메뉴에서 뺐다(줄은 주석으로 남김 · 화면 파일은 그대로 · 주소로는 열린다 · 다른 화면의 링크 0) ←     // [2026-10-25 nav v12 · 대화 Claude] 판정 731 — WMS ☰ Menu 맨 끝에 「Manual」(줄 하나 띄우고 · 새 탭 help.html#ch-04-wms — 4 장 WMS 파일 이름 04-wms.md 를 가리킨다 · 장이 서기 전에는 매뉴얼 첫머리) · WMS 머리는 그대로 ←     // [2026-10-25 nav v11 · 대화 Claude] 판정 725 — Change Password 앞에 「Manual」 단추(help.html 을 새 탭으로 · 고른 언어는 help.html 이 기억) · changePw 를 주는 IMS 화면에만 · help.html 자신에는 안 붙는다 ←     // [2026-10-23 nav v10 · 대화 Claude] Inventory 펼침에 B-grade Stock(stock-bgrade.html · 열쇠 stock_adjust · Stock Adjustments 뒤 · bgr-1a ~ 1c · 판정 629 ~ 648) ←     // [2026-10-22 nav v9 · 대화 Claude] Purchasing 펼침에 Reorder Planner(purchasing.html · pur-2) — Suppliers 뒤 ←     // [2026-10-20 nav v8 · 대화 Claude] WMS 탭에 Stock Lookup(wms-stock.html · 열쇠 없음 · Bin Moves 다음 · WMS 첫 화면 순서는 그대로) ← [2026-10-10 nav v7 · 대화 Claude] Sales 에 Web Orders(shopify-orders.html · 열쇠 sales · 탭 · ord-1c · 판정 363 ~ 372 · 430 ~ 435) ← [2026-10-09 nav v6 · 대화 Claude] Settings 에 Shopify Stores(shopify-stores.html · 화면 값 shopify — asung-wms shop-1a 의 새 권한 키) ← nav v5: 헤더 빌드 표시 뒤에 붙는다(#buildTag 뒤 · 공통 js 의 판) — 이 파일을 고치면 올린다
   let sb=null, me=null, access=null, onReady=null, opts={};
 
   /* ⚠️ 비밀번호 복구 — 재설정 메일의 주소는 location.origin+location.pathname(doForgot) 이라 index 로 돌아온다.
@@ -137,41 +137,69 @@
   //    화면 파일이 미리 달아 둔 값은 그대로 둔다(첫 그림부터 맞는 크기 · 번쩍임 0 — 화면 차수가 <html data-ims-mode="…"> 를 넣을 수 있게).
   if(!document.documentElement.getAttribute("data-ims-mode")) document.documentElement.setAttribute("data-ims-mode", hereMode);
 
+  /* ⭐ nav v21 · 판정 1274 ~ 1277 — 다크 · 라이트 모드
+     · 값 셋(localStorage "ims_theme"): auto(기기 설정 따름) · light · dark — 브라우저마다 기억(같은 PC 의 IMS · POS 가 함께 · 다른 탭도 storage 이벤트로 따라온다)
+     · 읽히는 즉시(로그인 전) <html data-theme> 를 단다 — 다크로 고른 브라우저가 흰 화면으로 한 번 번쩍이지 않게
+     · ⭐ THEME_OPEN=false = 1 차(판정 1276): 값이 없으면 light(기기 설정을 따르지 않는다) · 로그인 뒤 admin 이 아니면 늘 light · 단추는 admin 의 이름 펼침에만
+       ⇒ 화면들을 다 고친 뒤 true 한 줄이면 모두에게(값이 없으면 auto · 단추 모두에게 · 판정 1275)
+     · 색은 ims-ui.css(ui v2) 한 곳 — data-ims-mode 가 ims · pos 일 때만 다크 팔레트가 걸린다(WMS 는 data-theme 이 달려도 라이트) */
+  const THEME_KEY="ims_theme", THEME_OPEN=false;
+  let themeAllowed=null;      // null = 로그인 전(아직 모름) · true/false = 로그인 뒤
+  const themeMq=(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)"))||null;
+  function themeRead(){ try{ const v=localStorage.getItem(THEME_KEY); return (v==="auto"||v==="light"||v==="dark")?v:null; }catch(e){ return null; } }
+  function themeApply(){
+    let pref=themeRead()||(THEME_OPEN?"auto":"light");
+    if(themeAllowed===false) pref="light";
+    const dark=pref==="dark"||(pref==="auto"&&!!(themeMq&&themeMq.matches));
+    const root=document.documentElement;
+    root.setAttribute("data-theme", dark?"dark":"light");
+    root.setAttribute("data-theme-pref", pref);
+    themePaint();
+  }
+  function themeSet(v){ try{ localStorage.setItem(THEME_KEY,v); }catch(e){} themeApply(); }
+  function themePaint(){
+    const p=document.documentElement.getAttribute("data-theme-pref");
+    document.querySelectorAll("#imsTheme button[data-theme-set]").forEach(b=>{ const on=b.getAttribute("data-theme-set")===p; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on?"true":"false"); });
+  }
+  if(themeMq){ try{ themeMq.addEventListener("change", themeApply); }catch(e){ try{ themeMq.addListener(themeApply); }catch(_){} } }
+  window.addEventListener("storage",(e)=>{ if(e.key===THEME_KEY) themeApply(); });
+  themeApply();
+
   function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
   function injectStyles(){
     if(document.getElementById("imsAuthStyle")) return;
     const s=document.createElement("style"); s.id="imsAuthStyle";
     s.textContent=`
-      #imsLogin{position:fixed;inset:0;z-index:9999;background:#f7f8fa;display:flex;align-items:center;justify-content:center;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
-      #imsLogin .wcard{width:360px;max-width:92vw;background:#fff;border:1px solid #e5e9ef;border-radius:16px;box-shadow:0 4px 24px rgba(16,22,30,.08);padding:30px 28px}
-      #imsLogin h2{margin:0 0 4px;font-size:19px;color:#12161c}
-      #imsLogin .sub{margin:0 0 20px;color:#6b7686;font-size:13px}
-      #imsLogin label{display:block;font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6b7686;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 5px}
-      #imsLogin input{width:100%;border:1px solid #e5e9ef;border-radius:9px;padding:11px 12px;font-size:14px;font-family:inherit}
-      #imsLogin input:focus{outline:none;border-color:#2f6df6;box-shadow:0 0 0 3px rgba(47,109,246,.12)}
-      #imsLogin button.main{width:100%;margin-top:18px;border:0;background:#12161c;color:#fff;border-radius:9px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+      #imsLogin{position:fixed;inset:0;z-index:9999;background:var(--bg,#f7f8fa);display:flex;align-items:center;justify-content:center;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+      #imsLogin .wcard{width:360px;max-width:92vw;background:var(--ims-surface,#fff);border:1px solid var(--line,#e5e9ef);border-radius:16px;box-shadow:0 4px 24px rgba(16,22,30,.08);padding:30px 28px}
+      #imsLogin h2{margin:0 0 4px;font-size:19px;color:var(--ink,#12161c)}
+      #imsLogin .sub{margin:0 0 20px;color:var(--muted,#6b7686);font-size:13px}
+      #imsLogin label{display:block;font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--muted,#6b7686);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 5px}
+      #imsLogin input{width:100%;border:1px solid var(--line,#e5e9ef);border-radius:9px;padding:11px 12px;font-size:14px;font-family:inherit}
+      #imsLogin input:focus{outline:none;border-color:var(--accent,#2f6df6);box-shadow:0 0 0 3px var(--ims-focus,rgba(47,109,246,.12))}
+      #imsLogin button.main{width:100%;margin-top:18px;border:0;background:var(--ink,#12161c);color:var(--ims-on-ink,#fff);border-radius:9px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
       #imsLogin button.main:disabled{opacity:.6;cursor:default}
-      #imsLogin .err{margin-top:12px;color:#dc2626;font-size:12.5px;min-height:16px;font-weight:600}
-      #imsLogin .ok{margin-top:6px;color:#16a34a;font-size:12.5px;min-height:16px;font-weight:600}
-      #imsLogin .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:13px;color:#12161c;margin-bottom:18px;text-align:center}
-      #imsLogin .brand img{height:36px;width:auto;display:inline-block}
+      #imsLogin .err{margin-top:12px;color:var(--ims-err,#dc2626);font-size:12.5px;min-height:16px;font-weight:600}
+      #imsLogin .ok{margin-top:6px;color:var(--ims-on,#16a34a);font-size:12.5px;min-height:16px;font-weight:600}
+      #imsLogin .brand{font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:13px;color:var(--ink,#12161c);margin-bottom:18px;text-align:center}
+      #imsLogin .brand img{height:36px;width:auto;display:inline-block;filter:var(--ims-logo-filter,none)}
       #imsLogin .linkrow{margin-top:14px;text-align:center}
-      #imsLogin .link{background:none;border:0;color:#2f6df6;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:4px;width:auto;margin:0}
-      #imsPwModal{position:fixed;inset:0;z-index:10000;background:rgba(16,22,30,.45);display:none;align-items:center;justify-content:center;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+      #imsLogin .link{background:none;border:0;color:var(--accent,#2f6df6);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:4px;width:auto;margin:0}
+      #imsPwModal{position:fixed;inset:0;z-index:10000;background:var(--ims-overlay,rgba(16,22,30,.45));display:none;align-items:center;justify-content:center;font-family:"Inter",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif}
       #imsPwModal.show{display:flex}
-      #imsPwModal .wcard{width:340px;max-width:92vw;background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:26px 24px}
-      #imsPwModal h3{margin:0 0 4px;font-size:17px;color:#12161c}
-      #imsPwModal p{margin:0 0 16px;color:#6b7686;font-size:12.5px}
-      #imsPwModal label{display:block;font-size:11px;font-family:ui-monospace,Menlo,monospace;color:#6b7686;text-transform:uppercase;margin:10px 0 5px}
-      #imsPwModal input{width:100%;border:1px solid #e5e9ef;border-radius:9px;padding:11px 12px;font-size:14px;font-family:inherit}
-      #imsPwModal input:focus{outline:none;border-color:#2f6df6;box-shadow:0 0 0 3px rgba(47,109,246,.12)}
+      #imsPwModal .wcard{width:340px;max-width:92vw;background:var(--ims-surface,#fff);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:26px 24px}
+      #imsPwModal h3{margin:0 0 4px;font-size:17px;color:var(--ink,#12161c)}
+      #imsPwModal p{margin:0 0 16px;color:var(--muted,#6b7686);font-size:12.5px}
+      #imsPwModal label{display:block;font-size:11px;font-family:ui-monospace,Menlo,monospace;color:var(--muted,#6b7686);text-transform:uppercase;margin:10px 0 5px}
+      #imsPwModal input{width:100%;border:1px solid var(--line,#e5e9ef);border-radius:9px;padding:11px 12px;font-size:14px;font-family:inherit}
+      #imsPwModal input:focus{outline:none;border-color:var(--accent,#2f6df6);box-shadow:0 0 0 3px var(--ims-focus,rgba(47,109,246,.12))}
       #imsPwModal .row{display:flex;gap:8px;margin-top:18px}
       #imsPwModal .row button{flex:1;border:0;border-radius:9px;padding:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
-      #imsPwModal .cancel{background:#eef1f6;color:#12161c}
-      #imsPwModal .save{background:#12161c;color:#fff}
+      #imsPwModal .cancel{background:var(--ims-hover,#eef1f6);color:var(--ink,#12161c)}
+      #imsPwModal .save{background:var(--ink,#12161c);color:var(--ims-on-ink,#fff)}
       #imsPwModal .msg{margin-top:12px;font-size:12.5px;font-weight:600;min-height:16px}
-      #imsPwModal .msg.err{color:#dc2626} #imsPwModal .msg.ok{color:#16a34a}
+      #imsPwModal .msg.err{color:var(--ims-err,#dc2626)} #imsPwModal .msg.ok{color:var(--ims-on,#16a34a)}
     `;
     document.head.appendChild(s);
   }
@@ -281,6 +309,8 @@
   /* after login: insert "Change Password" next to #logoutBtn — ONLY when the page
      opts in with {changePw:true}. ✅ [2026-09-30] IMS 화면 22 가 준다 · WMS 일곱은 안 준다(창고 화면은 깨끗하게). */
   function attachAccountControls(){
+    themeAllowed = THEME_OPEN || !!(me && me.role==="admin");   // nav v21 · 판정 1276
+    themeApply();
     if(!opts.changePw) return;
     const lo=document.getElementById("logoutBtn");
     if(!lo || document.getElementById("imsPwBtn")) return;
@@ -312,12 +342,17 @@
       +'header .ims-acct-btn{display:flex;align-items:center;gap:6px;border:0;background:none;padding:6px 8px;color:var(--muted,#6b7280);max-width:280px}'
       +'header .ims-acct-btn .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
       +'header .ims-acct-btn .car{font-size:10px}'
-      +'header .ims-acct-btn:hover,header .ims-acct.open>.ims-acct-btn{background:#f2f4f8;color:var(--ink,#1e2430)}'
-      +'header .ims-acct-drop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:200px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e3e6eb;border-radius:12px;box-shadow:0 12px 32px rgba(15,20,30,.16);padding:6px}'
+      +'header .ims-acct-btn:hover,header .ims-acct.open>.ims-acct-btn{background:var(--ims-hover,#f2f4f8);color:var(--ink,#1e2430)}'
+      +'header .ims-acct-drop{display:none;position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:200px;max-width:calc(100vw - 24px);background:var(--ims-surface,#fff);border:1px solid var(--ims-line-strong,#e3e6eb);border-radius:12px;box-shadow:0 12px 32px var(--ims-shadow,rgba(15,20,30,.16));padding:6px}'
       +'header .ims-acct.open>.ims-acct-drop{display:block}'
-      +'header .ims-acct-drop button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:#1e2430}'
-      +'header .ims-acct-drop button:hover{background:#f2f4f8}'
-      +'header .ims-acct-build{display:flex;flex-direction:column;gap:2px;border-top:1px solid #e3e6eb;margin:4px 6px 0;padding:8px 7px 4px;color:var(--muted,#6b7280)}'
+      +'header .ims-acct-drop button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ims-ink-2,#1e2430)}'
+      +'header .ims-acct-drop button:hover{background:var(--ims-hover,#f2f4f8)}'
+      +'header .ims-theme{display:flex;align-items:center;gap:4px;padding:5px 7px 9px;margin:0 0 4px;border-bottom:1px solid var(--ims-line-strong,#e3e6eb)}'   // nav v21
+      +'header .ims-theme .lbl{margin-right:auto;padding-right:8px;font-size:10.5px;font-family:var(--mono,monospace);text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#6b7280)}'
+      +'header .ims-acct-drop .ims-theme button{display:inline-block;width:auto;padding:5px 9px;border:1px solid var(--ims-line-strong,#e3e6eb);border-radius:7px;font-size:12px;font-weight:600;color:var(--ims-ink-2,#1e2430);background:none}'
+      +'header .ims-acct-drop .ims-theme button:hover{background:var(--ims-hover,#f2f4f8)}'
+      +'header .ims-acct-drop .ims-theme button.on{background:var(--ims-sel-bg,#eef3ff);color:var(--ims-brand,#3b5bdb);border-color:var(--ims-brand,#3b5bdb)}'
+      +'header .ims-acct-build{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--ims-line-strong,#e3e6eb);margin:4px 6px 0;padding:8px 7px 4px;color:var(--muted,#6b7280)}'
       +'header .ims-acct-build span{font-size:10.5px !important;white-space:normal}'
       +'header .ims-drop.ims-drop-r{left:auto;right:0}'
       +'header .ims-drop{max-width:calc(100vw - 24px)}'
@@ -337,6 +372,13 @@
     btn.appendChild(who);
     const car=document.createElement("span"); car.className="car"; car.textContent="\u25BE"; btn.appendChild(car);
     const drop=document.createElement("div"); drop.className="ims-acct-drop";
+    if(themeAllowed){   // nav v21 · 판정 1277 — 이름 펼침 맨 위 · 누르면 펼침은 열린 채(바뀐 것을 바로 본다)
+      const row=document.createElement("div"); row.id="imsTheme"; row.className="ims-theme"; row.setAttribute("role","group"); row.setAttribute("aria-label","Theme");
+      row.innerHTML='<span class="lbl">Theme</span>'+[["auto","Auto","Follow this device's light / dark setting"],["light","Light","Light"],["dark","Dark","Dark"]]
+        .map(([v,l,t])=>'<button type="button" data-theme-set="'+v+'" title="'+esc(t)+'">'+l+'</button>').join("");
+      row.addEventListener("click",(e)=>{ const b=e.target.closest("button[data-theme-set]"); if(!b) return; e.stopPropagation(); themeSet(b.getAttribute("data-theme-set")); });
+      drop.appendChild(row);
+    }
     const pw=document.getElementById("imsPwBtn");
     [pw, lo].forEach(el=>{ if(el){ el.removeAttribute("style"); el.className=""; drop.appendChild(el); } });
     const info=document.createElement("div"); info.className="ims-acct-build"; info.title="Build (screen · ims-auth.js)";
@@ -344,6 +386,7 @@
     const at=document.querySelector("header .ims-authtag"); if(at) info.appendChild(at);
     drop.appendChild(info);
     wrap.appendChild(btn); wrap.appendChild(drop);
+    themePaint();
     const setOpen=(on)=>{ wrap.classList.toggle("open",on); btn.setAttribute("aria-expanded",on?"true":"false"); };
     btn.addEventListener("click",(e)=>{ e.stopPropagation(); setOpen(!wrap.classList.contains("open")); });
     drop.addEventListener("click",(e)=>{ if(e.target.closest("button")) setOpen(false); });
@@ -648,13 +691,13 @@
         +'#backWide{display:none !important}'
         +'#wide table,#wide tbody{display:block !important;overflow:visible !important;max-width:100%}'
         +'#wide thead{display:none !important}'
-        +'#wide tr{display:flex;flex-wrap:wrap;gap:2px 12px;padding:10px 6px;border-bottom:1px solid #eef0f4}'
+        +'#wide tr{display:flex;flex-wrap:wrap;gap:2px 12px;padding:10px 6px;border-bottom:1px solid var(--ims-line-soft,#eef0f4)}'
         +'#wide td{display:block;border:0 !important;padding:0 !important;white-space:normal !important;font-size:13px;text-align:left !important}'
         +'#wide td:first-child{flex-basis:100%;font-weight:700;font-size:14px}'
         +'#wide td:empty{display:none}'
         +'#imsMBack{display:none}'
         +'html.ims-m-det #imsMBack{display:block;padding:8px 10px 0}'
-        +'#imsMBack button{width:100%;border:1px solid var(--line,#e3e6eb);background:#fff;border-radius:10px;padding:10px;font:inherit;font-size:14px;font-weight:600;text-align:left}'
+        +'#imsMBack button{width:100%;border:1px solid var(--line,#e3e6eb);background:var(--ims-surface,#fff);color:var(--ink,#12161c);border-radius:10px;padding:10px;font:inherit;font-size:14px;font-weight:600;text-align:left}'
         /* nav v20 — 상세 안 모양(앞 줄의 표 밀기가 이름표 표 .kv 까지 잘라 값 칸이 안 보였다 · 둘 · 셋 칸 격자 · 재고 숫자 타일 · 머리 단추 줄) */
         +'#detail .card table.kv,main .card table.kv,.card>table.kv{display:table !important;overflow:visible !important;width:100% !important}'
         +'.kv td{word-break:break-word}'
