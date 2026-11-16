@@ -9,8 +9,8 @@
   /* 이 화면에만 있는 것 — 탭 셋(bo v4 · 판정 485 · 489) · 백오더는 「줄」이 단위 · 모달은 so 화면들과 같은 모양 */
   .bowrap{padding:14px;display:flex;flex-direction:column;gap:14px}
   .botabs{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
-  .seg button{border:0;background:#fff;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--muted);font-weight:600}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--dk-bg-ffffff)}
+  .seg button{border:0;background:var(--dk-bg-ffffff);padding:6px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--muted);font-weight:600}
   .seg button+button{border-left:1px solid var(--line)}
   .seg button.on{background:#3b5bdb;color:#fff}
   .botabs .hint{font-size:12px;color:var(--muted)}
@@ -20,19 +20,19 @@
   .bofilt .dash{color:var(--muted);font-size:12px}
   .bofilt .cust{min-width:220px}
   .bofilt label.ck{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--muted)}
-  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line)}
+  .sosub{padding:8px 12px;font-size:12px;color:var(--muted);background:var(--dk-bg-fafbfd);border-top:1px solid var(--line)}
   .bosum{display:flex;gap:18px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
-  tr.grp td{background:#fafbfd;font-weight:600;font-size:12.5px}
+  tr.grp td{background:var(--dk-bg-fafbfd);font-weight:600;font-size:12.5px}
   tr.ended td{color:#8a93a3}
   .pomodal[hidden]{display:none}
   .pobox input[type=search]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
   .pick{max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
-  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .pick .prow:hover{background:#fafbfd}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid var(--dk-ln-f1f3f7);cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:var(--dk-bg-fafbfd)}
   .sohint{font-size:11.5px;color:var(--muted);margin-top:2px}
   .bofoot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
   .bofoot .sp{flex:1}
-  .bofoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
+  .bofoot button{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:8px;padding:4px 10px;cursor:pointer}
   .bofoot button:disabled{opacity:.4;cursor:default}
   /* Arrivals — 왼쪽 입고 · 오른쪽 기다리는 손님(판정 485 ④ · 488) */
   .arr{display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:14px;align-items:start}
@@ -40,7 +40,7 @@
   .arr .card{min-width:0}
   .alist{max-height:calc(100vh - 260px);overflow:auto}
   .alist tbody tr{cursor:pointer}
-  .alist tbody tr.cur td{background:#eef2ff}
+  .alist tbody tr.cur td{background:var(--dk-bg-eef2ff)}
   .alist td.rcv .dim{white-space:nowrap}   /* v4a — 날짜 · 입고 수가 접혔다 */
   .ready .rhead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
   .ready .rhead .ttl{font-size:14px;font-weight:600}
@@ -49,8 +49,8 @@
   .apane .ahead{padding:12px 14px;border-bottom:1px solid var(--line)}
   .apane .ahead .atitle{font-size:15px;font-weight:600;color:var(--ink)}   /* v4a — 공통 .card h3(대문자 · 고정폭 · 밑줄)를 피한다 */
   .apane .ahead .dim{font-size:12px}
-  tr.other td{color:#8a93a3;background:#fcfcfd}
-  tr.other td a.lnk{color:#6b7686}
+  tr.other td{color:#8a93a3;background:var(--dk-bg-fcfcfd)}
+  tr.other td a.lnk{color:var(--dk-tx-6b7686)}
   .ctc{font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-all}
   .ctc a{color:inherit}
   .warnline{font-size:11.5px;color:var(--warn);margin-top:3px}
@@ -59,15 +59,15 @@
   .stat.loss b{color:var(--bad)}
   .basis{padding:8px 14px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .ilist tbody tr{cursor:pointer}
-  .flagf{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fafbfd;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .flagf{margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--dk-bg-fafbfd);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .flagf select,.flagf input{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px}
   .flagf input{flex:1;min-width:180px}
   .pobox.wide{width:min(1100px,96vw);max-width:96vw}
   /* Emails — 백오더 입고 알림 메일(bo v5 · 판정 493 ~ 518 · mail-1a ~ 4a) */
-  .mban{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;border:1px solid var(--line);background:#fafbfd}
-  .mban.off{background:#fff8e6;border-color:#ecdcb4;color:var(--warn)}
-  .mban.test{background:#eef2ff;border-color:#c9d3ff;color:#2f3f8f}
-  .mban.bad{background:#fdecec;border-color:#f3d3cf;color:var(--bad)}
+  .mban{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:14px;border:1px solid var(--line);background:var(--dk-bg-fafbfd)}
+  .mban.off{background:var(--dk-bg-fff8e6);border-color:var(--dk-ln-ecdcb4);color:var(--warn)}
+  .mban.test{background:var(--dk-bg-eef2ff);border-color:var(--dk-ln-c9d3ff);color:var(--dk-tx-2f3f8f)}
+  .mban.bad{background:var(--dk-bg-fdecec);border-color:var(--dk-ln-f3d3cf);color:var(--bad)}
   .mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px;margin-bottom:14px}
   .whcard .whhead{display:flex;align-items:baseline;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
   .whcard .whhead .ttl{font-size:14px;font-weight:600}
@@ -80,26 +80,30 @@
   .mhead .ttl{font-size:14px;font-weight:600}
   .mhead .dim{font-size:12px}
   .mlist tbody tr{cursor:pointer}
-  .mlist tbody tr:hover td{background:#fafbfd}
-  tr.terr td{background:#fdf3f2}
+  .mlist tbody tr:hover td{background:var(--dk-bg-fafbfd)}
+  tr.terr td{background:var(--dk-bg-fdf3f2)}
   .st-sent{color:var(--good);font-weight:600}
   .st-fail{color:var(--bad);font-weight:600}
   .st-unk{color:var(--warn);font-weight:700}
-  .st-wait{color:#4b5565;font-weight:600}
+  .st-wait{color:var(--dk-tx-4b5565);font-weight:600}
   .st-cxl{color:var(--muted)}
-  .runchip{display:inline-flex;align-items:center;gap:6px;border:1px solid #c9d3ff;background:#eef2ff;border-radius:999px;padding:3px 6px 3px 11px;font-size:12px;color:#2f3f8f}
-  .runchip button{border:0;background:none;cursor:pointer;color:#2f3f8f;font-size:13px;padding:0 4px}
+  .runchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dk-ln-c9d3ff);background:var(--dk-bg-eef2ff);border-radius:999px;padding:3px 6px 3px 11px;font-size:12px;color:var(--dk-tx-2f3f8f)}
+  .runchip button{border:0;background:none;cursor:pointer;color:var(--dk-tx-2f3f8f);font-size:13px;padding:0 4px}
   .mmeta{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;margin-bottom:12px}
   .mmeta .k{color:var(--muted)}
-  .mframe{width:100%;height:440px;border:1px solid var(--line);border-radius:10px;background:#fff}
-  .mtext{white-space:pre-wrap;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:440px;overflow:auto;background:#fafbfd;margin:0}
-  .mact{border:1px solid #ecdcb4;background:#fffbf0;border-radius:10px;padding:12px;margin-bottom:12px}
+  .mframe{width:100%;height:440px;border:1px solid var(--line);border-radius:10px;background:var(--dk-bg-ffffff)}
+  .mtext{white-space:pre-wrap;font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:10px;padding:12px;max-height:440px;overflow:auto;background:var(--dk-bg-fafbfd);margin:0}
+  .mact{border:1px solid var(--dk-ln-ecdcb4);background:var(--dk-bg-fffbf0);border-radius:10px;padding:12px;margin-bottom:12px}
   .mact p{margin:0 0 8px;font-size:12.5px}
   .mact textarea{width:100%;min-height:54px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:13px;box-sizing:border-box}
   .mact .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .msec{font-size:13px;font-weight:600;margin:14px 0 6px}
   .notice{font-size:11px;margin-top:3px}
   .bnbar{display:flex;gap:10px;align-items:center;margin:0 0 8px}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-eef2ff:#eef2ff;--dk-bg-fafbfd:#fafbfd;--dk-bg-fcfcfd:#fcfcfd;--dk-bg-fdecec:#fdecec;--dk-bg-fdf3f2:#fdf3f2;--dk-bg-fff8e6:#fff8e6;--dk-bg-fffbf0:#fffbf0;--dk-bg-ffffff:#ffffff;--dk-ln-c9d3ff:#c9d3ff;--dk-ln-ecdcb4:#ecdcb4;--dk-ln-f1f3f7:#f1f3f7;--dk-ln-f3d3cf:#f3d3cf;--dk-tx-2f3f8f:#2f3f8f;--dk-tx-4b5565:#4b5565;--dk-tx-6b7686:#6b7686}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-eef2ff:#162041;--dk-bg-fafbfd:#171b21;--dk-bg-fcfcfd:#171b21;--dk-bg-fdecec:#411616;--dk-bg-fdf3f2:#1c2129;--dk-bg-fff8e6:#413516;--dk-bg-fffbf0:#413516;--dk-bg-ffffff:#171b21;--dk-ln-c9d3ff:#2d3a76;--dk-ln-ecdcb4:#76612d;--dk-ln-f1f3f7:#2a313b;--dk-ln-f3d3cf:#76352d;--dk-tx-2f3f8f:#8896dd;--dk-tx-4b5565:#88a9dd;--dk-tx-6b7686:#88abdd}
 </style>
 </head>
 <body>
@@ -296,7 +300,7 @@
      All       줄마다 알림 상태(notified_state · notified_at — 1c so_backorder_notice_state · 열린 백오더 줄만)
    ⭐ 화면은 권한 · 셈을 다시 짜지 않는다 — 누를 수 있는지는 창구가 준 can_* · 보낼 것은 미리 보기 창구가
    ───────────────────────────────────────────────────────────── */
-const BO_BUILD = "2026-11-01 · bo store v1";   // 대화 Claude — aone-bo-1(판정 948 · 949 · 덧붙임 3 · asung-wms 2f95f91): 스토어 거르기(store asung · aone · manual = Warehouse Backend) — Arrivals(Ready 도 같이) · Insights(SKU 상세 포함) · All backorders · All 의 줄에 스토어 꼬리표 · 열린 백오더 줄 체크 → 「Send backorder notice…」(manager · mail_backorder_send 미리 보기 → 보내기 · 알림 꺼진 손님은 경고 뒤 그래도 보냄) · aone 은 자동 회차에서 빠진다는 안내 ← 2026-11-01 · bo sup v1:   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Arrivals · Insights · All backorders 의 Supplier 거르기 셋 ← 2026-10-25 · bo cf words v1:   // 대화 Claude — 판정 724 이어서(manual-1c 이견 4): Proceed 창 Result 칸이 내부 낱말(allocated · partial …)을 그대로 찍었다 — d6b9547 이 so.html 만 고치고 이 화면을 놓쳤다 → 사람 말(Reserved · Partly reserved · Backordered · Preorder · On hold) · 저장 값 · 동작 무변 ← 2026-10-22 · bo csv v1: 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-16 · bo v5: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
+const BO_BUILD = "2026-11-01 · bo store v1 · dk1";   // 대화 Claude — aone-bo-1(판정 948 · 949 · 덧붙임 3 · asung-wms 2f95f91): 스토어 거르기(store asung · aone · manual = Warehouse Backend) — Arrivals(Ready 도 같이) · Insights(SKU 상세 포함) · All backorders · All 의 줄에 스토어 꼬리표 · 열린 백오더 줄 체크 → 「Send backorder notice…」(manager · mail_backorder_send 미리 보기 → 보내기 · 알림 꺼진 손님은 경고 뒤 그래도 보냄) · aone 은 자동 회차에서 빠진다는 안내 ← 2026-11-01 · bo sup v1:   // 대화 Claude — 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Arrivals · Insights · All backorders 의 Supplier 거르기 셋 ← 2026-10-25 · bo cf words v1:   // 대화 Claude — 판정 724 이어서(manual-1c 이견 4): Proceed 창 Result 칸이 내부 낱말(allocated · partial …)을 그대로 찍었다 — d6b9547 이 so.html 만 고치고 이 화면을 놓쳤다 → 사람 말(Reserved · Partly reserved · Backordered · Preorder · On hold) · 저장 값 · 동작 무변 ← 2026-10-22 · bo csv v1: 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-10-16 · bo v5: 대화 Claude — mail-4b(판정 493 ~ 518 · asung-wms mail-1a ~ 4a): Emails 탭(창고마다 다음 회차 · 지금 돌면 · 회차 · 메일 · 상세 · 결과 모를 때 단추 셋) · All 의 줄마다 알림 상태 ← bo v4a 2026-10-14: 대화 Claude — Caleb 화면 시험 손질(판정 490 ~ 492 · bo-2b): Arrivals 맨 위 「Ready to ship now」(so_backorder_ready · 줄 그리기 waitRow 를 오른쪽 칸과 같이 씀) · 오른쪽 머리 h3 → div(공통 .card h3 대문자 · 밑줄) · Received 칸 날짜 · 입고 수 줄바꿈 막기 · 오류 때 범위 표시 비우기 · 두 칸 쌓는 폭 1100 → 1400(110% 확대) · Insights 문구(Ordered 가 SKU · 브랜드 · 공급처 거르기를 따른다 · 표식 줄은 could-not-ship 에서도 빠진다) ← bo v4 2026-10-14: 대화 Claude — bo-3(판정 485 ~ 489): 탭 셋 Arrivals(기본) · Insights · All backorders · 표식 달기 · 떼기(Insights 상세) ← bo v3a 2026-10-13: 대화 Claude — 아래 설명에서 Cin7 글귀를 뺐다(원칙 1 · ful-1b 발견) ← bo v3: 대화 Claude — 판정 351(Caleb 「pre order도 back order화면에 보이게 · 입고 확인」 · 안 A): 프리오더도 같은 목록(행 kind · so_backorder_list 재발행 20261007163823 bo-pre-1) · 「Pre-order」 이름표 · 거르기 Kind(All · Backorders · Pre-orders) · 요약에 open_backorder · open_preorder · 끝난 목록은 백오더만(프리오더는 장부가 없다) · 판정 9 — 프리오더는 만료 · 이어받기 없음 · 알림 칸 null ← bo v2 2026-10-05 · 대화 Claude — asm-3d(판정 244 · asm 묶음 4): 콤보 백오더는 콤보 한 줄(수량 = 콤보 수 · 가용 = 통째 콤보 수 · arrived = 구성품 입고 + 통째 콤보 하나 이상) · 줄 아래 구성품(components[] · asm-2b2) · SKU 거르기는 구성품 SKU 로도 찾는다(창구) ← bo v1.3
 console.log("so-backorders.html build:", BO_BUILD);
 /* bo cf words v1 — 판정 724: Result 칸의 사람 말(so.html CF_RESULT 와 같은 표 · 두 화면이 같은 글자) */
 const CF_RESULT = { allocated: "Reserved", partial: "Partly reserved", backorder: "Backordered", preorder: "Preorder", hold: "On hold" };

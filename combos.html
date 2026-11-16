@@ -11,7 +11,7 @@
   .list .rows{max-height:calc(100vh - 225px)}
   .list .row{padding:8px 12px}
   .list .row .sk{font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
-  .list .row.cur .sk{color:#3b5bdb}
+  .list .row.cur .sk{color:var(--dk-tx-3b5bdb)}
   .list .row .nm{font-size:13px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .list .row .cp{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   main{display:flex;flex-direction:column;gap:14px}
@@ -20,7 +20,7 @@
   #wide td.cp{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
   .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
   /* 창 안 — products.html 의 New product 와 같은 꼴 */
-  .ein{width:100%;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:#fff;box-sizing:border-box}
+  .ein{width:100%;border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:var(--dk-bg-ffffff);box-sizing:border-box}
   .ein.mono{font-family:var(--mono)}
   .ein.sm{width:110px}
   .fg{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:12px}
@@ -28,17 +28,21 @@
   .sub{font-size:12.5px;font-weight:700;color:var(--ink);margin:14px 0 6px}
   .vt{width:100%;border-collapse:collapse;font-size:12.5px}
   .vt th{text-align:left;font-weight:600;color:var(--muted);padding:4px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
-  .vt td{padding:4px 4px;border-bottom:1px solid #f0f2f6;vertical-align:middle}
+  .vt td{padding:4px 4px;border-bottom:1px solid var(--dk-ln-f0f2f6);vertical-align:middle}
   .vt .ein{min-width:70px}
   .ghost{color:var(--muted);font-size:11.5px}
   .bchint{font-size:11.5px}
-  .bchint.bad{color:#c92a2a}
+  .bchint.bad{color:var(--dk-tx-c92a2a)}
   .bchint.warn{color:#b8860b}
   .pobox.wide{max-width:980px}
   .pbody h5{margin:6px 0 4px;font-size:12.5px}
   .pbody ul{margin:0 0 8px 18px;padding:0;font-size:12.5px;line-height:1.55}
-  .pbody ul.blk li{color:#c92a2a}
-  .pbody ul.wrn li{color:#8a5a00}
+  .pbody ul.blk li{color:var(--dk-tx-c92a2a)}
+  .pbody ul.wrn li{color:var(--dk-tx-8a5a00)}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-ffffff:#ffffff;--dk-ln-f0f2f6:#f0f2f6;--dk-tx-3b5bdb:#3b5bdb;--dk-tx-8a5a00:#8a5a00;--dk-tx-c92a2a:#c92a2a}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-ffffff:#171b21;--dk-ln-f0f2f6:#2a313b;--dk-tx-3b5bdb:#7e93e7;--dk-tx-8a5a00:#f4c671;--dk-tx-c92a2a:#e58080}
 </style>
 </head>
 <body>
@@ -109,7 +113,7 @@
            ⚠️ 콤보가 아니던 SKU(켜진 줄 0)는 parent_not_combo 로 막힌다(817) — 풀린 콤보도 다시 켤 수 없다(819)
    ⭐ 막기 · 알리기 문장은 서버 것 그대로 · 화면은 다시 계산하지 않는다
    ───────────────────────────────────────────────────────────── */
-const CB_BUILD = "2026-10-31 · cb v2";   // 대화 Claude — Caleb 「combo 화면 목록에 가용칸」: 지금 만들 수 있는 콤보 수 — 목록에 켜진 창고마다 칸(TO · ED) · 상세 머리 「Can make now」 + 구성품 표에 창고마다 가용 EA · 몇 콤보 몫(가장 작은 것 = 막는 구성품 빨강) · 식 = 구성품마다 floor(가용 EA ÷ 콤보 하나에 드는 EA) 의 최소(재고 키 = 세트면 부모 · 드는 EA = quantity × pack_factor · 같은 재고 키는 합침) · 가용 = so_available_many(창고 재고 − 판매 · 트랜스퍼 할당 · SO 화면 · Shopify 831 과 같은 수) · 그린 뒤 채운다 · 풀린 콤보 「—」 · DB 무변 ← cb v1a: 대화 Claude — cb v1a: 판정 885(combo-one-1 · 02ecada) 구성품 하나 + 수량 2 이상도 콤보 — 안내 글 두 곳만 · cb v1 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
+const CB_BUILD = "2026-10-31 · cb v2 · dk1";   // 대화 Claude — Caleb 「combo 화면 목록에 가용칸」: 지금 만들 수 있는 콤보 수 — 목록에 켜진 창고마다 칸(TO · ED) · 상세 머리 「Can make now」 + 구성품 표에 창고마다 가용 EA · 몇 콤보 몫(가장 작은 것 = 막는 구성품 빨강) · 식 = 구성품마다 floor(가용 EA ÷ 콤보 하나에 드는 EA) 의 최소(재고 키 = 세트면 부모 · 드는 EA = quantity × pack_factor · 같은 재고 키는 합침) · 가용 = so_available_many(창고 재고 − 판매 · 트랜스퍼 할당 · SO 화면 · Shopify 831 과 같은 수) · 그린 뒤 채운다 · 풀린 콤보 「—」 · DB 무변 ← cb v1a: 대화 Claude — cb v1a: 판정 885(combo-one-1 · 02ecada) 구성품 하나 + 수량 2 이상도 콤보 — 안내 글 두 곳만 · cb v1 첫 판(판정 810 · 817 ~ 828 · 823 Edit components · Release 는 여기만 · 824 메뉴 Families 아래)
 console.log("combos.html build:", CB_BUILD);
 
 let sb = null, canEdit = false, q = "", onlyActive = true, showRel = false, curId = null;
@@ -424,7 +428,7 @@ function openRelease(){
   const b = showModal(`<h4>Release combo — <span class="mono">${esc(r.sku)}</span></h4>
     <div class="pbody">
       <div style="font-size:12.5px;line-height:1.55">All component rows are turned off (kept as history) and <b>${esc(r.sku)}</b> sells as a plain SKU from now on.
-        <div style="margin-top:6px;color:#c92a2a"><b>This cannot be undone</b> — a released SKU can never become a combo again. To sell the same bundle later, make a new combo SKU with New combo.</div></div>
+        <div style="margin-top:6px;color:var(--dk-tx-c92a2a)"><b>This cannot be undone</b> — a released SKU can never become a combo again. To sell the same bundle later, make a new combo SKU with New combo.</div></div>
       <div class="frow" style="margin-top:12px"><label>Type the SKU</label><input class="ein mono" id="relSku" placeholder="${esc(r.sku)}" autocomplete="off" style="max-width:220px"></div>
     </div>
     <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="relGo" disabled>Release</button></div>`);

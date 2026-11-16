@@ -15,7 +15,7 @@
   .acc .whs{font-size:12px;color:var(--muted)}
   .acc .avail{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
   .acc .of{font-size:13px;color:var(--muted)}
-  .meter{height:10px;border-radius:999px;background:#eef1f5;overflow:hidden}
+  .meter{height:10px;border-radius:999px;background:var(--dk-bg-eef1f5);overflow:hidden}
   .meter i{display:block;height:100%;border-radius:999px}
   .acc .inv{font-size:12.5px;line-height:1.6}
   .acc .inv table{width:100%;border-collapse:collapse}
@@ -23,38 +23,38 @@
   .acc .foot{font-size:11.5px;color:var(--muted)}
   .fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px}
   .fbar h2{margin:0 6px 0 0;font-size:19px}
-  .fbar input,.fbar select{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:inherit;font-size:13px;background:#fff}
+  .fbar input,.fbar select{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font:inherit;font-size:13px;background:var(--dk-bg-ffffff)}
   .fbar input[type=search]{min-width:220px}
   .ftabs{display:flex;gap:4px;flex-wrap:wrap;padding:0 14px 10px}
-  .ftabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
-  .ftabs button.cur{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .ftabs button{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+  .ftabs button.cur{background:var(--ink);color:var(--ims-on-ink);border-color:var(--ink)}
   .ftabs button .n{font-variant-numeric:tabular-nums;margin-left:4px;opacity:.75}
   .ftabs button.hot:not(.cur) .n{color:var(--bad);opacity:1;font-weight:800}
   table.fb{width:100%;border-collapse:collapse;font-size:13px}
-  table.fb th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:700;padding:8px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fafbfd;white-space:nowrap}
+  table.fb th{text-align:left;font-size:11.5px;color:var(--muted);font-weight:700;padding:8px 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--dk-bg-fafbfd);white-space:nowrap}
   table.fb td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
   table.fb tr[data-b]{cursor:pointer}
-  table.fb tr[data-b]:hover td{background:#f7f9fc}
-  table.fb tr.pick td{background:#eef4ff}
+  table.fb tr[data-b]:hover td{background:var(--dk-bg-f7f9fc)}
+  table.fb tr.pick td{background:var(--dk-bg-eef4ff)}
   .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
   .mono{font-family:var(--mono)}
   .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
   .st{display:inline-block;font-weight:700;font-size:12.5px}
   .st.ok{color:var(--good)} .st.bad{color:var(--bad)} .st.warn{color:var(--warn)} .st.mut{color:var(--muted)}
-  .fl{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin:2px 3px 0 0;background:#fdecec;color:var(--bad);white-space:nowrap}
-  .fl.w{background:#fff6dc;color:var(--warn)}
+  .fl{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;margin:2px 3px 0 0;background:var(--dk-bg-fdecec);color:var(--bad);white-space:nowrap}
+  .fl.w{background:var(--dk-bg-fff6dc);color:var(--warn)}
   .acct{font-size:11px;font-weight:800;border-radius:999px;padding:1px 7px;border:1px solid}
   .pager{display:flex;align-items:center;gap:8px;padding:10px 14px;font-size:12.5px;color:var(--muted)}
-  .fsub{padding:9px 14px;font-size:12.5px;color:var(--muted);background:#fafbfd;border-top:1px solid var(--line);line-height:1.55}
+  .fsub{padding:9px 14px;font-size:12.5px;color:var(--muted);background:var(--dk-bg-fafbfd);border-top:1px solid var(--line);line-height:1.55}
   .det{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
   .det h3{margin:0;font-size:16px}
   .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media (max-width:900px){.dgrid{grid-template-columns:1fr}}
   .tl{list-style:none;margin:0;padding:0}
   .tl li{position:relative;padding:0 0 10px 18px;font-size:13px;line-height:1.45}
-  .tl li:before{content:"";position:absolute;left:4px;top:6px;width:7px;height:7px;border-radius:50%;background:#c8d0db}
+  .tl li:before{content:"";position:absolute;left:4px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--dk-bg-c8d0db)}
   .tl li:first-child:before{background:var(--accent)}
-  .tl li:after{content:"";position:absolute;left:7px;top:15px;bottom:0;width:1px;background:#e3e8ef}
+  .tl li:after{content:"";position:absolute;left:7px;top:15px;bottom:0;width:1px;background:var(--dk-bg-e3e8ef)}
   .tl li:last-child:after{display:none}
   .tl .when{font-size:11.5px;color:var(--muted)}
   .mt{width:100%;border-collapse:collapse;font-size:12.5px}
@@ -63,6 +63,10 @@
   .box{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
   .msg{padding:16px;color:var(--muted)}
   #detMsg{font-size:12.5px}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-c8d0db:#c8d0db;--dk-bg-e3e8ef:#e3e8ef;--dk-bg-eef1f5:#eef1f5;--dk-bg-eef4ff:#eef4ff;--dk-bg-f7f9fc:#f7f9fc;--dk-bg-fafbfd:#fafbfd;--dk-bg-fdecec:#fdecec;--dk-bg-fff6dc:#fff6dc;--dk-bg-ffffff:#ffffff}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-c8d0db:#222a34;--dk-bg-e3e8ef:#232a33;--dk-bg-eef1f5:#232a33;--dk-bg-eef4ff:#162541;--dk-bg-f7f9fc:#1c2129;--dk-bg-fafbfd:#171b21;--dk-bg-fdecec:#411616;--dk-bg-fff6dc:#413616;--dk-bg-ffffff:#171b21}
 </style>
 </head>
 <body>
@@ -117,7 +121,7 @@
    쓰기: Check status = EF freightcom track_poll(GET 둘 · 청구 없음) · Mark cancelled in IMS = fc_book_mark_cancelled(Freightcom 호출 없음)
    fc_ 표는 전부 닫혔다(1168) — 표를 직접 읽지 마라
    ───────────────────────────────────────────────────────────── */
-const FB_BUILD = "2026-11-10 · fcb v1";
+const FB_BUILD = "2026-11-10 · fcb v1 · dk1";
 let sb = null, me = null, view = "all", offset = 0, D = null, pickId = null, busy = false;
 const LIMIT = 50;
 const ACC_COL = { TOR: ["#1d4ed8", "#dbeafe"], EDM: ["#047857", "#d1fae5"] };

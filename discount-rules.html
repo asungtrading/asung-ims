@@ -12,7 +12,7 @@
   main{display:flex;flex-direction:column;gap:14px}
   .list .row .nm2{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .list .row .sub2{font-size:11.5px;color:var(--muted);margin-top:2px}
-  .list .row.cur .nm2{color:#3b5bdb}
+  .list .row.cur .nm2{color:var(--dk-tx-3b5bdb)}
   .flt{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12.5px}
 
   #wide td.nmc{font-weight:600}
@@ -23,30 +23,30 @@
   .editing{outline:2px solid #3b5bdb22;border-radius:12px}
 
   /* 고치기 칸 */
-  .ein{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:#fff}
+  .ein{border:1px solid var(--line);border-radius:7px;padding:4px 7px;font:inherit;font-size:12.5px;background:var(--dk-bg-ffffff)}
   .ein.w{width:100%}
   textarea.ein{min-height:46px;resize:vertical;width:100%}
   .fg{display:grid;grid-template-columns:130px 1fr 130px 1fr;gap:8px 12px;align-items:center;font-size:12.5px;color:var(--muted);padding:0 16px 14px}
   .fg .full{grid-column:2 / span 3}
   .fg label.ck{display:flex;align-items:center;gap:6px;color:var(--ink);cursor:pointer}
   .typebar{display:flex;gap:6px}
-  .typebar .pobtn.on2{background:#eef3ff;border-color:#3b5bdb;color:#3b5bdb}
+  .typebar .pobtn.on2{background:var(--dk-bg-eef3ff);border-color:#3b5bdb;color:var(--dk-tx-3b5bdb)}
 
   /* 대상 · 조건 칩 */
   .tg{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:1px 4px 1px 9px;
-      font-size:11.5px;margin:2px 4px 2px 0;background:#fff;white-space:nowrap}
-  .tg.inc{border-color:#cfe9d7}
-  .tg.exc{border-color:#f3d3cf;color:var(--bad)}
+      font-size:11.5px;margin:2px 4px 2px 0;background:var(--dk-bg-ffffff);white-space:nowrap}
+  .tg.inc{border-color:var(--dk-ln-cfe9d7)}
+  .tg.exc{border-color:var(--dk-ln-f3d3cf);color:var(--bad)}
   .tg .k{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
   .tg .x{border:0;background:transparent;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px;border-radius:999px}
-  .tg .x:hover{background:#fdf0ef;color:var(--bad)}
+  .tg .x:hover{background:var(--dk-bg-fdf0ef);color:var(--bad)}
   .tg.ro{padding-right:9px}
   .adder{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px}
   .adder .ein{min-width:90px}
   .adder input.ein{flex:0 1 220px}
   .picks{display:flex;flex-direction:column;gap:2px;margin-top:4px;max-height:180px;overflow:auto}
-  .picks button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:7px;padding:4px 8px;font:inherit;font-size:12.5px;cursor:pointer}
-  .picks button:hover{background:#eef3ff}
+  .picks button{text-align:left;border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:7px;padding:4px 8px;font:inherit;font-size:12.5px;cursor:pointer}
+  .picks button:hover{background:var(--dk-bg-eef3ff)}
 
   table.ed td{vertical-align:middle}
   tr.offl td{color:var(--muted)}
@@ -65,12 +65,16 @@
   /* dr v3 — 붙여 넣기 창 */
   .pst textarea{width:100%;min-height:220px;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical}
   .pst .help{font-size:12.5px;color:var(--muted);line-height:1.6;margin:0 0 8px}
-  .pst .help code{font-family:var(--mono);font-size:12px;background:#f4f6fa;border-radius:4px;padding:0 4px}
+  .pst .help code{font-family:var(--mono);font-size:12px;background:var(--dk-bg-f4f6fa);border-radius:4px;padding:0 4px}
   .pst .sum{font-size:12.5px;margin:0 0 8px}
   .pst table td{vertical-align:top;font-size:12.5px}
   .pst tr.pbad td{color:var(--bad)}
   .pst tr.pskip td{color:var(--muted)}
   .pst td .why{font-size:11.5px}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-eef3ff:#eef3ff;--dk-bg-f4f6fa:#f4f6fa;--dk-bg-fdf0ef:#fdf0ef;--dk-bg-ffffff:#ffffff;--dk-ln-cfe9d7:#cfe9d7;--dk-ln-f3d3cf:#f3d3cf;--dk-tx-3b5bdb:#3b5bdb}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-eef3ff:#162241;--dk-bg-f4f6fa:#1c2129;--dk-bg-fdf0ef:#411916;--dk-bg-ffffff:#171b21;--dk-ln-cfe9d7:#337046;--dk-ln-f3d3cf:#76352d;--dk-tx-3b5bdb:#7e93e7}
 </style>
 </head>
 <body>
@@ -166,7 +170,7 @@
    ⚠️ 쿠폰은 「오더 딜 + Coupon required」 딜에만(so_coupon_issue 가 거부) · 손님 검색은 customer 표 읽기 — sales 보기가 없으면 0 건일 수 있다
    ⚠️ 화면 글자 · 주석의 화면 문구는 영어 · 날짜 기본값 없음(빈 칸 = 상시)
    ───────────────────────────────────────────────────────────── */
-const DR_BUILD = "dr v4";   // 대화 Claude — drx-1(판정 790 ~ 792 · asung-wms 20261027134231): 규칙 CSV 내보내기 두 가지 — 넓은 목록 「↓ Export rules… · ↓ Export products…」(지금 거르기에 보이는 딜 전부) · 상세 「↓ Rule CSV… · ↓ Products CSV…」(이 딜 하나 · 오더 딜은 제품 단추 없음) · 창구 deal_export 하나 · 칸 고르기는 ims-export.js(export v2) ← dr v3c:    // 대화 Claude — 판정 777(Caleb 「스크롤이 길어지니 기본으로 숨기는 캐롯을 두는게 좋지 않나?」): 딜 상세 Products 표에서 세트 줄(판정 302 — 낱개의 딜이 세트 줄에도 걸려 목록에 함께 나온다)을 기본으로 접는다 · 제목 줄의 ▸ sets N 으로 펼치기 · 펼침은 이 화면을 여는 동안 기억 ← dr v3b: 대화 Claude — tagn-1(판정 772 · asung-wms 20261026193518): 태그 이름 목록을 product_tag 63,515 줄을 1,000 줄씩 64 번 읽어 만들던 것(열 때 수 초) → 창구 product_tag_names() 한 번(1,193 개 · 정렬돼 온다 · 딜이 먼저 쓰는 태그 포함) ← dr v3a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 딜 머리 칩 · 동작 무변 ← dr v3: 대화 Claude — 판정 668(Caleb 「line 디스카운트에 벌크로 세일 항목을」 → 세 칸 SKU · % · at least · 「가」 딜 편집 안에서): 줄 딜 편집의 「Paste lines…」 — 붙여 넣은 목록을 (% · 최소) 가 같은 것끼리 한 줄로 · 같은 % · 최소의 켜진 줄이 이미 있으면 그 줄에 더한다 · 붙여 넣은 SKU = 그 줄의 Applies to(product) · 브랜드 · 태그 · Except · 손님 규칙은 안 건드린다 · 빨간 줄(없는 SKU · % 0 ~ 100 밖 · 0.3 같은 분수 · 같은 SKU 다른 값 · 이 딜의 다른 % 줄에 이미 있음)이 하나라도 있으면 더하지 않는다 · 더한 뒤에도 저장 전(so_deal_save 미리 보기 → 확인 → 저장 그대로 · DB 무변) ← dr v2: 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
+const DR_BUILD = "dr v4 · dk1";   // 대화 Claude — drx-1(판정 790 ~ 792 · asung-wms 20261027134231): 규칙 CSV 내보내기 두 가지 — 넓은 목록 「↓ Export rules… · ↓ Export products…」(지금 거르기에 보이는 딜 전부) · 상세 「↓ Rule CSV… · ↓ Products CSV…」(이 딜 하나 · 오더 딜은 제품 단추 없음) · 창구 deal_export 하나 · 칸 고르기는 ims-export.js(export v2) ← dr v3c:    // 대화 Claude — 판정 777(Caleb 「스크롤이 길어지니 기본으로 숨기는 캐롯을 두는게 좋지 않나?」): 딜 상세 Products 표에서 세트 줄(판정 302 — 낱개의 딜이 세트 줄에도 걸려 목록에 함께 나온다)을 기본으로 접는다 · 제목 줄의 ▸ sets N 으로 펼치기 · 펼침은 이 화면을 여는 동안 기억 ← dr v3b: 대화 Claude — tagn-1(판정 772 · asung-wms 20261026193518): 태그 이름 목록을 product_tag 63,515 줄을 1,000 줄씩 64 번 읽어 만들던 것(열 때 수 초) → 창구 product_tag_names() 한 번(1,193 개 · 정렬돼 온다 · 딜이 먼저 쓰는 태그 포함) ← dr v3a: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 딜 머리 칩 · 동작 무변 ← dr v3: 대화 Claude — 판정 668(Caleb 「line 디스카운트에 벌크로 세일 항목을」 → 세 칸 SKU · % · at least · 「가」 딜 편집 안에서): 줄 딜 편집의 「Paste lines…」 — 붙여 넣은 목록을 (% · 최소) 가 같은 것끼리 한 줄로 · 같은 % · 최소의 켜진 줄이 이미 있으면 그 줄에 더한다 · 붙여 넣은 SKU = 그 줄의 Applies to(product) · 브랜드 · 태그 · Except · 손님 규칙은 안 건드린다 · 빨간 줄(없는 SKU · % 0 ~ 100 밖 · 0.3 같은 분수 · 같은 SKU 다른 값 · 이 딜의 다른 % 줄에 이미 있음)이 하나라도 있으면 더하지 않는다 · 더한 뒤에도 저장 전(so_deal_save 미리 보기 → 확인 → 저장 그대로 · DB 무변) ← dr v2: 대화 Claude — 가격 확인(미룬 120 · 판정 287 · 300 · 304): 넓은 목록 「Price check…」 창 — 손님 · 제품 · 수량 · 날짜 · 티어 → so_quote_preview(p_customer_id, p_product_id, p_qty, p_on, p_tier_id · 20261006193419 dsc-2 · 오더와 같은 DB 식) · 정가 · 할인 · 출처 · 단가 · 줄 합계 + 후보 표(딜 줄 · 손님 기본 · 세트 — 이김/짐과 까닭) · 오더 할인(단계 · 쿠폰)은 줄 층이 아니라 빠진다고 안내 ← dr v1b   // 화면 시험 손질 — 손님 검색 칸 두 곳: 크롬 주소 자동 완성 끄기(type=search · autocomplete=off) · Enter = 찾기 · 찾은 뒤 글자 남김 · 결과 위 안내 「Click a customer to add」 ← dr v1a   // 화면 시험 손질 — changed_elsewhere 막기에 토론토 시각 문장 + 「Load the latest version」 단추(최신 판을 다시 읽는다 · 내 변경은 버린다 · 판정 331) ← dr v1
 
 let sb = null, canEdit = false;
 let deals = [], today = null, activeCustomers = 0;

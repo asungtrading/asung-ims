@@ -10,18 +10,18 @@
   .list{width:330px;flex:0 0 330px}
   .list .rows{max-height:calc(100vh - 230px)}
   .list .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .list .row.cur{color:#3b5bdb;font-weight:600}
+  .list .row.cur{color:var(--dk-tx-3b5bdb);font-weight:600}
   .list .row.off{color:#9aa4b2}
   .list .row .sub{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:400}
-  .list .foot button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
-  .tag.adm{color:#3b5bdb;border-color:#c9d6f5}
-  .chip.adm{border-color:#c9d6f5;color:#3b5bdb}
+  .list .foot button.pri{background:var(--ink);color:var(--ims-on-ink);border-color:var(--ink)}
+  .tag.adm{color:var(--dk-tx-3b5bdb);border-color:var(--dk-ln-c9d6f5)}
+  .chip.adm{border-color:var(--dk-ln-c9d6f5);color:var(--dk-tx-3b5bdb)}
 
   /* 편집 폼 — 쓰기 화면은 이것뿐이다 */
   .kv td:first-child{width:170px;padding-top:11px}
   .kv input[type=text],.kv input[type=email],.kv select,.kv textarea{width:100%;max-width:420px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
   .kv textarea{min-height:64px;resize:vertical}
-  .kv input:disabled,.kv select:disabled{background:#f7f8fa;color:#9aa4b2}
+  .kv input:disabled,.kv select:disabled{background:var(--dk-bg-f7f8fa);color:#9aa4b2}
   .kv label.ck{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;user-select:none}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}   /* ⚠️ 공통 .note 와 이름이 겹쳐 .hint 로 */
   /* ⚠️ .kv label.ck is display:flex, so each one takes a whole line. Inside the access box the
@@ -29,18 +29,22 @@
   #permBox label.ck{display:inline-flex}
   #permBox table td{padding:4px 0;border:0;vertical-align:top}
   .actions{display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--line)}
-  .actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-  .actions button.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .actions button{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:9px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .actions button.pri{background:var(--ink);color:var(--ims-on-ink);border-color:var(--ink)}
   .actions button:disabled{opacity:.5;cursor:default}
   .actions .st{font-size:12.5px;font-weight:600;min-height:16px}
-  .actions .st.ok{color:#16a34a} .actions .st.bad{color:#dc2626}
+  .actions .st.ok{color:#16a34a} .actions .st.bad{color:var(--dk-tx-dc2626)}
 
   /* 임시 비밀번호 — 한 번만 보인다 */
-  .cred{margin:0 14px 14px;border:1px solid #cfe9d7;background:#f3fbf6;border-radius:10px;padding:12px 14px}
+  .cred{margin:0 14px 14px;border:1px solid var(--dk-ln-cfe9d7);background:var(--dk-bg-f3fbf6);border-radius:10px;padding:12px 14px}
   .cred .t{font-weight:700;margin-bottom:6px}
   .cred .pw{font-family:var(--mono);font-size:18px;font-weight:800;letter-spacing:.04em;margin:6px 0}
   .cred .warn{font-size:12px;color:var(--warn)}
-  .cred button{margin-top:8px;margin-right:6px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .cred button{margin-top:8px;margin-right:6px;border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:8px;padding:6px 11px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-f3fbf6:#f3fbf6;--dk-bg-f7f8fa:#f7f8fa;--dk-bg-ffffff:#ffffff;--dk-ln-c9d6f5:#c9d6f5;--dk-ln-cfe9d7:#cfe9d7;--dk-tx-3b5bdb:#3b5bdb;--dk-tx-a86400:#a86400;--dk-tx-dc2626:#dc2626}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-f3fbf6:#1c2129;--dk-bg-f7f8fa:#1c2129;--dk-bg-ffffff:#171b21;--dk-ln-c9d6f5:#2d4376;--dk-ln-cfe9d7:#337046;--dk-tx-3b5bdb:#7e93e7;--dk-tx-a86400:#f4bf71;--dk-tx-dc2626:#ea7b7b}
 </style>
 </head>
 <body>
@@ -92,7 +96,7 @@
    ⚠️ 순서(§10-j 3-d): 목록은 all 배열을 그대로 그리는 동기 함수라 상세와 어긋날 비동기가 없다.
    ───────────────────────────────────────────────────────────── */
 
-const ST_BUILD = "2026-10-29 · st v3c";   // 대화 Claude — st v3c(Caleb 「supervisor로 올려도 로케이션은 여전히 선택이 가능한데?」): 역할이 Supervisor · Admin 이면 Location 체크 칸을 잠근다(흐림) — DB(ims_can_warehouse)는 그 역할에 체크를 보지 않는다 · 체크 값은 지우지 않고 그대로 저장(역할을 Manager · Worker 로 되돌리면 다시 쓰인다) · 역할 고르기를 바꾸면 바로 잠김 · 풀림 · 자기 행은 늘 잠김 ← st v3b: 대화 Claude — st v3b(fc-2d · 판정 859): 열쇠의 방은 ims_perm_catalog 의 rooms(배열 · 없으면 room 하나) — 한 열쇠를 두 방이 쓰면(freight_booking = wms · ims) 둘 중 하나만 체크해도 보이고 저장 때 지워지지 않는다(옛 st v3a 는 room 하나만 보아 WMS 만 체크한 직원의 freight_booking 을 지웠다) ← st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
+const ST_BUILD = "2026-10-29 · st v3c · dk1";   // 대화 Claude — st v3c(Caleb 「supervisor로 올려도 로케이션은 여전히 선택이 가능한데?」): 역할이 Supervisor · Admin 이면 Location 체크 칸을 잠근다(흐림) — DB(ims_can_warehouse)는 그 역할에 체크를 보지 않는다 · 체크 값은 지우지 않고 그대로 저장(역할을 Manager · Worker 로 되돌리면 다시 쓰인다) · 역할 고르기를 바꾸면 바로 잠김 · 풀림 · 자기 행은 늘 잠김 ← st v3b: 대화 Claude — st v3b(fc-2d · 판정 859): 열쇠의 방은 ims_perm_catalog 의 rooms(배열 · 없으면 room 하나) — 한 열쇠를 두 방이 쓰면(freight_booking = wms · ims) 둘 중 하나만 체크해도 보이고 저장 때 지워지지 않는다(옛 st v3a 는 room 하나만 보아 WMS 만 체크한 직원의 freight_booking 을 지웠다) ← st v3a: 열쇠 표의 설명 칸 nowrap → 줄 바꿈(최대 560px · 새 cost 설명이 길어 none · read · write 가 화면 오른쪽 끝으로 밀렸다) ← st v3 · 대화 Claude — Access: WMS · IMS 체크가 그 방의 화면만 보이게 거르고, 숨긴 방의 화면은 저장 때 none(빠지는 수를 미리 노란 글로 · Caleb 「wms만 선택하면, wms에 해당되는것만 보이고」) ← st v2 대화 Claude — Location(창고 접근 · ims_staff.warehouse_access) 를 직원 화면에서 고른다(Caleb 「staff권한에 location을 넣어줄 수 있나?」) · 판정 함수 ims_can_warehouse 그대로: admin · supervisor = 모든 창고 · manager · worker = 고른 창고 · 하나도 안 고르면 모든 창고
 console.log("staff.html build:", ST_BUILD);
 let sb=null, me=null, isAdmin=false, canEditStaff=false, WHS=[];
 let all=[], q="", curId=null, mode="view";   // mode: view | add
@@ -353,7 +357,7 @@ async function drawPerms(s){
   box.innerHTML = `
     <div style="margin-bottom:8px">${modes}</div>
     <table style="font-size:12.5px"><tbody>${screens}</tbody></table>
-    <div class="hint" id="roomWarn" style="color:#a86400;font-weight:600"></div>
+    <div class="hint" id="roomWarn" style="color:var(--dk-tx-a86400);font-weight:600"></div>
     <div class="hint">Tick WMS, IMS or both to see that room's screens. With none ticked every screen shows.
       ${isSelf ? "You cannot change your own access." : ""}</div>`;
   /* st v3 — 방(WMS · IMS) 체크가 그 방의 화면만 보이게 거른다(Caleb 2026-10-05) · 방 = ims_perm_catalog 의 room(화면에 박지 않는다)

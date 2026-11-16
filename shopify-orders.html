@@ -12,10 +12,10 @@
   .wofilt select,.wofilt input{border:1px solid var(--line);border-radius:9px;padding:6px 9px;font:inherit;font-size:12.5px}
   .wofilt .sp{flex:1}
   tr[data-id]{cursor:pointer}
-  tr.pick td{background:#f3f6ff}
+  tr.pick td{background:var(--dk-bg-f3f6ff)}
   .wofoot{display:flex;align-items:center;gap:8px;padding:9px 11px;border-top:1px solid var(--line)}
   .wofoot .sp{flex:1}
-  .wofoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer}
+  .wofoot button{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:8px;padding:4px 10px;cursor:pointer}
   .wofoot button:disabled{opacity:.4;cursor:default}
   .wobar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-bottom:1px solid var(--line)}
   .wobar h3{margin:0;font-size:16px}
@@ -24,10 +24,10 @@
   .kv > div:nth-child(odd){color:var(--muted);font-size:12px}
   .wosec{padding:10px 14px;border-top:1px solid var(--line)}
   .wosec h4{margin:0 0 8px;font-size:13px}
-  .reason{border:1px solid #f5c2c0;background:#fef3f2;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px}
-  .warn{border:1px solid #fedf89;background:#fffaeb;border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:12.5px}
-  .warn.done{border-color:#abefc6;background:#ecfdf3}
-  .warn.checked{border-color:var(--line);background:#f7f8fa;color:#667085}
+  .reason{border:1px solid var(--dk-ln-f5c2c0);background:var(--dk-bg-fef3f2);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+  .warn{border:1px solid var(--dk-ln-fedf89);background:var(--dk-bg-fffaeb);border-radius:10px;padding:8px 12px;margin-bottom:6px;font-size:12.5px}
+  .warn.done{border-color:var(--dk-ln-abefc6);background:var(--dk-bg-ecfdf3)}
+  .warn.checked{border-color:var(--line);background:var(--dk-bg-f7f8fa);color:var(--dk-tx-667085)}
   .warn.checked b{font-weight:600}
   .warn .wstate{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;font-size:11.5px}
   .warn .wstate .pobtn{padding:2px 9px;font-size:11.5px}
@@ -36,11 +36,15 @@
   .pomodal[hidden]{display:none}
   .pobox input[type=search],.pobox input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px}
   .pick{max-height:260px;overflow:auto;margin-top:10px;border:1px solid var(--line);border-radius:10px}
-  .pick .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .pick .prow:hover{background:#fafbfd}
+  .pick .prow{padding:9px 12px;border-bottom:1px solid var(--dk-ln-f1f3f7);cursor:pointer;font-size:13.5px}
+  .pick .prow:hover{background:var(--dk-bg-fafbfd)}
   .lfix{display:flex;gap:6px;align-items:center}
   .lfix input{width:130px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;font:inherit;font-size:12.5px}
   .res .blk li{color:var(--bad)} .res .wrn li{color:var(--warn)}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-ecfdf3:#ecfdf3;--dk-bg-f3f6ff:#f3f6ff;--dk-bg-f7f8fa:#f7f8fa;--dk-bg-fafbfd:#fafbfd;--dk-bg-fef3f2:#fef3f2;--dk-bg-fffaeb:#fffaeb;--dk-bg-ffffff:#ffffff;--dk-ln-abefc6:#abefc6;--dk-ln-f1f3f7:#f1f3f7;--dk-ln-f5c2c0:#f5c2c0;--dk-ln-fedf89:#fedf89;--dk-tx-667085:#667085}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-ecfdf3:#164128;--dk-bg-f3f6ff:#1c2129;--dk-bg-f7f8fa:#1c2129;--dk-bg-fafbfd:#171b21;--dk-bg-fef3f2:#1c2129;--dk-bg-fffaeb:#413616;--dk-bg-ffffff:#171b21;--dk-ln-abefc6:#2d764a;--dk-ln-f1f3f7:#2a313b;--dk-ln-f5c2c0:#76302d;--dk-ln-fedf89:#76632d;--dk-tx-667085:#88a4dd}
 </style>
 </head>
 <body>
@@ -103,7 +107,7 @@
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-11-01 · wo v4f";   // 대화 Claude — Caleb 「Asung IMS test Order는 이제 없으니 화면에서도 빼야하지 않을까?」: Store 고르기에서 시험 스토어(shop_store kind test · 뷰에 kind 가 없으면 code · label 의 test)를 뺀다 · 이름표 지도(stores)는 그대로(옛 시험 오더가 목록에 나오면 이름은 보인다) · DB 무변 ← wo v4e:   // 대화 Claude — ovd-2(판정 769): 이름표 customer_overdue(so ovd v1 과 같은 글) ← 2026-10-14 · wo v4d: 대화 Claude — 판정 473(frt-1a): 이름표 freight_estimate_from_shopify(so v5t7 와 같은 글) ← wo v4c:   // 대화 Claude — 판정 470(pay-3a): 이름표 둘 card_payment_recorded · card_payment_failed(so v5t5 와 같은 글) ← wo v4b:   // 대화 Claude — 판정 449 · 469: 이름표 둘(shopify_paid_ims_owed · mark_paid_failed · so v5t4 와 같은 글) ← wo v4a:   // 대화 Claude — 판정 468: 경고 이름표 paid_in_shopify(pay-1a) ← wo v4:   // 대화 Claude — 화면 안 A 마지막: 상세 Totals 를 SO 화면(so v5t1)과 같은 모양 — Shopify ordered · refunded(받기 원문 raw 의 환불 합) · kept · SO 가 만들어진 오더는 머리 아래에 「이 오더는 SO-… 에서 다룬다」 안내(경고 · 결제 · 발송은 SO 화면에서) ← wo v3:   // 대화 Claude — 판정 467: 경고마다 Mark checked / Reopen(shop_order_warning_ack) · 처리됨(refund_due settled · 판정 466)은 초록 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 경고 이름표 셋(refund_due · order_edit_failed · shopify_qty_removed — ful-4a) ← wo v2b:   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-11-01 · wo v4f · dk1";   // 대화 Claude — Caleb 「Asung IMS test Order는 이제 없으니 화면에서도 빼야하지 않을까?」: Store 고르기에서 시험 스토어(shop_store kind test · 뷰에 kind 가 없으면 code · label 의 test)를 뺀다 · 이름표 지도(stores)는 그대로(옛 시험 오더가 목록에 나오면 이름은 보인다) · DB 무변 ← wo v4e:   // 대화 Claude — ovd-2(판정 769): 이름표 customer_overdue(so ovd v1 과 같은 글) ← 2026-10-14 · wo v4d: 대화 Claude — 판정 473(frt-1a): 이름표 freight_estimate_from_shopify(so v5t7 와 같은 글) ← wo v4c:   // 대화 Claude — 판정 470(pay-3a): 이름표 둘 card_payment_recorded · card_payment_failed(so v5t5 와 같은 글) ← wo v4b:   // 대화 Claude — 판정 449 · 469: 이름표 둘(shopify_paid_ims_owed · mark_paid_failed · so v5t4 와 같은 글) ← wo v4a:   // 대화 Claude — 판정 468: 경고 이름표 paid_in_shopify(pay-1a) ← wo v4:   // 대화 Claude — 화면 안 A 마지막: 상세 Totals 를 SO 화면(so v5t1)과 같은 모양 — Shopify ordered · refunded(받기 원문 raw 의 환불 합) · kept · SO 가 만들어진 오더는 머리 아래에 「이 오더는 SO-… 에서 다룬다」 안내(경고 · 결제 · 발송은 SO 화면에서) ← wo v3:   // 대화 Claude — 판정 467: 경고마다 Mark checked / Reopen(shop_order_warning_ack) · 처리됨(refund_due settled · 판정 466)은 초록 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 경고 이름표 셋(refund_due · order_edit_failed · shopify_qty_removed — ful-4a) ← wo v2b:   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;

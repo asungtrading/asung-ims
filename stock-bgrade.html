@@ -19,24 +19,28 @@
   .gap .g.bad b{color:var(--bad)}
   .gap .g.warn b{color:var(--warn)}
 
-  .prow{padding:9px 12px;border-bottom:1px solid #f1f3f7;cursor:pointer;font-size:13.5px}
-  .prow:hover{background:#f7f9fc}
+  .prow{padding:9px 12px;border-bottom:1px solid var(--dk-ln-f1f3f7);cursor:pointer;font-size:13.5px}
+  .prow:hover{background:var(--dk-bg-f7f9fc)}
   .binlist{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
-  .binbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
-  .binbtn.on{background:#eef2ff;border-color:#c7d2fe}
+  .binbtn{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:8px;padding:5px 10px;font:inherit;font-size:12.5px;cursor:pointer;font-family:var(--mono)}
+  .binbtn.on{background:var(--dk-bg-eef2ff);border-color:var(--dk-ln-c7d2fe)}
   .binbtn.zero{color:var(--muted);border-style:dashed}
   .herebins{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .calc{font-size:12.5px;margin-top:8px;padding:8px 10px;border-radius:10px;background:#f7f9fc}
+  .calc{font-size:12.5px;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--dk-bg-f7f9fc)}
   .calc b{font-family:var(--mono)}
-  .warnbox{border:1px solid #ecdcb4;background:#fffaf0;border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:8px}
+  .warnbox{border:1px solid var(--dk-ln-ecdcb4);background:var(--dk-bg-fffaf0);border-radius:10px;padding:9px 12px;font-size:12.5px;margin-top:8px}
   .mtabs{display:flex;gap:6px}
-  .mtabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
-  .mtabs button.on{background:#eef2ff;border-color:#c7d2fe;font-weight:600}
+  .mtabs button{border:1px solid var(--line);background:var(--dk-bg-ffffff);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .mtabs button.on{background:var(--dk-bg-eef2ff);border-color:var(--dk-ln-c7d2fe);font-weight:600}
   td .pobtn{padding:3px 9px;font-size:12px}
-  tr.neg td{background:#fff6f5}
-  tr.noprice td{background:#fffaf0}
+  tr.neg td{background:var(--dk-bg-fff6f5)}
+  tr.noprice td{background:var(--dk-bg-fffaf0)}
   .lnth{display:flex;gap:8px;align-items:flex-start}
   .wfilt label.chk{display:flex;gap:6px;align-items:center;font-size:13px}
+</style>
+<style id="imsDarkPalette">/* dk v1 — 다크 모드 자동 변환(판정 1279): 이 화면의 고정 색을 이름으로 · 라이트 값 = 원래 글자 그대로 · 다크 값 = 같은 색 계열의 어두운 판(밝은 바탕 → 짙은 바탕 · 밝은 테두리 → 중간 톤 · 짙은 글씨 → 밝은 글씨 · 회색은 공통 팔레트) · ims-ui.css ui v2 와 같은 조건(IMS · POS) */
+:root{--dk-bg-eef2ff:#eef2ff;--dk-bg-f7f9fc:#f7f9fc;--dk-bg-fff6f5:#fff6f5;--dk-bg-fffaf0:#fffaf0;--dk-bg-ffffff:#ffffff;--dk-ln-c7d2fe:#c7d2fe;--dk-ln-ecdcb4:#ecdcb4;--dk-ln-f1f3f7:#f1f3f7}
+html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-eef2ff:#162041;--dk-bg-f7f9fc:#1c2129;--dk-bg-fff6f5:#1c2129;--dk-bg-fffaf0:#413316;--dk-bg-ffffff:#171b21;--dk-ln-c7d2fe:#2d3c76;--dk-ln-ecdcb4:#76612d;--dk-ln-f1f3f7:#2a313b}
 </style>
 </head>
 <body>
@@ -93,7 +97,7 @@
    ───────────────────────────────────────────────────────────── */
 
 /* ⚠️ Which build is running — the screen says its own version out loud. */
-const BG_BUILD = "2026-11-02 · bgr pad v1";   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← bgr bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← bgr v1 · 대화 Claude — bgr-1a e73c83c · bgr-1b 3230cff · bgr-1c c60eb9e(판정 629 ~ 648): 새 화면 — B급 재고 목록(bgrade_stock · 창고 · 값 없음만 · 찾기) · Move to B-grade(bgrade_move_in · 값 또는 Wholesale 에서 깎는 %) · Move back(bgrade_move_out) · Set price / Reprice(bgrade_price_set · p_reprice · 라벨 다시 붙이기 안내) · 문 = ims_can_adjust
+const BG_BUILD = "2026-11-02 · bgr pad v1 · dk1";   // 대화 Claude — pad v1(Caleb 「화면이 짤리는 것 같지 않아?」): 옛 꼴 팝업(.pobox 에 바로) · ims-ui.css .pobox 는 여백 없음 → 지역 규칙으로 안쪽 여백 · 스크롤 · box-sizing ← bgr bal-of v1;   // 대화 Claude — bal-of v1(wms-balance-perf-1 ① afdd8ec · 2026-11-02 밤): 칸 잔고를 뷰 ims_inv_balance 의 id 거르기 대신 rpc ims_inv_balance_of(키 집합 · 뷰와 같은 열 · 같은 정의) 로 — 호출마다 장부 전체 집계(217 ~ 673 ms)를 피한다 · 나머지 거르기 · 정렬 · limit 그대로 ← bgr v1 · 대화 Claude — bgr-1a e73c83c · bgr-1b 3230cff · bgr-1c c60eb9e(판정 629 ~ 648): 새 화면 — B급 재고 목록(bgrade_stock · 창고 · 값 없음만 · 찾기) · Move to B-grade(bgrade_move_in · 값 또는 Wholesale 에서 깎는 %) · Move back(bgrade_move_out) · Set price / Reprice(bgrade_price_set · p_reprice · 라벨 다시 붙이기 안내) · 문 = ims_can_adjust
 console.log("stock-bgrade.html build:", BG_BUILD);
 const thumbOf = sku => typeof window.imsThumb === "function" ? window.imsThumb(sku) : "";
 const thumbFill = el => { if(typeof window.imsThumbFill === "function") window.imsThumbFill(el); };
