@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analytics · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* an v1 — Analytics(판정 1282 · 1287 ~ 1292 · 1297) · 색은 공통 변수(다크 모드 함께) */
+  .anwrap{max-width:1320px;margin:0 auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px}
+  .antop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .antop h1{margin:0 8px 0 0;font-size:21px;font-weight:800;color:var(--ink)}
+  .antop .sp{flex:1}
+  .antop select,.antop input{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px}
+  .antop input[type=month]{width:150px}
+  .antabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+  .antabs a{padding:8px 14px;font-weight:700;font-size:14px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .antabs a.cur{color:var(--ims-brand);border-bottom-color:var(--ims-brand)}
+  .anmsg{padding:30px 20px;text-align:center;color:var(--muted)}
+  .anmsg b{display:block;color:var(--ink);margin-bottom:4px}
+  .anload{font-size:12px;color:var(--muted)}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .kpi{padding:12px 14px}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .kpi .v{font-size:22px;font-weight:800;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+  .kpi .c{font-size:12.5px;margin-top:2px;color:var(--muted)}
+  .kpi .c .up{color:var(--good);font-weight:700} .kpi .c .dn{color:var(--bad);font-weight:700}
+
+  .ancard{padding:0}
+  .ancard h3{margin:0;padding:10px 14px;font-size:14px;font-weight:700;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .ancard h3 .sub{font-weight:400;color:var(--muted);font-size:12.5px}
+  .ancard h3 .sp{flex:1}
+  .ancard .body{padding:12px 14px;overflow-x:auto}
+  .csvb{border:1px solid var(--line);background:var(--ims-surface);color:var(--ink);border-radius:7px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
+  .csvb:hover{background:var(--ims-hover)}
+  .ancard table{width:100%}
+  .ancard td.r,.ancard th.r{text-align:right;font-variant-numeric:tabular-nums}
+  .ancard td.nd{color:var(--ims-dim);text-align:center}
+  .yt td,.yt th{white-space:nowrap;font-size:12.5px}
+  .yt td.cut{background:color-mix(in srgb,var(--accent) 10%,var(--ims-surface))}
+  .yt .pv{display:block;font-size:11px;color:var(--muted)}
+  .share{display:inline-block;height:8px;border-radius:4px;background:color-mix(in srgb,var(--accent) 55%,var(--ims-surface));vertical-align:middle;margin-right:6px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:900px){ .two{grid-template-columns:1fr} }
+
+  /* 그래프(SVG) */
+  .chart svg{display:block;width:100%;height:auto}
+  .chart .bar{fill:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))}
+  .chart .bar.core{fill:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))}
+  .chart .bar.ims{fill:var(--accent)}
+  .chart .bar.partial{opacity:.55}
+  .chart .axis{stroke:var(--line);stroke-width:1}
+  .chart .grid{stroke:var(--ims-line-soft);stroke-width:1}
+  .chart text{fill:var(--muted);font-size:10.5px;font-family:inherit}
+  .chart .gp{fill:none;stroke:var(--good);stroke-width:2}
+  .chart .gpdot{fill:var(--good)}
+  .chart .yl{fill:none;stroke-width:2}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+  .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--ims-on-ink);font-size:12px;padding:6px 9px;border-radius:7px;z-index:5000;white-space:nowrap}
+
+  .gaps li{margin:3px 0;font-size:13px}
+  .gaps .code{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:6px}
+
+  @media print{
+    header,.antop .noprint,.antabs,.csvb,#tip{display:none!important}
+    .anwrap{max-width:none;padding:0}
+    .ancard,.kpi{break-inside:avoid}
+    /* 다크 모드에서 인쇄해도 흰 바탕(판정 1289) */
+    html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){
+      color-scheme:light;--bg:#fff;--line:#d9dee5;--muted:#5b6574;--ink:#12161c;--accent:#2f6df6;--good:#16a34a;--bad:#c92a2a;--warn:#b7791f;
+      --ims-surface:#fff;--ims-surface-2:#f7f8fa;--ims-hover:#f2f4f8;--ims-line-soft:#eef0f4;--ims-dim:#9aa4b2;--ims-brand:#3b5bdb;--ims-sel-bg:#eef3ff;--ims-on-ink:#fff;--ims-logo-filter:none}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="anwrap">
+  <div class="antop">
+    <h1>Analytics</h1>
+    <span class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="period" title="Period">
+        <option value="all">All history (2022 –)</option>
+        <option value="l12">Last 12 months</option>
+        <option value="ytd">This year</option>
+        <option value="ly">Last year</option>
+        <option value="custom">Custom months…</option>
+      </select>
+      <input type="month" id="pFrom" hidden title="From month"><input type="month" id="pTo" hidden title="To month">
+      <select id="branch" title="Branch"><option value="">All branches</option></select>
+      <input type="text" id="brand" list="brandList" placeholder="All brands" title="Brand (exact name)" style="width:170px">
+      <datalist id="brandList"></datalist>
+      <button class="pobtn go" id="apply">Show</button>
+      <button class="pobtn" id="print" title="Print or save as PDF">Print / PDF</button>
+    </span>
+    <span class="anload" id="load"></span>
+    <span class="sp"></span>
+    <span class="anload" id="built"></span>
+  </div>
+  <nav class="antabs" id="tabs"></nav>
+  <div id="box"><div class="card anmsg">Loading…</div></div>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   analytics.html — 분석 화면 (an v1 · 2026-11-16 · 대화 Claude)
+   판정 1282: 분석은 따로 된 화면 · 판정 1287 · 1292-2: 열쇠 analytics(admin 도 켜야 열림) · GP · 원가는 원가 권한 있는 사람만(창구가 키를 뺀다)
+   판정 1288: 첫 탭 = 매출 개요(연도 비교 · 월 추세 · 지점 · 브랜드 · 빈 곳) · 판정 1289: 표 · 그래프마다 CSV + 화면 전체 PDF(인쇄 · 다크여도 흰 바탕)
+   판정 1290: 탭이 늘어나는 틀 — TABS 에 한 줄 + 창구 하나(an_<탭>) · 탭마다 주소 #<탭> · 고르기(기간 · 지점 · 브랜드)는 탭이 같이 씀 · 누를 때만 읽는다
+   판정 1292 · 1297: 매출 = 제품 줄 · 세전 · CAD · 크레딧은 크레딧 날짜 · 오더 = 제품 줄 있는 오더 · Not recorded 지점 · 이번 달 · 연 누계는 오늘까지 잘라 지난해 같은 날과
+   창구: an_overview(p_from, p_to, p_warehouse, p_brand) — an-1c · 20261116130000
+   ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
+   ───────────────────────────────────────────────────────────── */
+const AN_BUILD = "2026-11-16 · an v1";
+console.log("analytics.html build:", AN_BUILD);
+
+let sb = null, me = null, WH = [];
+const TABS = {
+  overview: { label: "Sales overview", load: loadOverview }
+  // 다음 탭(판정 1288 순서): customers → products · brands → seasonality → stock-outs — 한 줄씩 더한다
+};
+let tab = "overview", last = null, seq = 0;
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const num = (v, dp) => v === null || v === undefined ? "—" : Number(v).toLocaleString("en-CA", { minimumFractionDigits: dp || 0, maximumFractionDigits: dp || 0 });
+const money = v => v === null || v === undefined ? "—" : (Number(v) < 0 ? "−$" : "$") + Math.abs(Number(v)).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const short = v => { if(v === null || v === undefined) return "—"; const a = Math.abs(v), s = v < 0 ? "−" : ""; return s + "$" + (a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : a.toFixed(0)); };
+const pct = v => v === null || v === undefined ? "—" : (Number(v) * (Math.abs(v) <= 1.5 ? 100 : 1)).toFixed(1) + "%";
+const gpPct = c => (c && c.gp_pct !== undefined && c.gp_pct !== null) ? Number(c.gp_pct).toFixed(1) + "%" : "—";
+function change(a, b){
+  if(a === null || a === undefined || !b) return "";
+  const r = (a - b) / Math.abs(b) * 100;
+  return `<span class="${r >= 0 ? "up" : "dn"}">${r >= 0 ? "▲" : "▼"} ${Math.abs(r).toFixed(1)}%</span>`;
+}
+
+/* ── 기간 고르기 → p_from · p_to ── */
+function period(){
+  const v = $("period").value, t = new Date();
+  if(v === "l12") return [ymd(new Date(t.getFullYear(), t.getMonth() - 11, 1)), ymd(t)];
+  if(v === "ytd") return [t.getFullYear() + "-01-01", ymd(t)];
+  if(v === "ly") return [(t.getFullYear() - 1) + "-01-01", (t.getFullYear() - 1) + "-12-31"];
+  if(v === "custom"){
+    const f = $("pFrom").value || "2022-01", to = $("pTo").value || (t.getFullYear() + "-" + pad(t.getMonth() + 1));
+    const e = new Date(+to.slice(0, 4), +to.slice(5, 7), 0);
+    return [f + "-01", ymd(e)];
+  }
+  return ["2022-01-01", ymd(t)];
+}
+
+/* ── CSV(판정 1289 — 받은 숫자 그대로 · 원가 칸은 원가 권한이 있을 때만 응답에 있다) ── */
+function csvDownload(name, head, rows){
+  const q = v => { if(v === null || v === undefined) return ""; const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const text = [head.map(q).join(","), ...rows.map(r => r.map(q).join(","))].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }));
+  const f = last ? `${last.from}_${last.to}` : "";
+  a.download = `asung-${name}-${f}${last && last.warehouse ? "-" + last.warehouse.branch : ""}${last && last.brand ? "-" + last.brand.replace(/\W+/g, "_") : ""}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+const CELL_KEYS = d => ["net","sales","credits","other","qty","orders","aov"].concat(d.can_cost ? ["cogs","gp","gp_pct","cost_coverage"] : []);
+
+/* ── 그래프: 월 막대(순매출) + GP % 선 ── */
+function monthChart(months, canCost){
+  const W = 1200, H = 300, L = 56, R = canCost ? 46 : 14, T = 14, B = 34;
+  const n = months.length; if(!n) return "";
+  const max = Math.max(1, ...months.map(m => Number(m.net) || 0));
+  const step = (W - L - R) / n, bw = Math.max(2, step * 0.72);
+  const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
+  const ticks = 4; let g = "";
+  for(let i = 0; i <= ticks; i++){ const v = max * i / ticks, yy = y(v); g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 3}" text-anchor="end">${short(v)}</text>`; }
+  let bars = "", labels = "", pts = [];
+  months.forEach((m, i) => {
+    const x = L + i * step + (step - bw) / 2, v = Math.max(0, Number(m.net) || 0);
+    bars += `<rect class="bar ${esc(m.era)}${m.partial ? " partial" : ""}" x="${x.toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - B - y(v)).toFixed(1)}" data-i="${i}"/>`;
+    const mm = +m.m.slice(5, 7);
+    if(n <= 24 || mm === 1) labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - B + 14}" text-anchor="middle">${n <= 24 ? MON[mm - 1] + (mm === 1 || i === 0 ? " " + m.m.slice(2, 4) : "") : m.m.slice(0, 4)}</text>`;
+    if(canCost && m.gp_pct !== null && m.gp_pct !== undefined && (m.cost_coverage === undefined || m.cost_coverage >= 0.9)) pts.push([x + bw / 2, Number(m.gp_pct)]);
+    else if(canCost) pts.push(null);
+  });
+  let line = "";
+  if(canCost){
+    const yp = p => T + (H - T - B) * (1 - Math.min(60, Math.max(0, p)) / 60);
+    for(let v = 0; v <= 60; v += 20) line += `<text x="${W - R + 6}" y="${yp(v) + 3}">${v}%</text>`;
+    let seg = [];
+    const flush = () => { if(seg.length > 1) line += `<polyline class="gp" points="${seg.map(p => p[0].toFixed(1) + "," + yp(p[1]).toFixed(1)).join(" ")}"/>`; seg.forEach(p => line += `<circle class="gpdot" cx="${p[0].toFixed(1)}" cy="${yp(p[1]).toFixed(1)}" r="2"/>`); seg = []; };
+    pts.forEach(p => { if(p) seg.push(p); else flush(); }); flush();
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly net sales"><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>${g}${bars}${line}${labels}</svg>`;
+}
+/* 연도별 선(같은 달끼리) */
+function yearChart(ybm){
+  const W = 1200, H = 260, L = 56, R = 14, T = 12, B = 26;
+  const vals = []; ybm.forEach(y => y.months.forEach(c => { if(c) vals.push(Number(c.net) || 0); }));
+  const max = Math.max(1, ...vals), step = (W - L - R) / 11;
+  const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
+  const colors = ["var(--ims-dim)","color-mix(in srgb,var(--accent) 35%,var(--ims-surface))","color-mix(in srgb,var(--accent) 60%,var(--ims-surface))","var(--warn)","var(--accent)","var(--good)"];
+  let g = "", lines = "", leg = "";
+  for(let i = 0; i <= 4; i++){ const v = max * i / 4; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${short(v)}</text>`; }
+  MON.forEach((m, i) => g += `<text x="${L + i * step}" y="${H - 8}" text-anchor="middle">${m}</text>`);
+  ybm.forEach((yr, k) => {
+    const col = colors[Math.max(0, colors.length - ybm.length + k)];
+    let seg = []; const flush = () => { if(seg.length > 1) lines += `<polyline class="yl" style="stroke:${col}" points="${seg.join(" ")}"/>`; seg = []; };
+    yr.months.forEach((c, i) => { if(c) seg.push((L + i * step).toFixed(1) + "," + y(Number(c.net) || 0).toFixed(1)); else flush(); }); flush();
+    leg += `<span><i style="background:${col}"></i>${yr.year}</span>`;
+  });
+  return { svg: `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Net sales by month, year against year"><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>${g}${lines}</svg>`, legend: leg };
+}
+
+/* ── 매출 개요 탭 ── */
+async function loadOverview(){
+  const my = ++seq;
+  const [f, t] = period();
+  $("load").textContent = "Loading…";
+  const { data, error } = await sb.rpc("an_overview", { p_from: f, p_to: t, p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}</div>`; return; }
+  last = data;
+  $("built").textContent = data.summary_built_at ? "History summary built " + String(data.summary_built_at).slice(0, 16).replace("T", " ") + " UTC" : "";
+  if(!data.brand && $("brandList").children.length === 0) $("brandList").innerHTML = (data.brands_top || []).map(b => `<option value="${esc(b.brand)}">`).join("");
+  renderOverview(data);
+}
+function renderOverview(d){
+  const cc = !!d.can_cost;
+  const scope = [d.warehouse ? d.warehouse.name : "All branches", d.brand ? d.brand : null].filter(Boolean).join(" · ");
+  const head = (title, sub, csvId) => `<h3>${title}${sub ? ` <span class="sub">${sub}</span>` : ""}<span class="sp"></span>${csvId ? `<button class="csvb" data-csv="${csvId}">CSV</button>` : ""}</h3>`;
+  let h = "";
+
+  // 연 누계
+  const a = d.ytd && d.ytd.this, b = d.ytd && d.ytd.last;
+  if(a && b){
+    const k = (label, va, vb, fmt) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div><div class="c">${change(va, vb)} vs ${fmt(vb)} last year</div></div>`;
+    h += `<div class="kpis">` +
+      k(`Net sales — ${a.from.slice(0, 4)} to ${a.to.slice(5)}`, a.net, b.net, money) +
+      k("Orders", a.orders, b.orders, v => num(v)) +
+      k("Average order", a.aov, b.aov, v => v === null || v === undefined ? "—" : "$" + num(v, 0)) +
+      (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpPct(a)}</div><div class="c">${gpPct(b)} last year${(a.cost_coverage !== undefined && a.cost_coverage < 0.95) || (b.cost_coverage !== undefined && b.cost_coverage < 0.95) ? " · cost only partly known" : ""}</div></div>` : "") +
+      `</div>`;
+  }
+
+  // 월 추세
+  const months = d.months || [];
+  h += `<div class="card ancard">${head("Net sales by month", `${scope} · ${months.length ? months[0].m + " → " + months[months.length - 1].m : ""}`, "months")}` +
+    `<div class="body chart" id="mchart">${monthChart(months, cc)}` +
+    `<div class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))"></i>Omni (2022 – Oct 2025)</span><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))"></i>Core (Nov 2025 – Oct 2026)</span><span><i style="background:var(--accent)"></i>IMS (Nov 2026 –)</span>${cc ? `<span><i style="background:var(--good);height:3px"></i>GP % (right · months with most cost known)</span>` : ""}<span>Faded bar = month so far</span></div></div></div>`;
+
+  // 연도 비교
+  const ybm = d.year_by_month || [];
+  if(ybm.length){
+    const yc = yearChart(ybm);
+    const tot = c => c ? c.net : null;
+    h += `<div class="card ancard">${head("Year against year", "net sales · same months · this month cut to today against the same days last year", "years")}` +
+      `<div class="body chart">${yc.svg}<div class="legend">${yc.legend}</div></div>` +
+      `<div class="body"><table class="yt"><thead><tr><th>Year</th>${MON.map(m => `<th class="r">${m}</th>`).join("")}<th class="r">Total</th></tr></thead><tbody>` +
+      ybm.map(yr => {
+        let sum = 0, any = false;
+        const cells = yr.months.map(c => {
+          if(!c) return `<td class="nd">·</td>`;
+          sum += Number(c.net) || 0; any = true;
+          return `<td class="r${c.cut ? " cut" : ""}" title="${c.cut ? "Through " + esc(c.through) : ""}">${short(c.net)}${c.cut && c.prev_year_same_day ? `<span class="pv">${short(c.prev_year_same_day.net)} ly ${change(c.net, c.prev_year_same_day.net)}</span>` : ""}</td>`;
+        }).join("");
+        return `<tr><td><b>${yr.year}</b></td>${cells}<td class="r"><b>${any ? short(sum) : "—"}</b></td></tr>`;
+      }).join("") + `</tbody></table><div class="legend"><span>· = no data</span><span>Shaded = this month so far · the small line under it is the same days last year</span></div></div></div>`;
+  }
+
+  // 지점 · 브랜드
+  const br = d.branches || [], totNet = br.reduce((s, x) => s + (Number(x.net) || 0), 0) || 1;
+  const brT = `<div class="card ancard">${head("By branch", scope, "branches")}<div class="body"><table><thead><tr><th>Branch</th><th class="r">Net sales</th><th>Share</th><th class="r">Orders</th><th class="r">Avg order</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    br.map(x => `<tr><td>${esc(x.label)}</td><td class="r">${money(x.net)}</td><td>${x.net > 0 ? `<span class="share" style="width:${Math.round(80 * x.net / totNet)}px"></span>${(100 * x.net / totNet).toFixed(1)}%` : ""}</td><td class="r">${num(x.orders)}</td><td class="r">${x.aov ? "$" + num(x.aov) : "—"}</td>${cc ? `<td class="r">${x.branch === "none" ? '<span class="dim" title="Mostly credits with no branch — GP % is not meaningful">—</span>' : gpPct(x)}</td>` : ""}</tr>`).join("") +
+    `</tbody></table>${br.some(x => x.branch === "none") ? `<div class="legend"><span>Not recorded = documents with no branch in the old systems — mostly credits.</span></div>` : ""}</div></div>`;
+  const bt = d.brands_top || [], bMax = Math.max(1, ...bt.map(x => Number(x.net) || 0)), bAll = bt.reduce((s, x) => s + (Number(x.net) || 0), 0) + (d.brands_others ? Number(d.brands_others.net) || 0 : 0) || 1;
+  const bdT = `<div class="card ancard">${head("Top brands", (d.brands_others ? `top ${bt.length} of ${bt.length + d.brands_others.brands}` : `${bt.length}`) + " · " + scope, "brands")}<div class="body"><table><thead><tr><th>Brand</th><th class="r">Net sales</th><th>Share</th><th class="r">Units</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    bt.map(x => `<tr><td><a class="lnk" href="#" data-brand="${esc(x.brand === "(no brand)" ? "" : x.brand)}">${esc(x.brand)}</a></td><td class="r">${money(x.net)}</td><td><span class="share" style="width:${Math.max(1, Math.round(80 * x.net / bMax))}px"></span>${(100 * x.net / bAll).toFixed(1)}%</td><td class="r">${num(x.qty)}</td>${cc ? `<td class="r">${gpPct(x)}</td>` : ""}</tr>`).join("") +
+    (d.brands_others ? `<tr><td class="dim">All other brands (${d.brands_others.brands})</td><td class="r">${money(d.brands_others.net)}</td><td>${(100 * d.brands_others.net / bAll).toFixed(1)}%</td><td class="r">${num(d.brands_others.qty)}</td>${cc ? `<td class="r">${gpPct(d.brands_others)}</td>` : ""}</tr>` : "") +
+    `</tbody></table></div></div>`;
+  h += `<div class="two">${brT}${bdT}</div>`;
+
+  // 빈 곳 · 출처
+  const gaps = d.gaps || [], src = d.sources || [];
+  h += `<div class="card ancard">${head("About these numbers", "gaps in the data and where each period comes from", "gaps")}<div class="body">` +
+    (gaps.length ? `<ul class="gaps">${gaps.map(g => `<li><span class="code">${esc(g.code)}</span>${esc(g.note)}${g.from ? ` <span class="dim">(${esc(g.from)}${g.to && g.to !== g.from ? " → " + esc(g.to) : ""})</span>` : ""}</li>`).join("")}</ul>` : "") +
+    (src.length ? `<table style="margin-top:8px"><thead><tr><th>Period</th><th>From</th><th>To</th><th>What an order is</th><th>Cost</th></tr></thead><tbody>${src.map(s => `<tr><td>${esc(s.era)}</td><td>${esc(s.from || "")}</td><td>${esc(s.to || "")}</td><td>${esc(s.order || "")}</td><td>${esc(s.cost || "")}</td></tr>`).join("")}</tbody></table>` : "") +
+    `<div class="legend"><span>Net sales = product lines before tax, after line discounts, in CAD · credits count on the credit date · freight, service and surcharge lines are not in net sales.</span></div></div></div>`;
+
+  $("box").innerHTML = h;
+
+  // 막대 위 말풍선
+  const tip = $("tip");
+  $("box").querySelectorAll("#mchart rect.bar").forEach(r => {
+    r.addEventListener("mousemove", e => {
+      const m = months[+r.dataset.i];
+      tip.innerHTML = `<b>${esc(m.m)}</b> · ${esc(m.era)}${m.partial ? " · through " + esc(m.through) : ""}<br>Net ${money(m.net)} · ${num(m.orders)} orders · avg ${m.aov ? "$" + num(m.aov) : "—"}` +
+        (cc ? `<br>GP ${m.gp === null || m.gp === undefined ? "—" : money(m.gp)} · ${gpPct(m)} · cost known ${m.cost_coverage === undefined || m.cost_coverage === null ? "—" : Math.round(m.cost_coverage * 100) + "%"}` : "");
+      tip.hidden = false; tip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px"; tip.style.top = (e.clientY + 12) + "px";
+    });
+    r.addEventListener("mouseleave", () => { tip.hidden = true; });
+  });
+  // 브랜드 누르기 → 그 브랜드로 거르기
+  $("box").querySelectorAll("[data-brand]").forEach(a => a.onclick = e => { e.preventDefault(); if(!a.dataset.brand) return; $("brand").value = a.dataset.brand; loadOverview(); });
+  // CSV
+  $("box").querySelectorAll("[data-csv]").forEach(btn => btn.onclick = () => {
+    const keys = CELL_KEYS(d);
+    if(btn.dataset.csv === "months") csvDownload("monthly", ["month","era"].concat(keys, ["partial_through"]), months.map(m => [m.m, m.era].concat(keys.map(k => m[k]), [m.partial ? m.through : ""])));
+    else if(btn.dataset.csv === "years"){
+      const rows = []; ybm.forEach(yr => yr.months.forEach((c, i) => { if(c) rows.push([yr.year, i + 1].concat(keys.map(k => c[k]), [c.cut ? c.through : "", c.prev_year_same_day ? c.prev_year_same_day.net : ""])); }));
+      csvDownload("year-by-month", ["year","month"].concat(keys, ["cut_through","same_days_last_year_net"]), rows);
+    }
+    else if(btn.dataset.csv === "branches") csvDownload("branches", ["branch"].concat(keys), br.map(x => [x.label].concat(keys.map(k => x[k]))));
+    else if(btn.dataset.csv === "brands"){
+      const bk = ["net","sales","credits","qty"].concat(cc ? ["cogs","gp","gp_pct","cost_coverage"] : []);
+      csvDownload("brands", ["brand"].concat(bk), bt.map(x => [x.brand].concat(bk.map(k => x[k]))).concat(d.brands_others ? [["All other brands (" + d.brands_others.brands + ")"].concat(bk.map(k => d.brands_others[k]))] : []));
+    }
+    else if(btn.dataset.csv === "gaps") csvDownload("gaps", ["code","from","to","note","amount","count"], gaps.map(g => [g.code, g.from, g.to, g.note, g.amount, g.count]));
+  });
+}
+
+/* ── 탭 ── */
+function drawTabs(){
+  $("tabs").innerHTML = Object.keys(TABS).map(k => `<a href="#${k}" class="${k === tab ? "cur" : ""}">${esc(TABS[k].label)}</a>`).join("");
+}
+function route(){
+  const want = (location.hash || "").replace("#", "");
+  tab = TABS[want] ? want : "overview";
+  drawTabs();
+  TABS[tab].load();
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; window.sb = sb;
+  imsHeader(me);
+  $("buildTag").textContent = AN_BUILD;
+  if(!imsAuth.canView("analytics")){   // 판정 1292-2 — 창구도 막지만 먼저 안내
+    $("box").innerHTML = `<div class="card anmsg"><b>Analytics is not switched on for you</b>Ask an admin to turn on the 'analytics' permission in Staff — admins need it switched on too.</div>`;
+    document.querySelector(".antop .noprint").hidden = true;
+    return;
+  }
+  const { data: wh } = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
+  WH = (wh || []).filter(w => /^Asung Trading Inc\.$/.test(w.name) || /Edmonton/i.test(w.name));   // 판매 지점 둘만(an-1c — 그 밖은 창구가 거부)
+  $("branch").insertAdjacentHTML("beforeend", WH.map(w => `<option value="${esc(w.id)}">${esc(/Edmonton/i.test(w.name) ? "Edmonton" : "Toronto")}</option>`).join(""));
+  $("period").onchange = () => { const c = $("period").value === "custom"; $("pFrom").hidden = !c; $("pTo").hidden = !c; if(!c) TABS[tab].load(); };
+  $("branch").onchange = () => TABS[tab].load();
+  $("apply").onclick = () => TABS[tab].load();
+  $("brand").addEventListener("keydown", e => { if(e.key === "Enter") TABS[tab].load(); });
+  $("print").onclick = () => window.print();
+  window.addEventListener("hashchange", route);
+  route();
+});
+</script>
+</body>
+</html>
