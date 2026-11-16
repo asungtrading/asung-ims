@@ -113,11 +113,13 @@
       .idesc-view .dim{font-style:italic}
       .idesc-bar{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
       .idesc-bar .pobtn{min-width:34px}
-      .idesc-ed{border:1px solid var(--line,#d0d5dd);border-radius:6px;padding:10px 12px;min-height:280px;max-height:58vh;overflow:auto;background:var(--card,#fff);line-height:1.5;font-size:13px}
+      .idesc-ed{border:1px solid var(--line,#d0d5dd);border-radius:6px;padding:10px 12px;min-height:280px;max-height:58vh;overflow:auto;background:var(--card,var(--ims-surface,#fff));line-height:1.5;font-size:13px}
       .idesc-ed:focus{outline:2px solid var(--accent,#3b5bdb);outline-offset:1px}
       .idesc-src{width:100%;min-height:280px;max-height:58vh;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;box-sizing:border-box}
-      .idesc-cut{background:#fff4e5;border:1px solid #f2c48d;border-radius:6px;padding:8px 10px;margin:6px 0;font-size:12px}
+      .idesc-cut{background:var(--dk-bg-fff4e5,#fff4e5);border:1px solid var(--dk-ln-f2c48d,#f2c48d);border-radius:6px;padding:8px 10px;margin:6px 0;font-size:12px}
       #idescModal .pobox{max-width:1000px}
+      /* [2026-11-16 · 대화 Claude · 판정 1280] 다크: 색은 var(이름,원래색) — 라이트는 이름이 없어 원래색 그대로 · 다크 값은 아래 블록(ims-ui.css ui v2 와 같은 조건 · IMS · POS) */
+      html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-fff4e5:#412f16;--dk-ln-f2c48d:#76552d}
     `;
     document.head.appendChild(st);
   }

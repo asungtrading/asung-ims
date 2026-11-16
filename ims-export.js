@@ -16,7 +16,7 @@
 */
 (function () {
   "use strict";
-  const BUILD = "2026-10-27 · export v2";
+  const BUILD = "2026-11-16 · export v2 · dk1";   // 판정 1280 — 넣는 CSS 의 색 셋을 공통 이름으로(--ims-surface-2 · --ims-surface · --ims-hover — 라이트 값 같음 · 다크는 ims-ui.css ui v2)
   const RPC = { product: "product_export", customer: "customer_export", supplier: "supplier_export",
                 deal_rule: "deal_export", deal_product: "deal_export" };   // export v2 — 두 kind 가 창구 하나
   const NOUN = { product: "products", customer: "customers", supplier: "suppliers",
@@ -64,11 +64,11 @@
       ".imx-intro{font-size:12.5px;color:var(--muted);margin:0 0 12px}" +
       ".imx-note{font-size:12.5px;color:var(--warn);margin:-4px 0 12px}" +
       ".imx-grp{border:1px solid var(--line);border-radius:10px;margin-bottom:10px}" +
-      ".imx-gh{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#fafbfd;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;font-size:12.5px;font-weight:700}" +
+      ".imx-gh{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--ims-surface-2,#fafbfd);border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;font-size:12.5px;font-weight:700}" +
       ".imx-gh .n{font-weight:400;color:var(--muted)}" +
       ".imx-gh .sp{flex:1}" +
-      ".imx-mini{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 8px;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted)}" +
-      ".imx-mini:hover{background:#f2f4f8;color:var(--ink)}" +
+      ".imx-mini{border:1px solid var(--line);background:var(--ims-surface,#fff);border-radius:7px;padding:2px 8px;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted)}" +
+      ".imx-mini:hover{background:var(--ims-hover,#f2f4f8);color:var(--ink)}" +
       ".imx-cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 12px;padding:8px 10px}" +
       ".imx-cols label{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 0;cursor:pointer;user-select:none}" +
       ".imx-stat{font-size:12.5px;color:var(--muted)}" +

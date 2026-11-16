@@ -10,7 +10,7 @@
 */
 (function () {
   "use strict";
-  const BUILD = "2026-10-26 · overdue v1";
+  const BUILD = "2026-11-16 · overdue v1 · dk1";   // 판정 1280 — 연체 합계 칩 색을 var(이름,원래색) + 다크 블록
   const e = (v) => (window.esc ? window.esc(v) : String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])));
   const amt = (n) => Number(n || 0).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const plural = (n, one, many) => `${n} ${Number(n) === 1 ? one : many}`;
@@ -22,8 +22,9 @@
     s.textContent =
       ".ovd-head{font-size:14px;line-height:1.55;margin:0 0 10px}" +
       ".ovd-head b{color:var(--bad)}" +
+      'html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-ln-f1c4c0:#76332d;--dk-bg-fdf3f2:#1c2129}' +   // 판정 1280 다크
       ".ovd-sums{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}" +
-      ".ovd-sum{border:1px solid #f1c4c0;background:#fdf3f2;color:var(--bad);border-radius:8px;padding:4px 10px;font-size:13px;font-weight:600}" +
+      ".ovd-sum{border:1px solid var(--dk-ln-f1c4c0,#f1c4c0);background:var(--dk-bg-fdf3f2,#fdf3f2);color:var(--bad);border-radius:8px;padding:4px 10px;font-size:13px;font-weight:600}" +
       ".ovd-tbl{width:100%;border-collapse:collapse;font-size:12.5px}" +
       ".ovd-tbl th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--line);padding:5px 6px}" +
       ".ovd-tbl td{border-bottom:1px solid var(--line);padding:5px 6px}" +

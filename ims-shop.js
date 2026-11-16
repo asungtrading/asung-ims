@@ -53,17 +53,19 @@
       .ishop-err{color:var(--bad,#b42318);font-size:12px;word-break:break-word}
       .ishop-btns{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
       .ishop-btns a.pobtn{text-decoration:none;color:inherit;display:inline-flex;align-items:center}
-      .ishop-res{grid-column:1 / -1;font-size:12.5px;padding:6px 10px;border-radius:8px;background:#f5f7fb}
-      .ishop-res.bad{background:#fef3f2;color:var(--bad,#b42318)}
-      .ishop-res.good{background:#ecfdf3;color:#067647}
+      .ishop-res{grid-column:1 / -1;font-size:12.5px;padding:6px 10px;border-radius:8px;background:var(--dk-bg-f5f7fb,#f5f7fb)}
+      .ishop-res.bad{background:var(--dk-bg-fef3f2,#fef3f2);color:var(--bad,#b42318)}
+      .ishop-res.good{background:var(--dk-bg-ecfdf3,#ecfdf3);color:var(--dk-tx-067647,#067647)}
       .ishop-web{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line,#e4e7ec)}
-      .ishop-web img{width:64px;height:64px;object-fit:contain;border:1px solid var(--line,#e4e7ec);border-radius:8px;background:#fff}
+      .ishop-web img{width:64px;height:64px;object-fit:contain;border:1px solid var(--line,#e4e7ec);border-radius:8px;background:var(--dk-bg-ffffff,#ffffff)}
       .ishop-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
-      .ishop-pick button{border:2px solid var(--line,#e4e7ec);border-radius:10px;background:#fff;padding:6px;cursor:pointer;text-align:center;font-size:11px}
+      .ishop-pick button{border:2px solid var(--line,#e4e7ec);border-radius:10px;background:var(--dk-bg-ffffff,#ffffff);padding:6px;cursor:pointer;text-align:center;font-size:11px}
       .ishop-pick button.cur{border-color:#3b5bdb}
       .ishop-pick img{width:100%;height:90px;object-fit:contain;display:block;margin-bottom:4px}
       .ishop-pick .none{height:90px;display:flex;align-items:center;justify-content:center;color:var(--muted,#667085)}
       .res .blk li{color:var(--bad)} .res .wrn li{color:var(--warn)}
+      /* [2026-11-16 · 대화 Claude · 판정 1280] 다크: 색은 var(이름,원래색) — 라이트는 이름이 없어 원래색 그대로 · 다크 값은 아래 블록(ims-ui.css ui v2 와 같은 조건 · IMS · POS) */
+      html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-f5f7fb:#1c2129;--dk-bg-fef3f2:#1c2129;--dk-bg-ecfdf3:#164128;--dk-tx-067647:#71f4bd;--dk-bg-ffffff:#171b21}
       .ishop-stock{grid-column:1 / -1;font-size:12.5px}
       .ishop-stock table{border-collapse:collapse;width:auto;min-width:320px}
       .ishop-stock th,.ishop-stock td{padding:3px 12px 3px 0;text-align:left;border-bottom:1px solid var(--line,#e4e7ec)}
