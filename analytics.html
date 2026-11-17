@@ -44,6 +44,9 @@
   .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   .ancard .dim,.ancard tr.dim td{color:var(--muted)}   /* an v4 손님 탭 */
   .ancard .up{color:var(--good);font-weight:700} .ancard .dn{color:var(--bad);font-weight:700}
+  .badge.risk{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:9px;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent)}   /* an v5 */
+  .seg2{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12px;font-weight:400}
+  .seg2 a{padding:3px 9px;color:var(--ink);text-decoration:none} .seg2 a.cur{background:var(--accent);color:var(--ims-on-accent, #fff)}
   .ancard .tog{text-decoration:none;color:var(--muted);display:inline-block;width:14px}
   .ancard tr.kid td{font-size:12.5px}
   .badge.new{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:9px;color:var(--good);border:1px solid color-mix(in srgb,var(--good) 45%,transparent)}
@@ -147,13 +150,13 @@
    창구(an v3): an_period(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand) — an-3 · 20261117001000 · 주 · 월 기간(날짜 그대로 · 비교 두 범위) · 회계연도 · 달력 해의 지난해 끝 덜 찬 달
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-17 · an v4";   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-17 · an v5";   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
 const TABS = {
   overview: { label: "Sales overview", load: loadOverview },
-  customers: { label: "Customers", load: loadCustomers }   // an v4 · an-4a
+  customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() }   // an v4 · an-4a · an v5 상세 = #customers/<손님>
   // 다음 탭(판정 1288 순서): customers → products · brands → seasonality → stock-outs — 한 줄씩 더한다
 };
 let tab = "overview", last = null, seq = 0, daily = null;
@@ -563,7 +566,7 @@ function renderCustomers(d){
   const chg = x => x.change_pct === null || x.change_pct === undefined ? (x.cmp_net === null || x.cmp_net === undefined ? "" : (Number(x.cmp_net) === 0 && Number(x.net) > 0 ? `<span class="up">new in period</span>` : "")) : `<span class="${x.change_pct >= 0 ? "up" : "dn"}">${x.change_pct >= 0 ? "▲" : "▼"} ${Math.abs(x.change_pct).toFixed(1)}%</span>`;
   const nameCell = (x, sub) => {
     if(x.key === "(none)") return `<span class="dim">${esc(x.name)}</span>`;
-    const a = `<a class="lnk" href="customers.html?id=${encodeURIComponent(x.key)}" target="_blank" rel="noopener">${esc(x.name)}</a>`;
+    const a = `<a class="lnk" href="#customers/${encodeURIComponent(x.key)}">${esc(x.name)}</a>`;   // an v5 — 상세로
     return (sub ? `<span class="dim">└ </span>` : "") + a + (x.is_head ? ` <span class="dim">(head office)</span>` : "") + (x.is_new ? ` <span class="badge new">New</span>` : "");
   };
   const rowR = (x, i) => {
@@ -616,12 +619,124 @@ function renderCustomers(d){
   };
 }
 
+
+/* ── 손님 한 명 상세(an v5 · 판정 1317 · 창구 an_customer — an-4b) ──
+   범위: 주 · 월 = 개요와 같은 두 비교(prev · ly) · 회계연도 · 달력 해 = 지난해 같은 날까지(ly) · 그 밖 = 비교 없음
+   월 그래프 기본 = 전체 이력 · 「Selected period」 = 3 달 이하 날마다 막대(지난해 선 = 날짜 − 1 년) · 넘으면 그 기간의 월 막대 */
+const tipAt = e => {
+  const tip = $("tip"); tip.hidden = false;
+  const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+  const vw = window.innerWidth / z, vh = window.innerHeight / z, x = e.clientX / z, y = e.clientY / z, w = tip.offsetWidth, hh = tip.offsetHeight;
+  tip.style.left = Math.max(4, x + 12 + w > vw - 6 ? x - 12 - w : x + 12) + "px";
+  tip.style.top = Math.max(4, y + 12 + hh > vh - 6 ? y - 12 - hh : y + 12) + "px";
+};
+async function loadCustomer(key, selMode){
+  const my = ++seq;
+  per = period();
+  const f = per.f, t = per.t;
+  let pf = null, pt = null, lf = null, lt = null, pl = "", ll = "";
+  if(per.kind === "short"){ pf = per.prev[0]; pt = per.prev[1]; lf = per.ly[0]; lt = per.ly[1]; pl = per.vsPrev; ll = per.vsLy; }
+  else if(per.kind === "year"){ lf = addY(f, -1); lt = addY(t, -1); ll = "same days last year"; }
+  $("load").textContent = "Loading…";
+  const { data, error } = await sb.rpc("an_customer", { p_key: key, p_from: f, p_to: t, p_prev_from: pf, p_prev_to: pt, p_ly_from: lf, p_ly_to: lt, p_warehouse: $("branch").value || null });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}<br><a class="lnk" href="#customers">← All customers</a></div>`; return; }
+  data.pl = pl; data.ll = ll;
+  last = { from: data.period.from, to: data.period.to, warehouse: data.warehouse, brand: null };
+  renderCustomer(data, key, selMode);
+}
+function renderCustomer(d, key, selMode){
+  $("box").onclick = null;
+  const cc = !!d.can_cost, C = d.customer || {}, P = d.period;
+  const lbl = (per ? per.name + " · " : "") + fmtR(P.from, P.to);
+  const scope = d.warehouse ? (/Edmonton/i.test(d.warehouse.name || "") ? "Edmonton" : "Toronto") : "All branches";
+  const cmps = [{ c: d.prev, l: d.pl }, { c: d.ly, l: d.ll }].filter(x => x.c);
+  const k2 = (label, va, key2, fmt) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div>` +
+    (cmps.map(x => `<div class="c">${change(va, x.c[key2])} vs ${fmt(x.c[key2])} ${esc(x.l)}</div>`).join("") || `<div class="c">&nbsp;</div>`) + `</div>`;
+  const aovF = v => v === null || v === undefined ? "—" : "$" + num(v, 0);
+  const base = "#customers/" + encodeURIComponent(key);
+  let h = `<div class="card" style="padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">` +
+    `<a class="lnk" href="#customers">← All customers</a><span class="sp"></span>` +
+    `<div style="flex-basis:100%;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-size:20px;font-weight:800;color:var(--ink)">${esc(C.name || "")}</span>` +
+    (C.is_parent ? `<span class="dim">head office · ${num(C.stores)} store${C.stores === 1 ? "" : "s"}</span>` : "") +
+    (C.parent ? `<span class="dim">store of <a class="lnk" href="#customers/${encodeURIComponent(C.parent.id)}">${esc(C.parent.name)}</a></span>` : "") +
+    (d.at_risk ? `<span class="badge risk">At risk</span>` : "") +
+    `<span class="sp" style="flex:1"></span>${C.card_id ? `<a class="csvb" href="customers.html?id=${encodeURIComponent(C.card_id)}" target="_blank" rel="noopener">Open customer card</a>` : ""}</div></div>`;
+  h += `<div class="kpis">` + k2(`Net sales — ${esc(lbl)}`, P.net, "net", money) + k2("Orders", P.orders, "orders", v => num(v)) + k2("Average order", P.aov, "aov", aovF) +
+    (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpPct(P)}</div>` + cmps.map(x => `<div class="c">${gpPct(x.c)} ${esc(x.l)}</div>`).join("") + `</div>` : "") + `</div>`;
+  const gap = d.usual_gap === null || d.usual_gap === undefined ? "—" : num(d.usual_gap) + " days";
+  h += `<div class="kpis">` +
+    `<div class="card kpi"><div class="l">First order</div><div class="v" style="font-size:17px">${esc(d.first_order || "—")}</div><div class="c">whole company · any branch</div></div>` +
+    `<div class="card kpi"><div class="l">Last order</div><div class="v" style="font-size:17px">${esc(d.last_order || "—")}</div><div class="c">${d.days_since === null || d.days_since === undefined ? "&nbsp;" : num(d.days_since) + " days ago"}</div></div>` +
+    `<div class="card kpi"><div class="l">Usual gap between order days</div><div class="v" style="font-size:17px">${gap}</div><div class="c">median · last 12 months · ${num(d.order_days_12m)} order days</div></div>` +
+    `<div class="card kpi"><div class="l">At risk?</div><div class="v" style="font-size:17px">${d.at_risk ? "Yes" : "No"}</div><div class="c">${d.risk && d.risk.rule ? `more than ${d.risk.rule.factor}× the usual gap and at least ${d.risk.rule.min_days} days` : "&nbsp;"}</div></div>` +
+    `</div>`;
+  // 그래프
+  const months = d.months || [];
+  const pm0 = P.from.slice(0, 8) + "01";
+  const sel = selMode;
+  const tg = `<span class="seg2"><a href="${base}" class="${sel ? "" : "cur"}">All history</a><a href="${base}/period" class="${sel ? "cur" : ""}">Selected period</a></span>`;
+  let chart = "", legend = "", mshow = months;
+  if(sel && d.days && d.days.length){
+    chart = `<div class="body chart" id="dchart">${dayChart({ days: d.days, prev: d.ly_days || [] })}`;
+    legend = `<div class="legend"><span><i style="background:var(--accent)"></i>Net sales this period</span><span><i style="background:var(--warn);height:3px"></i>Same date last year</span><span>Faded bar = weekend</span></div>`;
+  } else {
+    if(sel) mshow = months.filter(m => m.m >= pm0 && m.m <= P.to);
+    chart = `<div class="body chart" id="mchart">${monthChart(mshow, cc)}`;
+    legend = `<div class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))"></i>${ERA.omni}</span><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))"></i>${ERA.core}</span><span><i style="background:var(--accent)"></i>${ERA.ims}</span>${cc ? `<span><i style="background:var(--good);height:3px"></i>GP %</span>` : ""}<span>Faded bar = month so far</span>${sel ? "" : `<span>Selected period: ${esc(lbl)}</span>`}</div>`;
+  }
+  h += `<div class="card ancard"><h3>${sel ? "Net sales — selected period" : "Net sales by month — all history"} <span class="sub">${esc(scope)}</span><span class="sp"></span>${tg}<button class="csvb" data-csv="cmonths">CSV</button></h3>${chart}${legend}</div></div>`;
+  // 브랜드 · 매장
+  const bt = d.brands_top || [], bo = d.brands_others || null;
+  const bAll = bt.reduce((a, x) => a + (Number(x.net) || 0), 0) + (bo ? Number(bo.net) || 0 : 0) || 1;
+  const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
+  let left = `<div class="card ancard">${ahead("Brands they buy", esc(lbl) + " · " + esc(scope), "cbrands")}<div class="body"><table><thead><tr><th>Brand</th><th class="r">Net sales</th><th>Share</th><th class="r">Units</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    (bt.length ? bt.map(x => `<tr><td>${esc(x.brand)}</td><td class="r">${money(x.net)}</td><td>${(100 * x.net / bAll).toFixed(1)}%</td><td class="r">${num(x.qty)}</td>${gpc(x)}</tr>`).join("") : `<tr><td colspan="5" class="dim">No product sales in this period.</td></tr>`) +
+    (bo ? `<tr class="dim"><td>All other brands (${bo.brands})</td><td class="r">${money(bo.net)}</td><td>${(100 * bo.net / bAll).toFixed(1)}%</td><td class="r">${num(bo.qty)}</td>${gpc(bo)}</tr>` : "") + `</tbody></table></div></div>`;
+  const ac = d.accounts || null;
+  let right = ac ? `<div class="card ancard">${ahead("Stores", esc(lbl) + (d.pl ? " · compared with " + esc(d.pl) : ""), "cstores")}<div class="body"><table><thead><tr><th>Store</th><th class="r">Net sales</th><th class="r">${d.pl ? "Before" : ""}</th><th class="r">Orders</th>${cc ? `<th class="r">GP %</th>` : ""}<th>Last order</th></tr></thead><tbody>` +
+    ac.map(a => `<tr><td><a class="lnk" href="#customers/${encodeURIComponent(a.key)}">${esc(a.name)}</a>${a.is_head ? ` <span class="dim">(head office)</span>` : ""}</td><td class="r">${money(a.net)}</td><td class="r">${d.pl ? money(a.cmp_net) : ""}</td><td class="r">${num(a.orders)}</td>${gpc(a)}<td>${esc(a.last_order || "never")}</td></tr>`).join("") + `</tbody></table></div></div>` : "";
+  h += ac ? `<div class="two">${left}${right}</div>` : left;
+  const nt = (d.notes || []).filter(n => n.code !== "order_once" && !/_dates$/.test(n.code));
+  const PN = { period: "this period", prev: "comparison", ly: "last year" };
+  if(nt.length) h += `<div class="card ancard">${ahead("About these numbers", "", null)}<div class="body"><ul style="margin:0;padding-left:18px">` +
+    nt.map(n => `<li>${n.part ? "[" + esc(PN[n.part] || n.part) + "] " : ""}${esc(n.note)}${n.amount !== undefined && n.amount !== null ? " — " + money(n.amount) : ""}</li>`).join("") + `</ul></div></div>`;
+  $("box").innerHTML = h;
+  // 말풍선
+  $("box").querySelectorAll("#mchart rect.bar").forEach(r => {
+    r.addEventListener("mousemove", e => { const m = mshow[+r.dataset.i];
+      $("tip").innerHTML = `<b>${esc(m.m)}</b> · ${esc(eraName(m.era))}${m.partial ? " · through " + esc(m.through) : ""}<br>Net ${money(m.net)} · ${num(m.orders)} orders` + (cc ? `<br>GP ${gpPct(m)}` : ""); tipAt(e); });
+    r.addEventListener("mouseleave", () => { $("tip").hidden = true; });
+  });
+  if(sel && d.days){
+    const lm = {}; (d.ly_days || []).forEach(p => { lm[p.d.slice(5)] = p; });
+    $("box").querySelectorAll("#dchart rect.bar").forEach(r => {
+      r.addEventListener("mousemove", e => { const x = d.days[+r.dataset.di], p = lm[x.d.slice(5)];
+        $("tip").innerHTML = `<b>${esc(x.d)}</b><br>Net ${money(x.net)} · ${num(x.orders)} orders` + (cc ? `<br>GP ${gpPct(x)}` : "") + (p ? `<br>Same date last year: ${money(p.net)}` : ""); tipAt(e); });
+      r.addEventListener("mouseleave", () => { $("tip").hidden = true; });
+    });
+  }
+  // CSV
+  $("box").onclick = e => {
+    const btn = e.target.closest("[data-csv]"); if(!btn) return;
+    const keys = CELL_KEYS(d), nm = (C.name || "customer").replace(/\W+/g, "_");
+    if(btn.dataset.csv === "cmonths") csvDownload("customer-" + nm + "-months", ["month", "period"].concat(keys), mshow.map(m => [m.m, eraName(m.era)].concat(keys.map(k => m[k]))));
+    else if(btn.dataset.csv === "cbrands"){ const bk = ["net","sales","credits","qty"].concat(cc ? ["cogs","gp","gp_pct","cost_coverage"] : []);
+      csvDownload("customer-" + nm + "-brands", ["brand"].concat(bk), bt.map(x => [x.brand].concat(bk.map(k => x[k]))).concat(bo ? [["All other brands (" + bo.brands + ")"].concat(bk.map(k => bo[k]))] : [])); }
+    else if(btn.dataset.csv === "cstores") csvDownload("customer-" + nm + "-stores", ["store", "head_office", "last_order"].concat(keys).concat(["compare_net"]), (ac || []).map(a => [a.name, a.is_head, a.last_order].concat(keys.map(k => a[k])).concat([a.cmp_net])));
+  };
+}
+
 /* ── 탭 ── */
 function drawTabs(){
   $("tabs").innerHTML = Object.keys(TABS).map(k => `<a href="#${k}" class="${k === tab ? "cur" : ""}">${esc(TABS[k].label)}</a>`).join("");
 }
+let routeArgs = [];   // an v5 — #customers/<손님>/<period>
 function route(){
-  const want = (location.hash || "").replace("#", "");
+  const parts = (location.hash || "").replace("#", "").split("/").map(decodeURIComponent);
+  const want = parts[0];
+  routeArgs = parts.slice(1).filter(Boolean);
   tab = TABS[want] ? want : "overview";
   drawTabs();
   TABS[tab].load();
