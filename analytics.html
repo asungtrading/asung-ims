@@ -150,7 +150,7 @@
    창구(an v3): an_period(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand) — an-3 · 20261117001000 · 주 · 월 기간(날짜 그대로 · 비교 두 범위) · 회계연도 · 달력 해의 지난해 끝 덜 찬 달
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-17 · an v5";   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-17 · an v6";   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
@@ -220,10 +220,10 @@ async function lastYearSum(f, t, base){
   const lf = addY(f, -1), lt = addY(t, -1), ms = lt.slice(0, 8) + "01";
   const full = lt === ymdOf(+lt.slice(0, 4), +lt.slice(5, 7), mEnd(+lt.slice(0, 4), +lt.slice(5, 7)));
   const calls = [];
-  if(full) calls.push(sb.rpc("an_overview", { ...base, p_from: lf, p_to: lt }).then(r => ({ r, k: "ov" })));
+  if(full) calls.push(crpc("an_overview", { ...base, p_from: lf, p_to: lt }).then(r => ({ r, k: "ov" })));
   else {
-    if(lf < ms) calls.push(sb.rpc("an_overview", { ...base, p_from: lf, p_to: addD(ms, -1) }).then(r => ({ r, k: "ov" })));
-    calls.push(sb.rpc("an_period", { ...base, p_from: lf < ms ? ms : lf, p_to: lt }).then(r => ({ r, k: "pd" })));
+    if(lf < ms) calls.push(crpc("an_overview", { ...base, p_from: lf, p_to: addD(ms, -1) }).then(r => ({ r, k: "ov" })));
+    calls.push(crpc("an_period", { ...base, p_from: lf < ms ? ms : lf, p_to: lt }).then(r => ({ r, k: "pd" })));
   }
   const res = await Promise.all(calls);
   const cells = [];
@@ -244,6 +244,24 @@ function sumCells(cs){
     o.cost_coverage = (sm("sales") ? cs.reduce((a, c) => a + (Number(c.cost_coverage) || 0) * (Number(c.sales) || 0), 0) / sm("sales") : 0);
   }
   return o;
+}
+
+
+/* ── 결과 기억(an v6 · perf-0 #7) — 같은 창구 · 같은 인자 5 분 · Show = 새로 읽기 · 오류는 기억 안 함 ── */
+const RPC_TTL = 5 * 60 * 1000;
+const rpcMemo = new Map();
+let rpcFresh = false;            // Show 를 누르면 다음 읽기 한 번은 기억을 버린다
+let rpcOldest = null;            // 이번 그리기에 쓴 기억 중 가장 오래된 시각
+function crpc(name, args){
+  const key = name + "|" + JSON.stringify(args);
+  const hit = rpcMemo.get(key);
+  if(!rpcFresh && hit && Date.now() - hit.t < RPC_TTL){ rpcOldest = rpcOldest === null ? hit.t : Math.min(rpcOldest, hit.t); return Promise.resolve(hit.r); }
+  return sb.rpc(name, args).then(r => { if(!r.error) rpcMemo.set(key, { t: Date.now(), r }); return r; });
+}
+function memoNote(){
+  const el = $("built"); if(!el) return;
+  const base = el.textContent.replace(/( · )?cached \d+ min ago — Show to refresh$/, "");
+  el.textContent = base + (rpcOldest !== null ? (base ? " · " : "") + "cached " + Math.max(0, Math.round((Date.now() - rpcOldest) / 60000)) + " min ago — Show to refresh" : "");
 }
 
 /* ── CSV(판정 1289 — 받은 숫자 그대로 · 원가 칸은 원가 권한이 있을 때만 응답에 있다) ── */
@@ -341,9 +359,9 @@ async function loadOverview(){
   const useDaily = span <= 93;   // 판정 1301 — 3 달 이하
   const none = Promise.resolve({ data: null, error: null });
   const [ov, dl, pr, ly] = await Promise.all([
-    sb.rpc("an_overview", args),
-    useDaily ? sb.rpc("an_daily", args) : none,
-    per.kind === "short" ? sb.rpc("an_period", { ...args, p_prev_from: per.prev[0], p_prev_to: per.prev[1], p_ly_from: per.ly[0], p_ly_to: per.ly[1] }) : none,
+    crpc("an_overview", args),
+    useDaily ? crpc("an_daily", args) : none,
+    per.kind === "short" ? crpc("an_period", { ...args, p_prev_from: per.prev[0], p_prev_to: per.prev[1], p_ly_from: per.ly[0], p_ly_to: per.ly[1] }) : none,
     per.kind === "year" ? lastYearSum(f, t, base) : Promise.resolve(null)
   ]);
   if(my !== seq) return;
@@ -500,7 +518,7 @@ function renderOverview(d){
     });
   }
   // 브랜드 누르기 → 그 브랜드로 거르기
-  $("box").querySelectorAll("[data-brand]").forEach(a => a.onclick = e => { e.preventDefault(); if(!a.dataset.brand) return; $("brand").value = a.dataset.brand; loadOverview(); });
+  $("box").querySelectorAll("[data-brand]").forEach(a => a.onclick = e => { e.preventDefault(); if(!a.dataset.brand) return; $("brand").value = a.dataset.brand; runLoad(); });
   // CSV
   $("box").querySelectorAll("[data-csv]").forEach(btn => btn.onclick = () => {
     const keys = CELL_KEYS(d);
@@ -537,7 +555,7 @@ async function loadCustomers(){
   if(per.kind === "short"){ cf = per.prev[0]; ct = per.prev[1]; cl = per.vsPrev; }
   else if(per.kind === "year"){ cf = addY(f, -1); ct = addY(t, -1); cl = "same days last year"; }
   $("load").textContent = "Loading…";
-  const { data, error } = await sb.rpc("an_customers", { p_from: f, p_to: t, p_cmp_from: cf, p_cmp_to: ct,
+  const { data, error } = await crpc("an_customers", { p_from: f, p_to: t, p_cmp_from: cf, p_cmp_to: ct,
     p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null, p_limit: 100 });
   if(my !== seq) return;
   $("load").textContent = "";
@@ -638,7 +656,7 @@ async function loadCustomer(key, selMode){
   if(per.kind === "short"){ pf = per.prev[0]; pt = per.prev[1]; lf = per.ly[0]; lt = per.ly[1]; pl = per.vsPrev; ll = per.vsLy; }
   else if(per.kind === "year"){ lf = addY(f, -1); lt = addY(t, -1); ll = "same days last year"; }
   $("load").textContent = "Loading…";
-  const { data, error } = await sb.rpc("an_customer", { p_key: key, p_from: f, p_to: t, p_prev_from: pf, p_prev_to: pt, p_ly_from: lf, p_ly_to: lt, p_warehouse: $("branch").value || null });
+  const { data, error } = await crpc("an_customer", { p_key: key, p_from: f, p_to: t, p_prev_from: pf, p_prev_to: pt, p_ly_from: lf, p_ly_to: lt, p_warehouse: $("branch").value || null });
   if(my !== seq) return;
   $("load").textContent = "";
   if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}<br><a class="lnk" href="#customers">← All customers</a></div>`; return; }
@@ -729,6 +747,10 @@ function renderCustomer(d, key, selMode){
 }
 
 /* ── 탭 ── */
+async function runLoad(){   // an v6 — 기억 표시를 위해 모든 읽기를 이 길로
+  rpcOldest = null;
+  try { await TABS[tab].load(); } finally { rpcFresh = false; memoNote(); }
+}
 function drawTabs(){
   $("tabs").innerHTML = Object.keys(TABS).map(k => `<a href="#${k}" class="${k === tab ? "cur" : ""}">${esc(TABS[k].label)}</a>`).join("");
 }
@@ -739,7 +761,7 @@ function route(){
   routeArgs = parts.slice(1).filter(Boolean);
   tab = TABS[want] ? want : "overview";
   drawTabs();
-  TABS[tab].load();
+  runLoad();
 }
 
 /* ── 시작 ── */
@@ -755,10 +777,10 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   const { data: wh } = await sb.from("ref_warehouse").select("id,name").eq("is_active", true).order("name");
   WH = (wh || []).filter(w => /^Asung Trading Inc\.$/.test(w.name) || /Edmonton/i.test(w.name));   // 판매 지점 둘만(an-1c — 그 밖은 창구가 거부)
   $("branch").insertAdjacentHTML("beforeend", WH.map(w => `<option value="${esc(w.id)}">${esc(/Edmonton/i.test(w.name) ? "Edmonton" : "Toronto")}</option>`).join(""));
-  $("period").onchange = () => { const c = $("period").value === "custom"; $("pFrom").hidden = !c; $("pTo").hidden = !c; if(!c) TABS[tab].load(); };
-  $("branch").onchange = () => TABS[tab].load();
-  $("apply").onclick = () => TABS[tab].load();
-  $("brand").addEventListener("keydown", e => { if(e.key === "Enter") TABS[tab].load(); });
+  $("period").onchange = () => { const c = $("period").value === "custom"; $("pFrom").hidden = !c; $("pTo").hidden = !c; if(!c) runLoad(); };
+  $("branch").onchange = () => runLoad();
+  $("apply").onclick = () => { rpcFresh = true; runLoad(); };   // an v6 — Show = 새로 읽기
+  $("brand").addEventListener("keydown", e => { if(e.key === "Enter") runLoad(); });
   $("print").onclick = () => window.print();
   window.addEventListener("hashchange", route);
   route();
