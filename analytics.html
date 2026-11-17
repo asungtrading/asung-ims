@@ -98,10 +98,16 @@
     <h1>Analytics</h1>
     <span class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <select id="period" title="Period">
-        <option value="all">All history (2022 –)</option>
+        <option value="tw">This week</option>
+        <option value="lw">Last week</option>
+        <option value="tm" selected>This month</option>
+        <option value="lm">Last month</option>
+        <option value="tfy">This fiscal year (from Sep 1)</option>
+        <option value="lfy">Last fiscal year</option>
         <option value="l12">Last 12 months</option>
         <option value="ytd">This year</option>
         <option value="ly">Last year</option>
+        <option value="all">All history (2022 –)</option>
         <option value="custom">Custom months…</option>
       </select>
       <input type="month" id="pFrom" hidden title="From month"><input type="month" id="pTo" hidden title="To month">
@@ -132,9 +138,10 @@
    판정 1290: 탭이 늘어나는 틀 — TABS 에 한 줄 + 창구 하나(an_<탭>) · 탭마다 주소 #<탭> · 고르기(기간 · 지점 · 브랜드)는 탭이 같이 씀 · 누를 때만 읽는다
    판정 1292 · 1297: 매출 = 제품 줄 · 세전 · CAD · 크레딧은 크레딧 날짜 · 오더 = 제품 줄 있는 오더 · Not recorded 지점 · 이번 달 · 연 누계는 오늘까지 잘라 지난해 같은 날과
    창구: an_overview(p_from, p_to, p_warehouse, p_brand) — an-1c · 20261116130000
+   창구(an v3): an_period(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand) — an-3 · 20261117001000 · 주 · 월 기간(날짜 그대로 · 비교 두 범위) · 회계연도 · 달력 해의 지난해 끝 덜 찬 달
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-17 · an v2";   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-17 · an v3";   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
@@ -159,18 +166,74 @@ function change(a, b){
   return `<span class="${r >= 0 ? "up" : "dn"}">${r >= 0 ? "▲" : "▼"} ${Math.abs(r).toFixed(1)}%</span>`;
 }
 
-/* ── 기간 고르기 → p_from · p_to ── */
+/* ── 기간 고르기(an v3 · 판정 1305 ~ 1307) ──
+   「오늘」 = 토론토 날짜(창구의 ims_today 와 같게) · 날짜 셈은 UTC 자정끼리(서머타임에 하루 밀리지 않게)
+   kind: short = 주 · 월(an_period · 비교 두 줄) · year = 회계연도 · 달력 해(비교 = 지난해 같은 날까지 한 줄) · none = 비교 없음 */
+const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+const D = s => new Date(s + "T00:00:00Z");
+const S = d => d.toISOString().slice(0, 10);
+const addD = (s, n) => { const d = D(s); d.setUTCDate(d.getUTCDate() + n); return S(d); };
+const mEnd = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();            // m = 1 ~ 12
+const ymdOf = (y, m, d) => y + "-" + pad(m) + "-" + pad(d);
+const addY = (s, n) => { const y = +s.slice(0, 4) + n, m = +s.slice(5, 7), d = +s.slice(8, 10); return ymdOf(y, m, Math.min(d, mEnd(y, m))); };   // 2 월 29 일 − 1 년 = 2 월 28 일
+const fmtD = s => MON[+s.slice(5, 7) - 1] + " " + (+s.slice(8, 10));
+const fmtR = (f, t) => f === t ? fmtD(f) + " " + f.slice(0, 4) : (f.slice(0, 4) === t.slice(0, 4) ? fmtD(f) + " – " + fmtD(t) + " " + t.slice(0, 4) : fmtD(f) + " " + f.slice(0, 4) + " – " + fmtD(t) + " " + t.slice(0, 4));
 function period(){
-  const v = $("period").value, t = new Date();
-  if(v === "l12") return [ymd(new Date(t.getFullYear(), t.getMonth() - 11, 1)), ymd(t)];
-  if(v === "ytd") return [t.getFullYear() + "-01-01", ymd(t)];
-  if(v === "ly") return [(t.getFullYear() - 1) + "-01-01", (t.getFullYear() - 1) + "-12-31"];
+  const v = $("period").value, t = todayTO(), Y = +t.slice(0, 4), M = +t.slice(5, 7), dd = +t.slice(8, 10);
+  const dow = D(t).getUTCDay();                       // 0 = 일요일(판정 1305 — 주는 일요일 시작)
+  if(v === "tw"){ const f = addD(t, -dow);
+    return { f, t, kind: "short", name: "This week", prev: [addD(f, -7), addD(t, -7)], ly: [addD(f, -364), addD(t, -364)], vsPrev: "last week (same days)", vsLy: "same week last year" }; }
+  if(v === "lw"){ const f = addD(t, -dow - 7), e = addD(f, 6);
+    return { f, t: e, kind: "short", name: "Last week", prev: [addD(f, -7), addD(e, -7)], ly: [addD(f, -364), addD(e, -364)], vsPrev: "the week before", vsLy: "same week last year" }; }
+  if(v === "tm"){ const f = ymdOf(Y, M, 1), py = M === 1 ? Y - 1 : Y, pm = M === 1 ? 12 : M - 1;
+    return { f, t, kind: "short", name: "This month", prev: [ymdOf(py, pm, 1), ymdOf(py, pm, Math.min(dd, mEnd(py, pm)))], ly: [addY(f, -1), addY(t, -1)], vsPrev: "same days last month", vsLy: "same days last year" }; }
+  if(v === "lm"){ const ly0 = M === 1 ? Y - 1 : Y, lm0 = M === 1 ? 12 : M - 1, f = ymdOf(ly0, lm0, 1), e = ymdOf(ly0, lm0, mEnd(ly0, lm0));
+    const py = lm0 === 1 ? ly0 - 1 : ly0, pm = lm0 === 1 ? 12 : lm0 - 1;
+    return { f, t: e, kind: "short", name: "Last month", prev: [ymdOf(py, pm, 1), ymdOf(py, pm, mEnd(py, pm))], ly: [addY(f, -1), addY(e, -1)], vsPrev: MON[pm - 1] + " " + py, vsLy: MON[lm0 - 1] + " " + (ly0 - 1) }; }
+  const fy = M >= 9 ? Y : Y - 1;                      // 회계연도는 9 월 1 일 시작
+  if(v === "tfy") return { f: fy + "-09-01", t, kind: "year", name: "This fiscal year" };
+  if(v === "lfy") return { f: (fy - 1) + "-09-01", t: fy + "-08-31", kind: "year", name: "Last fiscal year" };
+  if(v === "ytd") return { f: Y + "-01-01", t, kind: "year", name: "This year" };
+  if(v === "ly")  return { f: (Y - 1) + "-01-01", t: (Y - 1) + "-12-31", kind: "year", name: "Last year" };
+  if(v === "l12") return { f: ymdOf(M === 12 ? Y : Y - 1, M === 12 ? 1 : M + 1, 1), t, kind: "none", name: "Last 12 months" };
   if(v === "custom"){
-    const f = $("pFrom").value || "2022-01", to = $("pTo").value || (t.getFullYear() + "-" + pad(t.getMonth() + 1));
-    const e = new Date(+to.slice(0, 4), +to.slice(5, 7), 0);
-    return [f + "-01", ymd(e)];
+    const cf = $("pFrom").value || "2022-01", ct = $("pTo").value || t.slice(0, 7);
+    return { f: cf + "-01", t: ymdOf(+ct.slice(0, 4), +ct.slice(5, 7), mEnd(+ct.slice(0, 4), +ct.slice(5, 7))), kind: "none", name: "Custom" };
   }
-  return ["2022-01-01", ymd(t)];
+  return { f: "2022-01-01", t, kind: "none", name: "All history" };
+}
+/* 시대 이름 — 판정 1303(옛 시스템 이름 대신 기간) · 창구는 코드(omni · core · ims · all)만 준다 */
+const ERA = { omni: "2022 – Oct 2025", core: "Nov 2025 – Oct 2026", ims: "IMS (Nov 2026 –)", all: "All periods" };
+const eraName = e => ERA[e] || e || "";
+/* 지난해 같은 날까지(회계연도 · 달력 해 · an-3 이견 1) — 꽉 찬 달은 an_overview 달 칸 · 끝의 덜 찬 달은 an_period · 화면은 더하기만 */
+async function lastYearSum(f, t, base){
+  const lf = addY(f, -1), lt = addY(t, -1), ms = lt.slice(0, 8) + "01";
+  const full = lt === ymdOf(+lt.slice(0, 4), +lt.slice(5, 7), mEnd(+lt.slice(0, 4), +lt.slice(5, 7)));
+  const calls = [];
+  if(full) calls.push(sb.rpc("an_overview", { ...base, p_from: lf, p_to: lt }).then(r => ({ r, k: "ov" })));
+  else {
+    if(lf < ms) calls.push(sb.rpc("an_overview", { ...base, p_from: lf, p_to: addD(ms, -1) }).then(r => ({ r, k: "ov" })));
+    calls.push(sb.rpc("an_period", { ...base, p_from: lf < ms ? ms : lf, p_to: lt }).then(r => ({ r, k: "pd" })));
+  }
+  const res = await Promise.all(calls);
+  const cells = [];
+  for(const x of res){
+    if(x.r.error) return { error: x.r.error };
+    if(x.k === "ov") (x.r.data.months || []).forEach(m => cells.push(m)); else cells.push(x.r.data.period);
+  }
+  return { from: lf, to: lt, cell: sumCells(cells) };
+}
+/* 칸 여러 개를 하나로(달 칸 합 — 화면이 이미 고른 기간을 이렇게 낸다) · GP 는 원가가 있는 칸끼리 · 원가 키는 받은 칸에 있을 때만 */
+function sumCells(cs){
+  const sm = k => cs.reduce((a, c) => a + (Number(c[k]) || 0), 0);
+  const o = { net: sm("net"), sales: sm("sales"), credits: sm("credits"), other: sm("other"), qty: sm("qty"), orders: sm("orders") };
+  o.aov = o.orders ? o.net / o.orders : null;
+  if(cs.some(c => c.gp !== undefined)){
+    const wc = cs.filter(c => c.gp !== null && c.gp !== undefined), g = wc.reduce((a, c) => a + Number(c.gp), 0), nn = wc.reduce((a, c) => a + Number(c.net), 0);
+    o.gp = wc.length ? g : null; o.gp_pct = nn ? 100 * g / nn : null;
+    o.cost_coverage = (sm("sales") ? cs.reduce((a, c) => a + (Number(c.cost_coverage) || 0) * (Number(c.sales) || 0), 0) / sm("sales") : 0);
+  }
+  return o;
 }
 
 /* ── CSV(판정 1289 — 받은 숫자 그대로 · 원가 칸은 원가 권한이 있을 때만 응답에 있다) ── */
@@ -256,19 +319,30 @@ function yearChart(ybm){
 }
 
 /* ── 매출 개요 탭 ── */
+let per = null, pd = null, lyc = null;   // an v3 — 고른 기간 · an_period 응답 · 지난해 합(해 기간)
 async function loadOverview(){
   const my = ++seq;
-  const [f, t] = period();
+  per = period();
+  const f = per.f, t = per.t;
   $("load").textContent = "Loading…";
-  const args = { p_from: f, p_to: t, p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null };
-  const span = Math.round((Math.min(new Date(t + "T00:00:00"), new Date()) - new Date(f + "T00:00:00")) / 86400000) + 1;
+  const base = { p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null };
+  const args = { ...base, p_from: f, p_to: t };
+  const span = Math.round((Math.min(D(t), D(todayTO())) - D(f)) / 86400000) + 1;
   const useDaily = span <= 93;   // 판정 1301 — 3 달 이하
-  const [ov, dl] = await Promise.all([sb.rpc("an_overview", args), useDaily ? sb.rpc("an_daily", args) : Promise.resolve({ data: null, error: null })]);
+  const none = Promise.resolve({ data: null, error: null });
+  const [ov, dl, pr, ly] = await Promise.all([
+    sb.rpc("an_overview", args),
+    useDaily ? sb.rpc("an_daily", args) : none,
+    per.kind === "short" ? sb.rpc("an_period", { ...args, p_prev_from: per.prev[0], p_prev_to: per.prev[1], p_ly_from: per.ly[0], p_ly_to: per.ly[1] }) : none,
+    per.kind === "year" ? lastYearSum(f, t, base) : Promise.resolve(null)
+  ]);
   if(my !== seq) return;
   $("load").textContent = "";
-  const error = ov.error, data = ov.data;
+  const error = ov.error || pr.error, data = ov.data;
   if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}</div>`; return; }
   daily = dl.error ? null : dl.data;
+  pd = pr.data;
+  lyc = ly && !ly.error ? ly : null;
   last = data;
   $("built").textContent = data.summary_built_at ? "History summary built " + String(data.summary_built_at).slice(0, 16).replace("T", " ") + " UTC" : "";
   if(!data.brand && $("brandList").children.length === 0) $("brandList").innerHTML = (data.brands_top || []).map(b => `<option value="${esc(b.brand)}">`).join("");
@@ -281,39 +355,40 @@ function renderOverview(d){
   let h = "";
 
   const k = (label, va, vb, fmt, vsLabel) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div><div class="c">${vb === undefined ? "&nbsp;" : change(va, vb) + " vs " + fmt(vb) + " " + (vsLabel || "last year")}</div></div>`;
-  // 고른 기간(an v1a) — 월 칸을 더한 값 · 이번 달 하나면 지난해 같은 날까지와
+  /* an v3 — 비교 줄 여럿(판정 1306 · 1307): cs = [{c: 칸, l: 글}] · 칸이 없으면 그 줄을 안 그린다 */
+  const k2 = (label, va, key, fmt, cs) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div>` +
+    (cs.filter(x => x.c).map(x => `<div class="c">${change(va, x.c[key])} vs ${fmt(x.c[key])} ${esc(x.l)}</div>`).join("") || `<div class="c">&nbsp;</div>`) + `</div>`;
+  const aovF = v => v === null || v === undefined ? "—" : "$" + num(v, 0);
+  const gpF = c => c && c.gp_pct !== undefined && c.gp_pct !== null ? Number(c.gp_pct).toFixed(1) + "%" : "—";
+  const covT = c => c && c.cost_coverage !== undefined && c.cost_coverage !== null && c.cost_coverage < 0.95 ? `cost known for ${Math.round(c.cost_coverage * 100)}% of sales` : "";
   const ms = d.months || [];
-  if(ms.length){
-    const sum = f => ms.reduce((s2, m) => s2 + (Number(m[f]) || 0), 0);
-    const pNet = sum("net"), pOrd = sum("orders"), pAov = pOrd ? pNet / pOrd : null;
-    let cmp = null, vsl = "same days last year";
-    const curY = ms.length === 1 ? (d.year_by_month || []).find(y => y.year === +ms[0].m.slice(0, 4)) : null;
-    const curC = curY ? curY.months[+ms[0].m.slice(5, 7) - 1] : null;
-    if(curC && curC.cut && curC.prev_year_same_day) cmp = curC.prev_year_same_day;
+  let P = null, lbl = "", cmps = [];
+  if(per && per.kind === "short" && pd && pd.period){              // 주 · 월 — an_period(날짜 그대로)
+    P = pd.period;
+    lbl = per.name + " · " + fmtR(P.from, P.to);
+    cmps = [{ c: pd.prev, l: per.vsPrev }, { c: pd.ly, l: per.vsLy }];
+  } else if(ms.length){                                            // 그 밖 — 달 칸 합(an v1a 그대로)
+    P = sumCells(ms);
     const first = ms[0].m, lastM = ms[ms.length - 1];
-    const lbl = (first === lastM.m ? MON[+first.slice(5, 7) - 1] + " " + first.slice(0, 4) : first + " → " + lastM.m) + (lastM.partial ? " (to " + lastM.through.slice(5) + ")" : "");
-    let gpTxt = "—", covTxt = "";
-    if(cc){
-      const withCost = ms.filter(m => m.gp !== null && m.gp !== undefined);
-      const g = withCost.reduce((s2, m) => s2 + Number(m.gp), 0), nn = withCost.reduce((s2, m) => s2 + Number(m.net), 0);
-      gpTxt = nn ? (100 * g / nn).toFixed(1) + "%" : "—";
-      const cov = ms.reduce((s2, m) => s2 + (Number(m.cost_coverage) || 0) * (Number(m.sales) || 0), 0) / (sum("sales") || 1);
-      if(cov < 0.95) covTxt = "cost known for " + Math.round(cov * 100) + "% of sales";
-    }
+    lbl = per && per.kind !== "none" ? per.name + " · " + fmtR(per.f, lastM.partial ? lastM.through : per.t) : (first === lastM.m ? MON[+first.slice(5, 7) - 1] + " " + first.slice(0, 4) : first + " → " + lastM.m) + (lastM.partial ? " (to " + lastM.through.slice(5) + ")" : "");
+    if(lyc) cmps = [{ c: lyc.cell, l: "same days last year" }];
+  }
+  if(P){
     h += `<div class="kpis">` +
-      k(`Net sales — ${lbl}`, pNet, cmp ? cmp.net : undefined, money, vsl) +
-      k("Orders", pOrd, cmp ? cmp.orders : undefined, v => num(v), vsl) +
-      k("Average order", pAov, cmp ? cmp.aov : undefined, v => v === null || v === undefined ? "—" : "$" + num(v, 0), vsl) +
-      (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpTxt}</div><div class="c">${covTxt || "&nbsp;"}</div></div>` : "") +
+      k2(`Net sales — ${esc(lbl)}`, P.net, "net", money, cmps) +
+      k2("Orders", P.orders, "orders", v => num(v), cmps) +
+      k2("Average order", P.aov, "aov", aovF, cmps) +
+      (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpF(P)}</div>` +
+            (cmps.filter(x => x.c).map(x => `<div class="c">${gpF(x.c)} ${esc(x.l)}</div>`).join("") || "") +
+            `<div class="c">${covT(P) || (cmps.length ? "" : "&nbsp;")}</div></div>` : "") +
       `</div>`;
     // 나눔 줄(an v1b) — 순매출에서 빼는 것까지 보이게
-    const pSales = sum("sales"), pCred = sum("credits"), pOther = sum("other");
     const it = (l, v, tot) => `<div class="it${tot ? " tot" : ""}"><div class="l">${l}</div><div class="v">${money(v)}</div></div>`;
     const op = o => `<div class="op">${o}</div>`;
     h += `<div class="card brk">` +
-      it("Product sales", pSales) + op("−") + it("Credits (returns)", Math.abs(pCred)) + op("=") + it("Net sales", pNet, true) +
-      op("+") + it("Freight, service, surcharge, order discounts", pOther) + op("=") + it("Total before tax", pNet + pOther, true) +
-      `<div class="nt">${esc(lbl)} · tax is not included anywhere on this screen · Omni months have no freight lines (they were not kept), so "Total before tax" there equals net sales.</div></div>`;
+      it("Product sales", P.sales) + op("−") + it("Credits (returns)", Math.abs(Number(P.credits) || 0)) + op("=") + it("Net sales", P.net, true) +
+      op("+") + it("Freight, service, surcharge, order discounts", P.other) + op("=") + it("Total before tax", (Number(P.net) || 0) + (Number(P.other) || 0), true) +
+      `<div class="nt">${esc(lbl)} · tax is not included anywhere on this screen · months before Nov 2025 have no freight lines (they were not kept), so "Total before tax" there equals net sales.</div></div>`;
   }
   // 연 누계
   const a = d.ytd && d.ytd.this, b = d.ytd && d.ytd.last;
@@ -335,9 +410,9 @@ function renderOverview(d){
       `<div class="legend"><span><i style="background:var(--accent)"></i>Net sales this period</span><span><i style="background:var(--warn);height:3px"></i>Same date last year</span><span>Faded bar = weekend</span></div>` +
       ((daily.notes || []).length ? `<div class="legend">${daily.notes.map(x => `<span>${esc(x.note)}</span>`).join("")}</div>` : "") + `</div></div>`;
   }
-  h += `<div class="card ancard">${head("Net sales by month", `${scope} · ${months.length ? months[0].m + " → " + months[months.length - 1].m : ""}`, "months")}` +
+  if(months.length > 1) h += `<div class="card ancard">${head("Net sales by month", `${scope} · ${months[0].m + " → " + months[months.length - 1].m}`, "months")}` +
     `<div class="body chart" id="mchart">${monthChart(months, cc)}` +
-    `<div class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))"></i>Omni (2022 – Oct 2025)</span><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))"></i>Core (Nov 2025 – Oct 2026)</span><span><i style="background:var(--accent)"></i>IMS (Nov 2026 –)</span>${cc ? `<span><i style="background:var(--good);height:3px"></i>GP % (right · months with most cost known)</span>` : ""}<span>Faded bar = month so far</span></div></div></div>`;
+    `<div class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))"></i>${ERA.omni}</span><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))"></i>${ERA.core}</span><span><i style="background:var(--accent)"></i>${ERA.ims}</span>${cc ? `<span><i style="background:var(--good);height:3px"></i>GP % (right · months with most cost known)</span>` : ""}<span>Faded bar = month so far</span></div></div></div>`;
 
   // 연도 비교
   const ybm = d.year_by_month || [];
@@ -359,34 +434,44 @@ function renderOverview(d){
   }
 
   // 지점 · 브랜드
-  const br = d.branches || [], totNet = br.reduce((s, x) => s + (Number(x.net) || 0), 0) || 1;
-  const brT = `<div class="card ancard">${head("By branch", scope, "branches")}<div class="body"><table><thead><tr><th>Branch</th><th class="r">Net sales</th><th>Share</th><th class="r">Orders</th><th class="r">Avg order</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+  const SRC = (per && per.kind === "short" && pd && pd.period) ? pd.period : d;   // an v3 — 주 · 월은 날짜 그대로(an_period · 키가 같다)
+  const pscope = SRC === d ? scope : scope + " · " + fmtR(SRC.from, SRC.to);
+  const br = SRC.branches || [], totNet = br.reduce((s, x) => s + (Number(x.net) || 0), 0) || 1;
+  const brT = `<div class="card ancard">${head("By branch", pscope, "branches")}<div class="body"><table><thead><tr><th>Branch</th><th class="r">Net sales</th><th>Share</th><th class="r">Orders</th><th class="r">Avg order</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
     br.map(x => `<tr><td>${esc(x.label)}</td><td class="r">${money(x.net)}</td><td>${x.net > 0 ? `<span class="share" style="width:${Math.round(80 * x.net / totNet)}px"></span>${(100 * x.net / totNet).toFixed(1)}%` : ""}</td><td class="r">${num(x.orders)}</td><td class="r">${x.aov ? "$" + num(x.aov) : "—"}</td>${cc ? `<td class="r">${x.branch === "none" ? '<span class="dim" title="Mostly credits with no branch — GP % is not meaningful">—</span>' : gpPct(x)}</td>` : ""}</tr>`).join("") +
     `</tbody></table>${br.some(x => x.branch === "none") ? `<div class="legend"><span>Not recorded = documents with no branch in the old systems — mostly credits.</span></div>` : ""}</div></div>`;
-  const bt = d.brands_top || [], bMax = Math.max(1, ...bt.map(x => Number(x.net) || 0)), bAll = bt.reduce((s, x) => s + (Number(x.net) || 0), 0) + (d.brands_others ? Number(d.brands_others.net) || 0 : 0) || 1;
-  const bdT = `<div class="card ancard">${head("Top brands", (d.brands_others ? `top ${bt.length} of ${bt.length + d.brands_others.brands}` : `${bt.length}`) + " · " + scope, "brands")}<div class="body"><table><thead><tr><th>Brand</th><th class="r">Net sales</th><th>Share</th><th class="r">Units</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+  const bt = SRC.brands_top || [], bo = SRC.brands_others || null, bMax = Math.max(1, ...bt.map(x => Number(x.net) || 0)), bAll = bt.reduce((s, x) => s + (Number(x.net) || 0), 0) + (bo ? Number(bo.net) || 0 : 0) || 1;
+  const bdT = `<div class="card ancard">${head("Top brands", (bo ? `top ${bt.length} of ${bt.length + bo.brands}` : `${bt.length}`) + " · " + pscope, "brands")}<div class="body"><table><thead><tr><th>Brand</th><th class="r">Net sales</th><th>Share</th><th class="r">Units</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
     bt.map(x => `<tr><td><a class="lnk" href="#" data-brand="${esc(x.brand === "(no brand)" ? "" : x.brand)}">${esc(x.brand)}</a></td><td class="r">${money(x.net)}</td><td><span class="share" style="width:${Math.max(1, Math.round(80 * x.net / bMax))}px"></span>${(100 * x.net / bAll).toFixed(1)}%</td><td class="r">${num(x.qty)}</td>${cc ? `<td class="r">${gpPct(x)}</td>` : ""}</tr>`).join("") +
-    (d.brands_others ? `<tr><td class="dim">All other brands (${d.brands_others.brands})</td><td class="r">${money(d.brands_others.net)}</td><td>${(100 * d.brands_others.net / bAll).toFixed(1)}%</td><td class="r">${num(d.brands_others.qty)}</td>${cc ? `<td class="r">${gpPct(d.brands_others)}</td>` : ""}</tr>` : "") +
+    (bo ? `<tr><td class="dim">All other brands (${bo.brands})</td><td class="r">${money(bo.net)}</td><td>${(100 * bo.net / bAll).toFixed(1)}%</td><td class="r">${num(bo.qty)}</td>${cc ? `<td class="r">${gpPct(bo)}</td>` : ""}</tr>` : "") +
     `</tbody></table></div></div>`;
   h += `<div class="two">${brT}${bdT}</div>`;
 
   // 빈 곳 · 출처
-  const gaps = d.gaps || [], src = d.sources || [];
+  const PN = { period: "this period", prev: "comparison", ly: "last year" };
+  const gaps = (SRC !== d && pd ? (pd.notes || []).map(n => ({ ...n, note: (n.part ? "[" + PN[n.part] + "] " : "") + n.note })) : (d.gaps || [])), src = d.sources || [];
   h += `<div class="card ancard">${head("About these numbers", "gaps in the data and where each period comes from", "gaps")}<div class="body">` +
     (gaps.length ? `<ul class="gaps">${gaps.map(g => `<li><span class="code">${esc(g.code)}</span>${esc(g.note)}${g.from ? ` <span class="dim">(${esc(g.from)}${g.to && g.to !== g.from ? " → " + esc(g.to) : ""})</span>` : ""}</li>`).join("")}</ul>` : "") +
-    (src.length ? `<table style="margin-top:8px"><thead><tr><th>Period</th><th>From</th><th>To</th><th>What an order is</th><th>Cost</th></tr></thead><tbody>${src.map(s => `<tr><td>${esc(s.era)}</td><td>${esc(s.from || "")}</td><td>${esc(s.to || "")}</td><td>${esc(s.order || "")}</td><td>${esc(s.cost || "")}</td></tr>`).join("")}</tbody></table>` : "") +
+    (src.length ? `<table style="margin-top:8px"><thead><tr><th>Period</th><th>From</th><th>To</th><th>What an order is</th><th>Cost</th></tr></thead><tbody>${src.map(s => `<tr><td>${esc(eraName(s.era))}</td><td>${esc(s.from || "")}</td><td>${esc(s.to || "")}</td><td>${esc(s.order || "")}</td><td>${esc(s.cost || "")}</td></tr>`).join("")}</tbody></table>` : "") +
     `<div class="legend"><span>Net sales = product lines before tax, after line discounts, in CAD · credits count on the credit date · freight, service and surcharge lines are not in net sales.</span></div></div></div>`;
 
   $("box").innerHTML = h;
 
-  // 막대 위 말풍선
+  // 막대 위 말풍선 — an v3: 글을 넣은 뒤 크기를 재서 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(화면 zoom 110 % 라 innerWidth 를 zoom 으로 나눈다)
   const tip = $("tip");
+  const placeTip = e => {
+    tip.hidden = false;
+    const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+    const vw = window.innerWidth / z, vh = window.innerHeight / z, x = e.clientX / z, y = e.clientY / z, w = tip.offsetWidth, hh = tip.offsetHeight;
+    tip.style.left = Math.max(4, x + 12 + w > vw - 6 ? x - 12 - w : x + 12) + "px";
+    tip.style.top = Math.max(4, y + 12 + hh > vh - 6 ? y - 12 - hh : y + 12) + "px";
+  };
   $("box").querySelectorAll("#mchart rect.bar").forEach(r => {
     r.addEventListener("mousemove", e => {
       const m = months[+r.dataset.i];
-      tip.innerHTML = `<b>${esc(m.m)}</b> · ${esc(m.era)}${m.partial ? " · through " + esc(m.through) : ""}<br>Product sales ${money(m.sales)} − credits ${money(Math.abs(Number(m.credits) || 0))} = <b>net ${money(m.net)}</b><br>+ freight etc. ${money(m.other)} = ${money((Number(m.net) || 0) + (Number(m.other) || 0))} before tax<br>${num(m.orders)} orders · avg ${m.aov ? "$" + num(m.aov) : "—"}` +
+      tip.innerHTML = `<b>${esc(m.m)}</b> · ${esc(eraName(m.era))}${m.partial ? " · through " + esc(m.through) : ""}<br>Product sales ${money(m.sales)} − credits ${money(Math.abs(Number(m.credits) || 0))} = <b>net ${money(m.net)}</b><br>+ freight etc. ${money(m.other)} = ${money((Number(m.net) || 0) + (Number(m.other) || 0))} before tax<br>${num(m.orders)} orders · avg ${m.aov ? "$" + num(m.aov) : "—"}` +
         (cc ? `<br>GP ${m.gp === null || m.gp === undefined ? "—" : money(m.gp)} · ${gpPct(m)} · cost known ${m.cost_coverage === undefined || m.cost_coverage === null ? "—" : Math.round(m.cost_coverage * 100) + "%"}` : "");
-      tip.hidden = false; tip.style.left = Math.min(window.innerWidth - 260, e.clientX + 12) + "px"; tip.style.top = (e.clientY + 12) + "px";
+      placeTip(e);
     });
     r.addEventListener("mouseleave", () => { tip.hidden = true; });
   });
@@ -395,10 +480,10 @@ function renderOverview(d){
     $("box").querySelectorAll("#dchart rect.bar").forEach(r => {
       r.addEventListener("mousemove", e => {
         const x = daily.days[+r.dataset.di], p = pm[x.d.slice(5)];
-        tip.innerHTML = `<b>${esc(x.d)}</b> · ${esc(x.era)}<br>Product sales ${money(x.sales)} − credits ${money(Math.abs(Number(x.credits) || 0))} = <b>net ${money(x.net)}</b><br>+ freight etc. ${money(x.other)} · ${num(x.orders)} orders` +
+        tip.innerHTML = `<b>${esc(x.d)}</b> · ${esc(eraName(x.era))}<br>Product sales ${money(x.sales)} − credits ${money(Math.abs(Number(x.credits) || 0))} = <b>net ${money(x.net)}</b><br>+ freight etc. ${money(x.other)} · ${num(x.orders)} orders` +
           (cc && x.gp_pct !== undefined ? `<br>GP % ${x.gp_pct === null ? "—" : Number(x.gp_pct).toFixed(1) + "%"}` : "") +
           (p ? `<br>Last year ${esc(p.d)}: net ${money(p.net)} · ${num(p.orders)} orders ${change(Number(x.net), Number(p.net))}` : "");
-        tip.hidden = false; tip.style.left = Math.min(window.innerWidth - 300, e.clientX + 12) + "px"; tip.style.top = (e.clientY + 12) + "px";
+        placeTip(e);
       });
       r.addEventListener("mouseleave", () => { tip.hidden = true; });
     });
@@ -411,9 +496,9 @@ function renderOverview(d){
     if(btn.dataset.csv === "days" && daily){
       const pm = {}; (daily.prev || []).forEach(p => { pm[p.d.slice(5)] = p; });
       csvDownload("daily", ["date","era"].concat(keys.filter(k => k !== "aov" || true), ["last_year_date","last_year_net","last_year_orders"]),
-        daily.days.map(x => { const p = pm[x.d.slice(5)]; return [x.d, x.era].concat(keys.map(k => x[k]), [p ? p.d : "", p ? p.net : "", p ? p.orders : ""]); }));
+        daily.days.map(x => { const p = pm[x.d.slice(5)]; return [x.d, eraName(x.era)].concat(keys.map(k => x[k]), [p ? p.d : "", p ? p.net : "", p ? p.orders : ""]); }));
     }
-    else if(btn.dataset.csv === "months") csvDownload("monthly", ["month","era"].concat(keys, ["partial_through"]), months.map(m => [m.m, m.era].concat(keys.map(k => m[k]), [m.partial ? m.through : ""])));
+    else if(btn.dataset.csv === "months") csvDownload("monthly", ["month","era"].concat(keys, ["partial_through"]), months.map(m => [m.m, eraName(m.era)].concat(keys.map(k => m[k]), [m.partial ? m.through : ""])));
     else if(btn.dataset.csv === "years"){
       const rows = []; ybm.forEach(yr => yr.months.forEach((c, i) => { if(c) rows.push([yr.year, i + 1].concat(keys.map(k => c[k]), [c.cut ? c.through : "", c.prev_year_same_day ? c.prev_year_same_day.net : ""])); }));
       csvDownload("year-by-month", ["year","month"].concat(keys, ["cut_through","same_days_last_year_net"]), rows);
@@ -421,7 +506,7 @@ function renderOverview(d){
     else if(btn.dataset.csv === "branches") csvDownload("branches", ["branch"].concat(keys), br.map(x => [x.label].concat(keys.map(k => x[k]))));
     else if(btn.dataset.csv === "brands"){
       const bk = ["net","sales","credits","qty"].concat(cc ? ["cogs","gp","gp_pct","cost_coverage"] : []);
-      csvDownload("brands", ["brand"].concat(bk), bt.map(x => [x.brand].concat(bk.map(k => x[k]))).concat(d.brands_others ? [["All other brands (" + d.brands_others.brands + ")"].concat(bk.map(k => d.brands_others[k]))] : []));
+      csvDownload("brands", ["brand"].concat(bk), bt.map(x => [x.brand].concat(bk.map(k => x[k]))).concat(bo ? [["All other brands (" + bo.brands + ")"].concat(bk.map(k => bo[k]))] : []));
     }
     else if(btn.dataset.csv === "gaps") csvDownload("gaps", ["code","from","to","note","amount","count"], gaps.map(g => [g.code, g.from, g.to, g.note, g.amount, g.count]));
   });
