@@ -1,6 +1,9 @@
 /* Asung IMS — Shopify 카드(shop-2c · 판정 404 ~ 415 · DB shop-2a1 81d779c · shop-2a2 0d3eb6e · EF shop-2b 2f6136f)
    ─────────────────────────────────────────────
    ⚠️ 부르는 순서: supabase-js → ims-config.js → ims-ui.js → ims-auth.js → ims-shop.js (esc · imsTs · imsPhotoUrl · imsAuth 를 쓴다)
+   📌 2026-11-18 · Claude Code · shop v4(shop-del-1c · 판정 1387 · 1391 · 1397 A · EF shop-del-1b · DB shop-del-1a2): ① Send now 가 건너뛰었을 때 글을 사실대로 둘로 — 이어 놓고 IMS 판을 보낸 적이 없다 / 마지막으로 보낸 뒤 IMS 쪽이 안 바뀌었다(IMS 는 Shopify 를 읽어 견주지 않았다) · 「Shopify already has the same content」 는 쓰지 않는다
+        ② 관리자(imsAuth.me.role === 'admin' · 서버 문은 EF 가 따로)에게만 그 결과 줄에 「Send anyway…」 → EF push_preview(쓰기 0) 결과 창(더할 · 뺄 변형 · 바뀌는 칸 옛 값 → 새 값 · 견주지 않은 것) → 확인 → push force · 403 은 서버 글 그대로
+        ③ Shopify 에서 지워져 링크가 풀린 대상(표 shop_link_detached · 직원 읽기 · 가장 최근 줄 · 지금 이어진 상품이 없을 때만)은 그 스토어 줄에 한 줄 안내 — 안 파는 세트 화면에도 · 표를 못 읽으면 안내 없이 그대로
    📌 2026-11-14 · 대화 Claude · shop v3(판정 1232 · deferred 599 · Shopify 사진 가져오기 뒤): family 웹 대표 표시 · 고르기가 **패밀리 사진**(product_image.family_id)도 읽는다 — 가져오기(1198)로 444 패밀리의 웹 대표가 패밀리 사진이 되어, 구성원 사진만 읽던 카드가 「The chosen photo is no longer an active photo of a variant」 를 잘못 띄웠다 · 고르기 창은 패밀리 사진 먼저(「family photo」) → 구성원 사진 · 경고 글은 「of a variant or of the family」 · DB 무변(shop_listing_set 은 imp-1 부터 패밀리 사진을 받는다 · shop_product_payload 도) · 상품(kind product) 카드 무변
    📌 2026-10-10 · 대화 Claude · shop v2(stock-1c · 판정 421 ~ 425): 스토어 줄마다 위치별 「Stock on Shopify」 표(뷰 shop_stock_list · 변형 × 위치 · 보낸 숫자 · 시각 · 에러 · 보내는 중) · 「Send stock now」(EF stock_push · 바로 · 판정 415 결) · family 구성원 화면에도 그 변형의 위치별 숫자 · 안내 글 sold out → not available(판정 425)
    📌 2026-10-10 · shop v1 · shop v1a(Open in Shopify 링크 밑줄 없앰 — Caleb 화면 시험) · shop v1b(판정 416: products.html Edit 안에서도 읽기만으로 보인다 — card(kind, { readOnly }) · wire opts.readOnly → 단추 없음)
@@ -16,7 +19,11 @@
      뷰 shop_stock_list(stock-1a) — 변형 × 위치 한 줄: product_id · sku · store_id · location_name · warehouse_name · quantity · sent_at · last_status · last_error · open_queue
      EF shopify {action:'stock_push', store, family_sku | sku} — 재고를 바로(force) · 200 { ok, sent_items, activated, items[], blocked[] } · 404 · 409 · 403 · 502
      EF shopify {action:'push', store, family_sku | sku} — 판정 415: Send now 는 큐를 거치지 않고 바로(직원 길 · 서버가 ims_can_write('shopify'))
-       200 result ok | skipped_same_hash · 422 description_forbidden_after_clean:… · 404 · 409 · 502 — 응답 몸은 error.context.json()
+       200 result ok | skipped_same_hash(+ never_pushed · last_pushed_at) · 422 description_forbidden_after_clean:… · 404 · 409 · 502 — 응답 몸은 error.context.json()
+       {…, force: true} = Send anyway(관리자만 · 아니면 403)
+     EF shopify {action:'push_preview', store, family_sku | sku} — 관리자만 · 쓰기 0 · 200 { blocks[], hash_same, never_pushed, last_pushed_at, not_compared[], would_create | deleted_in_shopify | preview }
+       preview = { same, add_variants[], remove_variants[], fields[{field, from, to}], variant_changes[{sku, field, from, to}], description{changed, from_length, to_length}, tags{compared, add[], remove[]} }
+     표 shop_link_detached(읽기) — store_id · family_id | product_id · sku · detached_at
 
    판정
      404 세트는 sellable 만 · 405 끄면 ARCHIVED(지우지 않음) · 406 꺼진 구성원 = 그 변형만 Sold out · 413 IMS 주권(숨기는 길 = 보냄 끄기)
@@ -32,6 +39,7 @@
 
   const POLL_MS = 4000, POLL_MAX = 30;           // 켜기 · 끄기 뒤 4 초 × 30 = 2 분까지 다시 읽는다(cron 1 분 + EF 몇 초)
   const canShop = () => !!(window.imsAuth && imsAuth.canWrite && imsAuth.canWrite("shopify"));
+  const isAdmin = () => !!(window.imsAuth && imsAuth.me && imsAuth.me.role === "admin");   // shop v4 — 화면들이 쓰는 판별(me.role) · 서버가 다시 본다
   const gidNum = (g) => { const m = String(g || "").match(/(\d+)$/); return m ? m[1] : ""; };
   const adminUrl = (domain, gid) => {
     const h = String(domain || "").replace(/\.myshopify\.com$/i, "");
@@ -64,6 +72,14 @@
       .ishop-pick img{width:100%;height:90px;object-fit:contain;display:block;margin-bottom:4px}
       .ishop-pick .none{height:90px;display:flex;align-items:center;justify-content:center;color:var(--muted,#667085)}
       .res .blk li{color:var(--bad)} .res .wrn li{color:var(--warn)}
+      .ishop-res .pobtn{margin-left:8px}
+      .ishop-gone{color:var(--warn,#b54708)}
+      .ishop-pv h5{margin:12px 0 4px;font-size:12.5px}
+      .ishop-pv table{border-collapse:collapse;font-size:12.5px}
+      .ishop-pv th,.ishop-pv td{padding:3px 14px 3px 0;text-align:left;vertical-align:top;border-bottom:1px solid var(--line,#e4e7ec);word-break:break-word}
+      .ishop-pv th{font-weight:600;font-size:11px;color:var(--muted,#667085);text-transform:uppercase;letter-spacing:.03em}
+      .ishop-pv .skus{font-size:12.5px;line-height:1.6;word-break:break-word}
+      .ishop-pv .rm{color:var(--bad,#b42318)}
       /* [2026-11-16 · 대화 Claude · 판정 1280] 다크: 색은 var(이름,원래색) — 라이트는 이름이 없어 원래색 그대로 · 다크 값은 아래 블록(ims-ui.css ui v2 와 같은 조건 · IMS · POS) */
       html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-f5f7fb:#1c2129;--dk-bg-fef3f2:#1c2129;--dk-bg-ecfdf3:#164128;--dk-tx-067647:#71f4bd;--dk-bg-ffffff:#171b21}
       .ishop-stock{grid-column:1 / -1;font-size:12.5px}
@@ -156,14 +172,19 @@
     if (isSet && row.sellable === false) {
       body.innerHTML = `<div class="msg" style="text-align:left;padding:12px 14px">Sets are not sent to Shopify. Only a set marked sellable can be switched on.</div>`;
       note.innerHTML = ""; nEl.textContent = "";
+      const goneSet = await readDetached(sb, kind, row.id);                                        // shop v4 — 이 세트가 Shopify 에서 지워져 링크가 풀렸으면 알린다
+      if (!el.isConnected) return;
+      const lines = Object.keys(goneSet).map(sid => goneLine(goneSet[sid], " Mark the set sellable first if it should be sold again.")).join("");
+      if (lines) body.insertAdjacentHTML("beforeend", `<div style="padding:0 14px 12px;font-size:12.5px">${lines}</div>`);
       return;
     }
 
     const stockIds = kind === "family" ? (opts.members || []).map(m => m.id) : [row.id];
-    const [st, ls, sk] = await Promise.all([
+    const [st, ls, sk, gone] = await Promise.all([
       sb.from("shop_store_list").select("id,code,label,shop_domain,is_active").order("code"),
       sb.from("shop_listing_list").select("*").eq(kind === "family" ? "family_id" : "product_id", row.id),
       stockIds.length ? sb.from("shop_stock_list").select("store_id,product_id,sku,location_name,warehouse_name,quantity,sent_at,last_status,last_error,open_queue").in("product_id", stockIds) : Promise.resolve({ data: [] }),
+      readDetached(sb, kind, row.id),                                                               // shop v4 — 스토어마다 가장 최근에 풀린 줄
     ]);
     if (!el.isConnected) return;
     if (st.error || ls.error) { body.innerHTML = `<div class="msg err">${esc((st.error || ls.error).message)}</div>`; return; }
@@ -190,6 +211,7 @@
           + (l.last_pushed_at ? ` <span class="dim">${esc(imsTs(l.last_pushed_at))}</span>` : "")
         : (l && l.is_on ? '<span class="dim">Not in Shopify yet</span>' : "");
       const err = l && l.last_status === "error" && l.last_error ? `<div class="ishop-err">${esc(l.last_error)}</div>` : "";
+      const goneMsg = gone[s.id] && !(l && l.shopify_product_gid) ? goneLine(gone[s.id], "") : "";   // shop v4 — 지금 이어진 상품이 없을 때만(다시 올렸으면 안 보인다)
       const wait = waiting ? `<div style="color:var(--warn,#b54708)">Sending… (within a minute)</div>` : "";
       const url = l ? adminUrl(s.shop_domain, l.shopify_product_gid) : "";
       const target = kind === "family" ? { family_sku: row.sku } : { sku: row.sku };
@@ -208,7 +230,7 @@
       if (url) btns.push(`<a class="pobtn" href="${esc(url)}" target="_blank" rel="noopener" title="Open the product in the Shopify admin">Open in Shopify</a>`);
       return `<div class="ishop-row" data-ishop-row="${esc(s.code)}">
         <div class="ishop-store"><b>${esc(s.label || s.code)}</b><span class="mono dim">${esc(s.shop_domain)}${s.is_active ? "" : " · store off"}</span></div>
-        <div class="ishop-state">${sent}<div>${sh}</div>${err}${wait}</div>
+        <div class="ishop-state">${sent}<div>${sh}</div>${err}${goneMsg}${wait}</div>
         <div class="ishop-btns">${btns.join("")}</div>
         ${l && l.is_on ? stockBlock(skRows, true) : ""}
       </div>`;
@@ -247,18 +269,40 @@
     }
   }
 
-  async function pushNow(el, opts, store, target, b) {
-    const rowEl = b.closest("[data-ishop-row]");
+  /* shop v4 — Shopify 에서 지워져 링크가 풀린 기록(가장 최근 줄 · 스토어마다) · 표를 못 읽으면 빈 것(안내 없이 그대로) */
+  async function readDetached(sb, kind, id) {
+    const out = {};
+    try {
+      const r = await sb.from("shop_link_detached").select("store_id,sku,detached_at").eq(kind === "family" ? "family_id" : "product_id", id).order("detached_at", { ascending: false }).limit(20);
+      (r.data || []).forEach(d => { if (!out[d.store_id]) out[d.store_id] = d; });
+    } catch (e) { /* 안내 없이 */ }
+    return out;
+  }
+  const goneLine = (d, more) => `<div class="ishop-gone">This product was deleted in Shopify, so IMS removed its link on ${esc(imsTs(d.detached_at))}. Turning it on again puts it on Shopify as a new product.${more || ""}</div>`;
+
+  async function invokeShop(sb, body) {
+    const { data, error } = await sb.functions.invoke("shopify", { body });
+    let r = data;
+    if (error) { try { r = await error.context.json(); } catch (e) { r = { ok: false, error: error.message }; } }
+    return r || { ok: false, error: "No answer from the server" };
+  }
+
+  async function pushNow(el, opts, store, target, b, force) {
+    const rowEl = b.closest("[data-ishop-row]") || el.querySelector(`[data-ishop-row="${CSS.escape(store)}"]`);
+    if (!rowEl) return;
     const old = rowEl.querySelector(".ishop-res"); if (old) old.remove();
     const res = document.createElement("div"); res.className = "ishop-res"; res.textContent = "Sending to Shopify…";
     rowEl.appendChild(res);
     rowEl.querySelectorAll("button").forEach(x => { x.disabled = true; });
-    const { data, error } = await opts.sb.functions.invoke("shopify", { body: Object.assign({ action: "push", store }, target) });
-    let r = data;
-    if (error) { try { r = await error.context.json(); } catch (e) { r = { ok: false, error: error.message }; } }
-    r = r || { ok: false, error: "No answer from the server" };
+    const r = await invokeShop(opts.sb, Object.assign({ action: "push", store }, target, force ? { force: true } : {}));
+    let any = false;
     if (r.ok && r.result === "skipped_same_hash") {
-      res.className = "ishop-res"; res.textContent = "Nothing changed — Shopify already has the same content.";
+      /* shop v4(판정 1391): 사실대로 — IMS 는 Shopify 를 읽어 견주지 않았다 */
+      res.className = "ishop-res";
+      res.textContent = r.never_pushed === true
+        ? "Not sent — nothing in IMS has changed. This product was linked to the Shopify product that already existed when IMS took over, and the IMS version has never been sent, so Shopify still shows what it had before."
+        : "Not sent — nothing in IMS has changed since the last send" + (r.last_pushed_at ? " (" + imsTs(r.last_pushed_at) + ")" : "") + ". IMS did not read Shopify to compare, so a change made in Shopify itself would not show here.";
+      any = isAdmin();
     } else if (r.ok) {
       res.className = "ishop-res good";
       res.textContent = `Sent · ${r.status || ""} · ${r.variants} variant${r.variants === 1 ? "" : "s"} · ${r.media} photo${r.media === 1 ? "" : "s"}`
@@ -268,13 +312,61 @@
       const e = String(r.error || "Failed");
       res.textContent = e.indexOf("description_forbidden_after_clean") >= 0
         ? "Not sent — the description still has something the site does not allow. Edit the description once and save it, then send again. (" + e + ")"
+        : e.indexOf("Not allowed") === 0 ? e                                                     // shop v4 — 권한 거부(403)는 서버 글 그대로
         : "Not sent — " + e;
     }
+    if (any) res.insertAdjacentHTML("beforeend", ` <button class="pobtn" data-ishop-any title="Compare with Shopify first, then send the IMS version even though IMS has not changed">Send anyway…</button>`);
     /* 결과 줄은 남기고 위의 상태만 새로 읽는다 */
     const keep = res.outerHTML;
     await fill(el, opts, 0);
     const again = el.querySelector(`[data-ishop-row="${CSS.escape(store)}"]`);
-    if (again) again.insertAdjacentHTML("beforeend", keep);
+    if (again) {
+      again.insertAdjacentHTML("beforeend", keep);
+      const ab = again.querySelector("[data-ishop-any]");
+      if (ab) ab.onclick = () => sendAnyway(el, opts, store, target);
+    }
+  }
+
+  /* shop v4(판정 1391) — Send anyway: 먼저 Shopify 와 견준 차이를 보이고(쓰기 0) 확인 뒤 force 로 보낸다 · 관리자만(서버가 다시 본다) */
+  const PV_LABEL = { title: "Name", status: "Status", vendor: "Brand", productType: "Category", sku: "SKU", price: "Price", compareAtPrice: "Compare-at price", barcode: "Barcode", inventoryPolicy: "Sell when out of stock" };
+  const pvVal = (field, v) => v == null || v === "" ? '<span class="dim">(empty)</span>' : esc(field === "inventoryPolicy" ? (v === "CONTINUE" ? "Yes" : v === "DENY" ? "No" : v) : String(v));
+  async function sendAnyway(el, opts, store, target) {
+    const who = target.family_sku || target.sku;
+    const head = `<h4>Send anyway — <span class="mono">${esc(who)}</span> · ${esc(store)}</h4>`;
+    const foot = (go) => `<div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">${go ? "Cancel" : "Close"}</button>${go ? '<button class="pobtn go" data-m="go">Send anyway</button>' : ""}</div>`;
+    const show = (inner, go) => {
+      const box = modal(head + `<div class="pbody ishop-pv">${inner}</div>` + foot(go));
+      box.querySelector('[data-m="close"]').onclick = closeModal;
+      const g = box.querySelector('[data-m="go"]');
+      if (g) g.onclick = async () => {
+        closeModal();
+        const b = el.querySelector(`[data-ishop-row="${CSS.escape(store)}"] [data-ishop="push"]`) || el.querySelector(`[data-ishop-row="${CSS.escape(store)}"]`);
+        if (b) await pushNow(el, opts, store, target, b, true);
+      };
+    };
+    modal(head + `<div class="pbody"><div class="msg">Reading the product from Shopify to compare…</div></div>`);
+    const r = await invokeShop(opts.sb, Object.assign({ action: "push_preview", store }, target));
+    if (!r.ok) return show(`<div class="msg err">${esc(String(r.error || "Failed"))}</div>`, false);
+    if ((r.blocks || []).length) return show(`<div class="msg err">This cannot be sent yet: ${esc(r.blocks.join(", "))}</div>`, false);
+    if (r.deleted_in_shopify) return show(`<div class="msg" style="text-align:left">Shopify no longer has this product, so there is nothing to compare and nothing was sent. IMS removes the link the next time it sends this product or its stock; after that, turn it on again to put it on Shopify as a new product.</div>`, false);
+    if (r.would_create) return show(`<div class="msg" style="text-align:left">This is not on Shopify yet. Sending creates a new Shopify product with ${(r.add_variants || []).length} variant${(r.add_variants || []).length === 1 ? "" : "s"} — use Send now.</div>`, false);
+    const p = r.preview || {};
+    const add = p.add_variants || [], rm = p.remove_variants || [], f = p.fields || [], vc = p.variant_changes || [], d = p.description || {}, tg = p.tags || {};
+    const skus = (a) => a.map(s => `<span class="mono">${esc(s === "" ? "(no SKU)" : s)}</span>`).join(", ");
+    const parts = [];
+    parts.push(`<div style="font-size:12.5px">${r.never_pushed ? "The IMS version of this product has never been sent — Shopify shows what it had before IMS took over. " : (r.last_pushed_at ? "Last sent " + esc(imsTs(r.last_pushed_at)) + ". " : "")}Sending replaces what Shopify has with the IMS version below. Nothing has been sent yet.</div>`);
+    if (p.same) parts.push(`<h5>No difference found</h5><div style="font-size:12.5px">For everything compared, Shopify already matches the IMS version.</div>`);
+    if (add.length) parts.push(`<h5>Variants that will be added in Shopify (${add.length})</h5><div class="skus">${skus(add)}</div>`);
+    if (rm.length) parts.push(`<h5 class="rm">Variants that will be removed from Shopify (${rm.length})</h5><div class="skus rm">${skus(rm)}</div>`);
+    if (f.length || d.changed) parts.push(`<h5>Product</h5><table><thead><tr><th>Field</th><th>In Shopify now</th><th>After sending</th></tr></thead><tbody>
+      ${f.map(x => `<tr><td>${esc(PV_LABEL[x.field] || x.field)}</td><td>${pvVal(x.field, x.from)}</td><td>${pvVal(x.field, x.to)}</td></tr>`).join("")}
+      ${d.changed ? `<tr><td>Description</td><td>${esc(String(d.from_length))} characters</td><td>${esc(String(d.to_length))} characters <span class="dim">(text differs — it may be formatting only)</span></td></tr>` : ""}</tbody></table>`);
+    if (vc.length) parts.push(`<h5>Variants (${vc.length} change${vc.length === 1 ? "" : "s"})</h5><table><thead><tr><th>SKU</th><th>Field</th><th>In Shopify now</th><th>After sending</th></tr></thead><tbody>
+      ${vc.map(x => `<tr><td class="mono">${esc(x.sku)}</td><td>${esc(PV_LABEL[x.field] || x.field)}</td><td>${pvVal(x.field, x.from)}</td><td>${pvVal(x.field, x.to)}</td></tr>`).join("")}</tbody></table>`);
+    if (tg.compared && ((tg.add || []).length || (tg.remove || []).length)) parts.push(`<h5>Tags</h5><div class="skus">${(tg.add || []).length ? "Added: " + esc(tg.add.join(", ")) : ""}${(tg.add || []).length && (tg.remove || []).length ? "<br>" : ""}${(tg.remove || []).length ? `<span class="rm">Removed: ${esc(tg.remove.join(", "))}</span>` : ""}</div>`);
+    const nc = (r.not_compared || []).concat(tg.compared ? [] : ["tags (not sent for this product)"]);
+    parts.push(`<h5>Not compared</h5><div class="dim" style="font-size:12.5px">${esc(nc.join(" · "))}${r.send_images === false ? " — photos are not sent for this product, so Shopify keeps its own." : ""}</div>`);
+    show(parts.join(""), true);
   }
 
   async function stockPushNow(el, opts, store, target, b) {
