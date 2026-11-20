@@ -6,7 +6,7 @@
 <title>Manual · Asung IMS</title>
 <link rel="stylesheet" href="ims-ui.css">
 <style>
-  /* help v1 — 매뉴얼 읽기 화면(판정 725) · 원고 = asung-wms docs/manual(공개 레포 · raw 로 읽는다) */
+  /* help v1 — 매뉴얼 읽기 화면(판정 725) · 원고 = asung-ims manual/(같은 출처 · ims.asung.ca/manual/ · priv-1 판정 1428) */
   .hp{display:grid;grid-template-columns:260px minmax(0,1fr);gap:0;align-items:start;min-height:calc(100vh - 60px)}
   .hp-side{position:sticky;top:60px;max-height:calc(100vh - 70px);overflow:auto;padding:16px 14px 24px;border-right:1px solid var(--line);background:var(--dk-bg-ffffff)}
   .hp-lang{display:flex;gap:4px;margin-bottom:10px}
@@ -84,8 +84,8 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
 /* ─────────────────────────────────────────────────────────────
    help.html — 매뉴얼 읽기 1판 (2026-10-25 · 대화 Claude · 판정 725)
    Caleb 「그러면 화면도 지어줘. 어차피 공개레포인데 화면에서 바로 매뉴얼을 읽을 수 있게 해줘」
-   ⭐ 원고의 정본은 asung-wms docs/manual(en · ko) — 이 화면은 읽기만 한다 · 원고가 커밋 · push 되면 몇 분 안에 여기에 보인다(raw 캐시)
-   ⭐ 장 목록 = docs/manual/README.md 의 Contents 표에서 링크가 걸린 장만(새 장이 서면 README 만 고치면 된다)
+   ⭐ 원고의 정본은 asung-ims manual/(en · ko · priv-1) — 이 화면은 읽기만 한다 · 원고가 커밋 · push 되면 몇 분 안에 여기에 보인다(Pages 빌드 + max-age 600)
+   ⭐ 장 목록 = manual/README.md 의 Contents 표에서 링크가 걸린 장만(새 장이 서면 README 만 고치면 된다)
    ⭐ 주소: help.html?lang=ko#sales-confirm — 앵커(#…)는 영 · 한이 같다(check-manual-anchors.sh) · 화면의 「?」 단추(help-1)가 이 꼴로 연다
    ⚠️ 마크다운은 원고가 쓰는 만큼만 그린다(제목 · 굵게 · 코드 · 목록 · 표 · 링크 · <a id>) — 바깥 라이브러리 없음 · 모든 글은 esc 뒤에 꾸민다(원고의 HTML 은 <a id="…"></a> 줄 말고는 글자로 보인다)
    ⚠️ <!-- … --> 숨김 주석(screen · who · rulings · SCREENSHOT · TODO)은 그리지 않는다 · 본문 없는 절은 「not written yet」
@@ -94,7 +94,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
 const HP_BUILD = "2026-10-25 · help v1 · dk1";
 console.log("help.html build:", HP_BUILD);
 
-const HP_RAW = "https://raw.githubusercontent.com/asungtrading/asung-wms/main/docs/manual/";
+const HP_RAW = "manual/";
 const HP_TXT = {
   en: { find: "Find a section", loading: "Loading the manual…", todo: "This part is not written yet.", fail: "Could not load the manual — check the connection and reload.", none: "No section matches." },
   ko: { find: "절 찾기", loading: "매뉴얼을 불러오는 중…", todo: "아직 쓰지 않은 부분입니다.", fail: "매뉴얼을 불러오지 못했습니다 — 연결을 확인하고 새로 고침해 주세요.", none: "맞는 절이 없습니다." },
