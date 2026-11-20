@@ -1,0 +1,195 @@
+# 6. Action Centre
+
+<!-- sections 1-8 written (manual-6 · docs-1106 added Pickups not scheduled · docs-1117 added My tasks) · one section per tab, in the order of the tabs -->
+<!-- out of this chapter: the work itself stays in its own chapter — sales orders and customers -> chapter 1 · stock adjustments -> chapter 3 · POS -> chapter 5 -->
+
+<a id="action-start"></a>
+## What the Action Centre is
+<!-- screen: manager-list.html · BUILD 2026-11-16 · ml v1.8 -->
+<!-- who: manager, sales -->
+
+**What it is**
+The **Action Centre** collects things a manager should look at: sales that went out without stock in the books, unpaid pay-now invoices, POS sales not finished, counter orders, new customers and Freightcom pickups that are not scheduled. It also lists the tasks assigned to you (**My tasks**). It shows them; the work is done on the usual screens.
+
+**Who**
+Everyone who works on sales orders can open it. Managers and above: **Mark checked…** on **Sold without stock**.
+
+**When**
+Managers open it once a day.
+
+**How**
+1. In IMS mode, press **Action Centre** on the menu (after **Inventory ▾**).
+2. Press a tab. The red number on a tab is how many are waiting.
+   The **Action Centre** item on the menu also shows a red number: everything waiting in all branches. It is hidden when nothing waits and refreshes every 2 minutes.
+3. **All branches** chooses one branch.
+4. Click an order, invoice or customer to open it on its own screen.
+
+**The tabs**
+- [Sold without stock](#action-sold-short)
+- [Unpaid at hand-over](#action-unpaid)
+- [POS not finished](#action-pos)
+- [Counter orders](#action-counter)
+- [New customers to review](#action-new-customers)
+- [Pickups not scheduled](#action-pickups)
+- [My tasks](#action-my-tasks)
+
+<!-- SCREENSHOT: action-start-1 · Action Centre with the five tabs and their badges -->
+
+<a id="action-sold-short"></a>
+## Sold without stock
+<!-- screen: manager-list.html · BUILD 2026-10-25 · ml v1.3 ; 2026-11-11 · ml v1.6 (Count & check) -->
+<!-- who: manager -->
+
+**What shows here**
+Sales that sold more than the books showed in that branch. "These sold more than the book showed in that branch — the goods were there, the count was not."
+
+- **Not checked yet** — all of them, however old. The tab's red number counts these.
+- **Checked** — the last 30 days, with who checked it, when and the note.
+
+Each row shows **Sold on**, **Order**, **Customer**, **SKU**, **Branch**, **Qty short** and **Cost** (**cost unknown** when IMS has no cost for it).
+
+Each open row has two buttons (managers and above):
+- **Count & check…** — "count the shelf, type what you found, and IMS fixes the stock and checks every open line of that SKU in one go". It needs the Stock adjustments key for that branch.
+- **Mark checked…** — "the books are already right — it only records that you looked and does not change stock."
+
+**How — Count & check**
+1. Click the order number if you want to see the sale. The order opens on **Sales Orders** — this includes POS sales.
+2. Press **Count & check…**. The window shows each bin of that SKU in that branch: **Book**, **Picked, not shipped** and **Shelf should be**.
+3. Count the shelf and type it in **You counted**. A bin marked "must count — below zero" needs a count. Found it on another shelf? Type the bin and press **+ add bin**. **Note** is optional.
+4. Press **Preview**. Read what will change. If you change a count, press **Preview** again.
+5. Press **Count & check**. IMS makes and confirms one stock adjustment, then checks the open lines. "It cannot be undone — a mistake is fixed with a new adjustment." If your count matches the book, nothing changes and the lines are only checked.
+
+**How — Mark checked**
+1. Count the shelf. If the books are right, press **Mark checked…** and write what you found ("counted, fixed, reason").
+
+**Good to know**
+- A checked row shows the adjustment number (ADJ-…) when **Count & check** changed stock.
+- No Stock adjustments key for that branch: the window says "You can see this but not change stock here — that needs the Stock adjustments key for …". Use **Mark checked** if the books are right; otherwise ask someone with the key.
+- The bin **UNASSIGNED** "(no shelf yet)" is where POS and counter sales take a product that has no bin in that branch. Count it here and put it on its real bin.
+- An old row without a bin is shown but "is fixed separately — not by this count".
+- "Someone else just checked this line." — close the window and reload the list.
+- This is not the same as **Not enough stock** in the warehouse. That one is a picker who could not find the goods (see [WMS Admin](04-wms.md#wms-admin)).
+
+<a id="action-unpaid"></a>
+## Unpaid at hand-over
+<!-- screen: manager-list.html · BUILD 2026-11-03 · ml v1.4 -->
+<!-- who: manager, accounting -->
+
+**What shows here**
+Invoices of customers whose payment term says pay before or on delivery — for example C.B.S or C.O.D — that still have money owed. "The customer's term says pay before or on delivery …, but the goods went out with money still owed."
+
+Each row shows **Invoice**, **Issued** (and how many days ago), **Customer**, **Term**, **Orders**, **Total**, **Paid · credited** and **Still owed**. The oldest is on top.
+
+**How**
+1. Click the invoice number. It opens on **Sales Invoices**.
+2. Take the payment and record it (see [Customer payments and deposits](01-sales.md#sales-payments)).
+
+**Good to know**
+- "It drops off this list once it is paid."
+- The list and its count follow the **Branch** picker — the branch that gave out the goods. With **All branches** a **Branch** column shows. An invoice with no order in IMS (carried over) uses the customer's home branch and says **customer's branch**.
+
+<a id="action-pos"></a>
+## POS not finished
+<!-- screen: manager-list.html · BUILD 2026-11-11 · ml v1.6 -->
+<!-- who: manager, sales -->
+
+**What shows here**
+POS sales that were confirmed but not finished. "A confirmed POS sale holds its stock until it is finished."
+
+- "not finished — from an earlier day" — these are on top. The tab's red number counts these.
+- "today · parked or at the counter" — still being served or parked (see [Park a sale and pick it up again](05-pos.md#pos-park)).
+
+Each row shows **Sale**, **Customer**, **Branch**, **Confirmed** (when and who), **Amount** and **Paid**.
+
+**How**
+"Open it on POS to finish it, reopen it, or cancel it on Sales Orders."
+1. Click the sale number. It opens on **POS**.
+2. Finish it (see [Finish and print the invoice](05-pos.md#pos-finish)), or reopen it and change it.
+3. If the customer is not coming back, cancel it on **Sales Orders** (see [Cancel an order](01-sales.md#sales-cancel)).
+
+<a id="action-counter"></a>
+## Counter orders
+<!-- screen: manager-list.html · BUILD 2026-11-11 · ml v1.6 -->
+<!-- who: manager -->
+
+**What shows here**
+Counter orders of the last 30 days. "Counter orders take stock out without going through the warehouse screens — this list is how a manager sees them."
+
+Each row shows **Order**, **Status**, **Ordered**, **Customer**, **Branch** and **Handed over** (when and who).
+
+**How**
+- Click the order number to open it on **Sales Orders**. Handing over is described in [Ship & invoice](01-sales.md#sales-ship-invoice).
+
+**Good to know**
+- This tab has no red number. It is a list to look through, not a list of things to fix.
+- For an order older than 30 days, search on **Sales Orders**.
+
+<a id="action-new-customers"></a>
+## New customers to review
+<!-- screen: manager-list.html · BUILD 2026-11-11 · ml v1.6 -->
+<!-- who: manager -->
+
+**What shows here**
+Customers made in IMS that a manager has not reviewed yet. "Customers made by sales start on the default terms (Wholesale · 0% · C.B.S · CAD)."
+
+Each row shows **Customer**, **City**, **Created** (when and who), **Terms now**, **Orders** and **First order**. The oldest is on top.
+
+**How**
+1. Press **Open**. The customer opens on **Customers**.
+2. Needs the master key: change the terms if needed, and press **Reviewed** › **Mark reviewed** (see [Find or add a customer](01-sales.md#sales-customers)).
+
+**Good to know**
+- "Changing a money term counts as reviewed too."
+- The customer drops off this list once reviewed.
+- **Branch** follows the customer's default warehouse.
+
+<!-- SCREENSHOT: action-new-customers-1 · New customers to review with Terms now and Open -->
+
+
+<a id="action-pickups"></a>
+## Pickups not scheduled
+<!-- screen: manager-list.html · BUILD 2026-11-11 · ml v1.6 -->
+<!-- who: manager, sales -->
+
+**What shows here**
+Freightcom bookings made in IMS where the carrier pickup is not confirmed. A pickup can be refused after the order has shipped, and the order screens no longer show it then — this tab is where you see it.
+
+Each row shows **Pickup** (date and ready times), **Orders**, **Customer**, **Carrier**, **What Freightcom says**, **Booked**, **Last checked** and **Tracking**.
+
+**How**
+1. Read **What Freightcom says** — for example the carrier refused the pickup.
+2. Schedule the pickup on the Freightcom site.
+3. Press **Check pickup**. IMS reads the pickup again from Freightcom (nothing is charged) and shows the result.
+
+**Good to know**
+- "IMS also checks again every few minutes, and a booking drops off this list once the pickup is confirmed (or 2 days after the pickup date)."
+- "Every Freightcom pickup is scheduled." means there is nothing to do.
+- Nobody marks a row as checked — a row leaves when the pickup is confirmed.
+- No pickups on Saturday or Sunday. A booking made late on Friday is picked up on Monday.
+- A warehouse needs a **Contact** and a **Phone** (10 digits) in **Settings** › **Warehouse** › **Edit**, or IMS will not book — carriers refuse a pickup without them.
+
+<!-- SCREENSHOT: action-pickups-1 · Pickups not scheduled with What Freightcom says and Check pickup -->
+
+<a id="action-my-tasks"></a>
+## My tasks
+<!-- screen: manager-list.html · BUILD 2026-11-16 · ml v1.8 ; dashboard.html · BUILD 2026-11-17 · db v5 -->
+<!-- who: manager, sales -->
+
+**What shows here**
+Open tasks assigned to you on the [Calendar](11-calendar-analytics.md#cal-tasks): overdue and today first, then the next 30 days.
+Each row shows **When**, **Task**, **Category**, **Linked to** and **From** (who gave it to you — "me" if you made it yourself).
+
+**How**
+1. Press **Done** on a row when the task is finished. The row leaves the list.
+2. Press a task's title to open it on the **Calendar** — change the date, the notes or the person there.
+
+**Good to know**
+- The red number on the tab counts your open tasks dated today or earlier. Tasks later than today are listed but not counted.
+- The tab does not depend on the branch you choose — tasks have no branch.
+- "No open tasks assigned to you." means there is nothing to do.
+- The **Action Centre** needs the `sales` key. Without it, you find your tasks on the **Calendar** — choose **My tasks** there if you see everyone's.
+- The list goes back about two months. A very old open task still counts in the red number — find it on the **Calendar**.
+
+<!-- SCREENSHOT: action-my-tasks-1 · My tasks with an overdue row and the Done button -->
+
+<!-- rulings: 1040, 1041, 1048, 1049, 1050, 1051, 152, 165, 240, 709, 713, 714, 715, 719, 720, 723, 725, 732, 735, 1172, 1173, 1176, 1283, 1293, 1295 -->

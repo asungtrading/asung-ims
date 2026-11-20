@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# 커밋 전 검사(asung-ims). 설치: git config core.hooksPath scripts/hooks
+# (설치 안 하면 조용히 아무 일도 일어나지 않는다 — PC 마다 한 번 · 판정 1430)
+# asung-wms scripts/hooks/pre-commit 의 매뉴얼 블록만 옮겼다(priv-1 · 2026-11-20) — description 길이 · 1000행 캡 · 분류 값 검사는 asung-wms 몫
+set -uo pipefail
+
+ROOT=$(git rev-parse --show-toplevel) || exit 0
+
+# 매뉴얼 앵커 — en · ko 목차가 어긋나면 막는다 (판정 710 · 716) · manual/ 이 스테이징됐을 때만 돈다
+# ⭐ 작업 트리가 아니라 스테이징된 사본을 검사한다(checkout-index) — 커밋될 내용 그대로
+ANCH="$ROOT/scripts/check-manual-anchors.sh"
+if [ -f "$ANCH" ] && git diff --cached --name-only -- manual/ | grep -q .; then
+  SNAP=$(mktemp -d)
+  git ls-files -z -- manual/ | git checkout-index -z --stdin --prefix="$SNAP/"
+  bash "$ANCH" "$SNAP/manual"; RC=$?
+  rm -rf "$SNAP"
+  if [ $RC -ne 0 ]; then
+    echo
+    echo "커밋 중단: manual 의 en · ko 앵커가 어긋난다 (또는 cin7 · 깨진 링크)."
+    echo "  확인  : scripts/check-manual-anchors.sh   (README 「Checking the anchors」)"
+    echo "  우회  : git commit --no-verify"
+    exit 1
+  fi
+fi
+
+exit 0

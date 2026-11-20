@@ -1,0 +1,377 @@
+# 2. 구매
+
+<!-- sections 1-13 written (manual-2a · 2b) · sections follow the order of the work, not the order of the screens -->
+
+<a id="purch-suppliers"></a>
+## 공급처 찾기 · 더하기
+<!-- screen: suppliers.html · BUILD 2026-11-15 · sup v5 -->
+<!-- who: office -->
+
+**무엇인가**
+**Suppliers**(**Purchasing ▾** › **Suppliers**)에 모든 공급처가 있습니다: 조건 · 주소 · 연락처 · 할인 · 구매 이력
+
+**공급처 찾는 법**
+1. **Suppliers** 를 열고 이름 일부를 적습니다.
+2. **Purchasable** 필터는 **Yes**(지금 사는 공급처)로 시작합니다. 다른 공급처도 보려면 **All** 을 고릅니다.
+3. 공급처를 누릅니다. 조건, **Purchase history**(구매 이력), **Addresses**, **Contacts**, **Discounts** 가 보입니다.
+
+넓은 목록의 **↓ Export…** 는 필터에 맞는 공급처를 내가 고른 칸으로 내려받습니다 — [↓ Export…](00-getting-started.md#start-search-filter).
+
+**공급처 더하는 법**
+1. **+ New supplier** 를 누릅니다.
+2. **Name \*** 과 아는 조건을 적습니다: **Currency** · **Payment term** · **Tax rule** · **Account payable** · **Type**
+   **Account payable** 의 통화는 공급처 통화와 같아야 합니다 — 계정 목록에 계정 통화가 보입니다(예: ` · USD`). **Currency** 를 바꾸면 그 통화 계정이 하나뿐일 때 계정이 함께 바뀌고, 아니면 직접 고릅니다. 통화가 다르면 저장되지 않습니다.
+3. 주소와 연락처를 넣습니다.
+4. **Create** 를 누릅니다.
+
+**공급처 고치는 법**
+1. **Edit** 로 이름 · 조건 · 메모를 바꿉니다.
+2. **Addresses** · **Contacts** 에서 **+ Add** 를 누르거나 줄의 **Edit** · **Make default** · **Remove** 를 누릅니다.
+3. **Purchasable**(**Yes** · **No** · **Not set**)은 지금도 이 공급처에서 사는지를 나타냅니다. 바꾸면 바로 저장됩니다.
+
+**master 권한이 있는 사람**
+- **Deactivate** / **Activate** 는 공급처를 끄거나 켭니다.
+- **Discounts** — 공급처의 상시 할인(**Seq** · **Name** · **Percent**). 이 공급처의 새 PO 에 걸립니다.
+
+**알아 둘 것**
+- **Purchase history** 는 이 공급처의 오더를 최신순으로 보여 줍니다. **Show … more** 로 더 봅니다.
+- IMS 이전 오더에는 **Before IMS** 표지가 붙고 읽기 전용입니다. 2022 ~ 2024 오더는 **Before IMS · older**: 금액은 달러 단위로 반올림된 값(**≈** · 어림값 — 원가로 쓰지 마십시오) · **Received** 는 받은 날짜 · 오더를 펼치면 받은 수량이 보입니다. 2025 년 11 월부터 IMS 로 바뀌기 전까지의 오더는 받은 수량이 없습니다.
+- 넓은 목록에 **A/P**(확정된 문서에 아직 갚을 돈) · **Overdue**(그중 기한이 지난 몫) · **Credit**(크레딧 노트 · 더 낸 문서 — 공급처가 우리에게 줄 돈)가 보입니다. **Sort** 로 **A/P — largest first** · **Overdue — latest first** 를 위로 올립니다.
+- 공급처 상세의 **Payables** 카드는 같은 값을 통화마다, 기한 지난 문서와 함께 보여 줍니다. 문서를 누르면 열립니다.
+- "Only bills entered in IMS. Payables from before the switch-over are in QuickBooks."(IMS 에 넣은 문서만 — 전환 전 미지급은 QuickBooks) — 0 이어도 IMS 이전에 갚을 돈이 있을 수 있습니다. QuickBooks 를 봅니다.
+- purchasing · master 권한이 없는 사람에게는 지금 사는 활성 공급처만 보입니다.
+
+<a id="purch-reorder"></a>
+## 무엇을 주문할지 정하기(Reorder Planner)
+<!-- screen: purchasing.html · BUILD 2026-11-15 · pur v4 -->
+<!-- who: office -->
+
+**무엇인가**
+**Reorder Planner**(**Purchasing ▾** › **Reorder Planner**)는 판매 · 재고 · 주문 중인 재고 · 백오더를 보고 공급처에서 제품마다 얼마나 주문할지 계산합니다. 그리고 PO 초안을 만들어 줍니다.
+화면 글자는 대부분 한국어입니다. 이 매뉴얼은 화면 글자와 영어 뜻을 함께 적습니다. 예: **발주 추천**(Order suggestions)
+
+**숫자는 어디서 오나**
+모두 IMS 에서 옵니다 — 연결할 것도, 구글 로그인도 없습니다. IMS 의 판매 이력은 2022 년 2 월부터 있습니다(옛 시스템 판매 → IMS 인보이스). 그래서 일판매량 · 작년 같은 철 · 마지막 판매일이 이력 전체를 씁니다.
+
+**어떻게**
+1. 위에서 브랜치를 고릅니다: **TOR** · **EDM** · **합산**(둘 합침)
+2. 왼쪽 **Supplier 검색...**(Search supplier)에서 공급처를 찾아 고릅니다.
+3. 왼쪽에서 공급처 설정을 확인합니다: **Lead Time** · **발주주기**(order cycle) · **목표 재고**(target stock · 일 수). IMS 가 다음 번을 위해 기억합니다.
+4. **발주 추천**(Order suggestions) 탭에 제품마다 **일판매량**(daily sales) · **재고일수**(days of stock) · **Available** · **추천발주**(suggested quantity)가 보입니다.
+5. 추천 수량을 누르면 **실발주량**(order quantity)에 들어갑니다. 직접 적어도 됩니다. **전체 추천 적용**(Apply all suggestions)은 모든 추천을 한 번에 넣습니다.
+6. **→ IMS 발주 초안**(Create IMS draft PO)을 누릅니다. "…개 SKU를 IMS 발주 초안(draft PO)으로 만들까요?" 에 OK 를 누릅니다.
+7. PO 초안이 만들어집니다. 예: PO-99001. 열어서 확인합니다([PO 시작하기](#purch-new-po)).
+
+**초안에 들어가는 것**
+- 주문 수량이 0 보다 큰 제품만. 수량을 0 으로 지우면 빠집니다.
+- 지금 필터와 검색에 보이는 것만
+- 가격: 이 공급처의 고정 단가, 없으면 최근 단가, 없으면 0(경고 표시)
+- 창고: **TOR** → Toronto · **EDM** → Edmonton · **합산** → Toronto
+
+**다른 탭**
+- **데드 스톡**(Dead stock) — 제품마다 얼마나 오래 안 팔렸는지. 상태 단추:
+  - **Dead** — 365 일 넘게 판매 없음, 또는 **한 번도 안 팔렸고 등록한 지 90 일이 지남**. 한 번도 안 팔린 제품은 **마지막판매일** 이 **판매 없음** 이고 **무판매 일수** 는 등록한 날부터 셉니다.
+  - **Slow** — 마지막 판매가 90 ~ 365 일 전 · **Active** — 최근 90 일 안에 팔림
+  - **New** — 아직 판매 0 이고 등록한 지 90 일 안. 등록일은 제품을 처음 등록한 날, 없으면 IMS 에서 만든 날입니다.
+- **Forecast** — 앞으로 30 · 60 · 90 일 예상 판매
+- **📊 Supplier 분석**(Supplier analysis) — 공급처 하나의 발주 · 입고 · 판매 · 백오더 · 미충족 수요를 연 · 월 · 제품별로. 기간을 고릅니다(**전체 기간** 또는 최근 3 년 ~ 3 개월). 제목 아래 줄이 빈 곳을 알려 줍니다:
+  - "≈ 2022 ~ 2024 금액은 옛 시스템의 반올림 값" — 2022 ~ 2024 발주 금액은 달러 단위로 반올림된 값입니다. **≈** 로 표시됩니다. 원가로 쓰지 마십시오.
+  - "Core PO …건은 받은 수량 대신 주문 수량 기준" — 2025 년 11 월부터 IMS 로 바뀌기 전까지의 발주는 받은 수량이 기록되지 않아 주문 수량을 받은 것으로 셉니다.
+  - "… 발주 이력 없음" — 그 기간(2024 년 11 월 ~ 2025 년 10 월)은 발주 이력이 없습니다.
+  - "미충족 수요는 … 만" — 미충족 수요(취소된 백오더)는 그 날짜들만 압니다.
+  - **평균 리드타임** 은 IMS 에서 입고한 발주만 셉니다.
+- **📦 입고 검증**(Receiving check) — 받은 것이 주문과 다른 발주 줄: 주문 안 했는데 받음 · 주문보다 많이 · 주문보다 적게. **전체 기간** 또는 최근 30 · 60 · 90 · 180 일을 고릅니다. **↺** 는 새로 읽습니다. 2025 년 11 월부터 IMS 로 바뀌기 전까지의 발주는 받은 수량이 없어 빠집니다 — 상태 줄에 "…개 PO(…)는 받은 수량 기록이 없어 빠짐" 이라고 나옵니다.
+- 왼쪽 **보정 Override**(adjustments) — 공급처의 **계절보정**(season) · **트렌드**(trend)를 직접 적습니다. 비우면 자동값을 씁니다. **Override 초기화**(Reset overrides)는 지웁니다.
+
+**알아 둘 것**
+- 초안은 재고 · 회계에 영향이 없습니다 — 묻는 창에 "초안이라 재고 · 회계에 영향 없음" 이라고 나옵니다. 확정은 **Purchase Orders** 에서 합니다.
+- **↓ CSV** 는 주문 목록이나 전체 제품을 공급처 하나 또는 전체로 내려받습니다.
+- IMS 에 없는 옛 제품 코드의 판매 · 발주는 세지 않습니다. **🔗 SKU 연결**(SKU links)은 옛 코드와 새 코드가 둘 다 IMS 에 있을 때 잇습니다.
+- master 권한이 필요한 것: 제품의 공급처 고정 단가(💲) 바꾸기
+
+<!-- SCREENSHOT: purch-reorder-1 · 발주 추천 탭: 공급처 고름 · 추천발주와 실발주량 칸 · → IMS 발주 초안 단추 -->
+
+<a id="purch-new-po"></a>
+## PO 시작하기
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 -->
+<!-- who: office -->
+
+**무엇인가**
+PO(구매 오더)는 공급처 하나에 주문하는 것입니다. **Draft**(초안)로 시작합니다.
+
+**어떻게**
+1. **Purchasing ▾** › **Purchase Orders** 를 열고 **+ New purchase order** 를 누릅니다. (Reorder Planner 에서 만든 초안은 이미 여기 있습니다.)
+2. "New purchase order — pick a supplier": 공급처를 찾아 누릅니다. 다른 공급처도 보려면 **Show all (including not-purchasable)** 을 체크합니다.
+3. 초안이 번호와 함께 열립니다. 예: PO-99001. "no ship-to warehouse — pick one"(받을 창고를 고르라) 경고가 나오면 **Ship to** 를 정합니다.
+4. 라인을 넣습니다:
+  - **Add a line** — "SKU · supplier SKU · product name" 으로 찾고(이 공급처의 제품만), 수량을 적고 **Check** 뒤 **Add lines**
+  - **Paste lines** — 한 줄에 하나씩: SKU, 수량, 가격(선택). "Tab, comma or two spaces — any of them works." "A price you give is the unit price before the PO discount."(적은 가격은 PO 할인 전 단가) **Check** 뒤 **Add lines**
+  - 가격 없이 붙여 넣은 라인은 보통 가격(고정가, 없으면 최근가)을 받습니다. `cost` 권한이 없으면 0 이 됩니다: "Without a price, a line gets 0 — fill the price in by hand (supplier costs need the cost permission)."(가격이 없으면 0 — 손으로 적는다 · 공급처 단가는 원가 권한이 있어야 본다) 이 공급처 줄이 없는 제품은 Check 에서 "no link — price 0" 으로 나옵니다.
+5. 윗부분을 확인합니다: **Order date** · **Required by** · **Payment term** · **Ship to** · **Currency** · **Tax rule** · **Note**(내부 메모)
+6. **Add a discount** 는 PO 전체에 할인을 더합니다(**Name** · **Percent**).
+
+**알아 둘 것**
+- 라인마다 **Supplier SKU** · **Qty** · **Unit price** · **Amount** · **Received** · **Remaining** 이 보입니다. **✕** 는 라인을 지웁니다.
+- 할인이 여럿이면 더하지 않고 차례로 걸립니다.
+- purchasing 이 **read** 인 사람은 PO 를 볼 수만 있고 저장은 되지 않습니다.
+
+**조심할 것**
+- 초안은 지울 수 있습니다(**Delete**). "The number … is not given to another order — it stays empty."(그 번호는 다른 오더에 주지 않고 빈 채로 둔다)
+
+<a id="purch-confirm"></a>
+## PO 확정하고 보내기
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 -->
+<!-- who: office -->
+
+**무엇인가**
+**Confirm** 은 주문할 라인과 수량이 정해졌다는 뜻입니다. PO 를 잠그지도 않고 아무것도 보내지 않습니다. 확정 뒤에도 라인을 고칠 수 있습니다 — 예: 공급처와 통화한 뒤
+
+**어떻게**
+1. 초안에서 **Confirm** 을 누르고 OK 를 누릅니다. 상태가 **Ordered** 가 됩니다 — "Confirmed — waiting for the supplier to send"(공급처가 보내기를 기다림)
+2. **↓ PO CSV** 를 누릅니다. 스프레드시트가 내려받아집니다: PO · 공급처 · 주문일 · 필요일 · 통화 · 결제 조건, 그리고 라인마다 **Line** · **SKU** · **Supplier SKU** · **Barcode** · **Product** · **Qty** · **Unit price** · **Amount**, 할인과 합계
+3. 그 파일을 메일에 붙여 공급처에 보냅니다. IMS 가 메일을 보내지는 않습니다.
+
+**알아 둘 것**
+- **↓ PO CSV** 는 확정된 뒤에 나옵니다(초안 · 취소된 PO 에는 없음).
+- 내부 **Note** 는 파일에 들어가지 않습니다.
+- 엑셀에서 SKU 와 바코드는 글자 그대로 열립니다.
+
+**조심할 것**
+- 보낸 뒤 라인을 바꾸면 **↓ PO CSV** 를 다시 내려받아 새 파일을 보냅니다.
+
+<!-- SCREENSHOT: purch-confirm-1 · Ordered 상태의 확정 PO 와 ↓ PO CSV 단추 -->
+
+<a id="purch-invoice"></a>
+## 공급처 인보이스 넣기
+<!-- screen: invoices.html · BUILD 2026-10-22 · inv printed v2 ; po.html · BUILD 2026-10-25 · po csv v1 -->
+<!-- who: accounting, office -->
+
+**무엇인가**
+공급처 인보이스가 오면 PO 에 대해 넣습니다. 확정하면 줄 돈이 장부에 오르고 — **창고가 그 물건을 받을 수 있게 됩니다.**
+
+**어떻게**
+1. PO 를 열고 **Create an invoice** 를 누릅니다.
+2. **Number**("as printed on the document" — 문서에 찍힌 번호 · 예: 99001) · **Document date** · **Due date** · **Printed total**(인쇄된 합계 · 모르면 비움)을 적습니다. **Due date**(지급 기한)는 결제 조건에서 채워집니다(문서 날짜 + 조건의 날 수). 인보이스에 다른 날짜가 있을 때만 고칩니다 — 적은 날짜를 IMS 가 지킵니다.
+3. 라인마다 **On this invoice** 가 **Left to bill**(남은 청구 수량)로 시작합니다. 인보이스가 청구한 수량으로 바꿉니다. **Check** 뒤 **Create** 를 누릅니다.
+4. 인보이스가 **Purchase Invoices & Credits** 에 초안으로 열립니다. **Add a line** · **Add a discount** · **Add lines from a PO** 를 쓸 수 있습니다.
+5. **Confirm** 을 누르고 OK 를 누릅니다.
+
+**Confirm 이 하는 일**
+"It is then taken into the books: the amount owed appears and the discount reaches cost. Lines can no longer be edited."(장부에 오른다 · 줄 돈이 생기고 할인이 원가에 닿는다 · 라인은 더 고칠 수 없다)
+그리고 창고에 오더를 풀어 줍니다. 청구되지 않은 몫은 다음 글자가 붙은 새 오더로 옮겨져 자기 인보이스를 기다립니다.
+- 예: PO-99001 이 100 을 주문했습니다. 인보이스가 60 을 청구합니다. PO-99001 은 60 을 갖고 창고가 받을 수 있습니다. PO-99001a 가 40 을 갖고 다음 인보이스를 기다립니다.
+- 모두 청구되면: "The whole order is billed — nothing was split off. The warehouse can receive it now."
+
+**Printed total(인쇄 합계)**
+**Printed total** 이 비었거나 우리 계산과 다르면 IMS 가 먼저 알립니다("⚠ No printed total" · "⚠ The printed total does not match … difference …"). 라인을 확인하거나, OK 로 그대로 확정합니다.
+
+**알아 둘 것**
+- **Reopen** 은 확정된 인보이스를 초안으로 돌립니다. "Quantities that confirming split off go back onto their original order."(확정 때 나뉜 수량은 원래 오더로 돌아간다)
+- 결제 조건에 조기 결제 할인이 있으면 할인이 열려 있는 동안 지급 기한 옆 칩이 보입니다. 예: "Pay by 2026-11-19 → save 142.71 · 10 days left"(이 날까지 내면 142.71 절약 · 10 일 남음). 3 일 이하면 주황입니다. 지급 기한은 따로입니다 — 전액을 내야 하는 날입니다.
+- **Confirm** 은 다음 때 경고하지만 막지 않습니다: "There is no due date and the payment term gives none — QuickBooks will use the document date as the due date."(기한도 조건도 없음 — QuickBooks 는 문서 날짜를 기한으로 씀) · "The due date differs from the payment term (document date + the term's net days). Check it is the date the money is owed — not the early-pay discount date."(기한이 조건과 다름 — 할인 기한이 아니라 돈을 낼 날인지 확인)
+- **Cancel invoice…** 는 인보이스를 취소합니다 — 화면을 나가는 단추가 아닙니다. 나갈 때는 목록으로 갑니다. 확정 인보이스를 고치려면 **Reopen** → 고침 → 다시 **Confirm** 입니다.
+- 창고가 그 인보이스로 받기 시작하면 **Reopen** · **Cancel invoice…** 가 회색입니다: "The warehouse has received against this invoice — correct it with a credit note"([공급처 크레딧](#purch-credits))
+- 라인을 **billed here but settled elsewhere**(여기 청구됐지만 다른 데서 정산)로 표시할 수 있습니다 — 예: 인보이스에 실렸지만 따로 내는 운임
+- **Tax by rule** — 인보이스 줄에는 Tax 칸이 없습니다. 세금은 세금 규칙마다 할인 뒤 소계에 한 번 매기고(공급처 인보이스가 찍는 모양과 같다) 머리 아래 한 줄로 보입니다.
+- 인보이스가 QuickBooks Bill 로 갈 때 charge · other 줄은 [QuickBooks matching — 공급처 인보이스 줄](07-settings.md#set-qbo-supplier-lines)에서 정한 계정으로 가고, 다른 데서 정산하는 줄(not payable)은 빠집니다.
+- 창고 쪽: [PO · 트랜스퍼 받기](04-wms.md#wms-receiving)
+
+<!-- SCREENSHOT: purch-invoice-1 · Confirm 뒤 글: PO-99001 은 청구분을 갖고 나머지는 PO-99001a 로 -->
+
+<a id="purch-documents"></a>
+## 공급처 서류 올리기
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; charges.html · BUILD 2026-11-09 · chg kind v1 ; ims-podocs.js · BUILD 2026-10-24 · podocs v1 -->
+<!-- who: office, accounting -->
+
+**무엇인가**
+PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 서류를 여기 둡니다: 인보이스 · BOL · 원산지 증명 · 패킹 리스트 · B3 / CAD
+
+**어떻게**
+1. **Upload a document** 를 누릅니다.
+2. **Kind** 를 고릅니다: **Invoice** · **BOL** · **Certificate of Origin** · **Packing list** · **B3 / CAD** · **Other**("Other needs a short description" — Other 는 짧은 설명이 필요). PO 에서 **Invoice** 를 고르면 **Supplier invoice** 칸이 나옵니다 — 그 PO 의 공급처 인보이스 가운데 어느 것인지 고르거나 **— not linked —** 로 둡니다.
+3. 있으면 **Document date** 와 **Document number** 를 적습니다. "The date and number go into the file name in Drive."(날짜와 번호가 드라이브 파일 이름에 들어간다)
+4. 파일을 고르고 — "PDF, JPEG or PNG · up to 10 MB" — **Upload** 를 누릅니다.
+
+**알아 둘 것**
+- 서류마다 **Waiting to go to Drive**(드라이브로 갈 차례) · **In Drive**(드라이브에 있음) · **Drive failed**(실패)가 보입니다.
+- **Remove** 는 서류를 감춥니다: "It is hidden here and renamed REMOVED_ in Drive. Nothing is deleted."(여기서 감추고 드라이브에서는 REMOVED_ 로 이름을 바꾼다 · 지워지는 것은 없다)
+- 서류는 관리자가 **Settings** 에서 켠 뒤, 거기 정한 시작 날짜부터 회사 구글 드라이브로 갑니다([Google Drive](07-settings.md#set-drive)).
+
+<!-- SCREENSHOT: purch-documents-1 · PO 의 Documents 구역 · In Drive 서류 하나 -->
+
+<a id="purch-charges"></a>
+## 운임 · 관세 · 그 밖의 비용
+<!-- screen: charges.html · BUILD 2026-11-09 · chg kind v1 -->
+<!-- who: accounting, office -->
+
+**무엇인가**
+비용(Charge)은 공급처가 아닌 곳의 빌입니다 — 운임 · 관세 · 통관 수수료. 컨테이너 하나에 여러 PO 의 물건이 들어 있으니 비용 하나를 여러 PO 에 나눕니다. 비용의 세금 전 금액이 그 물건의 원가에 얹힙니다.
+
+**어떻게**
+1. PO 에서 **Add a charge** 를 누르거나, **Purchasing ▾** › **Charges** 에서 **New charge** 를 누릅니다.
+2. **Kind**(**Freight** · **Duty** · **Brokerage** · **Other**) · **Billed by** · **Number** · **Charge date** · **Due date** · **Currency** · **Before tax** · **Tax** · **Tax rule** 을 적습니다.
+3. 비용이 걸치는 PO 마다 **Add a purchase order** 를 누릅니다. PO 마다 몫을 적거나, **Spread by amount** 로 오더 금액 비율대로 전체를 나눕니다.
+4. 다른 통화의 비용이면 환율(CAD per …)을 적습니다.
+5. **Confirm** 을 누르고 OK 를 누릅니다. "The split is then settled and will be laid down on cost. Amounts and allocations can no longer be edited."(나눔이 정해져 원가에 얹힌다 · 금액과 나눔은 더 고칠 수 없다)
+
+**알아 둘 것**
+- "Allocated and Not allocated are before tax — only the amount before tax goes onto the cost of the goods; the tax is owed to the biller but comes back as a tax credit."(나눈 몫 · 안 나눈 몫은 세금 전 · 원가에는 세금 전 금액만 · 세금은 세금 공제로 돌아온다)
+- 필터 **Not fully allocated** 로 아직 다 나누지 않은 비용을 찾습니다.
+- 몫은 적은 순간 고정됩니다. PO 가 나중에 바뀌어도 몫은 저절로 움직이지 않습니다.
+- CBSA 청구서 한 장은 **Kind** **Duty** 로 씁니다. 그러면 금액 칸이 **Duty (before tax)**(관세) · **GST on import**(청구서의 GST 그대로)로 바뀝니다.
+- GST 만 있는 CBSA 청구서: **Duty (before tax)** 0 · GST 는 청구서 숫자 그대로. "Duty (before tax) is required — type 0 if the bill has no duty."(관세가 없으면 0 을 적는다)
+- **Kind** 는 초안(draft) 비용에서만 바꿀 수 있습니다 — 상세에서 고릅니다. 아니면 "Kind can only be changed on a draft charge — Reopen it, change Kind, then confirm again"(초안에서만 · Reopen 뒤 바꾸고 다시 확정) · "This charge is cancelled — Restore it first, then change Kind"(취소된 비용 · Restore 먼저) · 원가에 얹힌 뒤에는 "Kind cannot be changed; to correct it, enter an offsetting charge"(상쇄 비용으로 바로잡는다)가 나옵니다.
+
+**조심할 것**
+- 몫의 합이 비용과 맞을 때까지 Confirm 이 거절됩니다.
+- Confirm 하려면 PO 가 하나 이상 있어야 합니다 — 관세 0 청구서도 그 물건의 PO 를 넣습니다.
+- **Spread by amount** 는 모든 몫을 덮어씁니다 — "including ones you typed"(직접 적은 것까지)
+
+<!-- SCREENSHOT: purch-charges-1 · PO 둘에 나눈 비용 · Not allocated 0 -->
+
+<a id="purch-receipts"></a>
+## 오피스 입고
+<!-- screen: receiving.html · BUILD 2026-11-01 · rcv sup v1 -->
+<!-- who: office -->
+
+**무엇인가**
+**Purchase Receipts** 는 들어온 것을 오피스가 보는 화면입니다. 세기와 넣기는 창고가 합니다([PO · 트랜스퍼 받기](04-wms.md#wms-receiving) · [풋어웨이](04-wms.md#wms-putaway)). 오피스는 재고에 넣고 차이를 정리합니다. receiving 권한이 필요합니다.
+
+**Post now — 기다릴 수 없는 재고**
+1. 초안 입고에서 **Post now…** 를 누릅니다. "Put what is already counted and in a bin into stock now — the rest is counted later."(이미 세서 bin 에 넣은 것을 지금 재고로 · 나머지는 나중에)
+2. bin 이 있는 행만 넣을 수 있습니다. **Check** 뒤 **Post to stock** 을 누릅니다.
+- 넣은 행은 "can no longer be moved or changed here; fix a mistake with a stock adjustment"(여기서 더 옮기거나 고칠 수 없다 · 실수는 재고 조정으로 · [재고 조정](03-inventory.md#stock-adjustments))
+
+**입고 확정**
+1. 창고가 끝내면 **Confirm** 을 누릅니다.
+2. 창이 받을 수량 · 이미 재고에 든 몫 · 모자라거나 넘친 라인 · PO 가 열린 채 남는지를 알려 줍니다. "This cannot be undone." OK 를 누릅니다.
+
+**차이 정리**
+- **모자람** — **Settle** 을 누르고 까닭을 고릅니다:
+  - **Split shipment** — 나머지가 이 PO 로 아직 온다(열린 채)
+  - **Supplier was out of stock** — 나머지는 오지 않는다
+  - **Lost or damaged in transit** — 오지 않는다 · 크레딧을 청구한다
+  - **We counted it wrong** — 더 받을 것이 없다
+- **인보이스보다 많거나 PO 에 없는 물건** — 물건은 이미 선반에 있습니다. **Decide** 를 누릅니다: **Accepted — free, into stock at no cost**(무상 · 원가 0) 또는 **Accepted — billed, into stock at the invoice price**(청구 · 인보이스 가격). 공급처 반품은 따로 하는 일입니다.
+
+**알아 둘 것**
+- **Split** 은 행의 일부를 두 번째 bin 으로 옮깁니다. 합계는 그대로입니다.
+- **Reopen** 은 정리한 모자람 줄을 다시 엽니다. 물건이 재고로 들어간 차이(주문보다 많음 · 받아들인 덤)는 다시 열 수 없습니다 — "in stock — cannot be reopened" 가 보입니다.
+- **Delete** 는 초안 입고와 거기서 센 것을 지웁니다. "The purchase order is untouched."(PO 는 그대로)
+
+<!-- SCREENSHOT: purch-receipts-1 · 모자란 라인이 있는 입고와 Settle 고르기 -->
+
+<a id="purch-credits"></a>
+## 공급처 크레딧
+<!-- screen: invoices.html · BUILD 2026-11-11 · inv tax v4 -->
+<!-- who: accounting, office -->
+
+**무엇인가**
+공급처 크레딧 노트는 우리가 줄 돈을 줄입니다 — 오지 않은 물건이나 틀린 가격
+
+**어떻게**
+1. 공급처 인보이스를 열고 **Create a credit note** 를 누릅니다. "Lines start at the difference between what this invoice billed and what actually arrived."(줄은 이 인보이스가 청구한 것과 실제 온 것의 차이로 시작한다)
+2. 창에서 **Credit date** 와, 알면 **Printed total** 을 적습니다. **Number** 는 "assigned when created"(만들 때 매김)입니다. **Check** 를 누르고 **Create** 를 누릅니다.
+3. 새 초안에서 라인을 확인하고 까닭을 고릅니다: **Not received** · **Price difference**
+4. **Confirm** 을 누릅니다.
+- 공급처가 자기 크레딧 노트를 보내오면 그 번호를 **Supplier ref** 에 적습니다.
+
+**알아 둘 것**
+- 확정한 크레딧은 재고 원가를 바꿀 수 있습니다. IMS 가 얼마인지("Stock cost changed on … lines"), 무엇이 물건 도착을 기다리는지 알려 줍니다.
+- 크레딧 노트는 지울 수 없습니다. 취소합니다([취소 · 되살리기 · 지우기](#purch-undo)).
+- 필터 **Credit due only** 는 아직 다 쓰지 않은 크레딧을 보여 줍니다.
+
+<a id="purch-payments"></a>
+## 공급처 결제
+<!-- screen: payments.html · BUILD 2026-11-09 · pay rate v1 -->
+<!-- who: accounting -->
+
+**무엇인가**
+**Supplier Payments** 는 공급처 인보이스와 비용에 대해 은행에서 나간 돈을 적습니다. 결제 하나가 한 통화의 여러 문서를 정산할 수 있습니다. purchasing 권한(write)이 필요합니다.
+
+**어떻게**
+1. **To pay** 를 누릅니다(또는 PO · 인보이스 · 비용의 **Pay**).
+2. **Paying on**(내는 날)을 정합니다. "Click the invoices and charges this payment settles. A green discount is earned when paid on the date above."(이 결제가 정산할 인보이스 · 비용을 누른다 · 초록 할인은 위 날짜에 내면 받는다)
+3. 문서를 하나씩 누릅니다. 처음 고른 문서가 통화를 정하고, 다른 통화 문서는 회색이 됩니다.
+4. 라인마다 금액과 할인을 확인합니다. **Paid** 는 직접 적지 않으면 라인 합에서 할인을 뺀 값입니다.
+5. **Pay selected** 를 누릅니다. "Which account did the money leave from?"(어느 계좌에서 나갔나) — **From account** 를 고르고 **Reference**(송금 번호 · 수표 번호 · 카드)를 적습니다.
+6. IMS 가 내기 전에 알리면 — 예: "an early-pay discount was available but not taken"(조기 결제 할인을 받을 수 있었는데 안 받았다) — 읽고 OK 로 그대로 냅니다.
+7. USD 결제면 **To pay** 에 **Exchange rate** 도 나옵니다 — "CAD per 1 USD — MTFX rate of the day the money was bought"(그 돈을 산 날의 MTFX 환율). 비워 두면 IMS 가 한 번 묻고, 나중에 결제 상세의 **Exchange rate**(CAD per 1 USD)에 적어도 됩니다. 적기 전까지 결제에 "needed before this payment can go to QuickBooks"(QuickBooks 로 가려면 필요)가 보입니다.
+
+**할인**
+- **Adjust discount** 는 결제 안 문서 하나의 할인을 바꿉니다.
+- **Settle with discount** 는 "takes what is still owed as discount, when the supplier let it go"(공급처가 봐줬을 때 남은 금액을 할인으로 처리)
+- 조기 결제 할인이 있는 결제는 **Send** 한 번으로 QuickBooks 에 갑니다: 할인이 먼저 공급처 크레딧으로, 그다음 결제([QuickBooks](01-sales.md#sales-quickbooks))
+
+**조심할 것**
+- 결제에는 취소 상태가 없습니다. **Delete** 가 "the only way to undo one"(되돌리는 유일한 길)이고 — "everything it settled goes back to being owed"(정산한 것은 다시 줄 돈이 된다)
+- 라인의 **✕** 는 그 문서를 결제에서 뗍니다: "What it was owed goes back to being owed."
+- 결제 하나는 공급처 하나를 갚습니다. 두 공급처의 문서는 결제 둘로 나눕니다.
+- QuickBooks 로 이미 간 결제를 지우거나 날짜 · 계좌 · 금액 · 환율 · Reference · 문서를 바꾸면 QuickBooks 에서는 void 되고 IMS 가 다시 보냅니다([QuickBooks](01-sales.md#sales-quickbooks)).
+
+<!-- SCREENSHOT: purch-payments-1 · To pay: 인보이스 둘을 고르고 초록 할인 -->
+
+<a id="purch-undo"></a>
+## 취소 · 되살리기 · 지우기
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; invoices.html · BUILD 2026-11-11 · inv tax v4 ; charges.html · BUILD 2026-11-09 · chg kind v1 -->
+<!-- who: office -->
+
+**PO**
+- **Cancel PO**: "It stays on the list with a cancelled tag and its lines are kept. You can restore it later."(취소 표시로 목록에 남고 라인도 남는다 · 나중에 되살릴 수 있다)
+- **Restore**: "It goes back to the state it was in before it was cancelled."
+- **Delete** — 한 번도 확정하지 않은 PO 만: "The order and its lines disappear for good."(아주 사라진다)
+
+**IMS 가 거절할 때**
+
+| IMS 의 글(줄임) | 할 일 |
+|---|---|
+| is closed (receiving finished) — a closed order cannot be cancelled | 크레딧이나 [재고 조정](03-inventory.md#stock-adjustments)으로 바로잡는다 |
+| has … receipt line(s) — a received order cannot be cancelled | 같다 · 입고는 일어난 그대로 남는다 |
+| was confirmed on … — cancel it instead | **Cancel PO** 를 쓴다 |
+| is referenced by … invoice/credit document(s) | 그 라인을 빼거나 그 문서를 먼저 지운다 |
+| has … charge allocation(s) | 먼저 비용에서 PO 를 뺀다 |
+| has … split document(s) pointing at it | 나뉜 오더를 먼저 정리한다 |
+
+**인보이스 · 크레딧 · 비용**
+- **Cancel**: "It stays on the list with a cancelled tag and drops out of the money."(취소 표시로 남고 돈에서 빠진다) **Restore** 로 되살립니다.
+- **Delete** — 한 번도 확정하지 않은 인보이스: "The number becomes free for this supplier again."(그 번호를 이 공급처에 다시 쓸 수 있다) 크레딧 노트는 지울 수 없습니다.
+- 서류(PDF)를 올린 초안 비용 · PO · 인보이스는 지금은 서류를 빼도 지울 수 없습니다 — 대신 **Cancel** 합니다. 취소한 비용의 번호는 같은 청구처에 다시 쓸 수 없습니다.
+- 창고가 그 인보이스로 받기 시작한 뒤에는 다시 열거나 취소할 수 없습니다 — 크레딧 노트를 씁니다.
+
+**결제**
+- **Delete** 만 — [공급처 결제](#purch-payments)
+
+<a id="purch-statuses"></a>
+## 상태의 뜻
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; invoices.html · BUILD 2026-10-22 · inv printed v2 ; charges.html · BUILD 2026-10-24 · chg docs v1 -->
+<!-- who: all -->
+
+**PO**
+
+| 상태 | 뜻 |
+|---|---|
+| Draft | 오피스가 쓰고 있다 |
+| Ordered | 확정됨 — 공급처가 보내기를 기다림 |
+| Receiving | 일부가 왔다 — 나머지가 오는 중 |
+| Received | 다 왔다 — 오피스가 마무리(인보이스 · 비용 · 결제 · 완료) |
+| Completed | 끝 |
+| Cancelled | 취소 |
+
+- 다른 PO 에서 나뉜 PO 에는 "split from PO-…" 가 보입니다.
+- 주황 **Backorder** 칩: "Split off from another PO and still waiting — no confirmed invoice yet"(다른 PO 에서 나뉘어 아직 기다리는 중 · 확정된 인보이스 없음). 상태 필터 **Backorder** 로 모아 봅니다.
+- 결제 필터: **Unpaid** · **Partly paid** · **Paid**
+
+**인보이스 · 크레딧 · 비용 · 입고**
+**Draft** · **Confirmed** · **Cancelled**
+필터: 인보이스 — **Invoices** · **Credits** · **Unpaid only** · **Credit due only** · 비용 — **All kinds** · **Not fully allocated**
+
+<a id="purch-csv"></a>
+## CSV 내려받기
+<!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; purchasing.html · BUILD 2026-10-26 · pur v1d -->
+<!-- who: office, accounting -->
+
+- 확정한 PO 의 **↓ PO CSV** — 공급처에 보내는 파일([PO 확정하고 보내기](#purch-confirm))
+- **Reorder Planner** 의 **↓ CSV**(주문 목록 · 전체 제품 — 공급처 하나 또는 전체) · **↓ Dead Stock CSV** · **↓ Forecast CSV**
+- 엑셀에서 SKU 와 바코드는 글자 그대로 열립니다.
+
+<!-- rulings: 88, 92, 99, 389, 391, 396, 400, 481, 550, 606, 607, 616, 621, 691, 692, 697, 704, 707, 709, 711, 713, 714, 715, 719, 720, 723, 725, 732, 733, 734, 735, 759, 765, 776, 1253, 1257, 1269, 1270, 1273 -->
