@@ -371,6 +371,9 @@ Customer A 의 SO-99001 이 제품 X 를 30 주문했습니다. 창고에 남은
 - 확정 오더의 **Merge…** 단추는 매니저에게만 보입니다.
 
 **창고 바꾸기(Change warehouse) — 매니저 이상**
+- 매니저는 Staff 에서 그 사람에게 Location 을 체크한 창고의 오더만 창고를 바꿀 수 있습니다(체크가 없으면 모든 창고). supervisor · admin 은 모든 오더의 창고를 바꿀 수 있습니다.
+- 다른 창고 오더면 **Preview** 를 누를 때 거절됩니다: "Order SO-99001 is in (its location) — you can only change the warehouse of orders in your locations (ask a supervisor) — nothing was saved"
+- 옮긴 뒤에는 새 창고의 오더입니다. 그 창고에 Location 체크가 없는 매니저는 다시 되돌릴 수 없습니다 — supervisor 에게 부탁합니다.
 1. 아직 창고로 가지 않은 확정 오더에서 **Change warehouse…** 를 누릅니다.
 2. **Move to** 를 고르고 **Preview** 를 누른 뒤 **Change warehouse** 를 누릅니다.
 - "Reservations here are released and taken again in the new warehouse. Whatever it does not have becomes a backorder order."(여기 확보한 것은 풀고 새 창고에서 다시 확보 · 없는 것은 백오더 오더)

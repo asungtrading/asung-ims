@@ -3030,7 +3030,7 @@ function openChangeWh(){
     <h4>Change warehouse — ${esc(cur.so.so_number)} (now ${esc(cur.so.location_name || "")})</h4>
     <div class="pbody">
       <div class="frow"><label>Move to</label><select id="cwTo" class="sofield">${others.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
-      <div class="sohint">Reservations here are released and taken again in the new warehouse. Whatever it does not have becomes a backorder order.</div>
+      <div class="sohint">Reservations here are released and taken again in the new warehouse. Whatever it does not have becomes a backorder order. Managers can move only orders of their locations — after the move it is the new warehouse's order.</div>
     </div>
     <div class="pfoot"><span class="sp"></span>
       <button class="pobtn" data-m="close">Cancel</button>

@@ -371,6 +371,9 @@ What a merge does:
 - On a confirmed order the **Merge…** button shows only to managers.
 
 **Change warehouse — Managers and above**
+- A manager can change the warehouse only of orders in the locations ticked for them in Staff (no location ticked = every location). Supervisors and admins can change the warehouse of any order.
+- Another location's order — IMS says no when you press **Preview**: "Order SO-99001 is in (its location) — you can only change the warehouse of orders in your locations (ask a supervisor) — nothing was saved".
+- After the move the order belongs to the new warehouse. A manager who does not have that location ticked cannot move it back — ask a supervisor.
 1. On a confirmed order that has not gone to the warehouse, press **Change warehouse…**.
 2. Choose **Move to** and press **Preview**, then **Change warehouse**.
 - "Reservations here are released and taken again in the new warehouse. Whatever it does not have becomes a backorder order."
