@@ -6,11 +6,11 @@ The readers are the people who use IMS every day: managers, admins, accounting, 
 ## Where the drafts live
 
 - The drafts stay here until the owner reads them and decides where the manual is published.
-- ⚠️ This repository is public, and this site serves `docs/` as it is. **Anyone can read these files.**
+- ⚠️ This repository is public, and https://ims.asung.ca/manual/ serves these files as they are. **Anyone can read these files.**
   - Never write a real customer, supplier or staff name, email address, phone number, street address, or a real order number.
   - Use example names — **Customer A**, **Supplier B**, **Staff C** — and example numbers that start with 99: **SO-99001**, invoice **99001**, **PO-99001**.
 - Hidden comments (`<!-- … -->`) are hidden only when the page is drawn. In the raw file anyone can read them. Write only screen names, build tags, roles and ruling numbers there — no internal notes about faults or open questions.
-- The **Manual** button on IMS screens reads these files from the `main` branch on GitHub. A change shows there only after it is pushed.
+- The **Manual** link on IMS screens and the Claude connector read these files from https://ims.asung.ca/manual/ (published from the `main` branch). A change shows there only after it is pushed — up to about 16 minutes later.
 - The manual never names the system used before IMS.
 - The manual describes how IMS is designed to work, stated plainly. If IMS behaves differently, that is a fault to report — the draft is not changed to match a fault.
 
@@ -36,14 +36,14 @@ Every section starts with an anchor line, then the heading, then two hidden comm
 ## Checking the anchors
 
 ```bash
-bash scripts/check-manual-anchors.sh            # checks docs/manual
+bash scripts/check-manual-anchors.sh            # checks manual/
 bash scripts/check-manual-anchors.sh <folder>   # checks a copy, for testing
 ```
 
 It checks that `en/` and `ko/` have the same files, the same anchors in the same order, anchors in the right form with no repeats, links that point to real anchors, and that no file names the old system. Missing `screen:` or `who:` comments, or a `who:` word outside the list, give a warning only.
 The last line is `ANCHORS_OK <files> <anchors>` (en and ko together) or `ANCHORS_FAIL <count>` with exit code 1.
-Run it before every commit that touches `docs/manual/`. It needs bash and python3.
-The pre-commit hook (`scripts/hooks/pre-commit`) also runs it on the staged copy whenever `docs/manual/` is staged, and stops the commit on `ANCHORS_FAIL` (needs `git config core.hooksPath scripts/hooks` once on each computer).
+Run it before every commit that touches `manual/`. It needs bash and python3.
+The pre-commit hook (`scripts/hooks/pre-commit`) also runs it on the staged copy whenever `manual/` is staged, and stops the commit on `ANCHORS_FAIL` (needs `git config core.hooksPath scripts/hooks` once on each computer).
 
 ## Contents
 

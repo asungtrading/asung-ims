@@ -2147,7 +2147,7 @@ so-credits.html(cr v3 → v4 → v4a) · purchasing.html(pur v1 · Reorder Plann
 ### 7-zr. 2026-10-25 — 사용 매뉴얼 화면 · Cin7 글 · Result 글자 · 수수료 (help v1 · nav v11 1b335f4 · nav v12 3a6aa0a · b7c5ab9 · so cf words v1 d6b9547 · bo cf words v1 8232f6f · cr v5a b8b67bd · so-module §75 · 판정 721 ~ 725 · 731)
 
 ```
-help.html (help v1 · 판정 725) — asung-wms docs/manual 을 main 에서 읽어 그린다(원고는 push 뒤에야 보인다)
+help.html (help v1 · 판정 725) — ~~asung-wms docs/manual 을 main 에서~~ → [2026-11-20 · 1418 · 4cd5c4a] 같은 출처 manual/(= ims.asung.ca/manual/ · 이 레포)을 읽어 그린다(원고는 push 뒤에야 보인다 · 최대 ≈ 16 분)
 [ ] IMS 화면 머리 Change Password 앞 **Manual** → 새 탭에 help.html (nav v11) · help.html 자신에는 Manual 이 없다
 [✅] WMS 화면 ☰ Menu 맨 끝(줄 하나 띄우고) **Manual** → 새 탭 help.html#ch-04-wms 가 4 장 머리에서 열린다 (nav v12) · WMS 머리에는 Manual · Change Password 가 없다 (Caleb 2026-10-26)
 [ ] English / 한국어 단추 — 고르면 바뀌고, 새로 고쳐도 고른 언어가 남는다
@@ -2193,7 +2193,7 @@ Settings 글 (set v8b · v8c)
 [✅] Settings › Bin 표 머리 = 「Thousands of bins — search for the one you need」 (Caleb 2026-10-26)
 [✅] Settings › Documents › Wording & columns 안내 = 「… These are the subject and message of the email that carries this document.」 (Caleb 2026-10-26)
 
-매뉴얼 (help.html · asung-wms docs/manual · 판정 742)
+매뉴얼 (help.html · ~~asung-wms docs/manual~~ → 이 레포 manual/ · 판정 742 · 1418)
 [ ] 왼쪽 목차 = 0 ~ 10 장(9 장 = FAQ · 10 장 = Glossary · 예전 「9 장 옮겨 오기」 는 없다)
 ⭐ 장 파일 이름 고정 표 — 00-getting-started · 01-sales · 02-purchasing · 03-inventory · 04-wms(nav v12 링크) · 05-pos · 06-action-centre · 07-settings · 08-by-role · 09-faq · 10-glossary
 ⭐ 앵커는 바꾸지 않는다 — 화면 「?」 단추(뒤 차수)가 help.html?lang=…#앵커 로 연다 · 파일 이름을 바꾸면 README Contents 링크만 맞추면 된다
