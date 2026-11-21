@@ -146,7 +146,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
    ⭐ 쓰기 열쇠가 없으면(보기만) 정돈된 목록만 — 살아 있고 · 살 수 있고 · 거래 중인 곳(옛 화면의 「매니저」 목록 · 2026-09-15)
    ⭐ 입력 칸 값은 DOM 으로(esc 는 큰따옴표를 막지 않는다) · 옛 값은 지금 읽은 값을 문자열로(빈 값 = "")
    ───────────────────────────────────────────────────────────── */
-const SP_BUILD = "2026-11-15 · sup v5 · dk1";   // 대화 Claude — sup v5(hist-bq-3 · 판정 1259 · 1263 · 1269 ~ 1271): Purchase history 의 IMS 이전 발주에 2022 ~ 2024 옛 시스템 발주(hist_po era omni)가 섞인다 — era 로 갈라 그린다: 상태 APPROVED → Completed 칩(원문은 풍선글) · 금액 앞에 ≈ · 「옛 시스템이 정수로 반올림 — 대략」(1269 · 원가로 쓰지 마라) · Received 칸 = 받은 날짜(Omni 는 받은 날짜 · 수량이 온전) · 펼친 줄에 Received 칸 · 단가 · 줄 금액도 ≈ · 머리 안내 글에 한 문장 · Core 시절(era core) · IMS 발주는 무변 ← sup v4a(qbo-sync-3-1 · 판정 1088 · 1091 · asung-wms 20261108150000): Account payable 고르기 글에 계정 통화(ref_account.currency_code · 빈 값 = 본사 CAD) · 통화를 바꾸면 같은 종류의 그 통화 계정이 하나뿐일 때 그것으로 바꾸고 한 줄로 알림(여럿 · 없음이면 알림만) — DB 는 통화 ≠ 계정 통화를 거부한다(지연 트리거 · 창구 block) · 저장 길 무변 ← sup v4: 대화 Claude — Caleb 「supplier화면에도 overdue와 a/p balance 그리고 credit amount」: ① 넓은 목록 A/P · Overdue · Credit 칸 + Sort(Name · A/P 큰 순 · Overdue 가장 늦은 순) ② 상세 머리 기한 지남 칩 + Payables 카드(통화마다 A/P · Overdue · Credit · 기한 지난 문서 — 인보이스 · 비용 문서로 링크) · 셈 = 확정(status confirmed)된 po_invoice_list · po_charge_list 의 unpaid — 양수 = 갚을 돈 · 음수 = 크레딧(정본 「음수 미지급은 받을 돈」) · 기한 = due_date < 토론토 오늘 · ⚠️ IMS 에 넣은 매입 문서만 — 컷오버 전 미지급은 QuickBooks(Caleb 10-31 · 이월 안 함) · 화면 안내 · DB 무변 ← sup v3d: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
+const SP_BUILD = "2026-11-21 · sup dep v1 · dk1";   // 대화 Claude — sup dep v1(sd-1 · sd-23 · 판정 1488 ~ 1495 · 1501 · 1503 · 1504): 상세에 Supplier deposits 카드 — 통화별 미적용 · CAD 장부값 · 목록(번호 · 적용 줄) · Record deposit(QuickBooks 열쇠 · Check → Save) · Link PO · Void ← 2026-11-15 · sup v5 · dk1:   // 대화 Claude — sup v5(hist-bq-3 · 판정 1259 · 1263 · 1269 ~ 1271): Purchase history 의 IMS 이전 발주에 2022 ~ 2024 옛 시스템 발주(hist_po era omni)가 섞인다 — era 로 갈라 그린다: 상태 APPROVED → Completed 칩(원문은 풍선글) · 금액 앞에 ≈ · 「옛 시스템이 정수로 반올림 — 대략」(1269 · 원가로 쓰지 마라) · Received 칸 = 받은 날짜(Omni 는 받은 날짜 · 수량이 온전) · 펼친 줄에 Received 칸 · 단가 · 줄 금액도 ≈ · 머리 안내 글에 한 문장 · Core 시절(era core) · IMS 발주는 무변 ← sup v4a(qbo-sync-3-1 · 판정 1088 · 1091 · asung-wms 20261108150000): Account payable 고르기 글에 계정 통화(ref_account.currency_code · 빈 값 = 본사 CAD) · 통화를 바꾸면 같은 종류의 그 통화 계정이 하나뿐일 때 그것으로 바꾸고 한 줄로 알림(여럿 · 없음이면 알림만) — DB 는 통화 ≠ 계정 통화를 거부한다(지연 트리거 · 창구 block) · 저장 길 무변 ← sup v4: 대화 Claude — Caleb 「supplier화면에도 overdue와 a/p balance 그리고 credit amount」: ① 넓은 목록 A/P · Overdue · Credit 칸 + Sort(Name · A/P 큰 순 · Overdue 가장 늦은 순) ② 상세 머리 기한 지남 칩 + Payables 카드(통화마다 A/P · Overdue · Credit · 기한 지난 문서 — 인보이스 · 비용 문서로 링크) · 셈 = 확정(status confirmed)된 po_invoice_list · po_charge_list 의 unpaid — 양수 = 갚을 돈 · 음수 = 크레딧(정본 「음수 미지급은 받을 돈」) · 기한 = due_date < 토론토 오늘 · ⚠️ IMS 에 넣은 매입 문서만 — 컷오버 전 미지급은 QuickBooks(Caleb 10-31 · 이월 안 함) · 화면 안내 · DB 무변 ← sup v3d: 대화 Claude — exp-2(deferred 300 · 판정 699 · 700 · 762 · 763 · exp-1 이견 4 · asung-wms 6e9734b): 넓은 목록 거르기 줄에 「↓ Export…」 — 공용 ims-export.js · 행 = 지금 거르기 그대로(supplier_export p_q · p_only_active · p_hide_discontinued · p_purchasable) · 쓰기 없는 직원은 DB 가 켜짐 · purchasable · 단종 아님으로 고정(forced_filter) ← 2026-10-25 · sup v3c: 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 「Cin7 comments」 → 「Notes from before IMS」 · 이전 PO 표 설명 글 · 목록 Source 칸 · 머리 칩 · 동작 무변 ← 2026-10-23 · sup v3b: 대화 Claude — Caleb 「purchasable이 지금은 all이 디폴트야. Yes가 디폴트가 되게」: Purchasable 거르기 기본 = Yes(두 목록 · Clear 도 Yes 로) · ?id= 로 열면 All(찾는 공급처가 왼쪽 목록에 보이게 · products ?id= 와 같은 결) ← sup v3a: 대화 Claude — Caleb 화면 시험: PO-00942(Completed)의 줄이 모두 Received 0 — 실측 hist_po_line 17,939 줄 전부 received_quantity 0 · hist_po 448 전부 received_date null · BQ asung_purchase_history 도 rq_pos 0 · rd_set 0(원천이 안 담는다 · 적재는 무죄) ⇒ 이전 발주는 받은 것을 보이지 않는다: 줄 표에서 Received 칸을 빼고 「received quantities were not recorded before IMS」 · 행의 Received 칸은 「not recorded」 ← sup v3: 대화 Claude — 판정 654 B · 666 · 669(Caleb 「그렇게 가자」): Purchase history 카드에 IMS 이전 발주(hist_po · Cin7 Core 시절 · 읽기 전용)를 함께 — 두 출처를 따로 읽어 화면이 주문 날짜순으로 섞는다(DB 무변) · 「Before IMS」 꼬리표 · 상태는 Cin7 원문(첫 조각 = 칩 · 나머지 = 꼬리표) · 금액 = hist_po.po_total = Cin7 발주(Order) 총액(주문 줄 + 추가 비용(할인 음수) + 세금 · PO-01415 · PO-01406 Cin7 화면 대조 · 인보이스 금액이 아니다) — 칸 아래 · 머리에 적음 · Invoiced · Unpaid 는 이전 발주에서 비움 · ▸ 로 펼치면 주문 줄(hist_po_line · 주문 · 받은 수량 · 단가 · 줄 금액 · 세전) — 제품 줄과 IMS 에 없는 SKU 를 따로 · hist_po 를 못 읽으면 IMS 발주만 + 한 줄 ← sup v2: 대화 Claude — 판정 654 A(Caleb 「현재 customer와 supplier의 판매 또는 구매 히스토리가 없어」 → 「일단 A로 하자」): 상세에 Purchase history 카드(머리 카드 아래) — 뷰 po_list(po.html 목록과 같은 값 · 판정 360 단계 칩) · 최근 20 · Show 20 more · PO 번호 → po.html?po= · Unpaid 는 문서 단위(더하지 않는다) · 지난 이력(BQ)은 B · deferred 301 ← sup tx v1a: 대화 Claude — Caleb 캡처: 고치기 창이 옆으로 넘쳐 왼쪽 라벨이 가려지고 아래 가로 막대가 생겼다 — .cgrid 칸이 긴 고르기 글자만큼 넓어졌다(1fr 의 최소 = 내용 폭) · minmax(0,1fr) + 입력 min-width 0 ← sup tx v1 · 대화 Claude — 매입 세금(po-tax-1): Tax rule 을 자유 글자에서 고르기로(활성 purchase 규칙 이름 · supplier.tax_rule 은 이름 원문이라 값 = 이름 · 지금 값이 목록에 없으면 「(current · inactive)」) — 이 규칙이 새 PO · 비용 청구서의 세금 출발점이다 ← sup v2 · 대화 Claude — 판정 242 · 243 두 모드 + cs-5 ③ 만들기 · 고치기 ← master-cs-3 토글 창구(8f52ab2) ← 2026-09-15 is_purchasable
 console.log("suppliers.html build:", SP_BUILD);
 
 let sb = null, me = null, canWrite = false, isMaster = false;
@@ -339,6 +339,7 @@ async function loadDetail(id){
     <div class="card"><div class="head"><div class="nm">${esc(r.name)}</div><div class="chips">${chips.join("")}</div><div class="acts">${acts.join("")}</div></div>
       <table class="kv"><tbody>${kv.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table></div>
     <div id="apBox"></div>
+    <div id="depBox"></div>
     <div id="histBox"><div class="card"><h3>Purchase history</h3><div class="msg">Loading…</div></div></div>
     ${tbl("Addresses", cur.addr.length, ["Type", "Street", "City", "Province", "Postal", "Country", ""], aRows, "addAddr", canWrite)}
     ${tbl("Contacts", cur.cont.length, ["Name", "Phone", "Mobile", "Email", ""], cRows, "addCont", canWrite)}
@@ -359,7 +360,140 @@ async function loadDetail(id){
   box.querySelectorAll("[data-de]").forEach(b => { b.onclick = () => openDisc(cur.disc[+b.dataset.de]); });
   box.querySelectorAll("[data-do]").forEach(b => { b.onclick = () => { const x = cur.disc[+b.dataset.do]; runUpdate([{ supplier_id: r.id, op: "discount_off", discount_id: x.id }], `Remove the discount ${x.name || ""}`); }; });
   apLoad(r, seq);   // sup v4 — 미지급 카드(그린 뒤 채운다)
+  depSupLoad(r, seq);   // sup dep v1 — 선급금 카드
   histLoad(r, seq, HIST_N);   // sup v2 — 판정 654 A · 카드는 따로 채운다
+}
+
+/* ── Supplier deposits — dep v1 · sd-1 · sd-23 · 판정 1488 ~ 1495 · 1501 · 1503 · 1504 (asung-wms 669aa38 · 0a5ae54 · e5a1d60) ──
+   ⭐ Money paid to this supplier before the bill comes (e.g. 30 % up front by WISE). It sits in Supplier Deposits until
+   it is applied to the supplier's invoice or charge (on that document's screen — Apply deposit).
+   ⭐ "IMS sends it to QuickBooks" = an Expense to Supplier Deposits, sent from Integrations › QuickBooks (Supplier deposits).
+     "Already in QuickBooks" = Justin already recorded it there — IMS does not send it again, but does send the offset when applied (1504).
+   ⚠️ Only someone with the QuickBooks key can record, link a PO or void (po_deposit_list.can_edit) — the server refuses others. */
+const depToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const depSay = (id, cls, text) => { const el = $(id); if(el){ el.className = cls; el.textContent = text; } };
+async function depSupLoad(r, seq){
+  const box = $("depBox"); if(!box) return;
+  const [bal, lst] = await Promise.all([
+    sb.rpc("po_deposit_balance", { p_supplier_id: r.id }),
+    sb.rpc("po_deposit_list", { p_supplier_id: r.id, p_open_only: false, p_doc_id: null }),
+  ]);
+  if(seq !== detailSeq) return;
+  if(lst.error){ box.innerHTML = ""; return; }   // no purchasing view — the card stays away
+  const d = lst.data || {}, rows = d.rows || [], can = !!d.can_edit;
+  if(!rows.length && !can){ box.innerHTML = ""; return; }
+  const sums = (bal.data || []).map(b => `<tr><td class="mono">${esc(b.currency_code)}</td><td class="num">${esc(b.deposit_count)}</td>
+      <td class="num"><b>${esc(m2(b.unapplied))}</b></td><td class="num">${esc(m2(b.unapplied_book_cad))} <span class="dim">CAD</span></td></tr>`).join("");
+  const qboCell = (x) => x.qbo_source === "already_in_qbo"
+    ? `<span class="chip">already in QuickBooks</span>${x.qbo_ref ? ` <span class="mono dim">${esc(x.qbo_ref)}</span>` : ""}`
+    : '<span class="chip">IMS sends it</span>';
+  const body = rows.map((x, i) => `<tr${x.voided ? ' style="opacity:.6"' : ""}>
+      <td class="mono">${esc(x.number || "")}</td><td class="mono">${dim(x.paid_on)}</td>
+      <td class="num">${x.voided ? `<s>${esc(m2(x.amount))}</s>` : esc(m2(x.amount))} <span class="dim">${esc(x.currency_code || "")}</span>${x.currency_code && x.currency_code !== "CAD" ? `<div class="dim" style="font-size:11px">× ${esc(x.exchange_rate)} = ${esc(m2(x.book_cad))} CAD</div>` : ""}</td>
+      <td class="num">${esc(m2(x.applied_total || 0))}</td><td class="num"><b>${esc(m2(x.remaining || 0))}</b></td>
+      <td>${esc(x.account_name || "")}${x.reference ? `<div class="dim" style="font-size:11px">${esc(x.reference)}</div>` : ""}</td>
+      <td>${x.po_number ? `<a class="lk mono" href="po.html?q=${encodeURIComponent(x.po_number)}">${esc(x.po_number)}</a>` : '<span class="dim">—</span>'}</td>
+      <td>${qboCell(x)}</td>
+      <td>${esc(x.created_by_name || "")}${x.voided ? `<div class="off" style="font-size:11px">Voided by ${esc(x.voided_by_name || "—")}${x.void_note ? " — " + esc(x.void_note) : ""}</div>` : ""}</td>
+      <td style="white-space:nowrap">${can && !x.voided ? `<button class="xs" data-dpo="${i}">${x.po_id ? "Change PO" : "Link PO"}</button> ${Number(x.applied_total || 0) > 0 ? "" : `<button class="xs" data-dvo="${i}">Void</button>`}` : ""}</td></tr>
+      ${(x.applies || []).length ? `<tr><td></td><td colspan="9" class="dim" style="font-size:11.5px;padding-top:0">${(x.applies || []).map(a => `${a.voided ? "<s>" : ""}${esc(a.apply_number || ("#" + (a.apply_no || "")))} → <a class="lk mono" href="${a.kind === "charge" ? "charges" : "invoices"}.html?id=${encodeURIComponent(a.doc_id)}">${esc(a.number || "")}</a> ${esc(m2(a.amount))} on ${esc(a.applied_on || "")}${a.voided ? "</s> (voided)" : ""}`).join(" · ")}</td></tr>` : ""}`).join("");
+  box.innerHTML = `<div class="card"><h3>Supplier deposits <span class="n">${rows.filter(x => !x.voided).length}</span>${can ? ' <button class="xs" id="depAdd" style="float:right">+ Record deposit</button>' : ""}</h3>
+    ${sums ? `<table><thead><tr><th>Currency</th><th class="num">Open deposits</th><th class="num" title="Paid in advance, not yet used on a bill">Unapplied</th><th class="num" title="What it stands at in QuickBooks Supplier Deposits (amount × the rate on the day it was paid)">Book value</th></tr></thead><tbody>${sums}</tbody></table>` : ""}
+    ${rows.length ? `<table style="margin-top:8px"><thead><tr><th>No.</th><th>Paid on</th><th class="num">Amount</th><th class="num">Applied</th><th class="num">Left</th><th>From</th><th>PO</th><th>QuickBooks</th><th>By</th><th></th></tr></thead><tbody>${body}</tbody></table>` : '<div class="msg">No deposits.</div>'}
+    <div class="dim" style="font-size:11.5px;padding:6px 14px 10px">Money paid before the bill comes sits here until it is used. Apply it on the invoice or charge screen (Apply deposit) when the bill arrives. Separate from A/P above.
+      ${can ? "" : " Only someone with the QuickBooks key can record or change deposits."}</div></div>`;
+  if($("depAdd")) $("depAdd").onclick = () => depCreateOpen(r);
+  box.querySelectorAll("[data-dpo]").forEach(b => { b.onclick = () => depSetPoOpen(r, rows[+b.dataset.dpo]); });
+  box.querySelectorAll("[data-dvo]").forEach(b => { b.onclick = () => depVoidOpen(r, rows[+b.dataset.dvo]); });
+}
+async function depPoOptions(r, cur){
+  const { data } = await sb.from("po").select("id,po_number,status").eq("supplier_id", r.id).order("created_at", { ascending: false }).limit(100);
+  return ['<option value="">— none —</option>'].concat((data || []).filter(p => p.status !== "cancelled")
+    .map(p => `<option value="${esc(p.id)}" ${String(p.id) === String(cur || "") ? "selected" : ""}>${esc(p.po_number || "")} · ${esc(p.status || "")}</option>`)).join("");
+}
+async function depCreateOpen(r){
+  const cur = (r.ref_currency && r.ref_currency.code) || "CAD";
+  const today = depToday();
+  modalOpen(`<h4>Record a supplier deposit — ${esc(r.name)}</h4><div class="pbody"><div class="msg">Loading…</div></div>`);
+  const [acc, poOpts] = await Promise.all([
+    sb.from("ref_account").select("id,code,name,account_type,currency_code").in("account_type", ["BANK", "CREDITCARD"]).eq("is_active", true).order("name"),
+    depPoOptions(r, null),
+  ]);
+  const accs = (acc.data || []).filter(a => (a.currency_code || "CAD") === cur);
+  $("modalBox").innerHTML = `<h4>Record a supplier deposit — ${esc(r.name)}</h4>
+    <div class="pbody">
+      <div class="dim" style="font-size:12.5px;line-height:1.6;margin-bottom:10px">Money paid to this supplier before the bill comes. Enter what the supplier <b>received</b> — the wire fee goes to Bank Charges on its own. Currency is the supplier's: <b>${esc(cur)}</b>.</div>
+      <div class="frow"><label>Paid on</label><input id="dpDate" type="date" value="${today}" max="${today}"></div>
+      <div class="frow"><label>Amount (${esc(cur)})</label><input id="dpAmt" type="number" step="0.01" min="0.01"></div>
+      ${cur !== "CAD" ? `<div class="frow"><label>Exchange rate</label><input id="dpRate" type="number" step="0.000001" min="0" placeholder="CAD per 1 ${esc(cur)} on the day (e.g. MTFX rate)"></div>` : ""}
+      <div class="frow"><label>QuickBooks</label><select id="dpSrc"><option value="ims">IMS sends it to QuickBooks (Expense to Supplier Deposits)</option><option value="already_in_qbo">Already in QuickBooks — do not send</option></select></div>
+      <div class="frow" id="dpRefRow" hidden><label>QuickBooks ref</label><input id="dpQref" placeholder="the expense's no. or ref in QuickBooks — required"></div>
+      <div class="frow"><label>Paid from</label><select id="dpAcc"><option value="">— pick the account —</option>${accs.map(a => `<option value="${esc(a.id)}">${esc(a.name)} (${esc(a.code)})</option>`).join("")}</select></div>
+      <div class="frow"><label>Wire reference</label><input id="dpRef" placeholder="e.g. TRANSFER-…8808"></div>
+      <div class="frow"><label>PO (optional)</label><select id="dpPo">${poOpts}</select></div>
+      <div class="frow"><label>Note</label><input id="dpNote" placeholder="e.g. 30 % advance for PI #FB-260912"></div>
+      <div id="dpPrev" style="margin-top:10px;font-size:12.5px"></div><div id="dpMsg" style="margin-top:6px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="dpCancel">Cancel</button><button class="pobtn go" id="dpGo">Check</button></div>`;
+  $("dpCancel").onclick = modalClose;
+  let checked = false;
+  const go = $("dpGo");
+  const reset = () => { checked = false; go.textContent = "Check"; $("dpPrev").innerHTML = ""; };
+  $("dpSrc").onchange = () => { $("dpRefRow").hidden = $("dpSrc").value !== "already_in_qbo"; reset(); };
+  ["dpDate", "dpAmt", "dpRate", "dpQref", "dpAcc", "dpRef", "dpPo", "dpNote"].forEach(i => { const el = $(i); if(el) el.oninput = el.onchange = reset; });
+  go.onclick = async () => {
+    const num = (id) => $(id) && $(id).value !== "" ? Number($(id).value) : null;
+    const args = { p_supplier_id: r.id, p_paid_on: $("dpDate").value || null, p_amount: num("dpAmt"), p_qbo_source: $("dpSrc").value,
+      p_currency_id: null, p_exchange_rate: cur === "CAD" ? null : num("dpRate"), p_account_id: $("dpAcc").value || null,
+      p_reference: $("dpRef").value || null, p_note: $("dpNote").value || null, p_po_id: $("dpPo").value || null,
+      p_qbo_ref: $("dpSrc").value === "already_in_qbo" ? ($("dpQref").value || null) : null, p_commit: checked };
+    go.disabled = true; depSay("dpMsg", "", checked ? "Saving…" : "Checking…");
+    const { data, error } = await sb.rpc("po_deposit_create", args);
+    go.disabled = false;
+    if(error){ reset(); depSay("dpMsg", "err", error.message); return; }
+    if(args.p_commit){ modalClose(); loadDetail(r.id); return; }
+    checked = true; go.textContent = "Save";
+    const w = (data.warnings || []).map(x => x === "possible_duplicate" ? "A deposit with the same supplier, date and amount is already recorded — check it is not entered twice."
+      : x === "reference_missing" ? "No wire reference — add it if you have it." : x).map(t => `<div class="off" style="margin-top:4px">${esc(t)}</div>`).join("");
+    $("dpPrev").innerHTML = `${esc(m2(data.amount))} ${esc(data.currency_code || cur)}${data.currency_code && data.currency_code !== "CAD" ? ` × ${esc(data.exchange_rate)} = <b>${esc(m2(data.book_cad))} CAD</b>` : ""} from ${esc(data.account_name || "—")}`
+      + `<div class="dim" style="margin-top:4px">${args.p_qbo_source === "ims" ? "After Save, send it from Integrations › QuickBooks (Supplier deposits), then match the bank-feed line in QuickBooks." : "Not sent to QuickBooks — it is already there."}</div>${w}`;
+    depSay("dpMsg", "", "");
+  };
+}
+async function depSetPoOpen(r, x){
+  modalOpen(`<h4>Link a PO — ${esc(x.number || "")}</h4><div class="pbody"><div class="msg">Loading…</div></div>`);
+  const opts = await depPoOptions(r, x.po_id);
+  $("modalBox").innerHTML = `<h4>Link a PO — ${esc(x.number || "")}</h4><div class="pbody">
+      <div class="dim" style="font-size:12.5px;margin-bottom:10px">A marker only — it does not move money. When that PO's invoice comes, this deposit is easy to find.</div>
+      <div class="frow"><label>PO</label><select id="dsPo">${opts}</select></div><div id="dsMsg" style="margin-top:6px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="dsCancel">Cancel</button><button class="pobtn go" id="dsGo">Save</button></div>`;
+  $("dsCancel").onclick = modalClose;
+  $("dsGo").onclick = async () => {
+    $("dsGo").disabled = true; depSay("dsMsg", "", "Saving…");
+    const { error } = await sb.rpc("po_deposit_set_po", { p_deposit_id: x.id, p_po_id: $("dsPo").value || null, p_commit: true });
+    $("dsGo").disabled = false;
+    if(error){ depSay("dsMsg", "err", error.message); return; }
+    modalClose(); loadDetail(r.id);
+  };
+}
+function depVoidOpen(r, x){
+  modalOpen(`<h4>Void a supplier deposit — ${esc(x.number || "")}</h4><div class="pbody">
+      <div style="font-size:13px;margin-bottom:8px">${dim(x.paid_on)} · <b>${esc(m2(x.amount))} ${esc(x.currency_code || "")}</b>${x.reference ? " · " + esc(x.reference) : ""}</div>
+      <div class="dim" style="font-size:12.5px;margin-bottom:10px">Only a deposit that is not applied to any bill can be voided. The line stays, marked voided.${x.qbo_source === "ims" ? " If it was already sent, IMS voids the expense in QuickBooks too (from Integrations › QuickBooks)." : ""}</div>
+      <div class="frow"><label>Why</label><input id="dvdNote" placeholder="reason — required"></div>
+      <div id="dvdMsg" style="margin-top:6px;font-size:12.5px"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="dvdCancel">Cancel</button><button class="pobtn go" id="dvdGo">Check</button></div>`);
+  $("dvdCancel").onclick = modalClose;
+  let checked = false; const go = $("dvdGo");
+  $("dvdNote").oninput = () => { checked = false; go.textContent = "Check"; };
+  go.onclick = async () => {
+    go.disabled = true; depSay("dvdMsg", "", checked ? "Saving…" : "Checking…");
+    const { error } = await sb.rpc("po_deposit_void", { p_deposit_id: x.id, p_note: $("dvdNote").value, p_commit: checked });
+    go.disabled = false;
+    if(error){ checked = false; go.textContent = "Check"; depSay("dvdMsg", "err", error.message); return; }
+    if(checked){ modalClose(); loadDetail(r.id); return; }
+    checked = true; go.textContent = "Void"; depSay("dvdMsg", "", "Ready — press Void to save.");
+  };
 }
 
 /* ── sup v4 — 상세 Payables 카드 · 기한 지남 칩 ── */
