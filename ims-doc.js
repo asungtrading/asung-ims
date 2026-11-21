@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -140,26 +140,45 @@
      mailList: doc_mail_list → 보낸 메일 · 건너뛴 자동 메일 · 아직 안 나간 것은 취소(doc_mail_cancel · 메모 필수)
      ⚠️ 판정은 DB 가 한다 — 화면은 창구가 돌려준 글을 그린다 */
   function h(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+  /* doc v4(mail-att-a2 · 판정 1274 ~ 1281 다크): 넣는 CSS 의 색은 전부 var(이름, 옛 색) — 라이트 값 = 고치기 전 색 그대로(시험이 둘째 값을 옛 글과 맞춘다)
+     · ims-ui.css 이름은 라이트 값이 옛 색과 같은 것만(--ims-surface #fff · --bad #b42318) · 나머지는 --dk-<bg|ln|tx>-<hex>(라이트 :root 에 없거나 같은 hex — 화면 선례)
+     · 다크 값은 아래 html[data-theme="dark"] 한 줄(IMS · POS 만 · WMS 라이트 고정) — 다른 화면이 같은 이름에 준 다크 값을 그대로 썼다 */
   function css() {
     if (document.getElementById("imsDocCss")) return;
     const st = document.createElement("style"); st.id = "imsDocCss";
-    st.textContent = ".idm{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:flex-start;justify-content:center;z-index:9999;padding:48px 12px;overflow:auto}"
-      + ".idm .bx{background:#fff;border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}"
-      + ".idm h4{margin:0;padding:14px 18px;border-bottom:1px solid #e3e7ee;font-size:15px}"
+    st.textContent = 'html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-0f172a73:rgba(0,0,0,.6);--dk-bg-00000040:rgba(0,0,0,.6);--dk-ln-e3e7ee:#2a313b;--dk-ln-d5dae2:#3a4350;--dk-tx-5b6472:#98a2b0;'
+      + "--dk-bg-fff7e6:#413316;--dk-ln-f5d38a:#76552d;--dk-tx-067647:#71f4bd;--dk-bg-ecfdf3:#164128;--dk-ln-abefc6:#2d764a;--dk-bg-fef3f2:#1c2129;--dk-ln-fecdca:#76312d;--dk-tx-8a94a6:#6f7a88;--dk-bg-1f2933:#e6e9ee;--dk-tx-ffffff:#12161c}"
+      + ".idm{position:fixed;inset:0;background:var(--dk-bg-0f172a73,rgba(15,23,42,.45));display:flex;align-items:flex-start;justify-content:center;z-index:9999;padding:48px 12px;overflow:auto}"
+      + ".idm .bx{background:var(--ims-surface,#fff);border-radius:14px;max-width:640px;width:100%;box-shadow:0 20px 50px var(--dk-bg-00000040,rgba(0,0,0,.25))}"
+      + ".idm h4{margin:0;padding:14px 18px;border-bottom:1px solid var(--dk-ln-e3e7ee,#e3e7ee);font-size:15px}"
       + ".idm .bd{padding:14px 18px;display:flex;flex-direction:column;gap:10px;font-size:13px}"
       + ".idm label{display:flex;flex-direction:column;gap:3px;font-weight:600;font-size:12.5px}"
-      + ".idm input,.idm textarea{font:inherit;font-weight:400;border:1px solid #d5dae2;border-radius:9px;padding:7px 9px}"
-      + ".idm .ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid #e3e7ee}"
-      + ".idm .nt{font-size:12px;color:#5b6472}.idm .wn{background:#fff7e6;border:1px solid #f5d38a;border-radius:9px;padding:8px 10px;font-size:12.5px}"
-      + ".idm .er{color:#b42318}.idm .ok{color:#067647}"
-      + ".idml table{width:100%;border-collapse:collapse;font-size:12.5px}.idml th,.idml td{text-align:left;padding:6px 8px;border-top:1px solid #e3e7ee;vertical-align:top}"
-      + ".idml .st{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;border:1px solid #d5dae2}"
-      + ".idml .st.sent{background:#ecfdf3;border-color:#abefc6}.idml .st.failed,.idml .st.unknown{background:#fef3f2;border-color:#fecdca}.idml .st.cancelled{color:#8a94a6}";
+      + ".idm input,.idm textarea{font:inherit;font-weight:400;border:1px solid var(--dk-ln-d5dae2,#d5dae2);border-radius:9px;padding:7px 9px}"
+      + ".idm .ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--dk-ln-e3e7ee,#e3e7ee)}"
+      + ".idm .nt{font-size:12px;color:var(--dk-tx-5b6472,#5b6472)}.idm .wn{background:var(--dk-bg-fff7e6,#fff7e6);border:1px solid var(--dk-ln-f5d38a,#f5d38a);border-radius:9px;padding:8px 10px;font-size:12.5px}"
+      + ".idm .er{color:var(--bad,#b42318)}.idm .ok{color:var(--dk-tx-067647,#067647)}"
+      + ".idml table{width:100%;border-collapse:collapse;font-size:12.5px}.idml th,.idml td{text-align:left;padding:6px 8px;border-top:1px solid var(--dk-ln-e3e7ee,#e3e7ee);vertical-align:top}"
+      + ".idml .st{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;border:1px solid var(--dk-ln-d5dae2,#d5dae2)}"
+      + ".idml .st.sent{background:var(--dk-bg-ecfdf3,#ecfdf3);border-color:var(--dk-ln-abefc6,#abefc6)}.idml .st.failed,.idml .st.unknown{background:var(--dk-bg-fef3f2,#fef3f2);border-color:var(--dk-ln-fecdca,#fecdca)}.idml .st.cancelled{color:var(--dk-tx-8a94a6,#8a94a6)}"
+      /* doc v4 새 규칙(mail-att-a2) — 첨부 칸 · 고르기 창 · 색은 기존 이름만 */
+      + ".idm .ida{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--dk-ln-d5dae2,#d5dae2);border-radius:10px;padding:10px}"
+      + ".idm .ida.drag{border-color:var(--accent,#2f6df6);background:var(--ims-sel-bg,#eef3ff)}"
+      + ".idm .ida-h{display:flex;gap:8px;align-items:baseline;font-weight:600;font-size:12.5px}.idm .ida-h .nt{font-weight:400}"
+      + ".idm .ida-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}"
+      + ".idm .ida-l li{display:flex;gap:8px;align-items:center;font-size:12.5px;border-top:1px solid var(--dk-ln-e3e7ee,#e3e7ee);padding-top:4px}"
+      + ".idm .ida-l li:first-child{border-top:0;padding-top:0}.idm .ida-l .fn{flex:1;min-width:0;overflow-wrap:anywhere}"
+      + ".idm .ida-b{display:flex;gap:8px;flex-wrap:wrap;align-items:center}"
+      + ".idm .tg{display:inline-block;border:1px solid var(--dk-ln-d5dae2,#d5dae2);border-radius:999px;padding:0 7px;font-size:11px;font-weight:400;margin-left:4px;white-space:nowrap}"
+      + ".idm .tg.cx{color:var(--bad,#b42318);border-color:var(--dk-ln-fecdca,#fecdca)}.idm .tg.me{color:var(--accent,#2f6df6)}"
+      + ".idm .bx.wide{max-width:980px}.idm .ipk-t{display:flex;gap:6px;flex-wrap:wrap;align-items:center}"
+      + ".idm .ipk{overflow:auto;max-height:52vh}.idm .ipk table{width:100%;border-collapse:collapse;font-size:12px}"
+      + ".idm .ipk th,.idm .ipk td{text-align:left;padding:5px 6px;border-top:1px solid var(--dk-ln-e3e7ee,#e3e7ee);vertical-align:top}.idm .ipk td.num{text-align:right;white-space:nowrap}"
+      + ".idm .ipk input[type=checkbox]{padding:0}";
     document.head.appendChild(st);
   }
-  function overlay(inner) {
+  function overlay(inner, wide) {
     css();
-    const ov = document.createElement("div"); ov.className = "idm"; ov.innerHTML = '<div class="bx">' + inner + "</div>";
+    const ov = document.createElement("div"); ov.className = "idm"; ov.innerHTML = '<div class="bx' + (wide ? " wide" : "") + '">' + inner + "</div>";
     document.body.appendChild(ov);
     return ov;
   }
@@ -168,11 +187,269 @@
     css();
     const t = document.createElement("div");
     t.setAttribute("role", "status");
-    t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1f2933;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:10000;box-shadow:0 8px 24px rgba(0,0,0,.25)";
+    t.style.cssText = "position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--dk-bg-1f2933,#1f2933);color:var(--dk-tx-ffffff,#fff);padding:10px 16px;border-radius:10px;font-size:13px;z-index:10000;box-shadow:0 8px 24px var(--dk-bg-00000040,rgba(0,0,0,.25))";
     t.textContent = text;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 4000);
   }
+
+  /* ── doc v4 — 문서 메일 추가 첨부(mail-att-a2 · 판정 1464 ~ 1467 · 1473 · 1481 · asung-wms A-1a 5f0cba4 · A-1b 16fb86c) ──
+     · 형식 일곱 확장자(1464) · 파일 하나 10 MB · 합계는 미리 보기의 attach_limit(문서 PDF 몫을 뺀 값 · 1465) · 10 개(attach_max_files)
+     · 화면이 먼저 막고 서버가 다시 막는다 — 서버 글은 그대로 보인다(다시 쓰지 않는다)
+     · 올리기 = 버킷 mail-files/<uuid>.<소문자 확장자>(contentType 은 확장자로 · 브라우저 형식은 믿지 않는다) → mail_upload_add
+     · 빼기 = 이번 창에서 올린 것은 mail_upload_delete(아직 안 보냈다 · 1466) · 고른 것은 목록에서만
+     · 창을 닫으면(보내지 않고) 이번 창에서 올린 것을 지운다 — 실패해도 닫는다(남은 파일은 무해 · 콘솔에만)
+     · 첨부가 없으면 doc_mail_send 호출은 doc v3a 와 같은 키 집합(p_attach 키 자체를 넣지 않는다)
+     · ⚠️ ship_ready 는 미리 보기 때 PDF 가 없어 서버가 1 MB 몫으로 셈한다 — 보낼 때 실제 PDF 크기로 다시 막는다(미룬 일)
+     · 항목 꼴 {key, src: 'upload' | 'pick' | 'auto', kind: 'upload' | 'doc', id, name, bytes, sha, mine, checked, state}
+       src 'auto' = 뒤 차수 B 의 팩킹 리스트 자리(1473 — 체크된 채 들어가고 뺄 수 있다) · 이번엔 만들지 않는다 · p_attach 에 싣는 길도 B 가 정한다 */
+  const ATT_MIME = {
+    pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", csv: "text/csv",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+  const ATT_FILE_MAX = 10485760;                 // 파일 하나(버킷 file_size_limit · mail_upload_bytes_ck)
+  const ATT_LIMIT_DEFAULT = 9437184;             // 미리 보기가 attach_limit 을 주기 전(10 MB − 문서 PDF 몫 1 MB)
+  const ATT_MAX_DEFAULT = 10;
+  function fmtBytes(n) {
+    n = Number(n || 0);
+    if (n >= 1048576) return (n / 1048576).toFixed(1) + " MB";
+    if (n >= 1024) return Math.max(1, Math.round(n / 1024)) + " KB";
+    return n + " B";
+  }
+  function extOf(name) { const m = /\.([A-Za-z0-9]+)$/.exec(String(name || "")); return m ? m[1].toLowerCase() : ""; }
+  function newUuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    const b = new Uint8Array(16); window.crypto.getRandomValues(b); b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+    const x = Array.from(b, (v) => v.toString(16).padStart(2, "0")).join("");
+    return x.slice(0, 8) + "-" + x.slice(8, 12) + "-" + x.slice(12, 16) + "-" + x.slice(16, 20) + "-" + x.slice(20);
+  }
+  function fileBuf(f) {
+    if (typeof f.arrayBuffer === "function") return f.arrayBuffer();
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsArrayBuffer(f); });
+  }
+  async function sha256Hex(f) {
+    const d = await window.crypto.subtle.digest("SHA-256", await fileBuf(f));
+    return Array.from(new Uint8Array(d), (v) => v.toString(16).padStart(2, "0")).join("");
+  }
+
+  /* 첨부 칸 하나 — mailDialog 가 bd 안의 상자(box)에 붙인다 · 바깥에는 attachArg · busy · cleanup · markSent 만 */
+  function attachBox(sb, kind, ref, box, p0) {
+    const items = [];
+    let limit = Number(p0.attach_limit) > 0 ? Number(p0.attach_limit) : ATT_LIMIT_DEFAULT;
+    let maxFiles = Number(p0.attach_max_files) > 0 ? Number(p0.attach_max_files) : ATT_MAX_DEFAULT;
+    let closed = false, sent = false, seq = 0, nkey = 0;
+    const docLbl = KIND_LBL[kind].toLowerCase();
+    box.className = "ida";
+    box.innerHTML = '<div class="ida-h">Attachments <span class="nt" data-x="sum"></span></div>'
+      + '<ul class="ida-l" data-x="list"></ul>'
+      + '<div class="ida-b"><button type="button" class="pobtn" data-x="pc">Attach files…</button><button type="button" class="pobtn" data-x="ims">From IMS…</button>'
+      + '<span class="nt">or drop files here · PDF, JPG, PNG, XLSX, CSV, DOCX · up to 10 MB each</span>'
+      + '<input type="file" multiple hidden data-x="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.csv,.docx"></div>'
+      + '<div data-x="amsg"></div>';
+    const $ = (x) => box.querySelector('[data-x="' + x + '"]');
+    const amsg = (cls, t) => { const m = $("amsg"); m.className = cls || ""; m.textContent = t || ""; };
+    const live = () => items.filter((i) => i.state !== "gone" && i.src !== "auto");
+    const used = () => live().reduce((s, i) => s + Number(i.bytes || 0), 0);
+    function attachArg() {
+      return items.filter((i) => i.state === "ok" && i.checked && i.src !== "auto" && i.id)
+        .map((i) => (i.kind === "upload" ? { upload_id: i.id } : { doc_file_id: i.id }));
+    }
+    function draw() {
+      const L = live();
+      $("sum").textContent = L.length ? L.length + " of " + maxFiles + " extra files · " + fmtBytes(used()) + " of " + fmtBytes(limit) : "No extra files · up to " + maxFiles + " files, " + fmtBytes(limit) + " in all";
+      $("list").innerHTML = '<li><span class="fn">PDF of this ' + h(docLbl) + '</span><span class="nt">attached · made with the layout in use</span></li>'
+        + items.filter((i) => i.state !== "gone").map((i) =>
+          '<li data-k="' + i.key + '">' + (i.src === "auto" ? '<input type="checkbox" data-chk="' + i.key + '"' + (i.checked ? " checked" : "") + ">" : "")
+          + '<span class="fn">' + h(i.name) + (i.cancelled ? '<span class="tg cx">cancelled</span>' : "") + '</span>'
+          + '<span class="nt">' + h(i.state === "uploading" ? "uploading…" : fmtBytes(i.bytes)) + " · " + h(i.origin) + "</span>"
+          + (i.src === "auto" ? "" : '<button type="button" class="xbtn" data-rm="' + i.key + '" title="Remove from this email">×</button>') + "</li>").join("");
+      $("list").querySelectorAll("[data-rm]").forEach((b) => { b.onclick = () => remove(Number(b.dataset.rm)); });
+      $("list").querySelectorAll("[data-chk]").forEach((c) => { c.onchange = () => { const it = items.find((i) => i.key === Number(c.dataset.chk)); if (it) it.checked = c.checked; }; });
+    }
+    /* 미리 보기 다시 — 첨부가 있을 때만 p_attach 를 싣는다 · 받는 칸(To · Subject · Message)은 덮지 않는다 · 늦게 온 옛 답은 버린다 */
+    async function recheck() {
+      const arg = attachArg(), my = ++seq;
+      if (!arg.length) { draw(); return; }
+      const r = await sb.rpc("doc_mail_send", { p_kind: kind, p_ref: ref, p_commit: false, p_attach: arg });
+      if (my !== seq || closed) return;
+      if (r.error) { amsg("er", r.error.message); draw(); return; }
+      const d = r.data || {};
+      if (Number(d.attach_limit) > 0) limit = Number(d.attach_limit);
+      if (Number(d.attach_max_files) > 0) maxFiles = Number(d.attach_max_files);
+      (d.attachments || []).forEach((a) => {
+        const id = a.upload_id || a.doc_file_id;
+        const it = items.find((i) => i.id === id && i.state === "ok");
+        if (it) { if (a.filename) it.name = a.filename; if (a.bytes != null) it.bytes = Number(a.bytes); }
+      });
+      draw();
+    }
+    /* 화면에서 먼저 막기 — 개수 · 합계(올리는 중인 것도 센다) */
+    function roomFor(name, bytes) {
+      if (live().length + 1 > maxFiles) return "At most " + maxFiles + " extra files in one email — " + name + " was not attached.";
+      if (used() + bytes > limit) return name + " (" + fmtBytes(bytes) + ") would bring the extra files to " + fmtBytes(used() + bytes) + " — this email can carry " + fmtBytes(limit) + " of extra files. It was not attached.";
+      return null;
+    }
+    async function addFiles(list) {
+      const fs = Array.from(list || []);
+      const errs = [];
+      const todo = [];
+      for (const f of fs) {
+        const ext = extOf(f.name);
+        if (!ATT_MIME[ext]) { errs.push(f.name + ": only PDF, JPG, PNG, XLSX, CSV and DOCX files can be attached."); continue; }
+        if (!(f.size > 0)) { errs.push(f.name + " is empty."); continue; }
+        if (f.size > ATT_FILE_MAX) { errs.push(f.name + " is " + fmtBytes(f.size) + " — one file can be at most 10 MB."); continue; }
+        const room = roomFor(f.name, f.size);
+        if (room) { errs.push(room); continue; }
+        const it = { key: ++nkey, src: "upload", kind: "upload", id: null, name: f.name, bytes: f.size, sha: null, mine: true, checked: true, state: "uploading", origin: "from this computer" };
+        items.push(it); todo.push([it, f, ext]);
+      }
+      amsg(errs.length ? "er" : "", errs.join(" "));
+      draw();
+      for (const [it, f, ext] of todo) {
+        const e = await uploadOne(it, f, ext);
+        if (e) errs.push(e);
+        if (closed) return;
+        amsg(errs.length ? "er" : "", errs.join(" "));
+        draw();
+      }
+      if (todo.length) await recheck();
+    }
+    async function uploadOne(it, f, ext) {
+      try {
+        it.sha = await sha256Hex(f);
+        if (items.some((o) => o !== it && o.state !== "gone" && o.sha && o.sha === it.sha)) { it.state = "gone"; return f.name + " is already attached."; }
+        if (it.state === "gone") return null;   // 올리기 전에 빼거나 창을 닫았다
+        const path = newUuid() + "." + ext;
+        const up = await sb.storage.from("mail-files").upload(path, f, { upsert: false, contentType: ATT_MIME[ext] });
+        if (up.error) { it.state = "gone"; return up.error.message; }
+        const r = await sb.rpc("mail_upload_add", { p: { kind, ref, path, original_name: f.name, sha256: it.sha } });
+        if (r.error) { it.state = "gone"; console.warn("mail-files: stored but not registered (left in the bucket):", path); return r.error.message; }
+        const d = r.data || {};
+        it.id = d.upload_id; it.name = d.filename || f.name; it.bytes = Number(d.bytes || f.size);
+        if (it.state === "gone" || closed) { await dropUpload(it); return null; }   // 올리는 동안 빼거나 닫았다 — 지운다
+        it.state = "ok";
+        return null;
+      } catch (e) { it.state = "gone"; return f.name + ": " + (e && e.message ? e.message : String(e)); }
+    }
+    async function dropUpload(it) {
+      if (!it.mine || !it.id || it.dropped) return null;
+      it.dropped = true;
+      const r = await sb.rpc("mail_upload_delete", { p_upload_id: it.id });
+      if (r.error) { console.warn("mail_upload_delete:", it.id, r.error.message); return r.error.message; }
+      return null;
+    }
+    async function remove(key) {
+      const it = items.find((i) => i.key === key);
+      if (!it || it.state === "gone") return;
+      const was = it.state;
+      it.state = "gone";
+      amsg("", "");
+      draw();
+      if (was === "ok" && it.mine) { const e = await dropUpload(it); if (e) amsg("er", e); }   // 올리는 중이면 uploadOne 이 끝난 뒤 지운다
+      await recheck();
+    }
+    function addPicked(rows) {
+      const errs = [];
+      for (const r of rows) {
+        const kindR = r.source === "upload" ? "upload" : "doc";
+        if (items.some((i) => i.state !== "gone" && i.id === r.id)) continue;
+        const room = roomFor(r.filename, Number(r.bytes || 0));
+        if (room) { errs.push(room); continue; }
+        const num = r.invoice_number || r.credit_number || r.doc_number || ((r.so_numbers || [])[0]) || "";
+        items.push({ key: ++nkey, src: "pick", kind: kindR, id: r.id, name: r.filename, bytes: Number(r.bytes || 0), sha: null, mine: false, checked: true, state: "ok", cancelled: !!r.cancelled,
+          origin: kindR === "upload" ? "uploaded file in IMS" : "from IMS" + (r.doc_kind && KIND_LBL[r.doc_kind] ? " · " + KIND_LBL[r.doc_kind] : "") + (num ? " " + num : "") });
+      }
+      amsg(errs.length ? "er" : "", errs.join(" "));
+      draw();
+      return recheck();
+    }
+    const inp = $("file");
+    $("pc").onclick = () => inp.click();
+    inp.onchange = () => { const fl = Array.from(inp.files || []); inp.value = ""; addFiles(fl); };
+    box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("drag"); });
+    box.addEventListener("dragleave", () => box.classList.remove("drag"));
+    box.addEventListener("drop", (e) => { e.preventDefault(); box.classList.remove("drag"); addFiles((e.dataTransfer && e.dataTransfer.files) || []); });
+    $("ims").onclick = () => pickDialog(sb, kind, ref, { has: (id) => items.some((i) => i.state !== "gone" && i.id === id), onPick: addPicked });
+    draw();
+    return {
+      attachArg,
+      busy: () => items.some((i) => i.state === "uploading"),
+      markSent: () => { sent = true; },
+      /* 창을 닫을 때 — 보내지 않았으면 이번 창에서 올린 것을 지운다(올리는 중인 것은 uploadOne 이 끝나며 closed 를 보고 지운다) */
+      cleanup: () => {
+        closed = true;
+        if (sent) return Promise.resolve();
+        return Promise.all(items.filter((i) => i.mine && i.id && i.state === "ok").map((i) => dropUpload(i))).catch((e) => console.warn("mail attach cleanup:", e));
+      },
+      _items: items,   // 시험용(읽기만)
+    };
+  }
+
+  /* 「From IMS…」 고르기 창 — doc_attach_pick_list(범위는 서버가 정한다 · 1467 · 1481) · 탭 doc | upload | sent · 이름 · 번호 검색 · 50 씩 쪽 */
+  const PICK_TABS = [["doc", "Documents"], ["upload", "Uploaded"], ["sent", "Sent before"]];
+  const PICK_PAGE = 50;
+  function pickDialog(sb, kind, ref, o) {
+    const ov = overlay('<h4>Attach files from IMS</h4><div class="bd">'
+      + '<div class="ipk-t">' + PICK_TABS.map(([k, l]) => '<button type="button" class="pobtn" data-tab="' + k + '">' + h(l) + "</button>").join("")
+      + '<input type="search" autocomplete="off" placeholder="File name or number" data-x="q" style="flex:1;min-width:160px"></div>'
+      + '<div class="nt" data-x="scope"></div><div class="ipk" data-x="rows"><div class="nt">Loading…</div></div>'
+      + '<div class="ipk-t"><button type="button" class="pobtn" data-x="prev">‹ Prev</button><span class="nt" data-x="pg"></span><button type="button" class="pobtn" data-x="next">Next ›</button></div>'
+      + '<div data-x="msg"></div></div>'
+      + '<div class="ft"><button type="button" class="pobtn" data-x="close">Cancel</button><button type="button" class="pobtn go" data-x="add" disabled>Attach</button></div>', true);
+    const $ = (x) => ov.querySelector('[data-x="' + x + '"]');
+    const ts = (s) => (typeof window.imsTs === "function" ? window.imsTs(s) : (s || ""));
+    const st = { source: "doc", q: "", offset: 0, total: 0, rows: [] };
+    const picked = new Map();   // id → 행(탭 · 쪽을 넘어도 남는다)
+    let my = 0, tq = null;
+    const addBtn = $("add");
+    const syncAdd = () => { addBtn.disabled = !picked.size; addBtn.textContent = picked.size ? "Attach " + picked.size : "Attach"; };
+    async function load() {
+      const n = ++my;
+      ov.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("go", b.dataset.tab === st.source));
+      const f = { source: st.source, limit: PICK_PAGE, offset: st.offset };
+      if (st.q) f.q = st.q;
+      const r = await sb.rpc("doc_attach_pick_list", { p_kind: kind, p_ref: ref, p_filters: f });
+      if (n !== my) return;
+      if (r.error) { $("rows").innerHTML = '<div class="er">' + h(r.error.message) + "</div>"; $("pg").textContent = ""; return; }
+      const d = r.data || {};
+      st.total = Number(d.total || 0); st.rows = d.files || [];
+      const sc = (d.scope || []).map((c) => c.name).filter(Boolean);
+      $("scope").textContent = sc.length ? "Files of " + sc.join(", ") : "";
+      $("rows").innerHTML = st.rows.length ? "<table><thead><tr><th></th><th>File</th><th>Kind</th><th>Order</th><th>Invoice / credit</th><th>Store</th><th>Date</th><th>Size</th><th>Sent</th></tr></thead><tbody>"
+        + st.rows.map((x, i) => {
+          const had = o.has(x.id);
+          const num = x.invoice_number || x.credit_number || "";
+          return "<tr><td><input type=\"checkbox\" data-i=\"" + i + "\"" + (had || picked.has(x.id) ? " checked" : "") + (had ? " disabled title=\"Already attached\"" : "") + "></td>"
+            + "<td>" + h(x.filename) + (x.this_doc ? '<span class="tg me">this document</span>' : "") + (x.cancelled ? '<span class="tg cx">cancelled</span>' : "") + "</td>"
+            + "<td>" + h(x.source === "upload" ? "Uploaded file" : (KIND_LBL[x.doc_kind] || x.doc_kind || "")) + "</td>"
+            + "<td>" + h((x.so_numbers || []).join(", ")) + "</td><td>" + h(num) + "</td>"
+            + "<td>" + h((x.stores || []).join(", ")) + "</td><td>" + h(ts(x.at)) + (x.by_name ? '<div class="nt">' + h(x.by_name) + "</div>" : "") + "</td>"
+            + '<td class="num">' + h(fmtBytes(x.bytes)) + "</td>"
+            + "<td>" + (Number(x.sent_count) > 0 ? h("sent " + x.sent_count + (Number(x.sent_count) === 1 ? " time" : " times")) + (x.sent_this_doc ? '<div class="nt">with this document</div>' : "") : "") + "</td></tr>";
+        }).join("") + "</tbody></table>"
+        : '<div class="nt">' + (st.q ? "No files match." : "No files here yet.") + "</div>";
+      $("rows").querySelectorAll("[data-i]").forEach((c) => { c.onchange = () => {
+        const x = st.rows[Number(c.dataset.i)];
+        if (c.checked) picked.set(x.id, x); else picked.delete(x.id);
+        syncAdd();
+      }; });
+      $("pg").textContent = st.total ? (st.offset + 1) + "–" + Math.min(st.offset + st.rows.length, st.total) + " of " + st.total : "";
+      $("prev").disabled = st.offset <= 0;
+      $("next").disabled = st.offset + PICK_PAGE >= st.total;
+    }
+    ov.querySelectorAll("[data-tab]").forEach((b) => { b.onclick = () => { st.source = b.dataset.tab; st.offset = 0; load(); }; });
+    $("q").oninput = () => { clearTimeout(tq); tq = setTimeout(() => { st.q = $("q").value.trim(); st.offset = 0; load(); }, 300); };
+    $("q").onkeydown = (e) => { if (e.key === "Enter") { clearTimeout(tq); st.q = $("q").value.trim(); st.offset = 0; load(); } };
+    $("prev").onclick = () => { st.offset = Math.max(0, st.offset - PICK_PAGE); load(); };
+    $("next").onclick = () => { st.offset += PICK_PAGE; load(); };
+    $("close").onclick = () => ov.remove();
+    addBtn.onclick = () => { const rows = Array.from(picked.values()); ov.remove(); o.onPick(rows); };
+    syncAdd();
+    load();
+    return ov;
+  }
+
   const MAIL_KINDS = ["final_invoice", "credit_note", "sales_order", "ship_ready"];
   async function mailDialog(sb, kind, ref, opts) {
     const o = opts || {};
@@ -180,8 +457,8 @@
     const ov = overlay('<h4>Email the ' + h(KIND_LBL[kind].toLowerCase()) + '</h4><div class="bd"><div class="nt">Preparing…</div></div>'
       + '<div class="ft"><button class="pobtn" data-x="close">Cancel</button><button class="pobtn go" data-x="send" disabled>Send</button></div>');
     const bd = ov.querySelector(".bd"), send = ov.querySelector('[data-x="send"]');
-    let done = null;
-    const close = () => { ov.remove(); };
+    let done = null, att = null;
+    const close = () => { ov.remove(); if (att) att.cleanup(); };   // doc v4: 보내지 않고 닫으면 이번 창에서 올린 파일을 지운다(실패해도 닫는다)
     ov.querySelector('[data-x="close"]').onclick = close;
     const pv = await sb.rpc("doc_mail_send", { p_kind: kind, p_ref: ref, p_commit: false });
     if (pv.error) { bd.innerHTML = '<div class="er">' + h(pv.error.message) + "</div>"; return null; }
@@ -192,15 +469,18 @@
       + '<label>Subject <input type="search" autocomplete="off" data-f="subject"></label>'
       + '<label>Message <textarea rows="7" data-f="body"></textarea></label>'
       + '<div class="nt">The PDF of this ' + h(KIND_LBL[kind].toLowerCase()) + " is attached, made with the layout in use. The email goes out within a minute or two.</div>"
+      + '<div data-x="att"></div>'
       + '<div data-x="msg"></div>';
     bd.querySelector('[data-f="to"]').value = p.to || "";
     bd.querySelector('[data-f="subject"]').value = p.subject || "";
     bd.querySelector('[data-f="body"]').value = p.body || "";
+    att = attachBox(sb, kind, ref, bd.querySelector('[data-x="att"]'), p);
     send.disabled = false;
     const msg = (cls, t) => { const m = bd.querySelector('[data-x="msg"]'); m.className = cls; m.textContent = t; };
     send.onclick = async () => {
       const to = bd.querySelector('[data-f="to"]').value.trim(), subject = bd.querySelector('[data-f="subject"]').value.trim(), body = bd.querySelector('[data-f="body"]').value;
       if (!to) { msg("er", "Type the address to send to."); return; }
+      if (att.busy()) { msg("er", "Wait until the files finish uploading."); return; }
       send.disabled = true; msg("nt", "Sending…");
       let fileId = null;
       if (kind === "ship_ready") {
@@ -213,15 +493,19 @@
       }
       const args = { p_kind: kind, p_ref: ref, p_commit: true, p_to: to, p_subject: subject, p_body: body };
       if (fileId) args.p_doc_file_id = fileId;
+      const extra = att.attachArg();
+      if (extra.length) args.p_attach = extra;   // doc v4: 첨부가 없으면 키 자체가 없다(doc v3a 와 같은 호출)
       const { data, error } = await sb.rpc("doc_mail_send", args);
       if (error) { msg("er", error.message); send.disabled = false; return; }
       done = data;
+      att.markSent();
       close();
       toast("Email queued — it goes out within a minute or two.");   // doc v3a — 기다리지 않는다
       if (typeof o.onDone === "function") { try { o.onDone(data); } catch (e) { console.warn(e); } }
     };
     return done;
   }
+
   const ST_LBL = { waiting_pdf: "making PDF", queued: "waiting to send", sending: "sending", sent: "sent", failed: "failed", unknown: "result unknown", cancelled: "cancelled" };
   const SKIP_LBL = { no_email: "No automatic email — the customer has no email address", reissue: "No automatic email — this invoice was reissued", error: "Automatic email could not be prepared" };
   async function mailList(sb, kind, ref, box) {
