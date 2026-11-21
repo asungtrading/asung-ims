@@ -98,6 +98,8 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
    판정 363 ~ 372 · 430 ~ 435 · DB ord-1a1 901e4c7 · 1a2 98b92bd · EF ord-1b · 1b2 7eeaf3a · 1b3 e425d3e
    읽기: 뷰 shop_order_list(받은 오더 · 상태 · 손님 · 브랜치 · SO · 까닭 reasons · 경고 warnings) · 표 shop_order_line(줄 · match) · 뷰 shop_store_list(Shopify 주소)
    쓰기: shop_order_resolve_customer(p_shop_order_id, p_customer_id, p_commit) — sales · 미리 보기(false) → 저장(true)
+         ⭐ wo dup v1: shop_order_create_customer(p_shop_order_id) — sales · 한 번 부르기(미리 보기 없음 · 확인 창은 사유의 new_customer 로) · 사유 customer_possible_duplicate 인 오더만(판정 1460)
+           반환 {committed, customer_id, customer_name, created, linked_how, status, prepare} · created false = 누르는 사이 계정 · 이메일로 기존 손님이 찾아져 그 손님을 씀 · 비활성 후보는 고를 수 없다(판정 1461 — Customers 에서 켠 뒤)
          ⭐ wo v3: shop_order_warning_ack(p_shop_order_id, p_ord, p_code, p_at, p_ack, p_note) — sales · 경고 하나를 「확인함」/다시 열기(판정 467 · ful-5a 20261014141305)
            원소 찾기 = 자리(1 부터) + code + at — 옛 목록으로 누르면 「changed elsewhere — reload」 · 처리됨(settled_at · 판정 466)은 거부 · 열린 refund_due 는 note 필수
            뷰 open_warning_count = 처리됨 · 확인함을 뺀 수(목록 숫자 · 「open warnings」 거르기가 쓴다) · warning_count 는 전체 수 그대로
@@ -107,7 +109,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
    ⭐ 웹 오더는 고치지 않는다(10-08) — 바꿀 일은 SO 화면에서 · 할인은 Shopify 값을 지킨다(판정 433)
    ⚠️ 화면 글자는 영어 · 시각은 imsTs(토론토)
    ───────────────────────────────────────────────────────────── */
-const WO_BUILD = "2026-11-01 · wo v4f · dk1";   // 대화 Claude — Caleb 「Asung IMS test Order는 이제 없으니 화면에서도 빼야하지 않을까?」: Store 고르기에서 시험 스토어(shop_store kind test · 뷰에 kind 가 없으면 code · label 의 test)를 뺀다 · 이름표 지도(stores)는 그대로(옛 시험 오더가 목록에 나오면 이름은 보인다) · DB 무변 ← wo v4e:   // 대화 Claude — ovd-2(판정 769): 이름표 customer_overdue(so ovd v1 과 같은 글) ← 2026-10-14 · wo v4d: 대화 Claude — 판정 473(frt-1a): 이름표 freight_estimate_from_shopify(so v5t7 와 같은 글) ← wo v4c:   // 대화 Claude — 판정 470(pay-3a): 이름표 둘 card_payment_recorded · card_payment_failed(so v5t5 와 같은 글) ← wo v4b:   // 대화 Claude — 판정 449 · 469: 이름표 둘(shopify_paid_ims_owed · mark_paid_failed · so v5t4 와 같은 글) ← wo v4a:   // 대화 Claude — 판정 468: 경고 이름표 paid_in_shopify(pay-1a) ← wo v4:   // 대화 Claude — 화면 안 A 마지막: 상세 Totals 를 SO 화면(so v5t1)과 같은 모양 — Shopify ordered · refunded(받기 원문 raw 의 환불 합) · kept · SO 가 만들어진 오더는 머리 아래에 「이 오더는 SO-… 에서 다룬다」 안내(경고 · 결제 · 발송은 SO 화면에서) ← wo v3:   // 대화 Claude — 판정 467: 경고마다 Mark checked / Reopen(shop_order_warning_ack) · 처리됨(refund_due settled · 판정 466)은 초록 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 경고 이름표 셋(refund_due · order_edit_failed · shopify_qty_removed — ful-4a) ← wo v2b:   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
+const WO_BUILD = "2026-11-20 · wo dup v1 · dk1";   // 대화 Claude — web-cust-1(판정 1459 ~ 1461 · asung-wms 859439e): 사유 customer_possible_duplicate — 후보(활성 = 고르기 · 비활성 = 「inactive」 · 단추 막음 · 겹친 것 same phone · same name · similar name nearby) · 「Create as new customer…」(shop_order_create_customer · 확인 창에 Shopify 의 이름 · 이메일 · 전화 · 도시 · 우편 · created false 면 기존 손님을 썼다고 알림) · DB 무변 ← 2026-11-01 · wo v4f · dk1:   // 대화 Claude — Caleb 「Asung IMS test Order는 이제 없으니 화면에서도 빼야하지 않을까?」: Store 고르기에서 시험 스토어(shop_store kind test · 뷰에 kind 가 없으면 code · label 의 test)를 뺀다 · 이름표 지도(stores)는 그대로(옛 시험 오더가 목록에 나오면 이름은 보인다) · DB 무변 ← wo v4e:   // 대화 Claude — ovd-2(판정 769): 이름표 customer_overdue(so ovd v1 과 같은 글) ← 2026-10-14 · wo v4d: 대화 Claude — 판정 473(frt-1a): 이름표 freight_estimate_from_shopify(so v5t7 와 같은 글) ← wo v4c:   // 대화 Claude — 판정 470(pay-3a): 이름표 둘 card_payment_recorded · card_payment_failed(so v5t5 와 같은 글) ← wo v4b:   // 대화 Claude — 판정 449 · 469: 이름표 둘(shopify_paid_ims_owed · mark_paid_failed · so v5t4 와 같은 글) ← wo v4a:   // 대화 Claude — 판정 468: 경고 이름표 paid_in_shopify(pay-1a) ← wo v4:   // 대화 Claude — 화면 안 A 마지막: 상세 Totals 를 SO 화면(so v5t1)과 같은 모양 — Shopify ordered · refunded(받기 원문 raw 의 환불 합) · kept · SO 가 만들어진 오더는 머리 아래에 「이 오더는 SO-… 에서 다룬다」 안내(경고 · 결제 · 발송은 SO 화면에서) ← wo v3:   // 대화 Claude — 판정 467: 경고마다 Mark checked / Reopen(shop_order_warning_ack) · 처리됨(refund_due settled · 판정 466)은 초록 · 목록 숫자 · 거르기는 열린 경고만(open_warning_count) · 경고 이름표 셋(refund_due · order_edit_failed · shopify_qty_removed — ful-4a) ← wo v2b:   // 대화 Claude — Caleb 화면 시험: 상세가 Loading 에서 멈춤(lines.filter is not a function) — v2a 가 Promise.all 의 둘째 자리에 새 질의를 넣고 받는 이름은 셋째에 붙였다 → 순서를 맞춤 ← wo v2a:   // 대화 Claude — Caleb 화면 시험 #1008: 픽업 오더의 Branch 칸이 「no ship-to province」 → 「customer picks up here」(shop_order.delivery_method · 판정 454) ← wo v2:   // 대화 Claude — ful-3b: 발송 · 픽업 경고 코드를 사람 말로(ful-2a · 1b · 1c — fulfill_* · fulfilled_in_shopify · refunded_in_shopify · pickup_* · delivery_mixed · tracking_fix_failed) ← wo v1a: 대화 Claude — Open SO 링크가 so.html 의 첫 화면으로 갔다(so.html 은 ?so=<SO 번호> 로 연다 · ?id= 를 모른다 · Caleb 화면 시험) ← wo v1: 대화 Claude — ord-1c: 받은 웹 오더 목록 · 상세(손님 · 브랜치 · 줄 · 까닭 · 경고 · SO 링크 · Shopify 관리자 링크) · 손님 고르기 · 못 찾은 줄 고르기 · 지금 처리
 console.log("shopify-orders.html build:", WO_BUILD);
 
 let sb = null, me = null;
@@ -281,6 +283,18 @@ async function openDetail(id){
     if(can && x.code === "email_multiple" && Array.isArray(x.candidates)){
       act = `<div class="cands">${x.candidates.map(c => `<button class="pobtn" data-pickcust="${esc(c.customer_id)}" data-cname="${esc(c.name)}">${esc(c.name)}${c.city ? ` <span class="dim">· ${esc(c.city)}</span>` : ""}</button>`).join("")}
         <button class="pobtn" data-searchcust="1">Another customer…</button></div>`;
+    } else if(can && x.code === "customer_possible_duplicate"){   /* wo dup v1 — 판정 1459 ~ 1461 */
+      const cs = Array.isArray(x.candidates) ? x.candidates : [];
+      const ML = { phone: "same phone", name: "same name", similar: "similar name nearby" };
+      act = `<div class="cands">${cs.map(c => {
+          const why = (Array.isArray(c.match) ? c.match : []).map(m => ML[m] || m).join(" · ");
+          return c.is_active === false
+            ? `<button class="pobtn" disabled title="Inactive customer — turn it on in Customers first, then pick it here">${esc(c.name)} <span class="dim">· inactive${c.city ? " · " + esc(c.city) : ""}${why ? " · " + esc(why) : ""}</span></button>`
+            : `<button class="pobtn" data-pickcust="${esc(c.customer_id)}" data-cname="${esc(c.name)}">${esc(c.name)} <span class="dim">${c.city ? "· " + esc(c.city) + " " : ""}${why ? "· " + esc(why) : ""}</span></button>`;
+        }).join("")}
+        <button class="pobtn" data-searchcust="1">Another customer…</button>
+        <button class="pobtn" data-newcust="${i}">Create as new customer…</button></div>
+        ${Number(x.count || 0) > cs.length ? `<div class="dim" style="font-size:11.5px;margin-top:4px">${esc(String(x.count))} customers look alike — the first ${cs.length} are shown</div>` : ""}`;
     } else if(can && /^customer_/.test(x.code)){
       act = `<div class="cands"><button class="pobtn" data-searchcust="1">Pick the customer…</button></div>`;
     }
@@ -320,6 +334,7 @@ async function openDetail(id){
 
   box.querySelectorAll("[data-pickcust]").forEach(b => { b.onclick = () => resolveCustomer(r, b.dataset.pickcust, b.dataset.cname); });
   box.querySelectorAll("[data-searchcust]").forEach(b => { b.onclick = () => searchCustomer(r); });
+  box.querySelectorAll("[data-newcust]").forEach(b => { b.onclick = () => createCustomer(r, reasons[Number(b.dataset.newcust)]); });   // wo dup v1
   const sl = document.getElementById("saveLines"); if(sl) sl.onclick = () => resolveLines(r);
   box.querySelectorAll("[data-wack]").forEach(b => { b.onclick = () => ackWarning(r, warns, Number(b.dataset.wack), true); });      // wo v3 — 판정 467
   box.querySelectorAll("[data-wreopen]").forEach(b => { b.onclick = () => ackWarning(r, warns, Number(b.dataset.wreopen), false); });
@@ -356,6 +371,31 @@ function searchCustomer(r){
     box.innerHTML = data.length ? data.map(x => `<div class="prow" data-cid="${x.id}" data-cn="${esc(x.name)}">${esc(x.name)}</div>`).join("") : '<div class="msg">No customer matches.</div>';
     box.querySelectorAll("[data-cid]").forEach(el => { el.onclick = () => resolveCustomer(r, el.dataset.cid, el.dataset.cn); });
   });
+}
+
+/* ── wo dup v1 — 판정 1460: 「새 손님 맞음」 — shop_order_create_customer(한 번 부르기 · 누가 눌렀는지 DB 가 오더에 남긴다) ── */
+function createCustomer(r, x){
+  const n = (x && x.new_customer) || {};
+  const cs = (x && Array.isArray(x.candidates)) ? x.candidates : [];
+  const row = (k, v) => v ? `<div>${k}</div><div>${esc(v)}</div>` : "";
+  modalOpen(`<h4>Create a new customer for ${esc(r.name)}</h4>
+    <div class="pbody"><div style="font-size:13px;line-height:1.6;margin-bottom:8px">IMS makes a new customer from the Shopify order, and the order goes on as usual. Use this only when this person is <b>not</b> one of the customers that looked alike.</div>
+      <div class="kv">${row("Name", n.name)}${row("Email", n.email)}${row("Phone", n.phone)}${row("City", n.city)}${row("Postal code", n.postal_code)}</div>
+      ${cs.length ? `<div class="dim" style="font-size:12px;margin-top:8px">Looked alike: ${cs.map(c => esc(c.name) + (c.is_active === false ? " (inactive)" : "")).join(", ")}</div>` : ""}
+      <div class="dim" style="font-size:11.5px;margin-top:6px">Your name is kept on the order as the person who confirmed this.</div>
+      <div id="ncErr"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="ncGo">Create new customer</button></div>`);
+  wireModalClose();
+  const go = document.getElementById("ncGo");
+  go.onclick = async () => {
+    go.disabled = true;
+    const c = await sb.rpc("shop_order_create_customer", { p_shop_order_id: r.id });
+    if(c.error){ go.disabled = false; document.getElementById("ncErr").innerHTML = `<div class="msg err" style="margin-top:8px">${esc(c.error.message)}</div>`; return; }
+    const d = c.data || {};
+    modalClose();
+    if(d.created === false) alert(`No new customer was made — ${d.customer_name || "an existing customer"} already has this Shopify account or email, so the order uses that customer.`);
+    await afterResolve(r.id, d.prepare);
+  };
 }
 
 /* ── 못 찾은 줄 고르기 — 미리 보기 → (빼기 확인) → 저장 ── */
