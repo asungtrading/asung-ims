@@ -52,6 +52,8 @@ Before a new order, when a customer calls with a change, or when a new customer 
 
 **Good to know**
 - **Split invoice by store** on a head office gives each store its own invoice when several stores ship together. It does not change who is billed.
+- **Include in email** on a contact decides who gets document emails (invoice, PROFORMA, sales order, credit note). Every contact with it ticked gets them — on the bill-to customer and on the store the document is for. When no contact has it ticked, the email goes to the default contact.
+- A store billed to its head office: the store's contacts get their own email that starts with the store's name, and the head office's contacts get one that starts with the head office's name. An address that is on both gets one email only — from the head office side. See [Print and email](#sales-print-email).
 - **Order history** shows orders in IMS and orders from before IMS, back to February 2022 — only the orders under this customer's own name. Orders before November 2025 appear only when the customer's name matched exactly. A head office does not show its stores' orders: open the store from the **Stores** card.
 - The wide list shows **Open A/R** (what is still owed on open invoices) and **Overdue** (the part past its due date) for the customer who is billed. A store billed to its head office shows **billed to head office** — look at the head office. **Credit** and **On account** are the customer's own row.
 - **On account** is money the customer already paid that is not attached to an invoice: an overpayment, a prepayment, or money kept for the customer from before IMS (this includes credits and return credits from before IMS). **Credit** is credit notes issued in IMS that are not used yet. Both attach themselves when the next invoice is issued.
@@ -615,9 +617,12 @@ Each document prints with the layout in use, or goes by email with its PDF attac
 1. Press the print button. The document opens ready to print or to save as PDF.
 
 **How — email**
-1. Press the email button. The window shows who it is **From**, and **To**, **Subject** and **Message** filled in.
-2. Change them if you want. "The PDF of this … is attached, made with the layout in use."
-3. Press **Send**. "The email goes out within a minute or two."
+1. Press the email button. The window shows who it is **From**, and **To**, **Subject** and **Message** filled in. **To** already holds every contact with **Include in email** ticked — on the bill-to customer and on the store the document is for (see [Find or add a customer](#sales-customers)).
+2. **Contacts** (under **To**, when there are two or more): tick or untick who gets this email. "Tick who gets this email. This email only — contact settings stay as they are (change them in Customers)." You can also type an address in **To**. At most 10 recipients in one email.
+3. **Attachments**: the PDF of this document is always attached. To add more, press **Attach files…** or drop files on the window (PDF, JPG, PNG, XLSX, CSV, DOCX · up to 10 MB each), or press **From IMS…** to pick documents and files of this customer — its head office and its own stores, not the other stores of the same head office. **From IMS…** has the tabs **Documents**, **Uploaded** and **Sent before**. Up to 10 extra files; the window shows how much room is left. Press **×** to take a file off.
+4. Change **Subject** and **Message** if you want.
+5. When the document is for a store billed to another customer, the window says "This sends 2 emails — …": "Each starts with its own greeting line; the rest is the same. One address gets one email." If you change the greeting line, everyone gets the same message ("This sends 1 email — the greeting line was changed, so everyone gets the same message.").
+6. Press **Send**. "The email goes out within a minute or two."
 
 **Ship Ready**
 - It shows what will ship and the money, before the invoice exists. Press **Preview** in the **Ship & invoice** window first — it prints exactly what the preview shows.
@@ -642,7 +647,33 @@ When a customer's **Final invoice emails** is **automatic** (see [Find or add a 
 **Good to know**
 - The invoice's **Emails** section shows every email: when, to whom, status (**waiting to send**, **sent**, **failed** …) and who sent it — or "automatic".
 - An email still waiting can be stopped with **Cancel**. A reason is required.
+- Files you added but did not send are removed when you close the window. Once an email is sent, its files stay with it.
+- A document sent as two emails shows both in the **Emails** section, marked **email 1 of 2** and **email 2 of 2** with the name it was addressed to.
+- Automatic invoice emails follow the same rules: every contact with **Include in email**, and two emails for a store billed to another customer.
+- Every document email is also listed on **Sales ▾** › **Emails** — see [Sent document emails](#sales-emails).
 - The delivery receipt is for local deliveries — the driver gets it signed. It is not emailed.
+
+<a id="sales-emails"></a>
+## Sent document emails
+<!-- screen: so-emails.html · BUILD 2026-11-21 · em v1 -->
+<!-- who: office -->
+
+**What it is**
+**Sales ▾** › **Emails** lists the document emails sent from IMS — invoices, PROFORMAs, sales orders and credit notes — newest first.
+
+**When**
+To check that a customer got a document, to find what was attached, or to deal with an email that did not go out.
+
+**How**
+1. Open **Sales ▾** › **Emails**.
+2. Narrow the list: **Every status** (for example **Result unknown — needs a check**, **Failed**, **Making the PDF**, **Sent**), **Every document**, **All customers** ("Only one customer — the bill-to, or the store on the document"), **Order number (SO-…)** and the created dates. **Clear** shows everything again.
+3. Click an email. You see who it went to, the message as the customer sees it (**Show plain text** for the text), the attachments with **Download**, and its history.
+4. An email that needs a check shows the buttons you can use: **Close as sent** ("I found it in the ims@asung.ca Sent folder."), **Send again** ("It is not in the ims@asung.ca Sent folder.") or **Cancel** ("The customer does not need this email.").
+
+**Good to know**
+- **Result unknown**: "The send was cut off, so we do not know if it went out." Look in the ims@asung.ca Sent folder before you press a button.
+- A document that went out as two emails (bill-to and store — see [Print and email](#sales-print-email)) shows as two rows, one per email.
+- The order's History and the tag next to the order number count the two as one email.
 
 <a id="sales-invoices"></a>
 ## Sales invoices

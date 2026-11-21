@@ -52,6 +52,8 @@
 
 **알아 둘 것**
 - 본사의 **Split invoice by store** 가 켜져 있으면, 여러 매장이 함께 나갈 때 매장마다 인보이스가 따로 나옵니다. 누구에게 청구하는지는 바뀌지 않습니다.
+- 연락처의 **Include in email** 이 문서 메일(인보이스 · PROFORMA · 판매 오더 · 크레딧 노트)을 받을 사람을 정합니다. 켜진 연락처는 모두 받습니다 — 청구처 고객과 그 문서의 매장 둘 다. 켜진 연락처가 하나도 없으면 기본 연락처로 갑니다.
+- 본사로 청구되는 매장: 매장 연락처는 매장 이름으로 시작하는 메일을 따로 받고, 본사 연락처는 본사 이름으로 시작하는 메일을 받습니다. 양쪽에 다 있는 주소는 한 통만 받습니다 — 본사 쪽. [인쇄와 메일](#sales-print-email)을 보세요.
 - **Order history** 에는 IMS 오더와 IMS 이전 오더가 2022 년 2 월부터 함께 보입니다 — 이 고객 이름으로 된 오더만. 2025 년 11 월 이전 오더는 고객 이름이 정확히 맞은 것만 보입니다. 본사에는 매장 오더가 보이지 않습니다: **Stores** 카드에서 매장을 엽니다.
 - 넓은 목록의 **Open A/R**(열린 인보이스에 남은 돈) · **Overdue**(그중 기한이 지난 몫)는 청구받는 고객 기준입니다. 본사로 청구되는 매장은 **billed to head office** 로 보입니다 — 본사를 봅니다. **Credit** · **On account** 는 그 고객 자신의 값입니다.
 - **On account**(받아 둔 돈)는 고객이 이미 냈지만 어느 인보이스에도 안 붙은 돈입니다: 더 낸 돈(오버페이), 미리 낸 돈(선결제), IMS 이전부터 받아 둔 돈(IMS 이전의 크레딧 · 반품 크레딧 포함). **Credit** 은 IMS 에서 발행한 크레딧 노트 중 아직 안 쓴 몫입니다. 둘 다 다음 인보이스가 발행될 때 저절로 붙습니다.
@@ -615,9 +617,12 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 1. 인쇄 단추를 누릅니다. 문서가 인쇄하거나 PDF 로 저장할 수 있게 열립니다.
 
 **어떻게 — 메일**
-1. 메일 단추를 누릅니다. 창에 보내는 사람(**From**)과 **To** · **Subject** · **Message** 가 채워져 나옵니다.
-2. 원하면 고칩니다. "The PDF of this … is attached, made with the layout in use."(쓰고 있는 양식으로 만든 PDF 가 붙는다)
-3. **Send** 를 누릅니다. "The email goes out within a minute or two."(1~2 분 안에 나간다)
+1. 메일 단추를 누릅니다. 창에 보내는 사람(**From**)과 **To** · **Subject** · **Message** 가 채워져 나옵니다. **To** 에는 **Include in email** 이 켜진 연락처가 모두 들어 있습니다 — 청구처 고객과 그 문서의 매장 둘 다([고객 찾기 · 더하기](#sales-customers)).
+2. **Contacts**(**To** 아래 · 연락처가 둘 이상일 때): 이번 메일을 받을 사람을 체크하거나 끕니다. "Tick who gets this email. This email only — contact settings stay as they are (change them in Customers)."(이번 메일에만 · 연락처 설정은 그대로 · 바꾸려면 Customers 에서) **To** 에 주소를 직접 쳐 넣어도 됩니다. 한 메일에 받는 사람은 10 명까지입니다.
+3. **Attachments**: 이 문서의 PDF 는 늘 붙습니다. 더 붙이려면 **Attach files…** 를 누르거나 파일을 창에 끌어다 놓습니다(PDF · JPG · PNG · XLSX · CSV · DOCX · 한 장 10 MB 까지). **From IMS…** 를 누르면 이 고객의 문서 · 파일을 고릅니다 — 그 본사와 그 고객 자신의 매장까지, 같은 본사의 다른 매장은 아닙니다. **From IMS…** 에는 **Documents** · **Uploaded** · **Sent before** 탭이 있습니다. 추가 파일은 10 개까지이고 남은 자리가 창에 보입니다. **×** 로 뺍니다.
+4. 원하면 **Subject** · **Message** 를 고칩니다.
+5. 다른 고객에게 청구되는 매장의 문서면 창에 "This sends 2 emails — …" 가 보입니다: "Each starts with its own greeting line; the rest is the same. One address gets one email."(통마다 인사말 줄만 다르고 나머지는 같다 · 한 주소는 한 통만) 인사말 줄을 고치면 모두 같은 메일을 받습니다("This sends 1 email — the greeting line was changed, so everyone gets the same message.").
+6. **Send** 를 누릅니다. "The email goes out within a minute or two."(1~2 분 안에 나간다)
 
 **Ship Ready**
 - 인보이스가 생기기 전에 나갈 것과 금액을 보여 줍니다. **Ship & invoice** 창에서 먼저 **Preview** 를 누릅니다 — 미리 보기에 나온 그대로 찍힙니다.
@@ -642,7 +647,33 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 **알아 둘 것**
 - 인보이스의 **Emails** 칸에 모든 메일이 보입니다: 언제 · 누구에게 · 상태(**waiting to send** · **sent** · **failed** …) · 보낸 사람(또는 "automatic")
 - 아직 기다리는 메일은 **Cancel** 로 멈출 수 있습니다. 까닭을 적어야 합니다.
+- 붙였지만 보내지 않은 파일은 창을 닫으면 지워집니다. 보낸 메일의 파일은 그 메일에 남습니다.
+- 두 통으로 나간 문서는 **Emails** 칸에 둘 다 보이고, **email 1 of 2** · **email 2 of 2** 와 받는 이름이 붙습니다.
+- 자동 인보이스 메일도 같은 규칙입니다: **Include in email** 이 켜진 연락처 모두 · 다른 고객에게 청구되는 매장이면 두 통.
+- 모든 문서 메일은 **Sales ▾** › **Emails** 에도 보입니다 — [보낸 문서 메일](#sales-emails)
 - 배송 영수증은 지역 배송용입니다 — 기사가 서명을 받습니다. 메일로 보내지 않습니다.
+
+<a id="sales-emails"></a>
+## 보낸 문서 메일
+<!-- screen: so-emails.html · BUILD 2026-11-21 · em v1 -->
+<!-- who: office -->
+
+**무엇인가**
+**Sales ▾** › **Emails** 는 IMS 에서 보낸 문서 메일 — 인보이스 · PROFORMA · 판매 오더 · 크레딧 노트 — 을 최근 것부터 보여 줍니다.
+
+**언제**
+고객이 문서를 받았는지 볼 때, 무엇을 붙였는지 찾을 때, 안 나간 메일을 처리할 때.
+
+**어떻게**
+1. **Sales ▾** › **Emails** 를 엽니다.
+2. 목록을 좁힙니다: **Every status**(예: **Result unknown — needs a check** · **Failed** · **Making the PDF** · **Sent**) · **Every document** · **All customers**("Only one customer — the bill-to, or the store on the document" — 청구처이거나 문서의 매장인 고객 하나) · **Order number (SO-…)** · 만든 날짜. **Clear** 를 누르면 다시 전부 보입니다.
+3. 메일을 누릅니다. 누구에게 갔는지, 고객이 보는 그대로의 본문(글로 보려면 **Show plain text**), 첨부와 **Download**, 기록이 보입니다.
+4. 확인이 필요한 메일에는 쓸 수 있는 단추가 보입니다: **Close as sent**("I found it in the ims@asung.ca Sent folder." — 보낸편지함에서 찾았다) · **Send again**("It is not in the ims@asung.ca Sent folder." — 보낸편지함에 없다) · **Cancel**("The customer does not need this email." — 고객에게 필요 없다)
+
+**알아 둘 것**
+- **Result unknown**: "The send was cut off, so we do not know if it went out."(보내다 끊겨 나갔는지 모른다) 단추를 누르기 전에 ims@asung.ca 보낸편지함을 봅니다.
+- 두 통으로 나간 문서(청구처 · 매장 — [인쇄와 메일](#sales-print-email))는 한 통에 한 줄씩 두 줄로 보입니다.
+- 오더의 History 와 오더 번호 옆 꼬리표는 두 통을 한 번으로 셉니다.
 
 <a id="sales-invoices"></a>
 ## 판매 인보이스
