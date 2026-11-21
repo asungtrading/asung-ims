@@ -943,7 +943,7 @@ IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a referen
 
 <a id="sales-web-orders"></a>
 ## 웹 오더
-<!-- screen: shopify-orders.html · BUILD 2026-11-01 · wo v4f ; so.html · BUILD 2026-11-12 · so shipto v1 -->
+<!-- screen: shopify-orders.html · BUILD 2026-11-20 · wo dup v1 ; so.html · BUILD 2026-11-12 · so shipto v1 -->
 <!-- who: office -->
 
 **무엇인가**
@@ -965,6 +965,14 @@ IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a referen
 3. 라인: "Type the right SKU, or tick leave out. The order is made without left-out lines."(맞는 SKU 를 적거나 leave out 을 체크 · 뺀 라인 없이 만든다) **Save line choices** 를 누릅니다.
 4. 오더가 **Waiting** 으로 돌아가고, 1 분 안에 판매 오더가 만들어집니다.
 - `shopify` 권한을 write 로 가진 매니저 이상: **Process waiting now** 를 누르면 기다리지 않고 바로 합니다.
+
+**Needs review — 닮은 고객이 있을 때**
+IMS 는 웹 오더로 새 고객을 만들기 직전에 같은 사람일 수 있는 고객을 찾습니다. 전화가 같거나, 이름이 같거나, 이름이 비슷하면서 도시나 우편번호 앞 세 자리가 같은 고객이 있으면 새 고객을 만들지 않고 오더를 멈춥니다: "… existing customer(s) look like "…" (same phone, same name, or a similar name nearby) — pick the customer, or create it as a new customer"(닮은 고객이 있다 · 고객을 고르거나 새 고객으로 만든다)
+1. 닮은 고객마다 단추가 있고 겹친 까닭이 붙습니다 — "same phone"(같은 전화) · "same name"(같은 이름) · "similar name nearby"(가까운 곳의 비슷한 이름). 같은 사람이면 그 단추를 누릅니다. 이 Shopify 고객의 다음 오더는 저절로 그 고객으로 갑니다.
+2. **inactive** 가 붙은 고객은 고를 수 없습니다: "Inactive customer — turn it on in Customers first, then pick it here"(비활성 고객 · Customers 에서 먼저 켜고 여기서 고른다). **Customers** 에서 켠 뒤 돌아와 고릅니다.
+3. **Another customer…** 는 모든 고객에서 찾습니다.
+4. 정말 새 사람이면 **Create as new customer…** 를 누릅니다. 창에 Shopify 의 이름 · 이메일 · 전화 · 도시 · 우편번호와 닮은 고객들이 보입니다. "Your name is kept on the order as the person who confirmed this."(누른 사람의 이름이 오더에 남는다) **Create new customer** 를 누르면 오더가 평소대로 이어집니다.
+- 웹 오더가 멈춰 있는 동안(판매 오더 없이 Waiting · Needs review · Error) 그 수량은 웹 숍에 보이는 재고에서 빠집니다 — 두 번 팔리지 않게. 판매 오더가 만들어지면 그 오더의 예약이 이어받습니다.
 
 **경고**
 웹 오더나 그 판매 오더에 경고가 붙을 수 있습니다. 경고 글이 할 일을 말합니다. 끝나면 **Mark checked** 를 누릅니다. **Reopen** 은 다시 엽니다. 자주 보는 것:

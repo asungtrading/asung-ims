@@ -283,7 +283,7 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 
 <a id="purch-payments"></a>
 ## 공급처 결제
-<!-- screen: payments.html · BUILD 2026-11-09 · pay rate v1 -->
+<!-- screen: payments.html · BUILD 2026-11-09 · pay rate v1 ; invoices.html · BUILD 2026-11-21 · inv out v1 ; charges.html · BUILD 2026-11-21 · chg out v1 -->
 <!-- who: accounting -->
 
 **무엇인가**
@@ -308,6 +308,17 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 - 라인의 **✕** 는 그 문서를 결제에서 뗍니다: "What it was owed goes back to being owed."
 - 결제 하나는 공급처 하나를 갚습니다. 두 공급처의 문서는 결제 둘로 나눕니다.
 - QuickBooks 로 이미 간 결제를 지우거나 날짜 · 계좌 · 금액 · 환율 · Reference · 문서를 바꾸면 QuickBooks 에서는 void 되고 IMS 가 다시 보냅니다([QuickBooks](01-sales.md#sales-quickbooks)).
+
+**Settled outside IMS(IMS 밖에서 정산됨)**
+공급처 인보이스나 비용의 일부가 이미 QuickBooks 에서 손으로 정산됐을 수 있습니다 — 예: 선급금에서 분개(journal entry)로. 그 금액을 여기 적어 IMS 의 남은 금액을 맞춥니다. IMS 의 결제가 아니고, "Nothing is sent to QuickBooks."(QuickBooks 로 아무것도 보내지 않는다)
+- 누가: QuickBooks 권한(write)이 있는 사람만 적거나 취소합니다 — "Only someone with the QuickBooks key can add or void these." 기록은 그 문서를 열 수 있는 사람 모두에게 보입니다.
+- 언제: 확정됐고 남은 금액이 있는 인보이스 · 비용. 크레딧 노트는 안 됩니다.
+1. 인보이스나 비용을 열고 **Mark settled outside IMS…** 를 누릅니다. "Balance now … Up to that amount can be marked."(지금 남은 금액까지 적을 수 있다)
+2. **Amount**(금액) · **Settled date**(정산일 · 미래 안 됨) · **QuickBooks JE #**(분개 번호) · **Note**(무엇을 정산했나 · 예: 어느 선급금) — 모두 필수입니다.
+3. **Check** 를 누릅니다. 전후 남은 금액이 보입니다. "This JE # is already on another record of this document — check it is not entered twice."(같은 분개 번호가 이 문서에 이미 있다 · 두 번 적지 않았는지 확인)가 보이면 겹쳐 적은 것이 아닌지 봅니다(막지는 않는다 · 분개 하나를 나눠 적을 수 있다).
+4. **Save** 를 누릅니다. 문서에 **Settled outside** 로, 아래 **Settled outside IMS** 기록 표에 보입니다. 목록에는 **Outside** 칸에 보입니다. 나머지는 평소대로 IMS 에서 Pay 합니다.
+- 기록의 **Void…**: **Why**(사유 · 필수) → **Check** → **Void**. "The amount goes back onto the balance. The record stays on the list, marked voided. Nothing is sent to QuickBooks — undo the journal entry there yourself if it was wrong."(금액이 남은 금액으로 돌아가고 기록은 voided 로 남는다 · 분개가 틀렸으면 QuickBooks 에서 직접 되돌린다)
+- 취소하지 않은 기록이 있는 문서는 다시 열거나 취소할 수 없습니다. 기록이 하나라도 있으면(취소된 것뿐이어도) 지울 수 없습니다.
 
 <!-- SCREENSHOT: purch-payments-1 · To pay: 인보이스 둘을 고르고 초록 할인 -->
 

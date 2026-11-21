@@ -943,7 +943,7 @@ In **Integrations ▾** › **QuickBooks**, the type **Cost of goods — daily j
 
 <a id="sales-web-orders"></a>
 ## Web orders
-<!-- screen: shopify-orders.html · BUILD 2026-11-01 · wo v4f ; so.html · BUILD 2026-11-12 · so shipto v1 -->
+<!-- screen: shopify-orders.html · BUILD 2026-11-20 · wo dup v1 ; so.html · BUILD 2026-11-12 · so shipto v1 -->
 <!-- who: office -->
 
 **What it is**
@@ -965,6 +965,14 @@ Orders from the web shop come in by themselves. Within a minute IMS makes a sale
 3. Lines: "Type the right SKU, or tick leave out. The order is made without left-out lines." Press **Save line choices**.
 4. The order goes back to **Waiting**, and the sales order is made within a minute.
 - Managers and above with the `shopify` key at write: **Process waiting now** does it at once instead of waiting.
+
+**Needs review — a customer that looks alike**
+Before IMS makes a new customer from a web order, it looks for customers that may be the same person. If one has the same phone, the same name, or a similar name in the same city or the same first three characters of the postal code, IMS does not make the new customer and stops the order: "… existing customer(s) look like "…" (same phone, same name, or a similar name nearby) — pick the customer, or create it as a new customer".
+1. Each look-alike is a button with why it matched — "same phone", "same name" or "similar name nearby". If it is the same person, press it. The next orders from this Shopify customer go to that customer by themselves.
+2. A look-alike marked **inactive** cannot be picked: "Inactive customer — turn it on in Customers first, then pick it here". Turn it on in **Customers**, then come back and pick it.
+3. **Another customer…** searches all customers.
+4. If it is really a new person, press **Create as new customer…**. The window shows the Shopify name, email, phone, city and postal code, and the customers that looked alike. "Your name is kept on the order as the person who confirmed this." Press **Create new customer** — the order goes on as usual.
+- While a web order is stopped (Waiting, Needs review or Error, with no sales order yet), its quantity is kept off the stock the web shop shows, so it cannot be sold twice. When the sales order is made, the order's own reservation takes over.
 
 **Warnings**
 A web order or its sales order can carry warnings. The warning says what to do. When it is done, press **Mark checked**. **Reopen** opens it again. Ones you will often see:

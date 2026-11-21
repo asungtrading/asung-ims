@@ -283,7 +283,7 @@ A supplier credit note lowers what we owe — for goods that did not come or a p
 
 <a id="purch-payments"></a>
 ## Pay suppliers
-<!-- screen: payments.html · BUILD 2026-11-09 · pay rate v1 -->
+<!-- screen: payments.html · BUILD 2026-11-09 · pay rate v1 ; invoices.html · BUILD 2026-11-21 · inv out v1 ; charges.html · BUILD 2026-11-21 · chg out v1 -->
 <!-- who: accounting -->
 
 **What it is**
@@ -308,6 +308,17 @@ A supplier credit note lowers what we owe — for goods that did not come or a p
 - **✕** on a line takes that document off the payment: "What it was owed goes back to being owed."
 - One payment pays one supplier. Documents of two suppliers need two payments.
 - A payment already sent to QuickBooks is voided there when you delete it or change its date, account, amount, rate, reference or documents — IMS then sends it again (see [QuickBooks](01-sales.md#sales-quickbooks)).
+
+**Settled outside IMS**
+Some of a supplier invoice or charge may already be settled in QuickBooks by hand — for example from a deposit, with a journal entry. Record that amount here so the balance in IMS is right. It is not a payment in IMS, and "Nothing is sent to QuickBooks."
+- Who: only someone with the QuickBooks key (write) can add or void a record — "Only someone with the QuickBooks key can add or void these." Everyone who can open the document sees the records.
+- When: the invoice or charge is confirmed and has a balance. A credit note cannot be marked.
+1. Open the invoice or charge and press **Mark settled outside IMS…**. "Balance now … Up to that amount can be marked."
+2. Fill **Amount**, **Settled date** (not in the future), **QuickBooks JE #** and **Note** (what it settles, for example the deposit) — all are required.
+3. Press **Check**. IMS shows the balance before and after. If "This JE # is already on another record of this document — check it is not entered twice." appears, make sure it is not a double entry (it is not blocked — one entry may be split).
+4. Press **Save**. The amount shows as **Settled outside** on the document and under **Settled outside IMS** in a list of records. The lists show it in the **Outside** column. Pay the rest in IMS as usual.
+- **Void…** on a record: say **Why** (required) → **Check** → **Void**. "The amount goes back onto the balance. The record stays on the list, marked voided. Nothing is sent to QuickBooks — undo the journal entry there yourself if it was wrong."
+- While a record (not voided) is on a document, the document cannot be reopened or cancelled. A document with any record, even a voided one, cannot be deleted.
 
 <!-- SCREENSHOT: purch-payments-1 · To pay with two invoices picked and a green discount -->
 
