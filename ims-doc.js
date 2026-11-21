@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v5 · 2026-11-21 · Claude Code · mail-rcpt-1(판정 1497 · asung-wms 20261121172000): 메일 창 To 칸 아래 Contacts 체크 목록 — 미리 보기의 contacts(청구처 + 문서 매장 · 주소당 한 줄) · 켜면 To 칸에 더하고 끄면 뺀다(쳐 넣은 주소는 그대로) · 이번 메일에만 · 열 명 넘으면 화면이 먼저 막는다 · contacts 가 없거나 한 줄이면 doc v4 모양 그대로 ← doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -173,7 +173,15 @@
       + ".idm .bx.wide{max-width:980px}.idm .ipk-t{display:flex;gap:6px;flex-wrap:wrap;align-items:center}"
       + ".idm .ipk{overflow:auto;max-height:52vh}.idm .ipk table{width:100%;border-collapse:collapse;font-size:12px}"
       + ".idm .ipk th,.idm .ipk td{text-align:left;padding:5px 6px;border-top:1px solid var(--dk-ln-e3e7ee,#e3e7ee);vertical-align:top}.idm .ipk td.num{text-align:right;white-space:nowrap}"
-      + ".idm .ipk input[type=checkbox]{padding:0}";
+      + ".idm .ipk input[type=checkbox]{padding:0}"
+      /* doc v5 새 규칙(mail-rcpt-1) — 연락처 체크 목록 · 색은 기존 이름만 */
+      + ".idm .idc{display:flex;flex-direction:column;gap:4px;border:1px solid var(--dk-ln-e3e7ee,#e3e7ee);border-radius:10px;padding:8px 10px}"
+      + ".idm .idc-h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-weight:600;font-size:12.5px}.idm .idc-h .nt{font-weight:400}"
+      + ".idm .idc-l{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;max-height:190px;overflow:auto}"
+      + ".idm .idc-l label{flex-direction:row;gap:8px;align-items:baseline;font-weight:400;cursor:pointer}"
+      + ".idm .idc-l label.off{cursor:default;color:var(--dk-tx-5b6472,#5b6472)}"
+      + ".idm .idc-l input[type=checkbox]{padding:0;flex:none;align-self:center}"
+      + ".idm .idc-l .fn{flex:1;min-width:0;overflow-wrap:anywhere}.idm .idc-l .ad{font-weight:600}";
     document.head.appendChild(st);
   }
   function overlay(inner, wide) {
@@ -451,6 +459,57 @@
   }
 
   const MAIL_KINDS = ["final_invoice", "credit_note", "sales_order", "ship_ready"];
+  /* ── doc v5 — 받는 사람 체크 목록(mail-rcpt-1 · 판정 1497 · asung-wms 20261121172000) ──
+     · 재료 = 미리 보기의 contacts [{customer_name, role bill_to|store, name, email, include_in_email, is_default, picked, flag bad_shape|cap|null, also[]}] — 주소당 한 줄
+     · 체크의 참 = To 칸 — 체크는 To 칸에 그 주소가 있느냐를 그린다(보이는 것 = 가는 것) · To 칸을 손으로 고치면 체크가 따라온다
+     · 켜면 To 칸 끝에 더하고 끄면 그 주소만 뺀다 — 직원이 쳐 넣은 다른 주소 · 순서는 그대로 · 이번 메일에만(연락처 설정은 Customers 화면)
+     · 열 명(RCPT_MAX)이 차면 더 켜지지 않는다 — 서버(doc_mail_send)가 같은 수로 다시 막는다
+     · bad_shape(주소 모양 아님)는 고를 수 없다 · contacts 가 없거나(옛 DB) 한 줄 이하면 아무것도 그리지 않는다(doc v4 모양) */
+  const RCPT_MAX = 10;
+  function toList(v) { return String(v || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean); }
+  function contactsBox(box, toEl, contacts, say) {
+    const rows = Array.isArray(contacts) ? contacts.filter((c) => c && c.email) : [];
+    if (rows.length < 2) { box.remove(); return null; }
+    const key = (s) => String(s || "").trim().toLowerCase();
+    box.className = "idc";
+    box.innerHTML = '<div class="idc-h">Contacts <span class="nt">Tick who gets this email. This email only — contact settings stay as they are (change them in Customers).</span></div>'
+      + '<ul class="idc-l">' + rows.map((c, i) => {
+        const bad = c.flag === "bad_shape";
+        const who = (c.customer_name || "") + (c.role === "store" ? " · store" : " · bill-to") + (Array.isArray(c.also) && c.also.length ? " · also at " + c.also.join(", ") : "");
+        return '<li><label' + (bad ? ' class="off"' : "") + '><input type="checkbox" data-ct="' + i + '"' + (bad ? " disabled" : "") + ">"
+          + '<span class="fn">' + (c.name ? h(c.name) + " · " : "") + '<span class="ad">' + h(c.email) + "</span>"
+          + (c.is_default ? '<span class="tg">default</span>' : "")
+          + (c.include_in_email ? "" : '<span class="tg">not in emails</span>')
+          + (bad ? '<span class="tg cx">not an email address</span>' : "")
+          + (c.flag === "cap" ? '<span class="tg cx">left out — over ' + RCPT_MAX + "</span>" : "")
+          + '</span><span class="nt">' + h(who) + "</span></label></li>";
+      }).join("") + "</ul>";
+    const boxes = Array.from(box.querySelectorAll("[data-ct]"));
+    function sync() {
+      const have = toList(toEl.value).map(key);
+      boxes.forEach((b) => { const c = rows[Number(b.dataset.ct)]; b.checked = c.flag !== "bad_shape" && have.indexOf(key(c.email)) >= 0; });
+    }
+    boxes.forEach((b) => {
+      b.onchange = () => {
+        const c = rows[Number(b.dataset.ct)], k = key(c.email), cur = toList(toEl.value);
+        if (b.checked) {
+          if (cur.map(key).indexOf(k) < 0) {
+            if (cur.length >= RCPT_MAX) { b.checked = false; say("er", "At most " + RCPT_MAX + " recipients in one email — untick or remove someone first. " + c.email + " was not added."); return; }
+            cur.push(c.email);
+          }
+        } else {
+          for (let i = cur.length - 1; i >= 0; i--) if (key(cur[i]) === k) cur.splice(i, 1);
+        }
+        toEl.value = cur.join(", ");
+        say("", "");
+        sync();
+      };
+    });
+    toEl.addEventListener("input", sync);
+    sync();
+    return { sync };
+  }
+
   async function mailDialog(sb, kind, ref, opts) {
     const o = opts || {};
     if (MAIL_KINDS.indexOf(kind) < 0) { alert("This document is not emailed to customers."); return null; }
@@ -466,6 +525,7 @@
     bd.innerHTML = '<div class="nt">From <b>' + h(p.from_name || "") + "</b> &lt;" + h(p.from || "") + "&gt;" + (p.reply_to ? " · replies go to " + h(p.reply_to) : "") + "</div>"
       + (p.redirect_to ? '<div class="wn">Test mode — this email goes to <b>' + h(p.redirect_to) + "</b>, not to the customer.</div>" : "")
       + '<label>To <input type="search" autocomplete="off" data-f="to"></label>'
+      + '<div data-x="ct"></div>'
       + '<label>Subject <input type="search" autocomplete="off" data-f="subject"></label>'
       + '<label>Message <textarea rows="7" data-f="body"></textarea></label>'
       + '<div class="nt">The PDF of this ' + h(KIND_LBL[kind].toLowerCase()) + " is attached, made with the layout in use. The email goes out within a minute or two.</div>"
@@ -477,9 +537,11 @@
     att = attachBox(sb, kind, ref, bd.querySelector('[data-x="att"]'), p);
     send.disabled = false;
     const msg = (cls, t) => { const m = bd.querySelector('[data-x="msg"]'); m.className = cls; m.textContent = t; };
+    contactsBox(bd.querySelector('[data-x="ct"]'), bd.querySelector('[data-f="to"]'), p.contacts, msg);   // doc v5: contacts 가 없거나 한 줄이면 자리를 지운다(doc v4 모양)
     send.onclick = async () => {
       const to = bd.querySelector('[data-f="to"]').value.trim(), subject = bd.querySelector('[data-f="subject"]').value.trim(), body = bd.querySelector('[data-f="body"]').value;
       if (!to) { msg("er", "Type the address to send to."); return; }
+      if (toList(to).length > RCPT_MAX) { msg("er", "At most " + RCPT_MAX + " recipients in one email — you have " + toList(to).length + ". Remove some and send again. Nothing was sent."); return; }   // doc v5: 서버와 같은 상한을 화면이 먼저
       if (att.busy()) { msg("er", "Wait until the files finish uploading."); return; }
       send.disabled = true; msg("nt", "Sending…");
       let fileId = null;
