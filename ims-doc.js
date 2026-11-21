@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v6 · 2026-11-21 · Claude Code · mail-split-1(판정 1500 = B · asung-wms 20261121181000): 문서 메일을 받는 사람별로 나눠 보낸다 — 서버가 나눈다(청구처 통 + 매장 통 · 한 주소는 한 통에만) · 메일 창은 미리 보기의 split 으로 「This sends 2 emails — A (4) · B (1)」 과 Contacts 줄마다 가는 통(→ 이름)을 보인다 · To · Message 를 고치면 바로 다시 센다(인사말 줄을 고치면 「1 email — the greeting line was changed」) · 보내기 인자는 그대로(To 칸 그대로) · 문서별 메일 표에 「email 1 of 2 · 이름」 · split 이 없으면(보통 손님) doc v5 와 같은 DOM ← doc v5 · 2026-11-21 · Claude Code · mail-rcpt-1(판정 1497 · asung-wms 20261121172000): 메일 창 To 칸 아래 Contacts 체크 목록 — 미리 보기의 contacts(청구처 + 문서 매장 · 주소당 한 줄) · 켜면 To 칸에 더하고 끄면 뺀다(쳐 넣은 주소는 그대로) · 이번 메일에만 · 열 명 넘으면 화면이 먼저 막는다 · contacts 가 없거나 한 줄이면 doc v4 모양 그대로 ← doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v7 · 2026-11-21 · Claude Code · pl-b3(판정 1468 ~ 1473 · 1506 · asung-wms 20261121184000): 인보이스 메일 창 첨부 칸에 「Packing list (PDF)」 줄 — 미리 보기의 packing_list {eligible, layout, checked} 가 대상(eligible)이고 쓰는 판이 있을(layout) 때만 · 체크된 채 들어가고 끄면 보내기에 p_packing_list false 를 싣는다(켠 채면 키 자체가 없다 = doc v6 와 같은 호출) · PDF 는 보낼 때 서버가 만든다 · 추가 첨부 10 개 · 합계 셈에 들지 않는다 · 대상이 아니거나 판이 없으면 doc v6 와 같은 DOM ← doc v6 · 2026-11-21 · Claude Code · mail-split-1(판정 1500 = B · asung-wms 20261121181000): 문서 메일을 받는 사람별로 나눠 보낸다 — 서버가 나눈다(청구처 통 + 매장 통 · 한 주소는 한 통에만) · 메일 창은 미리 보기의 split 으로 「This sends 2 emails — A (4) · B (1)」 과 Contacts 줄마다 가는 통(→ 이름)을 보인다 · To · Message 를 고치면 바로 다시 센다(인사말 줄을 고치면 「1 email — the greeting line was changed」) · 보내기 인자는 그대로(To 칸 그대로) · 문서별 메일 표에 「email 1 of 2 · 이름」 · split 이 없으면(보통 손님) doc v5 와 같은 DOM ← doc v5 · 2026-11-21 · Claude Code · mail-rcpt-1(판정 1497 · asung-wms 20261121172000): 메일 창 To 칸 아래 Contacts 체크 목록 — 미리 보기의 contacts(청구처 + 문서 매장 · 주소당 한 줄) · 켜면 To 칸에 더하고 끄면 뺀다(쳐 넣은 주소는 그대로) · 이번 메일에만 · 열 명 넘으면 화면이 먼저 막는다 · contacts 가 없거나 한 줄이면 doc v4 모양 그대로 ← doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -214,7 +214,7 @@
      · 첨부가 없으면 doc_mail_send 호출은 doc v3a 와 같은 키 집합(p_attach 키 자체를 넣지 않는다)
      · ⚠️ ship_ready 는 미리 보기 때 PDF 가 없어 서버가 1 MB 몫으로 셈한다 — 보낼 때 실제 PDF 크기로 다시 막는다(미룬 일)
      · 항목 꼴 {key, src: 'upload' | 'pick' | 'auto', kind: 'upload' | 'doc', id, name, bytes, sha, mine, checked, state}
-       src 'auto' = 뒤 차수 B 의 팩킹 리스트 자리(1473 — 체크된 채 들어가고 뺄 수 있다) · 이번엔 만들지 않는다 · p_attach 에 싣는 길도 B 가 정한다 */
+       src 'auto' = 팩킹 리스트 자리(1473 — 체크된 채 들어가고 뺄 수 있다) · doc v7(pl-b3): 미리 보기의 packing_list 가 eligible ∧ layout 일 때 한 줄 · p_attach 에는 싣지 않는다(끄면 보내기 인자 p_packing_list false) */
   const ATT_MIME = {
     pdf: "application/pdf", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
     xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", csv: "text/csv",
@@ -261,6 +261,9 @@
       + '<div data-x="amsg"></div>';
     const $ = (x) => box.querySelector('[data-x="' + x + '"]');
     const amsg = (cls, t) => { const m = $("amsg"); m.className = cls || ""; m.textContent = t || ""; };
+    /* doc v7(pl-b3): 팩킹 리스트 — 대상이고 쓰는 판이 있을 때만 한 줄(체크된 채) · PDF 는 보낼 때 서버가 만든다(크기 모름 · 추가 첨부 셈 밖) */
+    const pk = p0.packing_list;
+    if (kind === "final_invoice" && pk && pk.eligible === true && pk.layout === true) items.push({ key: ++nkey, src: "auto", kind: "packing_list", id: null, name: "Packing list (PDF)", bytes: null, sha: null, mine: false, checked: pk.checked !== false, state: "ok", origin: "made when the email is sent · untick to leave it out" });
     const live = () => items.filter((i) => i.state !== "gone" && i.src !== "auto");
     const used = () => live().reduce((s, i) => s + Number(i.bytes || 0), 0);
     function attachArg() {
@@ -274,7 +277,7 @@
         + items.filter((i) => i.state !== "gone").map((i) =>
           '<li data-k="' + i.key + '">' + (i.src === "auto" ? '<input type="checkbox" data-chk="' + i.key + '"' + (i.checked ? " checked" : "") + ">" : "")
           + '<span class="fn">' + h(i.name) + (i.cancelled ? '<span class="tg cx">cancelled</span>' : "") + '</span>'
-          + '<span class="nt">' + h(i.state === "uploading" ? "uploading…" : fmtBytes(i.bytes)) + " · " + h(i.origin) + "</span>"
+          + '<span class="nt">' + (i.src === "auto" ? h(i.origin) : h(i.state === "uploading" ? "uploading…" : fmtBytes(i.bytes)) + " · " + h(i.origin)) + "</span>"
           + (i.src === "auto" ? "" : '<button type="button" class="xbtn" data-rm="' + i.key + '" title="Remove from this email">×</button>') + "</li>").join("");
       $("list").querySelectorAll("[data-rm]").forEach((b) => { b.onclick = () => remove(Number(b.dataset.rm)); });
       $("list").querySelectorAll("[data-chk]").forEach((c) => { c.onchange = () => { const it = items.find((i) => i.key === Number(c.dataset.chk)); if (it) it.checked = c.checked; }; });
@@ -388,6 +391,7 @@
       attachArg,
       busy: () => items.some((i) => i.state === "uploading"),
       markSent: () => { sent = true; },
+      packingList: () => { const it = items.find((i) => i.src === "auto" && i.kind === "packing_list"); return it ? !!it.checked : null; },   // doc v7: 줄이 없으면 null · 있으면 체크 여부
       /* 창을 닫을 때 — 보내지 않았으면 이번 창에서 올린 것을 지운다(올리는 중인 것은 uploadOne 이 끝나며 closed 를 보고 지운다) */
       cleanup: () => {
         closed = true;
@@ -627,6 +631,7 @@
       if (fileId) args.p_doc_file_id = fileId;
       const extra = att.attachArg();
       if (extra.length) args.p_attach = extra;   // doc v4: 첨부가 없으면 키 자체가 없다(doc v3a 와 같은 호출)
+      if (att.packingList() === false) args.p_packing_list = false;   // doc v7(pl-b3 · 1473): 팩킹 리스트를 껐을 때만 — 켠 채 · 줄 없음은 키 자체가 없다(doc v6 와 같은 호출)
       const { data, error } = await sb.rpc("doc_mail_send", args);
       if (error) { msg("er", error.message); send.disabled = false; return; }
       done = data;
