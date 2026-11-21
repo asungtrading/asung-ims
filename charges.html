@@ -108,7 +108,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
 
 /* ⚠️ Which build is running. The browser's line numbers have not matched the file
    more than once, so the screen says its own version out loud. */
-const CHG_BUILD = "2026-11-21 · chg dep v1 · dk1";   // 대화 Claude — chg dep v1(sd-1 · sd-23): invoices.html inv dep v1 과 같은 선급금 적용 블록 · 상세 단추 · 칸 Deposits applied · 표 · Void · 목록 Deposit 칸 ← 2026-11-21 · chg out v1 · dk1:   // 대화 Claude — chg out v1(po-outside-1 · 판정 1483 ~ 1485 · asung-wms 7c89a10): Settled outside IMS — invoices.html inv out v1 과 같은 블록(outsideLoad · outsideCard · outsideOpen · outsideVoid) · 상세 단추 · 칸 Settled outside · 기록 표 · 목록 Outside 칸 · QuickBooks 로 아무것도 안 보냄 ← 2026-11-09 · chg kind v1 · dk1:   // 대화 Claude — chg kind v1(판정 1135 · chg-fix-1 · 청구서 17038 동료 리포트): 초안 상세의 Kind 를 고르기 칸으로(저장은 saveHead · DB 트리거 po_charge_kind_lock 이 초안 밖을 거부) ← chg duty v2(Caleb 같은 날 · DB 무변): 관세 칸이 비면 「Duty (before tax) is required — type 0 if the bill has no duty」 · 경고 total_amount_zero 를 사람 말로(관세 0 · GST 만 있는 CBSA 청구서는 흔하다 — 경고일 뿐 막지 않는다) ← chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
+const CHG_BUILD = "2026-11-21 · chg am v1 · dk1";   // 대화 Claude — chg am v1(actmenu-1 · 판정 1508 · 1509 · 1513 과 같은 규칙 · invoices.html inv am v1 과 같은 꼴): 상세 단추 정리 — Draft 앞 = Add a purchase order · Spread by amount · Confirm / More = Cancel · Delete · Confirmed 앞 = Pay(파랑으로 바뀜) · Apply deposit / More = Mark settled outside IMS · ─ · Reopen · Cancel · Cancelled 앞 = Restore / More = Delete(확정된 적 없을 때) · 보이는 조건 그대로 · Cancel · Delete 빨강 · 옛 ims-ui.js 는 평평한 단추 ← 2026-11-21 · chg dep v1 · dk1:   // 대화 Claude — chg dep v1(sd-1 · sd-23): invoices.html inv dep v1 과 같은 선급금 적용 블록 · 상세 단추 · 칸 Deposits applied · 표 · Void · 목록 Deposit 칸 ← 2026-11-21 · chg out v1 · dk1:   // 대화 Claude — chg out v1(po-outside-1 · 판정 1483 ~ 1485 · asung-wms 7c89a10): Settled outside IMS — invoices.html inv out v1 과 같은 블록(outsideLoad · outsideCard · outsideOpen · outsideVoid) · 상세 단추 · 칸 Settled outside · 기록 표 · 목록 Outside 칸 · QuickBooks 로 아무것도 안 보냄 ← 2026-11-09 · chg kind v1 · dk1:   // 대화 Claude — chg kind v1(판정 1135 · chg-fix-1 · 청구서 17038 동료 리포트): 초안 상세의 Kind 를 고르기 칸으로(저장은 saveHead · DB 트리거 po_charge_kind_lock 이 초안 밖을 거부) ← chg duty v2(Caleb 같은 날 · DB 무변): 관세 칸이 비면 「Duty (before tax) is required — type 0 if the bill has no duty」 · 경고 total_amount_zero 를 사람 말로(관세 0 · GST 만 있는 CBSA 청구서는 흔하다 — 경고일 뿐 막지 않는다) ← chg duty v1(Caleb 2026-11-02 집 「화면이 헷갈릴 것 같아」 · DB 무변): Kind = duty 일 때만 칸 이름 Duty (before tax) · GST on import · 안내 문장 CBSA 용 · Check 가 제안값을 빈 GST 칸에 채우지 않고 멈춘다(제안값 = 관세 × 세율 · 수입 GST 는 물건값 + 관세에 매겨 다르다) · 상세 머리 · 합계 칸 이름도 같게 · 제안값 안내 숨김 ← 2026-11-01 · chg sup v1: 판정 950(Caleb 2026-11-01 · sup-buy-1): 공급처 고르기는 Purchasable(is_purchasable) = Yes 만 — Charges 목록 Supplier 거르기 · 새 Charge 의 Billed by(Purchasable · 거래 중단 아님 · 「Show all suppliers」 로 전부) ← 2026-10-24 · chg docs v1:   // 대화 Claude — drive-3(판정 691 · 698 · 703 · 708): 빌 상세 맨 아래 Documents 구역(공용 ims-podocs.js · 빌 원본과 함께 온 서류 · 드라이브는 경비처 CHARGE 폴더 · 확정 때 PO 바로가기) ← 2026-10-22 · chg gone v1: 대화 Claude — Caleb 「새로 고침을 하면 목록이 사라진다」(inv gone v1 과 같은 손질): 목록으로 돌아가면 주소의 ?… 를 지우고(replaceState · 새로 고침이 지운 문서를 다시 열지 않게) · 없는 문서면 안내 + 목록 단추 ← 2026-10-08 · chg tx v1: 대화 Claude — 비용 청구서 세금(po-tax-2 8c3343d): 두 칸 Before tax(total_amount · 원가로 가는 몫) · Tax(청구서에 찍힌 값 · 사람이 적는다) · 만들기 창 Tax 칸 + Check 가 제안값(tax_suggested)을 빈 칸에 미리 채운다 · 규칙(제안 재료) 고르기 · 머리 Tax · Tax rule 고치기(PostgREST · 짝 트리거) · 합계 Before tax · Tax · Total with tax · 경고 두 문장 · 목록 Total incl. tax ← exchange rate · 대화 Claude — 외화 비용 초안에 환율 칸(확정 창구가 「Enter the rate on the charge (\"Exchange rate\")」 로 거부하는데 넣을 칸이 없었다 · 2026-09-29 ⑱ 시험에서 드러남) ← 「Toronto date」(2026-09-23)
 let TAX_RULES = [];           // chg tx v1 — active purchase tax rules
 console.log("charges.html build:", CHG_BUILD);
 
@@ -272,29 +272,31 @@ async function loadDetail(id){
   const gap = Number(m.unallocated);
   const balanced = gap === 0;
 
+  /* chg am v1 — 판정 1508 · 1509 · 1513(공급처 인보이스와 같은 규칙): 앞 = 그 상태에서 자주 쓰는 것 · More ▾ = 가끔 · ─ 아래 = 되돌리기 어려운 것 · 인쇄 없음
+     ⚠️ 보이는 조건은 옛 판 그대로 · 옛 ims-ui.js(imsActMenu 없음)는 평평한 단추 — 구분선(<hr>)은 그때 뺀다 */
+  const menu = (label, items, opts) => typeof imsActMenu === "function" ? imsActMenu(label, items, opts) : items.filter(x => x && x !== "<hr>").join("");
+  const owing = h.status === "confirmed" && Number(m.unpaid) > 0;
   const acts = ['<button class="pobtn" data-act="wide">&lsaquo; All charges</button>'];
+  const more = [], risky = [];
   if(ed){
     acts.push('<button class="pobtn" data-act="addpo">Add a purchase order</button>');
     if((data.allocs || []).length)
       acts.push('<button class="pobtn" data-act="spread">Spread by amount</button>');
     acts.push(`<button class="pobtn go" data-act="confirm"${balanced ? "" : " disabled title=\"The split has to add up to the total first\""}>Confirm</button>`);
-  } else if(h.status === "confirmed"){
-    acts.push('<button class="pobtn" data-act="reopen">Reopen</button>');
   }
-  if(h.status !== "cancelled") acts.push('<button class="pobtn" data-act="cancel">Cancel</button>');
+  /* ⭐ A charge document is paid the same way a supplier invoice is — on the payments screen. */
+  if(owing) acts.push('<button class="pobtn go" data-act="pay">Pay</button>');   // chg am v1 — 확정 상태의 주 동작이라 파랑
+  if(owing && dep && dep.can_edit) acts.push('<button class="pobtn" data-act="deposit">Apply deposit…</button>');   // chg dep v1 — 선급금이 남은 공급처만
+  if(owing && outside && outside.can_edit) more.push('<button class="pobtn" data-act="outside">Mark settled outside IMS…</button>');   // chg out v1
+  if(h.status === "confirmed") risky.push('<button class="pobtn" data-act="reopen">Reopen</button>');
+  if(h.status !== "cancelled") risky.push('<button class="pobtn bad" data-act="cancel">Cancel</button>');
   /* ⭐ Restore lives in the detail only — on the list it would sit against every cancelled
      row and a stray click would put a dead document back into the books. */
   if(h.status === "cancelled") acts.push('<button class="pobtn" data-act="restore">Restore</button>');
   /* ⭐⭐ Delete only while the document was never confirmed. What actually refuses is
      po_doc_delete; this only keeps a pointless button off the screen. */
-  if(!h.confirmed_at) acts.push('<button class="pobtn" data-act="delete">Delete</button>');
-  /* ⭐ A charge document is paid the same way a supplier invoice is — on the payments screen. */
-  if(h.status === "confirmed" && Number(m.unpaid) > 0)
-    acts.push('<button class="pobtn" data-act="pay">Pay</button>');
-  if(h.status === "confirmed" && Number(m.unpaid) > 0 && outside && outside.can_edit)   // chg out v1
-    acts.push('<button class="pobtn" data-act="outside">Mark settled outside IMS…</button>');
-  if(h.status === "confirmed" && Number(m.unpaid) > 0 && dep && dep.can_edit)   // chg dep v1
-    acts.push('<button class="pobtn" data-act="deposit">Apply deposit…</button>');
+  if(!h.confirmed_at) risky.push('<button class="pobtn bad" data-act="delete">Delete</button>');
+  acts.push(menu("More", more.concat(more.length && risky.length ? ["<hr>"] : [], risky)));
 
   const kvL = [
     ["Supplier",     esc(h.supplier_name)],
