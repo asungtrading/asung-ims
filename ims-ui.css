@@ -383,3 +383,24 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]) .card h3
 #imsThumbZoom .box{display:flex;flex-direction:column;align-items:center;gap:10px;cursor:default}
 #imsThumbZoom .box img{max-width:90vw;max-height:80vh;object-fit:contain;background:#fff;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.45)}
 #imsThumbZoom .box a{color:#fff;font-size:13px;font-weight:600;text-decoration:underline}
+
+/* 단추 펼침(Print ▾ · More ▾) — actmenu-1 · 판정 1508 · 1509 · 2026-11-21 · 대화 Claude
+   DOM = imsActMenu(ims-ui.js) — <details class="ims-actmenu"><summary class="pobtn">Print ▾</summary><div class="ims-actmenu-list" role="menu">항목(.pobtn)…</div></details>
+   📌 열림 = [open] 속성뿐 · 닫기 동작은 ims-ui.js(문서 전체 한 벌) · 색은 이름만(다크 자동) · 모양은 머리 줄 메뉴(header .ims-drop)를 따랐다
+   ⚠️ 상세 단추 줄은 .card(overflow:hidden) 안에 있다 — 펼침이 열린 동안만 그 카드를 overflow:visible(짧은 카드에서 목록이 잘리지 않게) */
+details.ims-actmenu{position:relative;display:inline-block}
+details.ims-actmenu>summary{list-style:none;user-select:none}
+details.ims-actmenu>summary::-webkit-details-marker{display:none}
+details.ims-actmenu>summary::marker{content:""}
+details.ims-actmenu[open]>summary{background:var(--ims-hover)}
+.ims-actmenu-list{
+  position:absolute;top:calc(100% + 4px);left:0;z-index:40;min-width:200px;max-width:calc(100vw - 24px);
+  background:var(--ims-surface);border:1px solid var(--ims-line-strong);border-radius:12px;box-shadow:0 12px 32px var(--ims-shadow);padding:6px;
+}
+.ims-actmenu-list>.pobtn{display:block;width:100%;box-sizing:border-box;text-align:left;white-space:nowrap;
+  border:0;background:transparent;border-radius:8px;padding:8px 12px;color:var(--ink)}
+.ims-actmenu-list>.pobtn:hover{background:var(--ims-hover)}
+.ims-actmenu-list>.pobtn:disabled{background:transparent}
+.ims-actmenu-list>.pobtn.bad{color:var(--bad)}
+.ims-actmenu-list>hr{border:0;border-top:1px solid var(--line);margin:4px 6px}
+.card:has(details.ims-actmenu[open]){overflow:visible}

@@ -15,6 +15,7 @@
      imsParam                   화면 사이 이동(?id= · ?sku=)
      imsThumb / imsThumbFill    줄 표의 SKU 썸네일(40px · 누르면 크게 · 판정 208 · 2026-10-01 thumb-1) · ⚠️ 실패해도 던지지 않는다
      imsPhotoUrl / imsPhotoPrimary  창고 화면용 대표 사진 읽기(판정 224 · wms-img-1) — 같은 캐시 · 같은 창구 · Map(sku → {url, from_parent} | null) · ⚠️ 실패해도 던지지 않는다
+     imsActMenu                 상세 화면 단추 펼침(Print ▾ · More ▾ · 판정 1508 · 1509 · actmenu-1) — HTML 문자열을 돌려준다 · 닫기 동작은 문서 전체에 한 번만 건다(다시 그려도 그대로) · ⚠️ 모양은 ims-ui.css(.ims-actmenu · .ims-actmenu-list)
 */
 (function () {
   "use strict";
@@ -322,6 +323,49 @@
     return out;
   }
 
+  /* ── 단추 펼침(Print ▾ · More ▾) — actmenu-1 · 판정 1508 · 1509 · 2026-11-21 ─────────────────
+     imsActMenu(label, items, opts) → '<details class="ims-actmenu"><summary class="pobtn" title="…">Print ▾</summary><div class="ims-actmenu-list" role="menu">…항목…</div></details>'
+       items   화면이 만든 HTML 문자열 배열 — 거짓 값(false · null · undefined · "")은 뺀다 · 남은 것이 0 이면 ""(펼침 단추 자체가 없다)
+       label · opts.title 은 esc · 항목은 그대로(다시 esc 하지 않는다) · 「▾」 는 여기서 붙인다
+     동작(문서 전체 · 한 번만 · 화면이 innerHTML 로 다시 그려도 그대로):
+       하나를 열면 다른 것은 닫힌다 · 바깥을 누르면 모두 닫힌다 · 목록 안 빈 곳은 그대로 · Esc 는 닫고 그 summary 로 포커스
+       항목([data-act] · a · button)을 누르면 항목 자신의 클릭이 먼저 돈 뒤 닫힌다
+     ⚠️ 잡는 단계(capture)에서 보고 닫기는 setTimeout 0 으로 미룬다 — 화면 핸들러가 stopPropagation 을 해도 닫히고, 순서는 「항목 클릭 → 닫힘」
+     ⚠️ 여기서 preventDefault · stopPropagation 을 하지 않는다(링크 이동 · 화면 핸들러를 막지 않는다)
+     ⚠️ 표지는 window 에 둔다 — 이 파일이 두 번 읽혀도(클로저가 둘이어도) 리스너는 한 벌 */
+  function imsActMenu(label, items, opts) {
+    const list = (Array.isArray(items) ? items : []).filter(Boolean);
+    if (!list.length) return "";
+    const title = opts && opts.title ? ` title="${esc(opts.title)}"` : "";
+    return `<details class="ims-actmenu"><summary class="pobtn"${title}>${esc(label)} ▾</summary><div class="ims-actmenu-list" role="menu">${list.join("")}</div></details>`;
+  }
+  const actMenuOpen = () => Array.from(document.querySelectorAll("details.ims-actmenu[open]"));
+  function actMenuWire() {
+    if (window.__imsActMenuWired) return;
+    window.__imsActMenuWired = true;
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!t || typeof t.closest !== "function") return;
+      const own = t.closest("details.ims-actmenu");
+      actMenuOpen().forEach((d) => { if (d !== own) d.open = false; });   // 바깥 · 다른 펼침 — 한 번에 하나
+      if (!own) return;
+      const list = t.closest(".ims-actmenu-list");
+      if (!list || !own.contains(list)) return;                            // summary — 여닫기는 브라우저가 한다
+      const item = t.closest("[data-act], a, button");
+      if (!item || !list.contains(item)) return;                           // 목록 안 빈 곳 — 그대로
+      setTimeout(() => { own.open = false; }, 0);                          // 항목 자신의 클릭이 먼저 돈 뒤
+    }, true);
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      const open = actMenuOpen();
+      if (!open.length) return;
+      open.forEach((d) => { d.open = false; });
+      const s = open[open.length - 1].querySelector("summary");
+      if (s && typeof s.focus === "function") s.focus();
+    }, true);
+  }
+  actMenuWire();
+
   window.esc = esc;
   window.dim = dim;
   window.yn = yn;
@@ -337,4 +381,5 @@
   window.imsThumbFill = imsThumbFill;
   window.imsPhotoUrl = imsPhotoUrl;
   window.imsPhotoPrimary = imsPhotoPrimary;
+  window.imsActMenu = imsActMenu;
 })();
