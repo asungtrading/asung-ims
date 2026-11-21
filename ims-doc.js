@@ -1,4 +1,4 @@
-/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v5 · 2026-11-21 · Claude Code · mail-rcpt-1(판정 1497 · asung-wms 20261121172000): 메일 창 To 칸 아래 Contacts 체크 목록 — 미리 보기의 contacts(청구처 + 문서 매장 · 주소당 한 줄) · 켜면 To 칸에 더하고 끄면 뺀다(쳐 넣은 주소는 그대로) · 이번 메일에만 · 열 명 넘으면 화면이 먼저 막는다 · contacts 가 없거나 한 줄이면 doc v4 모양 그대로 ← doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
+/* ims-doc.js — 문서 판 그리기 · 인쇄 · 메일 (doc v6 · 2026-11-21 · Claude Code · mail-split-1(판정 1500 = B · asung-wms 20261121181000): 문서 메일을 받는 사람별로 나눠 보낸다 — 서버가 나눈다(청구처 통 + 매장 통 · 한 주소는 한 통에만) · 메일 창은 미리 보기의 split 으로 「This sends 2 emails — A (4) · B (1)」 과 Contacts 줄마다 가는 통(→ 이름)을 보인다 · To · Message 를 고치면 바로 다시 센다(인사말 줄을 고치면 「1 email — the greeting line was changed」) · 보내기 인자는 그대로(To 칸 그대로) · 문서별 메일 표에 「email 1 of 2 · 이름」 · split 이 없으면(보통 손님) doc v5 와 같은 DOM ← doc v5 · 2026-11-21 · Claude Code · mail-rcpt-1(판정 1497 · asung-wms 20261121172000): 메일 창 To 칸 아래 Contacts 체크 목록 — 미리 보기의 contacts(청구처 + 문서 매장 · 주소당 한 줄) · 켜면 To 칸에 더하고 끄면 뺀다(쳐 넣은 주소는 그대로) · 이번 메일에만 · 열 명 넘으면 화면이 먼저 막는다 · contacts 가 없거나 한 줄이면 doc v4 모양 그대로 ← doc v4 · 2026-11-21 · Claude Code · mail-att-a2(판정 1464 ~ 1467 · 1473 · 1481 · asung-wms 5f0cba4 · 16fb86c): 메일 창에 추가 첨부 칸 — Attach files…(끌어다 놓기) · From IMS…(doc_attach_pick_list) · 빼기 · 닫으면 이번에 올린 것 지움 · 첨부 없으면 doc v3a 와 같은 호출 / 넣는 CSS 색을 var(이름, 옛 색) + 다크 한 줄(판정 1274 ~ 1281 · 라이트 무변) ← doc v3a · 2026-10-19 · 대화 Claude · Send 가 되면 창을 닫고 아래 안내를 잠깐(Caleb 「send를 누르고 바로 저 화면에서 빠져나오게」) ← doc v3 · mailDialog · mailList · noteDialog — doc-3a 2485e04 의 doc_mail_send · list · cancel ← doc v2 인쇄 printDoc · printBtn ← doc v1a Mustache 를 파일 안에 ← doc v1 cdnjs)
    정본: 판정 521 ~ 526 · asung-wms doc-1a 31c39cd · doc-1b1 dc3aa77 · doc-1b2 aedd043
    ⭐ 판(doc_template.body)은 로직 없는 Mustache — {{x}} 는 HTML 이스케이프 · {{#sec}} 목록 · 조건 · {{^sec}} 없을 때
    ⭐ 값의 꼴(돈 · 날짜 · %)은 DB 창구 doc_data 가 만든다 — 여기서는 셈하지 않는다
@@ -30,13 +30,14 @@
     return Promise.reject(new Error("The document renderer did not start — reload the page (Ctrl+F5) and try again."));
   }
 
-  const KINDS = ["final_invoice", "sales_order", "ship_ready", "credit_note", "internal_receipt"];
+  const KINDS = ["final_invoice", "sales_order", "ship_ready", "credit_note", "internal_receipt", "packing_list"];
   const KIND_LBL = {
     final_invoice: "Final invoice",
     sales_order: "Sales order",
     ship_ready: "Ship Ready (proforma)",
     credit_note: "Credit note",
     internal_receipt: "Internal invoice receipt",
+    packing_list: "Packing list",
   };
 
   /* 판 + 문서 하나 → HTML 글 */
@@ -181,7 +182,10 @@
       + ".idm .idc-l label{flex-direction:row;gap:8px;align-items:baseline;font-weight:400;cursor:pointer}"
       + ".idm .idc-l label.off{cursor:default;color:var(--dk-tx-5b6472,#5b6472)}"
       + ".idm .idc-l input[type=checkbox]{padding:0;flex:none;align-self:center}"
-      + ".idm .idc-l .fn{flex:1;min-width:0;overflow-wrap:anywhere}.idm .idc-l .ad{font-weight:600}";
+      + ".idm .idc-l .fn{flex:1;min-width:0;overflow-wrap:anywhere}.idm .idc-l .ad{font-weight:600}"
+      /* doc v6 새 규칙(mail-split-1) — 몇 통 나가는지 한 줄 · 색은 기존 이름만 */
+      + ".idm .ids{border:1px solid var(--dk-ln-e3e7ee,#e3e7ee);border-radius:10px;padding:7px 10px;font-size:12.5px;overflow-wrap:anywhere}"
+      + ".idm .ids.one{color:var(--dk-tx-5b6472,#5b6472)}";
     document.head.appendChild(st);
   }
   function overlay(inner, wide) {
@@ -467,7 +471,7 @@
      · bad_shape(주소 모양 아님)는 고를 수 없다 · contacts 가 없거나(옛 DB) 한 줄 이하면 아무것도 그리지 않는다(doc v4 모양) */
   const RCPT_MAX = 10;
   function toList(v) { return String(v || "").split(/[,;]/).map((s) => s.trim()).filter(Boolean); }
-  function contactsBox(box, toEl, contacts, say) {
+  function contactsBox(box, toEl, contacts, say, onSync) {
     const rows = Array.isArray(contacts) ? contacts.filter((c) => c && c.email) : [];
     if (rows.length < 2) { box.remove(); return null; }
     const key = (s) => String(s || "").trim().toLowerCase();
@@ -488,6 +492,7 @@
     function sync() {
       const have = toList(toEl.value).map(key);
       boxes.forEach((b) => { const c = rows[Number(b.dataset.ct)]; b.checked = c.flag !== "bad_shape" && have.indexOf(key(c.email)) >= 0; });
+      if (typeof onSync === "function") onSync();   // doc v6: 체크로 To 가 바뀐 뒤 「몇 통」 을 다시 센다
     }
     boxes.forEach((b) => {
       b.onchange = () => {
@@ -510,6 +515,67 @@
     return { sync };
   }
 
+  /* ── doc v6 — 받는 사람별로 나눠 보내기(mail-split-1 · 판정 1500 = B · asung-wms 20261121181000) ──
+     · 나누는 것은 서버(doc_mail_split)다 — 화면은 같은 규칙으로 「몇 통 · 누구에게」 를 미리 보일 뿐이고 보내기 인자는 To 칸 그대로다
+     · 재료 = 미리 보기의 split {bill {customer_name}, stores [{customer_id, customer_name, swap [{from, to}], found}]} — 나눌 매장이 없으면 키가 없다(= doc v5 모양)
+     · 규칙(서버와 같다): 주소의 통 = Contacts 의 그 주소 줄(주소당 한 줄) — 매장 줄이고 그 매장의 인사말 줄(swap.from)이 Message 에 그대로 있으면 매장 통 · 그 밖(청구처 줄 · 쳐 넣은 주소 · 인사말을 고친 매장)은 청구처 통
+     · 한 주소는 한 통에만 센다(To 칸에 두 번 써도 한 번) · 받는 이가 없는 통은 없다 */
+  function splitPlan(sp, contacts, toVal, bodyVal) {
+    const key = (s) => String(s || "").trim().toLowerCase(), cut = (s) => String(s == null ? "" : s).replace(/[ \t\r]+$/, "");
+    const lines = String(bodyVal || "").split("\n").map(cut);
+    const stores = (sp && Array.isArray(sp.stores)) ? sp.stores : [], ok = {};
+    stores.forEach((st) => { const sw = Array.isArray(st.swap) ? st.swap : []; ok[st.customer_id] = sw.length > 0 && sw.every((x) => lines.indexOf(cut(x.from)) >= 0); });
+    const by = {};
+    (Array.isArray(contacts) ? contacts : []).forEach((c) => { if (c && c.email && c.flag !== "bad_shape" && !(key(c.email) in by)) by[key(c.email)] = c; });
+    const bill = { key: "bill", role: "bill_to", name: (sp && sp.bill && sp.bill.customer_name) || "", emails: [] };
+    const gs = {}, where = {}, seen = {};
+    let changed = false;
+    toList(toVal).map(key).forEach((a) => {
+      if (seen[a]) return; seen[a] = true;
+      const c = by[a];
+      let g = bill;
+      if (c && c.role === "store" && Object.prototype.hasOwnProperty.call(ok, c.customer_id)) {
+        if (ok[c.customer_id]) g = gs[c.customer_id] || (gs[c.customer_id] = { key: c.customer_id, role: "store", name: c.customer_name || "", emails: [] });
+        else changed = true;   // 인사말 줄을 못 찾았다 — 이 매장 사람도 청구처 통으로
+      }
+      g.emails.push(a); where[a] = g;
+    });
+    const groups = (bill.emails.length ? [bill] : []).concat(stores.map((st) => gs[st.customer_id]).filter(Boolean));
+    return { groups, changed, where };
+  }
+  function splitInfo(box, ctBox, sp, contacts, toEl, bodyEl) {
+    if (!sp || !Array.isArray(sp.stores) || !sp.stores.length) { box.remove(); return null; }   // 보통 손님 — 아무것도 그리지 않는다(doc v5 모양)
+    const key = (s) => String(s || "").trim().toLowerCase();
+    const rows = Array.isArray(contacts) ? contacts.filter((c) => c && c.email) : [];
+    const tags = [];
+    if (ctBox && ctBox.isConnected) ctBox.querySelectorAll("[data-ct]").forEach((b) => {
+      const t = document.createElement("span"); t.className = "tg me"; t.dataset.gp = b.dataset.ct; t.style.display = "none";
+      const fn = b.parentNode.querySelector(".fn"); if (fn) fn.appendChild(t);
+      tags.push(t);
+    });
+    box.className = "ids";
+    function refresh() {
+      const pl = splitPlan(sp, contacts, toEl.value, bodyEl.value), n = pl.groups.length;
+      const who = pl.groups.map((g) => (g.name || (g.role === "store" ? "store" : "bill-to")) + " (" + g.emails.length + ")").join(" · ");
+      box.textContent = n >= 2 ? "This sends " + n + " emails — " + who + ". Each starts with its own greeting line; the rest is the same. One address gets one email."
+        : n === 1 && pl.changed ? "This sends 1 email — the greeting line was changed, so everyone gets the same message."
+        : n === 1 ? "This sends 1 email — " + who + "."
+        : "";
+      box.classList.toggle("one", n < 2);
+      box.style.display = n ? "" : "none";
+      box.dataset.n = String(n);
+      tags.forEach((t) => {
+        const c = rows[Number(t.dataset.gp)], g = c && c.flag !== "bad_shape" ? pl.where[key(c.email)] : null;
+        if (g && n >= 2) { t.textContent = "→ " + (g.name || (g.role === "store" ? "store" : "bill-to")); t.style.display = ""; }
+        else { t.textContent = ""; t.style.display = "none"; }
+      });
+    }
+    toEl.addEventListener("input", refresh);
+    bodyEl.addEventListener("input", refresh);
+    refresh();
+    return refresh;
+  }
+
   async function mailDialog(sb, kind, ref, opts) {
     const o = opts || {};
     if (MAIL_KINDS.indexOf(kind) < 0) { alert("This document is not emailed to customers."); return null; }
@@ -526,6 +592,7 @@
       + (p.redirect_to ? '<div class="wn">Test mode — this email goes to <b>' + h(p.redirect_to) + "</b>, not to the customer.</div>" : "")
       + '<label>To <input type="search" autocomplete="off" data-f="to"></label>'
       + '<div data-x="ct"></div>'
+      + '<div data-x="sp"></div>'
       + '<label>Subject <input type="search" autocomplete="off" data-f="subject"></label>'
       + '<label>Message <textarea rows="7" data-f="body"></textarea></label>'
       + '<div class="nt">The PDF of this ' + h(KIND_LBL[kind].toLowerCase()) + " is attached, made with the layout in use. The email goes out within a minute or two.</div>"
@@ -537,7 +604,10 @@
     att = attachBox(sb, kind, ref, bd.querySelector('[data-x="att"]'), p);
     send.disabled = false;
     const msg = (cls, t) => { const m = bd.querySelector('[data-x="msg"]'); m.className = cls; m.textContent = t; };
-    contactsBox(bd.querySelector('[data-x="ct"]'), bd.querySelector('[data-f="to"]'), p.contacts, msg);   // doc v5: contacts 가 없거나 한 줄이면 자리를 지운다(doc v4 모양)
+    let spRefresh = null;
+    const ctEl = bd.querySelector('[data-x="ct"]');
+    contactsBox(ctEl, bd.querySelector('[data-f="to"]'), p.contacts, msg, () => { if (spRefresh) spRefresh(); });   // doc v5: contacts 가 없거나 한 줄이면 자리를 지운다(doc v4 모양)
+    spRefresh = splitInfo(bd.querySelector('[data-x="sp"]'), ctEl, p.split, p.contacts, bd.querySelector('[data-f="to"]'), bd.querySelector('[data-f="body"]'));   // doc v6: split 이 없으면 자리를 지운다(doc v5 모양)
     send.onclick = async () => {
       const to = bd.querySelector('[data-f="to"]').value.trim(), subject = bd.querySelector('[data-f="subject"]').value.trim(), body = bd.querySelector('[data-f="body"]').value;
       if (!to) { msg("er", "Type the address to send to."); return; }
@@ -562,7 +632,8 @@
       done = data;
       att.markSent();
       close();
-      toast("Email queued — it goes out within a minute or two.");   // doc v3a — 기다리지 않는다
+      const nm = data && Array.isArray(data.mails) ? data.mails.length : 1;   // doc v6: 서버가 나눠 쌓은 통 수
+      toast(nm > 1 ? nm + " emails queued — they go out within a minute or two." : "Email queued — it goes out within a minute or two.");   // doc v3a — 기다리지 않는다
       if (typeof o.onDone === "function") { try { o.onDone(data); } catch (e) { console.warn(e); } }
     };
     return done;
@@ -579,7 +650,8 @@
     const ts = (s) => (typeof window.imsTs === "function" ? window.imsTs(s) : (s || ""));
     let out = "";
     if (ms.length) out += "<table><thead><tr><th>When</th><th>To</th><th>Subject</th><th>Status</th><th>By</th><th></th></tr></thead><tbody>" + ms.map((m) =>
-      "<tr><td>" + h(ts(m.sent_at || m.created_at)) + "</td><td>" + h(m.original_to || m.to) + (m.original_to && m.to && m.original_to !== m.to ? '<div class="dim" style="font-size:11.5px">test mode → ' + h(m.to) + "</div>" : "") + "</td>"
+      "<tr><td>" + h(ts(m.sent_at || m.created_at)) + "</td><td>" + h(m.original_to || m.to) + (m.original_to && m.to && m.original_to !== m.to ? '<div class="dim" style="font-size:11.5px">test mode → ' + h(m.to) + "</div>" : "")
+        + (m.group && m.group.of > 1 ? '<div class="dim" style="font-size:11.5px">email ' + h(String(m.group.n)) + " of " + h(String(m.group.of)) + (m.group.customer_name ? " · " + h(m.group.customer_name) : "") + (Array.isArray(m.to_more) && m.to_more.length ? " · +" + m.to_more.length + " more" : "") + "</div>" : "") + "</td>"   // doc v6: 같이 나간 통(mail-split-1)
       + "<td>" + h(m.subject) + "</td><td><span class=\"st " + h(m.status) + "\">" + h(ST_LBL[m.status] || m.status) + "</span>" + (m.last_error && m.status !== "sent" ? '<div class="dim" style="font-size:11.5px">' + h(m.last_error) + "</div>" : "") + "</td>"
       + "<td>" + (m.auto ? "automatic" : h(m.created_by_name || "")) + "</td>"
       + "<td>" + (m.status === "waiting_pdf" || m.status === "queued" ? '<button class="xbtn" data-mcancel="' + h(m.outbox_id) + '" title="Stop this email">Cancel</button>' : "") + "</td></tr>").join("") + "</tbody></table>";
