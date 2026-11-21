@@ -339,11 +339,11 @@ Surcharge 그룹은 어떤 제품에 낱개마다 붙는 추가 요금입니다 
 
 <a id="set-documents"></a>
 ## 문서
-<!-- screen: settings.html · BUILD 2026-11-12 · set v18a ; ims-doc.js -->
+<!-- screen: settings.html · BUILD 2026-11-21 · set v19 ; ims-doc.js -->
 <!-- who: admin -->
 
 **무엇인가**
-**Settings** › **Documents** 는 인보이스 · 크레딧 노트 · 판매 오더 · Ship Ready · 내부 영수증의 모양을 정합니다: 회사 정보 · 로고 · 양식(layout) · 글.
+**Settings** › **Documents** 는 인보이스 · 크레딧 노트 · 판매 오더 · Ship Ready · 내부 영수증 · 팩킹 리스트의 모양을 정합니다: 회사 정보 · 로고 · 양식(layout) · 글.
 
 **누가**
 - 회사 정보 · 로고 · 글과 칸: admin · supervisor · `master` 권한이 있는 사람
@@ -371,6 +371,12 @@ Surcharge 그룹은 어떤 제품에 낱개마다 붙는 추가 요금입니다 
 1. **Title**, 그리고 스위치 **UPC column** · **Line comments** · **Account code on freight lines**
 2. **Email subject** · **Email message** — 이 문서를 메일로 보낼 때의 제목과 본문. 보내는 걸음은 [인쇄와 메일](01-sales.md#sales-print-email)에 있습니다.
 3. **Save wording & columns** 를 누릅니다.
+
+**팩킹 리스트**
+- **Document** 의 종류 가운데 **Packing list** 가 있습니다. 미리 보기 번호는 **Invoice no.**(인보이스 번호)입니다.
+- 스위치는 **Barcode column**(바코드 칸) 하나뿐입니다. **Email subject** · **Email message** 칸이 없습니다: "A packing list has no email of its own — it rides on the invoice email of a carrier or freight order. Picked up and delivered orders get none."(팩킹 리스트는 따로 메일이 없다 — 택배 · 화물 오더의 인보이스 메일에 붙어 간다 · 픽업 · 배달 오더는 없다)([인쇄와 메일](01-sales.md#sales-print-email))
+- 쓰는 양식이 스위치입니다: 팩킹 리스트 양식이 쓰는 중이 아니면 어느 인보이스 메일에도 붙지 않고 **Print packing list** 도 찍지 않습니다. 다른 준비가 다 된 뒤 마지막에 올리고 **Use this version** 을 누릅니다.
+- 이 화면의 미리 보기는 창 안에 여백 없이 보입니다. 찍거나 메일로 가는 장은 양식에 정한 용지 · 여백을 씁니다.
 
 **조심할 것**
 - "This document cannot print until a layout is in use."(쓰는 양식이 없으면 그 문서는 인쇄되지 않는다)

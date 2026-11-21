@@ -155,6 +155,7 @@ Everyone also uses the work in [How to use this chapter](#role-start).
 - Add freight, duty and other charges → [Freight, duty and other charges](02-purchasing.md#purch-charges)
 - Record supplier credits → [Supplier credits](02-purchasing.md#purch-credits)
 - Pay suppliers → [Pay suppliers](02-purchasing.md#purch-payments)
+- Record and apply supplier deposits → [Supplier deposits](02-purchasing.md#purch-deposits)
 - Download purchasing CSVs → [CSV downloads](02-purchasing.md#purch-csv)
 
 ### Inventory

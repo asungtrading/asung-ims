@@ -38,6 +38,7 @@
 - Orders from before IMS are marked **Before IMS** and are read only. Orders from 2022 to 2024 are marked **Before IMS · older**: their amount is rounded to whole dollars (**≈**, approximate — do not use it as cost), **Received** shows the date they came in, and opening the order shows the quantities received. Orders from November 2025 to the switch to IMS have no received quantities.
 - The wide list shows **A/P** (what we still owe on confirmed bills), **Overdue** (the part past its due date) and **Credit** (credit notes and overpaid bills — what the supplier owes us). **Sort** puts **A/P — largest first** or **Overdue — latest first** on top.
 - The **Payables** card on a supplier shows the same per currency, and the bills past their due date. Click a bill to open it.
+- The **Supplier deposits** card shows money paid to the supplier before the bill came — kept apart from **A/P** (see [Supplier deposits](#purch-deposits)).
 - "Only bills entered in IMS. Payables from before the switch-over are in QuickBooks." — a supplier with 0 may still be owed money from before IMS. Check QuickBooks.
 - People without the purchasing or master key see only active suppliers we buy from.
 
@@ -310,7 +311,7 @@ A supplier credit note lowers what we owe — for goods that did not come or a p
 - A payment already sent to QuickBooks is voided there when you delete it or change its date, account, amount, rate, reference or documents — IMS then sends it again (see [QuickBooks](01-sales.md#sales-quickbooks)).
 
 **Settled outside IMS**
-Some of a supplier invoice or charge may already be settled in QuickBooks by hand — for example from a deposit, with a journal entry. Record that amount here so the balance in IMS is right. It is not a payment in IMS, and "Nothing is sent to QuickBooks."
+Some of a supplier invoice or charge may already be settled in QuickBooks by hand — for example from a deposit, with a journal entry. Record that amount here so the balance in IMS is right. It is not a payment in IMS, and "Nothing is sent to QuickBooks." A deposit recorded in IMS is used with **Apply deposit** instead — see [Supplier deposits](#purch-deposits).
 - Who: only someone with the QuickBooks key (write) can add or void a record — "Only someone with the QuickBooks key can add or void these." Everyone who can open the document sees the records.
 - When: the invoice or charge is confirmed and has a balance. A credit note cannot be marked.
 1. Open the invoice or charge and press **Mark settled outside IMS…**. "Balance now … Up to that amount can be marked."
@@ -321,6 +322,67 @@ Some of a supplier invoice or charge may already be settled in QuickBooks by han
 - While a record (not voided) is on a document, the document cannot be reopened or cancelled. A document with any record, even a voided one, cannot be deleted.
 
 <!-- SCREENSHOT: purch-payments-1 · To pay with two invoices picked and a green discount -->
+
+<a id="purch-deposits"></a>
+## Supplier deposits
+<!-- screen: suppliers.html · BUILD 2026-11-21 · sup dep v1 ; invoices.html · BUILD 2026-11-21 · inv dep v1 ; charges.html · BUILD 2026-11-21 · chg dep v1 ; qbo-send.html · BUILD 2026-11-21 · qs dep v1 -->
+<!-- who: accounting -->
+
+**What it is**
+A supplier deposit is money paid to a supplier before their bill comes — for example 30 % up front by wire. IMS keeps it apart from what we owe (**A/P**) until the bill arrives. Then you apply it to that bill, and it comes off the bill's balance. Each deposit gets a number like `DEP-00001`.
+- Who: only someone with the QuickBooks key (write) can record, link, apply or void a deposit — "Only someone with the QuickBooks key can record or change deposits." Everyone with the purchasing key can see them.
+
+**When you send the money — record the deposit**
+1. Open the supplier (**Purchasing ▾** › **Suppliers**). The **Supplier deposits** card shows, per currency, **Open deposits**, **Unapplied** ("Paid in advance, not yet used on a bill") and **Book value** (what it stands at in QuickBooks Supplier Deposits — the amount × the rate on the day it was paid). Under it is the list: **No.**, **Paid on**, **Amount**, **Applied**, **Left**, **From**, **PO**, **QuickBooks**, **By**.
+2. Press **+ Record deposit**.
+3. Fill in:
+   - **Paid on** — the day the money left (not in the future).
+   - **Amount** — what the supplier **received**, in the supplier's currency. "the wire fee goes to Bank Charges on its own" — do not add it here.
+   - **Exchange rate** (only for a supplier that is not in CAD) — CAD per 1 of the supplier's currency on that day (for example the MTFX rate).
+   - **QuickBooks** — **IMS sends it to QuickBooks (Expense to Supplier Deposits)**, or **Already in QuickBooks — do not send** with its **QuickBooks ref** (required). See the table below.
+   - **Paid from** — the bank or card account the money left. Only accounts in the supplier's currency are listed.
+   - **Wire reference**, **PO (optional)** and **Note** (for example "30 % advance for PI #…").
+4. Press **Check**. IMS shows the amount (and the CAD value for a foreign currency). It warns when "A deposit with the same supplier, date and amount is already recorded — check it is not entered twice." or when there is "No wire reference".
+5. Press **Save**. "After Save, send it from Integrations › QuickBooks (Supplier deposits), then match the bank-feed line in QuickBooks."
+
+**No PO yet — Link PO**
+The PO is "A marker only — it does not move money." Leave it empty when the PO does not exist yet. Later press **Link PO** (or **Change PO**) on the deposit's row, pick the PO and press **Save**.
+
+**When the bill comes — Apply deposit**
+1. Record and confirm the supplier's invoice or charge as usual (see [Record the supplier's invoice](#purch-invoice) and [Freight, duty and other charges](#purch-charges)).
+2. On the invoice or charge, press **Apply deposit…**. It shows when the document is confirmed and still has a balance.
+3. Pick the deposit (only this supplier's deposits with money left). **Amount** starts at the smaller of what is left on the deposit and the balance. Set **Applied on** (not before the deposit was paid, not in the future) and a **Note** if you want.
+4. Press **Check**. IMS shows the balance before → after and what is left on the deposit before → after.
+5. Press **Apply**. "IMS sends the offset to QuickBooks."
+- The document shows **Deposits applied**, and the table **Supplier deposits applied** (**Applied on**, **Deposit**, **Amount**, **Note**, **By**). The lists of invoices and charges show it in the **Deposit** column.
+- One deposit can be split over several bills, and one bill can take several deposits. Pay the rest in IMS as usual (see [Pay suppliers](#purch-payments)).
+- In QuickBooks the deposit becomes a supplier credit against Supplier Deposits (number `DEP-00001-1`, `-2` …), used on the bill by a 0.00 bill payment. QuickBooks works out any exchange gain or loss by itself.
+
+**Which to use**
+
+| What happened | In IMS |
+|---|---|
+| We paid a deposit, and it is not in QuickBooks yet | **+ Record deposit** with **IMS sends it to QuickBooks** → send it → **Apply deposit…** when the bill comes |
+| We paid a deposit, and it is already in QuickBooks (entered there before) | **+ Record deposit** with **Already in QuickBooks — do not send** and its **QuickBooks ref** → **Apply deposit…** when the bill comes (IMS still sends the offset) |
+| The deposit was already offset against this bill in QuickBooks by a journal entry | Do not record or apply the deposit. Use **Mark settled outside IMS…** with the JE # (see [Pay suppliers](#purch-payments)) — nothing is sent |
+
+"If this deposit was already offset in QuickBooks by a journal entry, close here and use Settled outside IMS instead — otherwise it is offset twice."
+
+**Bank feed (bookkeeper) — the order**
+1. Save the deposit in IMS.
+2. Send it from **Integrations ▾** › **QuickBooks** — kind **Supplier deposits**, row **Supplier deposit** (see [QuickBooks](01-sales.md#sales-quickbooks)).
+3. In the QuickBooks bank feed, **Match** the bank line to that expense. Do not categorise the bank line first — that records the deposit twice.
+- If the bank line was already added by hand, the send stops: "QuickBooks already shows an expense … that IMS did not send — nothing was written." Either delete that expense in QuickBooks and press **Retry**, or keep it — void this deposit in IMS and record it again with **Already in QuickBooks**.
+
+**When something is wrong**
+- **Void** on a deposit: say **Why** (required) → **Check** → **Void**. "Only a deposit that is not applied to any bill can be voided. The line stays, marked voided." If it was already sent, IMS voids the expense in QuickBooks too (a **Void supplier deposit** row to send).
+- **Void…** on a row of **Supplier deposits applied**: say **Why** → **Check** → **Void**. "The amount goes back onto this balance and onto the deposit. The line stays, marked voided. IMS undoes the offset in QuickBooks too." Then a row **Delete deposit credit by hand** appears on the QuickBooks screen — see [QuickBooks](01-sales.md#sales-quickbooks).
+- The amount, date, rate and account cannot be changed. Void the deposit and record it again. A voided deposit keeps its number; the number is not used again.
+- A document with a deposit applied (not voided) cannot be reopened or cancelled. A document with any application, even a voided one, cannot be deleted.
+
+**Good to know**
+- Deposits are not part of **A/P** or **Overdue**. A supplier can show 0 owed and still have money waiting in deposits.
+- A bill partly covered by a deposit and not paid in cash yet may still show as unpaid in the PO and calendar tags.
 
 <a id="purch-undo"></a>
 ## Cancel, restore or delete

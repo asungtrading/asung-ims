@@ -55,6 +55,7 @@ Words are written as the screens show them. Where two screens use different word
 | Money on account | A customer payment not attached yet. It attaches itself to the next invoice. | [Customer payments and deposits](01-sales.md#sales-payments) |
 | On hold | The order was confirmed on hold. Nothing is reserved. | [Confirm an order](01-sales.md#sales-confirm) |
 | Open (filter) | Every order not finished. | [What each status means](01-sales.md#sales-statuses) |
+| Packing list | One sheet per invoice showing each pallet and box and what is in it. It rides on the invoice email of a carrier or freight order; **Print packing list** prints it. | [Print and email](01-sales.md#sales-print-email) |
 | Partly reserved | Part of the line is reserved. The rest moves to a backorder order. | [Confirm an order](01-sales.md#sales-confirm) |
 | POS (tag) | A sale made at the POS. | [What each status means](05-pos.md#pos-statuses) |
 | Preorder | The line moves to a pre-order order. It waits until it is proceeded or cancelled. | [Confirm an order](01-sales.md#sales-confirm) |
@@ -94,6 +95,7 @@ Words are written as the screens show them. Where two screens use different word
 | Received | Everything arrived — the office finishes it. | [What each status means](02-purchasing.md#purch-statuses) |
 | Receiving | Part has arrived — the rest is still coming. | [What each status means](02-purchasing.md#purch-statuses) |
 | Spread by amount | Divides a charge over the POs in proportion to the orders. | [Freight, duty and other charges](02-purchasing.md#purch-charges) |
+| Supplier deposit (`DEP-…`) | Money paid to a supplier before the bill comes. Kept apart from A/P until **Apply deposit…** uses it on the bill. | [Supplier deposits](02-purchasing.md#purch-deposits) |
 
 <a id="gloss-stock"></a>
 ## Stock and products

@@ -55,6 +55,7 @@
 | Money on account | 아직 붙지 않은 고객 결제. 다음 인보이스에 저절로 붙는다. | [고객 결제와 선수금](01-sales.md#sales-payments) |
 | On hold | 보류로 확정됨. 아무것도 확보하지 않는다. | [오더 확정](01-sales.md#sales-confirm) |
 | Open (filter) | 끝나지 않은 오더 모두. | [상태의 뜻](01-sales.md#sales-statuses) |
+| Packing list | 인보이스마다 한 장 — 팔렛 · 박스마다 무엇이 들었는지. 택배 · 화물 오더의 인보이스 메일에 붙어 가고 **Print packing list** 로 찍는다. | [인쇄와 메일](01-sales.md#sales-print-email) |
 | Partly reserved | 라인 일부가 확보됨. 나머지는 백오더 오더로. | [오더 확정](01-sales.md#sales-confirm) |
 | POS (tag) | POS 에서 한 판매. | [상태의 뜻](05-pos.md#pos-statuses) |
 | Preorder | 라인이 선주문 오더로 간다. 진행하거나 취소할 때까지 기다린다. | [오더 확정](01-sales.md#sales-confirm) |
@@ -94,6 +95,7 @@
 | Received | 모두 도착 — 오피스가 마무리한다. | [상태의 뜻](02-purchasing.md#purch-statuses) |
 | Receiving | 일부 도착 — 나머지는 오는 중. | [상태의 뜻](02-purchasing.md#purch-statuses) |
 | Spread by amount | 비용을 오더 금액 비율로 PO 에 나눈다. | [운임 · 관세 · 그 밖의 비용](02-purchasing.md#purch-charges) |
+| Supplier deposit (`DEP-…`) | Bill 이 오기 전에 공급처에 먼저 보낸 돈(선급금). **Apply deposit…** 로 Bill 에 쓸 때까지 A/P 와 따로. | [공급처 선급금](02-purchasing.md#purch-deposits) |
 
 <a id="gloss-stock"></a>
 ## 재고 · 제품

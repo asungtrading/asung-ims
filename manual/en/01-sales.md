@@ -600,7 +600,7 @@ An order shipped with the carrier **Pickup** waits for the customer. Its tag is 
 
 <a id="sales-print-email"></a>
 ## Print and email
-<!-- screen: so.html · BUILD 2026-11-14 · so svc v1 ; so-invoices.html · BUILD 2026-11-14 · inv svc v1 ; ims-doc.js ; customers.html · BUILD 2026-11-12 · cs v8e -->
+<!-- screen: so.html · BUILD 2026-11-14 · so svc v1 ; so-invoices.html · BUILD 2026-11-21 · inv pl v1 ; ims-doc.js · doc v7 ; customers.html · BUILD 2026-11-12 · cs v8e -->
 <!-- who: office -->
 
 **What it is**
@@ -612,6 +612,7 @@ Each document prints with the layout in use, or goes by email with its PDF attac
 | Ship Ready (PROFORMA) | Inside the **Ship & invoice** window, after **Preview** | **Ship Ready (proforma)** · **Email Ship Ready…** |
 | Invoice | After **Ship & invoice**, and on **Sales Invoices** | **Print invoice** · **Email invoice…** / **Email to customer…** |
 | Delivery receipt | **Sales Invoices** | **Print delivery receipt** |
+| Packing list | **Sales Invoices** (orders that ship by carrier or freight) | **Print packing list** — and it rides on the invoice email (below) |
 
 **How — print**
 1. Press the print button. The document opens ready to print or to save as PDF.
@@ -619,7 +620,7 @@ Each document prints with the layout in use, or goes by email with its PDF attac
 **How — email**
 1. Press the email button. The window shows who it is **From**, and **To**, **Subject** and **Message** filled in. **To** already holds every contact with **Include in email** ticked — on the bill-to customer and on the store the document is for (see [Find or add a customer](#sales-customers)).
 2. **Contacts** (under **To**, when there are two or more): tick or untick who gets this email. "Tick who gets this email. This email only — contact settings stay as they are (change them in Customers)." You can also type an address in **To**. At most 10 recipients in one email.
-3. **Attachments**: the PDF of this document is always attached. To add more, press **Attach files…** or drop files on the window (PDF, JPG, PNG, XLSX, CSV, DOCX · up to 10 MB each), or press **From IMS…** to pick documents and files of this customer — its head office and its own stores, not the other stores of the same head office. **From IMS…** has the tabs **Documents**, **Uploaded** and **Sent before**. Up to 10 extra files; the window shows how much room is left. Press **×** to take a file off.
+3. **Attachments**: the PDF of this document is always attached. To add more, press **Attach files…** or drop files on the window (PDF, JPG, PNG, XLSX, CSV, DOCX · up to 10 MB each), or press **From IMS…** to pick documents and files of this customer — its head office and its own stores, not the other stores of the same head office. **From IMS…** has the tabs **Documents**, **Uploaded** and **Sent before**. Up to 10 extra files; the window shows how much room is left. Press **×** to take a file off. On an invoice that ships by carrier or freight, **Packing list (PDF)** is there too, already ticked — "made when the email is sent · untick to leave it out" (see **Packing list on the invoice email** below).
 4. Change **Subject** and **Message** if you want.
 5. When the document is for a store billed to another customer, the window says "This sends 2 emails — …": "Each starts with its own greeting line; the rest is the same. One address gets one email." If you change the greeting line, everyone gets the same message ("This sends 1 email — the greeting line was changed, so everyone gets the same message.").
 6. Press **Send**. "The email goes out within a minute or two."
@@ -628,6 +629,34 @@ Each document prints with the layout in use, or goes by email with its PDF attac
 - It shows what will ship and the money, before the invoice exists. Press **Preview** in the **Ship & invoice** window first — it prints exactly what the preview shows.
 - One page set per invoice group. Nothing is saved when you print it.
 - **Email Ship Ready…** works only when the preview makes one invoice: "One email carries one PDF — with more than one invoice, print the Ship Ready instead".
+
+**Packing list on the invoice email**
+The packing list shows each pallet and box of the invoice and what is in it. It is attached to the invoice email by itself when the invoice's orders ship by carrier or freight:
+- Attached: the order's carrier is a courier or freight carrier, or it has no carrier but was packed on pallets or in boxes in WMS (or has a Freightcom booking).
+- Not attached: pickup orders and **Delivery** orders — even when they were packed in WMS. Credit notes, sales orders and PROFORMAs never get one.
+- It goes with automatic invoice emails and with emails sent by hand. By hand, **Packing list (PDF)** starts ticked in **Attachments**; untick it to send the invoice alone.
+- The sheet: one per invoice, order by order. When the orders are for two or more stores it is laid out store by store; otherwise pallet by pallet and box by box. Orders packed with **Direct pack** are a plain list with no boxes. Goods of another customer on the same pallet show only as "Also contains goods for another customer".
+- It is attached only while a packing-list layout is in use (see [Documents](07-settings.md#set-documents)). With none, the invoice goes alone and the email's history says "packing list not attached — no layout in use".
+- If the packing list cannot be made, IMS tries again. On the third try the invoice goes alone, and the email's history on **Sales ▾** › **Emails** says "packing list failed — …" with the reason.
+- In the email the invoice comes first, then the packing list.
+
+**Print packing list**
+On **Sales Invoices**, press **Print packing list**. It prints the same sheet the invoice email carries, with the layout in use. For an order that does not ship by carrier or freight, IMS says why (for example "Pickup order — no packing list is attached.") and nothing prints. Invoices from before IMS have no button.
+
+**Attachment names**
+The customer gets each document named by its kind and number:
+
+| Document | Name in the email |
+|---|---|
+| Invoice | `Invoice 99001.pdf` |
+| Packing list | `Packing list 99001.pdf` (the invoice number) |
+| Credit note | `Credit note CR-99001.pdf` |
+| Sales order | `Sales order SO-99001.pdf` |
+| Ship Ready (PROFORMA) | `Proforma SO-99001.pdf` — the order numbers on that PDF; two orders read `Proforma SO-99001, SO-99002.pdf` |
+
+- Documents picked with **From IMS…** get the same names when sent. The **From IMS…** list itself still shows the stored file name, and the window may show a name before " (2)" is added.
+- If two attachments in one email would have the same name, the later document gets " (2)", " (3)" …. Files you uploaded keep their own name, and come first when names clash.
+- Emails sent before this change keep the names they went out with.
 
 **Service lines on the paper**
 On the invoice, the Ship Ready and the delivery receipt, service lines (final-sale items, service-order lines) print apart from freight and surcharges:
@@ -673,6 +702,7 @@ To check that a customer got a document, to find what was attached, or to deal w
 **Good to know**
 - **Result unknown**: "The send was cut off, so we do not know if it went out." Look in the ims@asung.ca Sent folder before you press a button.
 - A document that went out as two emails (bill-to and store — see [Print and email](#sales-print-email)) shows as two rows, one per email.
+- An invoice email that should carry a packing list but went without one says why in its history: "packing list not attached — no layout in use" or "packing list failed — …" (see [Print and email](#sales-print-email)).
 - The order's History and the tag next to the order number count the two as one email.
 
 <a id="sales-invoices"></a>
@@ -832,7 +862,7 @@ Money you give a customer that is not for goods — a sponsorship, a goodwill ge
 
 <a id="sales-quickbooks"></a>
 ## QuickBooks — send invoices and credit notes
-<!-- screen: qbo-send.html · BUILD 2026-11-09 · qs sup v2 ; 2026-11-10 · qs v4 hide -->
+<!-- screen: qbo-send.html · BUILD 2026-11-09 · qs sup v2 ; 2026-11-10 · qs v4 hide ; 2026-11-21 · qs dep v1 -->
 <!-- who: accounting -->
 
 **What it is**
@@ -840,7 +870,7 @@ Money you give a customer that is not for goods — a sponsorship, a goodwill ge
 QuickBooks must be connected first (an administrator does this in **Settings** › **QuickBooks**).
 
 **How — one document**
-1. Pick the filters: the status (**Waiting — not sent yet**, **Queued**, **Blocked**, **Failed**, **Result unknown**, **Sent**, **Skipped**, **All**), the kind (**Invoices and credit notes**, **Invoices only**, **Credit notes only**, **Cancellations (void)**, **Payments**, **Credits applied to invoices**, **Carried-over money (before the cut-over)**, **Refunds**, **Cost of goods — daily journal**, **Supplier bills and credits**, **Supplier payments**, **Customers and items**, **Everything**), and dates. Search by "Invoice · credit number · customer".
+1. Pick the filters: the status (**Waiting — not sent yet**, **Queued**, **Blocked**, **Failed**, **Result unknown**, **Sent**, **Skipped**, **All**), the kind (**Invoices and credit notes**, **Invoices only**, **Credit notes only**, **Cancellations (void)**, **Payments**, **Credits applied to invoices**, **Carried-over money (before the cut-over)**, **Refunds**, **Cost of goods — daily journal**, **Supplier bills and credits**, **Supplier payments**, **Supplier deposits**, **Customers and items**, **Everything**), and dates. Search by "Invoice · credit number · customer".
    Search works with any number of letters, even one or two. A change to a document's number or name is found by search from the next morning (rarely up to two weeks later) — the row itself always shows the current name.
 2. Press **Preview** on a row. You see exactly what will be written: customer, lines, tax, totals, memo — and what is "Created in QuickBooks first, in the same send" (a customer or item QuickBooks does not have yet).
 3. If it looks right, press **Send to QuickBooks** (or **Send** on the row).
@@ -873,6 +903,11 @@ Tick the rows (or **Select all on this page**) and press **Send selected**. IMS 
 - If a discount already in QuickBooks is changed or removed in IMS, a row **Delete discount credit by hand** appears. Delete that supplier credit in QuickBooks, then press **Skip** on the row.
 - If the bill was already paid by hand in QuickBooks, sending fails: "QuickBooks shows only … open on bill …". Delete the hand payment in QuickBooks and press **Retry**, or keep it and **Skip** the IMS row.
 - An account with no type or currency on file fails with "Settings → QuickBooks matching → Refresh list (accounts), then retry".
+- The kind **Supplier deposits** holds the rows **Supplier deposit**, **Void supplier deposit**, **Deposit applied to bill** and **Undo deposit applied** (see [Supplier deposits](02-purchasing.md#purch-deposits)). They do not go by themselves either.
+  - **Supplier deposit**: an expense from the account the money left to Supplier Deposits, numbered `DEP-00001`. **Preview** shows the reference, date, supplier, account, amount and rate. Before it writes, IMS checks the supplier's currency in QuickBooks, and stops if QuickBooks already has an expense to that supplier for the same amount around that date that IMS did not send — "so the deposit is not recorded twice". Then match the bank-feed line to this expense.
+  - **Deposit applied to bill**: a 0.00 bill payment — "no money moves; the deposit credit pays the bill". The deposit's supplier credit (row **Deposit credit (from Supplier Deposits)**, number `DEP-00001-1`) is "created first, in the same send", so one **Send** is enough. The bill must be in QuickBooks first.
+  - Undoing an application in IMS makes **Undo deposit applied** (voids the 0.00 bill payment — the bill and the deposit credit open again), then **Delete deposit credit by hand**: IMS never deletes in QuickBooks. Open that supplier credit in QuickBooks, delete it, then press **Skip** on the row with the note "deleted in QuickBooks". Do it in this order — deleting the credit first leaves an empty 0.00 bill payment, and IMS then asks you to void it by hand.
+  - A deposit marked **Already in QuickBooks** has no **Supplier deposit** row; its applications are sent as usual.
 - **Bank feed (bookkeeper)**: do not categorise the bank line first. Send the payment from IMS. When the bank line's match turns into the **Bill Payment**, press **Match** (several at once: **Batch actions** › **Accept Selected**). If QuickBooks offers the open **Bill** as the match, do not press it — that makes a second payment. Do not use a bank rule that adds to the books automatically.
 
 **Hide skipped rows**

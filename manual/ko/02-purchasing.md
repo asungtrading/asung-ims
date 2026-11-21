@@ -38,6 +38,7 @@
 - IMS 이전 오더에는 **Before IMS** 표지가 붙고 읽기 전용입니다. 2022 ~ 2024 오더는 **Before IMS · older**: 금액은 달러 단위로 반올림된 값(**≈** · 어림값 — 원가로 쓰지 마십시오) · **Received** 는 받은 날짜 · 오더를 펼치면 받은 수량이 보입니다. 2025 년 11 월부터 IMS 로 바뀌기 전까지의 오더는 받은 수량이 없습니다.
 - 넓은 목록에 **A/P**(확정된 문서에 아직 갚을 돈) · **Overdue**(그중 기한이 지난 몫) · **Credit**(크레딧 노트 · 더 낸 문서 — 공급처가 우리에게 줄 돈)가 보입니다. **Sort** 로 **A/P — largest first** · **Overdue — latest first** 를 위로 올립니다.
 - 공급처 상세의 **Payables** 카드는 같은 값을 통화마다, 기한 지난 문서와 함께 보여 줍니다. 문서를 누르면 열립니다.
+- **Supplier deposits** 카드는 Bill 이 오기 전에 공급처에 먼저 보낸 돈을 보여 줍니다 — **A/P** 와 따로입니다([공급처 선급금](#purch-deposits)).
 - "Only bills entered in IMS. Payables from before the switch-over are in QuickBooks."(IMS 에 넣은 문서만 — 전환 전 미지급은 QuickBooks) — 0 이어도 IMS 이전에 갚을 돈이 있을 수 있습니다. QuickBooks 를 봅니다.
 - purchasing · master 권한이 없는 사람에게는 지금 사는 활성 공급처만 보입니다.
 
@@ -310,7 +311,7 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 - QuickBooks 로 이미 간 결제를 지우거나 날짜 · 계좌 · 금액 · 환율 · Reference · 문서를 바꾸면 QuickBooks 에서는 void 되고 IMS 가 다시 보냅니다([QuickBooks](01-sales.md#sales-quickbooks)).
 
 **Settled outside IMS(IMS 밖에서 정산됨)**
-공급처 인보이스나 비용의 일부가 이미 QuickBooks 에서 손으로 정산됐을 수 있습니다 — 예: 선급금에서 분개(journal entry)로. 그 금액을 여기 적어 IMS 의 남은 금액을 맞춥니다. IMS 의 결제가 아니고, "Nothing is sent to QuickBooks."(QuickBooks 로 아무것도 보내지 않는다)
+공급처 인보이스나 비용의 일부가 이미 QuickBooks 에서 손으로 정산됐을 수 있습니다 — 예: 선급금에서 분개(journal entry)로. 그 금액을 여기 적어 IMS 의 남은 금액을 맞춥니다. IMS 의 결제가 아니고, "Nothing is sent to QuickBooks."(QuickBooks 로 아무것도 보내지 않는다) IMS 에 적은 선급금은 이것이 아니라 **Apply deposit** 으로 씁니다 — [공급처 선급금](#purch-deposits)
 - 누가: QuickBooks 권한(write)이 있는 사람만 적거나 취소합니다 — "Only someone with the QuickBooks key can add or void these." 기록은 그 문서를 열 수 있는 사람 모두에게 보입니다.
 - 언제: 확정됐고 남은 금액이 있는 인보이스 · 비용. 크레딧 노트는 안 됩니다.
 1. 인보이스나 비용을 열고 **Mark settled outside IMS…** 를 누릅니다. "Balance now … Up to that amount can be marked."(지금 남은 금액까지 적을 수 있다)
@@ -321,6 +322,67 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 - 취소하지 않은 기록이 있는 문서는 다시 열거나 취소할 수 없습니다. 기록이 하나라도 있으면(취소된 것뿐이어도) 지울 수 없습니다.
 
 <!-- SCREENSHOT: purch-payments-1 · To pay: 인보이스 둘을 고르고 초록 할인 -->
+
+<a id="purch-deposits"></a>
+## 공급처 선급금
+<!-- screen: suppliers.html · BUILD 2026-11-21 · sup dep v1 ; invoices.html · BUILD 2026-11-21 · inv dep v1 ; charges.html · BUILD 2026-11-21 · chg dep v1 ; qbo-send.html · BUILD 2026-11-21 · qs dep v1 -->
+<!-- who: accounting -->
+
+**무엇인가**
+공급처 선급금(Supplier deposit)은 Bill 이 오기 전에 공급처에 먼저 보낸 돈입니다 — 예: 송금으로 30 % 먼저. IMS 는 Bill 이 올 때까지 이 돈을 갚을 돈(**A/P**)과 따로 둡니다. Bill 이 오면 그 Bill 에 적용하고, 그만큼 Bill 의 남은 금액이 줄어듭니다. 선급금마다 `DEP-00001` 같은 번호가 붙습니다.
+- 누가: QuickBooks 권한(write)이 있는 사람만 적고 · PO 를 잇고 · 적용하고 · 취소합니다 — "Only someone with the QuickBooks key can record or change deposits." purchasing 권한이 있으면 누구나 봅니다.
+
+**송금할 때 — 선급금 적기**
+1. 공급처를 엽니다(**Purchasing ▾** › **Suppliers**). **Supplier deposits** 카드에 통화마다 **Open deposits**(열린 선급금 수) · **Unapplied**("Paid in advance, not yet used on a bill" — 먼저 냈고 아직 Bill 에 안 쓴 돈) · **Book value**(QuickBooks Supplier Deposits 에 서 있는 값 — 금액 × 낸 날의 환율)가 보입니다. 아래에 목록: **No.** · **Paid on** · **Amount** · **Applied** · **Left** · **From** · **PO** · **QuickBooks** · **By**
+2. **+ Record deposit** 를 누릅니다.
+3. 채웁니다:
+   - **Paid on** — 돈이 나간 날(미래 안 됨)
+   - **Amount** — 공급처가 **받은** 금액 · 공급처 통화로. "the wire fee goes to Bank Charges on its own"(송금 수수료는 Bank Charges 로 따로) — 여기에 더하지 않습니다.
+   - **Exchange rate**(CAD 가 아닌 공급처만) — 그날의 1 외화당 CAD(예: MTFX 환율)
+   - **QuickBooks** — **IMS sends it to QuickBooks (Expense to Supplier Deposits)**(IMS 가 보낸다), 또는 **Already in QuickBooks — do not send**(이미 QuickBooks 에 있다 — 보내지 않는다)와 그 **QuickBooks ref**(필수). 아래 표를 봅니다.
+   - **Paid from** — 돈이 나간 은행 · 카드 계좌. 공급처 통화의 계좌만 나옵니다.
+   - **Wire reference**(송금 참조) · **PO (optional)** · **Note**(예: "30 % advance for PI #…")
+4. **Check** 를 누릅니다. 금액(외화면 CAD 값도)이 보입니다. "A deposit with the same supplier, date and amount is already recorded — check it is not entered twice."(같은 공급처 · 날짜 · 금액의 선급금이 이미 있다 · 두 번 적지 않았는지 확인) 또는 "No wire reference"(송금 참조 없음)가 보이면 확인합니다.
+5. **Save** 를 누릅니다. "After Save, send it from Integrations › QuickBooks (Supplier deposits), then match the bank-feed line in QuickBooks."(저장 뒤 Integrations › QuickBooks 의 Supplier deposits 에서 보내고, QuickBooks 은행 피드 줄을 Match)
+
+**PO 가 아직 없으면 — Link PO**
+PO 는 "A marker only — it does not move money."(표시일 뿐 · 돈을 옮기지 않는다) PO 가 아직 없으면 비워 둡니다. 나중에 그 선급금 줄의 **Link PO**(또는 **Change PO**)를 눌러 PO 를 고르고 **Save** 합니다.
+
+**인보이스가 오면 — Apply deposit**
+1. 평소처럼 공급처 인보이스나 비용을 적고 확정합니다([공급처 인보이스 넣기](#purch-invoice) · [운임 · 관세 · 그 밖의 비용](#purch-charges)).
+2. 그 인보이스나 비용에서 **Apply deposit…** 를 누릅니다. 확정됐고 남은 금액이 있을 때 보입니다.
+3. 선급금을 고릅니다(이 공급처의 돈이 남은 선급금만). **Amount** 는 선급금 남은 금액과 문서 남은 금액 중 작은 쪽으로 시작합니다. **Applied on**(적용일 · 선급금을 낸 날보다 앞서거나 미래면 안 됨)과 필요하면 **Note** 를 적습니다.
+4. **Check** 를 누릅니다. 문서 남은 금액 전 → 후, 선급금 남은 금액 전 → 후가 보입니다.
+5. **Apply** 를 누릅니다. "IMS sends the offset to QuickBooks."(IMS 가 상계를 QuickBooks 로 보낸다)
+- 문서에 **Deposits applied** 와 **Supplier deposits applied** 표(**Applied on** · **Deposit** · **Amount** · **Note** · **By**)가 보입니다. 인보이스 · 비용 목록에는 **Deposit** 칸에 보입니다.
+- 선급금 하나를 여러 Bill 에 나눠 쓸 수 있고, Bill 하나에 여러 선급금을 쓸 수 있습니다. 나머지는 평소처럼 IMS 에서 냅니다([공급처 결제](#purch-payments)).
+- QuickBooks 에서 선급금은 Supplier Deposits 를 상대로 한 공급처 크레딧(번호 `DEP-00001-1` · `-2` …)이 되고, 0.00 Bill Payment 로 그 Bill 에 붙습니다. 환차손익은 QuickBooks 가 스스로 셉니다.
+
+**무엇을 쓰나**
+
+| 일어난 일 | IMS 에서 |
+|---|---|
+| 선급금을 냈고 QuickBooks 에 아직 없다 | **+ Record deposit**(**IMS sends it to QuickBooks**) → 보내기 → Bill 이 오면 **Apply deposit…** |
+| 선급금을 냈고 이미 QuickBooks 에 있다(전에 거기에 적음) | **+ Record deposit**(**Already in QuickBooks — do not send** · **QuickBooks ref**) → Bill 이 오면 **Apply deposit…**(상계는 IMS 가 보낸다) |
+| QuickBooks 에서 분개(journal entry)로 이미 이 Bill 과 상계했다 | 선급금을 적거나 적용하지 않습니다. **Mark settled outside IMS…** 에 분개 번호(JE #)로 적습니다([공급처 결제](#purch-payments)) — 아무것도 안 보냅니다 |
+
+"If this deposit was already offset in QuickBooks by a journal entry, close here and use Settled outside IMS instead — otherwise it is offset twice."(QuickBooks 에서 분개로 이미 상계했으면 여기서 닫고 Settled outside IMS 를 쓴다 · 아니면 두 번 상계된다)
+
+**은행 피드(북키퍼) — 순서**
+1. IMS 에 선급금을 저장합니다.
+2. **Integrations ▾** › **QuickBooks** 에서 보냅니다 — 종류 **Supplier deposits** · 줄 **Supplier deposit**([QuickBooks](01-sales.md#sales-quickbooks))
+3. QuickBooks 은행 피드에서 은행 줄을 그 지출(expense)에 **Match** 합니다. 은행 줄을 먼저 분류하지 않습니다 — 선급금이 두 번 적힙니다.
+- 은행 줄을 이미 손으로 더했으면 보내기가 멈춥니다: "QuickBooks already shows an expense … that IMS did not send — nothing was written."(IMS 가 보내지 않은 같은 지출이 이미 있다 · 아무것도 안 적었다) QuickBooks 에서 그 지출을 지우고 **Retry** 하거나, 그것을 두고 — IMS 의 이 선급금을 취소하고 **Already in QuickBooks** 로 다시 적습니다.
+
+**잘못했을 때**
+- 선급금의 **Void**: **Why**(사유 · 필수) → **Check** → **Void**. "Only a deposit that is not applied to any bill can be voided. The line stays, marked voided."(어느 Bill 에도 적용하지 않은 선급금만 · 줄은 voided 로 남는다) 이미 보냈으면 IMS 가 QuickBooks 의 지출도 void 합니다(보낼 줄 **Void supplier deposit**).
+- **Supplier deposits applied** 줄의 **Void…**: **Why** → **Check** → **Void**. "The amount goes back onto this balance and onto the deposit. The line stays, marked voided. IMS undoes the offset in QuickBooks too."(금액이 문서와 선급금으로 돌아가고 줄은 voided 로 남는다 · QuickBooks 의 상계도 IMS 가 되돌린다) 그다음 QuickBooks 화면에 **Delete deposit credit by hand** 줄이 생깁니다 — [QuickBooks](01-sales.md#sales-quickbooks)
+- 금액 · 날짜 · 환율 · 계좌는 고칠 수 없습니다. 선급금을 취소하고 다시 적습니다. 취소한 선급금도 번호는 남고, 그 번호를 다시 쓰지 않습니다.
+- 취소하지 않은 적용이 있는 문서는 다시 열거나 취소할 수 없습니다. 적용이 하나라도 있으면(취소된 것뿐이어도) 지울 수 없습니다.
+
+**알아 둘 것**
+- 선급금은 **A/P** · **Overdue** 에 들지 않습니다. 갚을 돈이 0 인 공급처에도 선급금으로 기다리는 돈이 있을 수 있습니다.
+- 일부만 선급금으로 덮이고 현금으로는 아직 안 낸 Bill 은 PO · 달력 꼬리표에 아직 unpaid 로 보일 수 있습니다.
 
 <a id="purch-undo"></a>
 ## 취소 · 되살리기 · 지우기

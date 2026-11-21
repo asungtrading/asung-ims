@@ -600,7 +600,7 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 
 <a id="sales-print-email"></a>
 ## 인쇄와 메일
-<!-- screen: so.html · BUILD 2026-11-14 · so svc v1 ; so-invoices.html · BUILD 2026-11-14 · inv svc v1 ; ims-doc.js ; customers.html · BUILD 2026-11-12 · cs v8e -->
+<!-- screen: so.html · BUILD 2026-11-14 · so svc v1 ; so-invoices.html · BUILD 2026-11-21 · inv pl v1 ; ims-doc.js · doc v7 ; customers.html · BUILD 2026-11-12 · cs v8e -->
 <!-- who: office -->
 
 **무엇인가**
@@ -612,6 +612,7 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 | Ship Ready(PROFORMA) | **Ship & invoice** 창 안 · **Preview** 뒤 | **Ship Ready (proforma)** · **Email Ship Ready…** |
 | 인보이스 | **Ship & invoice** 뒤, 그리고 **Sales Invoices** | **Print invoice** · **Email invoice…** / **Email to customer…** |
 | 배송 영수증 | **Sales Invoices** | **Print delivery receipt** |
+| 팩킹 리스트 | **Sales Invoices**(택배 · 화물로 나가는 오더) | **Print packing list** — 그리고 인보이스 메일에 붙어 나갑니다(아래) |
 
 **어떻게 — 인쇄**
 1. 인쇄 단추를 누릅니다. 문서가 인쇄하거나 PDF 로 저장할 수 있게 열립니다.
@@ -619,7 +620,7 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 **어떻게 — 메일**
 1. 메일 단추를 누릅니다. 창에 보내는 사람(**From**)과 **To** · **Subject** · **Message** 가 채워져 나옵니다. **To** 에는 **Include in email** 이 켜진 연락처가 모두 들어 있습니다 — 청구처 고객과 그 문서의 매장 둘 다([고객 찾기 · 더하기](#sales-customers)).
 2. **Contacts**(**To** 아래 · 연락처가 둘 이상일 때): 이번 메일을 받을 사람을 체크하거나 끕니다. "Tick who gets this email. This email only — contact settings stay as they are (change them in Customers)."(이번 메일에만 · 연락처 설정은 그대로 · 바꾸려면 Customers 에서) **To** 에 주소를 직접 쳐 넣어도 됩니다. 한 메일에 받는 사람은 10 명까지입니다.
-3. **Attachments**: 이 문서의 PDF 는 늘 붙습니다. 더 붙이려면 **Attach files…** 를 누르거나 파일을 창에 끌어다 놓습니다(PDF · JPG · PNG · XLSX · CSV · DOCX · 한 장 10 MB 까지). **From IMS…** 를 누르면 이 고객의 문서 · 파일을 고릅니다 — 그 본사와 그 고객 자신의 매장까지, 같은 본사의 다른 매장은 아닙니다. **From IMS…** 에는 **Documents** · **Uploaded** · **Sent before** 탭이 있습니다. 추가 파일은 10 개까지이고 남은 자리가 창에 보입니다. **×** 로 뺍니다.
+3. **Attachments**: 이 문서의 PDF 는 늘 붙습니다. 더 붙이려면 **Attach files…** 를 누르거나 파일을 창에 끌어다 놓습니다(PDF · JPG · PNG · XLSX · CSV · DOCX · 한 장 10 MB 까지). **From IMS…** 를 누르면 이 고객의 문서 · 파일을 고릅니다 — 그 본사와 그 고객 자신의 매장까지, 같은 본사의 다른 매장은 아닙니다. **From IMS…** 에는 **Documents** · **Uploaded** · **Sent before** 탭이 있습니다. 추가 파일은 10 개까지이고 남은 자리가 창에 보입니다. **×** 로 뺍니다. 택배 · 화물로 나가는 인보이스면 **Packing list (PDF)** 도 체크된 채 있습니다 — "made when the email is sent · untick to leave it out"(보낼 때 만든다 · 빼려면 체크를 끈다)(아래 **인보이스 메일의 팩킹 리스트**).
 4. 원하면 **Subject** · **Message** 를 고칩니다.
 5. 다른 고객에게 청구되는 매장의 문서면 창에 "This sends 2 emails — …" 가 보입니다: "Each starts with its own greeting line; the rest is the same. One address gets one email."(통마다 인사말 줄만 다르고 나머지는 같다 · 한 주소는 한 통만) 인사말 줄을 고치면 모두 같은 메일을 받습니다("This sends 1 email — the greeting line was changed, so everyone gets the same message.").
 6. **Send** 를 누릅니다. "The email goes out within a minute or two."(1~2 분 안에 나간다)
@@ -628,6 +629,34 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 - 인보이스가 생기기 전에 나갈 것과 금액을 보여 줍니다. **Ship & invoice** 창에서 먼저 **Preview** 를 누릅니다 — 미리 보기에 나온 그대로 찍힙니다.
 - 인보이스 묶음마다 한 장입니다. 찍어도 아무것도 저장되지 않습니다.
 - **Email Ship Ready…** 는 미리 보기의 인보이스가 하나일 때만 됩니다: "One email carries one PDF — with more than one invoice, print the Ship Ready instead"(메일 한 통에 PDF 하나 · 인보이스가 여럿이면 인쇄)
+
+**인보이스 메일의 팩킹 리스트**
+팩킹 리스트는 인보이스의 팔렛 · 박스마다 무엇이 들었는지 보여 줍니다. 인보이스의 오더가 택배 · 화물로 나가면 인보이스 메일에 저절로 붙습니다:
+- 붙는다: 오더의 운송사가 택배 · 화물 운송사이거나, 운송사가 없어도 WMS 에서 팔렛 · 박스로 포장했다(또는 Freightcom 예약이 있다).
+- 안 붙는다: 픽업 오더 · **Delivery** 오더 — WMS 에서 포장했어도. 크레딧 노트 · 판매 오더 · PROFORMA 에는 붙지 않습니다.
+- 자동 인보이스 메일에도, 손으로 보내는 메일에도 붙습니다. 손으로 보낼 때는 **Attachments** 에 **Packing list (PDF)** 가 체크된 채 들어 있고, 끄면 인보이스만 갑니다.
+- 모양: 인보이스마다 한 장 · 안에서 오더별. 오더의 매장이 둘 이상이면 매장별로, 아니면 팔렛별 · 박스별로 찍힙니다. **Direct pack** 으로 포장한 오더는 박스 구분 없는 줄 목록입니다. 같은 팔렛의 다른 손님 물건은 "Also contains goods for another customer"(다른 손님 물건도 있음)로만 보입니다.
+- 팩킹 리스트 양식이 쓰는 중일 때만 붙습니다([문서](07-settings.md#set-documents)). 쓰는 양식이 없으면 인보이스만 가고, 메일 기록에 "packing list not attached — no layout in use"(쓰는 양식이 없어 안 붙임)가 남습니다.
+- 팩킹 리스트를 못 만들면 IMS 가 다시 해 봅니다. 세 번째에는 인보이스만 보내고, **Sales ▾** › **Emails** 의 그 메일 기록에 "packing list failed — …"(팩킹 리스트 실패 — 까닭)가 남습니다.
+- 메일에는 인보이스가 먼저, 그다음 팩킹 리스트가 붙습니다.
+
+**Print packing list**
+**Sales Invoices** 에서 **Print packing list** 를 누릅니다. 인보이스 메일에 붙는 것과 같은 장을 쓰는 양식으로 찍습니다. 택배 · 화물로 나가지 않는 오더면 IMS 가 까닭을 말하고(예: "Pickup order — no packing list is attached." — 픽업 오더라 팩킹 리스트 없음) 아무것도 찍지 않습니다. IMS 이전 인보이스에는 단추가 없습니다.
+
+**첨부 이름**
+손님은 문서를 「종류 + 번호」 이름으로 받습니다:
+
+| 문서 | 메일의 이름 |
+|---|---|
+| 인보이스 | `Invoice 99001.pdf` |
+| 팩킹 리스트 | `Packing list 99001.pdf`(인보이스 번호) |
+| 크레딧 노트 | `Credit note CR-99001.pdf` |
+| 판매 오더 | `Sales order SO-99001.pdf` |
+| Ship Ready(PROFORMA) | `Proforma SO-99001.pdf` — 그 PDF 의 오더 번호 · 오더가 둘이면 `Proforma SO-99001, SO-99002.pdf` |
+
+- **From IMS…** 로 고른 문서도 보낼 때 같은 이름이 됩니다. **From IMS…** 목록은 아직 저장된 파일 이름을 보이고, 창에는 「 (2)」 가 붙기 전 이름이 보일 수 있습니다.
+- 한 메일 안에서 이름이 겹치면 뒤의 문서에 「 (2)」 「 (3)」 … 가 붙습니다. 직접 올린 파일은 원래 이름 그대로이고, 겹치면 올린 파일이 이름을 먼저 차지합니다.
+- 이 바뀜 전에 나간 메일은 나간 때의 이름 그대로입니다.
 
 **종이의 서비스 줄**
 인보이스 · Ship Ready · 배송 영수증에서 서비스 줄(떨이 · 서비스 오더 줄)은 운임 · 할증과 따로 찍힙니다:
@@ -651,6 +680,7 @@ Customer A 의 SO-99001 이 Finalized 이고 Toronto 로 예약돼 있습니다.
 - 두 통으로 나간 문서는 **Emails** 칸에 둘 다 보이고, **email 1 of 2** · **email 2 of 2** 와 받는 이름이 붙습니다.
 - 자동 인보이스 메일도 같은 규칙입니다: **Include in email** 이 켜진 연락처 모두 · 다른 고객에게 청구되는 매장이면 두 통.
 - 모든 문서 메일은 **Sales ▾** › **Emails** 에도 보입니다 — [보낸 문서 메일](#sales-emails)
+- 팩킹 리스트가 붙어야 하는데 없이 나간 인보이스 메일은 기록에 까닭이 남습니다: "packing list not attached — no layout in use" 또는 "packing list failed — …"(위 **인보이스 메일의 팩킹 리스트**)
 - 배송 영수증은 지역 배송용입니다 — 기사가 서명을 받습니다. 메일로 보내지 않습니다.
 
 <a id="sales-emails"></a>
@@ -832,7 +862,7 @@ IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a referen
 
 <a id="sales-quickbooks"></a>
 ## QuickBooks — 인보이스 · 크레딧 노트 보내기
-<!-- screen: qbo-send.html · BUILD 2026-11-09 · qs sup v2 ; 2026-11-10 · qs v4 hide -->
+<!-- screen: qbo-send.html · BUILD 2026-11-09 · qs sup v2 ; 2026-11-10 · qs v4 hide ; 2026-11-21 · qs dep v1 -->
 <!-- who: accounting -->
 
 **무엇인가**
@@ -840,7 +870,7 @@ IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a referen
 먼저 QuickBooks 가 연결되어 있어야 합니다(관리자가 **Settings** › **QuickBooks** 에서).
 
 **하나 보내는 법**
-1. 필터를 고릅니다: 상태(**Waiting — not sent yet**(아직 안 보냄) · **Queued** · **Blocked** · **Failed** · **Result unknown** · **Sent** · **Skipped** · **All**), 종류(**Invoices and credit notes** · **Invoices only** · **Credit notes only** · **Cancellations (void)**(취소) · **Payments**(결제) · **Credits applied to invoices**(크레딧 붙임) · **Carried-over money (before the cut-over)**(이월 돈) · **Refunds**(환불) · **Cost of goods — daily journal**(하루 원가 장) · **Supplier bills and credits**(공급처 Bill · 크레딧) · **Supplier payments**(공급처 결제) · **Customers and items** · **Everything**), 날짜. "Invoice · credit number · customer" 로 찾습니다.
+1. 필터를 고릅니다: 상태(**Waiting — not sent yet**(아직 안 보냄) · **Queued** · **Blocked** · **Failed** · **Result unknown** · **Sent** · **Skipped** · **All**), 종류(**Invoices and credit notes** · **Invoices only** · **Credit notes only** · **Cancellations (void)**(취소) · **Payments**(결제) · **Credits applied to invoices**(크레딧 붙임) · **Carried-over money (before the cut-over)**(이월 돈) · **Refunds**(환불) · **Cost of goods — daily journal**(하루 원가 장) · **Supplier bills and credits**(공급처 Bill · 크레딧) · **Supplier payments**(공급처 결제) · **Supplier deposits**(공급처 선급금) · **Customers and items** · **Everything**), 날짜. "Invoice · credit number · customer" 로 찾습니다.
    찾기는 글자 수와 상관없이 됩니다(한두 글자도). 문서 번호 · 이름을 바꾸면 찾기에는 다음 날 아침부터 걸립니다(드물게 두 주까지) — 줄에 보이는 이름은 늘 지금 값입니다.
 2. 줄에서 **Preview** 를 누릅니다. QuickBooks 에 적힐 그대로 보입니다: 손님 · 줄 · 세금 · 합계 · 메모 — 그리고 "Created in QuickBooks first, in the same send"(QuickBooks 에 아직 없는 손님 · 품목을 같은 보내기에서 먼저 만든다)
 3. 맞으면 **Send to QuickBooks**(또는 줄의 **Send**)를 누릅니다.
@@ -873,6 +903,11 @@ IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a referen
 - 이미 QuickBooks 에 간 할인을 IMS 에서 바꾸거나 지우면 **Delete discount credit by hand** 줄이 생깁니다. QuickBooks 에서 그 공급처 크레딧을 지운 뒤 그 줄의 **Skip** 을 누릅니다.
 - 그 Bill 을 QuickBooks 에서 이미 손으로 결제했으면 "QuickBooks shows only … open on bill …"(Bill 에 남은 돈이 모자람)으로 실패합니다. QuickBooks 의 손 결제를 지우고 **Retry** 하거나, 그것을 두고 IMS 줄을 **Skip** 합니다.
 - 종류 · 통화가 아직 없는 계좌는 "Settings → QuickBooks matching → Refresh list (accounts), then retry" 로 실패합니다.
+- 종류 **Supplier deposits**(공급처 선급금)에 줄 **Supplier deposit** · **Void supplier deposit** · **Deposit applied to bill** · **Undo deposit applied** 가 있습니다([공급처 선급금](02-purchasing.md#purch-deposits)). 이것도 저절로 나가지 않습니다.
+  - **Supplier deposit**: 돈이 나간 계좌에서 Supplier Deposits 로 가는 지출(expense) · 번호 `DEP-00001`. **Preview** 에 참조 · 날짜 · 공급처 · 계좌 · 금액 · 환율이 보입니다. 적기 전에 IMS 가 QuickBooks 의 공급처 통화를 확인하고, 그 날짜 근처에 IMS 가 보내지 않은 같은 공급처 · 같은 금액의 지출이 QuickBooks 에 이미 있으면 멈춥니다 — "so the deposit is not recorded twice"(두 번 적히지 않게). 그다음 은행 피드 줄을 이 지출에 Match 합니다.
+  - **Deposit applied to bill**(Bill 에 선급금 적용): 0.00 Bill Payment — "no money moves; the deposit credit pays the bill"(돈은 안 움직이고 선급금 크레딧이 Bill 을 갚는다). 선급금의 공급처 크레딧(줄 **Deposit credit (from Supplier Deposits)** · 번호 `DEP-00001-1`)은 "created first, in the same send"(같은 보내기에서 먼저 만들어짐)라 **Send** 한 번이면 됩니다. Bill 이 먼저 QuickBooks 에 있어야 합니다.
+  - IMS 에서 적용을 취소하면 **Undo deposit applied**(0.00 Bill Payment 를 void — Bill 과 선급금 크레딧이 다시 열림), 그다음 **Delete deposit credit by hand** 가 생깁니다: IMS 는 QuickBooks 에서 지우지 않습니다. QuickBooks 에서 그 공급처 크레딧을 열어 지운 뒤, 그 줄의 **Skip** 을 "deleted in QuickBooks" 메모로 누릅니다. 이 순서대로 합니다 — 크레딧을 먼저 지우면 빈 0.00 Bill Payment 가 남고, IMS 가 그것을 손으로 void 하라고 합니다.
+  - **Already in QuickBooks** 로 적은 선급금은 **Supplier deposit** 줄이 없습니다. 적용은 평소대로 나갑니다.
 - **은행 피드(북키퍼)**: 은행 줄을 먼저 분류하지 않습니다. IMS 에서 결제를 보냅니다. 은행 줄의 짝이 **Bill Payment** 로 바뀌면 **Match** 를 누릅니다(여럿은 **Batch actions** › **Accept Selected**). QuickBooks 가 열린 **Bill** 을 짝으로 내밀면 누르지 않습니다 — 결제가 하나 더 생깁니다. 자동으로 장부에 더하는 은행 규칙은 쓰지 않습니다.
 
 **Skip 한 줄 숨기기**

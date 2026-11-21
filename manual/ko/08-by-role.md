@@ -155,6 +155,7 @@
 - 운임 · 관세 · 그 밖의 비용 넣기 → [운임 · 관세 · 그 밖의 비용](02-purchasing.md#purch-charges)
 - 공급처 크레딧 넣기 → [공급처 크레딧](02-purchasing.md#purch-credits)
 - 공급처에 돈 내기 → [공급처 결제](02-purchasing.md#purch-payments)
+- 공급처 선급금 적기 · 적용 → [공급처 선급금](02-purchasing.md#purch-deposits)
 - 구매 CSV 내려받기 → [CSV 내려받기](02-purchasing.md#purch-csv)
 
 ### 재고

@@ -339,11 +339,11 @@ On the product, press **Edit** and choose the **Surcharge group** (see [Find and
 
 <a id="set-documents"></a>
 ## Documents
-<!-- screen: settings.html · BUILD 2026-11-12 · set v18a ; ims-doc.js -->
+<!-- screen: settings.html · BUILD 2026-11-21 · set v19 ; ims-doc.js -->
 <!-- who: admin -->
 
 **What it is**
-**Settings** › **Documents** sets what invoices, credit notes, sales orders, Ship Ready and internal receipts look like: the company details, the logo, the layout and the words.
+**Settings** › **Documents** sets what invoices, credit notes, sales orders, Ship Ready, internal receipts and packing lists look like: the company details, the logo, the layout and the words.
 
 **Who**
 - Company details, logo, wording and columns: an admin, a supervisor or someone with the `master` key.
@@ -371,6 +371,12 @@ To go back to an older layout, press **Use this version** on the older version. 
 1. **Title**, and the switches **UPC column**, **Line comments** and **Account code on freight lines**.
 2. **Email subject** and **Email message** — the subject and message of the email that carries this document. Sending is on [Print and email](01-sales.md#sales-print-email).
 3. Press **Save wording & columns**.
+
+**Packing list**
+- **Packing list** is one of the kinds under **Document**. Its preview number is an **Invoice no.**.
+- The only switch is **Barcode column**. There is no **Email subject** or **Email message**: "A packing list has no email of its own — it rides on the invoice email of a carrier or freight order. Picked up and delivered orders get none." (see [Print and email](01-sales.md#sales-print-email)).
+- The layout in use is the switch: while no packing-list layout is in use, no invoice email carries one and **Print packing list** prints nothing. Upload and **Use this version** last, when everything else is ready.
+- The preview on this screen shows the sheet inside the window, without page margins. The printed and emailed sheet uses the page size and margins set in the layout.
 
 **Watch out**
 - "This document cannot print until a layout is in use."
