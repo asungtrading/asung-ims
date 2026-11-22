@@ -125,7 +125,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
    ⭐ 환불은 붙일 돈이 아니다 — remaining 이 비어 있고, 「크레딧이 갚은 몫 · 받아 둔 돈에서 나간 몫」 두 칸으로 보인다(§19 0-9)
    ⭐ held_for_orders = 대상 오더에 걸려 발행을 기다리는 돈(손님 잔액 available 에서 빠진다) — 발행 순간 저절로 붙는다
    ───────────────────────────────────────────────────────────── */
-const PAY_BUILD = "2026-11-21 · pay am v1 · dk1";   // 대화 Claude — pay am v1(actmenu-1 · 판정 1508 · 1509 · asung-ims b284be8 imsActMenu · inv am v1 · cr am v1 과 같은 꼴): 상세 단추 정리 — 앞 = Attach to invoices / More ▾ = Payment CSV · (구분선) Void payment|refund(빨강) · 인쇄 없음 · 보이는 조건은 그대로 · 옛 ims-ui.js 는 평평한 단추 ← 2026-11-03 · pay pd v1 · dk1:   // 대화 Claude — pd v1(판정 979 · 991 · 2e-1a f7ca811): 결제 날짜 칸 상한 오늘 → 오늘 + 365(post-dated 수표 · 수표 날짜로) · 안내 한 줄 · 미래 날짜 결제에 「post-dated」 칩 · 환불 창은 「Refunded on」 · 오늘까지 · 수단 이름 paypal → PayPal ← 2026-11-01 · pay label v1: 대화 Claude — Caleb 「+New라고 되어 있으니까 헷갈릴것 같아」 · 「상세 화면 안에 있어야 하지 않나?」: 「+ New」 는 인보이스 결제가 아니라 선입금(money on account · 창 제목 Record a payment — money on account) → 단추 글 「+ Money on account」 · 그 아래 안내 한 줄(인보이스 결제는 Sales Invoices 에서 그 인보이스를 열고 Take a payment · 링크) · 동작 무변 ← pay open v1:   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
+const PAY_BUILD = "2026-11-21 · pay fix v1 · dk1";   // 대화 Claude — pay fix v1(판정 1517 · pay-fix-1 asung-wms 20261121230000 so_payment_correct): More ▾ 「Correct payment…」(구분선 위 · Void 와 같은 사람 · 같은 상태 · 환불 제외) — 지금 값이 채워진 창 · 바뀐 칸만 보낸다 · 계좌 · 지점은 「지금 그대로」 가 기본 · 방법을 바꾸고 계좌를 안 건드리면 「새 방법의 기본 계좌」 로 · 사유 필수 · 결과(다시 붙임 · 모자람 · 받아 둔 돈) 뒤 새 결제로 · 상세에 Corrected from / Replaced by ← 2026-11-21 · pay am v1 · dk1:   // 대화 Claude — pay am v1(actmenu-1 · 판정 1508 · 1509 · asung-ims b284be8 imsActMenu · inv am v1 · cr am v1 과 같은 꼴): 상세 단추 정리 — 앞 = Attach to invoices / More ▾ = Payment CSV · (구분선) Void payment|refund(빨강) · 인쇄 없음 · 보이는 조건은 그대로 · 옛 ims-ui.js 는 평평한 단추 ← 2026-11-03 · pay pd v1 · dk1:   // 대화 Claude — pd v1(판정 979 · 991 · 2e-1a f7ca811): 결제 날짜 칸 상한 오늘 → 오늘 + 365(post-dated 수표 · 수표 날짜로) · 안내 한 줄 · 미래 날짜 결제에 「post-dated」 칩 · 환불 창은 「Refunded on」 · 오늘까지 · 수단 이름 paypal → PayPal ← 2026-11-01 · pay label v1: 대화 Claude — Caleb 「+New라고 되어 있으니까 헷갈릴것 같아」 · 「상세 화면 안에 있어야 하지 않나?」: 「+ New」 는 인보이스 결제가 아니라 선입금(money on account · 창 제목 Record a payment — money on account) → 단추 글 「+ Money on account」 · 그 아래 안내 한 줄(인보이스 결제는 Sales Invoices 에서 그 인보이스를 열고 Take a payment · 링크) · 동작 무변 ← pay open v1:   // 대화 Claude — ar-4(판정 786 · asung-wms ar-2): 받아 둔 돈 이월(method opening) — 이름표 「Carried over (before IMS)」 · 새 결제 고르기에는 없다(사람이 못 만든다 · 서버도 거부) · 거르기에는 있다 · Void 단추를 안 보인다(서버도 거부 · 784 의 짝) ← 2026-10-22 · pay csv v2:   // 대화 Claude — Caleb 「다른 메뉴도 같은 양식으로」: 결제 상세 ↓ Payment CSV(한 줄 = 붙은 인보이스 · 끝에 합계) ← 2026-10-22 · pay csv v1 ·// 대화 Claude — 판정 628(SO 각 탭 목록 내보내기): ↓ CSV — 지금 거르기 그대로 · 모든 쪽 · 화면과 같은 칸 ← 2026-09-25 · pay v1: //
 console.log("so-payments.html build:", PAY_BUILD);
 
 function torontoToday() {
@@ -486,6 +486,81 @@ async function voidPayment(){
   await reloadHere();
 }
 
+/* ══ pay fix v1 — 판정 1517: 결제 고치기 = 새 결제가 이 결제를 바꾼다(so_payment_correct · 한 트랜잭션)
+   ⭐ 서버가 옛 결제의 붙임을 떼고 Void 하고 새 결제를 같은 인보이스에(원래 source 그대로 · 새 금액 안에서) 다시 붙인다 · QuickBooks 는 void + 새 Payment(새 코드 없음)
+   ⭐ 바뀐 칸만 보낸다 — 열쇠가 없으면 옛 값 · 계좌 · 지점은 「지금 그대로」(__keep)가 기본 · 방법을 바꾸고 계좌를 안 건드리면 null(새 방법의 기본 계좌 · ⚠️ 안 보내면 옛 계좌가 남는다)
+   ⭐ 손님 · 통화는 고칠 수 없다(서버 거부) — 그런 실수는 Void 뒤 새로 */
+const fixLink = (x) => `<a class="lnk" href="so-payments.html?pay=${encodeURIComponent(x.payment_id)}">${esc(mLabel(x.method))} ${money(x.amount)}</a> <span class="dim">paid ${esc(x.paid_on || "")}${x.reference ? " · ref " + esc(x.reference) : ""}</span>`;
+function openCorrect(){
+  const v = cur.payment;
+  const curAcct = v.account_code ? `${esc(v.account_code)}${(v.account_name || ACCT_NAME[v.account_code]) ? " · " + esc(v.account_name || ACCT_NAME[v.account_code]) : ""}` : "none";
+  modalOpen(`
+    <h4>Correct this payment</h4>
+    <div class="pbody">
+      <div class="sohint" style="margin-top:0">Change only what is wrong. A new payment replaces this one (this one is voided with your reason) and goes back on the same invoices. QuickBooks gets the void and the new payment. A wrong customer or currency cannot be corrected — void it and record a new payment.</div>
+      <div class="frow"><label>Customer</label><span><b>${esc(v.customer_name || "")}</b> <span class="dim">${esc(v.currency_code || "")}</span></span></div>
+      <div class="frow"><label>Method</label><select id="cxM" class="sofield">${METHODS.map(([k, l]) => `<option value="${k}" ${k === v.method ? "selected" : ""}>${l}</option>`).join("")}${METHODS.some(x => x[0] === v.method) ? "" : `<option value="${esc(v.method)}" selected>${esc(mLabel(v.method))} (current)</option>`}</select></div>
+      <div class="frow"><label>Amount</label><input id="cxA" class="sofield" type="number" step="0.01" min="0.01" value="${esc(Number(v.amount).toFixed(2))}"></div>
+      <div class="frow"><label>Paid on</label><input id="cxD" class="sofield" type="date" value="${esc(v.paid_on || "")}" max="${payDateMax()}"></div>
+      <div class="frow"><label>Reference</label><input id="cxR" class="sofield" type="search" autocomplete="off" value="${esc(v.reference || "")}"></div>
+      <div class="frow"><label>Branch</label><select id="cxW" class="sofield"><option value="__keep" selected>${esc(v.warehouse_name || "—")} (current)</option><option value="">Customer's default branch</option>${WHS.map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></div>
+      <div class="frow"><label>Account</label><select id="cxAcc" class="sofield"><option value="__keep" selected>${curAcct} (current)</option><option value="">Default for this method and branch</option>${ACCTS.map(a => `<option value="${a.id}">${esc(a.code)} · ${esc(a.name)}</option>`).join("")}</select></div>
+      <div class="sohint" id="cxAccHint" hidden>The method changed, so the account goes back to the default for the new method — pick one if it should be different.</div>
+      <div class="frow"><label>Note</label><input id="cxN" class="sofield" value="${esc(v.note || "")}"></div>
+      <div class="frow"><label>Reason</label><input id="cxWhy" class="sofield" type="search" autocomplete="off" placeholder="Required — e.g. it was an e-Transfer, not a cheque"></div>
+      <div id="cxMsg" style="margin-top:10px;font-size:12.5px"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="cxGo">Correct payment</button>
+    </div>`);
+  wireModalClose();
+  const g = (id) => document.getElementById(id);
+  let accTouched = false;
+  g("cxAcc").onchange = () => { accTouched = true; g("cxAccHint").hidden = true; };
+  g("cxM").onchange = () => { if(!accTouched){ g("cxAcc").value = g("cxM").value === v.method ? "__keep" : ""; g("cxAccHint").hidden = g("cxM").value === v.method; } };
+  g("cxGo").onclick = async () => {
+    const why = g("cxWhy").value.trim();
+    if(!why){ say("cxMsg", "err", "Give the reason for the correction."); return; }
+    const pNew = fixDiff(v, { method: g("cxM").value, amount: g("cxA").value, paid_on: g("cxD").value, reference: g("cxR").value, note: g("cxN").value, account: g("cxAcc").value, branch: g("cxW").value });
+    if(!Object.keys(pNew).length){ say("cxMsg", "err", "Nothing was changed — change the field that is wrong first."); return; }
+    if("amount" in pNew && !(pNew.amount > 0)){ say("cxMsg", "err", "Give an amount above zero."); return; }
+    say("cxMsg", "", "Correcting…"); g("cxGo").disabled = true;
+    const { data, error } = await sb.rpc("so_payment_correct", { p_payment_id: v.id, p_new: pNew, p_reason: why });
+    if(error){ say("cxMsg", "err", error.message); g("cxGo").disabled = false; return; }
+    fixDone(data);
+  };
+}
+/* 바뀐 칸만 — 열쇠가 없으면 옛 값(서버 규칙) · 글은 빈칸이면 null(지움) · 계좌 · 지점 __keep 이면 보내지 않음 */
+function fixDiff(v, f){
+  const p = {};
+  if(f.method !== v.method) p.method = f.method;
+  const amt = Math.round(Number(f.amount) * 100) / 100;
+  if(String(f.amount).trim() === "" || amt !== Math.round(Number(v.amount) * 100) / 100) p.amount = String(f.amount).trim() === "" ? NaN : amt;
+  if((f.paid_on || null) !== (v.paid_on || null)) p.paid_on = f.paid_on || null;
+  const t = (x) => (String(x || "").trim() || null);
+  if(t(f.reference) !== t(v.reference)) p.reference = t(f.reference);
+  if(t(f.note) !== t(v.note)) p.note = t(f.note);
+  if(f.account !== "__keep") p.account_id = f.account || null;
+  if(f.branch !== "__keep") p.warehouse_id = f.branch || null;
+  return p;
+}
+function fixDone(d){
+  const row = (r) => `<tr><td class="mono">${esc(r.invoice_number || "")}</td><td class="num">${money(r.amount)}</td><td class="num">${money(r.was)}</td></tr>`;
+  const sh = (d.short || []);
+  modalOpen(`
+    <h4>Payment corrected</h4>
+    <div class="pbody">
+      <div>New payment: <b>${esc(d.new_label || "")}</b></div>
+      ${(d.reattached || []).length ? `<table style="margin-top:8px"><thead><tr><th>Invoice</th><th class="num">Now</th><th class="num">Was</th></tr></thead><tbody>${d.reattached.map(row).join("")}</tbody></table>` : '<div class="dim" style="margin-top:8px">It was not on any invoice.</div>'}
+      ${sh.length ? `<div class="sowarn" style="margin-top:8px">⚠ The new amount is smaller — still owed again: ${sh.map(x => `${esc(x.invoice_number || "")} ${money(x.missing)}`).join(" · ")}</div>` : ""}
+      ${Number(d.on_account) > 0 ? `<div class="sohint">${money(d.on_account)} more than before is kept as money on account.</div>` : ""}
+      ${Number(d.targets_moved) > 0 ? `<div class="sohint">The order deposit moved to the new payment.</div>` : ""}
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn go" id="cxOpen">Open the new payment</button></div>`);
+  document.getElementById("cxOpen").onclick = () => { modalClose(); openPay(d.new_id); };
+}
+
 /* ══ 상세 ═══════════════════════════════════════════════ */
 /* pay csv v2 — 결제 하나 = 한 표: 한 줄 = 붙은 인보이스 하나(떼어 낸 것도 · Detached 칸) · 앞 칸에 결제 정보 되풀이 · 끝에 합계 · so_payment_detail 이 준 것(cur)만 */
 function exportOnePayment(){
@@ -528,6 +603,7 @@ async function loadDetail(id){
   const canVoid = active && isMgr() && v.method !== "opening";
   acts.push(menu("More", [
     '<button class="pobtn" data-act="csvpay" title="Download this payment and where it went (invoices) as a spreadsheet (CSV)">↓ Payment CSV</button>',   // pay csv v2
+    canVoid && !isRefund && '<button class="pobtn" data-act="correct" title="Fix a mistake — the amount, method, account, date, reference or note. A new payment replaces this one and goes back on the same invoices.">Correct payment…</button>',   // pay fix v1 — 판정 1517
     canVoid && "<hr>",
     canVoid && `<button class="pobtn bad" data-act="void">Void ${isRefund ? "refund" : "payment"}…</button>`,
   ]));
@@ -545,6 +621,8 @@ async function loadDetail(id){
     ["Note",       dim(v.note)],
     ["Recorded",   imsTs(v.created_at) + (v.created_by_name ? ` <span class="dim">${esc(v.created_by_name)}</span>` : "")],
     ["Voided",     v.voided_at ? imsTs(v.voided_at) + (v.void_note ? ` <span class="dim">${esc(v.void_note)}</span>` : "") : '<span class="dim">—</span>'],
+    ...(cur.corrected_from ? [["Corrected from", fixLink(cur.corrected_from)]] : []),   // pay fix v1
+    ...(cur.replaced_by ? [["Replaced by", fixLink(cur.replaced_by)]] : []),            // pay fix v1
   ];
   const kvTbl = (rows) => `<table class="kv"><tbody>${rows.map(x => `<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join("")}</tbody></table>`;
 
@@ -628,6 +706,7 @@ async function loadDetail(id){
       if(a === "wide")   showWide();
       if(a === "attach") openAttach();
       if(a === "void")   voidPayment();
+      if(a === "correct") openCorrect();   // pay fix v1
       if(a === "csvpay") exportOnePayment();   // pay csv v2
     };
   });
