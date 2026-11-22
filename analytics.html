@@ -52,6 +52,21 @@
   .badge.new{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:9px;color:var(--good);border:1px solid color-mix(in srgb,var(--good) 45%,transparent)}
   .ancard a.lnk{color:var(--accent);text-decoration:none} .ancard a.lnk:hover{text-decoration:underline}
   @media (max-width:900px){ .two{grid-template-columns:1fr} }
+  /* an v8 — 제품 탭(판정 1523) */
+  .pbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;font-size:12.5px;color:var(--muted)}
+  .pbar select{border:1px solid var(--line);border-radius:7px;padding:3px 7px;font:inherit;font-size:12.5px;background:var(--ims-surface);color:var(--ink)}
+  .pnote{padding:8px 14px;font-size:12.5px;color:var(--muted)}
+  .pwarn{padding:10px 14px;font-size:13px;color:var(--ink);border-left:3px solid var(--warn)}
+  .kpi .v .sm{font-size:13px;font-weight:600;color:var(--muted);margin-left:6px}
+  .heat td,.heat th{white-space:nowrap;font-size:12.5px}
+  .heat td.c{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);min-width:62px}
+  .heat td.c.hi{color:var(--ims-on-ink)}
+  .heat td.c.open{opacity:.6;font-style:italic}
+  .heat td.c.no{background:var(--ims-surface-2);color:var(--ims-dim);text-align:center}
+  .heat th.mh{text-align:right}
+  .chart .bar.st-pre{fill:var(--ims-dim)}
+  .chart .bar.st-new{fill:var(--accent)}
+  .chart .bar.st-later,.chart .bar.st-none{fill:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))}
 
   /* 그래프(SVG) */
   .chart svg{display:block;width:100%;height:auto}
@@ -148,16 +163,18 @@
    판정 1292 · 1297: 매출 = 제품 줄 · 세전 · CAD · 크레딧은 크레딧 날짜 · 오더 = 제품 줄 있는 오더 · Not recorded 지점 · 이번 달 · 연 누계는 오늘까지 잘라 지난해 같은 날과
    창구: an_overview(p_from, p_to, p_warehouse, p_brand) — an-1c · 20261116130000
    창구(an v3): an_period(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand) — an-3 · 20261117001000 · 주 · 월 기간(날짜 그대로 · 비교 두 범위) · 회계연도 · 달력 해의 지난해 끝 덜 찬 달
+   창구(an v8): an_products(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand, p_category, p_channel, p_new_n, p_limit) · an_product(p_product, p_from, p_to, p_prev_*, p_ly_*, p_warehouse, p_new_n) — pr-2 · 20261122010000 · p_channel 은 null 만(채널 차수 뒤)
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-17 · an v7";   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-22 · an v8";   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
 const TABS = {
   overview: { label: "Sales overview", load: loadOverview },
-  customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() }   // an v4 · an-4a · an v5 상세 = #customers/<손님>
-  // 다음 탭(판정 1288 순서): customers → products · brands → seasonality → stock-outs — 한 줄씩 더한다
+  customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() },   // an v4 · an-4a · an v5 상세 = #customers/<손님>
+  products: { label: "Products", load: () => routeArgs[0] ? loadProduct(routeArgs[0], routeArgs[1] === "period") : loadProducts() }   // an v8 · pr-2 · 상세 = #products/<제품>[/period]
+  // 다음 탭(판정 1288 순서): customers → products → brands → seasonality → stock-outs — 한 줄씩 더한다 · 채널 탭(1523)은 ch-1 ~ ch-4 뒤
 };
 let tab = "overview", last = null, seq = 0, daily = null;
 
@@ -746,6 +763,253 @@ function renderCustomer(d, key, selMode){
     else if(btn.dataset.csv === "cbrands"){ const bk = ["net","sales","credits","qty"].concat(cc ? ["cogs","gp","gp_pct","cost_coverage"] : []);
       csvDownload("customer-" + nm + "-brands", ["brand"].concat(bk), bt.map(x => [x.brand].concat(bk.map(k => x[k]))).concat(bo ? [["All other brands (" + bo.brands + ")"].concat(bk.map(k => bo[k]))] : [])); }
     else if(btn.dataset.csv === "cstores") csvDownload("customer-" + nm + "-stores", ["store", "head_office", "last_order"].concat(keys).concat(["compare_net"]), (ac || []).map(a => [a.name, a.is_head, a.last_order].concat(keys.map(k => a[k])).concat([a.cmp_net])));
+  };
+}
+
+/* ── 제품 탭(an v8 · 판정 1522 ~ 1524 · 창구 an_products · an_product — asung-wms pr-2) ──
+   비교 범위 = 손님 탭과 같게: 주 · 월 = per.prev(prev) + per.ly(ly) · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로(ly 없음) · 그 밖 = 비교 없음
+   「신제품」 = 판매마다 그 판매일의 분기가 출시 분기 ~ N−1 분기 뒤(N = prodNewN · 1 · 2 · 4 · 창구가 정한다 — 화면은 글만)
+   코호트 칸 month 0 = 출시 분기 첫 달 → 화면 「Month 1」 · pre = 출시 앞 3 달 · open = 아직 다 차지 않은 이번 달
+   원가 권한이 없으면 원가 키가 아예 없다(an_cell) — 화면은 d.can_cost 로 칸을 감출 뿐 따로 거르지 않는다 */
+let prod = null, prodCat = "", prodNewN = 2, prodCatList = [];
+const prodCoh = { mode: "net", all: false };               // 코호트: Net / GP % · 고른 달만 / 13 달 전부
+const COH_KEY = [0, 1, 2, 5, 11];                           // 그림(1523)의 Month 1 · 2 · 3 · 6 · 12
+const qLabel = q => q === null || q === undefined ? "" : "Q" + (q % 10) + " " + Math.floor(q / 10);
+const PCK = cc => ["net","sales","credits","qty"].concat(cc ? ["cogs","gp","gp_pct","cost_coverage"] : []);
+function prodRange(){
+  per = period();
+  const r = { f: per.f, t: per.t, pf: null, pt: null, lf: null, lt: null, pl: "", ll: "" };
+  if(per.kind === "short"){ r.pf = per.prev[0]; r.pt = per.prev[1]; r.lf = per.ly[0]; r.lt = per.ly[1]; r.pl = per.vsPrev; r.ll = per.vsLy; }
+  else if(per.kind === "year"){ r.pf = addY(per.f, -1); r.pt = addY(per.t, -1); r.pl = "same days last year"; }
+  return r;
+}
+/* 몫(0 ~ 1)끼리 차이 = %p */
+function ptChange(a, b){
+  if(a === null || a === undefined || b === null || b === undefined) return "";
+  const d = (Number(a) - Number(b)) * 100;
+  return `<span class="${d >= 0 ? "up" : "dn"}">${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(1)} pt</span>`;
+}
+const rankMove = (r, rp) => rp === null || rp === undefined ? `<span class="badge new">New</span>` : r === rp ? `<span class="dim">=</span>` : `<span class="${rp > r ? "up" : "dn"}">${rp > r ? "▲" : "▼"} ${Math.abs(rp - r)}</span>`;
+/* 알림 — 창구 글 그대로(1381 · DB 이름 없음) · 앞에 기간 표시 · 금액이 있으면 덧붙임 */
+function prodNotesHtml(notes, skip){
+  const PN = { period: "this period", prev: "comparison", ly: "last year" };
+  const nt = (notes || []).filter(n => !(skip || []).includes(n.code));
+  if(!nt.length) return "";
+  return `<div class="card ancard">${ahead("About these numbers", "", "pnotes")}<div class="body"><ul style="margin:0;padding-left:18px">` +
+    nt.map(n => `<li>${n.part ? "[" + esc(PN[n.part] || n.part) + "] " : ""}${esc(n.note)}${n.amount !== undefined && n.amount !== null ? " — " + money(n.amount) : ""}${n.from ? ` <span class="dim">(${esc(n.from)}${n.to && n.to !== n.from ? " → " + esc(n.to) : ""})</span>` : ""}</li>`).join("") + `</ul></div></div>`;
+}
+
+async function loadProducts(){
+  const my = ++seq;
+  const r = prodRange();
+  $("load").textContent = "Loading…";
+  const { data, error } = await crpc("an_products", { p_from: r.f, p_to: r.t, p_prev_from: r.pf, p_prev_to: r.pt, p_ly_from: r.lf, p_ly_to: r.lt,
+    p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null, p_category: prodCat || null, p_channel: null, p_new_n: prodNewN, p_limit: 100 });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}</div>`; return; }
+  prod = data; prod.pl = r.pl; prod.ll = r.ll;
+  last = { from: data.period.from, to: data.period.to, warehouse: data.warehouse, brand: data.brand };
+  if(!data.category && (data.categories || []).length) prodCatList = data.categories.map(c => c.category);
+  $("built").textContent = data.launch_counted_at ? "Launch quarters counted " + torTime(data.launch_counted_at) + " (Toronto)" : "";
+  renderProducts(data);
+}
+
+function cohortCard(d, cc){
+  const co = d.cohort;
+  if(!co || !(co.rows || []).length) return "";
+  const n = (co.months || 12) + 1, idx = prodCoh.all ? [...Array(n).keys()] : COH_KEY.filter(i => i < n);
+  const gpMode = cc && prodCoh.mode === "gp";
+  const val = c => gpMode ? (c.gp_pct === null || c.gp_pct === undefined ? null : Number(c.gp_pct)) : Number(c.net) || 0;
+  let max = 1;
+  co.rows.forEach(rw => { const cm = {}; (rw.cells || []).forEach(c => cm[c.month] = c);
+    idx.forEach(i => { const c = cm[i]; if(c && !gpMode) max = Math.max(max, val(c)); }); });
+  const shade = v => { if(v === null) return 0; const x = gpMode ? Math.min(1, Math.max(0, v / 60)) : Math.max(0, v) / max; return Math.round(8 + 72 * x); };
+  const cellTd = (c, label, mlabel) => {
+    if(!c) return `<td class="c no" title="${esc(label + " · " + mlabel)}: not reached yet">·</td>`;
+    const v = val(c), s = shade(v);
+    const tt = `${label} · ${mlabel}${c.open ? " (month so far)" : ""}: net ${money(c.net)} · ${num(c.qty)} units · ${num(c.sold)} products sold` + (cc ? ` · GP ${gpPct(c)}` : "");
+    return `<td class="c${s > 48 ? " hi" : ""}${c.open ? " open" : ""}" style="background:color-mix(in srgb,var(--accent) ${s}%,var(--ims-surface))" title="${esc(tt)}">${gpMode ? gpPct(c) : short(c.net)}</td>`;
+  };
+  const seg = (k, v, l) => `<a href="#" data-coh="${k}:${v}" class="${String(prodCoh[k]) === String(v) ? "cur" : ""}">${l}</a>`;
+  return `<div class="card ancard"><h3>Launch-quarter cohorts <span class="sub">net sales of each launch quarter's products, by month since launch · Month 1 = first month of the launch quarter · Pre = the ${co.pre_months || 3} months before</span><span class="sp"></span>` +
+    (cc ? `<span class="seg2">${seg("mode", "net", "Net sales")}${seg("mode", "gp", "GP %")}</span>` : "") +
+    `<span class="seg2">${seg("all", false, "Key months")}${seg("all", true, "All " + n + " months")}</span><button class="csvb" data-csv="pcohort">CSV</button></h3>` +
+    `<div class="body"><table class="heat"><thead><tr><th>Launch quarter</th><th class="r">Products</th><th class="r">Sold</th><th class="mh">Pre</th>${idx.map(i => `<th class="mh">Month ${i + 1}</th>`).join("")}</tr></thead><tbody>` +
+    co.rows.map(rw => { const cm = {}; (rw.cells || []).forEach(c => cm[c.month] = c);
+      const pre = rw.pre && (Number(rw.pre.net) || 0) !== 0 ? `<td class="c" title="${esc(rw.label + " · before launch: net " + money(rw.pre.net))}">${gpMode ? gpPct(rw.pre) : short(rw.pre.net)}</td>` : `<td class="c no">·</td>`;
+      return `<tr><td><b>${esc(rw.label)}</b></td><td class="r">${num(rw.products)}</td><td class="r">${num(rw.sold)}</td>${pre}${idx.map(i => cellTd(cm[i], rw.label, "Month " + (i + 1))).join("")}</tr>`; }).join("") +
+    `</tbody></table><div class="legend"><span>Darker = more ${gpMode ? "GP % (scale 0 – 60 %)" : "net sales"}</span><span>· = month not reached yet</span><span>Italic = month so far</span><span>Sold = products with at least one sale</span></div></div></div>`;
+}
+
+function renderProducts(d){
+  const cc = !!d.can_cost, K = d.kpi || {}, P = d.period || {};
+  const lbl = (per ? per.name + " · " : "") + fmtR(P.from, P.to);
+  const scope = [(d.warehouse ? (/Edmonton/i.test(d.warehouse.name || "") ? "Edmonton" : "Toronto") : "All branches"), d.brand, d.category].filter(Boolean).join(" · ");
+  const notBuilt = (d.notes || []).some(n => n.code === "launch_not_built");
+  const cmpL = [{ v: K.new_share_prev, l: d.pl }, { v: K.new_share_ly, l: d.ll }].filter(x => x.l && x.v !== undefined && x.v !== null);
+  let h = "";
+  // 거르기 줄(이 탭만) — 카테고리 · 신제품으로 세는 분기
+  const cats = prodCatList.length ? prodCatList : (d.categories || []).map(c => c.category);
+  h += `<div class="card pbar"><span>Category</span><select id="pCat"><option value="">All categories</option>${cats.map(c => `<option value="${esc(c)}"${c === prodCat ? " selected" : ""}>${esc(c)}</option>`).join("")}${prodCat && !cats.includes(prodCat) ? `<option value="${esc(prodCat)}" selected>${esc(prodCat)}</option>` : ""}</select>` +
+    `<span style="margin-left:8px">A product counts as new for</span><span class="seg2">${[1, 2, 4].map(n => `<a href="#" data-newn="${n}" class="${n === prodNewN ? "cur" : ""}">${n} quarter${n > 1 ? "s" : ""}</a>`).join("")}</span>` +
+    `<span class="dim">from its launch quarter</span></div>`;
+  if(notBuilt){ const nb = d.notes.find(n => n.code === "launch_not_built"); h += `<div class="card pwarn">${esc(nb.note)}</div>`; }
+  // 머리 숫자 넷(1523)
+  h += `<div class="kpis">` +
+    `<div class="card kpi"><div class="l">New products' share of sales — ${esc(lbl)}</div><div class="v">${pct(K.new_share)}</div>` +
+      (cmpL.length ? cmpL.map(x => `<div class="c">${ptChange(K.new_share, x.v)} vs ${pct(x.v)} ${esc(x.l)}</div>`).join("") : `<div class="c">${money(K.new_net)} of ${money(K.net)}</div>`) + `</div>` +
+    `<div class="card kpi"><div class="l">New products sold</div><div class="v">${num(K.new_products)}${K.new_families !== null && K.new_families !== undefined ? `<span class="sm">in ${num(K.new_families)} famil${K.new_families === 1 ? "y" : "ies"}</span>` : ""}</div><div class="c">${money(K.new_net)} new-product sales</div></div>` +
+    `<div class="card kpi"><div class="l">Customers who bought new products</div><div class="v">${pct(K.new_buyer_share)}</div><div class="c">${num(K.new_buyers)} of ${num(K.buyers)} buying customers</div></div>` +
+    `<div class="card kpi"><div class="l">Missing launch-quarter tag</div><div class="v">${num(K.missing_tag)}</div><div class="c">${K.missing_tag ? "launch quarter taken from the first receipt — add the tag on the product" : "every launched product has its tag"}</div></div>` +
+    `</div>`;
+  const nr = (d.notes || []).find(n => n.code === "new_rule");
+  h += `<div class="card pnote">${esc(scope)} · net sales ${money(P.net)}${cc && P.gp_pct !== undefined ? " · GP " + gpPct(P) : ""}${K.pre_launch ? " · sales before launch " + money(K.pre_launch) + " (not counted as new)" : ""}${nr ? `<br>${esc(nr.note)}` : ""}</div>`;
+  // 코호트
+  h += cohortCard(d, cc);
+  // 브랜드 · 카테고리
+  const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
+  const hasPrev = !!d.pl;
+  const bl = d.brands || [], bTot = Number(P.net) || 1;
+  const rankT = (title, rows, count, key, csv) => `<div class="card ancard">${ahead(title, `top ${rows.length} of ${num(count)} · ${esc(lbl)}${hasPrev ? " · rank against " + esc(d.pl) : ""}`, csv)}<div class="body"><table><thead><tr><th class="r">#</th><th>${key === "brand" ? "Brand" : "Category"}</th><th class="r">Products</th><th class="r">Net sales</th><th>Share</th>${hasPrev ? `<th class="r">Before</th><th>Rank</th>` : ""}<th class="r">New products</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    (rows.length ? rows.map(x => `<tr><td class="r dim">${num(x.rank)}</td><td><a class="lnk" href="#" data-${key === "brand" ? "brand" : "cat"}="${esc(x[key])}">${esc(x[key])}</a></td><td class="r">${num(x.products)}</td><td class="r">${money(x.net)}</td><td>${x.net > 0 ? `<span class="share" style="width:${Math.max(1, Math.round(60 * x.net / bTot))}px"></span>${(100 * x.net / bTot).toFixed(1)}%` : ""}</td>${hasPrev ? `<td class="r">${money(x.net_prev)}</td><td>${rankMove(x.rank, x.rank_prev)}</td>` : ""}<td class="r">${Number(x.new_net) ? money(x.new_net) : '<span class="dim">—</span>'}</td>${gpc(x)}</tr>`).join("") : `<tr><td colspan="9" class="dim">No product sales in this period.</td></tr>`) +
+    `</tbody></table></div></div>`;
+  h += `<div class="two">${rankT("Brands", bl, d.brands_count, "brand", "pbrands")}${rankT("Categories", d.categories || [], d.categories_count, "category", "pcats")}</div>`;
+  // 상위 제품
+  const tp = d.top || [];
+  const pName = x => `<a class="lnk" href="#products/${encodeURIComponent(x.product_id)}">${esc(x.name)}</a>${x.is_active === false ? ` <span class="dim">(inactive)</span>` : ""}`;
+  h += `<div class="card ancard">${ahead("Products by net sales", `${esc(scope)} · ${esc(lbl)} · top ${tp.length} of ${num(d.products_count)}`, "ptop")}<div class="body"><table><thead><tr><th class="r">#</th><th>SKU</th><th>Product</th><th>Brand</th><th>Launch</th><th class="r">Net sales</th>${hasPrev ? `<th class="r">Before</th><th>Rank</th>` : ""}<th class="r">Units</th><th class="r">Customers</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    (tp.length ? tp.map(x => `<tr><td class="r dim">${num(x.rank)}</td><td>${esc(x.sku)}</td><td>${pName(x)}</td><td>${esc(x.brand || "")}</td><td>${x.launch_q ? esc(qLabel(x.launch_q)) + (x.is_new ? ` <span class="badge new">New</span>` : "") + (x.launch_source === "first_in" ? ` <span class="dim" title="No quarter tag — taken from the first receipt">*</span>` : "") : ""}</td><td class="r">${money(x.net)}</td>${hasPrev ? `<td class="r">${money(x.net_prev)}</td><td>${rankMove(x.rank, x.rank_prev)}</td>` : ""}<td class="r">${num(x.qty)}</td><td class="r">${num(x.buyers)}</td>${gpc(x)}</tr>`).join("") : `<tr><td colspan="11" class="dim">No product sales in this period.</td></tr>`) +
+    `</tbody></table><div class="legend"><span>New = this sale counts as a new-product sale</span><span>* = no quarter tag, launch taken from the first receipt</span><span>Units are in base units (packs counted by their size)</span></div></div></div>`;
+  // 소수 손님 · 끊긴 제품
+  const cn = d.concentrated || [], ru = d.rule || {};
+  const concT = `<div class="card ancard">${ahead("Products that rely on a few customers", esc(lbl), "pconc")}<div class="body"><div class="dim" style="font-size:12.5px;margin-bottom:6px">Of the top ${num(ru.conc_pool || 200)} products by net sales: bought by at least ${num(ru.conc_min_buyers || 5)} customers, and the top ${num(ru.conc_top || 3)} of them bought ${Math.round((ru.conc_share || 0.8) * 100)}% or more.</div>` +
+    `<table><thead><tr><th>Product</th><th class="r">Net sales</th><th class="r">Customers</th><th class="r">Top ${num(ru.conc_top || 3)} share</th><th>Biggest customer</th></tr></thead><tbody>` +
+    (cn.length ? cn.map(x => `<tr><td><span class="dim">${esc(x.sku)}</span> ${pName(x)}</td><td class="r">${money(x.net)}</td><td class="r">${num(x.buyers)}</td><td class="r"><b>${pct(x.top_share)}</b></td><td>${x.top_customer ? `<a class="lnk" href="#customers/${encodeURIComponent(x.top_customer.key)}">${esc(x.top_customer.name)}</a> <span class="dim">${pct(x.top1_share)}</span>` : ""}</td></tr>`).join("") : `<tr><td colspan="5" class="dim">No product matches in this period.</td></tr>`) +
+    `</tbody></table></div></div>`;
+  const st = d.stopped || [];
+  const stopT = `<div class="card ancard">${ahead("Stopped selling", hasPrev ? `sold ${esc(d.pl)}, nothing in ${esc(lbl)}${d.stopped_count !== undefined && d.stopped_count !== null ? " · " + num(d.stopped_count) + " products" : ""}` : "", hasPrev ? "pstop" : null)}<div class="body">` +
+    (!hasPrev ? `<div class="dim">Pick a week, month or year period — stopped products are found against the comparison period.</div>` :
+      `<table><thead><tr><th>Product</th><th>Brand</th><th class="r">Net sales before</th><th class="r">Rank before</th>${cc ? `<th class="r">GP % before</th>` : ""}</tr></thead><tbody>` +
+      (st.length ? st.map(x => `<tr><td><span class="dim">${esc(x.sku)}</span> ${pName(x)}</td><td>${esc(x.brand || "")}</td><td class="r">${money(x.prev ? x.prev.net : null)}</td><td class="r">${num(x.rank_prev)}</td>${cc ? `<td class="r">${gpPct(x.prev)}</td>` : ""}</tr>`).join("") : `<tr><td colspan="5" class="dim">None.</td></tr>`) +
+      (d.stopped_count > st.length ? `<tr><td colspan="5" class="dim">Showing the ${num(st.length)} biggest of ${num(d.stopped_count)} — the CSV has the same rows.</td></tr>` : "") + `</tbody></table>`) +
+    `</div></div>`;
+  h += `<div class="two">${concT}${stopT}</div>`;
+  // 출시 분기별 판매 + 태그 점검
+  const bq = d.by_launch_q || [], cv = {}; (d.coverage || []).forEach(c => cv[c.launch_q] = c);
+  if(bq.length || (d.coverage || []).length){
+    const rows = bq.length ? bq : (d.coverage || []).map(c => ({ launch_q: c.launch_q, label: c.label }));
+    h += `<div class="card ancard">${ahead("Sales by launch quarter", `${esc(lbl)} · and how each quarter's launch was found`, "plaunch")}<div class="body"><table><thead><tr><th>Launch quarter</th><th class="r">Products sold</th><th class="r">Net sales</th><th class="r">As new</th><th class="r">After the new window</th><th class="r">Before launch</th>${cc ? `<th class="r">GP %</th>` : ""}<th class="r">Tagged</th><th class="r">From first receipt</th></tr></thead><tbody>` +
+      rows.map(x => { const c = cv[x.launch_q] || {};
+        return `<tr><td><b>${esc(x.label || qLabel(x.launch_q) || "No launch quarter")}</b></td><td class="r">${num(x.products)}</td><td class="r">${money(x.net)}</td><td class="r">${money(x.new_net)}</td><td class="r">${money(x.later_net)}</td><td class="r">${Number(x.pre_net) ? money(x.pre_net) : '<span class="dim">—</span>'}</td>${gpc(x)}<td class="r">${num(c.tagged)}</td><td class="r">${c.from_receipt ? `<b>${num(c.from_receipt)}</b>` : num(c.from_receipt)}</td></tr>`; }).join("") +
+      `</tbody></table><div class="legend"><span>Tagged = launch quarter set by the product's quarter tag · From first receipt = no tag, so the first receipt decides</span></div></div></div>`;
+  }
+  h += prodNotesHtml(d.notes, ["new_rule", "launch_not_built"]);
+  $("box").innerHTML = h;
+
+  const sel = $("pCat"); if(sel) sel.onchange = () => { prodCat = sel.value; runLoad(); };
+  $("box").onclick = e => {
+    const a = e.target.closest("[data-newn],[data-coh],[data-brand],[data-cat],[data-csv]"); if(!a) return;
+    if(a.dataset.newn){ e.preventDefault(); prodNewN = +a.dataset.newn; runLoad(); return; }
+    if(a.dataset.coh){ e.preventDefault(); const [k, v] = a.dataset.coh.split(":"); prodCoh[k] = k === "all" ? v === "true" : v; renderProducts(d); return; }
+    if(a.dataset.brand !== undefined){ e.preventDefault(); if(!a.dataset.brand || a.dataset.brand === "(no brand)") return; $("brand").value = a.dataset.brand; runLoad(); return; }
+    if(a.dataset.cat !== undefined){ e.preventDefault(); prodCat = a.dataset.cat; runLoad(); return; }
+    const k = a.dataset.csv, keys = PCK(cc);
+    if(k === "ptop") csvDownload("products", ["rank","sku","product","brand","category","active","launch_quarter","launch_from","is_new","new_net","customers"].concat(keys, ["net_before","rank_before"]),
+      tp.map(x => [x.rank, x.sku, x.name, x.brand, x.category, x.is_active, qLabel(x.launch_q), x.launch_source, x.is_new, x.new_net, x.buyers].concat(keys.map(q => x[q]), [x.net_prev, x.rank_prev])));
+    else if(k === "pbrands" || k === "pcats"){ const nm = k === "pbrands" ? "brand" : "category", rows = k === "pbrands" ? bl : (d.categories || []);
+      csvDownload(k === "pbrands" ? "product-brands" : "product-categories", ["rank", nm, "products", "new_net"].concat(keys, ["net_before","rank_before"]), rows.map(x => [x.rank, x[nm], x.products, x.new_net].concat(keys.map(q => x[q]), [x.net_prev, x.rank_prev]))); }
+    else if(k === "pconc") csvDownload("products-few-customers", ["sku","product","brand","rank","net","customers","top1_share","top_share","biggest_customer"], cn.map(x => [x.sku, x.name, x.brand, x.rank, x.net, x.buyers, x.top1_share, x.top_share, x.top_customer ? x.top_customer.name : ""]));
+    else if(k === "pstop") csvDownload("products-stopped", ["sku","product","brand","category","active","rank_before"].concat(keys.map(q => q + "_before")), st.map(x => [x.sku, x.name, x.brand, x.category, x.is_active, x.rank_prev].concat(keys.map(q => x.prev ? x.prev[q] : ""))));
+    else if(k === "pcohort"){ const rows = [];
+      (d.cohort.rows || []).forEach(rw => { if(rw.pre) rows.push([rw.label, rw.products, rw.sold, "pre", "", ""].concat(keys.map(q => rw.pre[q])));
+        (rw.cells || []).forEach(c => rows.push([rw.label, rw.products, rw.sold, c.month + 1, c.open ? "month so far" : "", c.sold].concat(keys.map(q => c[q])))); });
+      csvDownload("launch-cohorts", ["launch_quarter","products","products_sold_ever","month","note","products_sold"].concat(keys), rows); }
+    else if(k === "plaunch") csvDownload("sales-by-launch-quarter", ["launch_quarter","products","new_net","later_net","pre_net"].concat(keys, ["tagged","from_first_receipt"]),
+      (bq.length ? bq : []).map(x => { const c = cv[x.launch_q] || {}; return [x.label, x.products, x.new_net, x.later_net, x.pre_net].concat(keys.map(q => x[q]), [c.tagged, c.from_receipt]); }));
+    else if(k === "pnotes") csvDownload("product-notes", ["code","part","from","to","amount","count","note"], (d.notes || []).map(n => [n.code, n.part, n.from, n.to, n.amount, n.count, n.note]));
+  };
+}
+
+/* ── 제품 한 개 상세(an v8 · #products/<제품>[/period]) ── 세트를 넘기면 창구가 base 로 올린다(rolled_to_base) */
+async function loadProduct(id, selMode){
+  const my = ++seq;
+  const r = prodRange();
+  $("load").textContent = "Loading…";
+  const { data, error } = await crpc("an_product", { p_product: id, p_from: r.f, p_to: r.t, p_prev_from: r.pf, p_prev_to: r.pt, p_ly_from: r.lf, p_ly_to: r.lt,
+    p_warehouse: $("branch").value || null, p_new_n: prodNewN });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}<br><a class="lnk" href="#products">← All products</a></div>`; return; }
+  data.pl = r.pl; data.ll = r.ll;
+  last = { from: data.period.from, to: data.period.to, warehouse: data.warehouse, brand: null };
+  $("built").textContent = data.launch_counted_at ? "Launch quarters counted " + torTime(data.launch_counted_at) + " (Toronto)" : "";
+  renderProduct(data, id, selMode);
+}
+function renderProduct(d, id, selMode){
+  $("box").onclick = null;
+  const cc = !!d.can_cost, Pr = d.product || {}, P = d.period || {}, Cu = d.customers || {};
+  const lbl = (per ? per.name + " · " : "") + fmtR(P.from, P.to);
+  const scope = d.warehouse ? (/Edmonton/i.test(d.warehouse.name || "") ? "Edmonton" : "Toronto") : "All branches";
+  const cmps = [{ c: d.prev, l: d.pl }, { c: d.ly, l: d.ll }].filter(x => x.c && x.l);
+  const k2 = (label, va, key, fmt) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${fmt(va)}</div>` +
+    (cmps.map(x => `<div class="c">${change(va, x.c[key])} vs ${fmt(x.c[key])} ${esc(x.l)}</div>`).join("") || `<div class="c">&nbsp;</div>`) + `</div>`;
+  const src = Pr.launch_source === "tag" ? "from its quarter tag" : Pr.launch_source === "first_in" ? "no quarter tag — from the first receipt" + (Pr.first_in ? " (" + esc(Pr.first_in) + ")" : "") : "";
+  const base = "#products/" + encodeURIComponent(id);
+  let h = `<div class="card" style="padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">` +
+    `<a class="lnk" href="#products">← All products</a><span class="sp"></span>` +
+    `<div style="flex-basis:100%;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-size:20px;font-weight:800;color:var(--ink)">${esc(Pr.name || "")}</span>` +
+    `<span class="dim">${esc(Pr.sku || "")}${Pr.brand ? " · " + esc(Pr.brand) : ""}${Pr.category ? " · " + esc(Pr.category) : ""}</span>` +
+    (Pr.is_active === false ? `<span class="badge risk">Inactive</span>` : "") +
+    (Pr.launch_q ? `<span class="badge new" title="${esc(src)}">Launched ${esc(Pr.label || qLabel(Pr.launch_q))}</span>` : "") +
+    `<span class="sp" style="flex:1"></span>${Pr.id ? `<a class="csvb" href="products.html?id=${encodeURIComponent(Pr.id)}" target="_blank" rel="noopener">Open product card</a>` : ""}</div></div>`;
+  h += `<div class="kpis">` + k2(`Net sales — ${esc(lbl)}`, P.net, "net", money) + k2("Units (base)", P.qty, "qty", v => num(v)) +
+    `<div class="card kpi"><div class="l">Customers</div><div class="v">${num(Cu.buyers)}</div><div class="c">${num(Cu.repeat_buyers)} bought on 2 or more days · ${esc(scope)}</div></div>` +
+    (cc ? `<div class="card kpi"><div class="l">GP %</div><div class="v">${gpPct(P)}</div>` + cmps.map(x => `<div class="c">${gpPct(x.c)} ${esc(x.l)}</div>`).join("") + `</div>` : "") + `</div>`;
+  h += `<div class="kpis">` +
+    `<div class="card kpi"><div class="l">Launch quarter</div><div class="v" style="font-size:17px">${esc(Pr.label || (Pr.launch_q ? qLabel(Pr.launch_q) : "—"))}</div><div class="c">${src || esc(Pr.not_new_reason || "not counted as a new product")}${Pr.relaunch_q ? " · relaunch " + esc(qLabel(Pr.relaunch_q)) : ""}</div></div>` +
+    `<div class="card kpi"><div class="l">New-product sales — this period</div><div class="v" style="font-size:17px">${money(P.new_net)}</div><div class="c">${Number(P.pre_launch) ? money(P.pre_launch) + " before launch (not counted as new)" : "&nbsp;"}</div></div>` +
+    `<div class="card kpi"><div class="l">Customers — all history</div><div class="v" style="font-size:17px">${num(Cu.buyers_all)}</div><div class="c">${num(Cu.repeat_buyers_all)} bought on 2 or more days</div></div>` +
+    `<div class="card kpi"><div class="l">Sales not linked to a customer</div><div class="v" style="font-size:17px">${money(Cu.no_customer)}</div><div class="c">older history orders · left out of customer counts</div></div>` +
+    `</div>`;
+  // 달 그래프 — 막대 색 = 출시 앞 · 신제품 기간 · 그 뒤
+  const tm = todayTO().slice(0, 7);
+  const months = (d.months || []).map(m => ({ ...m, era: "st-" + (m.state || "none"), partial: String(m.m).slice(0, 7) === tm, through: todayTO() }));
+  const sel = selMode, pm0 = String(P.from).slice(0, 8) + "01";
+  const mshow = sel ? months.filter(m => m.m >= pm0 && m.m <= P.to) : months;
+  const tg = `<span class="seg2"><a href="${base}" class="${sel ? "" : "cur"}">All history</a><a href="${base}/period" class="${sel ? "cur" : ""}">Selected period</a></span>`;
+  h += `<div class="card ancard"><h3>${sel ? "Net sales by month — selected period" : "Net sales by month — all history"} <span class="sub">${esc(scope)}</span><span class="sp"></span>${tg}<button class="csvb" data-csv="pmonths">CSV</button></h3>` +
+    (mshow.length ? `<div class="body chart" id="mchart">${monthChart(mshow, cc)}` : `<div class="body"><span class="dim">No sales in these months.</span>`) +
+    `<div class="legend"><span><i style="background:var(--ims-dim)"></i>Before launch</span><span><i style="background:var(--accent)"></i>Counted as new</span><span><i style="background:color-mix(in srgb,var(--accent) 45%,var(--ims-surface))"></i>After the new window</span>${cc ? `<span><i style="background:var(--good);height:3px"></i>GP %</span>` : ""}<span>Faded bar = month so far</span></div></div></div>`;
+  // 세트 · 지점
+  const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
+  const sets = d.sets || [], brs = d.branches || [];
+  const setT = sets.length > 1 ? `<div class="card ancard">${ahead("Packs and sets", esc(lbl), "psets")}<div class="body"><table><thead><tr><th>SKU</th><th class="r">Pack size</th><th class="r">Sold (packs)</th><th class="r">Units (base)</th><th class="r">Net sales</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    sets.map(x => `<tr><td>${esc(x.sku)}${x.is_base ? ` <span class="dim">(single)</span>` : ""}</td><td class="r">${num(x.pack_factor)}</td><td class="r">${num(x.qty_sold)}</td><td class="r">${num(x.qty)}</td><td class="r">${money(x.net)}</td>${gpc(x)}</tr>`).join("") + `</tbody></table></div></div>` : "";
+  const brT = `<div class="card ancard">${ahead("By branch", esc(lbl), "pbranches")}<div class="body"><table><thead><tr><th>Branch</th><th class="r">Net sales</th><th class="r">Units</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    (brs.length ? brs.map(x => `<tr><td>${esc(x.label)}</td><td class="r">${money(x.net)}</td><td class="r">${num(x.qty)}</td>${gpc(x)}</tr>`).join("") : `<tr><td colspan="4" class="dim">No sales in this period.</td></tr>`) + `</tbody></table></div></div>`;
+  h += setT ? `<div class="two">${setT}${brT}</div>` : brT;
+  // 상위 손님
+  const tc = d.top_customers || [];
+  h += `<div class="card ancard">${ahead("Customers who bought it", `${esc(lbl)} · ${esc(scope)}`, "pcust")}<div class="body"><table><thead><tr><th>Customer</th><th class="r">Net sales</th><th>Share</th><th class="r">Order days</th><th>Last order</th></tr></thead><tbody>` +
+    (tc.length ? tc.map(x => `<tr><td><a class="lnk" href="#customers/${encodeURIComponent(x.key)}">${esc(x.name)}</a></td><td class="r">${money(x.net)}</td><td>${x.share !== null && x.share !== undefined ? `<span class="share" style="width:${Math.max(1, Math.round(60 * x.share))}px"></span>${pct(x.share)}` : ""}</td><td class="r">${num(x.order_days)}</td><td>${esc(x.last_order || "")}</td></tr>`).join("") : `<tr><td colspan="5" class="dim">No customer bought it in this period.</td></tr>`) +
+    `</tbody></table></div></div>`;
+  h += prodNotesHtml(d.notes, []);
+  $("box").innerHTML = h;
+  $("box").querySelectorAll("#mchart rect.bar").forEach(rc => {
+    rc.addEventListener("mousemove", e => { const m = mshow[+rc.dataset.i];
+      const stl = m.state === "pre" ? "before launch" : m.state === "new" ? "counted as new" : m.state === "later" ? "after the new window" : "";
+      $("tip").innerHTML = `<b>${esc(m.m)}</b>${m.month_since_launch !== null && m.month_since_launch !== undefined ? " · month " + (m.month_since_launch + 1) + " since launch" : ""}${stl ? " · " + stl : ""}${m.partial ? " · so far" : ""}<br>Net ${money(m.net)} · ${num(m.qty)} units · ${num(m.orders)} orders` + (cc ? `<br>GP ${gpPct(m)}` : ""); tipAt(e); });
+    rc.addEventListener("mouseleave", () => { $("tip").hidden = true; });
+  });
+  $("box").onclick = e => {
+    const btn = e.target.closest("[data-csv]"); if(!btn) return;
+    const keys = PCK(cc), nm = (Pr.sku || "product").replace(/\W+/g, "_"), k = btn.dataset.csv;
+    if(k === "pmonths") csvDownload("product-" + nm + "-months", ["month","month_since_launch","state","orders"].concat(keys), mshow.map(m => [m.m, m.month_since_launch === null || m.month_since_launch === undefined ? "" : m.month_since_launch + 1, m.state, m.orders].concat(keys.map(q => m[q]))));
+    else if(k === "psets") csvDownload("product-" + nm + "-packs", ["sku","single","pack_size","sold_packs"].concat(keys), sets.map(x => [x.sku, x.is_base, x.pack_factor, x.qty_sold].concat(keys.map(q => x[q]))));
+    else if(k === "pbranches") csvDownload("product-" + nm + "-branches", ["branch"].concat(keys), brs.map(x => [x.label].concat(keys.map(q => x[q]))));
+    else if(k === "pcust") csvDownload("product-" + nm + "-customers", ["customer","net","share","order_days","last_order"], tc.map(x => [x.name, x.net, x.share, x.order_days, x.last_order]));
+    else if(k === "pnotes") csvDownload("product-" + nm + "-notes", ["code","part","from","to","amount","count","note"], (d.notes || []).map(n => [n.code, n.part, n.from, n.to, n.amount, n.count, n.note]));
   };
 }
 
