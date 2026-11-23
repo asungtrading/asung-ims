@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Customer Portal · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 있는 것 — 공통은 ims-ui.css(.card · .pobtn · .pomodal/.pobox/.frow · .xbtn · .chip) · 고정 색 없음(다크 모드는 공통 변수로) */
+  .pawrap{max-width:1200px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+  .pabar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px}
+  .pabar h2{margin:0;font-size:19px}
+  .pabar input[type=search]{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px;min-width:220px;background:transparent;color:inherit}
+  .pasub{padding:8px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);line-height:1.55}
+  .pastores{font-size:12px;color:var(--muted);max-width:340px}
+  .pamono{font-family:var(--mono);font-weight:700}
+  tr.off td{color:var(--muted)}
+  .pobox input[type=text],.pobox input[type=search],.pobox textarea{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;background:transparent;color:inherit}
+  .pobox textarea{width:100%;min-height:50px}
+  .pamsg{margin-top:10px;font-size:12.5px;line-height:1.5}
+  .papick{border:1px solid var(--line);border-radius:10px;max-height:220px;overflow:auto;margin-top:6px}
+  .papick div{padding:6px 10px;border-bottom:1px solid var(--line);font-size:12.5px;display:flex;gap:8px;align-items:center}
+  .papick div:last-child{border-bottom:0}
+  .papick .sp{flex:1}
+  .papw{font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:1px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;display:inline-block;margin:6px 0;user-select:all}
+  .palog td{font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="pawrap">
+  <div class="card">
+    <div class="pabar">
+      <h2>Customer portal accounts</h2>
+      <span class="dim" style="font-size:12.5px" id="paCount"></span>
+      <span class="sp"></span>
+      <input type="search" id="paSearch" placeholder="Search login, name or store">
+      <label style="font-size:12.5px"><input type="checkbox" id="paShowOff"> Show switched off</label>
+      <button class="pobtn go" id="newBtn" hidden>New account</button>
+    </div>
+    <div id="body"><div class="msg">Loading…</div></div>
+    <div class="pasub">
+      A portal account lets a customer sign in at <b>tools.asung.ca/customer-portal.html</b> and see its own sales, orders, reorder ideas and price list.
+      One account can cover several customers — a head office and its stores. Prices on the portal are each store's own (its price tier, customer discount and deals — the same as a sales order).
+      New accounts and password resets give a <b>temporary password</b> that is shown once — send it to the customer; the portal asks them to set their own.
+      <b>View as customer</b> opens the portal as that account without its password (read only, 60 minutes, recorded below).
+      Only staff with the Settings permission can use this page.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="pabar"><h2 style="font-size:15px">Staff views</h2><span class="dim" style="font-size:12.5px">Who opened a portal account as the customer — newest first</span></div>
+    <div id="logBody"><div class="msg">Loading…</div></div>
+  </div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox" style="max-width:720px"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Customer Portal — 포털 계정 관리(port-6 · 판정 1557 ~ 1559 · asung-wms 20261122223300 port-1 · 20261123165000 port-6)
+   창구(전부 REST rpc · 문 portal_staff_gate = Settings 쓰기(master) · 막히면 42501):
+     portal_account_list() → 계정 줄 배열(열일곱 열쇠)
+     portal_account_create(p_login_id, p_display_name, p_customer_ids uuid[], p_default_customer_id, p_note) → {ok, temp_password, account}
+     portal_account_update(p_id, p_changes{display_name · is_active · note · customer_ids · default_customer_id}) → {ok, account}
+     portal_account_password_reset(p_id) → {ok, login_id, temp_password}
+     portal_account_unlock(p_id) → {ok, account}
+     portal_staff_view_open(p_account_id) → {ok, token, …, staff_view:true} | {ok:false, error}
+     portal_staff_view_log(p_account_id, p_limit) → 기록 줄 배열
+   손님 고르기: REST customer 표(id · name · display_name · is_active · parent_id) — so.html 과 같은 읽기
+   ⭐ 임시 비밀번호 · 보기 토큰은 화면에만 한 번 — 어디에도 남기지 않는다 · 보기 토큰은 # 조각으로 넘긴다(포털이 읽고 바로 지운다 · port-6 이견 9)
+   ───────────────────────────────────────────────────────────── */
+const PA_BUILD = "2026-11-23 · pa v1";   // 대화 Claude — port-6 화면(판정 1557 ~ 1559): 목록 · 만들기 · 고치기 · 비밀번호 초기화 · 잠금 풀기 · 켜기/끄기 · 손님으로 보기 · 보기 기록
+console.log("portal-accounts.html build:", PA_BUILD);
+const PORTAL_URL = "https://tools.asung.ca/customer-portal.html";
+
+let sb = null, canWrite = false, accounts = [], showOff = false, query = "";
+
+function modalOpen(html){ document.getElementById("modalBox").innerHTML = html; document.getElementById("modal").hidden = false; }
+function modalClose(){ document.getElementById("modal").hidden = true; document.getElementById("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+const errText = (e) => (e && (e.message || e.error_description || e.error)) || String(e);
+function portalLink(login){ return `${PORTAL_URL}?id=${encodeURIComponent(String(login).toLowerCase())}`; }
+
+/* ── 목록 ─────────────────────────────────────────── */
+async function load(){
+  const body = document.getElementById("body");
+  const { data, error } = await sb.rpc("portal_account_list");
+  if(error){
+    body.innerHTML = `<div class="msg err">${error.code === "42501" ? "You need the Settings permission to manage customer portal accounts." : "Could not load — " + esc(errText(error))}</div>`;
+    return false;
+  }
+  accounts = data || [];
+  render();
+  return true;
+}
+function matches(a){
+  if(!query) return true;
+  const q = query.toLowerCase();
+  return [a.login_id, a.display_name, a.note, ...(a.customers || []).map(c => c.name)].some(v => String(v || "").toLowerCase().includes(q));
+}
+function render(){
+  const body = document.getElementById("body");
+  const rows = accounts.filter(a => (showOff || a.is_active) && matches(a));
+  document.getElementById("paCount").textContent = `${rows.length} of ${accounts.length} account(s)`;
+  if(!rows.length){ body.innerHTML = `<div class="msg">${accounts.length ? "No account matches." : "No portal accounts yet." + (canWrite ? " Press New account to add one." : "")}</div>`; return; }
+  body.innerHTML = `<table><thead><tr><th>Login ID</th><th>Name</th><th>Stores</th><th>Status</th><th>Last sign-in</th><th class="num">Open sessions</th><th></th></tr></thead><tbody>
+    ${rows.map(a => {
+      const cs = a.customers || [];
+      const def = cs.find(c => c.is_default);
+      const storeTxt = cs.length === 1 ? esc(cs[0].name) : `${cs.length} stores — ${esc(cs.slice(0, 3).map(c => c.name).join(", "))}${cs.length > 3 ? " …" : ""}`;
+      const chips = [
+        a.is_active ? "" : '<span class="chip">Switched off</span>',
+        a.password_is_temporary ? '<span class="chip warn" title="The customer has not set their own password yet">Temporary password</span>' : "",
+        a.locked ? `<span class="chip bad" title="Too many wrong passwords${a.locked_until ? " — until " + esc(imsTs(a.locked_until)) : ""}">Locked</span>` : "",
+        cs.some(c => c.is_active === false) ? '<span class="chip warn" title="A picked customer is switched off in IMS">Inactive store</span>' : ""
+      ].filter(Boolean).join(" ") || '<span class="on">OK</span>';
+      return `<tr class="${a.is_active ? "" : "off"}">
+        <td><span class="pamono">${esc(a.login_id)}</span></td>
+        <td><b>${esc(a.display_name)}</b>${a.note ? `<div class="dim" style="font-size:11.5px">${esc(a.note)}</div>` : ""}</td>
+        <td class="pastores" title="${esc(cs.map(c => c.name + (c.is_default ? " (default)" : "")).join("\n"))}">${storeTxt}${def ? `<div class="dim" style="font-size:11px">Default: ${esc(def.name)}</div>` : ""}</td>
+        <td>${chips}</td>
+        <td class="dim" style="font-size:12px">${a.last_login_at ? esc(imsTs(a.last_login_at)) : "never"}</td>
+        <td class="num">${esc(a.open_sessions || 0)}</td>
+        <td style="white-space:nowrap">${canWrite ? `
+          <button class="xbtn" data-view="${a.id}" ${a.is_active ? "" : "disabled title=\"Switch the account on first\""}>View as customer</button>
+          <button class="xbtn" data-ed="${a.id}" title="Change name, stores or note">✎</button>
+          <button class="xbtn" data-pw="${a.id}">Reset password</button>
+          ${a.locked ? `<button class="xbtn" data-ul="${a.id}">Unlock</button>` : ""}
+          <button class="xbtn" data-tg="${a.id}">${a.is_active ? "Switch off" : "Switch on"}</button>` : ""}
+          <button class="xbtn" data-link="${a.id}" title="Copy the sign-in link for this account">Copy link</button>
+        </td></tr>`;
+    }).join("")}</tbody></table>`;
+  const byId = (id) => accounts.find(a => a.id === id);
+  body.querySelectorAll("[data-view]").forEach(b => { b.onclick = () => viewAsCustomer(byId(b.dataset.view)); });
+  body.querySelectorAll("[data-ed]").forEach(b => { b.onclick = () => openForm(byId(b.dataset.ed)); });
+  body.querySelectorAll("[data-pw]").forEach(b => { b.onclick = () => openReset(byId(b.dataset.pw)); });
+  body.querySelectorAll("[data-ul]").forEach(b => { b.onclick = () => doUnlock(byId(b.dataset.ul)); });
+  body.querySelectorAll("[data-tg]").forEach(b => { b.onclick = () => openToggle(byId(b.dataset.tg)); });
+  body.querySelectorAll("[data-link]").forEach(b => { b.onclick = () => copyText(portalLink(byId(b.dataset.link).login_id), b); });
+}
+async function copyText(t, btn){
+  try { await navigator.clipboard.writeText(t); if(btn){ const o = btn.textContent; btn.textContent = "Copied"; setTimeout(() => { btn.textContent = o; }, 1200); } }
+  catch(e){ prompt("Copy this:", t); }
+}
+
+/* ── 보기 기록 ─────────────────────────────────────── */
+async function loadLog(){
+  const el = document.getElementById("logBody");
+  const { data, error } = await sb.rpc("portal_staff_view_log", { p_account_id: null, p_limit: 50 });
+  if(error){ el.innerHTML = `<div class="msg err">${error.code === "42501" ? "Settings permission needed." : "Could not load — " + esc(errText(error))}</div>`; return; }
+  const rows = data || [];
+  if(!rows.length){ el.innerHTML = '<div class="msg">No staff views yet.</div>'; return; }
+  el.innerHTML = `<table class="palog"><thead><tr><th>Opened</th><th>Account</th><th>Staff</th><th>Ends</th><th></th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${esc(imsTs(r.opened_at))}</td><td><span class="pamono">${esc(r.login_id)}</span> · ${esc(r.display_name)}</td>
+      <td>${esc(r.staff_name || "")}</td><td class="dim">${esc(imsTs(r.expires_at))}</td><td>${r.session_open ? '<span class="chip good">Open</span>' : '<span class="dim">Ended</span>'}</td></tr>`).join("")}
+  </tbody></table>`;
+}
+
+/* ── 손님으로 보기 ─────────────────────────────────── */
+async function viewAsCustomer(a){
+  // 창을 먼저 연다(누른 순간에 열어야 팝업 막기에 안 걸린다) → 토큰을 받으면 주소를 넣는다
+  const w = window.open("about:blank", "_blank");
+  if(w){ try { w.document.title = "Opening the customer portal…"; w.document.body.style.font = "14px sans-serif"; w.document.body.textContent = "Opening the customer portal…"; } catch(e){} }
+  const { data, error } = await sb.rpc("portal_staff_view_open", { p_account_id: a.id });
+  const fail = (msg) => { if(w) w.close(); modalOpen(`<h4>View as customer — ${esc(a.login_id)}</h4><div class="pbody"><div class="err">${esc(msg)}</div></div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`); document.querySelector('#modalBox [data-m="close"]').onclick = modalClose; };
+  if(error) return fail(error.code === "42501" ? "You need the Settings permission to view an account as the customer." : errText(error));
+  if(!data || !data.ok) return fail((data && data.error) || "Could not open the portal.");
+  const url = `${PORTAL_URL}#staff_view=${encodeURIComponent(data.token)}`;
+  if(w) w.location.replace(url);
+  else {   // 팝업이 막혔으면 링크를 누르게
+    modalOpen(`<h4>View as customer — ${esc(a.login_id)}</h4><div class="pbody">Your browser blocked the new tab. <a href="${esc(url)}" target="_blank" rel="noopener" id="paOpenNow">Open the portal</a> (read only · 60 minutes).</div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Close</button></div>`);
+    document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+    document.getElementById("paOpenNow").onclick = () => setTimeout(modalClose, 300);
+  }
+  setTimeout(loadLog, 800);
+}
+
+/* ── 손님 고르기(만들기 · 고치기 공통) ───────────────── */
+let picked = [];   // [{id, name, is_active, is_default}]
+async function searchCustomers(term){
+  const t = term.trim();
+  if(t.length < 2) return [];
+  const safe = t.replace(/[%,()]/g, " ");
+  const { data, error } = await sb.from("customer").select("id,name,display_name,is_active,parent_id")
+    .or(`name.ilike.%${safe}%,display_name.ilike.%${safe}%`).order("name").limit(40);
+  if(error) throw error;
+  return data || [];
+}
+async function storesUnder(parentId){
+  const { data, error } = await sb.from("customer").select("id,name,display_name,is_active,parent_id").eq("parent_id", parentId).order("name").limit(200);
+  if(error) throw error;
+  return (data || []).filter(c => c.id !== parentId);
+}
+function addPicked(c){ if(!picked.some(p => p.id === c.id)) picked.push({ id: c.id, name: c.name, is_active: c.is_active, is_default: false }); }
+function renderPicked(){
+  const el = document.getElementById("paPicked");
+  document.getElementById("paPickedN").textContent = picked.length ? `${picked.length} picked` : "";
+  if(!picked.length){ el.innerHTML = '<div class="dim">No customer picked yet.</div>'; return; }
+  el.innerHTML = picked.map((p, i) => `<div>
+      <label title="All Stores on the portal opens this store's price list" style="display:inline-flex;gap:4px;align-items:center"><input type="radio" name="paDef" value="${i}" ${p.is_default ? "checked" : ""}> default</label>
+      <span>${esc(p.name)}${p.is_active === false ? ' <span class="chip warn">off in IMS</span>' : ""}</span><span class="sp"></span>
+      <button class="xbtn" data-rm="${i}">Remove</button></div>`).join("")
+    + `<div class="dim" style="font-size:11.5px"><label style="display:inline-flex;gap:4px;align-items:center"><input type="radio" name="paDef" value="-1" ${picked.some(p => p.is_default) ? "" : "checked"}> no default</label> — All Stores then uses the first store.</div>`;
+  el.querySelectorAll("[data-rm]").forEach(b => { b.onclick = () => { picked.splice(+b.dataset.rm, 1); renderPicked(); }; });
+  el.querySelectorAll('input[name="paDef"]').forEach(r => { r.onchange = () => { const k = +r.value; picked.forEach((p, i) => { p.is_default = i === k; }); }; });
+}
+function wirePicker(){
+  const box = document.getElementById("paFind"), out = document.getElementById("paFound");
+  let timer = null, seq = 0;
+  box.oninput = () => {
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const my = ++seq;
+      if(box.value.trim().length < 2){ out.innerHTML = ""; return; }
+      out.innerHTML = '<div class="dim">Searching…</div>';
+      try {
+        const rows = await searchCustomers(box.value);
+        if(my !== seq) return;
+        out.innerHTML = rows.length ? rows.map(c => `<div><span>${esc(c.name)}${c.is_active === false ? ' <span class="chip warn">off</span>' : ""}</span><span class="sp"></span>
+            <button class="xbtn" data-add="${c.id}">Add</button>
+            <button class="xbtn" data-addall="${c.id}" title="Add this customer and every store under it (its parent_id)">Add with its stores</button></div>`).join("")
+          : '<div class="dim">No customer found.</div>';
+        out.querySelectorAll("[data-add]").forEach(b => { b.onclick = () => { addPicked(rows.find(c => c.id === b.dataset.add)); renderPicked(); }; });
+        out.querySelectorAll("[data-addall]").forEach(b => { b.onclick = async () => {
+          const c = rows.find(x => x.id === b.dataset.addall); addPicked(c);
+          try { (await storesUnder(c.id)).forEach(addPicked); } catch(e){ alert("Could not read its stores — " + errText(e)); }
+          renderPicked(); }; });
+      } catch(e){ if(my === seq) out.innerHTML = `<div class="err">${esc(errText(e))}</div>`; }
+    }, 250);
+  };
+}
+
+/* ── 만들기 · 고치기 ─────────────────────────────── */
+function openForm(a){
+  const isNew = !a;
+  picked = isNew ? [] : (a.customers || []).map(c => ({ id: c.customer_id, name: c.name, is_active: c.is_active, is_default: !!c.is_default }));
+  modalOpen(`<h4>${isNew ? "New portal account" : "Change " + esc(a.login_id)}</h4>
+    <div class="pbody">
+      ${isNew ? `<div class="frow"><label>Login ID</label><input type="text" id="paLogin" placeholder="e.g. hera — letters, digits, dot, dash, underscore" maxlength="40"></div>
+        <div class="dim" style="font-size:11.5px;margin:-6px 0 10px 130px">The customer types this to sign in (not case sensitive). It cannot be changed later.</div>` : ""}
+      <div class="frow"><label>Display name</label><input type="text" id="paName" value="${esc(a ? a.display_name : "")}" maxlength="120" placeholder="e.g. Hera Beauty Inc."></div>
+      <div class="frow" style="align-items:flex-start"><label>Customers</label><div style="flex:1">
+        <input type="search" id="paFind" placeholder="Search a customer by name (2 letters or more)" style="width:100%">
+        <div class="papick" id="paFound"></div>
+        <div style="margin-top:10px;font-weight:600">Picked <span class="dim" id="paPickedN"></span></div>
+        <div class="papick" id="paPicked"></div>
+      </div></div>
+      <div class="frow"><label>Note</label><textarea id="paNote" placeholder="optional — for staff only">${esc(a && a.note ? a.note : "")}</textarea></div>
+      <div id="paMsg" class="pamsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span>
+      <button class="pobtn" data-m="close">Cancel</button>
+      <button class="pobtn go" id="paGo">${isNew ? "Create account" : "Save"}</button>
+    </div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  renderPicked(); wirePicker();
+  document.getElementById("paGo").onclick = async () => {
+    const msg = document.getElementById("paMsg"); msg.className = "pamsg";
+    const name = document.getElementById("paName").value.trim();
+    const note = document.getElementById("paNote").value.trim();
+    if(!name){ msg.className = "pamsg err"; msg.textContent = "Give the account a display name."; return; }
+    if(!picked.length){ msg.className = "pamsg err"; msg.textContent = "Pick at least one customer."; return; }
+    const ids = picked.map(p => p.id), def = (picked.find(p => p.is_default) || {}).id || null;
+    const btn = document.getElementById("paGo"); btn.disabled = true; msg.textContent = "Saving…";
+    if(isNew){
+      const login = document.getElementById("paLogin").value.trim();
+      if(!login){ msg.className = "pamsg err"; msg.textContent = "Give the account a login ID."; btn.disabled = false; return; }
+      const { data, error } = await sb.rpc("portal_account_create", { p_login_id: login, p_display_name: name, p_customer_ids: ids, p_default_customer_id: def, p_note: note || null });
+      if(error || !data || !data.ok){ msg.className = "pamsg err"; msg.textContent = error ? errText(error) : "Could not create the account."; btn.disabled = false; return; }
+      await load();
+      showPassword(data.account ? data.account.login_id : login.toUpperCase(), data.temp_password, true);
+    } else {
+      const ch = {};
+      if(name !== a.display_name) ch.display_name = name;
+      if((note || "") !== (a.note || "")) ch.note = note || null;
+      const oldIds = (a.customers || []).map(c => c.customer_id).sort().join(","), newIds = ids.slice().sort().join(",");
+      const oldDef = ((a.customers || []).find(c => c.is_default) || {}).customer_id || null;
+      if(oldIds !== newIds || oldDef !== def){ ch.customer_ids = ids; ch.default_customer_id = def; }
+      if(!Object.keys(ch).length){ msg.textContent = "Nothing changed."; btn.disabled = false; return; }
+      const { data, error } = await sb.rpc("portal_account_update", { p_id: a.id, p_changes: ch });
+      if(error || !data || !data.ok){ msg.className = "pamsg err"; msg.textContent = error ? errText(error) : "Could not save."; btn.disabled = false; return; }
+      modalClose(); await load();
+    }
+  };
+}
+
+/* ── 임시 비밀번호 한 번 보여 주기 ─────────────────── */
+function showPassword(login, pw, isNew){
+  const link = portalLink(login);
+  modalOpen(`<h4>${isNew ? "Account created" : "Password reset"} — ${esc(login)}</h4>
+    <div class="pbody">
+      <div>Temporary password — <b>shown only now</b>. Send it to the customer with the sign-in link; the portal asks them to set their own.</div>
+      <div class="papw" id="paPw">${esc(pw)}</div>
+      <div style="margin:6px 0">Sign-in link: <a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="pobtn" id="paCopyPw">Copy password</button>
+        <button class="pobtn" id="paCopyBoth">Copy link + login + password</button>
+      </div>
+      ${isNew ? '<div class="dim" style="font-size:12px;margin-top:10px">Prices for the new stores are prepared within about 10 minutes — until then the Price List tab says it is being prepared.</div>' : '<div class="dim" style="font-size:12px;margin-top:10px">The old password stopped working and every open portal session of this account was ended.</div>'}
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn go" data-m="close">Done</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  document.getElementById("paCopyPw").onclick = (e) => copyText(pw, e.target);
+  document.getElementById("paCopyBoth").onclick = (e) => copyText(`Asung customer portal\n${link}\nLogin ID: ${login}\nTemporary password: ${pw}`, e.target);
+}
+function openReset(a){
+  modalOpen(`<h4>Reset password — ${esc(a.login_id)}</h4>
+    <div class="pbody"><div style="font-size:12.5px;line-height:1.55">
+      ${esc(a.display_name)} gets a new <b>temporary password</b>. Their current password stops working right away and every open portal session of this account ends (including staff views).
+      Use this when the customer forgot their password. To just look at what they see, use <b>View as customer</b> instead — it does not touch their password.
+    </div><div id="paMsg" class="pamsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="paGo">Reset password</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  document.getElementById("paGo").onclick = async () => {
+    const msg = document.getElementById("paMsg"), btn = document.getElementById("paGo");
+    btn.disabled = true; msg.textContent = "Resetting…";
+    const { data, error } = await sb.rpc("portal_account_password_reset", { p_id: a.id });
+    if(error || !data || !data.ok){ msg.className = "pamsg err"; msg.textContent = error ? errText(error) : "Could not reset."; btn.disabled = false; return; }
+    await load();
+    showPassword(data.login_id || a.login_id, data.temp_password, false);
+  };
+}
+async function doUnlock(a){
+  const { data, error } = await sb.rpc("portal_account_unlock", { p_id: a.id });
+  if(error || !data || !data.ok){ alert(error ? errText(error) : "Could not unlock."); return; }
+  await load();
+}
+function openToggle(a){
+  const on = !a.is_active;
+  modalOpen(`<h4>${on ? "Switch on" : "Switch off"} ${esc(a.login_id)}</h4>
+    <div class="pbody"><div style="font-size:12.5px;line-height:1.55">${on
+      ? "The customer can sign in again with their current password."
+      : "The customer can no longer sign in and every open portal session of this account ends. Nothing is deleted — switching it back on restores the account as it was."}</div>
+      <div id="paMsg" class="pamsg"></div></div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" data-m="close">Cancel</button><button class="pobtn go" id="paGo">${on ? "Switch on" : "Switch off"}</button></div>`);
+  document.querySelector('#modalBox [data-m="close"]').onclick = modalClose;
+  document.getElementById("paGo").onclick = async () => {
+    const msg = document.getElementById("paMsg"), btn = document.getElementById("paGo");
+    btn.disabled = true;
+    const { data, error } = await sb.rpc("portal_account_update", { p_id: a.id, p_changes: { is_active: on } });
+    if(error || !data || !data.ok){ msg.className = "pamsg err"; msg.textContent = error ? errText(error) : "Could not save."; btn.disabled = false; return; }
+    modalClose(); await load();
+  };
+}
+
+/* ── 시작 ─────────────────────────────────────────── */
+imsAuth.start({ changePw: true }, async (client, me) => {
+  sb = client;
+  canWrite = imsAuth.canWrite("master");
+  imsHeader(me);
+  document.getElementById("buildTag").textContent = PA_BUILD;
+  const nb = document.getElementById("newBtn");
+  nb.hidden = !canWrite; nb.onclick = () => openForm(null);
+  document.getElementById("paShowOff").onchange = (e) => { showOff = e.target.checked; render(); };
+  document.getElementById("paSearch").oninput = (e) => { query = e.target.value.trim(); render(); };
+  if(await load()) await loadLog();
+  else document.getElementById("logBody").innerHTML = "";
+});
+</script>
+</body>
+</html>
