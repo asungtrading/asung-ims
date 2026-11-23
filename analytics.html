@@ -106,6 +106,7 @@
   .legend i.ch-asung_web{background:var(--an-ch-asung)} .legend i.ch-aone_web{background:var(--an-ch-aone)} .legend i.ch-b2b{background:var(--an-ch-b2b)}
   .legend i.ch-pos{background:var(--an-ch-pos)} .legend i.ch-unknown{background:var(--an-ch-unknown)} .legend i.ch-mixed{background:var(--an-ch-mixed)}
   .chdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
+  .chart .aone-old{fill:color-mix(in srgb,var(--an-ch-aone) 40%,var(--ims-surface))} .legend i.aone-old{background:color-mix(in srgb,var(--an-ch-aone) 40%,var(--ims-surface))}   /* an v10 */
 
   @media print{
     header,.antop .noprint,.antabs,.csvb,#tip{display:none!important}
@@ -179,7 +180,7 @@
    창구(an v8): an_products(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand, p_category, p_channel, p_new_n, p_limit) · an_product(p_product, p_from, p_to, p_prev_*, p_ly_*, p_warehouse, p_new_n) — pr-2 · 20261122010000 · p_channel 은 null 만(채널 차수 뒤)
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-23 · an v9";   // an v9 — 채널 탭(Channels · #channels · 판정 1560 ~ 1564 · asung-wms an-ch-3a · an_channels): 채널 카드(순매출 · 비중 · 비교 대비 · 오더 · 손님) · 월별 채널 쌓은 막대(말풍선에 채널별) · 채널 표 + 합계(평균 오더 · GP % 는 원가 권한만 · CSV) · Aone 웹 손님(New · Repeat buyers · Repeat rate — 2025-11 부터 · 판정 1561 · 1564) · 알림 · 비교 범위 = 손님 탭과 같게 · 빈 Unknown · Mixed 는 숨김 ← an v8b   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-23 · an v10";   // an v10 — Aone web 상세(#channels/aone · 판정 1566 · asung-wms an-ch-4a · an_channel_aone): Channels 의 Aone 카드 · 표 줄 · Aone 손님 칸 머리에서 연다 · 머리 넷(순매출 · 오더와 평균 · 구매 손님과 재구매율 · 둘째 오더까지 걸린 날 가운데값) · 달마다 구매 손님(New · 전에 산 손님 쌓음 · 말풍선에 재구매) · 30 / 60 / 90 일 코호트(all history · 거르기 무관) · 오더 크기(크레딧 앞) · 브랜드 · 제품 상위 10 · 배송 주(Core 시대는 손님의 지금 주소 — 알림) ← an v9 — 채널 탭(Channels · #channels · 판정 1560 ~ 1564 · asung-wms an-ch-3a · an_channels): 채널 카드(순매출 · 비중 · 비교 대비 · 오더 · 손님) · 월별 채널 쌓은 막대(말풍선에 채널별) · 채널 표 + 합계(평균 오더 · GP % 는 원가 권한만 · CSV) · Aone 웹 손님(New · Repeat buyers · Repeat rate — 2025-11 부터 · 판정 1561 · 1564) · 알림 · 비교 범위 = 손님 탭과 같게 · 빈 Unknown · Mixed 는 숨김 ← an v8b   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
@@ -187,7 +188,7 @@ const TABS = {
   overview: { label: "Sales overview", load: loadOverview },
   customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() },   // an v4 · an-4a · an v5 상세 = #customers/<손님>
   products: { label: "Products", load: () => routeArgs[0] ? loadProduct(routeArgs[0], routeArgs[1] === "period") : loadProducts() },   // an v8 · pr-2 · 상세 = #products/<제품>[/period]
-  channels: { label: "Channels", load: loadChannels }   // an v9 · an-ch-3a · 판정 1563
+  channels: { label: "Channels", load: () => routeArgs[0] === "aone" ? loadChannelAone() : loadChannels() }   // an v9 · an-ch-3a · 판정 1563 · an v10 상세 = #channels/aone(an-ch-4a · 1566)
   // 다음 탭(판정 1288 순서): brands → seasonality → stock-outs — 한 줄씩 더한다 · Website 탭(1546)은 va-4 · va-5 뒤
 };
 let tab = "overview", last = null, seq = 0, daily = null;
@@ -1090,7 +1091,7 @@ function renderChannels(d){
   const lbl = (per ? per.name + " · " : "") + fmtR(P.from, P.to);
   const shown = chShown(d), tot = d.total || {};
   // ① 채널 카드
-  let h = `<div class="kpis">` + shown.map(c => `<div class="card kpi chk ch-${esc(c.code)}"><div class="l">${esc(c.label)}</div><div class="v">${money(c.net)}</div>` +
+  let h = `<div class="kpis">` + shown.map(c => `<div class="card kpi chk ch-${esc(c.code)}"><div class="l">${c.code === "aone_web" ? `<a class="lnk" href="#channels/aone" title="Open the Aone web detail">${esc(c.label)} ›</a>` : esc(c.label)}</div><div class="v">${money(c.net)}</div>` +
     `<div class="c">${pct(c.share)}${hasCmp ? (c.change_pct === null || c.change_pct === undefined ? "" : " · " + chChange(c)) : ""}</div>` +
     `<div class="c">${c.code === "unknown" ? "sales not tied to a channel" : num(c.orders) + " orders" + (Number(c.customers) ? " · " + num(c.customers) + " customers" : "")}</div></div>`).join("") + `</div>`;
   // ② 월별 쌓은 막대
@@ -1101,7 +1102,7 @@ function renderChannels(d){
   }
   // ③ 채널 표
   const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
-  const row = (c, isTot) => `<tr${isTot ? ' style="font-weight:700"' : ""}><td>${isTot ? "Total" : `<span class="chdot" style="background:var(--an-ch-${esc(c.code === "asung_web" ? "asung" : c.code === "aone_web" ? "aone" : c.code)})"></span>${esc(c.label)}`}</td>` +
+  const row = (c, isTot) => `<tr${isTot ? ' style="font-weight:700"' : ""}><td>${isTot ? "Total" : `<span class="chdot" style="background:var(--an-ch-${esc(c.code === "asung_web" ? "asung" : c.code === "aone_web" ? "aone" : c.code)})"></span>${c.code === "aone_web" ? `<a class="lnk" href="#channels/aone">${esc(c.label)} ›</a>` : esc(c.label)}`}</td>` +
     `<td class="r">${money(c.net)}</td><td class="r">${isTot ? "100%" : pct(c.share)}</td>` +
     (hasCmp ? `<td class="r">${money(c.cmp ? c.cmp.net : null)}</td><td>${chChange(c)}</td>` : "") +
     `<td class="r">${num(c.orders)}</td><td class="r">${Number(c.customers) ? num(c.customers) : "—"}</td><td class="r">${money(c.aov)}</td>${gpc(c)}</tr>`;
@@ -1113,7 +1114,7 @@ function renderChannels(d){
   const a = d.aone || {}, ac = a.cmp || null;
   const aKpi = (label, v, b, fmt, sub) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${v === null || v === undefined ? "—" : fmt(v)}</div><div class="c">${sub || (b === null || b === undefined || !hasCmp ? "&nbsp;" : change(v, b) + " vs " + fmt(b) + " " + esc(cl))}</div></div>`;
   const rateFmt = v => (Number(v) * 100).toFixed(1) + "%";
-  h += `<div class="card ancard">${ahead("Aone web customers", `counted from ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))}${a.clipped ? " — the part of this period before that is not counted" : ""}`, null)}<div class="body">` +
+  h += `<div class="card ancard">${ahead(`Aone web customers <a class="lnk" href="#channels/aone" style="font-weight:400;font-size:12.5px">Open Aone detail ›</a>`, `counted from ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))}${a.clipped ? " — the part of this period before that is not counted" : ""}`, null)}<div class="body">` +
     (a.buyers === null || a.buyers === undefined
       ? `<div class="dim">This period is before ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))} — Aone web customers are counted from then.</div>`
       : `<div class="kpis">` +
@@ -1148,6 +1149,133 @@ function renderChannels(d){
     const rows = shown.map(c => [c.label].concat(keys.map(k => c[k])).concat(hasCmp ? [c.cmp ? c.cmp.net : "", c.change_pct] : []));
     rows.push(["Total"].concat(keys.map(k => k === "share" ? 1 : tot[k])).concat(hasCmp ? [tot.cmp ? tot.cmp.net : "", tot.change_pct] : []));
     csvDownload("channels", ["channel"].concat(keys).concat(hasCmp ? ["compare_net", "change_pct"] : []), rows);
+  };
+}
+
+/* ── Aone web 상세(an v10 · 판정 1566 · 창구 an_channel_aone — asung-wms an-ch-4a) ──
+   비교 범위 = 채널 탭과 같게 · 손님 숫자는 2025-11-01 부터(1561 — 앞이면 null) · 새 손님과 재구매는 겹칠 수 있다(1564)
+   코호트 = all history · 거르기 무관(an-ch-4a 이견 3) · 오더 크기 = 크레딧 앞 판매(이견 2) · 주 = 손님마다 하나(Core 는 손님의 지금 주소) */
+let aod = null;
+async function loadChannelAone(){
+  const my = ++seq;
+  per = period();
+  const f = per.f, t = per.t;
+  let cf = null, ct = null, cl = "";
+  if(per.kind === "short"){ cf = per.prev[0]; ct = per.prev[1]; cl = per.vsPrev; }
+  else if(per.kind === "year"){ cf = addY(f, -1); ct = addY(t, -1); cl = "same days last year"; }
+  $("load").textContent = "Loading… (Aone detail takes a couple of seconds)";
+  const { data, error } = await crpc("an_channel_aone", { p_from: f, p_to: t, p_cmp_from: cf, p_cmp_to: ct,
+    p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}<br><a class="lnk" href="#channels">← All channels</a></div>`; return; }
+  aod = data; aod.cmpLabel = cl;
+  last = { from: data.period.from, to: data.period.to, warehouse: data.warehouse, brand: data.brand };
+  $("built").textContent = "";
+  renderChannelAone(data);
+}
+function aoneMonthChart(months){
+  const W = 1200, H = 260, L = 46, R = 14, T = 14, B = 34;
+  const n = months.length; if(!n) return "";
+  const max = Math.max(1, ...months.map(m => Number(m.buyers) || 0));
+  const step = (W - L - R) / n, bw = Math.min(56, Math.max(2, step * 0.72));
+  const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
+  let g = ""; for(let i = 0; i <= 4; i++){ const v = max * i / 4, yy = y(v); g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 3}" text-anchor="end">${num(v)}</text>`; }
+  let bars = "", labels = "";
+  months.forEach((m, i) => {
+    const x = L + i * step + (step - bw) / 2, nb = Math.max(0, Number(m.new) || 0), tb = Math.max(0, Number(m.buyers) || 0), ob = Math.max(0, tb - nb);
+    if(nb) bars += `<rect class="bar ch-aone_web" x="${x.toFixed(1)}" y="${y(nb).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - B - y(nb)).toFixed(1)}" data-i="${i}"/>`;
+    if(ob) bars += `<rect class="bar aone-old" x="${x.toFixed(1)}" y="${y(nb + ob).toFixed(1)}" width="${bw.toFixed(1)}" height="${(y(nb) - y(nb + ob)).toFixed(1)}" data-i="${i}"/>`;
+    if(!tb) bars += `<rect class="bar" x="${x.toFixed(1)}" y="${(H - B - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="1" data-i="${i}"/>`;
+    const mm = +m.month.slice(5, 7);
+    if(n <= 24 || mm === 1) labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - B + 14}" text-anchor="middle">${n <= 24 ? MON[mm - 1] + (mm === 1 || i === 0 ? " " + m.month.slice(2, 4) : "") : m.month.slice(0, 4)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Aone web buyers by month"><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>${g}${bars}${labels}</svg>`;
+}
+function renderChannelAone(d){
+  $("box").onclick = null;
+  const cc = !!d.can_cost, H = d.head || {}, hc = H.cmp || null, cl = d.cmpLabel || "", hasCmp = !!d.cmp;
+  const scope = (d.warehouse ? (/Edmonton/i.test(d.warehouse.name || "") ? "Edmonton" : "Toronto") : "All branches") + (d.brand ? " · " + d.brand : "");
+  const lbl = (per ? per.name + " · " : "") + fmtR(d.period.from, d.period.to);
+  const from = d.counted_from || "2025-11-01", fromTxt = fmtD(from) + " " + from.slice(0, 4);
+  const noCust = H.buyers === null || H.buyers === undefined;
+  const vs = (v, b, fmt) => !hasCmp || b === null || b === undefined ? "" : `<div class="c">${change(v, b)} vs ${fmt(b)} ${esc(cl)}</div>`;
+  const rateFmt = v => v === null || v === undefined ? "—" : (Number(v) * 100).toFixed(1) + "%";
+  const aovF = v => v === null || v === undefined ? "—" : "$" + num(v, 0);
+  let h = `<div class="card" style="padding:12px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">` +
+    `<a class="lnk" href="#channels">← All channels</a><span class="sp"></span>` +
+    `<div style="flex-basis:100%;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><span style="font-size:20px;font-weight:800;color:var(--ink)"><span class="chdot" style="background:var(--an-ch-aone)"></span>Aone web</span>` +
+    `<span class="dim">${esc(scope)} · ${esc(lbl)}${hasCmp ? " · compared with " + esc(cl) : ""}</span></div></div>`;
+  // ① 머리 넷
+  const so = H.second_order || {}, soc = hc ? (hc.second_order || {}) : {};
+  h += `<div class="kpis">` +
+    `<div class="card kpi chk ch-aone_web"><div class="l">Net sales</div><div class="v">${money(H.net)}</div>${vs(H.net, hc ? hc.net : null, money)}${cc ? `<div class="c">GP ${gpPct(H)}</div>` : ""}</div>` +
+    `<div class="card kpi"><div class="l">Orders · average order</div><div class="v">${num(H.orders)} <span class="sm">· ${aovF(H.aov)}</span></div>${vs(H.orders, hc ? hc.orders : null, v => num(v))}</div>` +
+    `<div class="card kpi"><div class="l">Customers who bought · repeat rate</div><div class="v">${noCust ? "—" : num(H.buyers)} <span class="sm">· ${rateFmt(H.repeat_rate)}</span></div>` +
+      `<div class="c">${noCust ? "counted from " + esc(fromTxt) : num(H.new) + " new · " + num(H.repeat) + " repeat buyers"}</div></div>` +
+    `<div class="card kpi"><div class="l">Median days to 2nd order</div><div class="v">${so.median_days === null || so.median_days === undefined ? "—" : num(so.median_days, Number(so.median_days) % 1 ? 1 : 0)}</div>` +
+      `<div class="c">${so.customers ? num(so.customers) + " customers whose 2nd order fell in this period" : "&nbsp;"}${hasCmp && soc.median_days !== null && soc.median_days !== undefined ? ` · ${num(soc.median_days, Number(soc.median_days) % 1 ? 1 : 0)} ${esc(cl)}` : ""}</div></div>` +
+    `</div>`;
+  if(H.clipped && !noCust) h += `<div class="card pnote">Customer counts start ${esc(fromTxt)} — the part of this period before that is not counted (sales still are).</div>`;
+  // ② 달마다 구매 손님
+  const months = d.monthly || [];
+  if(months.length > 1 && !noCust){
+    h += `<div class="card ancard">${ahead("Customers who bought, by month", "new = first Aone web order that month · the rest had bought before · hover for repeat buyers", null)}<div class="body chart" id="aochart">${aoneMonthChart(months)}` +
+      `<div class="legend"><span><i class="ch-aone_web"></i>New</span><span><i class="aone-old"></i>Bought before</span></div></div></div>`;
+  }
+  // ③ 코호트 · ④ 크기
+  const co = d.cohort || {}, rows = co.rows || [];
+  const pc = (r, k) => r[k] === null || r[k] === undefined ? `<td class="r dim" title="${esc(num(r["n" + k.slice(1)]))} so far — not a full ${k.slice(1)} days yet">·</td>` : `<td class="r" title="${esc(num(r["n" + k.slice(1)]))} of ${esc(num(r.new))}">${(Number(r[k]) * 100).toFixed(0)}%</td>`;
+  const cohortCard = rows.length ? `<div class="card ancard">${ahead("Came back within … days", `by month of first Aone web order · all history from ${esc(fromTxt)} · all branches and brands`, "aocohort")}<div class="body"><table><thead><tr><th>First order</th><th class="r">New</th><th class="r">30 d</th><th class="r">60 d</th><th class="r">90 d</th></tr></thead><tbody>` +
+    rows.map(r => `<tr${r.open ? ' class="dim"' : ""}><td>${esc(r.label || r.month)}${r.open ? " (so far)" : ""}</td><td class="r">${num(r.new)}</td>${pc(r, "d30")}${pc(r, "d60")}${pc(r, "d90")}</tr>`).join("") +
+    `</tbody></table><div class="dim" style="font-size:12px;margin-top:6px">Share of new customers who placed a second Aone web order within 30, 60 and 90 days · · = not enough days yet.</div></div></div>` : "";
+  const sz = d.sizes || [];
+  const sizeCard = `<div class="card ancard">${ahead("Order size", "product sales before credits · per order", null)}<div class="body"><table><thead><tr><th>Order total</th><th class="r">Orders</th><th class="r">Share</th><th class="r">Sales</th><th class="r">Avg</th>${hasCmp ? `<th class="r">Orders before</th>` : ""}</tr></thead><tbody>` +
+    sz.map(z => `<tr><td>${esc(z.label)}</td><td class="r">${num(z.orders)}</td><td class="r">${pct(z.share)}</td><td class="r">${money(z.sales)}</td><td class="r">${aovF(z.aov)}</td>${hasCmp ? `<td class="r">${z.cmp ? num(z.cmp.orders) : "—"}</td>` : ""}</tr>`).join("") + `</tbody></table></div></div>`;
+  h += `<div class="two">${cohortCard || ""}${sizeCard}</div>`;
+  // ⑤ 브랜드 · 제품
+  const chg = x => x.change_pct === null || x.change_pct === undefined ? (x.cmp && Number(x.cmp.net) === 0 && Number(x.net) > 0 ? `<span class="up">new</span>` : "") : chChange(x);
+  const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
+  const br = d.brands || [], pr = d.products || [];
+  h += `<div class="two">` +
+    `<div class="card ancard">${ahead("Top brands", `by net sales · ${num(d.brands_count)} brands sold`, "aobrands")}<div class="body"><table><thead><tr><th class="r">#</th><th>Brand</th><th class="r">Net sales</th><th class="r">Buyers</th>${hasCmp ? "<th>Change</th>" : ""}${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+      (br.length ? br.map(b => `<tr><td class="r dim">${num(b.rank)}</td><td>${esc(b.brand || "(no brand)")}</td><td class="r">${money(b.net)}</td><td class="r">${b.buyers === null || b.buyers === undefined ? "—" : num(b.buyers)}</td>${hasCmp ? `<td>${chg(b)}</td>` : ""}${gpc(b)}</tr>`).join("") : `<tr><td colspan="6" class="dim">No sales.</td></tr>`) + `</tbody></table></div></div>` +
+    `<div class="card ancard">${ahead("Top products", `by net sales · ${num(d.products_count)} products sold`, "aoproducts")}<div class="body"><table><thead><tr><th class="r">#</th><th>Product</th><th class="r">Net sales</th><th class="r">Units</th><th class="r">Buyers</th>${hasCmp ? "<th>Change</th>" : ""}</tr></thead><tbody>` +
+      (pr.length ? pr.map(p => `<tr><td class="r dim">${num(p.rank)}</td><td><a class="lnk" href="#products/${encodeURIComponent(p.product_id)}">${esc(p.sku)}</a> <span class="dim">${esc(p.name || "")}</span></td><td class="r">${money(p.net)}</td><td class="r">${num(p.qty)}</td><td class="r">${p.buyers === null || p.buyers === undefined ? "—" : num(p.buyers)}</td>${hasCmp ? `<td>${chg(p)}</td>` : ""}</tr>`).join("") : `<tr><td colspan="6" class="dim">No sales.</td></tr>`) + `</tbody></table></div></div>` +
+    `</div>`;
+  // ⑥ 배송 주
+  const pv = d.provinces || [];
+  if(pv.length){
+    const pmax = Math.max(1, ...pv.map(p => Number(p.buyers) || 0));
+    h += `<div class="card ancard">${ahead("Where buyers are", "ship-to province · one per customer (their latest order in this period)", "aoprov")}<div class="body"><table><thead><tr><th>Province</th><th class="r">Buyers</th><th></th><th class="r">Orders</th><th class="r">Sales</th>${hasCmp ? `<th class="r">Buyers before</th>` : ""}</tr></thead><tbody>` +
+      pv.map(p => `<tr${p.code === "unknown" ? ' class="dim"' : ""}><td>${esc(p.label || p.code)}</td><td class="r">${num(p.buyers)}</td><td style="width:40%"><span class="share" style="width:${Math.max(2, Math.round((Number(p.buyers) || 0) / pmax * 100))}%;background:var(--an-ch-aone)"></span> ${pct(p.share)}</td><td class="r">${num(p.orders)}</td><td class="r">${money(p.sales)}</td>${hasCmp ? `<td class="r">${p.cmp ? num(p.cmp.buyers) : "—"}</td>` : ""}</tr>`).join("") +
+      `</tbody></table></div></div>`;
+  }
+  // 알림
+  const PN = { period: "this period", cmp: "comparison" };
+  const nt = (d.notes || []).filter(n => !/_dates$/.test(n.code) && !["order_per_day", "lines", "cohort_all_history"].includes(n.code));
+  if(nt.length) h += `<div class="card ancard">${ahead("About these numbers", "", null)}<div class="body"><ul style="margin:0;padding-left:18px">` +
+    nt.map(n => `<li>${n.part ? "[" + esc(PN[n.part] || n.part) + "] " : ""}${esc(n.note)}${n.amount !== undefined && n.amount !== null ? " — " + money(n.amount) : ""}${n.count !== undefined && n.count !== null ? " · " + num(n.count) : ""}</li>`).join("") + `</ul></div></div>`;
+  $("box").innerHTML = h;
+  // 말풍선
+  const svg = $("aochart") ? $("aochart").querySelector("svg") : null;
+  if(svg){
+    svg.onmousemove = e => {
+      const r = e.target.closest("rect[data-i]"); if(!r){ $("tip").hidden = true; return; }
+      const m = months[+r.dataset.i]; if(!m) return;
+      $("tip").innerHTML = `<b>${esc(MON[+m.month.slice(5, 7) - 1] + " " + m.month.slice(0, 4))}</b> · ${num(m.buyers)} customers<br>New ${num(m.new)} · bought before ${num((Number(m.buyers) || 0) - (Number(m.new) || 0))}<br>Repeat buyers ${num(m.repeat)} (${rateFmt(m.repeat_rate)}) · ${num(m.orders)} orders · ${money(m.net)}`;
+      tipAt(e);
+    };
+    svg.onmouseleave = () => { $("tip").hidden = true; };
+  }
+  // CSV
+  $("box").onclick = e => {
+    const btn = e.target.closest("[data-csv]"); if(!btn) return;
+    const k = btn.dataset.csv;
+    if(k === "aocohort") csvDownload("aone-cohort", ["first_order_month", "new", "came_back_30d", "came_back_60d", "came_back_90d", "share_30d", "share_60d", "share_90d", "open"], rows.map(r => [r.month, r.new, r.n30, r.n60, r.n90, r.d30, r.d60, r.d90, r.open]));
+    else if(k === "aobrands") csvDownload("aone-brands", ["rank", "brand", "net", "sales", "credits", "qty", "buyers", "change_pct"].concat(cc ? ["cogs", "gp", "gp_pct"] : []), br.map(b => [b.rank, b.brand, b.net, b.sales, b.credits, b.qty, b.buyers, b.change_pct].concat(cc ? [b.cogs, b.gp, b.gp_pct] : [])));
+    else if(k === "aoproducts") csvDownload("aone-products", ["rank", "sku", "product", "brand", "net", "qty", "buyers", "change_pct"], pr.map(p => [p.rank, p.sku, p.name, p.brand, p.net, p.qty, p.buyers, p.change_pct]));
+    else if(k === "aoprov") csvDownload("aone-provinces", ["province", "buyers", "share", "orders", "sales"], pv.map(p => [p.label || p.code, p.buyers, p.share, p.orders, p.sales]));
   };
 }
 
