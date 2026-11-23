@@ -54,7 +54,7 @@
   .chip .kind{font-size:10.5px;font-weight:700;color:var(--muted);margin-right:4px}
   .cash{display:block;width:100%;text-align:left;border:0;background:none;padding:1px 2px;font:inherit;font-size:11.5px;cursor:pointer;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cash:hover{color:var(--ink);text-decoration:underline}
-  .cash.in b{color:var(--good)} .cash.out b{color:var(--ink)} .cash.ref{opacity:.8}
+  .cash.in b{color:var(--good)} .cash.out b{color:var(--ink)} .cash.ref{opacity:.8} .cash.dep b{color:var(--warn)}   /* db v6 선급금 */
   .pd{font-size:10.5px;border:1px solid var(--line);border-radius:6px;padding:0 4px;margin-left:3px;color:var(--muted)}
   .more{font-size:11.5px;color:var(--accent);background:none;border:0;padding:0 2px;cursor:pointer;text-align:left;font:inherit;font-size:11.5px}
 
@@ -263,7 +263,7 @@
      · Not paid 칸은 빨간 테두리(Caleb 11-16) — Overdue 는 빨간 테두리 + 붉은 바탕으로 갈린다 */
 /* [db v5 · 2026-11-17 · 대화 Claude · 판정 1302] Day 보기 맨 위에 「그날 매출」 — analytics 열쇠가 있는 사람만(imsAuth.canView('analytics') · 창구 an_daily(그날, 그날) 의 an_gate 가 한 번 더 막는다)
      · 순매출 · 오더 · 평균 · 지난해 같은 날 · 원가 권한이면 GP % · 운임 등 더한 세금 전 합계 · 지점 고르기는 판매 지점만 넘긴다(그 밖이면 전체) */
-const DB_BUILD = "2026-11-17 · db v5";
+const DB_BUILD = "2026-11-23 · db v6";   // 대화 Claude — db v6(판정 1567 · asung-wms cal-dep-1 20261123200000): 공급처 선급금 — 달 칸에 「Deposit sent」(cal_month.deposit_days · 아직 안 붙인 몫이 있으면 unapplied) · 「Paid by deposit」(deposit_applied_days · 현금 Paid out 과 따로 — 돈을 두 번 세지 않는다) · 그날 목록 kind deposit(보낸 선급금) · paid 목록의 kind deposit 줄 = 「by deposit DEP-…」(누르면 그 인보이스 · 비용 청구서) · Day 보기에 Supplier deposits sent · 열쇠 = purchasing(창구가 거른다)
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
@@ -336,7 +336,7 @@ async function load(){
     document.getElementById("calBox").innerHTML = `<div class="card dbmsg"><b>Could not load the calendar</b>${esc(err.message || String(err))}</div>`;
     return;
   }
-  const empty = { as_of: tr.data.today, can: { sales: false, purchasing: false }, ar_days: [], received_days: [], refund_days: [], ap_items: [], paid_days: [], overdue: { ar: [], ap: [] }, ap_no_due: 0 };
+  const empty = { as_of: tr.data.today, can: { sales: false, purchasing: false }, ar_days: [], received_days: [], refund_days: [], ap_items: [], paid_days: [], overdue: { ar: [], ap: [] }, ap_no_due: 0, deposit_items: [], deposit_days: [], deposit_applied_days: [] };
   lastData = mr.data || empty;
   tasks = tr.data.tasks || []; taskMe = tr.data.me || null;
   document.getElementById("tkWho").hidden = !(taskMe && taskMe.sees_all);
@@ -369,12 +369,14 @@ function renderOverdue(d){
 
 function renderCal(d, from, to){
   const by = {};                                // 날짜 → { ar:[], ap:[], rec:[], ref:[], paid:[] }
-  const slot = k => (by[k] = by[k] || { ar: [], ap: [], rec: [], ref: [], paid: [] });
+  const slot = k => (by[k] = by[k] || { ar: [], ap: [], rec: [], ref: [], paid: [], dep: [], depAp: [] });
   (d.ar_days || []).forEach(x => slot(x.date).ar.push(x));
   (d.ap_items || []).forEach(x => x.due && slot(x.due).ap.push(x));
   (d.received_days || []).forEach(x => slot(x.date).rec.push(x));
   (d.refund_days || []).forEach(x => slot(x.date).ref.push(x));
   (d.paid_days || []).forEach(x => slot(x.date).paid.push(x));
+  (d.deposit_days || []).forEach(x => slot(x.date).dep.push(x));            // db v6 — 보낸 선급금(날 × 통화)
+  (d.deposit_applied_days || []).forEach(x => slot(x.date).depAp.push(x));  // db v6 — 적용한 선급금(현금 paid 와 따로)
   const shown = tasks.filter(t => tkWho === "all" || !taskMe || t.assignee.id === taskMe.id);
   shown.forEach(t => { const s = slot(t.date); (s.tk = s.tk || []).push(t); });
 
@@ -383,7 +385,7 @@ function renderCal(d, from, to){
   for(let t = new Date(from); t <= to; t.setDate(t.getDate() + 1)){
     const k = ymd(t), s = by[k];
     const out = view === "month" && t.getMonth() !== cur.getMonth();
-    const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length || (s.tk && s.tk.length));
+    const has = s && (s.ar.length || s.ap.length || s.rec.length || s.ref.length || s.paid.length || s.dep.length || s.depAp.length || (s.tk && s.tk.length));
     let c = "";
     if(s && s.tk){
       s.tk.sort((a, b) => (a.status === b.status ? 0 : a.status === "open" ? -1 : 1) || (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
@@ -424,6 +426,12 @@ function renderCal(d, from, to){
       });
       s.paid.forEach(x => {
         c += `<button class="cash out" data-day="${k}" data-kind="paid">Paid out <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})</button>`;
+      });
+      s.depAp.forEach(x => {   // db v6 — 선급금을 인보이스 · 청구서에 붙인 날(돈은 이미 보낸 날 나갔다)
+        c += `<button class="cash out" data-day="${k}" data-kind="paid" title="Deposits applied: ${esc(x.deposits || "")}">Paid by deposit <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})</button>`;
+      });
+      s.dep.forEach(x => {     // db v6 — 선급금을 보낸 날
+        c += `<button class="cash dep" data-day="${k}" data-kind="deposit" title="Supplier deposits sent">Deposit sent <b>${esc(moneyShort(x.amount, x.currency))}</b> (${x.count})${Number(x.unapplied) > 0 ? `<span class="pd">${Number(x.unapplied) === Number(x.amount) ? "not applied" : esc(moneyShort(x.unapplied, x.currency)) + " unapplied"}</span>` : ""}</button>`;
       });
     }
     h += `<div class="day${out ? " out" : ""}${k === today ? " today" : ""}${has ? "" : " empty"}" data-dayk="${k}">` +
@@ -471,7 +479,7 @@ function openApDay(k){
 }
 async function openDay(k, kind){
   const titles = {
-    ar: "Customer invoices due — ", received: "Payments received — ", refund: "Refunds — ", paid: "Supplier payments — ",
+    ar: "Customer invoices due — ", received: "Payments received — ", refund: "Refunds — ", paid: "Supplier payments — ", deposit: "Supplier deposits sent — ",
     overdue_ar: "Overdue customer invoices", overdue_ap: "Overdue supplier bills and charges"
   };
   modal((titles[kind] || kind) + (k ? longDate(k) : ""), `<div class="dbmsg">Loading…</div>`);
@@ -501,11 +509,24 @@ function rowsHtml(kind, rows){
         `<td class="r">${esc(money(x.amount, x.currency))}</td><td>${x.post_dated ? `<span class="tag">post-dated</span>` : ""}</td></tr>`).join("") +
       `</tbody></table>`;
   }else if(kind === "paid"){
-    h += `<table><thead><tr><th>Supplier</th><th>Paid against</th><th class="r">Amount</th><th class="r">Discount</th></tr></thead><tbody>` +
-      rows.map(x => `<tr data-href="payments.html?id=${encodeURIComponent(x.id)}" style="cursor:pointer">` +
-        `<td>${esc(x.supplier || "—")}</td><td>${esc(Array.isArray(x.docs) ? x.docs.join(", ") : (x.docs || ""))}</td>` +
-        `<td class="r">${esc(money(x.amount, x.currency))}</td><td class="r">${Number(x.discount_taken) ? esc(money(x.discount_taken, x.currency)) : ""}</td></tr>`).join("") +
+    // db v6 — kind deposit 줄 = 선급금을 붙인 것(누르면 그 문서) · payment 줄 = 현금 지급(누르면 지급)
+    h += `<table><thead><tr><th>Supplier</th><th>Paid against</th><th>How</th><th class="r">Amount</th><th class="r">Discount</th></tr></thead><tbody>` +
+      rows.map(x => {
+        const dep = x.kind === "deposit";
+        const href = dep ? (x.doc === "charge" ? "charges.html?id=" : "invoices.html?id=") + encodeURIComponent(x.doc_id || "") : "payments.html?id=" + encodeURIComponent(x.id);
+        return `<tr data-href="${href}" style="cursor:pointer">` +
+          `<td>${esc(x.supplier || "—")}</td><td>${esc(Array.isArray(x.docs) ? x.docs.join(", ") : (x.docs || ""))}</td>` +
+          `<td>${dep ? `<span class="tag">by deposit ${esc(x.deposit_number || "")}${x.apply_no ? "-" + esc(x.apply_no) : ""}</span>` : "Payment"}</td>` +
+          `<td class="r">${esc(money(x.amount, x.currency))}</td><td class="r">${Number(x.discount_taken) ? esc(money(x.discount_taken, x.currency)) : ""}</td></tr>`;
+      }).join("") +
       `</tbody></table>`;
+  }else if(kind === "deposit"){
+    // db v6 — 그날 보낸 선급금(판정 1567 ①) · 기한 없음 — 「이날 돈이 나갔다」 기록 · 기록 · 적용은 Suppliers 화면(QuickBooks 열쇠)
+    h += `<table><thead><tr><th>Deposit</th><th>Supplier</th><th>PO</th><th class="r">Amount</th><th class="r">Applied</th><th class="r">Not applied yet</th></tr></thead><tbody>` +
+      rows.map(x => `<tr><td>${esc(x.number || "")}</td><td>${esc(x.supplier || "—")}</td><td>${esc(x.po_number || "")}</td>` +
+        `<td class="r">${esc(money(x.amount, x.currency))}</td><td class="r">${Number(x.applied) ? esc(money(x.applied, x.currency)) : "—"}</td>` +
+        `<td class="r">${Number(x.unapplied) ? esc(money(x.unapplied, x.currency)) : "—"}</td></tr>`).join("") +
+      `</tbody></table><p class="sub">Deposits are recorded and applied on the supplier's page (Suppliers).</p>`;
   }else{
     h += apRows(rows);
   }
@@ -518,7 +539,7 @@ async function renderDay(d, k, my){
   const wh = whId || null;
   const calls = [];
   if(d.can.sales){ calls.push(["ar", sb.rpc("cal_day", { p_date: k, p_kind: "ar", p_warehouse: wh })], ["received", sb.rpc("cal_day", { p_date: k, p_kind: "received", p_warehouse: wh })], ["refund", sb.rpc("cal_day", { p_date: k, p_kind: "refund", p_warehouse: wh })]); }
-  if(d.can.purchasing){ calls.push(["paid", sb.rpc("cal_day", { p_date: k, p_kind: "paid", p_warehouse: null })]); }
+  if(d.can.purchasing){ calls.push(["paid", sb.rpc("cal_day", { p_date: k, p_kind: "paid", p_warehouse: null })], ["deposit", sb.rpc("cal_day", { p_date: k, p_kind: "deposit", p_warehouse: null })]); }   // db v6 — 선급금
   const canSales = imsAuth.canView("analytics") && k <= (d.as_of || k);   // 판정 1302 — 앞날은 매출이 없다
   if(canSales){
     const whName = whId ? ((document.querySelector(`#wh option[value="${whId}"]`) || {}).textContent || "") : "";
@@ -530,7 +551,7 @@ async function renderDay(d, k, my){
   if(my !== seq) return;
   const got = {};
   calls.forEach((c, i) => { got[c[0]] = res[i]; });
-  const err = res.find((r, i) => r.error && calls[i][0] !== "sales");   // 매출 줄이 안 되면 그 줄만 빼고 그린다
+  const err = res.find((r, i) => r.error && calls[i][0] !== "sales" && calls[i][0] !== "deposit");   // 매출 줄이 안 되면 그 줄만 빼고 그린다 · db v6 — 선급금 줄도(창구가 아직 옛 판이어도 날 보기가 서게)
   if(err){ box.innerHTML = `<div class="card dbmsg"><b>Could not load the day</b>${esc(err.error.message)}</div>`; return; }
 
   const sec = (title, sum, body, extra) => `<div class="card"><h3>${title}${sum ? ` <span class="sum">${sum}</span>` : ""}<span class="sp"></span>${extra || ""}</h3>${body}</div>`;
@@ -594,6 +615,10 @@ async function renderDay(d, k, my){
   if(got.paid){
     const r = got.paid.data.rows || [];
     h += sec("Supplier payments", r.length ? `${r.length} · ${totals(r, x => x.amount)}` : "", r.length ? rowsHtml("paid", r) : `<div class="empty">None.</div>`);
+  }
+  if(got.deposit && !got.deposit.error && got.deposit.data){   // db v6
+    const r = got.deposit.data.rows || [];
+    if(r.length) h += sec("Supplier deposits sent", `${r.length} · ${totals(r, x => x.amount)}`, rowsHtml("deposit", r));
   }
   box.innerHTML = `<div class="dayv">${h}</div>`;
   box.querySelectorAll("[data-task]").forEach(b => b.onclick = () => openTask(b.dataset.task));
