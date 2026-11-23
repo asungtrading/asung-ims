@@ -15,6 +15,8 @@
  * ⚠️ Terms · Ship To(2026-08-30) 는 wms_orders.terms·ship_address(jsonb) — **유입 시점 값**이다(A안).
  *    인쇄 시점의 Cin7 최신값이 아니다 — Cin7 에서 주소·terms 를 고친 오더는 옛 값이 찍힌다(최신화는 다음 단계).
  *    과거 오더는 null → row() 가 줄을 생략한다(reference 전례).
+ * ⭐ [2026-11-23 · 판정 1565 · 대화 Claude] Shipping notes(so.shipping_notes) — 오더 머리 아래 · Comments 위에 굵은 테두리 상자(비면 안 찍음 · 줄바꿈 그대로).
+ *    부르는 곳이 p.shippingNotes 로 넘긴다(manager Create batches · Create wave 오더 장 · picker · packer 재인쇄 — 트랜스퍼는 없음).
  */
 (function () {
   "use strict";
@@ -60,7 +62,7 @@
        warehouse, priceTier, printed, printedBy,
        wave, tote, customerName, totalLines, totalUnits,
        pickedBySlot(기본 true — 우측 칸에 "Picked By ____"),
-       zones, comments, footer
+       zones, shippingNotes, comments, footer
      }
      ⚠️ barcode 는 batchLabel 그대로. 스캔 재진입 키다. */
   function batchPage(p) {
@@ -91,10 +93,12 @@
       "<div><b>Total Units</b>" + esc(p.totalUnits == null ? "" : p.totalUnits) + "</div>" +
       (p.pickedBySlot === false ? "" : "<div><b>Picked By</b>________________</div>");
     var cmt = (p.comments || "").trim();
+    var shn = String(p.shippingNotes == null ? "" : p.shippingNotes).trim();   // 판정 1565
     return '<section class="page' + (p.pageBreak ? " pb" : "") + '">' +
       docHead("PICK LIST", barcode) +
       '<div class="info"><div>' + left + "</div><div>" + right + "</div></div>" +
       (p.zones == null ? "" : '<div class="zones"><b>Zones</b> ' + esc(p.zones) + "</div>") +
+      (shn ? '<div class="shn"><b>Shipping notes</b>' + esc(shn) + "</div>" : "") +
       (cmt ? '<div class="cmt"><b>Comments</b> ' + esc(cmt) + "</div>" : "") +
       (p.footer ? '<div class="pk">' + esc(p.footer) + "</div>" : "") +
       "</section>";
@@ -157,6 +161,7 @@
     "td{padding:9px 10px;border-bottom:1px solid #ddd;font-size:14px}",
     "td.tn{font-weight:800;white-space:nowrap} td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}",
     ".note{margin-top:16px;color:#555;font-size:12px}",
+    ".shn{margin:10px 0 2px;font-size:15px;font-weight:700;padding:10px 12px;border:2.5px solid #12161c;border-radius:8px;color:#12161c;white-space:pre-wrap} .shn b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#555;margin-bottom:3px}",
     "@media print{body{margin:14mm} .pb{page-break-before:always}}",
   ].join("\n    ");
 
