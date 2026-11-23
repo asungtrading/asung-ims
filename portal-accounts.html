@@ -83,7 +83,7 @@
    손님 고르기: REST customer 표(id · name · display_name · is_active · parent_id) — so.html 과 같은 읽기
    ⭐ 임시 비밀번호 · 보기 토큰은 화면에만 한 번 — 어디에도 남기지 않는다 · 보기 토큰은 # 조각으로 넘긴다(포털이 읽고 바로 지운다 · port-6 이견 9)
    ───────────────────────────────────────────────────────────── */
-const PA_BUILD = "2026-11-23 · pa v1";   // 대화 Claude — port-6 화면(판정 1557 ~ 1559): 목록 · 만들기 · 고치기 · 비밀번호 초기화 · 잠금 풀기 · 켜기/끄기 · 손님으로 보기 · 보기 기록
+const PA_BUILD = "2026-11-23 · pa v1b";   // 대화 Claude — pa v1b(판정 1558): 주소의 ?q= 를 검색 칸에(Customers 상세의 Customer portal 링크) ← pa v1: port-6 화면(판정 1557 ~ 1559): 목록 · 만들기 · 고치기 · 비밀번호 초기화 · 잠금 풀기 · 켜기/끄기 · 손님으로 보기 · 보기 기록
 console.log("portal-accounts.html build:", PA_BUILD);
 const PORTAL_URL = "https://tools.asung.ca/customer-portal.html";
 
@@ -367,6 +367,8 @@ imsAuth.start({ changePw: true }, async (client, me) => {
   nb.hidden = !canWrite; nb.onclick = () => openForm(null);
   document.getElementById("paShowOff").onchange = (e) => { showOff = e.target.checked; render(); };
   document.getElementById("paSearch").oninput = (e) => { query = e.target.value.trim(); render(); };
+  const q0 = new URLSearchParams(location.search).get("q");   // pa v1b — Customers 상세에서 온 링크
+  if(q0){ query = q0.trim(); document.getElementById("paSearch").value = query; }
   if(await load()) await loadLog();
   else document.getElementById("logBody").innerHTML = "";
 });
