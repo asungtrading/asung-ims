@@ -96,6 +96,17 @@
   .gaps li{margin:3px 0;font-size:13px}
   .gaps .code{font-family:var(--mono);font-size:11px;color:var(--muted);margin-right:6px}
 
+  /* an v9 — 채널 탭(판정 1563) · 채널 색은 이름 변수 한 곳(다크는 한 단 밝게) */
+  :root{--an-ch-asung:#1D9E75;--an-ch-aone:#D4537E;--an-ch-b2b:#534AB7;--an-ch-pos:#BA7517;--an-ch-unknown:#888780;--an-ch-mixed:#5F5E5A}
+  html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--an-ch-asung:#5DCAA5;--an-ch-aone:#ED93B1;--an-ch-b2b:#AFA9EC;--an-ch-pos:#EF9F27;--an-ch-unknown:#B4B2A9;--an-ch-mixed:#888780}
+  .chart .ch-asung_web{fill:var(--an-ch-asung)} .chart .ch-aone_web{fill:var(--an-ch-aone)} .chart .ch-b2b{fill:var(--an-ch-b2b)}
+  .chart .ch-pos{fill:var(--an-ch-pos)} .chart .ch-unknown{fill:var(--an-ch-unknown)} .chart .ch-mixed{fill:var(--an-ch-mixed)}
+  .chk{border-left:4px solid var(--line)} .chk.ch-asung_web{border-left-color:var(--an-ch-asung)} .chk.ch-aone_web{border-left-color:var(--an-ch-aone)}
+  .chk.ch-b2b{border-left-color:var(--an-ch-b2b)} .chk.ch-pos{border-left-color:var(--an-ch-pos)} .chk.ch-unknown{border-left-color:var(--an-ch-unknown)} .chk.ch-mixed{border-left-color:var(--an-ch-mixed)}
+  .legend i.ch-asung_web{background:var(--an-ch-asung)} .legend i.ch-aone_web{background:var(--an-ch-aone)} .legend i.ch-b2b{background:var(--an-ch-b2b)}
+  .legend i.ch-pos{background:var(--an-ch-pos)} .legend i.ch-unknown{background:var(--an-ch-unknown)} .legend i.ch-mixed{background:var(--an-ch-mixed)}
+  .chdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
+
   @media print{
     header,.antop .noprint,.antabs,.csvb,#tip{display:none!important}
     .anwrap{max-width:none;padding:0}
@@ -168,15 +179,16 @@
    창구(an v8): an_products(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand, p_category, p_channel, p_new_n, p_limit) · an_product(p_product, p_from, p_to, p_prev_*, p_ly_*, p_warehouse, p_new_n) — pr-2 · 20261122010000 · p_channel 은 null 만(채널 차수 뒤)
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-22 · an v8b";   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-23 · an v9";   // an v9 — 채널 탭(Channels · #channels · 판정 1560 ~ 1564 · asung-wms an-ch-3a · an_channels): 채널 카드(순매출 · 비중 · 비교 대비 · 오더 · 손님) · 월별 채널 쌓은 막대(말풍선에 채널별) · 채널 표 + 합계(평균 오더 · GP % 는 원가 권한만 · CSV) · Aone 웹 손님(New · Repeat buyers · Repeat rate — 2025-11 부터 · 판정 1561 · 1564) · 알림 · 비교 범위 = 손님 탭과 같게 · 빈 Unknown · Mixed 는 숨김 ← an v8b   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
 const TABS = {
   overview: { label: "Sales overview", load: loadOverview },
   customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() },   // an v4 · an-4a · an v5 상세 = #customers/<손님>
-  products: { label: "Products", load: () => routeArgs[0] ? loadProduct(routeArgs[0], routeArgs[1] === "period") : loadProducts() }   // an v8 · pr-2 · 상세 = #products/<제품>[/period]
-  // 다음 탭(판정 1288 순서): customers → products → brands → seasonality → stock-outs — 한 줄씩 더한다 · 채널 탭(1523)은 ch-1 ~ ch-4 뒤
+  products: { label: "Products", load: () => routeArgs[0] ? loadProduct(routeArgs[0], routeArgs[1] === "period") : loadProducts() },   // an v8 · pr-2 · 상세 = #products/<제품>[/period]
+  channels: { label: "Channels", load: loadChannels }   // an v9 · an-ch-3a · 판정 1563
+  // 다음 탭(판정 1288 순서): brands → seasonality → stock-outs — 한 줄씩 더한다 · Website 탭(1546)은 va-4 · va-5 뒤
 };
 let tab = "overview", last = null, seq = 0, daily = null;
 
@@ -1020,6 +1032,125 @@ async function runLoad(){   // an v6 — 기억 표시를 위해 모든 읽기�
   rpcOldest = null;
   try { await TABS[tab].load(); } finally { rpcFresh = false; memoNote(); }
 }
+/* ── 채널 탭(an v9 · 판정 1560 ~ 1564 · 창구 an_channels — asung-wms an-ch-3a) ──
+   비교 범위 = 손님 탭과 같게: 주 · 월 = per.prev · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖 = 비교 없음(cmp null)
+   share · repeat_rate = 0 ~ 1 비율 · change_pct · gp_pct = % · 원가 권한이 없으면 원가 키가 아예 없다(an_cell) — 화면은 can_cost 로 칸만 감춘다
+   채널 순서는 창구가 고정으로 준다 · empty 인 unknown · mixed 는 숨긴다(판정 1562 — 0 이 아니면 그대로 보인다) */
+let chd = null;
+const CH_ORDER = ["b2b", "asung_web", "pos", "aone_web", "unknown", "mixed"];   // 보이는 순서(큰 채널 먼저 · 목업 1563)
+async function loadChannels(){
+  const my = ++seq;
+  per = period();
+  const f = per.f, t = per.t;
+  let cf = null, ct = null, cl = "";
+  if(per.kind === "short"){ cf = per.prev[0]; ct = per.prev[1]; cl = per.vsPrev; }
+  else if(per.kind === "year"){ cf = addY(f, -1); ct = addY(t, -1); cl = "same days last year"; }
+  $("load").textContent = $("brand").value.trim() ? "Loading… (a brand takes a few seconds)" : "Loading…";
+  const { data, error } = await crpc("an_channels", { p_from: f, p_to: t, p_cmp_from: cf, p_cmp_to: ct,
+    p_warehouse: $("branch").value || null, p_brand: $("brand").value.trim() || null });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card anmsg"><b>Could not load</b>${esc(error.message)}</div>`; return; }
+  chd = data; chd.cmpLabel = cl;
+  last = { from: data.period.from, to: data.period.to, warehouse: data.warehouse, brand: data.brand };
+  $("built").textContent = "";
+  renderChannels(data);
+}
+function chShown(d){
+  const by = {}; (d.channels || []).forEach(c => by[c.code] = c);
+  return CH_ORDER.map(k => by[k]).filter(c => c && !(c.empty && (c.code === "unknown" || c.code === "mixed")));
+}
+const chChange = x => x.change_pct === null || x.change_pct === undefined ? "" : `<span class="${x.change_pct >= 0 ? "up" : "dn"}">${x.change_pct >= 0 ? "▲" : "▼"} ${Math.abs(x.change_pct).toFixed(1)}%</span>`;
+function chMonthChart(months, shown){
+  const W = 1200, H = 300, L = 56, R = 14, T = 14, B = 34;
+  const n = months.length; if(!n) return "";
+  const codes = shown.map(c => c.code);
+  const pos = m => codes.reduce((a, k) => a + Math.max(0, Number((m.channels || {})[k]) || 0), 0);
+  const max = Math.max(1, ...months.map(pos));
+  const step = (W - L - R) / n, bw = Math.min(56, Math.max(2, step * 0.72));
+  const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
+  let g = ""; for(let i = 0; i <= 4; i++){ const v = max * i / 4, yy = y(v); g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text x="${L - 6}" y="${yy + 3}" text-anchor="end">${short(v)}</text>`; }
+  let bars = "", labels = "";
+  months.forEach((m, i) => {
+    const x = L + i * step + (step - bw) / 2; let acc = 0;
+    codes.forEach(k => {
+      const v = Math.max(0, Number((m.channels || {})[k]) || 0); if(!v) return;
+      const y1 = y(acc + v), y0 = y(acc); acc += v;
+      bars += `<rect class="bar ch-${esc(k)}" x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0, y0 - y1).toFixed(1)}" data-i="${i}"/>`;
+    });
+    if(!acc) bars += `<rect class="bar" x="${x.toFixed(1)}" y="${(H - B - 1).toFixed(1)}" width="${bw.toFixed(1)}" height="1" data-i="${i}"/>`;
+    const mm = +m.month.slice(5, 7);
+    if(n <= 24 || mm === 1) labels += `<text x="${(x + bw / 2).toFixed(1)}" y="${H - B + 14}" text-anchor="middle">${n <= 24 ? MON[mm - 1] + (mm === 1 || i === 0 ? " " + m.month.slice(2, 4) : "") : m.month.slice(0, 4)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly net sales by channel"><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>${g}${bars}${labels}</svg>`;
+}
+function renderChannels(d){
+  const cc = !!d.can_cost, P = d.period, cl = d.cmpLabel || "", hasCmp = !!d.cmp;
+  const scope = (d.warehouse ? (/Edmonton/i.test(d.warehouse.name || "") ? "Edmonton" : "Toronto") : "All branches") + (d.brand ? " · " + d.brand : "");
+  const lbl = (per ? per.name + " · " : "") + fmtR(P.from, P.to);
+  const shown = chShown(d), tot = d.total || {};
+  // ① 채널 카드
+  let h = `<div class="kpis">` + shown.map(c => `<div class="card kpi chk ch-${esc(c.code)}"><div class="l">${esc(c.label)}</div><div class="v">${money(c.net)}</div>` +
+    `<div class="c">${pct(c.share)}${hasCmp ? (c.change_pct === null || c.change_pct === undefined ? "" : " · " + chChange(c)) : ""}</div>` +
+    `<div class="c">${c.code === "unknown" ? "sales not tied to a channel" : num(c.orders) + " orders" + (Number(c.customers) ? " · " + num(c.customers) + " customers" : "")}</div></div>`).join("") + `</div>`;
+  // ② 월별 쌓은 막대
+  const months = d.monthly || [];
+  if(months.length > 1){
+    h += `<div class="card ancard">${ahead("Net sales by month and channel", `${scope} · ${esc(lbl)}`, null)}<div class="body chart" id="chchart">${chMonthChart(months, shown)}` +
+      `<div class="legend">${shown.map(c => `<span><i class="ch-${esc(c.code)}"></i>${esc(c.label)}</span>`).join("")}</div></div></div>`;
+  }
+  // ③ 채널 표
+  const gpc = x => cc ? `<td class="r">${gpPct(x)}</td>` : "";
+  const row = (c, isTot) => `<tr${isTot ? ' style="font-weight:700"' : ""}><td>${isTot ? "Total" : `<span class="chdot" style="background:var(--an-ch-${esc(c.code === "asung_web" ? "asung" : c.code === "aone_web" ? "aone" : c.code)})"></span>${esc(c.label)}`}</td>` +
+    `<td class="r">${money(c.net)}</td><td class="r">${isTot ? "100%" : pct(c.share)}</td>` +
+    (hasCmp ? `<td class="r">${money(c.cmp ? c.cmp.net : null)}</td><td>${chChange(c)}</td>` : "") +
+    `<td class="r">${num(c.orders)}</td><td class="r">${Number(c.customers) ? num(c.customers) : "—"}</td><td class="r">${money(c.aov)}</td>${gpc(c)}</tr>`;
+  h += `<div class="card ancard">${ahead("By channel", `${scope} · ${esc(lbl)}${hasCmp ? " · compared with " + esc(cl) : ""}`, "chtable")}` +
+    `<div class="body"><table><thead><tr><th>Channel</th><th class="r">Net sales</th><th class="r">Share</th>${hasCmp ? `<th class="r">Before</th><th>Change</th>` : ""}<th class="r">Orders</th><th class="r">Customers</th><th class="r">Avg order</th>${cc ? `<th class="r">GP %</th>` : ""}</tr></thead><tbody>` +
+    shown.map(c => row(c, false)).join("") + row(tot, true) + `</tbody></table>` +
+    `<div class="dim" style="font-size:12px;margin-top:6px">Customers are counted once per head office · the total counts each customer once even if they bought in several channels.</div></div></div>`;
+  // ④ Aone 웹 손님(판정 1561 · 1564)
+  const a = d.aone || {}, ac = a.cmp || null;
+  const aKpi = (label, v, b, fmt, sub) => `<div class="card kpi"><div class="l">${label}</div><div class="v">${v === null || v === undefined ? "—" : fmt(v)}</div><div class="c">${sub || (b === null || b === undefined || !hasCmp ? "&nbsp;" : change(v, b) + " vs " + fmt(b) + " " + esc(cl))}</div></div>`;
+  const rateFmt = v => (Number(v) * 100).toFixed(1) + "%";
+  h += `<div class="card ancard">${ahead("Aone web customers", `counted from ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))}${a.clipped ? " — the part of this period before that is not counted" : ""}`, null)}<div class="body">` +
+    (a.buyers === null || a.buyers === undefined
+      ? `<div class="dim">This period is before ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))} — Aone web customers are counted from then.</div>`
+      : `<div class="kpis">` +
+        aKpi("Customers who bought", a.buyers, ac ? ac.buyers : null, num) +
+        aKpi("New", a.new, ac ? ac.new : null, num) +
+        aKpi("Repeat buyers", a.repeat, ac ? ac.repeat : null, num) +
+        aKpi("Repeat rate", a.repeat_rate, ac ? ac.repeat_rate : null, rateFmt) + `</div>` +
+        `<div class="dim" style="font-size:12px;margin-top:8px">New = first Aone web order falls in this period. Repeat buyers = bought in this period and have two or more Aone web orders in all (from ${esc(fmtD(a.counted_from || "2025-11-01"))} ${esc(String(a.counted_from || "2025").slice(0, 4))}). A new customer who ordered twice is in both.</div>`) +
+    `</div></div>`;
+  // ⑤ 알림
+  const nt = (d.notes || []).filter(n => !/_dates$/.test(n.code) && n.code !== "order_per_day");
+  const PN = { period: "this period", cmp: "comparison" };
+  if(nt.length) h += `<div class="card ancard">${ahead("About these numbers", "", null)}<div class="body"><ul style="margin:0;padding-left:18px">` +
+    nt.map(n => `<li>${n.part ? "[" + esc(PN[n.part] || n.part) + "] " : ""}${esc(n.note)}${n.amount !== undefined && n.amount !== null ? " — " + money(n.amount) : ""}${n.count !== undefined && n.count !== null ? " · " + num(n.count) : ""}</li>`).join("") + `</ul></div></div>`;
+  $("box").innerHTML = h;
+  // 말풍선(달마다 채널별)
+  const svg = $("chchart") ? $("chchart").querySelector("svg") : null;
+  if(svg){
+    svg.onmousemove = e => {
+      const r = e.target.closest("rect[data-i]"); if(!r){ $("tip").hidden = true; return; }
+      const m = months[+r.dataset.i]; if(!m) return;
+      $("tip").innerHTML = `<b>${esc(MON[+m.month.slice(5, 7) - 1] + " " + m.month.slice(0, 4))}</b>${m.from !== m.month || (m.to && m.to.slice(8) !== String(mEnd(+m.month.slice(0, 4), +m.month.slice(5, 7))).padStart(2, "0")) ? ` <span style="opacity:.75">(${esc(fmtD(m.from))} – ${esc(fmtD(m.to))})</span>` : ""} · ${money(m.net)}<br>` +
+        shown.map(c => `${esc(c.label)}: ${money((m.channels || {})[c.code])}`).join("<br>");
+      tipAt(e);
+    };
+    svg.onmouseleave = () => { $("tip").hidden = true; };
+  }
+  // CSV
+  $("box").onclick = e => {
+    const btn = e.target.closest("[data-csv]"); if(!btn || btn.dataset.csv !== "chtable") return;
+    const keys = CELL_KEYS(d).concat(["share", "customers"]);
+    const rows = shown.map(c => [c.label].concat(keys.map(k => c[k])).concat(hasCmp ? [c.cmp ? c.cmp.net : "", c.change_pct] : []));
+    rows.push(["Total"].concat(keys.map(k => k === "share" ? 1 : tot[k])).concat(hasCmp ? [tot.cmp ? tot.cmp.net : "", tot.change_pct] : []));
+    csvDownload("channels", ["channel"].concat(keys).concat(hasCmp ? ["compare_net", "change_pct"] : []), rows);
+  };
+}
+
 function drawTabs(){
   $("tabs").innerHTML = Object.keys(TABS).map(k => `<a href="#${k}" class="${k === tab ? "cur" : ""}">${esc(TABS[k].label)}</a>`).join("");
 }
