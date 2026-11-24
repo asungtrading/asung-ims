@@ -108,8 +108,32 @@
   .chdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:0}
   .chart .aone-old{fill:color-mix(in srgb,var(--an-ch-aone) 40%,var(--ims-surface))} .legend i.aone-old{background:color-mix(in srgb,var(--an-ch-aone) 40%,var(--ims-surface))}   /* an v10 */
 
+  /* an v11 — Website 탭(판정 1546 · 1568 ~ 1586 · 창구 an_web_*) · 색은 공통 변수와 채널 색 이름만 */
+  .wsbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .wssub{display:flex;gap:2px;flex-wrap:wrap}
+  .wssub a{padding:5px 11px;border-radius:7px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none}
+  .wssub a:hover{background:var(--ims-hover)}
+  .wssub a.cur{background:var(--ims-sel-bg);color:var(--ims-brand)}
+  .wsst{font-size:12.5px}
+  .wstog{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px}
+  .wst td,.wst th{font-size:12.5px;vertical-align:top}
+  .wst td.r,.wst th.r{text-align:right;font-variant-numeric:tabular-nums}
+  .wst td.nw{white-space:nowrap}
+  .wssub2{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .wschip{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+  .wschips{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .wschips b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .wsfoot{font-size:12px;margin-top:8px}
+  .wsnotes{margin:0;padding-left:18px} .wsnotes li{margin:3px 0;font-size:13px}
+  .wsbox{max-width:1080px}
+  .wsbox a.lnk{color:var(--accent);text-decoration:none} .wsbox a.lnk:hover{text-decoration:underline}
+  .wsbox .badge.new{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:9px;color:var(--good);border:1px solid color-mix(in srgb,var(--good) 45%,transparent)}
+  .wsbox .badge.risk{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:9px;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent)}
+  .wsbox table{width:100%}
+  .wslogwho{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+
   @media print{
-    header,.antop .noprint,.antabs,.csvb,#tip{display:none!important}
+    header,.antop .noprint,.antabs,.csvb,#tip,.pbar,#wsModal{display:none!important}
     .anwrap{max-width:none;padding:0}
     .ancard,.kpi{break-inside:avoid}
     /* 다크 모드에서 인쇄해도 흰 바탕(판정 1289) */
@@ -178,9 +202,10 @@
    창구: an_overview(p_from, p_to, p_warehouse, p_brand) — an-1c · 20261116130000
    창구(an v3): an_period(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand) — an-3 · 20261117001000 · 주 · 월 기간(날짜 그대로 · 비교 두 범위) · 회계연도 · 달력 해의 지난해 끝 덜 찬 달
    창구(an v8): an_products(p_from, p_to, p_prev_from, p_prev_to, p_ly_from, p_ly_to, p_warehouse, p_brand, p_category, p_channel, p_new_n, p_limit) · an_product(p_product, p_from, p_to, p_prev_*, p_ly_*, p_warehouse, p_new_n) — pr-2 · 20261122010000 · p_channel 은 null 만(채널 차수 뒤)
+   창구(an v11): an_web_overview · an_web_visitors · an_web_visit_log · an_web_pages · an_web_products · an_web_viewers · an_web_searches · an_web_where · an_web_not_ordering · an_web_away — va-4c · 20261123230000 · 인자 · 응답은 계약서 an-web-0(asung-wms 밖 · Claude Code 가 운영 DB 표본으로 만든 것)
    ⚠️ year_by_month 의 null = 「자료 없음」(0 으로 그리지 마라) · Not recorded 줄의 GP % 는 감춘다(대부분 크레딧 · an-1c 이견 8)
    ───────────────────────────────────────────────────────────── */
-const AN_BUILD = "2026-11-23 · an v10";   // an v10 — Aone web 상세(#channels/aone · 판정 1566 · asung-wms an-ch-4a · an_channel_aone): Channels 의 Aone 카드 · 표 줄 · Aone 손님 칸 머리에서 연다 · 머리 넷(순매출 · 오더와 평균 · 구매 손님과 재구매율 · 둘째 오더까지 걸린 날 가운데값) · 달마다 구매 손님(New · 전에 산 손님 쌓음 · 말풍선에 재구매) · 30 / 60 / 90 일 코호트(all history · 거르기 무관) · 오더 크기(크레딧 앞) · 브랜드 · 제품 상위 10 · 배송 주(Core 시대는 손님의 지금 주소 — 알림) ← an v9 — 채널 탭(Channels · #channels · 판정 1560 ~ 1564 · asung-wms an-ch-3a · an_channels): 채널 카드(순매출 · 비중 · 비교 대비 · 오더 · 손님) · 월별 채널 쌓은 막대(말풍선에 채널별) · 채널 표 + 합계(평균 오더 · GP % 는 원가 권한만 · CSV) · Aone 웹 손님(New · Repeat buyers · Repeat rate — 2025-11 부터 · 판정 1561 · 1564) · 알림 · 비교 범위 = 손님 탭과 같게 · 빈 Unknown · Mixed 는 숨김 ← an v8b   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
+const AN_BUILD = "2026-11-23 · an v11";   // an v11 — Website 탭(#website/<갈래>/<스토어> · 판정 1546 · 1568 ~ 1586 · asung-wms va-4c d297f39 · 계약서 an-web-0): 스토어 asung.ca | aonebeauty.com · 갈래 여섯(Overview — 방문자 · 로그인 · 주문한 계정 · 페이지 · 제품 · 검색 · aone 결제 → 주문 · 날마다 방문자(비교 점선) / Visitors — 거르기 승인 · 주문 · 조회 수 / Pages & products — 묶음 · 페이지 · 브랜드 · 제품(브랜드 고르기) · 장바구니(aone) · 컬렉션 · 본 뒤 14 일 안에 산 / Searches — 검색어 · 볼 만한 검색어 · 검색 → 연 제품 / Where — 로그인한 계정 | 등록 계정 전부 · 주 · 도시 · 지점 / Not ordering — ① 왔지만 안 산 ② 가격만 보는 계정(10 일+ · 승인) ③ 오래 안 온 ④ 한 번도 안 온(전 기간)) · 이름 → 방문 내역 창(180 일 · 브라우저 내역으로 이어 보기) · 👥 → 조회자 창 · 표마다 CSV · 이 탭에서는 지점 · 브랜드 칸을 감춘다(창구가 받지 않는다) ← an v10   // an v10 — Aone web 상세(#channels/aone · 판정 1566 · asung-wms an-ch-4a · an_channel_aone): Channels 의 Aone 카드 · 표 줄 · Aone 손님 칸 머리에서 연다 · 머리 넷(순매출 · 오더와 평균 · 구매 손님과 재구매율 · 둘째 오더까지 걸린 날 가운데값) · 달마다 구매 손님(New · 전에 산 손님 쌓음 · 말풍선에 재구매) · 30 / 60 / 90 일 코호트(all history · 거르기 무관) · 오더 크기(크레딧 앞) · 브랜드 · 제품 상위 10 · 배송 주(Core 시대는 손님의 지금 주소 — 알림) ← an v9 — 채널 탭(Channels · #channels · 판정 1560 ~ 1564 · asung-wms an-ch-3a · an_channels): 채널 카드(순매출 · 비중 · 비교 대비 · 오더 · 손님) · 월별 채널 쌓은 막대(말풍선에 채널별) · 채널 표 + 합계(평균 오더 · GP % 는 원가 권한만 · CSV) · Aone 웹 손님(New · Repeat buyers · Repeat rate — 2025-11 부터 · 판정 1561 · 1564) · 알림 · 비교 범위 = 손님 탭과 같게 · 빈 Unknown · Mixed 는 숨김 ← an v8b   // an v8b — v8a 의 1500px 기준은 틀렸다: 화면 전체가 최대 1,320px 라 넓은 화면에서도 반쪽 카드는 ≈ 650px · 카테고리 표가 계속 잘림 → 제품 탭 두 칸 줄(.two.pw)은 폭과 상관없이 늘 위아래로 · 스크롤 추가 없음 ← an v8a   // an v8a — Caleb 캡처: 카테고리 표가 반쪽 카드에서 오른쪽이 잘림 → 제품 탭의 두 칸 줄(.two.pw)은 1500px 아래에서 위아래로 쌓는다(110% 확대) · 몫 칸 줄바꿈 금지 · 코호트 제목에 「all history」(pr-2 보고의 2026-10 예와 This year 화면의 Q3 2025 Month 1 이 같은 $55k · 기간을 안 탄다) ← an v8   // an v8 — 제품 탭(Products · #products · 판정 1522 ~ 1524 · asung-wms pr-2 0c6c53b · an_products · an_product): 머리 숫자 넷(신제품 매출 몫 · 팔린 신제품 수 = 제품 수 크게 · 가족 수 작게 · 신제품을 산 손님 비율 · 분기 태그 빠짐) · 거르기 줄(카테고리 · 「신제품으로 세는 분기」 1 · 2 · 4) · 출시 분기 코호트 열지도(Pre · Month 1 = 출시 분기 첫 달 · 기본 1 · 2 · 3 · 6 · 12 · All months · Net / GP %) · 브랜드 · 카테고리 순위(비교 대비) · 상위 제품 · 소수 손님에 기대는 제품(rule 키에서 글) · 끊긴 제품 · 출시 분기별 판매 + 태그 점검 · 알림 · 제품 상세(#products/<제품>[/period] · 세트 몫 · 지점 · 상위 손님 → 손님 상세 · Open product card) · 비교 범위 = 손님 탭과 같게(주 · 월 = prev + ly · 회계연도 · 달력 해 = 지난해 같은 날까지를 prev 로 · 그 밖 없음) ← an v7   // an v7 — 판정 1325 · 1337 · asung-wms an-5b(2ccfd65): 위험 목록 머리에 「counted <토론토 시각>」(risk.built_at · 새벽 표) · 상세의 At risk? 카드에도 같은 시각 · 손님 탭 알림(notes) 이름을 사람 말로(summary_behind · risk_not_built · risk_rule_changed 는 창구 글 그대로) ← an v6   // an v6 — 결과 기억(perf-0 #7): 같은 창구 · 같은 인자는 5 분 동안 화면이 기억해 DB 를 다시 부르지 않는다(탭 오가기 · 상세 갔다 오기 · 같은 기간 다시 고르기) · 「Show」 단추 = 기억을 버리고 새로 읽기 · 오류는 기억하지 않음 · 기억은 이 탭(페이지)에만(새로 고침하면 비워짐) · 머리 오른쪽에 「cached · n min ago」 ← an v5   // an v5 — 손님 한 명 상세(#customers/<손님> · 판정 1317 · asung-wms an-4b 1dc56e7 · an_customer): 순위 · 위험 목록의 이름 → 상세(같은 탭 안 · 주소로 공유) · 위 카드(고른 기간 + 비교 줄 · 첫 / 마지막 오더 · 평소 간격 · 위험 표시) · 월 그래프 「All history | Selected period」(#customers/<손님>/period · 3 달 이하 = 날마다 막대 + 같은 날짜 지난해 선 · 넘으면 그 기간의 월 막대) · 많이 사는 브랜드 · 매장 표(본사) · 매장이면 본사로 가는 링크 · 「Open customer card」 ← an v4   // an v4 — 손님 탭(Customers · #customers) · 판정 1314 ~ 1319 · asung-wms an-4a(3bff3ef · an_customers): 손님 수 카드(산 · 새 · 다시 · 끊긴 — 비교 범위는 개요의 비교 줄과 같게: 주 · 월 = 지난주 · 지난달 같은 날까지(1315) · 회계연도 · 달력 해 = 지난해 같은 날까지 · 그 밖은 비교 없음) · 손님 순위(본사 한 줄 + ▸ 로 매장별 · 1314 · (no customer) 한 줄 · 순위 밖 합) · 끊길 위험 목록(오늘 기준 · 회사 전체 · 거르기 안 탐 · 1316 · 1318 · 1319) · 새 손님 수가 크게 나올 수 있다는 안내(옛 시대 손님 잇기 — 판정 거리) · CSV 둘 · 손님 이름 = 손님 카드 링크(상세는 4b 뒤) ← an v3   // an v3 — 판정 1303 · 1305 ~ 1308 앞 · asung-wms an-3(02532bb · an_period): ① 기간 목록 This week · Last week · This month(열 때 기본) · Last month · This / Last fiscal year(9 월 1 일 시작) · Last 12 months · This / Last year · All history · Custom — 주는 일요일 시작 · 「오늘」 = 토론토 날짜 ② 주 · 월 기간은 an_period(날짜 그대로)로 KPI · 나눔 줄 · 지점 · 브랜드 표 · 비교 두 줄(주: 지난주 같은 요일까지 · 364 일 전 같은 주 / 월: 지난달 같은 날까지 · 지난해 같은 날까지 — Last month 는 그 전 달 전체 · 지난해 같은 달) · 알림은 an_period notes ③ 회계연도 · 달력 해는 「vs 지난해 같은 날까지」 한 줄 — 지난해 범위를 an_overview 달 칸(꽉 찬 달) + an_period(끝의 덜 찬 달)로 더한다(an-3 이견 1) ④ 시대 이름을 기간으로(판정 1303 — 범례 · 말풍선 · 출처 표 · CSV · 운임 안내 글) ⑤ 말풍선이 오른쪽 · 아래 끝을 넘으면 커서 반대쪽에(Caleb 캡처 — 오른쪽 막대에서 글이 잘렸다) ⑥ 달이 하나뿐이면 월 막대 그래프를 감춘다(막대 하나 · 날마다 막대가 대신) ← an v2   // an v2 — 판정 1301: 고른 기간이 93 일 이하면 an_daily 로 날마다 막대 + 지난해 같은 날(월 · 일로 맞댐) 선 · 날짜별 CSV · 말풍선 나눔 ← an v1b // an v1b — 고른 기간의 나눔 줄(제품 판매 − 크레딧 = 순매출 + 운임 · 서비스 · 할증 = 세금 전 합계 · 세금은 없음) · 월 말풍선에도 같은 나눔 ← an v1a // an v1a — 고른 기간 카드 줄(Selected period · 이번 달이면 지난해 같은 날까지와) · 연 누계 카드에 「Year to date」 · 막대 폭 상한(한두 달이면 가운데 보통 막대) ← an v1
 console.log("analytics.html build:", AN_BUILD);
 
 let sb = null, me = null, WH = [];
@@ -188,8 +213,9 @@ const TABS = {
   overview: { label: "Sales overview", load: loadOverview },
   customers: { label: "Customers", load: () => routeArgs[0] ? loadCustomer(routeArgs[0], routeArgs[1] === "period") : loadCustomers() },   // an v4 · an-4a · an v5 상세 = #customers/<손님>
   products: { label: "Products", load: () => routeArgs[0] ? loadProduct(routeArgs[0], routeArgs[1] === "period") : loadProducts() },   // an v8 · pr-2 · 상세 = #products/<제품>[/period]
-  channels: { label: "Channels", load: () => routeArgs[0] === "aone" ? loadChannelAone() : loadChannels() }   // an v9 · an-ch-3a · 판정 1563 · an v10 상세 = #channels/aone(an-ch-4a · 1566)
-  // 다음 탭(판정 1288 순서): brands → seasonality → stock-outs — 한 줄씩 더한다 · Website 탭(1546)은 va-4 · va-5 뒤
+  channels: { label: "Channels", load: () => routeArgs[0] === "aone" ? loadChannelAone() : loadChannels() },   // an v9 · an-ch-3a · 판정 1563 · an v10 상세 = #channels/aone(an-ch-4a · 1566)
+  website: { label: "Website", load: loadWebsite }   // an v11 · va-4c · 판정 1546 · 1568 ~ 1586 · #website/<갈래>/<스토어>
+  // 다음 탭(판정 1288 순서): brands → seasonality → stock-outs — 한 줄씩 더한다
 };
 let tab = "overview", last = null, seq = 0, daily = null;
 
@@ -1279,6 +1305,439 @@ function renderChannelAone(d){
   };
 }
 
+/* ── Website 탭(an v11 · 판정 1546 · 1568 ~ 1586 · 창구 an_web_* — asung-wms va-4c d297f39 · 계약서 an-web-0) ──
+   주소 #website/<갈래>/<스토어> · 갈래 overview · visitors · pages · searches · where · notordering · 스토어 asung | aone
+   창구는 지점 · 브랜드를 받지 않는다(an-web-0 §11) — 이 탭에서는 위 두 칸을 감춘다 · 기간은 다른 탭과 같이 쓴다
+   비율: *_rate · share · fast_ratio = 0 ~ 1 / *_pct = 0 ~ 100 정수 · 분모 0 = null(「—」) · 시각 = UTC ISO → 토론토로 · 토론토 날 = *_day
+   card(0-5)가 두 칸만 올 수 있다(손님 목록에 없는 계정) — 칸마다 없음을 견딘다 · email 이 가려지면 account_kind 도 null(1585)
+   ③ · ④(an_web_away)는 기간과 무관한 전 기간 목록 · 비교 범위는 Overview 만(채널 탭과 같은 규칙) */
+const WS_SUBS = [["overview", "Overview"], ["visitors", "Visitors"], ["pages", "Pages & products"], ["searches", "Searches"], ["where", "Where"], ["notordering", "Not ordering"]];
+const WS_STORES = [["asung", "asung.ca"], ["aone", "aonebeauty.com"]];
+const WS_SITE = { asung: "https://asung.ca", aone: "https://aonebeauty.com" };
+const WS = { approved: "all", minViews: 1, buyers: "all", noApproved: "approved", noMinViews: 1, spyDays: 10, gapDays: 30, minSales: 0, whereMode: "visited", brand: "" };
+const WS_GROUP = { home: "Home", collection: "Collections", product: "Product pages", search: "Search", account: "Account & sign-up", cart: "Cart & checkout", info: "Info pages", other: "Other" };
+let wsd = null, wsCsv = {};
+const wsSub = () => WS_SUBS.some(s => s[0] === routeArgs[0]) ? routeArgs[0] : "overview";
+const wsStore = () => routeArgs[1] === "aone" ? "aone" : "asung";
+const wsHref = (sub, store) => `#website/${sub}/${store}`;
+const rate = v => v === null || v === undefined ? "—" : (Number(v) * 100).toFixed(1) + "%";
+const ip = v => v === null || v === undefined ? "—" : Math.round(Number(v)) + "%";
+const toT = iso => iso ? new Date(iso).toLocaleString("en-CA", { timeZone: "America/Toronto", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—";
+const dayT = s => s ? fmtD(s) + " " + s.slice(0, 4) : "—";
+const money2 = v => v === null || v === undefined ? "—" : (Number(v) < 0 ? "−$" : "$") + Math.abs(Number(v)).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const wsArr = a => (a || []).filter(x => x && typeof x === "object");   // 배열에 객체가 아닌 것이 섞여도 견딘다
+function wsCmp(){
+  if(per.kind === "short") return { f: per.prev[0], t: per.prev[1], l: per.vsPrev };
+  if(per.kind === "year") return { f: addY(per.f, -1), t: addY(per.t, -1), l: "same days last year" };
+  return null;
+}
+
+async function loadWebsite(){
+  const my = ++seq;
+  per = period();
+  const sub = wsSub(), store = wsStore(), f = per.f, t = per.t;
+  const P = { p_from: f, p_to: t, p_store: store };
+  $("load").textContent = "Loading…";
+  let calls, cmp = null;
+  if(sub === "overview"){ cmp = wsCmp(); calls = [crpc("an_web_overview", { ...P, p_cmp_from: cmp ? cmp.f : null, p_cmp_to: cmp ? cmp.t : null })]; }
+  else if(sub === "visitors") calls = [crpc("an_web_visitors", { ...P, p_approved: WS.approved, p_min_views: WS.minViews, p_buyers: WS.buyers, p_limit: 500 })];
+  else if(sub === "pages") calls = [crpc("an_web_pages", { ...P, p_limit: 300 }), crpc("an_web_products", { ...P, p_brand: WS.brand || null, p_limit: 300 })];
+  else if(sub === "searches") calls = [crpc("an_web_searches", { ...P, p_limit: 300 })];
+  else if(sub === "where") calls = [crpc("an_web_where", P)];
+  else calls = [crpc("an_web_not_ordering", { ...P, p_approved: WS.noApproved, p_min_views: WS.noMinViews, p_spy_min_days: WS.spyDays, p_limit: 500 }),
+                crpc("an_web_away", { p_store: store, p_gap_days: WS.gapDays, p_min_sales: WS.minSales, p_limit: 500 })];
+  const res = await Promise.all(calls);
+  if(my !== seq) return;
+  $("load").textContent = "";
+  $("built").textContent = "";
+  const bad = res.find(r => r.error);
+  if(bad){ $("box").innerHTML = wsBar(sub, store) + `<div class="card anmsg"><b>Could not load</b>${esc(bad.error.message)}</div>`; wsWire(); return; }
+  wsd = res.map(r => r.data || {});
+  const p0 = wsd[0].period;
+  last = { from: p0 ? p0.from : f, to: p0 ? p0.to : t };
+  wsCsv = {};
+  const R = { overview: wsOverview, visitors: wsVisitors, pages: wsPages, searches: wsSearches, where: wsWhere, notordering: wsNotOrdering }[sub];
+  $("box").innerHTML = wsBar(sub, store) + R(wsd, store, cmp);
+  wsWire();
+  if(sub === "overview") wsDayTip(wsd[0]);
+}
+
+/* 머리 — 스토어 고르기 · 갈래 */
+function wsBar(sub, store){
+  return `<div class="wsbar"><span class="seg2 wsst">${WS_STORES.map(s => `<a href="${wsHref(sub, s[0])}" class="${s[0] === store ? "cur" : ""}">${esc(s[1])}</a>`).join("")}</span>` +
+    `<nav class="wssub">${WS_SUBS.map(s => `<a href="${wsHref(s[0], store)}" class="${s[0] === sub ? "cur" : ""}">${esc(s[1])}</a>`).join("")}</nav></div>`;
+}
+function wsScope(d, store){
+  const P = d.period;
+  return `${esc(store === "aone" ? "aonebeauty.com" : "asung.ca")} · ${esc((per ? per.name + " · " : "") + (P ? fmtR(P.from, P.to) : ""))}`;
+}
+function wsNotes(notes){
+  const nt = wsArr(notes); if(!nt.length) return "";
+  const PN = { period: "this period", cmp: "comparison" };
+  return `<div class="card ancard">${ahead("About these numbers", "", null)}<div class="body"><ul class="wsnotes">` +
+    nt.map(n => `<li>${n.part ? "[" + esc(PN[n.part] || n.part) + "] " : ""}${esc(n.note)}${n.from ? ` <span class="dim">(${esc(!n.to || n.from === n.to ? dayT(n.from) : fmtR(n.from, n.to))})</span>` : ""}</li>`).join("") + `</ul></div></div>`;
+}
+function wsKpi(label, v, fmt, sub){
+  return `<div class="card kpi"><div class="l">${label}</div><div class="v">${(fmt || num)(v)}</div><div class="c">${sub || "&nbsp;"}</div></div>`;
+}
+const wsVs = (v, c, fmt, cl, noArrow) => c === null || c === undefined ? "" : (noArrow ? "" : change(v, c) + " ") + "vs " + (fmt || num)(c) + " " + esc(cl);
+const wsTrunc = (x, what) => x && x.truncated ? `<div class="dim wsfoot">Showing the first ${num(x.limit)} of ${num(x.total)} ${what}.</div>` : "";
+const wsSel = (key, val, opts) => `<select data-ws="${key}">${opts.map(o => `<option value="${esc(o[0])}"${String(o[0]) === String(val) ? " selected" : ""}>${esc(o[1])}</option>`).join("")}</select>`;
+
+/* 사람 줄(card) — 이름(누르면 방문 내역) · 승인 · IMS 손님 · 연락 · 위치 */
+function wsWho(r){
+  let h = `<a class="lnk" href="#" data-act="vlog" data-cid="${esc(r.shopify_customer_id)}" title="Visit history (last 180 days)">${esc(r.label || "Shopify customer " + r.shopify_customer_id)}</a>`;
+  if(r.approved === true) h += ` <span class="badge new" title="Wholesale-approved account">approved</span>`;
+  else if(r.approved === false) h += ` <span class="wschip" title="Not wholesale-approved">not approved</span>`;
+  if(r.customer_id) h += `<div class="wssub2">IMS: <a class="lnk" href="#customers/${encodeURIComponent(r.customer_id)}" title="Open this customer in the Customers tab">${esc(r.customer_name || "customer")} ›</a></div>`;
+  else if(r.link_how === null || r.link_how === undefined) h += `<div class="wssub2 dim">not linked to an IMS customer</div>`;
+  return h;
+}
+function wsContact(r){
+  const bits = [];
+  if(r.email) bits.push(esc(r.email));
+  if(r.company && r.company !== r.label) bits.push(esc(r.company));
+  if(r.name && r.name !== r.label && r.name !== r.company) bits.push(esc(r.name));
+  const k = r.account_kind ? ` <span class="wschip">${esc(r.account_kind)}</span>` : "";
+  return (bits.length ? bits.join("<br>") : `<span class="dim">—</span>`) + k;
+}
+function wsPlace(r){
+  const at = [r.city, r.province === "other" ? "outside Canada" : r.province].filter(Boolean).map(esc).join(", ");
+  const br = r.branch === "tor" ? "Toronto" : r.branch === "edm" ? "Edmonton" : "";
+  return (at || `<span class="dim">—</span>`) + (br ? `<div class="wssub2">${br}</div>` : "");
+}
+const wsCardCsv = r => [r.shopify_customer_id, r.label, r.customer_name, r.customer_id, r.email, r.company, r.account_kind, r.approved, r.province, r.city, r.branch, r.link_how];
+const WS_CARD_HEAD = ["shopify_customer_id", "label", "ims_customer", "ims_customer_id", "email", "company", "account_kind", "approved", "province", "city", "branch", "link_how"];
+
+/* ── ① Overview ── */
+function wsOverview(w, store, cmp){
+  const d = w[0], h = d.head || {}, c = h.cmp || null, cl = cmp ? cmp.l : "";
+  let o = `<div class="kpis">` +
+    wsKpi("Visitors", h.visitors, num, c ? wsVs(h.visitors, c.visitors, num, cl) : "browsers that came to the site") +
+    wsKpi("Signed-in visitors", h.login_visitors, num, `${num(h.login_customers)} accounts · ${num(h.known_customers)} linked to IMS customers`) +
+    wsKpi("Accounts that ordered", h.ordered_customers, num, `${rate(h.order_rate)} of signed-in accounts${c ? " · " + wsVs(h.order_rate, c.order_rate, rate, cl, true) : ""}`) +
+    wsKpi("Page views", h.page_views, num, `${num(h.page_views_per_active_day)} a day${c ? " · " + wsVs(h.page_views, c.page_views, num, cl) : ""}`) +
+    wsKpi("Product views", h.product_views, num, c ? wsVs(h.product_views, c.product_views, num, cl) : "") +
+    wsKpi("Searches", h.searches, num, `${rate(h.zero_rate)} found nothing · ${num(h.search_visitors)} visitors`) +
+    (store === "aone" ? wsKpi("Added to cart", h.cart_visitors, num, `visitors · ${num(h.cart_adds)} adds${c ? " · " + wsVs(h.cart_visitors, c.cart_visitors, num, cl) : ""}`) : "") +
+    `</div>`;
+  const cv = h.conversion;
+  if(store === "aone" && cv){
+    o += `<div class="card ancard">${ahead("Checkout to order", `counted from ${esc(dayT(cv.counted_from))}${cv.clipped ? " — the part of this period before that is not counted" : ""} · <a class="lnk" href="#channels/aone">Aone web sales are in Channels ›</a>`, null)}<div class="body">` +
+      (cv.from === null || cv.from === undefined
+        ? `<div class="dim">This period is before ${esc(dayT(cv.counted_from))} — checkouts are counted from then.</div>`
+        : `<div class="kpis">` +
+          wsKpi("Checkouts", cv.checkouts, num, `${num(cv.checkout_visitors)} visitors checked out`) +
+          wsKpi("Orders received", cv.orders, num, `${rate(cv.link_rate)} of checkouts${cv.unlinked ? ` · ${num(cv.unlinked)} not found as orders` : ""}`) +
+          wsKpi("Orders per visitor", cv.visitor_rate, rate, `${num(cv.visitors)} visitors`) +
+          wsKpi("Orders per visitor with a cart", cv.cart_rate, rate, `${num(cv.cart_visitors)} visitors added to cart`) +
+          wsKpi("Orders in IMS", cv.so_orders, num, "linked through to a sales order") + `</div>`) +
+      `</div></div>`;
+  }
+  const days = wsArr(d.daily), cd = d.cmp_daily ? wsArr(d.cmp_daily) : null;
+  if(days.length){
+    o += `<div class="card ancard">${ahead("Visitors by day", wsScope(d, store) + (cd ? " · dashed line = " + esc(cl) : ""), "wsdaily")}<div class="body chart" id="wschart">${wsDayChart(days, cd)}` +
+      `<div class="legend"><span><i style="background:color-mix(in srgb,var(--accent) 70%,var(--ims-surface))"></i>Visitors</span><span><i style="background:var(--good)"></i>Signed in</span>${cd ? `<span><i style="background:var(--warn)"></i>Visitors, ${esc(cl)}</span>` : ""}</div></div></div>`;
+    wsCsv.wsdaily = () => csvDownload(`web-${store}-daily`, ["date", "visitors", "signed_in_visitors", "events", "page_views", "product_views", "account_views", "search_events", "cart_adds", "checkouts"],
+      days.map(x => [x.d, x.visitors, x.login_visitors, x.events, x.page_view, x.product_view, x.account_view, x.search, x.cart_add, x.checkout]));
+  } else o += `<div class="card anmsg"><b>No visits in this period</b>Visits are recorded from ${esc(dayT(d.tracking_from))}.</div>`;
+  return o + wsNotes(d.notes);
+}
+function wsDayChart(days, cmp){
+  const W = 1200, H = 260, L = 56, R = 14, T = 14, B = 34, n = days.length; if(!n) return "";
+  const max = Math.max(1, ...days.map(x => Number(x.visitors) || 0), ...(cmp || []).map(x => Number(x.visitors) || 0));
+  const step = (W - L - R) / n, bw = Math.min(40, Math.max(2, step * 0.7));
+  const y = v => T + (H - T - B) * (1 - Math.max(0, v) / max);
+  let g = ""; for(let i = 0; i <= 4; i++){ const v = max * i / 4; g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 3}" text-anchor="end">${num(Math.round(v))}</text>`; }
+  let bars = "", labels = "", ln = [], cl = [];
+  const every = n > 45 ? 7 : n > 20 ? 3 : 1;
+  days.forEach((x, i) => {
+    const cx = L + i * step + step / 2, v = Number(x.visitors) || 0;
+    bars += `<rect class="bar" x="${(cx - bw / 2).toFixed(1)}" y="${y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(H - B - y(v)).toFixed(1)}" data-di="${i}"/>`;
+    ln.push(cx.toFixed(1) + "," + y(Number(x.login_visitors) || 0).toFixed(1));
+    if(cmp && cmp[i]) cl.push(cx.toFixed(1) + "," + y(Number(cmp[i].visitors) || 0).toFixed(1));
+    if(i % every === 0) labels += `<text x="${cx.toFixed(1)}" y="${H - B + 14}" text-anchor="middle">${MON[+x.d.slice(5, 7) - 1]} ${+x.d.slice(8)}</text>`;
+  });
+  const lines = (ln.length > 1 ? `<polyline class="yl" style="stroke:var(--good)" points="${ln.join(" ")}"/>` : "") +
+    (cl.length > 1 ? `<polyline class="yl" style="stroke:var(--warn);stroke-dasharray:5 4" points="${cl.join(" ")}"/>` : "");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Visitors by day"><line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>${g}${bars}${lines}${labels}</svg>`;
+}
+function wsDayTip(d){
+  const svg = $("wschart") ? $("wschart").querySelector("svg") : null; if(!svg) return;
+  const days = wsArr(d.daily), cd = d.cmp_daily ? wsArr(d.cmp_daily) : null;
+  svg.onmousemove = e => {
+    const r = e.target.closest("rect[data-di]"); if(!r){ $("tip").hidden = true; return; }
+    const i = +r.dataset.di, x = days[i]; if(!x) return;
+    const c = cd && cd[i] ? cd[i] : null;
+    $("tip").innerHTML = `<b>${esc(dayT(x.d))}</b><br>${num(x.visitors)} visitors · ${num(x.login_visitors)} signed in<br>${num(x.page_view)} page views · ${num(x.product_view)} product views` +
+      (Number(x.cart_add) ? `<br>${num(x.cart_add)} cart adds · ${num(x.checkout)} checkouts` : "") + (c ? `<br>${esc(dayT(c.d))}: ${num(c.visitors)} visitors` : "");
+    tipAt(e);
+  };
+  svg.onmouseleave = () => { $("tip").hidden = true; };
+}
+
+/* ── ② Visitors ── */
+function wsVisitors(w, store){
+  const d = w[0], h = d.head || {}, b = h.buyers || {}, rows = wsArr(d.rows);
+  let o = `<div class="kpis">` +
+    wsKpi("Signed-in accounts", h.customers, num, store === "asung" ? `${num(h.approved)} approved · ${num(h.known_customers)} linked to IMS` : `${num(h.known_customers)} linked to IMS customers`) +
+    wsKpi("Have ever ordered", h.ever_bought, num, `${num(h.never_bought)} never ordered`) +
+    wsKpi("Ordered in this period", b.accounts, num, `${num(b.customers)} customers (head offices)`) +
+    wsKpi("Their invoiced sales", b.sales, money, `${num(b.orders)} invoiced orders in this period`) +
+    wsKpi("Views", h.views, num, `${num(b.views)} by accounts that ordered`) + `</div>`;
+  const bar = `<div class="pbar">` +
+    (store === "asung" ? `Accounts ${wsSel("approved", WS.approved, [["all", "All"], ["approved", "Approved"], ["not_approved", "Not approved"]])}` : "") +
+    `Ordering ${wsSel("buyers", WS.buyers, [["all", "Everyone"], ["period", "Ordered in this period"], ["ever", "Have ever ordered"], ["never", "Never ordered"]])}` +
+    `At least ${wsSel("minViews", WS.minViews, [[1, "1 view"], [3, "3 views"], [10, "10 views"], [30, "30 views"], [100, "100 views"]])}</div>`;
+  o += `<div class="card ancard">${ahead("Signed-in visitors", wsScope(d, store) + " · one row per Shopify account · most views first", "wsvis")}${bar}<div class="body">` +
+    (rows.length ? `<table class="wst"><thead><tr><th>Account</th><th>Contact</th><th>Where</th><th class="r">Views</th><th class="r">Days</th><th>Last visit</th><th>Last order</th><th class="r">Orders</th><th class="r">Sales</th></tr></thead><tbody>` +
+      rows.map(r => `<tr><td>${wsWho(r)}</td><td>${wsContact(r)}</td><td>${wsPlace(r)}</td><td class="r">${num(r.views)}</td><td class="r">${num(r.visit_days)}</td><td class="nw">${esc(toT(r.last_visit))}</td>` +
+        `<td class="nw">${r.last_order ? esc(dayT(r.last_order)) + (r.bought_in_period ? ` <span class="badge new" title="Ordered inside this period">this period</span>` : "") : `<span class="dim">never</span>`}</td>` +
+        `<td class="r">${num(r.orders)}</td><td class="r">${money(r.sales)}</td></tr>`).join("") + `</tbody></table>` + wsTrunc(d, "accounts")
+      : `<div class="dim">No signed-in visitors match.</div>`) +
+    `<div class="dim wsfoot">Orders and sales are this customer's invoiced sales in the period on every channel (head office). "Last order" is the order date, so an order placed but not invoiced yet shows here before it shows in sales.</div></div></div>`;
+  wsCsv.wsvis = () => csvDownload(`web-${store}-visitors`, WS_CARD_HEAD.concat(["views", "page_views", "product_views", "events", "visit_days", "first_visit", "last_visit", "last_visit_day", "ever_bought", "last_order", "ordered_in_period", "orders", "sales"]),
+    rows.map(r => wsCardCsv(r).concat([r.views, r.page_views, r.product_views, r.events, r.visit_days, r.first_visit, r.last_visit, r.last_visit_day, r.ever_bought, r.last_order, r.bought_in_period, r.orders, r.sales])));
+  return o + wsNotes(d.notes);
+}
+
+/* ── ③ Pages & products ── */
+function wsPages(w, store){
+  const pg = w[0], pr = w[1] || {}, ph = pg.head || {}, xh = pr.head || {}, vb = xh.view_to_buy || {};
+  const groups = wsArr(pg.groups), pages = wsArr(pg.pages), brands = wsArr(pr.brands), skus = wsArr(pr.skus), carted = wsArr(pr.carted), cats = wsArr(pr.categories);
+  const site = WS_SITE[store];
+  const isAone = store === "aone";
+  let o = `<div class="kpis">` +
+    wsKpi("Page views", ph.page_views, num, `${num(ph.pages)} different pages · ${num(ph.visitors)} visitors`) +
+    wsKpi("Viewed while signed in", ph.page_views ? ph.login_views / ph.page_views : null, rate, `${num(ph.login_views)} page views`) +
+    wsKpi("Product views", xh.product_views, num, `${num(xh.skus)} products · ${num(xh.brands)} brands`) +
+    (isAone ? wsKpi("Cart adds", xh.cart_adds, num, "") : "") +
+    wsKpi("Bought within 14 days of viewing", vb.rate, rate, `${num(vb.bought)} of ${num(vb.pairs)} customer–product views · ${num(vb.customers)} customers${vb.open_from ? " · still open from " + esc(dayT(vb.open_from)) : ""}`) + `</div>`;
+  // 페이지 묶음
+  const gmax = Math.max(1, ...groups.map(g => Number(g.views) || 0));
+  o += `<div class="card ancard">${ahead("Page groups", wsScope(pg, store) + " · counted over every page", "wsgroups")}<div class="body"><table class="wst"><thead><tr><th>Group</th><th class="r">Views</th><th></th><th class="r">Pages</th><th class="r">Signed in</th><th class="r">Anonymous</th></tr></thead><tbody>` +
+    groups.map(g => `<tr${!Number(g.views) ? ' class="dim"' : ""}><td>${esc(g.label || WS_GROUP[g.code] || g.code)}</td><td class="r">${num(g.views)}</td><td style="width:34%"><span class="share" style="width:${Math.max(2, Math.round((Number(g.views) || 0) / gmax * 100))}%"></span>${rate(g.share)}</td><td class="r">${num(g.pages)}</td><td class="r">${num(g.login_views)}</td><td class="r">${ip(g.anon_pct)}</td></tr>`).join("") +
+    `</tbody></table></div></div>`;
+  wsCsv.wsgroups = () => csvDownload(`web-${store}-page-groups`, ["group", "views", "share", "pages", "signed_in_views", "anonymous_views", "anonymous_pct"], groups.map(g => [g.label || g.code, g.views, g.share, g.pages, g.login_views, g.anon_views, g.anon_pct]));
+  // 페이지
+  o += `<div class="card ancard">${ahead("Top pages", `most viewed first · ${num(pg.total)} pages`, "wspages")}<div class="body">` +
+    (pages.length ? `<table class="wst"><thead><tr><th>Page</th><th>Group</th><th class="r">Views</th><th class="r">Visitors</th><th class="r">Signed in</th><th class="r">Anonymous</th></tr></thead><tbody>` +
+      pages.map(p => `<tr><td><a class="lnk" href="${esc(site + (p.path || "/"))}" target="_blank" rel="noopener" title="Open on the site">${esc(p.path || "/")}</a>${p.title ? `<div class="wssub2">${esc(p.title)}</div>` : ""}</td><td class="nw">${esc(WS_GROUP[p.group] || p.group || "")}</td><td class="r">${num(p.views)}</td><td class="r">${num(p.visitors)}</td><td class="r">${num(p.login_views)}</td><td class="r">${ip(p.anon_pct)}</td></tr>`).join("") +
+      `</tbody></table>` + wsTrunc(pg, "pages") : `<div class="dim">No page views in this period.</div>`) + `</div></div>`;
+  wsCsv.wspages = () => csvDownload(`web-${store}-pages`, ["path", "title", "group", "views", "visitors", "signed_in_views", "anonymous_views", "anonymous_pct"], pages.map(p => [p.path, p.title, p.group, p.views, p.visitors, p.login_views, p.anon_views, p.anon_pct]));
+  // 브랜드
+  const bf = `<div class="pbar">Products of one brand <input type="search" autocomplete="off" data-wsk="brand" list="wsBrands" placeholder="All brands" value="${esc(WS.brand)}" style="width:190px">` +
+    `<datalist id="wsBrands">${brands.map(b => `<option value="${esc(b.brand)}">`).join("")}</datalist>${WS.brand ? ` <a class="lnk" href="#" data-act="brandclear">Show all brands</a>` : ""} <span class="dim">— press Enter</span></div>`;
+  o += `<div class="card ancard">${ahead("Brands viewed", `top ${num(brands.length)} of ${num(pr.brand_total)} · 👥 = who viewed`, "wsbrands")}<div class="body">` +
+    (brands.length ? `<table class="wst"><thead><tr><th>Brand</th><th class="r">Views</th><th class="r">Visitors</th><th class="r">Products</th><th class="r">Anonymous</th>${isAone ? `<th class="r">Cart adds</th><th class="r">Cart rate</th>` : ""}<th class="r">IMS customers</th><th class="r">Bought ≤ 14 days</th><th></th></tr></thead><tbody>` +
+      brands.map(b => `<tr><td><a class="lnk" href="#" data-act="brandpick" data-brand="${esc(b.brand)}" title="Show this brand's products">${esc(b.brand)}</a></td><td class="r">${num(b.views)}</td><td class="r">${num(b.visitors)}</td><td class="r">${num(b.skus)}</td><td class="r">${ip(b.anon_pct)}</td>` +
+        (isAone ? `<td class="r">${num(b.carts)}</td><td class="r">${ip(b.cart_pct)}</td>` : "") + `<td class="r">${num(b.viewers)}</td><td class="r">${num(b.bought_14d)}</td><td><button class="csvb" data-act="viewers" data-brand="${esc(b.brand)}" title="Who viewed this brand">👥</button></td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">No product views in this period.</div>`) + `</div></div>`;
+  wsCsv.wsbrands = () => csvDownload(`web-${store}-brands`, ["brand", "views", "signed_in_views", "anonymous_views", "anonymous_pct", "visitors", "products", "cart_adds", "cart_pct", "ims_customers", "bought_14d"], brands.map(b => [b.brand, b.views, b.login_views, b.anon_views, b.anon_pct, b.visitors, b.skus, b.carts, b.cart_pct, b.viewers, b.bought_14d]));
+  // 제품
+  o += `<div class="card ancard">${ahead("Products viewed" + (pr.brand ? " · " + esc(pr.brand) : ""), `most viewed first · ${num(pr.total)} products`, "wsskus")}${bf}<div class="body">` +
+    (skus.length ? `<table class="wst"><thead><tr><th>Product</th><th>Brand</th><th class="r">Views</th><th class="r">Visitors</th><th class="r">Anonymous</th>${isAone ? `<th class="r">Cart adds</th>` : ""}<th class="r">IMS customers</th><th class="r">Bought ≤ 14 days</th><th></th></tr></thead><tbody>` +
+      skus.map(s => `<tr><td>${s.product_id ? `<a class="lnk" href="#products/${encodeURIComponent(s.product_id)}">${esc(s.sku)}</a>` : esc(s.sku)}${s.title ? `<div class="wssub2">${esc(s.title)}</div>` : ""}</td><td>${esc(s.brand || "")}</td><td class="r">${num(s.views)}</td><td class="r">${num(s.visitors)}</td><td class="r">${ip(s.anon_pct)}</td>` +
+        (isAone ? `<td class="r">${num(s.carts)}</td>` : "") + `<td class="r">${num(s.viewers)}</td><td class="r">${num(s.bought_14d)}</td><td><button class="csvb" data-act="viewers" data-sku="${esc(s.sku)}" title="Who viewed this product">👥</button></td></tr>`).join("") +
+      `</tbody></table>` + wsTrunc(pr, "products") : `<div class="dim">No products viewed${pr.brand ? " for this brand" : ""} in this period.</div>`) + `</div></div>`;
+  wsCsv.wsskus = () => csvDownload(`web-${store}-products`, ["sku", "title", "brand", "views", "signed_in_views", "anonymous_views", "anonymous_pct", "visitors", "cart_adds", "cart_qty", "ims_customers", "bought_14d"], skus.map(s => [s.sku, s.title, s.brand, s.views, s.login_views, s.anon_views, s.anon_pct, s.visitors, s.carts, s.cart_qty, s.viewers, s.bought_14d]));
+  // 장바구니(aone)
+  if(isAone){
+    o += `<div class="card ancard">${ahead("Added to cart", `most adds first · ${num(pr.carted_total)} products`, "wscart")}<div class="body">` +
+      (carted.length ? `<table class="wst"><thead><tr><th>Product</th><th>Brand</th><th class="r">Adds</th><th class="r">Quantity</th><th class="r">Visitors</th></tr></thead><tbody>` +
+        carted.map(s => `<tr><td>${s.product_id ? `<a class="lnk" href="#products/${encodeURIComponent(s.product_id)}">${esc(s.sku)}</a>` : esc(s.sku)}${s.title ? `<div class="wssub2">${esc(s.title)}</div>` : ""}</td><td>${esc(s.brand || "")}</td><td class="r">${num(s.adds)}</td><td class="r">${num(s.quantity)}</td><td class="r">${num(s.visitors)}</td></tr>`).join("") + `</tbody></table>`
+        : `<div class="dim">Nothing added to cart in this period.</div>`) + `</div></div>`;
+    wsCsv.wscart = () => csvDownload(`web-${store}-cart`, ["sku", "title", "brand", "adds", "quantity", "visitors"], carted.map(s => [s.sku, s.title, s.brand, s.adds, s.quantity, s.visitors]));
+  }
+  // 컬렉션
+  o += `<div class="card ancard">${ahead("Collections viewed", `top ${num(cats.length)} of ${num(pr.category_total)}`, "wscats")}<div class="body">` +
+    (cats.length ? `<table class="wst"><thead><tr><th>Collection</th><th class="r">Views</th><th class="r">Visitors</th><th class="r">Anonymous</th></tr></thead><tbody>` +
+      cats.map(c => `<tr><td><a class="lnk" href="${esc(site + "/collections/" + (c.handle || ""))}" target="_blank" rel="noopener">${esc(c.label || c.handle)}</a></td><td class="r">${num(c.views)}</td><td class="r">${num(c.visitors)}</td><td class="r">${ip(c.anon_pct)}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">No collection pages viewed in this period.</div>`) + `</div></div>`;
+  wsCsv.wscats = () => csvDownload(`web-${store}-collections`, ["handle", "label", "views", "signed_in_views", "anonymous_views", "anonymous_pct", "visitors"], cats.map(c => [c.handle, c.label, c.views, c.login_views, c.anon_views, c.anon_pct, c.visitors]));
+  const seen = new Set(), notes = wsArr(pg.notes).concat(wsArr(pr.notes)).filter(n => { const k = n.code + "|" + n.part + "|" + n.from; if(seen.has(k)) return false; seen.add(k); return true; });
+  return o + wsNotes(notes);
+}
+
+/* ── ④ Searches ── */
+function wsSearches(w, store){
+  const d = w[0], h = d.head || {}, terms = wsArr(d.terms), missed = wsArr(d.missed), clicked = wsArr(d.clicked);
+  const isAone = store === "aone";
+  let o = `<div class="kpis">` +
+    wsKpi("Searches", h.searches, num, `${num(h.visitors)} visitors · ${num(h.terms)} different words`) +
+    wsKpi("Found nothing", h.zero, num, `${rate(h.zero_rate)} of searches`) +
+    wsKpi("No product opened after", h.noclick, num, `${rate(h.noclick_rate)} of searches`) +
+    wsKpi("Searched more than once", h.research_visitors, num, "visitors") +
+    (isAone ? wsKpi("Cart adds after a search", h.carts, num, "") : "") +
+    wsKpi("Words worth a look", h.missed_terms, num, "found nothing, or nobody opened a result") + `</div>`;
+  const termRow = t => `<tr><td>${esc(t.query)}${t.missed ? ` <span class="wschip" title="Found nothing, or no product was opened after it">look</span>` : ""}</td><td class="r">${num(t.searches)}</td><td class="r">${num(t.visitors)}</td><td class="r">${t.results === null || t.results === undefined ? "—" : num(t.results)}</td><td class="r">${num(t.zero_searches)}</td><td class="r">${ip(t.noclick_pct)}</td>${isAone ? `<td class="r">${num(t.carts)}</td>` : ""}</tr>`;
+  const termHead = `<thead><tr><th>Search</th><th class="r">Searches</th><th class="r">Visitors</th><th class="r">Results</th><th class="r">Found nothing</th><th class="r">No product opened</th>${isAone ? `<th class="r">Cart adds</th>` : ""}</tr></thead>`;
+  o += `<div class="card ancard">${ahead("What people searched for", wsScope(d, store) + ` · ${num(d.total)} words`, "wsterms")}<div class="body">` +
+    (terms.length ? `<table class="wst">${termHead}<tbody>${terms.map(termRow).join("")}</tbody></table>` + wsTrunc(d, "words") : `<div class="dim">No searches in this period.</div>`) + `</div></div>`;
+  o += `<div class="card ancard">${ahead("Searches worth a look", `found nothing, or nobody opened a result · ${num(d.missed_total)} words`, "wsmissed")}<div class="body">` +
+    (missed.length ? `<table class="wst">${termHead}<tbody>${missed.map(termRow).join("")}</tbody></table>` : `<div class="dim">None in this period.</div>`) + `</div></div>`;
+  o += `<div class="card ancard">${ahead("Products opened from a search", `${num(d.clicked_total)} search × product pairs`, "wsclicked")}<div class="body">` +
+    (clicked.length ? `<table class="wst"><thead><tr><th>Search</th><th>Product opened</th><th>Brand</th><th class="r">Times</th></tr></thead><tbody>` +
+      clicked.map(c => `<tr><td>${esc(c.query)}</td><td>${esc(c.sku || "")}${c.title ? `<div class="wssub2">${esc(c.title)}</div>` : ""}</td><td>${esc(c.brand || "")}</td><td class="r">${num(c.clicks)}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">None in this period.</div>`) + `</div></div>`;
+  const tcsv = (k, list) => wsCsv[k] = () => csvDownload(`web-${store}-${k.slice(2)}`, ["search", "searches", "visitors", "results", "zero", "zero_searches", "no_product_opened", "no_product_opened_pct", "cart_adds", "worth_a_look"], list.map(t => [t.query, t.searches, t.visitors, t.results, t.zero, t.zero_searches, t.noclick, t.noclick_pct, t.carts, t.missed]));
+  tcsv("wsterms", terms); tcsv("wsmissed", missed);
+  wsCsv.wsclicked = () => csvDownload(`web-${store}-search-clicks`, ["search", "sku", "title", "brand", "clicks"], clicked.map(c => [c.query, c.sku, c.title, c.brand, c.clicks]));
+  return o + wsNotes(d.notes);
+}
+
+/* ── ⑤ Where ── */
+function wsWhere(w, store){
+  const d = w[0], mode = WS.whereMode === "registered" ? "registered" : "visited", x = d[mode] || {}, br = x.branches || {};
+  const pv = wsArr(x.provinces), ct = wsArr(x.cities);
+  const tog = `<span class="seg2"><a href="#" data-act="where" data-mode="visited" class="${mode === "visited" ? "cur" : ""}">Signed in this period</a><a href="#" data-act="where" data-mode="registered" class="${mode === "registered" ? "cur" : ""}">All registered accounts</a></span>`;
+  let o = `<div class="wstog">${tog} <span class="dim">${mode === "visited" ? "accounts that signed in during the period — anonymous visitors have no location" : "every account on the store's Shopify customer list — the period does not apply"}</span></div>`;
+  o += `<div class="kpis">` + wsKpi("Accounts", x.customers, num, "") + wsKpi("In Canada", x.canada, num, `${num(x.outside_or_unknown)} outside Canada or unknown`) +
+    wsKpi("Toronto branch", br.tor, num, "") + wsKpi("Edmonton branch", br.edm, num, `${num(br.none)} no branch`) + `</div>`;
+  const pmax = Math.max(1, ...pv.map(p => Number(p.customers) || 0));
+  o += `<div class="two"><div class="card ancard">${ahead("By province", mode === "visited" ? wsScope(d, store) : esc(store === "aone" ? "aonebeauty.com" : "asung.ca") + " · all registered", "wsprov")}<div class="body"><table class="wst"><thead><tr><th>Province</th><th class="r">Accounts</th><th></th></tr></thead><tbody>` +
+    pv.map(p => `<tr${!Number(p.customers) || p.code === "unknown" ? ' class="dim"' : ""}><td>${esc(p.label || p.code)}</td><td class="r">${num(p.customers)}</td><td style="width:45%"><span class="share" style="width:${Math.max(2, Math.round((Number(p.customers) || 0) / pmax * 100))}%;background:var(--an-ch-${store})"></span>${rate(p.share)}</td></tr>`).join("") +
+    `</tbody></table></div></div>` +
+    `<div class="card ancard">${ahead("Top cities", "accounts with a city", "wscity")}<div class="body">` +
+    (ct.length ? `<table class="wst"><thead><tr><th>City</th><th>Province</th><th class="r">Accounts</th></tr></thead><tbody>` + ct.map(c => `<tr><td>${esc(c.city)}</td><td>${esc(c.province || "—")}</td><td class="r">${num(c.customers)}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">No cities.</div>`) + `</div></div></div>`;
+  wsCsv.wsprov = () => csvDownload(`web-${store}-provinces-${mode}`, ["province", "label", "accounts", "share"], pv.map(p => [p.code, p.label, p.customers, p.share]));
+  wsCsv.wscity = () => csvDownload(`web-${store}-cities-${mode}`, ["city", "province", "accounts"], ct.map(c => [c.city, c.province, c.customers]));
+  return o + wsNotes(d.notes);
+}
+
+/* ── ⑥ Not ordering ── */
+function wsNotOrdering(w, store){
+  const d = w[0], a = w[1] || {}, v = d.visited_no_order || {}, s = d.spy || {}, dm = a.dormant || {}, nv = a.never_visited || {};
+  const vh = v.head || {}, sh = s.head || {}, vr = wsArr(v.rows), sr = wsArr(s.rows), dr = wsArr(dm.rows), nr = wsArr(nv.rows);
+  const isAone = store === "aone";
+  const bot = r => r.bot_level >= 2 ? ` <span class="badge risk" title="Browsing pattern looks automated">bot</span>` : r.bot_level === 1 ? ` <span class="wschip" title="Browsing pattern may be automated">bot?</span>` : "";
+  const risk = r => r.risk === "high" ? `<span class="badge risk">high</span>` : r.risk === "mid" ? `<span class="wschip">mid</span>` : `<span class="dim">low</span>`;
+  // ①
+  const bar1 = `<div class="pbar">` + (isAone ? "" : `Accounts ${wsSel("noApproved", WS.noApproved, [["approved", "Approved"], ["all", "All"], ["not_approved", "Not approved"]])}`) +
+    `At least ${wsSel("noMinViews", WS.noMinViews, [[1, "1 view"], [3, "3 views"], [10, "10 views"], [30, "30 views"]])}</div>`;
+  let o = `<div class="card ancard">${ahead("Visited but did not order", wsScope(d, store) + " · signed in during the period and have not ordered since their last visit", "wsno1")}${bar1}<div class="body">` +
+    `<div class="wschips"><span><b>${num(vh.customers)}</b> accounts</span>${isAone ? "" : `<span><b>${num(vh.approved)}</b> approved</span>`}<span><b>${num(vh.never_bought)}</b> never ordered</span><span><b>${num(vh.bought_before)}</b> ordered before</span><span><b>${num(vh.company_accounts)}</b> company · <b>${num(vh.personal_accounts)}</b> personal</span><span><b>${num(vh.bot_suspects)}</b> may be bots</span></div>` +
+    (vr.length ? `<table class="wst"><thead><tr><th>Account</th><th>Contact</th><th>Where</th><th class="r">Views</th><th class="r">Days</th><th>Last visit</th><th>Last order</th><th>Watch</th></tr></thead><tbody>` +
+      vr.map(r => `<tr><td>${wsWho(r)}${bot(r)}</td><td>${wsContact(r)}</td><td>${wsPlace(r)}</td><td class="r">${num(r.views)}</td><td class="r">${num(r.visit_days)}</td><td class="nw">${esc(toT(r.last_visit))}</td><td class="nw">${r.last_order ? esc(dayT(r.last_order)) : `<span class="dim">never</span>`}</td><td>${risk(r)}</td></tr>`).join("") + `</tbody></table>` + wsTrunc(v, "accounts")
+      : `<div class="dim">Everyone who signed in has ordered since.</div>`) +
+    `<div class="dim wsfoot">An order on any channel counts (order date, invoiced or not). Watch: high = company account with 10+ views · mid = one of the two · low = neither.</div></div></div>`;
+  const noCsv = (k, rows, extra) => wsCsv[k] = () => csvDownload(`web-${store}-${k}`, WS_CARD_HEAD.concat(["views", "visit_days", "first_visit", "last_visit", "last_visit_day", "ever_bought", "last_order", "views_per_day", "median_gap_sec", "fast_ratio", "bot_level", "risk"]),
+    rows.map(r => wsCardCsv(r).concat([r.views, r.visit_days, r.first_visit, r.last_visit, r.last_visit_day, r.ever_bought, r.last_order, r.views_per_day, r.median_gap_sec, r.fast_ratio, r.bot_level, r.risk])));
+  noCsv("wsno1", vr);
+  // ②
+  const bar2 = `<div class="pbar">Visited on at least ${wsSel("spyDays", WS.spyDays, [[5, "5 different days"], [7, "7 different days"], [10, "10 different days"], [14, "14 different days"], [20, "20 different days"]])}</div>`;
+  o += `<div class="card ancard">${ahead("Possible price watchers", "approved accounts that have never ordered but keep coming back", "wsno2")}${isAone ? "" : bar2}<div class="body">` +
+    (isAone ? `<div class="dim">aonebeauty.com has no wholesale approval, so there is no list here.</div>`
+      : `<div class="wschips"><span><b>${num(sh.customers)}</b> accounts</span><span><b>${num(sh.company_accounts)}</b> company · <b>${num(sh.personal_accounts)}</b> personal</span><span><b>${num(sh.bot_suspects)}</b> may be bots</span></div>` +
+        (sr.length ? `<table class="wst"><thead><tr><th>Account</th><th>Contact</th><th>Where</th><th class="r">Days</th><th class="r">Views</th><th class="r">Views a day</th><th class="r">Typical gap</th><th>Last visit</th><th>Watch</th></tr></thead><tbody>` +
+          sr.map(r => `<tr><td>${wsWho(r)}${bot(r)}</td><td>${wsContact(r)}</td><td>${wsPlace(r)}</td><td class="r">${num(r.visit_days)}</td><td class="r">${num(r.views)}</td><td class="r">${num(r.views_per_day, 1)}</td><td class="r">${r.median_gap_sec === null || r.median_gap_sec === undefined ? "—" : num(r.median_gap_sec, 1) + " s"}</td><td class="nw">${esc(toT(r.last_visit))}</td><td>${risk(r)}</td></tr>`).join("") + `</tbody></table>` + wsTrunc(s, "accounts")
+          : `<div class="dim">No account matches in this period.</div>`)) + `</div></div>`;
+  noCsv("wsno2", sr);
+  // ③ · ④ — 전 기간
+  const bar3 = `<div class="pbar">Last visit more than ${wsSel("gapDays", WS.gapDays, [[14, "14 days ago"], [30, "30 days ago"], [60, "60 days ago"], [90, "90 days ago"]])}</div>`;
+  const brn = b => b === "tor" ? "Toronto" : b === "edm" ? "Edmonton" : "—";
+  o += `<div class="card ancard">${ahead("Customers who stopped visiting", "all history — not the period above · bought before, last visit long ago · longest gap first", "wsno3")}${bar3}<div class="body">` +
+    `<div class="wschips"><span><b>${num((dm.head || {}).customers)}</b> customers</span><span><b>${money((dm.head || {}).sales)}</b> their sales</span></div>` +
+    (dr.length ? `<table class="wst"><thead><tr><th>Customer</th><th>Branch</th><th>Last visit</th><th class="r">Days ago</th><th class="r">Views</th><th class="r">Orders</th><th class="r">Sales</th><th>Last invoice</th></tr></thead><tbody>` +
+      dr.map(r => `<tr><td><a class="lnk" href="#customers/${encodeURIComponent(r.customer_id)}">${esc(r.customer_name || "customer")}</a></td><td>${brn(r.branch)}</td><td class="nw">${esc(dayT(r.last_visit_day))}</td><td class="r">${num(r.days_since_visit)}</td><td class="r">${num(r.views)}</td><td class="r">${num(r.orders)}</td><td class="r">${money(r.sales)}</td><td class="nw">${esc(dayT(r.last_order))}</td></tr>`).join("") + `</tbody></table>` + wsTrunc(dm, "customers")
+      : `<div class="dim">None.</div>`) + `</div></div>`;
+  wsCsv.wsno3 = () => csvDownload(`web-${store}-stopped-visiting`, ["customer_id", "customer", "branch", "last_visit", "last_visit_day", "days_since_visit", "views", "visit_days", "orders", "sales", "last_invoice"], dr.map(r => [r.customer_id, r.customer_name, r.branch, r.last_visit, r.last_visit_day, r.days_since_visit, r.views, r.visit_days, r.orders, r.sales, r.last_order]));
+  const bar4 = `<div class="pbar">Sales at least ${wsSel("minSales", WS.minSales, [[0, "any"], [500, "$500"], [2000, "$2,000"], [10000, "$10,000"]])}</div>`;
+  o += `<div class="card ancard">${ahead("Customers who never visited", "all history · bought before but no recognisable visit to this store · biggest sales first", "wsno4")}${bar4}<div class="body">` +
+    `<div class="wschips"><span><b>${num((nv.head || {}).customers)}</b> customers</span><span><b>${money((nv.head || {}).sales)}</b> their sales</span></div>` +
+    (nr.length ? `<table class="wst"><thead><tr><th>Customer</th><th>Branch</th><th class="r">Orders</th><th class="r">Sales</th><th>Last invoice</th></tr></thead><tbody>` +
+      nr.map(r => `<tr><td><a class="lnk" href="#customers/${encodeURIComponent(r.customer_id)}">${esc(r.customer_name || "customer")}</a></td><td>${brn(r.branch)}</td><td class="r">${num(r.orders)}</td><td class="r">${money(r.sales)}</td><td class="nw">${esc(dayT(r.last_order))}</td></tr>`).join("") + `</tbody></table>` + wsTrunc(nv, "customers")
+      : `<div class="dim">None.</div>`) + `</div></div>`;
+  wsCsv.wsno4 = () => csvDownload(`web-${store}-never-visited`, ["customer_id", "customer", "branch", "orders", "sales", "last_invoice"], nr.map(r => [r.customer_id, r.customer_name, r.branch, r.orders, r.sales, r.last_order]));
+  const seen = new Set(), notes = wsArr(d.notes).concat(wsArr(a.notes)).filter(n => { const k = n.code + "|" + n.part + "|" + n.from; if(seen.has(k)) return false; seen.add(k); return true; });
+  return o + wsNotes(notes);
+}
+
+/* 눌림 · 고르기 */
+function wsWire(){
+  $("box").onclick = e => {
+    const c = e.target.closest("[data-csv]"); if(c && wsCsv[c.dataset.csv]){ wsCsv[c.dataset.csv](); return; }
+    const a = e.target.closest("[data-act]"); if(!a) return;
+    e.preventDefault();
+    const k = a.dataset.act;
+    if(k === "vlog") wsOpenLog({ cid: a.dataset.cid });
+    else if(k === "viewers") wsOpenViewers(a.dataset.sku ? { sku: a.dataset.sku } : { brand: a.dataset.brand });
+    else if(k === "brandpick"){ WS.brand = a.dataset.brand || ""; runLoad(); }
+    else if(k === "brandclear"){ WS.brand = ""; runLoad(); }
+    else if(k === "where"){ WS.whereMode = a.dataset.mode; $("box").innerHTML = wsBar(wsSub(), wsStore()) + wsWhere(wsd, wsStore()); wsWire(); }
+  };
+  $("box").onchange = e => {
+    const el = e.target; if(!el.dataset || !el.dataset.ws) return;
+    const k = el.dataset.ws, v = el.value;
+    WS[k] = ["minViews", "noMinViews", "spyDays", "gapDays", "minSales"].includes(k) ? Number(v) : v;
+    runLoad();
+  };
+  $("box").onkeydown = e => {
+    const el = e.target; if(e.key !== "Enter" || !el.dataset || el.dataset.wsk !== "brand") return;
+    WS.brand = el.value.trim(); runLoad();
+  };
+}
+
+/* ── 창: 방문 내역 · 조회자 ── */
+function wsModal(title, html){
+  let m = $("wsModal");
+  if(!m){ m = document.createElement("div"); m.id = "wsModal"; m.className = "pomodal"; document.body.appendChild(m);
+    m.onclick = e => {
+      if(e.target === m || e.target.closest("[data-x]")){ wsModalClose(); return; }
+      const ln = e.target.closest('a[href^="#"]');
+      if(ln && !ln.dataset.act && ln.getAttribute("href") !== "#"){ setTimeout(wsModalClose, 0); return; }   // 손님 · 제품 상세로 가는 링크 — 이동은 그대로 · 창만 닫는다
+      wsModalAct(e);
+    };
+    document.addEventListener("keydown", e => { if(e.key === "Escape" && $("wsModal") && !$("wsModal").hidden) wsModalClose(); }); }
+  m.hidden = false;
+  m.innerHTML = `<div class="pobox wsbox"><h4>${title}</h4><div class="pbody">${html}</div><div class="pfoot"><span class="sp"></span><button class="pobtn" data-x="1">Close</button></div></div>`;
+}
+function wsModalClose(){ const m = $("wsModal"); if(m){ m.hidden = true; m.innerHTML = ""; } }
+function wsModalAct(e){
+  const a = e.target.closest("[data-act]"); if(!a) return;
+  e.preventDefault();
+  if(a.dataset.act === "vlog") wsOpenLog({ cid: a.dataset.cid });
+  else if(a.dataset.act === "vlogc") wsOpenLog({ client: a.dataset.client });
+}
+const WS_TYPE = { page_view: "Page", product_view: "Product", account_view: "Account", search: "Search", cart_add: "Cart add", checkout: "Checkout" };
+async function wsOpenLog(o){
+  const store = wsStore();
+  wsModal("Visit history", `<div class="dim">Loading…</div>`);
+  const { data: d, error } = await crpc("an_web_visit_log", { p_store: store, p_shopify_customer_id: o.cid || null, p_client_id: o.client || null, p_limit: 200 });
+  if(!$("wsModal") || $("wsModal").hidden) return;
+  if(error){ wsModal("Visit history", `<div class="pwarn">${esc(error.message)}</div>`); return; }
+  const who = d.who || {}, s = d.summary || {}, cd = d.cadence, rows = wsArr(d.rows);
+  const title = o.client ? "Browser " + esc(o.client) : esc(who.label || "Shopify customer " + (who.shopify_customer_id || ""));
+  let h = "";
+  if(!o.client) h += `<div class="wslogwho">${who.customer_id ? `IMS: <a class="lnk" href="#customers/${encodeURIComponent(who.customer_id)}">${esc(who.customer_name || "customer")} ›</a> · ` : ""}${who.email ? esc(who.email) + " · " : ""}${who.company && who.company !== who.label ? esc(who.company) + " · " : ""}${[who.city, who.province].filter(Boolean).map(esc).join(", ")}</div>`;
+  h += `<div class="wschips"><span><b>${num(s.visit_days)}</b> days</span><span><b>${num(s.page_views)}</b> pages</span><span><b>${num(s.product_views)}</b> products</span>` +
+    (Number(s.searches) ? `<span><b>${num(s.searches)}</b> searches</span>` : "") + (Number(s.cart_adds) ? `<span><b>${num(s.cart_adds)}</b> cart adds</span>` : "") + (Number(s.checkouts) ? `<span><b>${num(s.checkouts)}</b> checkouts</span>` : "") +
+    `<span><b>${num(s.browsers)}</b> browser${Number(s.browsers) === 1 ? "" : "s"}</span><span>${esc(toT(s.first_at))} – ${esc(toT(s.last_at))}</span></div>`;
+  if(cd) h += `<div class="dim" style="font-size:12.5px;margin:4px 0 8px">Typical gap between views ${num(cd.median_gap_sec, 1)} s · ${rate(cd.fast_ratio)} within 3 s${cd.machine_like ? ` <span class="badge risk">looks automated</span>` : ""}</div>`;
+  h += rows.length ? `<table class="wst"><thead><tr><th>When (Toronto)</th><th>What</th><th>Detail</th><th>Browser</th></tr></thead><tbody>` +
+    rows.map(r => `<tr><td class="nw">${esc(toT(r.at))}</td><td class="nw">${esc(WS_TYPE[r.type] || r.type)}${r.attached ? ` <span class="wschip" title="Viewed before signing in on the same browser that day">before sign-in</span>` : !r.signed_in ? ` <span class="dim">anonymous</span>` : ""}</td>` +
+      `<td>${r.sku ? esc(r.sku) + (r.product ? " · " + esc(r.product) : "") + (r.quantity ? " × " + num(r.quantity) : "") : r.query ? `“${esc(r.query)}”${r.results === null || r.results === undefined ? "" : " · " + num(r.results) + " results"}` : esc(r.page || "")}${r.title && !r.sku ? `<div class="wssub2">${esc(r.title)}</div>` : ""}</td>` +
+      `<td>${r.client_id && !o.client ? `<a class="lnk" href="#" data-act="vlogc" data-client="${esc(r.client_id)}" title="Everything this browser did">${esc(String(r.client_id).slice(0, 8))}…</a>` : `<span class="dim">${esc(String(r.client_id || "").slice(0, 8))}</span>`}</td></tr>`).join("") +
+    `</tbody></table>` + wsTrunc(d, "events") : `<div class="dim">No visits in the last 180 days.</div>`;
+  h += `<div class="dim wsfoot">The last 180 days, newest first.${o.client ? " A browser's history includes anonymous visits." : " An account's history includes what the same browser viewed before signing in that day."}</div>`;
+  wsModal(title, h);
+}
+async function wsOpenViewers(o){
+  const store = wsStore(), what = o.sku ? o.sku : o.brand;
+  wsModal("Who viewed " + esc(what), `<div class="dim">Loading…</div>`);
+  const { data: d, error } = await crpc("an_web_viewers", { p_from: per.f, p_to: per.t, p_store: store, p_sku: o.sku || null, p_brand: o.brand || null, p_limit: 100 });
+  if(!$("wsModal") || $("wsModal").hidden) return;
+  if(error){ wsModal("Who viewed " + esc(what), `<div class="pwarn">${esc(error.message)}</div>`); return; }
+  const h0 = d.head || {}, rows = wsArr(d.rows);
+  let h = `<div class="wschips"><span><b>${num(h0.views)}</b> views</span><span><b>${num(h0.login_viewers)}</b> signed-in accounts (${num(h0.login_views)} views)</span><span><b>${num(h0.anon_views)}</b> anonymous views from ${num(h0.anon_visitors)} browsers</span></div>`;
+  h += rows.length ? `<table class="wst"><thead><tr><th>Account</th><th>Contact</th><th class="r">Views</th><th>Last view</th><th>Has ordered</th></tr></thead><tbody>` +
+    rows.map(r => `<tr><td>${wsWho(r)}</td><td>${wsContact(r)}</td><td class="r">${num(r.views)}</td><td class="nw">${esc(toT(r.last_view))}</td><td class="nw">${r.ever_bought ? "yes" + (r.last_order ? " · " + esc(dayT(r.last_order)) : "") : `<span class="dim">never</span>`}</td></tr>`).join("") +
+    `</tbody></table>` + wsTrunc(d, "accounts") : `<div class="dim">Only anonymous visitors viewed this in the period.</div>`;
+  h += `<div class="dim wsfoot">${esc(per.name)} · ${esc(fmtR(per.f, per.t))}. "Has ordered" means anything, on any channel — not only this product. Click a name for their visit history.</div>`;
+  wsModal("Who viewed " + esc(what), h);
+}
+
 function drawTabs(){
   $("tabs").innerHTML = Object.keys(TABS).map(k => `<a href="#${k}" class="${k === tab ? "cur" : ""}">${esc(TABS[k].label)}</a>`).join("");
 }
@@ -1288,6 +1747,8 @@ function route(){
   const want = parts[0];
   routeArgs = parts.slice(1).filter(Boolean);
   tab = TABS[want] ? want : "overview";
+  const isWeb = tab === "website";   // an v11 — Website 창구는 지점 · 브랜드를 받지 않는다
+  $("branch").hidden = isWeb; $("brand").hidden = isWeb;
   drawTabs();
   runLoad();
 }
