@@ -17,6 +17,7 @@
   main{display:flex;flex-direction:column;gap:14px}
   /* 넓은 목록 — 이 화면 몫만(공통 #wide · .wfilt 는 ims-ui.css · 판정 209) */
   #wide td.sk{font-family:var(--mono);font-weight:600;white-space:nowrap}
+  #wide td.thc{width:48px;padding-top:4px;padding-bottom:4px}   /* fam v8 — 대표 사진 열(products.html 과 같은 폭) */
   #wide tr.off td{color:var(--muted)}
   #wide .wfilt .flt{flex:0 1 170px;min-width:120px}
   .head .acts{display:flex;gap:8px;align-items:center;margin-top:10px}
@@ -130,7 +131,7 @@ html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){--dk-bg-
      둘째 축이 있는 패밀리는 33개뿐 (Color×Size 22 · Size×Formula 11) · 셋째 축 없음
    ───────────────────────────────────────────────────────────── */
 
-const FAM_BUILD = "fam v7 · dk1";   // 대화 Claude — fam v7(2026-11-14 · 판정 1185 ① · 1232 · Shopify 사진 가져오기 뒤): 상세에 「Family photos」 카드 — 패밀리 사진(product_image.family_id · 표지 · 패밀리 전체 사진) 보기 · 크게 보기 · Upload photos(저장소 <패밀리 id>/<uuid> → 창구 family_image_update op family_image_add · 저장 안 되면 올린 파일을 지운다) · ✕ 끄기(family_image_off · 웹 대표면 경고 family_web_image_off) · ◀ ▶ 순서(family_image_order · 패밀리 사진끼리 · Shopify 에서는 변형 사진 뒤) · ★ 웹 대표(shop_listing_set op family_web_image_set · shopify 쓰기 열쇠) · 쓰기 단추는 master 쓰기만 · ★ 는 shopify 쓰기만 · famCall(검사 → 경고 확인 → 저장 · 저장 여부를 돌려준다) · Shopify 카드의 웹 대표 표시는 ims-shop.js shop v3 가 패밀리 사진도 읽는다(deferred 599) ← fam v6(2026-11-11 · Caleb 「패밀리 네임을 수정해야 하는데, 수정하는 기능이 없어」 → 「나」): 상세 머리에 「Edit family…」(master 쓰기) — 창구 product_update op family_head_set 이 받는 칸 전부(이름 · 브랜드 · 카테고리 · 단위 · 옵션 이름(있는 축만 · 이름 바꾸기만) · 메모 · Active) · 바뀐 칸만 한 줄씩 · old = 연 순간의 값 · 검사 → 경고 확인 → 저장(famRun) · 저장 뒤 상세와 목록을 다시 · DB 무변(창구는 10-01 prod-4a 부터 있었다 · 판정 210 「머리 고치기 자리는 Families · 뒤 일」) ← fam v5c:   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 머리 칩 · 설명 카드(ims-desc v2 — Follow Cin7 셋 뺌) · 동작 무변 ← fam v5b: 대화 Claude — Caleb 「링크를 두자 · product 로 넘어가는 링크는 글자로만 되어 있어서 통일성이 없어」: 넓은 목록 오른쪽을 단추 셋으로 — Products(글자 링크였다) · New family (new SKUs)(products.html?new=family → Products 의 New family 창 · 판정 200 · master 쓰기만 보임) · New family from existing SKUs · 동작 무변 ← fam v5a: 대화 Claude — Caleb 「레이아웃이 좀 별로네 · 라인이 너무 강해서」: .sofield 가 공통 css 에 없어 브라우저 기본 테두리 → 이 화면 <style> 에 창 안 입력칸 꼴(Add member · Options · New family 모두) · New family 창 옵션 셋을 격자 한 줄(가로 넘침 · Option 3 잘림) · 안내는 선 없는 옅은 상자 · 동작 무변 ← fam v5: 대화 Claude — fam-new-1(판정 652 · 653): 넓은 목록의 「New family from existing SKUs」 — 머리(이름 · SKU 비우면 첫 SKU + FAM · 옵션 축 이름 1 ~ 3 · 메모 · 브랜드 · 분류 · 단위는 첫 SKU 에서) + 구성원(찾아 넣기 · SKU 마다 옵션 값) → product_family_from_skus 검사 → 확인(다른 family 에서 옮김 · 옛 family 가 빔) → 저장 → 새 family 열기 · Shopify 안내 한 줄 ← fam v4:   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
+const FAM_BUILD = "fam v8 · dk1";   // 대화 Claude — fam v8(2026-11-24 · Caleb 「family 목록에서 패밀리 대표사진이 보이게」): 넓은 목록 맨 앞에 사진 열 — 대표 = 웹 대표(product_family.web_image_id · 켜진 사진이고 이 패밀리의 사진 · 구성원 사진일 때) → 없으면 기본 = 켜진 낱개 구성원(is_active · sellable · 세트 제외) 중 SKU 가 앞선 것의 주 사진(is_primary · 판정 1238 · ims-shop.js fillWeb 의 「first variant's main photo」 와 같은 고르기) · 표를 먼저 그리고 사진은 뒤에 채운다(wideSeq) · 사진을 누르면 famZoom(줄은 안 열림) · 사진 없음 = 점선 빈 칸 · DB 무변(읽기만) ← fam v7(2026-11-14 · 판정 1185 ① · 1232 · Shopify 사진 가져오기 뒤): 상세에 「Family photos」 카드 — 패밀리 사진(product_image.family_id · 표지 · 패밀리 전체 사진) 보기 · 크게 보기 · Upload photos(저장소 <패밀리 id>/<uuid> → 창구 family_image_update op family_image_add · 저장 안 되면 올린 파일을 지운다) · ✕ 끄기(family_image_off · 웹 대표면 경고 family_web_image_off) · ◀ ▶ 순서(family_image_order · 패밀리 사진끼리 · Shopify 에서는 변형 사진 뒤) · ★ 웹 대표(shop_listing_set op family_web_image_set · shopify 쓰기 열쇠) · 쓰기 단추는 master 쓰기만 · ★ 는 shopify 쓰기만 · famCall(검사 → 경고 확인 → 저장 · 저장 여부를 돌려준다) · Shopify 카드의 웹 대표 표시는 ims-shop.js shop v3 가 패밀리 사진도 읽는다(deferred 599) ← fam v6(2026-11-11 · Caleb 「패밀리 네임을 수정해야 하는데, 수정하는 기능이 없어」 → 「나」): 상세 머리에 「Edit family…」(master 쓰기) — 창구 product_update op family_head_set 이 받는 칸 전부(이름 · 브랜드 · 카테고리 · 단위 · 옵션 이름(있는 축만 · 이름 바꾸기만) · 메모 · Active) · 바뀐 칸만 한 줄씩 · old = 연 순간의 값 · 검사 → 경고 확인 → 저장(famRun) · 저장 뒤 상세와 목록을 다시 · DB 무변(창구는 10-01 prod-4a 부터 있었다 · 판정 210 「머리 고치기 자리는 Families · 뒤 일」) ← fam v5c:   // 대화 Claude — 판정 721 · 722(Caleb 2026-10-25 「화면도 바꾼다」 · 「지금 뺀다」): 화면 글에서 Cin7 을 뺀다 — 원천 표시 cin7 → 「before IMS」(imsSrc) · 머리 칩 · 설명 카드(ims-desc v2 — Follow Cin7 셋 뺌) · 동작 무변 ← fam v5b: 대화 Claude — Caleb 「링크를 두자 · product 로 넘어가는 링크는 글자로만 되어 있어서 통일성이 없어」: 넓은 목록 오른쪽을 단추 셋으로 — Products(글자 링크였다) · New family (new SKUs)(products.html?new=family → Products 의 New family 창 · 판정 200 · master 쓰기만 보임) · New family from existing SKUs · 동작 무변 ← fam v5a: 대화 Claude — Caleb 「레이아웃이 좀 별로네 · 라인이 너무 강해서」: .sofield 가 공통 css 에 없어 브라우저 기본 테두리 → 이 화면 <style> 에 창 안 입력칸 꼴(Add member · Options · New family 모두) · New family 창 옵션 셋을 격자 한 줄(가로 넘침 · Option 3 잘림) · 안내는 선 없는 옅은 상자 · 동작 무변 ← fam v5: 대화 Claude — fam-new-1(판정 652 · 653): 넓은 목록의 「New family from existing SKUs」 — 머리(이름 · SKU 비우면 첫 SKU + FAM · 옵션 축 이름 1 ~ 3 · 메모 · 브랜드 · 분류 · 단위는 첫 SKU 에서) + 구성원(찾아 넣기 · SKU 마다 옵션 값) → product_family_from_skus 검사 → 확인(다른 family 에서 옮김 · 옛 family 가 빔) → 저장 → 새 family 열기 · Shopify 안내 한 줄 ← fam v4:   // 대화 Claude — Caleb 「지금 IMS내에서 기존의 패밀리 멤버를 추가하거나 빼려면 어떻게 해야 해?」 → 「지금쓰자」: 구성원 고치기(DB 는 prod-4a 부터 product_update op family_join · family_leave · family_option 이 있었고 부르는 화면이 없었다) — Members 카드에 「Add member…」(SKU · 이름 찾기 → 옵션 값 → 검사 → 경고 확인 → 저장) · 줄마다 「Options」(옵션 값 고치기 · old = 화면이 본 값) · 「Remove」(family_leave · old = family SKU) · master 쓰기만 · 표에 셋째 옵션 열 · 안내: 이어진 Shopify 상품은 다음 보내기에서 변형이 더해지고 빠진다(판정 557) ← fam v3: 대화 Claude — shop-2c(판정 404 ~ 415): Shopify 카드(ims-shop.js · 스토어마다 보냄 켜기 · 끄기 · Send now · Open in Shopify · Shopify 첫 사진 고르기 = web_image_id) ← fam v2b: 대화 Claude — 판정 381 · 401 · 402(desc-1b 9184853): 머리 카드 아래 Description 카드 — 이 화면의 첫 쓰기(설명만 · 그리기 · 편집기 · 저장은 ims-desc.js · master 만 단추) ← fam v2a
 let sb=null, q="", axis="", brand="", onlyActive=true, curId=null, canEdit=false;   // fam v4 — canEdit = master 쓰기
 const pg = imsPage(100);
 
@@ -162,7 +163,7 @@ const axisVariants = canon =>
 /* ⭐ 목록 질의 한 곳 — 넓은 목록 · 좁은 목록이 같은 필터 · 같은 쪽 pg(100 줄) */
 function listQuery(){
   let qry = sb.from("product_family")
-    .select("id,sku,name,brand_name,category_name,option1_name,option2_name,option3_name,is_active", { count:"exact" });
+    .select("id,sku,name,brand_name,category_name,option1_name,option2_name,option3_name,is_active,web_image_id", { count:"exact" });   // fam v8 — web_image_id(대표 사진)
   if(onlyActive) qry = qry.eq("is_active", true);
   if(brand) qry = qry.eq("brand_name", brand);
   if(axis){
@@ -206,30 +207,73 @@ async function loadWide(){
   if(error){ box.innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
   const rows = data || [];
   /* 변형 · 세트 수 — 이 쪽의 family 들만 · ⚠️ 1,000 행 캡 — 쪽을 넘겨 다 읽는다 */
-  const nV = {}, nS = {};
+  const nV = {}, nS = {}, mem = {};   // fam v8 — mem[family_id] = 기본 대표 후보(켜진 낱개 구성원 · sku 순)
   if(rows.length){
     const ids = rows.map(r => r.id);
     for(let from = 0; ; from += 1000){
-      const { data: m, error: me } = await sb.from("product").select("family_id,parent_product_id")
+      const { data: m, error: me } = await sb.from("product").select("id,sku,family_id,parent_product_id,is_active,sellable")
         .in("family_id", ids).order("id").range(from, from + 999);
       if(me || !m) break;
-      m.forEach(x => { const t = x.parent_product_id ? nS : nV; t[x.family_id] = (t[x.family_id] || 0) + 1; });
+      m.forEach(x => { const t = x.parent_product_id ? nS : nV; t[x.family_id] = (t[x.family_id] || 0) + 1;
+        if(!x.parent_product_id && x.is_active && x.sellable !== false) (mem[x.family_id] = mem[x.family_id] || []).push(x); });
       if(m.length < 1000) break;
     }
     if(seq !== wideSeq) return;
   }
   const axes = r => [r.option1_name, r.option2_name, r.option3_name].filter(Boolean).map(esc).join(" × ");
   box.innerHTML = rows.length ? `<table><thead><tr>
-      <th>Family SKU</th><th>Name</th><th>Brand</th><th>Category</th><th>Options</th>
+      <th class="thc"></th><th>Family SKU</th><th>Name</th><th>Brand</th><th>Category</th><th>Options</th>
       <th class="num">Variants</th><th class="num">Sets</th><th>Active</th></tr></thead>
     <tbody>${rows.map(r => `<tr data-id="${r.id}" class="${r.is_active ? "" : "off"}">
-      <td class="sk">${esc(r.sku)}</td><td>${esc(r.name)}</td>
+      <td class="thc"><span class="ims-thumb" data-famph="${esc(r.id)}"></span></td><td class="sk">${esc(r.sku)}</td><td>${esc(r.name)}</td>
       <td>${dim(r.brand_name)}</td><td>${dim(r.category_name)}</td><td>${axes(r) || '<span class="dim">—</span>'}</td>
       <td class="num">${nV[r.id] || 0}</td><td class="num">${nS[r.id] ? nS[r.id] : '<span class="dim">—</span>'}</td>
       <td>${yn(r.is_active)}</td></tr>`).join("")}</tbody></table>`
     : '<div class="msg">No families match.</div>';
-  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = () => openFamily(tr.dataset.id); });
+  box.querySelectorAll("tbody tr").forEach(tr => { tr.onclick = ev => {
+    const ph = ev.target.closest("[data-fzoom]"); if(ph){ famZoom(ph.dataset.fzoom); return; }   // fam v8 — 사진은 크게 보기 · 줄은 안 연다
+    openFamily(tr.dataset.id); }; });
   pg.render({ range:"#wrange", prev:"#wprev", next:"#wnext" }, loadWide);
+  if(rows.length) fillWidePhotos(box, rows, mem, seq);   // fam v8 — 표를 먼저 · 사진은 뒤에(await 안 함)
+}
+
+/* fam v8 — 넓은 목록 대표 사진. 웹 대표(web_image_id · 켜진 사진이고 이 패밀리 · 구성원 사진) → 기본 = 켜진 낱개 구성원 중 SKU 가 앞선 것의 주 사진(판정 1238)
+   · 읽기만 · ⚠️ 실패해도 화면은 산다(빈 칸 · console.warn) · .in 은 150 개씩(주소 길이) · 1,000 행 캡 아래(구성원마다 주 사진 하나) */
+async function fillWidePhotos(box, rows, mem, seq){
+  try{
+    const pick = {};   // family_id → { path, how }
+    const webIds = rows.map(r => r.web_image_id).filter(Boolean);
+    const memIds = [].concat(...rows.map(r => (mem[r.id] || []).map(x => x.id)));
+    const web = {}, prim = {};
+    if(webIds.length){
+      const { data, error } = await sb.from("product_image").select("id,storage_path,is_active,family_id,product_id").in("id", webIds);
+      if(error) throw error;
+      (data || []).forEach(x => { web[x.id] = x; });
+    }
+    for(let i = 0; i < memIds.length; i += 150){
+      const { data, error } = await sb.from("product_image").select("product_id,storage_path,sort_order")
+        .in("product_id", memIds.slice(i, i + 150)).eq("is_active", true).eq("is_primary", true).order("sort_order").range(0, 999);
+      if(error) throw error;
+      (data || []).forEach(x => { if(!prim[x.product_id]) prim[x.product_id] = x.storage_path; });
+    }
+    if(seq !== wideSeq) return;
+    rows.forEach(r => {
+      const w = r.web_image_id ? web[r.web_image_id] : null;
+      /* 구성원 사진은 고를 때 창구(shop_listing_set)가 이 패밀리 것인지 봤다 */
+      if(w && w.is_active && w.storage_path && (w.family_id === r.id || w.product_id)){ pick[r.id] = { path: w.storage_path, how: "Web photo (chosen)" }; return; }
+      const first = (mem[r.id] || []).slice().sort((a, b) => String(a.sku).localeCompare(String(b.sku))).find(x => prim[x.id]);
+      if(first) pick[r.id] = { path: prim[first.id], how: "Main photo of " + first.sku };
+    });
+    box.querySelectorAll("[data-famph]").forEach(el => {
+      const p = pick[el.dataset.famph];
+      if(!p){ el.classList.add("none"); return; }
+      el.title = p.how;
+      el.setAttribute("data-fzoom", p.path);
+      el.innerHTML = `<img loading="lazy" alt="" src="${esc(imsPhotoUrl(p.path))}">`;
+    });
+  }catch(e){
+    console.warn("fam v8: family photos failed —", (e && e.message) || e);
+  }
 }
 
 /* ── 좁은 목록 ───────────────────────────────────────── */
