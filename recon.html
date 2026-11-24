@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Reconciliation · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* rc v1 — 일일 대사(판정 1511 · 1512 · 1587 ~ 1598) · 색은 공통 변수만(다크 모드 함께) */
+  .rcwrap{max-width:1500px;margin:0 auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px}
+  .rctop{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rctop h1{margin:0 8px 0 0;font-size:21px;font-weight:800;color:var(--ink)}
+  .rctop .sp{flex:1}
+  .rctop input[type=date]{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font:inherit;font-size:13px;background:var(--ims-surface);color:var(--ink)}
+  .rcload{font-size:12px;color:var(--muted)}
+  .seg2{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-size:12.5px}
+  .seg2 a{padding:4px 10px;color:var(--ink);text-decoration:none} .seg2 a.cur{background:var(--accent);color:var(--ims-on-accent, #fff)}
+  .rcmsg{padding:30px 20px;text-align:center;color:var(--muted)} .rcmsg b{display:block;color:var(--ink);margin-bottom:4px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+  .kpi{padding:12px 14px}
+  .kpi .l{font-size:12px;color:var(--muted)}
+  .kpi .v{font-size:21px;font-weight:800;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+  .kpi .c{font-size:12.5px;margin-top:2px;color:var(--muted)}
+  .kpi.warn{border-left:4px solid var(--warn)} .kpi.good{border-left:4px solid var(--good)}
+  .rccard{padding:0}
+  .rccard .hd{margin:0;padding:10px 14px;font-size:14px;font-weight:700;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--ink)}
+  .rccard .hd .sub{font-weight:400;color:var(--muted);font-size:12.5px}
+  .rccard .hd .sp{flex:1}
+  .rccard .body{padding:10px 14px;overflow-x:auto}
+  .csvb{border:1px solid var(--line);background:var(--ims-surface);color:var(--ink);border-radius:7px;padding:3px 9px;font:inherit;font-size:12px;cursor:pointer}
+  .csvb:hover{background:var(--ims-hover)}
+  .rct{width:100%;border-collapse:collapse}
+  .rct th{font-size:11.5px;font-weight:700;color:var(--muted);text-align:left;padding:6px 7px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;background:var(--ims-surface)}
+  .rct td{font-size:12.5px;padding:6px 7px;border-bottom:1px solid var(--ims-line-soft);vertical-align:top;color:var(--ink)}
+  .rct td.r,.rct th.r{text-align:right;font-variant-numeric:tabular-nums}
+  .rct td.nw{white-space:nowrap}
+  .rct tr.grp td{background:var(--ims-surface-2);font-weight:700;font-size:12px;color:var(--ink);border-bottom:1px solid var(--line)}
+  .rct tr.grp td .sub{font-weight:400;color:var(--muted);margin-left:8px}
+  .rct tr.off td{color:var(--muted)}
+  .rct tr.off td.num{text-decoration:line-through}
+  .rct tr.tot td{font-weight:800;border-top:2px solid var(--line)}
+  .rct a.lnk{color:var(--accent);text-decoration:none} .rct a.lnk:hover{text-decoration:underline}
+  .s2{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .chip{display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;color:var(--muted);border:1px solid var(--line);white-space:nowrap;margin-left:4px}
+  .chip.src{color:var(--ink);margin-left:0}
+  .chip.ok{color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent);font-weight:700}
+  .chip.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent);font-weight:700}
+  .chip.wait{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+  .pay{white-space:nowrap;font-size:12px;line-height:1.55}
+  .pay .od{color:var(--warn);font-weight:700}
+  .pay .of{color:var(--muted)}
+  .rcnotes{margin:0;padding-left:18px} .rcnotes li{margin:3px 0;font-size:13px}
+  .neg{color:var(--bad)}
+  @media print{
+    header,.rctop .noprint,.csvb{display:none!important}
+    .rcwrap{max-width:none;padding:0}
+    .rct th{position:static}
+    html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){
+      color-scheme:light;--bg:#fff;--line:#d9dee5;--muted:#5b6574;--ink:#12161c;--accent:#2f6df6;--good:#16a34a;--bad:#c92a2a;--warn:#b7791f;
+      --ims-surface:#fff;--ims-surface-2:#f7f8fa;--ims-hover:#f2f4f8;--ims-line-soft:#eef0f4;--ims-dim:#9aa4b2;--ims-brand:#3b5bdb;--ims-sel-bg:#eef3ff;--ims-on-ink:#fff;--ims-logo-filter:none}
+    body{background:#fff}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="rcwrap">
+  <div class="rctop">
+    <h1>Daily Reconciliation</h1>
+    <span class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="pobtn" id="prevD" title="Day before">‹</button>
+      <input type="date" id="day" title="Issue date">
+      <button class="pobtn" id="nextD" title="Day after">›</button>
+      <button class="pobtn" id="yday" title="Yesterday (Toronto)">Yesterday</button>
+      <span class="seg2" id="sortSeg"><a href="#" data-sort="method" class="cur">By payment</a><a href="#" data-sort="number">By number</a></span>
+      <button class="pobtn" id="reload" title="Read again">Refresh</button>
+      <button class="pobtn" id="print" title="Print or save as PDF">Print / PDF</button>
+    </span>
+    <span class="rcload" id="load"></span>
+    <span class="sp"></span>
+    <span class="rcload" id="gen"></span>
+  </div>
+  <div id="box"><div class="card rcmsg">Loading…</div></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   recon.html — 일일 대사 (rc v1 · 2026-11-23 · 대화 Claude · dayrec-a2)
+   판정 1511 · 1512: Justin 의 매일 대사를 IMS 한 화면에 — 차례 매출 표(이것) → 입금 표 → 경고 → TD → 완료 · 지난 날짜 · 내보내기
+   판정 1587 ~ 1590: Source(counter · service = b2b · 웹 + 손 = 웹 스토어 · opening 은 합계 밖) · 지난 날짜도 Paid · Still owed 는 지금 값 · 결제마다 받은 날
+   판정 1591 · 1597 · 1598: 열쇠 recon · Sales 메뉴 Credit Notes 아래 · 켜진 사람에게만(admin · supervisor 도)
+   창구: recon_sales_day(p_date) — asung-wms dayrec-a1 · 20261124011550 · 응답 열쇠는 dayrec-keys.md
+   정렬 「By payment」 = Justin 의 작업표 차례(현금 → 데빗 → 카드 Amex · MC · Visa → e-Transfer → 수표 → 계좌 이체 → 미수 → 다른 날 받은 돈 → Shopify · PayPal → 이월 → 크레딧 → 취소)
+   돈 = 문서 통화 그대로(sale · 크레딧은 CAD) · 크레딧은 마이너스로 온다
+   ───────────────────────────────────────────────────────────── */
+const RC_BUILD = "2026-11-23 · rc v1";
+console.log("recon.html build:", RC_BUILD);
+
+let sb = null, me = null, rd = null, sortBy = "method", seq = 0;
+const $ = id => document.getElementById(id);
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
+const addD = (s, n) => { const d = new Date(s + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const fmtD = s => s ? MON[+s.slice(5, 7) - 1] + " " + (+s.slice(8, 10)) : "—";
+const fmtDY = s => s ? fmtD(s) + ", " + s.slice(0, 4) : "—";
+const dow = s => ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date(s + "T00:00:00Z").getUTCDay()];
+const m2 = v => v === null || v === undefined ? "—" : (Number(v) < 0 ? "−" : "") + Math.abs(Number(v)).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const mz = v => !Number(v) ? `<span class="dim">—</span>` : `<span class="${Number(v) < 0 ? "neg" : ""}">${m2(v)}</span>`;
+const SRC = { b2b: "B2B", asung_shopify: "Asung Shopify", aone_shopify: "Aone Shopify", pos: "POS", opening: "Opening" };
+const WHN = w => !w ? "—" : /Edmonton/i.test(w) ? "EDM" : /^Asung Trading Inc\.$/.test(w) ? "TOR" : w;
+const METH = { cash: "Cash", debit_card: "Debit", credit_card: "Card", e_transfer: "e-Transfer", cheque: "Cheque", direct_deposit: "Direct deposit", wire: "Wire", shopify: "Shopify", paypal: "PayPal", opening: "Opening balance" };
+
+/* 카드 브랜드 — Reference 앞글자(판정 1593 · 화면 표시용) */
+function brandOf(p){
+  const r = String(p.reference || "").toUpperCase().trim();
+  if(/^AMEX\*/.test(r)) return "Amex";
+  if(/^MC\*/.test(r)) return "MC";
+  if(/^(VISA|VI)\*/.test(r)) return "Visa";
+  if(/^DEBIT\*/.test(r)) return "Debit";
+  return p.method === "debit_card" ? "Debit" : null;
+}
+function payLabel(p){
+  if(p.method === "credit_card" || p.method === "debit_card"){ const b = brandOf(p); return b ? b : (p.method === "debit_card" ? "Debit" : "Card"); }
+  return METH[p.method] || p.method;
+}
+
+/* 정렬 묶음 — 줄의 대표 결제(그날 받은 첫 결제)로 */
+const GROUPS = [
+  ["cash", "Cash"], ["debit", "Debit"], ["amex", "Amex"], ["mc", "Mastercard"], ["visa", "Visa"], ["card", "Card (brand not in the reference)"],
+  ["etransfer", "e-Transfer"], ["cheque", "Cheque"], ["deposit", "Direct deposit · wire"], ["owed", "Not paid yet"], ["credited", "Settled by credit only"],
+  ["otherday", "Paid on another day"], ["web", "Shopify · PayPal"], ["opening", "Opening (carried over — not in the totals)"],
+  ["credit", "Credit notes"], ["cancelled", "Cancelled (not in the totals)"]
+];
+function groupOf(r){
+  if(r.status === "cancelled") return "cancelled";
+  if(r.kind === "credit") return "credit";
+  if(r.source === "opening" || r.invoice_kind === "opening") return "opening";
+  const ps = (r.payments || []).filter(p => p && typeof p === "object");
+  const web = ps.find(p => p.method === "shopify" || p.method === "paypal");
+  if(web) return "web";
+  const sd = ps.filter(p => p.same_day);
+  if(!sd.length){
+    if(ps.length) return "otherday";
+    if(Number(r.still_owed) > 0.004) return "owed";
+    return Number(r.credited) > 0 ? "credited" : "owed";
+  }
+  const p = sd[0];
+  if(p.method === "cash") return "cash";
+  if(p.method === "debit_card") return "debit";
+  if(p.method === "credit_card"){ const b = brandOf(p); return b === "Amex" ? "amex" : b === "MC" ? "mc" : b === "Visa" ? "visa" : b === "Debit" ? "debit" : "card"; }
+  if(p.method === "e_transfer") return "etransfer";
+  if(p.method === "cheque") return "cheque";
+  if(p.method === "direct_deposit" || p.method === "wire") return "deposit";
+  return "otherday";
+}
+
+/* QuickBooks 칸(keys.md 의 「화면 읽기」 그대로) */
+function qboCell(r){
+  const q = r.qbo || {};
+  if(r.status === "cancelled") return `<span class="chip" title="${esc(q.state || "")}">n/a</span>`;
+  if(q.in_qbo && q.amount_ok === true) return `<span class="chip ok" title="In QuickBooks · amount${q.tax_ok === false ? " matches but tax differs" : " and tax match"}">✓${q.state === "matched" ? " matched" : ""}</span>${q.tax_ok === false ? `<span class="chip bad">tax differs</span>` : ""}`;
+  if(q.in_qbo && q.amount_ok === false) return `<span class="chip bad" title="QuickBooks total ${m2(q.qbo_total)}">amount differs</span><div class="s2">QBO ${m2(q.qbo_total)}</div>`;
+  if(["queued", "sending", "blocked"].includes(q.state)) return `<span class="chip wait" title="Waiting to be sent — not an error">${esc(q.state)}</span>`;
+  if(["failed", "unknown"].includes(q.state)) return `<span class="chip bad" title="${esc(q.error || "")}">${esc(q.state)}</span>${q.error ? `<div class="s2">${esc(String(q.error).slice(0, 80))}</div>` : ""}`;
+  if(q.state === "skipped") return `<span class="chip" title="Not sent on purpose">skipped</span>`;
+  if(q.voided) return `<span class="chip bad">voided in QBO</span>`;
+  return `<span class="chip">not in QBO</span>`;
+}
+const qboBucket = r => {
+  const q = r.qbo || {};
+  if(r.status === "cancelled" || q.state === "skipped") return "na";
+  if(q.in_qbo && q.amount_ok === true && q.tax_ok !== false) return "ok";
+  if(q.in_qbo && (q.amount_ok === false || q.tax_ok === false)) return "bad";
+  if(["failed", "unknown"].includes(q.state) || q.voided) return "bad";
+  if(["queued", "sending", "blocked"].includes(q.state)) return "wait";
+  return "none";
+};
+
+function payCell(r){
+  if(r.kind === "credit"){
+    const a = (r.applied_invoices || []).filter(x => x && typeof x === "object");
+    const bits = [];
+    a.forEach(x => bits.push(`Applied ${m2(x.amount)} to <a class="lnk" href="so-invoices.html?inv=${encodeURIComponent(x.number)}">${esc(x.number)}</a>`));
+    if(Number(r.refunded)) bits.push(`Refunded ${m2(r.refunded)}`);
+    if(Number(r.remaining)) bits.push(`<span class="of">Unused ${m2(r.remaining)}</span>`);
+    return `<div class="pay">${bits.join("<br>") || `<span class="dim">—</span>`}</div>`;
+  }
+  const ps = (r.payments || []).filter(p => p && typeof p === "object");
+  const cs = (r.credits || []).filter(c => c && typeof c === "object");
+  if(!ps.length && !cs.length) return `<span class="dim">—</span>`;
+  const lines = ps.map(p => {
+    const part = Number(p.payment_amount) - Number(p.alloc_amount) > 0.004;
+    return `<a class="lnk" href="so-payments.html?pay=${encodeURIComponent(p.payment_id)}" title="${esc((p.account && p.account.name) || "")}">${esc(payLabel(p))}</a>` +
+      `${p.reference && p.method !== "shopify" && p.method !== "paypal" ? " " + esc(p.reference) : ""} ${m2(p.alloc_amount)}` +
+      `${p.same_day ? "" : ` <span class="od" title="Received on another day">${esc(fmtD(p.paid_on))}</span>`}` +
+      `${part ? ` <span class="of" title="One payment split over several documents">of ${m2(p.payment_amount)}</span>` : ""}` +
+      `${p.corrected_from_id ? ` <span class="chip" title="Re-entered with Correct payment">corrected</span>` : ""}` +
+      `${p.alloc_source && p.alloc_source !== "manual" ? ` <span class="of">(${p.alloc_source === "auto_deposit" ? "deposit" : "balance"})</span>` : ""}`;
+  });
+  cs.forEach(c => lines.push(`Credit <a class="lnk" href="so-credits.html?cr=${encodeURIComponent(c.number)}">${esc(c.number)}</a> ${m2(c.amount)}${c.issued_on && c.issued_on !== r.issued_on ? ` <span class="of">${esc(fmtD(c.issued_on))}</span>` : ""}`));
+  return `<div class="pay">${lines.join("<br>")}</div>`;
+}
+
+function rowHtml(r){
+  const off = r.status === "cancelled" || r.source === "opening";
+  const isCr = r.kind === "credit";
+  const stores = (r.stores || []).filter(Boolean);
+  const refs = (r.refs || []).filter(x => x && typeof x === "object");
+  const num = isCr ? `<a class="lnk" href="so-credits.html?cr=${encodeURIComponent(r.number)}">${esc(r.number)}</a>` : `<a class="lnk" href="so-invoices.html?inv=${encodeURIComponent(r.number)}">${esc(r.number)}</a>`;
+  const refHtml = refs.length ? refs.map(x => `${x.ref ? esc(x.ref) : `<span class="dim">—</span>`}${x.so_number ? ` <span class="of s2" style="display:inline">${x.so_id ? `<a class="lnk" href="so.html?so=${encodeURIComponent(x.so_number)}">${esc(x.so_number)}</a>` : esc(x.so_number)}</span>` : ""}`).join("<br>") : `<span class="dim">—</span>`;
+  const tags = [];
+  if(r.status === "cancelled") tags.push(`<span class="chip bad">cancelled</span>`);
+  if(r.web_and_hand) tags.push(`<span class="chip" title="Web order and manual orders on one invoice — counted under the web store">web + manual</span>`);
+  if(r.source_mixed) tags.push(`<span class="chip bad" title="Two web stores on one invoice">two stores</span>`);
+  if(Number(r.web_unlinked)) tags.push(`<span class="chip bad" title="A web order whose store was not found — counted as B2B">store unknown</span>`);
+  if(isCr && r.source_basis === "ref_only") tags.push(`<span class="chip" title="Points to an invoice from before IMS${r.ref_invoice_number ? " (" + esc(r.ref_invoice_number) + ")" : ""}">old invoice ${esc(r.ref_invoice_number || "")}</span>`);
+  if(isCr && r.source_basis === "opening_invoice") tags.push(`<span class="chip" title="Points to a carried-over invoice">carried-over invoice</span>`);
+  if(r.currency && r.currency !== "CAD") tags.push(`<span class="chip">${esc(r.currency)}</span>`);
+  const wh = WHN(r.warehouse) + (Number(r.warehouse_count) > 1 ? ` <span class="chip bad" title="Orders from ${r.warehouse_count} warehouses — counted under the first">${r.warehouse_count} wh</span>` : "");
+  const cells = isCr
+    ? `<td class="r num">${mz(r.subtotal)}</td><td class="r num">${mz(r.tax)}</td><td class="r num">${mz(r.total)}</td><td class="r"><span class="dim">—</span></td><td class="r"><span class="dim">—</span></td><td class="r"><span class="dim">—</span></td>`
+    : `<td class="r num">${mz(r.subtotal)}</td><td class="r num">${mz(r.tax)}</td><td class="r num">${mz(r.total)}</td><td class="r">${mz(r.paid)}</td><td class="r">${mz(r.credited)}</td><td class="r">${Number(r.still_owed) > 0.004 ? `<b>${m2(r.still_owed)}</b>` : `<span class="dim">—</span>`}${Number(r.prior_settled) ? `<div class="s2">paid before IMS ${m2(r.prior_settled)}</div>` : ""}</td>`;
+  return `<tr class="${off ? "off" : ""}"><td class="nw">${num}${tags.join("")}</td>` +
+    `<td>${esc(r.customer || "")}${stores.length ? `<div class="s2">${stores.slice(0, 3).map(esc).join(" · ")}${stores.length > 3 ? " · +" + (stores.length - 3) : ""}</div>` : ""}</td>` +
+    `<td class="nw">${refHtml}</td><td class="nw"><span class="chip src">${esc(SRC[r.source] || r.source)}</span></td><td class="nw">${wh}</td>` +
+    cells + `<td>${payCell(r)}</td><td class="nw">${qboCell(r)}</td></tr>`;
+}
+
+async function load(){
+  const my = ++seq;
+  const d = $("day").value || addD(todayTO(), -1);
+  if(location.hash.slice(1) !== d) history.replaceState(null, "", "#" + d);
+  $("load").textContent = "Loading…";
+  const { data, error } = await sb.rpc("recon_sales_day", { p_date: d });
+  if(my !== seq) return;
+  $("load").textContent = "";
+  if(error){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(error.message)}</div>`; $("gen").textContent = ""; return; }
+  rd = data || {};
+  $("gen").textContent = rd.generated_at ? "Read " + new Date(rd.generated_at).toLocaleString("en-CA", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hour12: false, month: "short", day: "numeric" }) + " · Paid and Still owed are as of now" : "";
+  render();
+}
+
+function render(){
+  const d = rd, rows = (d.rows || []).filter(r => r && typeof r === "object");
+  const day = d.date || $("day").value;
+  const inv = rows.filter(r => r.kind === "invoice" && r.status !== "cancelled" && r.source !== "opening");
+  const crs = rows.filter(r => r.kind === "credit" && r.status !== "cancelled");
+  const n = d.net || {};
+  // 그날 받은 돈 / 다른 날 받은 돈(그날 인보이스에 붙은 결제 몫)
+  let sameDay = 0, otherDay = 0, owed = 0;
+  inv.forEach(r => { (r.payments || []).forEach(p => { if(!p || typeof p !== "object") return; if(p.same_day) sameDay += Number(p.alloc_amount) || 0; else otherDay += Number(p.alloc_amount) || 0; }); owed += Number(r.still_owed) || 0; });
+  const qb = { ok: 0, bad: 0, wait: 0, none: 0, na: 0 }; rows.forEach(r => qb[qboBucket(r)]++);
+  const qCount = rows.length - qb.na;
+  let h = `<div class="kpis">` +
+    `<div class="card kpi"><div class="l">Net sales · ${esc(dow(day))} ${esc(fmtDY(day))}</div><div class="v">${m2(n.total)}</div><div class="c">${m2(n.subtotal)} before tax · tax ${m2(n.tax)}</div></div>` +
+    `<div class="card kpi"><div class="l">Invoices</div><div class="v">${Number(n.invoices) || 0}</div><div class="c">${m2(n.invoice_total)}</div></div>` +
+    `<div class="card kpi"><div class="l">Credit notes</div><div class="v">${Number(n.credits) || 0}</div><div class="c">${m2(n.credit_total)}</div></div>` +
+    `<div class="card kpi"><div class="l">Paid on the day</div><div class="v">${m2(sameDay)}</div><div class="c">on these invoices · another day ${m2(otherDay)}</div></div>` +
+    `<div class="card kpi"><div class="l">Still owed</div><div class="v">${m2(owed)}</div><div class="c">on these invoices, as of now</div></div>` +
+    `<div class="card kpi ${qb.bad ? "warn" : qCount && qb.ok === qCount ? "good" : ""}"><div class="l">QuickBooks</div><div class="v">${qb.ok} / ${qCount}</div><div class="c">match${qb.bad ? ` · <b>${qb.bad} to check</b>` : ""}${qb.wait ? ` · ${qb.wait} waiting` : ""}${qb.none ? ` · ${qb.none} not in QBO` : ""}</div></div>` +
+    `</div>`;
+  // Source × 창고
+  const T = (d.totals || []).filter(t => t && typeof t === "object");
+  h += `<div class="card rccard"><div class="hd">Sales by source and branch <span class="sub">issue date ${esc(fmtDY(day))} · opening and cancelled documents are left out</span><span class="sp"></span><button class="csvb" data-csv="totals">CSV</button></div><div class="body">` +
+    (T.length ? `<table class="rct"><thead><tr><th>Source</th><th>Branch</th><th class="r">Invoices</th><th class="r">Credit notes</th><th class="r">Before tax</th><th class="r">Tax</th><th class="r">Total</th></tr></thead><tbody>` +
+      T.map(t => `<tr><td>${esc(SRC[t.source] || t.source)}</td><td>${esc(WHN(t.warehouse))}</td><td class="r">${Number(t.invoices) || 0}</td><td class="r">${Number(t.credits) || 0}</td><td class="r">${mz(t.subtotal)}</td><td class="r">${mz(t.tax)}</td><td class="r">${mz(t.total)}</td></tr>`).join("") +
+      `<tr class="tot"><td colspan="2">Net sales</td><td class="r">${Number(n.invoices) || 0}</td><td class="r">${Number(n.credits) || 0}</td><td class="r">${m2(n.subtotal)}</td><td class="r">${m2(n.tax)}</td><td class="r">${m2(n.total)}</td></tr></tbody></table>` +
+      `<div class="s2" style="margin-top:6px">Before tax includes freight, charges and surcharges — so it is not the product-only net sales in Analytics.</div>`
+      : `<div class="dim">${rows.length ? "Nothing counted on this day — only carried-over or cancelled documents." : "No invoices or credit notes on this day."}</div>`) + `</div></div>`;
+  // 문서 표
+  const head = `<thead><tr><th>Number</th><th>Customer</th><th>Customer reference</th><th>Source</th><th>Branch</th><th class="r">Before tax</th><th class="r">Tax</th><th class="r">Total</th><th class="r">Paid</th><th class="r">Credited</th><th class="r">Still owed</th><th>Payments</th><th>QuickBooks</th></tr></thead>`;
+  let body = "";
+  if(sortBy === "method"){
+    const by = {}; rows.forEach(r => { const g = groupOf(r); (by[g] = by[g] || []).push(r); });
+    GROUPS.forEach(([k, label]) => {
+      const list = by[k]; if(!list || !list.length) return;
+      const tot = list.reduce((a, r) => a + (r.status === "cancelled" ? 0 : Number(r.total) || 0), 0);
+      body += `<tr class="grp"><td colspan="13">${esc(label)}<span class="sub">${list.length} · ${m2(tot)}</span></td></tr>` + list.map(rowHtml).join("");
+    });
+  } else body = rows.map(rowHtml).join("");
+  h += `<div class="card rccard"><div class="hd">Invoices and credit notes <span class="sub">${rows.length} documents · ${sortBy === "method" ? "grouped by how they were paid" : "by number"}</span><span class="sp"></span><button class="csvb" data-csv="docs">CSV</button></div><div class="body">` +
+    (rows.length ? `<table class="rct">${head}<tbody>${body}</tbody></table>` +
+      `<div class="s2" style="margin-top:8px">A date in orange = money received on another day. "of $…" = one payment covering several documents. Paid · Credited · Still owed are today's figures, so a past day shows payments that came in later too.</div>`
+      : `<div class="dim">No invoices or credit notes were issued on ${esc(fmtDY(day))}.</div>`) + `</div></div>`;
+  // 알림
+  const nt = (d.notes || []).filter(x => x && typeof x === "object");
+  if(nt.length) h += `<div class="card rccard"><div class="hd">About these numbers</div><div class="body"><ul class="rcnotes">${nt.map(x => `<li>${esc(x.text || x.code)}</li>`).join("")}</ul></div></div>`;
+  $("box").innerHTML = h;
+}
+
+/* CSV — 받은 숫자 그대로 · 한 문서 한 줄 · 결제는 한 칸에 이어 쓴다 */
+function csvDownload(name, head, rows){
+  const q = v => { if(v === null || v === undefined) return ""; const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const text = [head.map(q).join(","), ...rows.map(r => r.map(q).join(","))].join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }));
+  a.download = `asung-recon-${name}-${(rd && rd.date) || $("day").value}.csv`;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function csvClick(k){
+  if(!rd) return;
+  const rows = (rd.rows || []).filter(r => r && typeof r === "object");
+  if(k === "totals"){
+    const T = (rd.totals || []).filter(t => t && typeof t === "object"), n = rd.net || {};
+    csvDownload("totals", ["source", "branch", "invoices", "credit_notes", "before_tax", "tax", "total", "invoice_before_tax", "invoice_tax", "invoice_total", "credit_before_tax", "credit_tax", "credit_total"],
+      T.map(t => [SRC[t.source] || t.source, WHN(t.warehouse), t.invoices, t.credits, t.subtotal, t.tax, t.total, t.invoice_subtotal, t.invoice_tax, t.invoice_total, t.credit_subtotal, t.credit_tax, t.credit_total])
+        .concat([["Net sales", "", n.invoices, n.credits, n.subtotal, n.tax, n.total, n.invoice_subtotal, n.invoice_tax, n.invoice_total, n.credit_subtotal, n.credit_tax, n.credit_total]]));
+  } else if(k === "docs"){
+    const sorted = sortBy === "method" ? GROUPS.flatMap(([g]) => rows.filter(r => groupOf(r) === g)) : rows;
+    csvDownload("documents", ["group", "kind", "number", "status", "issued_on", "customer", "stores", "customer_reference", "orders", "source", "branch", "warehouse_count", "before_tax", "tax", "total", "paid", "credited", "still_owed", "payments", "credits_applied", "qbo_state", "qbo_total", "qbo_amount_ok", "qbo_tax_ok"],
+      sorted.map(r => {
+        const refs = (r.refs || []).filter(x => x && typeof x === "object");
+        const ps = (r.payments || []).filter(p => p && typeof p === "object").map(p => `${payLabel(p)}${p.reference ? " " + p.reference : ""} ${Number(p.alloc_amount).toFixed(2)}${p.same_day ? "" : " (" + p.paid_on + ")"}${Number(p.payment_amount) - Number(p.alloc_amount) > 0.004 ? " of " + Number(p.payment_amount).toFixed(2) : ""}`).join(" | ");
+        const cs = r.kind === "credit" ? (r.applied_invoices || []).map(x => `to ${x.number} ${Number(x.amount).toFixed(2)}`).join(" | ") : (r.credits || []).map(c => `${c.number} ${Number(c.amount).toFixed(2)}`).join(" | ");
+        const q = r.qbo || {};
+        return [(GROUPS.find(g => g[0] === groupOf(r)) || [, ""])[1], r.kind, r.number, r.status, r.issued_on, r.customer, (r.stores || []).join(" · "), refs.map(x => x.ref).filter(Boolean).join(" | "), refs.map(x => x.so_number).filter(Boolean).join(" | "),
+          SRC[r.source] || r.source, WHN(r.warehouse), r.warehouse_count, r.subtotal, r.tax, r.total, r.kind === "invoice" ? r.paid : "", r.kind === "invoice" ? r.credited : "", r.kind === "invoice" ? r.still_owed : r.remaining, ps, cs, q.state, q.qbo_total, q.amount_ok, q.tax_ok];
+      }));
+  }
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw: true }, async (client, meData) => {
+  sb = client; me = meData; window.sb = sb;
+  imsHeader(me);
+  $("buildTag").textContent = RC_BUILD;
+  if(!imsAuth.canView("recon")){   // 판정 1598 — 창구도 막지만 먼저 안내
+    $("box").innerHTML = `<div class="card rcmsg"><b>Daily Reconciliation is not switched on for you</b>Ask an admin to turn on the 'recon' permission in Staff — admins need it switched on too.</div>`;
+    document.querySelector(".rctop .noprint").hidden = true;
+    return;
+  }
+  const want = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) ? location.hash.slice(1) : addD(todayTO(), -1);
+  $("day").value = want; $("day").max = todayTO();
+  $("day").onchange = () => load();
+  $("prevD").onclick = () => { $("day").value = addD($("day").value || todayTO(), -1); load(); };
+  $("nextD").onclick = () => { const nx = addD($("day").value || todayTO(), 1); if(nx <= todayTO()){ $("day").value = nx; load(); } };
+  $("yday").onclick = () => { $("day").value = addD(todayTO(), -1); load(); };
+  $("reload").onclick = () => load();
+  $("print").onclick = () => window.print();
+  $("sortSeg").onclick = e => { const a = e.target.closest("[data-sort]"); if(!a) return; e.preventDefault(); sortBy = a.dataset.sort; $("sortSeg").querySelectorAll("a").forEach(x => x.classList.toggle("cur", x === a)); if(rd) render(); };
+  $("box").onclick = e => { const b = e.target.closest("[data-csv]"); if(b) csvClick(b.dataset.csv); };
+  window.addEventListener("hashchange", () => { if(/^#\d{4}-\d{2}-\d{2}$/.test(location.hash) && location.hash.slice(1) !== $("day").value){ $("day").value = location.hash.slice(1); load(); } });
+  load();
+});
+</script>
+</body>
+</html>
