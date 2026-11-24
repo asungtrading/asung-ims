@@ -61,6 +61,8 @@
   .chg{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
   .chg b{color:var(--ink);font-weight:600}
   .pivot td.r,.pivot th.r{min-width:86px}
+  .chk td{vertical-align:top}
+  .chk .what{white-space:nowrap}
   .kpi a.lnk{color:var(--accent);text-decoration:none} .kpi a.lnk:hover{text-decoration:underline}
   @media print{
     header,.rctop .noprint,.csvb,.rctabs{display:none!important}
@@ -118,11 +120,12 @@
    정렬 「By payment」 = Justin 의 작업표 차례(현금 → 데빗 → 카드 Amex · MC · Visa → e-Transfer → 수표 → 계좌 이체 → 미수 → 다른 날 받은 돈 → Shopify · PayPal → 이월 → 크레딧 → 취소)
    돈 = 문서 통화 그대로(sale · 크레딧은 CAD) · 크레딧은 마이너스로 온다
    ───────────────────────────────────────────────────────────── */
-const RC_BUILD = "2026-11-24 · rc v2";   // rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
+const RC_BUILD = "2026-11-24 · rc v3";   // rc v3(대화 Claude · dayrec-c2 · 판정 1594 · 1595 · 1614): Money received 탭에 「Things to check」 — recon_payment_warnings(asung-wms dayrec-c1 · 20261124170325 · 계약 scratch/dayrec-c2/keys.md · duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(브랜드 모름 · 방법 어긋남 · QuickBooks 살핌) · 결제 줄마다 배지(duplicate 는 payment_id 와 related_payment_ids 둘 다) · 숫자 카드 「To check」 · 카드 중복은 TD 대조(D)에서 · 경고 창구가 없거나 실패하면 그 칸만 빼고 화면은 산다 ← rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
 console.log("recon.html build:", RC_BUILD);
 
 let sb = null, me = null, rd = null, sortBy = "method", seq = 0;
-let pd = null, rdErr = null, pdErr = null, tab = "sales";   // rc v2 — pd = recon_payments_day 응답
+let pd = null, rdErr = null, pdErr = null, tab = "sales";
+let wd = null;   // rc v3 — recon_payment_warnings 응답(없거나 실패면 null)   // rc v2 — pd = recon_payments_day 응답
 const $ = id => document.getElementById(id);
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -261,8 +264,11 @@ async function load(){
   const d = $("day").value || addD(todayTO(), -1);
   if(location.hash !== hashOf()) history.replaceState(null, "", hashOf());
   $("load").textContent = "Loading…";
-  const [a, b] = await Promise.all([sb.rpc("recon_sales_day", { p_date: d }), sb.rpc("recon_payments_day", { p_date: d })]);   // rc v2 — 두 탭을 한 번에(입금 창구 ≈ 20 ms)
+  const [a, b, c] = await Promise.all([sb.rpc("recon_sales_day", { p_date: d }), sb.rpc("recon_payments_day", { p_date: d }),
+    sb.rpc("recon_payment_warnings", { p_date: d })]);   // rc v2 — 두 탭을 한 번에 · rc v3 — 경고(≈ 30 ms)
   if(my !== seq) return;
+  if(c.error) console.warn("recon_payment_warnings:", c.error.message);
+  wd = c.error ? null : (c.data || null);
   $("load").textContent = "";
   rdErr = a.error || null; pdErr = b.error || null;
   rd = rdErr ? null : (a.data || {}); pd = pdErr ? null : (b.data || {});
@@ -386,6 +392,7 @@ function payRow(r, cls){
   if(r.brand_method_mismatch) tags.push(`<span class="chip bad" title="The method does not agree with the reference — the brand follows the reference">${esc(METH[r.method] || r.method)}?</span>`);
   if(r.brand === "unknown") tags.push(`<span class="chip bad" title="Reference does not start with VISA, MC, AMEX or DEBIT">brand?</span>`);
   if(r.corrected_from) tags.push(`<span class="chip" title="Re-entered with Correct payment">corrected</span>`);
+  warnsFor(r.payment_id).forEach(w => tags.push(`<span class="chip wait" title="${esc(w.text || "")}">${esc(W_LABEL[w.code] || w.code)}</span>`));   // rc v3
   let extra = "";
   if(r.corrected_from && r.changes) extra += `<div class="chg">${chgText(r.changes)}${r.reason ? ` · <i>${esc(r.reason)}</i>` : ""}</div>`;
   if(r.replaced_by) extra += `<div class="chg">replaced: ${chgText(r.replaced_changes) || "—"}${r.voided_by ? " · by " + esc(r.voided_by) : ""}${r.voided_at ? " " + esc(torAt(r.voided_at)) : ""}</div>`;
@@ -401,6 +408,37 @@ function payRow(r, cls){
     `<td>${appliedCell(r)}</td>` +
     `<td class="nw">${rec} <span class="chip" title="Customer payment terms">${r.customer_terms === "term" ? "term" : "COD"}</span></td>` +
     `<td class="nw">${qboPay(r)}</td></tr>`;
+}
+/* ── rc v3 · 살필 것(Things to check) — 계약 dayrec-c2/keys.md ──
+   경고 창구 셋(duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(brand unknown · 방법 어긋남 · QuickBooks 살핌)
+   duplicate 는 짝 가운데 한 줄에만 온다 → 줄 배지는 payment_id 와 related_payment_ids 둘 다에서 찾는다 · 「Possible duplicate」 라 살핌 색 */
+const W_LABEL = { duplicate: "possible duplicate", account_not_default: "not the usual account", non_card_in_card_account: "not a card — in the card account",
+  brand_unknown: "card brand unknown", brand_method_mismatch: "method and reference disagree", qbo: "QuickBooks" };
+function warnsFor(id){
+  const ws = (wd && wd.warnings || []).filter(Boolean);
+  return ws.filter(w => w.payment_id === id || (w.related_payment_ids || []).includes(id));
+}
+function checksOf(rows){
+  const out = (wd && wd.warnings || []).filter(Boolean).map(w => ({ code: w.code, id: w.payment_id, customer: w.customer, amount: w.amount, method: w.method, reference: w.reference, text: w.text, related: w.related || [] }));
+  rows.filter(r => !r.voided && !r.opening).forEach(r => {
+    const base = { id: r.payment_id, customer: r.customer, amount: r.amount, method: r.method, reference: r.reference, related: [] };
+    if(r.brand === "unknown") out.push({ ...base, code: "brand_unknown", text: "The reference does not start with VISA, MC, AMEX or DEBIT, so the card brand is unknown — it is counted under unknown in the Bank Feed table." });
+    if(r.brand_method_mismatch) out.push({ ...base, code: "brand_method_mismatch", text: `The method is ${METH[r.method] || r.method} but the reference reads ${BRAND[r.brand] || r.brand} — the brand follows the reference.` });
+    if(qboBad(r)){ const q = r.qbo || {}; out.push({ ...base, code: "qbo", text: q.fingerprint_ok === false ? "What QuickBooks has no longer matches this payment." : q.state === "failed" ? "Sending to QuickBooks failed" + (q.error ? ": " + q.error : ".") : "No QuickBooks job and nothing in QuickBooks for this payment." }); }
+  });
+  return out;
+}
+function checksCard(ck, day){
+  const head = `<div class="card rccard"><div class="hd">Things to check <span class="sub">${esc(fmtDY(day))} · as of now — fixing a payment (Void or Correct payment) clears its line</span></div><div class="body">`;
+  const tail = `<div class="s2" style="margin-top:8px">Card payments are not checked for duplicates here — the same card is often used for several payments of the same amount. A card entered twice will show up when the TD terminal file is matched.</div></div></div>`;
+  const miss = wd ? "" : `<div class="dim" style="margin-bottom:6px">Duplicate and account checks could not be read — the lines below come from the payments table only.</div>`;
+  if(!ck.length) return head + miss + `<div class="dim">${wd ? "Nothing to check on this day." : "Nothing else to check."}</div>` + tail;
+  return head + miss + `<table class="rct chk"><thead><tr><th>Check</th><th>Payment</th><th>Customer</th><th class="r">Amount</th><th>What we see</th></tr></thead><tbody>` +
+    ck.map(c => `<tr><td class="what"><span class="chip wait">${esc(W_LABEL[c.code] || c.code)}</span></td>` +
+      `<td class="nw"><a class="lnk" href="so-payments.html?pay=${encodeURIComponent(c.id)}">${esc(METH[c.method] || c.method || "")}</a>${c.reference ? " " + esc(c.reference) : ""}</td>` +
+      `<td>${esc(c.customer || "")}</td><td class="r nw">${mz(c.amount)}</td>` +
+      `<td>${esc(c.text || "")}${c.related.length ? `<div class="chg">${c.related.map(x => `pair: <a class="lnk" href="so-payments.html?pay=${encodeURIComponent(x.payment_id)}">${esc(METH[x.method] || x.method || "")}${x.reference ? " " + esc(x.reference) : ""}</a> ${m2(x.amount)} · ${esc(fmtDY(x.paid_on))}${x.paid_on !== day ? ` <a class="lnk" href="#${esc(x.paid_on)}/money" title="Open that day">›</a>` : ""} · ${esc(x.account || "")}`).join("<br>")}</div>` : ""}</td></tr>`).join("") +
+    `</tbody></table>` + tail;
 }
 function renderMoney(){
   const d = pd, T = d.totals || {}, A = T.all || {}, day = d.date || $("day").value;
@@ -419,8 +457,12 @@ function renderMoney(){
     `<div class="card kpi"><div class="l">Left out of the totals</div><div class="v">${(Number(A.voided) || 0) + (Number(A.opening) || 0)}</div><div class="c">voided ${m2(A.voided_amount)}${Number(A.opening) ? ` · opening ${m2(A.opening_amount)}` : ""}</div></div>` +
     `<div class="card kpi ${bad ? "warn" : ""}"><div class="l">QuickBooks</div><div class="v">${bad ? bad + " to check" : "OK"}</div><div class="c">${wait ? wait + " waiting · " : ""}on account and voided are not errors</div></div>` +
     (rd && rd.net ? `<div class="card kpi"><div class="l">Net sales</div><div class="v">${m2(rd.net.total)}</div><div class="c">invoices − credits issued this day · <a class="lnk" href="#" data-gotab="sales">Sales tab</a></div></div>` : "") +
+    (() => { const n = checksOf(rows).length; return `<div class="card kpi ${n ? "warn" : "good"}"><div class="l">To check</div><div class="v">${n}</div><div class="c">${wd ? "possible duplicates · accounts · brands · QuickBooks" : "warnings could not be read"}</div></div>`; })() +
     `<div class="card kpi ${nOther ? "warn" : ""}"><div class="l">Changes to other days</div><div class="v">${nOther}</div><div class="c">corrected or voided today, dated another day</div></div>` +
     `</div>`;
+  // rc v3 — 살필 것(경고 창구 + 줄에서 모은 것)
+  const ck = checksOf(rows);
+  h += checksCard(ck, day);
   // 계좌 × 방법 × 지점
   const bam = (T.by_account_method || []).filter(Boolean);
   const accs = []; const byAcc = {};
