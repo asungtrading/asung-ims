@@ -102,7 +102,7 @@
     <span class="sp"></span>
     <span class="rcload" id="gen"></span>
   </div>
-  <nav class="rctabs" id="tabs"><a href="#" data-tab="sales" class="cur">Sales</a><a href="#" data-tab="money">Money received</a></nav>
+  <nav class="rctabs" id="tabs"><a href="#" data-tab="sales" class="cur">Sales</a><a href="#" data-tab="money">Money received</a><a href="#" data-tab="td">Card terminal (TD)</a></nav>
   <div id="box"><div class="card rcmsg">Loading…</div></div>
 </div>
 
@@ -120,12 +120,13 @@
    정렬 「By payment」 = Justin 의 작업표 차례(현금 → 데빗 → 카드 Amex · MC · Visa → e-Transfer → 수표 → 계좌 이체 → 미수 → 다른 날 받은 돈 → Shopify · PayPal → 이월 → 크레딧 → 취소)
    돈 = 문서 통화 그대로(sale · 크레딧은 CAD) · 크레딧은 마이너스로 온다
    ───────────────────────────────────────────────────────────── */
-const RC_BUILD = "2026-11-24 · rc v3";   // rc v3(대화 Claude · dayrec-c2 · 판정 1594 · 1595 · 1614): Money received 탭에 「Things to check」 — recon_payment_warnings(asung-wms dayrec-c1 · 20261124170325 · 계약 scratch/dayrec-c2/keys.md · duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(브랜드 모름 · 방법 어긋남 · QuickBooks 살핌) · 결제 줄마다 배지(duplicate 는 payment_id 와 related_payment_ids 둘 다) · 숫자 카드 「To check」 · 카드 중복은 TD 대조(D)에서 · 경고 창구가 없거나 실패하면 그 칸만 빼고 화면은 산다 ← rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
+const RC_BUILD = "2026-11-24 · rc v4";   // rc v4(대화 Claude · dayrec-d2 · 판정 1605 ~ 1607 · 1614): 셋째 탭 Card terminal(#<날>/td) — recon_td_day(단말기 올림 상태 · 지점 × 브랜드 TD − IMS · TD 줄 · TD 에 없는 IMS 카드 결제) · CSV 올리기(파일 고르기 · 끌어 놓기 · 브라우저가 읽고 카드 번호는 끝 4 자리만 · 승인 코드 안 보냄 → recon_td_upload) · 손 짝(TD 줄 체크 + IMS 결제 하나 → recon_td_link_set 미리 보기 → 경고 확인 → 저장) · 떼기(recon_td_link_remove) · 쓰기 단추는 recon 쓰기만(imsAuth.canWrite) ← rc v3(대화 Claude · dayrec-c2 · 판정 1594 · 1595 · 1614): Money received 탭에 「Things to check」 — recon_payment_warnings(asung-wms dayrec-c1 · 20261124170325 · 계약 scratch/dayrec-c2/keys.md · duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(브랜드 모름 · 방법 어긋남 · QuickBooks 살핌) · 결제 줄마다 배지(duplicate 는 payment_id 와 related_payment_ids 둘 다) · 숫자 카드 「To check」 · 카드 중복은 TD 대조(D)에서 · 경고 창구가 없거나 실패하면 그 칸만 빼고 화면은 산다 ← rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
 console.log("recon.html build:", RC_BUILD);
 
 let sb = null, me = null, rd = null, sortBy = "method", seq = 0;
 let pd = null, rdErr = null, pdErr = null, tab = "sales";
-let wd = null;   // rc v3 — recon_payment_warnings 응답(없거나 실패면 null)   // rc v2 — pd = recon_payments_day 응답
+let wd = null;
+let td = null, tdErr = null;   // rc v4 — recon_td_day   // rc v3 — recon_payment_warnings 응답(없거나 실패면 null)   // rc v2 — pd = recon_payments_day 응답
 const $ = id => document.getElementById(id);
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -255,9 +256,9 @@ function rowHtml(r){
     cells + `<td>${payCell(r)}</td><td class="nw">${qboCell(r)}</td></tr>`;
 }
 
-function setTab(t){ tab = t === "money" ? "money" : "sales"; history.replaceState(null, "", hashOf()); draw(); window.scrollTo(0, 0); }
-const hashOf = () => "#" + ($("day").value || addD(todayTO(), -1)) + (tab === "money" ? "/money" : "");
-function parseHash(){ const m = /^#(\d{4}-\d{2}-\d{2})(?:\/(money))?$/.exec(location.hash || ""); return m ? { d: m[1], t: m[2] ? "money" : "sales" } : null; }
+function setTab(t){ tab = t === "money" || t === "td" ? t : "sales"; history.replaceState(null, "", hashOf()); draw(); window.scrollTo(0, 0); }
+const hashOf = () => "#" + ($("day").value || addD(todayTO(), -1)) + (tab === "money" ? "/money" : tab === "td" ? "/td" : "");
+function parseHash(){ const m = /^#(\d{4}-\d{2}-\d{2})(?:\/(money|td))?$/.exec(location.hash || ""); return m ? { d: m[1], t: m[2] || "sales" } : null; }
 const torAt = s => new Date(s).toLocaleString("en-CA", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hour12: false, month: "short", day: "numeric" });
 async function load(){
   const my = ++seq;
@@ -265,7 +266,10 @@ async function load(){
   if(location.hash !== hashOf()) history.replaceState(null, "", hashOf());
   $("load").textContent = "Loading…";
   const [a, b, c] = await Promise.all([sb.rpc("recon_sales_day", { p_date: d }), sb.rpc("recon_payments_day", { p_date: d }),
-    sb.rpc("recon_payment_warnings", { p_date: d })]);   // rc v2 — 두 탭을 한 번에 · rc v3 — 경고(≈ 30 ms)
+    sb.rpc("recon_payment_warnings", { p_date: d })]);
+  const e4 = await sb.rpc("recon_td_day", { p_date: d });   // rc v4 — TD(≈ 10 ms)
+  if(my !== seq) return;
+  tdErr = e4.error || null; td = tdErr ? null : (e4.data || {});   // rc v2 — 두 탭을 한 번에 · rc v3 — 경고(≈ 30 ms)
   if(my !== seq) return;
   if(c.error) console.warn("recon_payment_warnings:", c.error.message);
   wd = c.error ? null : (c.data || null);
@@ -277,11 +281,11 @@ async function load(){
 function draw(){   // rc v2 — 탭 하나를 그린다
   $("tabs").querySelectorAll("a").forEach(x => x.classList.toggle("cur", x.dataset.tab === tab));
   $("sortSeg").hidden = tab !== "sales";
-  const src = tab === "money" ? pd : rd, err = tab === "money" ? pdErr : rdErr;
+  const src = tab === "money" ? pd : tab === "td" ? td : rd, err = tab === "money" ? pdErr : tab === "td" ? tdErr : rdErr;
   if(err){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(err.message)}</div>`; $("gen").textContent = ""; return; }
   if(!src){ $("box").innerHTML = `<div class="card rcmsg">Loading…</div>`; return; }
-  $("gen").textContent = src.generated_at ? "Read " + torAt(src.generated_at) + (tab === "money" ? " · attachments and QuickBooks are as of now" : " · Paid and Still owed are as of now") : "";
-  if(tab === "money") renderMoney(); else render();
+  $("gen").textContent = src.generated_at ? "Read " + torAt(src.generated_at) + (tab === "money" ? " · attachments and QuickBooks are as of now" : tab === "td" ? " · matches are worked out on every read" : " · Paid and Still owed are as of now") : "";
+  if(tab === "money") renderMoney(); else if(tab === "td") renderTd(); else render();
 }
 
 function render(){
@@ -409,6 +413,139 @@ function payRow(r, cls){
     `<td class="nw">${rec} <span class="chip" title="Customer payment terms">${r.customer_terms === "term" ? "term" : "COD"}</span></td>` +
     `<td class="nw">${qboPay(r)}</td></tr>`;
 }
+/* ── rc v4 · Card terminal (TD) 탭 — recon_td_day · recon_td_upload · recon_td_link_set · recon_td_link_remove(asung-wms dayrec-d1 · 20261124180500 · 계약 scratch/dayrec-d2/keys.md)
+   판정 1605(올리면 저장 · 카드 번호는 끝 4 자리만) · 1606(1 대 1 → 묶음 → 손 짝) · 1607(같은 날 먼저 · 앞뒤 3 일 + 날짜 다름) · 1614(카드 중복은 여기서)
+   CSV 는 브라우저가 읽는다 — 카드 번호는 화면이 먼저 끝 4 글자로 자르고(창구도 한 번 더) 승인 코드는 보내지 않는다 · 쓰기 단추는 recon 쓰기만 */
+const TD_STATUS = { matched: "matched", grouped: "split card", date_differs: "other day", manual: "matched by hand", unmatched: "no match", unknown_type: "not a sale",
+  no_last4: "no last 4", refund: "refund" };
+const TD_WARN = { date_differs: "date differs", brand_differs: "card type differs", picked_by_account: "picked by account", ambiguous: "several possible", amount_differs: "amount differs", payment_voided: "payment voided", unknown_type: "not a sale" };
+const tdChip = s => `<span class="chip ${s === "unmatched" || s === "no_last4" ? "bad" : s === "matched" || s === "grouped" || s === "manual" ? "ok" : "wait"}">${esc(TD_STATUS[s] || s)}</span>`;
+const canTd = () => typeof imsAuth !== "undefined" && imsAuth.canWrite && imsAuth.canWrite("recon");
+let tdSel = { lines: new Set(), pay: null };
+/* CSV 한 줄 읽기(따옴표 · 쉼표 · BOM) */
+function csvRows(text){
+  const out = []; let row = [], cur = "", q = false;
+  text = text.replace(/^\ufeff/, "");
+  for(let i = 0; i < text.length; i++){
+    const ch = text[i];
+    if(q){ if(ch === '"'){ if(text[i + 1] === '"'){ cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if(ch === '"') q = true;
+    else if(ch === ","){ row.push(cur); cur = ""; }
+    else if(ch === "\n" || ch === "\r"){ if(ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); cur = ""; if(row.some(x => x !== "")) out.push(row); row = []; }
+    else cur += ch;
+  }
+  row.push(cur); if(row.some(x => x !== "")) out.push(row);
+  return out;
+}
+function tdRowsFromCsv(text){
+  const rs = csvRows(text); if(!rs.length) return { rows: [], err: "The file is empty." };
+  const H = rs[0].map(h => h.trim()), ix = n => H.indexOf(n);
+  const need = ["Terminal ID", "Authorization Date", "Invoice Number", "Card Type", "Card Number", "Transaction Type", "Amount"];
+  const miss = need.filter(n => ix(n) < 0);
+  if(miss.length) return { rows: [], err: "This does not look like a TD Settled Transaction export — missing " + miss.join(", ") + "." };
+  const g = (r, n) => ix(n) < 0 ? "" : String(r[ix(n)] ?? "").trim();
+  const rows = rs.slice(1).map(r => ({ terminal_id: g(r, "Terminal ID"), auth_date: g(r, "Authorization Date"), auth_time: g(r, "Authorization Time"), settle_date: g(r, "Settlement Date"),
+    invoice_number: g(r, "Invoice Number"), card_type: g(r, "Card Type"), last4: g(r, "Card Number").replace(/\D/g, "").slice(-4), entry_mode: g(r, "Entry Mode"),
+    tx_type: g(r, "Transaction Type"), amount: g(r, "Amount"), declined_code: g(r, "Declined Code") }));   // 승인 코드 · 앞 6 자리는 보내지 않는다
+  return { rows };
+}
+async function tdUpload(files){
+  const all = []; const errs = [];
+  for(const f of files){ const r = tdRowsFromCsv(await f.text()); if(r.err) errs.push(f.name + ": " + r.err); else all.push(...r.rows); }
+  if(errs.length && !all.length){ alert(errs.join("\n")); return; }
+  if(!all.length){ alert("No lines found in the file."); return; }
+  $("tdUpMsg").textContent = `Uploading ${all.length} lines…`;
+  const { data, error } = await sb.rpc("recon_td_upload", { p_rows: all });
+  if(error){ $("tdUpMsg").textContent = ""; alert(error.message); return; }
+  const r = data || {};
+  const bits = [`${r.inserted || 0} new`, `${r.updated || 0} changed`, `${r.unchanged || 0} already there`];
+  if(Number(r.unknown_type)) bits.push(`${r.unknown_type} not sales (kept, not matched)`);
+  let msg = "Uploaded — " + bits.join(" · ") + ".";
+  if((r.rejected || []).length) msg += "\n\nNot taken:\n" + r.rejected.map(x => `line ${x.row}: ${x.why}`).join("\n");
+  if(errs.length) msg += "\n\n" + errs.join("\n");
+  const ds = (r.dates || []).filter(Boolean), cur = $("day").value;
+  if(ds.length && !ds.includes(cur)) msg += `\n\nThe file is for ${ds.map(fmtDY).join(", ")} — that day is opened now.`;
+  $("tdUpMsg").textContent = "";
+  alert(msg);
+  if(ds.length && !ds.includes(cur)){ $("day").value = ds[0]; }
+  tdSel = { lines: new Set(), pay: null };
+  load();
+}
+async function tdLink(){
+  const ids = [...tdSel.lines]; if(!tdSel.pay || !ids.length){ alert("Pick one or more TD lines and one IMS payment first."); return; }
+  const a = { p_payment_id: tdSel.pay, p_td_line_ids: ids, p_commit: false, p_ack: [] };
+  const p = await sb.rpc("recon_td_link_set", a); if(p.error){ alert(p.error.message); return; }
+  const d = p.data || {};
+  if((d.blocks || []).length){ alert("Can't match these:\n\n" + d.blocks.map(b => "• " + b.message).join("\n")); return; }
+  const ws = d.warnings || [];
+  if(ws.length && !confirm("Please check:\n\n" + ws.map(w => "• " + w.message).join("\n") + "\n\nMatch them anyway?")) return;
+  const c = await sb.rpc("recon_td_link_set", { ...a, p_commit: true, p_ack: ws.map(w => w.key) }); if(c.error){ alert(c.error.message); return; }
+  if(!(c.data || {}).committed){ alert("Not saved — " + ((c.data || {}).unacked || []).join(", ")); return; }
+  tdSel = { lines: new Set(), pay: null }; load();
+}
+async function tdUnlink(id){
+  if(!confirm("Remove this hand match? The lines go back to unmatched (the record is kept).")) return;
+  const { error } = await sb.rpc("recon_td_link_remove", { p_link_id: id }); if(error){ alert(error.message); return; }
+  load();
+}
+function renderTd(){
+  const d = td || {}, day = d.date || $("day").value, w = canTd();
+  const up = (d.uploaded || []).filter(Boolean), tr = (d.td_rows || []).filter(Boolean), iu = (d.ims_unmatched || []).filter(Boolean), tot = (d.totals || []).filter(Boolean);
+  const C = d.counts || { td: {}, ims: {} }, ct = C.td || {}, ci = C.ims || {};
+  const diffSum = tot.reduce((s, t) => s + Math.abs(Number(t.diff || 0)), 0);
+  const notUp = up.filter(u => u.status !== "uploaded");
+  let h = `<div class="kpis">` +
+    `<div class="card kpi ${notUp.length ? "warn" : "good"}"><div class="l">TD file · ${esc(dow(day))} ${esc(fmtDY(day))}</div><div class="v">${up.length - notUp.length} / ${up.length}</div><div class="c">terminals uploaded${notUp.length ? " · missing " + notUp.map(u => esc(brName(u.branch))).join(", ") : ""}</div></div>` +
+    `<div class="card kpi ${Number(ct.unmatched) ? "warn" : ""}"><div class="l">TD lines matched</div><div class="v">${(Number(ct.all) || 0) - (Number(ct.unmatched) || 0) - (Number(ct.unknown_type) || 0)} / ${(Number(ct.all) || 0) - (Number(ct.unknown_type) || 0)}</div><div class="c">${Number(ct.unmatched) ? ct.unmatched + " TD lines with no IMS payment" : "every sale has a payment"}${Number(ct.unknown_type) ? " · " + ct.unknown_type + " not sales" : ""}</div></div>` +
+    `<div class="card kpi ${iu.filter(x => x.status !== "refund").length ? "warn" : "good"}"><div class="l">IMS card payments not in TD</div><div class="v">${iu.filter(x => x.status !== "refund").length}</div><div class="c">${m2(iu.filter(x => x.status !== "refund").reduce((s, x) => s + Number(x.amount || 0), 0))} — a card entered twice shows here</div></div>` +
+    `<div class="card kpi ${diffSum > 0.004 ? "warn" : "good"}"><div class="l">Card totals TD − IMS</div><div class="v">${diffSum > 0.004 ? "differ" : "match"}</div><div class="c">by branch and brand · table below</div></div>` +
+    `</div>`;
+  // 올리기 + 단말기 상태
+  h += `<div class="card rccard"><div class="hd">TD settled transactions <span class="sub">TD Merchant Insights › Transaction Search › Export — one file per terminal · only the last 4 card digits are kept</span><span class="sp"></span>` +
+    (w ? `<label class="csvb" style="display:inline-block">Upload CSV…<input type="file" id="tdFile" accept=".csv,text/csv" multiple hidden></label><span id="tdUpMsg" class="rcload"></span>` : `<span class="dim" style="font-size:12px">read only</span>`) + `</div><div class="body">` +
+    `<table class="rct"><thead><tr><th>Terminal</th><th>Branch</th><th>Status</th><th class="r">Lines</th><th class="r">Amount</th><th>Uploaded</th></tr></thead><tbody>` +
+    up.map(u => `<tr><td class="nw">${esc(u.terminal_id)}</td><td>${esc(brName(u.branch))}</td><td>${u.status === "uploaded" ? `<span class="chip ok">uploaded</span>` : `<span class="chip wait">not uploaded</span>`}</td><td class="r">${Number(u.lines) || 0}</td><td class="r">${mz(u.amount)}</td><td class="nw">${u.uploaded_at ? esc(torAt(u.uploaded_at)) + " · " + esc(u.uploaded_by || "") : `<span class="dim">—</span>`}</td></tr>`).join("") +
+    `</tbody></table>` + (w ? `<div class="s2" style="margin-top:6px" id="tdDrop">You can also drop the CSV files here. Uploading the same file again only changes lines that differ.</div>` : "") + `</div></div>`;
+  // 합계
+  h += `<div class="card rccard"><div class="hd">Card totals by branch <span class="sub">TD sales against IMS card and debit payments dated this day (refunds negative)</span></div><div class="body">` +
+    (tot.length ? `<table class="rct"><thead><tr><th>Branch</th><th>Brand</th><th class="r">TD lines</th><th class="r">TD</th><th class="r">IMS payments</th><th class="r">IMS</th><th class="r">TD − IMS</th></tr></thead><tbody>` +
+      tot.map(t => `<tr><td>${esc(brName(t.branch))}</td><td>${esc(BRAND[t.brand] || t.brand)}</td><td class="r">${Number(t.td_count) || 0}</td><td class="r">${mz(t.td_amount)}</td><td class="r">${Number(t.ims_count) || 0}</td><td class="r">${mz(t.ims_amount)}</td><td class="r">${Math.abs(Number(t.diff || 0)) > 0.004 ? `<b class="neg">${m2(t.diff)}</b>` : `<span class="dim">0.00</span>`}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">No card sales or card payments on this day.</div>`) + `</div></div>`;
+  // IMS 쪽 남은 것
+  h += `<div class="card rccard"><div class="hd">IMS card payments with no TD line <span class="sub">${iu.length} · ${w ? "pick one, tick its TD line(s) below, then Match" : "read only"}</span></div><div class="body">` +
+    (iu.length ? `<table class="rct"><thead><tr>${w ? "<th></th>" : ""}<th>Payment</th><th>Customer</th><th class="r">Amount</th><th>Account</th><th>Branch</th><th>Status</th><th>Note</th></tr></thead><tbody>` +
+      iu.map(x => `<tr>${w ? `<td>${x.status === "refund" ? "" : `<input type="radio" name="tdPay" value="${esc(x.payment_id)}"${tdSel.pay === x.payment_id ? " checked" : ""}>`}</td>` : ""}` +
+        `<td class="nw"><a class="lnk" href="so-payments.html?pay=${encodeURIComponent(x.payment_id)}">${esc(METH[x.method] || x.method)}</a> ${esc(x.reference || "")}</td><td>${esc(x.customer || "")}</td><td class="r">${mz(x.amount)}</td>` +
+        `<td class="nw">${esc((x.account || {}).name || "")}</td><td>${esc(brName(x.branch))}</td><td>${tdChip(x.status)}</td><td>${x.text ? esc(x.text) : `<span class="dim">—</span>`}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">Every IMS card payment has a TD line.</div>`) + `</div></div>`;
+  // TD 줄
+  const grpN = {}; tr.filter(r => r.group && r.payment_id).forEach(r => { grpN[r.payment_id] = (grpN[r.payment_id] || 0) + 1; });
+  h += `<div class="card rccard"><div class="hd">TD lines <span class="sub">${tr.length} · ${ct.matched || 0} matched · ${ct.grouped || 0} split · ${ct.manual || 0} by hand · ${ct.date_differs || 0} other day · ${ct.unmatched || 0} no match</span><span class="sp"></span>` +
+    (w ? `<button class="pobtn go" id="tdMatch">Match selected</button>` : "") + `</div><div class="body">` +
+    (tr.length ? `<table class="rct"><thead><tr>${w ? "<th></th>" : ""}<th>Branch</th><th class="r">No.</th><th>Time</th><th>Card</th><th class="r">Amount</th><th>Status</th><th>IMS payment</th><th>Note</th></tr></thead><tbody>` +
+      tr.map(r => { const p = r.payment || null, sel = r.status === "unmatched";
+        const tm = String(r.auth_time || ""); const t = tm.length >= 4 ? tm.slice(0, 2) + ":" + tm.slice(2, 4) : tm;
+        return `<tr class="${r.status === "unknown_type" ? "off" : ""}">${w ? `<td>${sel ? `<input type="checkbox" data-tdl="${esc(r.td_line_id)}"${tdSel.lines.has(r.td_line_id) ? " checked" : ""}>` : ""}</td>` : ""}` +
+          `<td>${esc(brName(r.branch))}</td><td class="r">${esc(r.invoice_number)}</td><td class="nw">${esc(t)}</td>` +
+          `<td class="nw">${esc(r.card_type || "")} ${esc(r.last4 || "")}<div class="s2">${esc(r.entry_mode || "")}${r.tx_type && r.tx_type !== "Sale" ? " · " + esc(r.tx_type) : ""}</div></td>` +
+          `<td class="r num">${mz(r.amount)}</td><td class="nw">${tdChip(r.status)}${r.group && grpN[r.payment_id] > 1 ? ` <span class="chip" title="Several TD lines make one payment">1 of ${grpN[r.payment_id]}</span>` : ""}</td>` +
+          `<td>${p ? `<a class="lnk" href="so-payments.html?pay=${encodeURIComponent(p.payment_id)}">${esc(p.reference || METH[p.method] || "")}</a> ${m2(p.amount)}<div class="s2">${esc(p.customer || "")}${p.paid_on && p.paid_on !== day ? ` · paid ${esc(fmtDY(p.paid_on))} <a class="lnk" href="#${esc(p.paid_on)}/td">›</a>` : ""}</div>` : `<span class="dim">—</span>`}</td>` +
+          `<td>${(r.warnings || []).map(k => `<span class="chip wait">${esc(TD_WARN[k] || k)}</span>`).join("")}${r.text ? `<div class="s2">${esc(r.text)}</div>` : ""}${w && r.status === "manual" && r.link_id ? ` <button class="pobtn" style="padding:2px 8px;font-size:11.5px" data-unlink="${esc(r.link_id)}">Unlink</button>` : ""}</td></tr>`; }).join("") + `</tbody></table>`
+      : `<div class="dim">${notUp.length === up.length ? "No TD file uploaded for this day yet." : "No TD lines on this day."}</div>`) + `</div></div>`;
+  const nt = (d.notes || []).filter(x => x && typeof x === "object");
+  if(nt.length) h += `<div class="card rccard"><div class="hd">About these numbers</div><div class="body"><ul class="rcnotes">${nt.map(x => `<li>${esc(x.text || x.code)}</li>`).join("")}</ul></div></div>`;
+  $("box").innerHTML = h;
+  if(w){
+    const f = $("tdFile"); if(f) f.onchange = e => { const fs = Array.from(e.target.files || []); e.target.value = ""; if(fs.length) tdUpload(fs); };
+    const dz = $("box"); dz.ondragover = e => { if(tab === "td"){ e.preventDefault(); } };
+    dz.ondrop = e => { if(tab !== "td") return; e.preventDefault(); const fs = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(x => /\.csv$/i.test(x.name)); if(fs.length) tdUpload(fs); };
+    $("box").querySelectorAll("input[name=tdPay]").forEach(r => { r.onchange = () => { tdSel.pay = r.value; }; });
+    $("box").querySelectorAll("input[data-tdl]").forEach(c => { c.onchange = () => { if(c.checked) tdSel.lines.add(c.dataset.tdl); else tdSel.lines.delete(c.dataset.tdl); }; });
+    $("box").querySelectorAll("[data-unlink]").forEach(b => { b.onclick = () => tdUnlink(b.dataset.unlink); });
+    const mb = $("tdMatch"); if(mb) mb.onclick = tdLink;
+  }
+}
+
 /* ── rc v3 · 살필 것(Things to check) — 계약 dayrec-c2/keys.md ──
    경고 창구 셋(duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(brand unknown · 방법 어긋남 · QuickBooks 살핌)
    duplicate 는 짝 가운데 한 줄에만 온다 → 줄 배지는 payment_id 와 related_payment_ids 둘 다에서 찾는다 · 「Possible duplicate」 라 살핌 색 */
