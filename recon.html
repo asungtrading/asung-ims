@@ -62,6 +62,11 @@
   .chg b{color:var(--ink);font-weight:600}
   .pivot td.r,.pivot th.r{min-width:86px}
   .chk td{vertical-align:top}
+  .rcbar .rcbarrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px}
+  .rcbar .rcbarrow .sp{flex:1}
+  .rcbar input[type=text]{border:1px solid var(--line);border-radius:8px;padding:5px 9px;font:inherit;font-size:12.5px;min-width:280px;background:var(--ims-surface);color:var(--ink)}
+  .rcbar.warnbar{border-left:4px solid var(--warn)}
+  .rccard .hd input[type=date]{border:1px solid var(--line);border-radius:8px;padding:3px 6px;font:inherit;font-size:12.5px;background:var(--ims-surface);color:var(--ink)}
   .chk .what{white-space:nowrap}
   .kpi a.lnk{color:var(--accent);text-decoration:none} .kpi a.lnk:hover{text-decoration:underline}
   @media print{
@@ -102,7 +107,7 @@
     <span class="sp"></span>
     <span class="rcload" id="gen"></span>
   </div>
-  <nav class="rctabs" id="tabs"><a href="#" data-tab="sales" class="cur">Sales</a><a href="#" data-tab="money">Money received</a><a href="#" data-tab="td">Card terminal (TD)</a></nav>
+  <nav class="rctabs" id="tabs"><a href="#" data-tab="sales" class="cur">Sales</a><a href="#" data-tab="money">Money received</a><a href="#" data-tab="td">Card terminal (TD)</a><a href="#" data-tab="days">Days</a></nav>
   <div id="box"><div class="card rcmsg">Loading…</div></div>
 </div>
 
@@ -120,13 +125,14 @@
    정렬 「By payment」 = Justin 의 작업표 차례(현금 → 데빗 → 카드 Amex · MC · Visa → e-Transfer → 수표 → 계좌 이체 → 미수 → 다른 날 받은 돈 → Shopify · PayPal → 이월 → 크레딧 → 취소)
    돈 = 문서 통화 그대로(sale · 크레딧은 CAD) · 크레딧은 마이너스로 온다
    ───────────────────────────────────────────────────────────── */
-const RC_BUILD = "2026-11-24 · rc v4a";   // rc v4a(Caleb 화면 11-23 · TD 를 안 올린 날이 「문제」 처럼 보였다): 지점마다 올렸나(uploaded)를 보고 그린다 — 안 올린 지점의 IMS 카드 결제는 「TD not uploaded」(호박) · 숫자 카드 · 빨간 차이에서 뺀다 · 합계 표의 그 지점 차이는 「not uploaded」 · 파일이 하나도 없으면 「Upload the TD files first」 ← rc v4(대화 Claude · dayrec-d2 · 판정 1605 ~ 1607 · 1614): 셋째 탭 Card terminal(#<날>/td) — recon_td_day(단말기 올림 상태 · 지점 × 브랜드 TD − IMS · TD 줄 · TD 에 없는 IMS 카드 결제) · CSV 올리기(파일 고르기 · 끌어 놓기 · 브라우저가 읽고 카드 번호는 끝 4 자리만 · 승인 코드 안 보냄 → recon_td_upload) · 손 짝(TD 줄 체크 + IMS 결제 하나 → recon_td_link_set 미리 보기 → 경고 확인 → 저장) · 떼기(recon_td_link_remove) · 쓰기 단추는 recon 쓰기만(imsAuth.canWrite) ← rc v3(대화 Claude · dayrec-c2 · 판정 1594 · 1595 · 1614): Money received 탭에 「Things to check」 — recon_payment_warnings(asung-wms dayrec-c1 · 20261124170325 · 계약 scratch/dayrec-c2/keys.md · duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(브랜드 모름 · 방법 어긋남 · QuickBooks 살핌) · 결제 줄마다 배지(duplicate 는 payment_id 와 related_payment_ids 둘 다) · 숫자 카드 「To check」 · 카드 중복은 TD 대조(D)에서 · 경고 창구가 없거나 실패하면 그 칸만 빼고 화면은 산다 ← rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
+const RC_BUILD = "2026-11-24 · rc v5";   // rc v5(대화 Claude · dayrec-e2 · 판정 1596 · 1615 ~ 1617): 날마다 머리에 완료 줄 — Mark as reconciled(메모) · Reconciled by ○ · Reopen…(사유) · 「완료 때 / 지금」 표(돈이 바뀜 = 호박 · 살필 것 · TD 만 = 옅게) · 지난 완료 접이식 · 넷째 탭 Days(#days · recon_days 60 일 · 기간 93 일까지 · CSV) · 쓰기 단추는 recon 쓰기만 ← rc v4a(Caleb 화면 11-23 · TD 를 안 올린 날이 「문제」 처럼 보였다): 지점마다 올렸나(uploaded)를 보고 그린다 — 안 올린 지점의 IMS 카드 결제는 「TD not uploaded」(호박) · 숫자 카드 · 빨간 차이에서 뺀다 · 합계 표의 그 지점 차이는 「not uploaded」 · 파일이 하나도 없으면 「Upload the TD files first」 ← rc v4(대화 Claude · dayrec-d2 · 판정 1605 ~ 1607 · 1614): 셋째 탭 Card terminal(#<날>/td) — recon_td_day(단말기 올림 상태 · 지점 × 브랜드 TD − IMS · TD 줄 · TD 에 없는 IMS 카드 결제) · CSV 올리기(파일 고르기 · 끌어 놓기 · 브라우저가 읽고 카드 번호는 끝 4 자리만 · 승인 코드 안 보냄 → recon_td_upload) · 손 짝(TD 줄 체크 + IMS 결제 하나 → recon_td_link_set 미리 보기 → 경고 확인 → 저장) · 떼기(recon_td_link_remove) · 쓰기 단추는 recon 쓰기만(imsAuth.canWrite) ← rc v3(대화 Claude · dayrec-c2 · 판정 1594 · 1595 · 1614): Money received 탭에 「Things to check」 — recon_payment_warnings(asung-wms dayrec-c1 · 20261124170325 · 계약 scratch/dayrec-c2/keys.md · duplicate · account_not_default · non_card_in_card_account) + 입금 표 줄에서 모은 것(브랜드 모름 · 방법 어긋남 · QuickBooks 살핌) · 결제 줄마다 배지(duplicate 는 payment_id 와 related_payment_ids 둘 다) · 숫자 카드 「To check」 · 카드 중복은 TD 대조(D)에서 · 경고 창구가 없거나 실패하면 그 칸만 빼고 화면은 산다 ← rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
 console.log("recon.html build:", RC_BUILD);
 
 let sb = null, me = null, rd = null, sortBy = "method", seq = 0;
 let pd = null, rdErr = null, pdErr = null, tab = "sales";
 let wd = null;
-let td = null, tdErr = null;   // rc v4 — recon_td_day   // rc v3 — recon_payment_warnings 응답(없거나 실패면 null)   // rc v2 — pd = recon_payments_day 응답
+let td = null, tdErr = null;
+let ds = null, dsErr = null;   // rc v5 — recon_day_state   // rc v4 — recon_td_day   // rc v3 — recon_payment_warnings 응답(없거나 실패면 null)   // rc v2 — pd = recon_payments_day 응답
 const $ = id => document.getElementById(id);
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -256,9 +262,9 @@ function rowHtml(r){
     cells + `<td>${payCell(r)}</td><td class="nw">${qboCell(r)}</td></tr>`;
 }
 
-function setTab(t){ tab = t === "money" || t === "td" ? t : "sales"; history.replaceState(null, "", hashOf()); draw(); window.scrollTo(0, 0); }
-const hashOf = () => "#" + ($("day").value || addD(todayTO(), -1)) + (tab === "money" ? "/money" : tab === "td" ? "/td" : "");
-function parseHash(){ const m = /^#(\d{4}-\d{2}-\d{2})(?:\/(money|td))?$/.exec(location.hash || ""); return m ? { d: m[1], t: m[2] || "sales" } : null; }
+function setTab(t){ tab = t === "money" || t === "td" || t === "days" ? t : "sales"; if(tab === "days" && !dy) loadDays(); history.replaceState(null, "", hashOf()); draw(); window.scrollTo(0, 0); }
+const hashOf = () => tab === "days" ? "#days" : "#" + ($("day").value || addD(todayTO(), -1)) + (tab === "money" ? "/money" : tab === "td" ? "/td" : "");
+function parseHash(){ if(location.hash === "#days") return { d: null, t: "days" }; const m = /^#(\d{4}-\d{2}-\d{2})(?:\/(money|td))?$/.exec(location.hash || ""); return m ? { d: m[1], t: m[2] || "sales" } : null; }
 const torAt = s => new Date(s).toLocaleString("en-CA", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hour12: false, month: "short", day: "numeric" });
 async function load(){
   const my = ++seq;
@@ -269,7 +275,10 @@ async function load(){
     sb.rpc("recon_payment_warnings", { p_date: d })]);
   const e4 = await sb.rpc("recon_td_day", { p_date: d });   // rc v4 — TD(≈ 10 ms)
   if(my !== seq) return;
-  tdErr = e4.error || null; td = tdErr ? null : (e4.data || {});   // rc v2 — 두 탭을 한 번에 · rc v3 — 경고(≈ 30 ms)
+  tdErr = e4.error || null; td = tdErr ? null : (e4.data || {});
+  const e5 = await sb.rpc("recon_day_state", { p_date: d });   // rc v5 — 완료 상태(≈ 0.1 초)
+  if(my !== seq) return;
+  dsErr = e5.error || null; ds = dsErr ? null : (e5.data || null);   // rc v2 — 두 탭을 한 번에 · rc v3 — 경고(≈ 30 ms)
   if(my !== seq) return;
   if(c.error) console.warn("recon_payment_warnings:", c.error.message);
   wd = c.error ? null : (c.data || null);
@@ -281,11 +290,17 @@ async function load(){
 function draw(){   // rc v2 — 탭 하나를 그린다
   $("tabs").querySelectorAll("a").forEach(x => x.classList.toggle("cur", x.dataset.tab === tab));
   $("sortSeg").hidden = tab !== "sales";
+  if(tab === "days"){   // rc v5
+    if(dyErr){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(dyErr.message)}</div>`; return; }
+    if(!dy){ $("box").innerHTML = `<div class="card rcmsg">Loading…</div>`; return; }
+    $("gen").textContent = dy.generated_at ? "Read " + torAt(dy.generated_at) : ""; renderDays(); return;
+  }
   const src = tab === "money" ? pd : tab === "td" ? td : rd, err = tab === "money" ? pdErr : tab === "td" ? tdErr : rdErr;
   if(err){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(err.message)}</div>`; $("gen").textContent = ""; return; }
   if(!src){ $("box").innerHTML = `<div class="card rcmsg">Loading…</div>`; return; }
   $("gen").textContent = src.generated_at ? "Read " + torAt(src.generated_at) + (tab === "money" ? " · attachments and QuickBooks are as of now" : tab === "td" ? " · matches are worked out on every read" : " · Paid and Still owed are as of now") : "";
   if(tab === "money") renderMoney(); else if(tab === "td") renderTd(); else render();
+  $("box").insertAdjacentHTML("afterbegin", closeBar()); wireBar();   // rc v5 — 완료 줄은 세 탭 모두 맨 위
 }
 
 function render(){
@@ -413,6 +428,115 @@ function payRow(r, cls){
     `<td class="nw">${rec} <span class="chip" title="Customer payment terms">${r.customer_terms === "term" ? "term" : "COD"}</span></td>` +
     `<td class="nw">${qboPay(r)}</td></tr>`;
 }
+/* ── rc v5 · 완료(Mark as reconciled · Reopen) · 「완료 때 / 지금」 · Days 탭 — recon_day_state · recon_day_close · recon_day_reopen · recon_days
+   (asung-wms dayrec-e1 0b04375 · 20261124181000 · 계약 scratch/dayrec-e2/keys.md) · 판정 1596(되돌릴 수 있고 기록은 남음) · 1615(하루 한 번 · 숫자를 떠 둠) · 1616(Days 탭 60 일) · 1617(Days CSV)
+   바뀜은 둘로 가른다: 돈(sales. · money. · cards.) = 호박 「changed」 / 그 밖만(checks. · td.) = 옅게 「notes changed」 · 지점 이름에 점이 있다 — 열쇠는 머리 · 꼬리로 읽는다 */
+const canRc = () => typeof imsAuth !== "undefined" && imsAuth.canWrite && imsAuth.canWrite("recon");
+const K_LABEL = { "sales.total": "Net sales", "sales.subtotal": "Net sales before tax", "sales.tax": "Sales tax", "sales.invoices": "Invoices", "sales.credits": "Credit notes",
+  "money.amount": "Money received", "money.count": "Payments counted", "money.payments": "Payments", "money.payment_amount": "Payments amount", "money.refunds": "Refunds", "money.refund_amount": "Refunds amount",
+  "money.voided": "Voided payments", "money.on_account_total": "On account", "money.older_invoice_total": "Toward older invoices",
+  "checks.total": "To check", "checks.duplicate": "Possible duplicates", "checks.account_not_default": "Not the usual account", "checks.non_card_in_card_account": "Not a card in the card account",
+  "checks.brand_unknown": "Card brand unknown", "checks.brand_method_mismatch": "Method and reference disagree", "checks.qbo": "QuickBooks to check",
+  "td.card_diff": "Card difference TD − IMS", "td.uploaded": "TD terminals uploaded", "td.terminals": "TD terminals", "td.td_unmatched": "TD lines with no payment", "td.ims_unmatched": "Card payments not in TD", "td.date_differs": "Matched with another day", "td.manual": "Matched by hand" };
+const F_LABEL = { amount: "amount", count: "payments", td_amount: "TD", ims_amount: "IMS", diff: "TD − IMS", uploaded: "uploaded" };
+function keyLabel(k){
+  if(K_LABEL[k]) return K_LABEL[k];
+  const m = /^(cards|td)\.(.+)\.(visa|mc|amex|debit|unknown)\.([a-z_]+)$/.exec(k);
+  if(m) return (m[1] === "cards" ? "Cards " : "TD ") + brName(m[2]) + " " + (BRAND[m[3]] || m[3]) + " — " + (F_LABEL[m[4]] || m[4]);
+  return k;
+}
+const isMoneyKey = k => /^(sales|money|cards)\./.test(k);
+const fmtChg = (k, v) => v === null || v === undefined ? "—" : v === "true" ? "yes" : v === "false" ? "no" : /amount|total|subtotal|tax|diff/.test(k) && isFinite(Number(v)) ? m2(Number(v)) : String(v);
+async function rcClose(){
+  const note = ($("rcNote") && $("rcNote").value || "").trim();
+  const { error } = await sb.rpc("recon_day_close", { p_date: $("day").value, p_note: note || null });
+  if(error){ alert(error.message); return; }
+  load();
+}
+async function rcReopen(){
+  const why = prompt("Why reopen this day? (kept in the record)");
+  if(why === null) return;
+  if(!why.trim()){ alert("A reason is needed — nothing was changed."); return; }
+  const { error } = await sb.rpc("recon_day_reopen", { p_date: $("day").value, p_reason: why.trim() });
+  if(error){ alert(error.message); return; }
+  load();
+}
+function closeBar(){
+  if(dsErr) return `<div class="card rccard rcbar"><div class="body dim">The reconciled status could not be read — ${esc(dsErr.message)}</div></div>`;
+  if(!ds) return "";
+  const w = canRc(), c = ds.closed, n = ds.now || {}, ck = (n.checks || {}).total, td = n.td || {};
+  const hint = `TD ${Number(td.uploaded) || 0}/${Number(td.terminals) || 0} uploaded · To check ${Number(ck) || 0}`;
+  let h = "";
+  if(!c){
+    h = `<div class="card rccard rcbar"><div class="body rcbarrow"><span class="chip">not reconciled</span><span class="dim">${esc(hint)}</span><span class="sp"></span>` +
+      (w ? `<input type="text" id="rcNote" placeholder="Note (optional) — e.g. Edmonton TD file comes tomorrow" maxlength="2000"><button class="pobtn go" id="rcCloseBtn">Mark as reconciled</button>` : "") + `</div></div>`;
+  } else {
+    const chg = (ds.changes || []).filter(Boolean), money = chg.filter(x => isMoneyKey(x.key)), other = chg.filter(x => !isMoneyKey(x.key));
+    h = `<div class="card rccard rcbar ${money.length ? "warnbar" : ""}"><div class="body rcbarrow"><span class="chip ok">reconciled</span>` +
+      `<span>by <b>${esc(c.closed_by || "—")}</b> · ${esc(torAt(c.closed_at))}${c.note ? ` · <i>${esc(c.note)}</i>` : ""}</span>` +
+      (money.length ? `<span class="chip wait">changed since — money</span>` : other.length ? `<span class="chip">notes changed since</span>` : "") +
+      `<span class="sp"></span>${w ? `<button class="pobtn" id="rcReopenBtn">Reopen…</button>` : ""}</div>`;
+    if(chg.length){
+      h += `<div class="body" style="padding-top:0"><details${money.length ? " open" : ""}><summary class="dim" style="cursor:pointer">${chg.length} number${chg.length > 1 ? "s" : ""} differ from when it was reconciled${money.length ? " — to mark the new numbers, Reopen then Mark as reconciled again" : ""}</summary>` +
+        `<table class="rct" style="margin-top:6px"><thead><tr><th>What</th><th class="r">When reconciled</th><th class="r">Now</th></tr></thead><tbody>` +
+        chg.sort((a, b) => (isMoneyKey(b.key) - isMoneyKey(a.key))).map(x => `<tr class="${isMoneyKey(x.key) ? "" : "off"}"><td>${esc(keyLabel(x.key))}</td><td class="r">${esc(fmtChg(x.key, x.at_close))}</td><td class="r"><b>${esc(fmtChg(x.key, x.now))}</b></td></tr>`).join("") +
+        `</tbody></table></details></div>`;
+    }
+    h += `</div>`;
+  }
+  const hist = (ds.history || []).filter(x => x && !x.live);
+  if(hist.length) h += `<div class="card rccard"><div class="body"><details><summary class="dim" style="cursor:pointer">Earlier reconciliations of this day (${hist.length})</summary><table class="rct" style="margin-top:6px"><thead><tr><th>Reconciled</th><th>By</th><th>Note</th><th>Reopened</th><th>By</th><th>Reason</th><th class="r">Money received then</th></tr></thead><tbody>` +
+    hist.map(x => `<tr><td class="nw">${esc(torAt(x.closed_at))}</td><td>${esc(x.closed_by || "")}</td><td>${esc(x.note || "")}</td><td class="nw">${x.reopened_at ? esc(torAt(x.reopened_at)) : "—"}</td><td>${esc(x.reopened_by || "")}</td><td>${esc(x.reopen_reason || "")}</td><td class="r">${m2(x.money_received)}</td></tr>`).join("") + `</tbody></table></details></div></div>`;
+  return h;
+}
+function wireBar(){
+  const a = $("rcCloseBtn"); if(a) a.onclick = rcClose;
+  const b = $("rcReopenBtn"); if(b) b.onclick = rcReopen;
+}
+/* Days 탭 */
+let dy = null, dyErr = null, dyFrom = null, dyTo = null, dySeq = 0;
+async function loadDays(){
+  const my = ++dySeq;
+  const t = todayTO(); dyTo = dyTo || t; dyFrom = dyFrom || addD(dyTo, -59);
+  $("load").textContent = "Loading…";
+  const { data, error } = await sb.rpc("recon_days", { p_from: dyFrom, p_to: dyTo });
+  if(my !== dySeq) return;
+  $("load").textContent = "";
+  dyErr = error || null; dy = error ? null : (data || {});
+  if(tab === "days") draw();
+}
+const D_STATUS = { closed: `<span class="chip ok">reconciled</span>`, changed: `<span class="chip wait">changed since</span>`, open: `<span class="chip">open</span>` };
+function renderDays(){
+  const d = dy || {}, rows = (d.days || []).filter(Boolean);
+  const n = { closed: 0, changed: 0, open: 0 }; rows.forEach(r => { n[r.status] = (n[r.status] || 0) + 1; });
+  const busy = rows.filter(r => Number(r.invoices) || Number(r.payments));
+  let h = `<div class="kpis">` +
+    `<div class="card kpi good"><div class="l">Reconciled</div><div class="v">${n.closed}</div><div class="c">of ${rows.length} days · ${esc(fmtDY(d.from || dyFrom))} – ${esc(fmtDY(d.to || dyTo))}</div></div>` +
+    `<div class="card kpi ${n.changed ? "warn" : ""}"><div class="l">Changed since reconciled</div><div class="v">${n.changed}</div><div class="c">open the day to see what moved</div></div>` +
+    `<div class="card kpi ${busy.filter(r => r.status === "open").length ? "warn" : ""}"><div class="l">Not reconciled yet</div><div class="v">${busy.filter(r => r.status === "open").length}</div><div class="c">days with invoices or payments</div></div>` +
+    `</div>`;
+  h += `<div class="card rccard"><div class="hd">Days <span class="sub">numbers are as of now · 93 days at most</span><span class="sp"></span>` +
+    `<input type="date" id="dyFrom" value="${esc(d.from || dyFrom)}" max="${esc(todayTO())}"> – <input type="date" id="dyTo" value="${esc(d.to || dyTo)}" max="${esc(todayTO())}"><button class="pobtn" id="dyGo">Show</button><button class="csvb" data-csv="days">CSV</button></div><div class="body">` +
+    (rows.length ? `<table class="rct"><thead><tr><th>Day</th><th>Status</th><th class="r">Net sales</th><th class="r">Money received</th><th>TD</th><th class="r">TD − IMS</th><th class="r">Not in TD</th><th class="r">To check</th><th>Reconciled</th><th>Note</th></tr></thead><tbody>` +
+      rows.map(r => { const up = Number(r.td_uploaded) || 0, all = Number(r.td_terminals) || 0, idle = !Number(r.invoices) && !Number(r.payments);
+        return `<tr class="${idle && r.status === "open" ? "off" : ""}"><td class="nw"><a class="lnk" href="#${esc(r.date)}">${esc(dow(r.date).slice(0, 3))} ${esc(fmtDY(r.date))}</a></td>` +
+          `<td class="nw">${D_STATUS[r.status] || esc(r.status)}${Number(r.reopened) ? ` <span class="chip" title="Reopened ${r.reopened} time(s)">↺${r.reopened}</span>` : ""}</td>` +
+          `<td class="r">${mz(r.net_sales)}</td><td class="r">${mz(r.money_received)}</td>` +
+          `<td class="nw">${up ? `<span class="${up < all ? "od" : ""}">${up}/${all}</span>` : `<span class="dim">not uploaded</span>`}</td>` +
+          `<td class="r">${up ? (Math.abs(Number(r.card_diff || 0)) > 0.004 ? `<b class="neg">${m2(r.card_diff)}</b>` : `<span class="dim">0.00</span>`) : `<span class="dim">—</span>`}</td>` +
+          `<td class="r">${up ? (Number(r.ims_unmatched) ? `<b class="neg">${r.ims_unmatched}</b>` : `<span class="dim">0</span>`) : `<span class="dim">—</span>`}</td>` +
+          `<td class="r">${Number(r.checks) ? `<span class="od">${r.checks}</span>` : `<span class="dim">0</span>`}</td>` +
+          `<td class="nw">${r.closed_by ? esc(r.closed_by) + `<div class="s2">${esc(torAt(r.closed_at))}</div>` : `<span class="dim">—</span>`}</td><td>${r.note ? esc(r.note) : ""}</td></tr>`; }).join("") + `</tbody></table>`
+      : `<div class="dim">No days.</div>`) + `<div class="s2" style="margin-top:8px">"Not in TD" and "TD − IMS" count only branches whose TD file is uploaded. Click a day to open it.</div></div></div>`;
+  $("box").innerHTML = h;
+  $("dyGo").onclick = () => { const a = $("dyFrom").value, b = $("dyTo").value; if(!a || !b){ alert("Pick both days."); return; } dyFrom = a; dyTo = b; loadDays(); };
+}
+function csvDays(){
+  const rows = ((dy && dy.days) || []).filter(Boolean);
+  csvDownload("days", ["date", "status", "net_sales", "net_subtotal", "net_tax", "invoices", "credits", "money_received", "payments", "td_uploaded", "td_terminals", "card_diff", "td_unmatched", "ims_unmatched", "checks", "reconciled_by", "reconciled_at", "note", "changes", "reopened"],
+    rows.map(r => [r.date, r.status, r.net_sales, r.net_subtotal, r.net_tax, r.invoices, r.credits, r.money_received, r.payments, r.td_uploaded, r.td_terminals, r.card_diff, r.td_unmatched, r.ims_unmatched, r.checks, r.closed_by, r.closed_at, r.note, r.changes, r.reopened]));
+}
+
 /* ── rc v4 · Card terminal (TD) 탭 — recon_td_day · recon_td_upload · recon_td_link_set · recon_td_link_remove(asung-wms dayrec-d1 · 20261124180500 · 계약 scratch/dayrec-d2/keys.md)
    판정 1605(올리면 저장 · 카드 번호는 끝 4 자리만) · 1606(1 대 1 → 묶음 → 손 짝) · 1607(같은 날 먼저 · 앞뒤 3 일 + 날짜 다름) · 1614(카드 중복은 여기서)
    CSV 는 브라우저가 읽는다 — 카드 번호는 화면이 먼저 끝 4 글자로 자르고(창구도 한 번 더) 승인 코드는 보내지 않는다 · 쓰기 단추는 recon 쓰기만 */
@@ -737,7 +861,8 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   }
   const H0 = parseHash();   // rc v2 — #<날> 또는 #<날>/money
   if(H0) tab = H0.t;
-  $("day").value = H0 ? H0.d : addD(todayTO(), -1); $("day").max = todayTO();
+  $("day").value = H0 && H0.d ? H0.d : addD(todayTO(), -1); $("day").max = todayTO();
+  if(tab === "days") loadDays();
   $("day").onchange = () => load();
   $("prevD").onclick = () => { $("day").value = addD($("day").value || todayTO(), -1); load(); };
   $("nextD").onclick = () => { const nx = addD($("day").value || todayTO(), 1); if(nx <= todayTO()){ $("day").value = nx; load(); } };
@@ -748,11 +873,12 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("box").onclick = e => {   // rc v2 — 입금 CSV(m…) · 탭 건너뛰기 링크
     const g = e.target.closest("[data-gotab]"); if(g){ e.preventDefault(); setTab(g.dataset.gotab); return; }
     const b = e.target.closest("[data-csv]"); if(!b) return;
-    if(/^m/.test(b.dataset.csv)) csvMoney(b.dataset.csv); else csvClick(b.dataset.csv);
+    if(b.dataset.csv === "days") csvDays(); else if(/^m/.test(b.dataset.csv)) csvMoney(b.dataset.csv); else csvClick(b.dataset.csv);
   };
   $("tabs").onclick = e => { const a = e.target.closest("[data-tab]"); if(!a) return; e.preventDefault(); setTab(a.dataset.tab); };
   window.addEventListener("hashchange", () => {   // rc v2 — 날이 바뀌면 다시 읽고 · 탭만 바뀌면 다시 그린다
     const H = parseHash(); if(!H) return;
+    if(H.t === "days"){ tab = "days"; if(!dy) loadDays(); else draw(); return; }
     const dayChanged = H.d !== $("day").value; tab = H.t;
     if(dayChanged){ $("day").value = H.d; load(); } else draw();
   });
