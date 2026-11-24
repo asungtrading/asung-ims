@@ -51,8 +51,19 @@
   .pay .of{color:var(--muted)}
   .rcnotes{margin:0;padding-left:18px} .rcnotes li{margin:3px 0;font-size:13px}
   .neg{color:var(--bad)}
+  /* rc v2 — 탭 · 입금 표(판정 1612 · dayrec-b2) */
+  .rctabs{display:flex;gap:2px;border-bottom:1px solid var(--line)}
+  .rctabs a{padding:8px 14px;font-weight:700;font-size:14px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .rctabs a.cur{color:var(--ims-brand);border-bottom-color:var(--ims-brand)}
+  .rct tr.acc td{font-weight:700;color:var(--ink)}
+  .rct tr.old td{color:var(--muted);border-bottom-style:dashed}
+  .rct tr.old td.num{text-decoration:line-through}
+  .chg{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.45}
+  .chg b{color:var(--ink);font-weight:600}
+  .pivot td.r,.pivot th.r{min-width:86px}
+  .kpi a.lnk{color:var(--accent);text-decoration:none} .kpi a.lnk:hover{text-decoration:underline}
   @media print{
-    header,.rctop .noprint,.csvb{display:none!important}
+    header,.rctop .noprint,.csvb,.rctabs{display:none!important}
     .rcwrap{max-width:none;padding:0}
     .rct th{position:static}
     html[data-theme="dark"]:is([data-ims-mode="ims"],[data-ims-mode="pos"]){
@@ -89,6 +100,7 @@
     <span class="sp"></span>
     <span class="rcload" id="gen"></span>
   </div>
+  <nav class="rctabs" id="tabs"><a href="#" data-tab="sales" class="cur">Sales</a><a href="#" data-tab="money">Money received</a></nav>
   <div id="box"><div class="card rcmsg">Loading…</div></div>
 </div>
 
@@ -106,10 +118,11 @@
    정렬 「By payment」 = Justin 의 작업표 차례(현금 → 데빗 → 카드 Amex · MC · Visa → e-Transfer → 수표 → 계좌 이체 → 미수 → 다른 날 받은 돈 → Shopify · PayPal → 이월 → 크레딧 → 취소)
    돈 = 문서 통화 그대로(sale · 크레딧은 CAD) · 크레딧은 마이너스로 온다
    ───────────────────────────────────────────────────────────── */
-const RC_BUILD = "2026-11-23 · rc v1";
+const RC_BUILD = "2026-11-24 · rc v2";   // rc v2(대화 Claude · dayrec-b2 · 판정 1612 = 가): 탭 둘(Sales · Money received) · 주소 #<날>/money · 입금 탭 = recon_payments_day(asung-wms dayrec-b1 d23da43 · 20261124155000 · 계약 scratch/dayrec-b2/keys.md) — 계좌 × 방법 × 지점 · 카드 지점 × 브랜드(Bank Feed) · 기록자 · Term/COD · 결제 목록(저스틴 차례: TOR → EDM 마다 현금 → 데빗 → Amex · MC · Visa → e-Transfer → 수표 → 이체 · 그다음 웹 · 이월 · Void) · 정정 옛 줄은 새 줄 밑에 흐리게 + 옛 → 새 · 지난 날에 닿는 정정 · Void 목록 · 탭마다 다른 탭 숫자 한 칸 · 날짜 하나로 두 창구를 함께 읽는다 ← rc v1(2026-11-23)
 console.log("recon.html build:", RC_BUILD);
 
 let sb = null, me = null, rd = null, sortBy = "method", seq = 0;
+let pd = null, rdErr = null, pdErr = null, tab = "sales";   // rc v2 — pd = recon_payments_day 응답
 const $ = id => document.getElementById(id);
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const todayTO = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
@@ -239,18 +252,30 @@ function rowHtml(r){
     cells + `<td>${payCell(r)}</td><td class="nw">${qboCell(r)}</td></tr>`;
 }
 
+function setTab(t){ tab = t === "money" ? "money" : "sales"; history.replaceState(null, "", hashOf()); draw(); window.scrollTo(0, 0); }
+const hashOf = () => "#" + ($("day").value || addD(todayTO(), -1)) + (tab === "money" ? "/money" : "");
+function parseHash(){ const m = /^#(\d{4}-\d{2}-\d{2})(?:\/(money))?$/.exec(location.hash || ""); return m ? { d: m[1], t: m[2] ? "money" : "sales" } : null; }
+const torAt = s => new Date(s).toLocaleString("en-CA", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hour12: false, month: "short", day: "numeric" });
 async function load(){
   const my = ++seq;
   const d = $("day").value || addD(todayTO(), -1);
-  if(location.hash.slice(1) !== d) history.replaceState(null, "", "#" + d);
+  if(location.hash !== hashOf()) history.replaceState(null, "", hashOf());
   $("load").textContent = "Loading…";
-  const { data, error } = await sb.rpc("recon_sales_day", { p_date: d });
+  const [a, b] = await Promise.all([sb.rpc("recon_sales_day", { p_date: d }), sb.rpc("recon_payments_day", { p_date: d })]);   // rc v2 — 두 탭을 한 번에(입금 창구 ≈ 20 ms)
   if(my !== seq) return;
   $("load").textContent = "";
-  if(error){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(error.message)}</div>`; $("gen").textContent = ""; return; }
-  rd = data || {};
-  $("gen").textContent = rd.generated_at ? "Read " + new Date(rd.generated_at).toLocaleString("en-CA", { timeZone: "America/Toronto", hour: "2-digit", minute: "2-digit", hour12: false, month: "short", day: "numeric" }) + " · Paid and Still owed are as of now" : "";
-  render();
+  rdErr = a.error || null; pdErr = b.error || null;
+  rd = rdErr ? null : (a.data || {}); pd = pdErr ? null : (b.data || {});
+  draw();
+}
+function draw(){   // rc v2 — 탭 하나를 그린다
+  $("tabs").querySelectorAll("a").forEach(x => x.classList.toggle("cur", x.dataset.tab === tab));
+  $("sortSeg").hidden = tab !== "sales";
+  const src = tab === "money" ? pd : rd, err = tab === "money" ? pdErr : rdErr;
+  if(err){ $("box").innerHTML = `<div class="card rcmsg"><b>Could not load</b>${esc(err.message)}</div>`; $("gen").textContent = ""; return; }
+  if(!src){ $("box").innerHTML = `<div class="card rcmsg">Loading…</div>`; return; }
+  $("gen").textContent = src.generated_at ? "Read " + torAt(src.generated_at) + (tab === "money" ? " · attachments and QuickBooks are as of now" : " · Paid and Still owed are as of now") : "";
+  if(tab === "money") renderMoney(); else render();
 }
 
 function render(){
@@ -270,6 +295,7 @@ function render(){
     `<div class="card kpi"><div class="l">Credit notes</div><div class="v">${Number(n.credits) || 0}</div><div class="c">${m2(n.credit_total)}</div></div>` +
     `<div class="card kpi"><div class="l">Paid on the day</div><div class="v">${m2(sameDay)}</div><div class="c">on these invoices · another day ${m2(otherDay)}</div></div>` +
     `<div class="card kpi"><div class="l">Still owed</div><div class="v">${m2(owed)}</div><div class="c">on these invoices, as of now</div></div>` +
+    (pd && pd.totals && pd.totals.all ? `<div class="card kpi"><div class="l">Money received</div><div class="v">${m2(pd.totals.all.amount)}</div><div class="c">every payment dated this day · <a class="lnk" href="#" data-gotab="money">Money received tab</a></div></div>` : "") +
     `<div class="card kpi ${qb.bad ? "warn" : qCount && qb.ok === qCount ? "good" : ""}"><div class="l">QuickBooks</div><div class="v">${qb.ok} / ${qCount}</div><div class="c">match${qb.bad ? ` · <b>${qb.bad} to check</b>` : ""}${qb.wait ? ` · ${qb.wait} waiting` : ""}${qb.none ? ` · ${qb.none} not in QBO` : ""}</div></div>` +
     `</div>`;
   // Source × 창고
@@ -301,13 +327,194 @@ function render(){
   $("box").innerHTML = h;
 }
 
+/* ── rc v2 · 입금 탭(Money received) — recon_payments_day · 계약 keys.md ──
+   합계는 totals 그대로(counted 줄만) · 환불은 음수 그대로 · voided · opening 은 합계 밖
+   차례(저스틴 작업표): 지점(TOR → EDM → 그 밖)마다 현금 → 데빗 → Amex · MC · Visa → 브랜드 모름 → e-Transfer → 수표 → 이체 · 그다음 웹(Shopify · PayPal) · 이월 · Void
+   정정: 옛 줄(replaced_by)은 같은 날의 새 줄 바로 밑에 흐리게 · 새 줄이 다른 날이면 Void 묶음에 「새 결제 <날>」 */
+const PM_GROUPS = [["cash", "Cash"], ["debit", "Debit"], ["amex", "Amex"], ["mc", "Mastercard"], ["visa", "Visa"], ["unknown", "Card — brand not in the reference"],
+  ["e_transfer", "e-Transfer"], ["cheque", "Cheque"], ["deposit", "Direct deposit · wire"], ["other", "Other"]];
+const BRAND = { visa: "Visa", mc: "MC", amex: "Amex", debit: "Debit", unknown: "Card?" };
+const isWeb = r => r.method === "shopify" || r.method === "paypal";
+function pmKey(r){
+  if(r.method === "cash") return "cash";
+  if(r.brand) return r.brand;
+  if(r.method === "credit_card" || r.method === "debit_card") return "unknown";
+  if(r.method === "e_transfer") return "e_transfer";
+  if(r.method === "cheque") return "cheque";
+  if(r.method === "direct_deposit" || r.method === "wire") return "deposit";
+  return "other";
+}
+const brOrder = b => /^Asung Trading Inc\.$/.test(b || "") ? 0 : /Edmonton/i.test(b || "") ? 1 : 2;
+const brName = b => /^Asung Trading Inc\.$/.test(b || "") ? "Toronto" : /Edmonton/i.test(b || "") ? "Edmonton" : (b || "—");
+const fmtV = (k, v) => v === null || v === undefined || v === "" ? "—" : k === "amount" ? m2(v) : k === "paid_on" ? fmtDY(v) : String(v);
+function chgText(ch){
+  if(!ch || typeof ch !== "object") return "";
+  return Object.keys(ch).map(k => `${esc(k === "paid_on" ? "paid on" : k)} <b>${esc(fmtV(k, ch[k] && ch[k].from))}</b> → <b>${esc(fmtV(k, ch[k] && ch[k].to))}</b>`).join(" · ");
+}
+function pmLabel(r){
+  const b = r.brand ? BRAND[r.brand] : null;
+  return b || METH[r.method] || r.method;
+}
+function qboPay(r){
+  const q = r.qbo || {};
+  if(q.fingerprint_ok === false) return `<span class="chip bad" title="What QuickBooks has no longer matches this payment">changed since sent</span>`;
+  if(q.state === "sent") return `<span class="chip ok" title="In QuickBooks">✓</span>`;
+  if(q.state === "matched") return `<span class="chip ok" title="Matched to a record already in QuickBooks">✓ matched</span>`;
+  if(q.state === "pending") return `<span class="chip wait" title="${esc(q.job_state || "")} — waiting, not an error">waiting</span>`;
+  if(q.state === "failed") return `<span class="chip bad" title="${esc(q.error || "")}">failed</span>${q.error ? `<div class="s2">${esc(String(q.error).slice(0, 80))}</div>` : ""}`;
+  if(q.state === "skipped_by_design") return `<span class="chip" title="Not sent on purpose">${q.why === "opening" ? "carried over" : "on account — not sent"}</span>`;
+  if(q.state === "skipped") return `<span class="chip" title="${q.why === "voided" ? "Voided payment" : "Skipped by a person"}">${q.why === "voided" ? "voided" : "skipped"}</span>`;
+  return `<span class="chip bad" title="No job and nothing in QuickBooks">not in QBO</span>`;
+}
+const qboBad = r => { const q = r.qbo || {}; return q.fingerprint_ok === false || q.state === "failed" || q.state === "none"; };
+function appliedCell(r){
+  const bits = [];
+  (r.allocs || []).filter(Boolean).forEach(a => bits.push(`<a class="lnk" href="so-invoices.html?inv=${encodeURIComponent(a.number)}">${esc(a.number)}</a> ${m2(a.amount)}` +
+    (a.older_invoice ? ` <span class="of" title="Invoice issued before this day">from ${esc(fmtD(a.issued_on))}</span>` : "") +
+    (a.invoice_kind === "opening" ? ` <span class="chip" title="Carried over from before IMS">carried over</span>` : "")));
+  (r.refund_credits || []).filter(Boolean).forEach(c => bits.push(`Refund of <a class="lnk" href="so-credits.html?cr=${encodeURIComponent(c.number)}">${esc(c.number)}</a> ${m2(c.amount)}`));
+  if(Number(r.refund_from_account)) bits.push(`<span class="of">from money on account ${m2(r.refund_from_account)}</span>`);
+  if(Number(r.on_account) > 0.004) bits.push(`<span class="od" title="Not attached to any invoice — not sent to QuickBooks until it is">On account ${m2(r.on_account)}</span>`);
+  (r.targets || []).filter(Boolean).forEach(t => bits.push(`<span class="of">for</span> <a class="lnk" href="so.html?so=${encodeURIComponent(t)}">${esc(t)}</a>`));
+  return bits.length ? `<div class="pay">${bits.join("<br>")}</div>` : `<span class="dim">—</span>`;
+}
+function payRow(r, cls){
+  const tags = [];
+  if(r.kind === "refund") tags.push(`<span class="chip bad">refund</span>`);
+  if(r.voided) tags.push(`<span class="chip bad">voided</span>`);
+  if(r.opening) tags.push(`<span class="chip">opening</span>`);
+  if(r.brand_method_mismatch) tags.push(`<span class="chip bad" title="The method does not agree with the reference — the brand follows the reference">${esc(METH[r.method] || r.method)}?</span>`);
+  if(r.brand === "unknown") tags.push(`<span class="chip bad" title="Reference does not start with VISA, MC, AMEX or DEBIT">brand?</span>`);
+  if(r.corrected_from) tags.push(`<span class="chip" title="Re-entered with Correct payment">corrected</span>`);
+  let extra = "";
+  if(r.corrected_from && r.changes) extra += `<div class="chg">${chgText(r.changes)}${r.reason ? ` · <i>${esc(r.reason)}</i>` : ""}</div>`;
+  if(r.replaced_by) extra += `<div class="chg">replaced: ${chgText(r.replaced_changes) || "—"}${r.voided_by ? " · by " + esc(r.voided_by) : ""}${r.voided_at ? " " + esc(torAt(r.voided_at)) : ""}</div>`;
+  else if(r.voided) extra += `<div class="chg">voided${r.voided_by ? " by " + esc(r.voided_by) : ""}${r.voided_at ? " " + esc(torAt(r.voided_at)) : ""}${r.reason ? ` · <i>${esc(r.reason)}</i>` : ""}</div>`;
+  if(r.note) extra += `<div class="chg">${esc(r.note)}</div>`;
+  const moved = r.branch_id && r.payment_branch_id && r.branch_id !== r.payment_branch_id;
+  const rec = esc(r.recorded_by || "—") + (r.original_recorded_by && r.original_recorded_by !== r.recorded_by ? `<div class="s2">first entered by ${esc(r.original_recorded_by)}</div>` : "");
+  return `<tr class="${cls || ""}"><td class="nw"><a class="lnk" href="so-payments.html?pay=${encodeURIComponent(r.payment_id)}">${esc(pmLabel(r))}</a>${r.reference && !isWeb(r) ? " " + esc(r.reference) : isWeb(r) && r.reference ? ` <span class="of">${esc(r.reference)}</span>` : ""}${tags.join("")}${extra}</td>` +
+    `<td>${r.customer_id ? `<a class="lnk" href="customers.html?id=${encodeURIComponent(r.customer_id)}">${esc(r.customer || "")}</a>` : esc(r.customer || "")}</td>` +
+    `<td class="r num">${mz(r.amount)}</td>` +
+    `<td class="nw">${esc((r.account && r.account.name) || "—")}</td>` +
+    `<td class="nw">${esc(WHN(r.branch))}${moved ? ` <span class="chip" title="Counted under the invoice's warehouse — the payment says ${esc(r.payment_branch || "")}">from invoice</span>` : ""}${r.branch_mixed ? ` <span class="chip bad" title="Invoices from more than one warehouse — counted under the first">mixed</span>` : ""}</td>` +
+    `<td>${appliedCell(r)}</td>` +
+    `<td class="nw">${rec} <span class="chip" title="Customer payment terms">${r.customer_terms === "term" ? "term" : "COD"}</span></td>` +
+    `<td class="nw">${qboPay(r)}</td></tr>`;
+}
+function renderMoney(){
+  const d = pd, T = d.totals || {}, A = T.all || {}, day = d.date || $("day").value;
+  const rows = (d.rows || []).filter(r => r && typeof r === "object");
+  const cmt = (d.corrections_made_today || []).filter(Boolean), vmt = (d.voids_made_today || []).filter(Boolean), poc = (d.paid_on_corrections || []).filter(Boolean);
+  const cards = (T.cards || []).filter(Boolean);
+  const cardBy = {}; cards.forEach(c => { const k = brName(c.branch); cardBy[k] = (cardBy[k] || 0) + Number(c.amount || 0); });
+  const cardTot = cards.reduce((a, c) => a + Number(c.amount || 0), 0);
+  const bad = rows.filter(r => !r.voided && qboBad(r)).length, wait = rows.filter(r => (r.qbo || {}).state === "pending").length;
+  const nOther = cmt.length + vmt.length;
+  let h = `<div class="kpis">` +
+    `<div class="card kpi"><div class="l">Money received · ${esc(dow(day))} ${esc(fmtDY(day))}</div><div class="v">${m2(A.amount)}</div><div class="c">${Number(A.payments) || 0} payments${Number(A.refunds) ? ` · ${A.refunds} refund${A.refunds > 1 ? "s" : ""} ${m2(A.refund_amount)}` : ""}</div></div>` +
+    `<div class="card kpi"><div class="l">Cards and debit</div><div class="v">${m2(cardTot)}</div><div class="c">${Object.keys(cardBy).sort((a, b) => brOrder(a === "Toronto" ? "Asung Trading Inc." : a) - brOrder(b === "Toronto" ? "Asung Trading Inc." : b)).map(k => esc(k) + " " + m2(cardBy[k])).join(" · ") || "none"}</div></div>` +
+    `<div class="card kpi ${Number(T.on_account_total) > 0.004 ? "warn" : ""}"><div class="l">On account (not attached)</div><div class="v">${m2(T.on_account_total)}</div><div class="c">not sent to QuickBooks until attached</div></div>` +
+    `<div class="card kpi"><div class="l">Toward older invoices</div><div class="v">${m2(T.older_invoice_total)}</div><div class="c">invoices issued before this day</div></div>` +
+    `<div class="card kpi"><div class="l">Left out of the totals</div><div class="v">${(Number(A.voided) || 0) + (Number(A.opening) || 0)}</div><div class="c">voided ${m2(A.voided_amount)}${Number(A.opening) ? ` · opening ${m2(A.opening_amount)}` : ""}</div></div>` +
+    `<div class="card kpi ${bad ? "warn" : ""}"><div class="l">QuickBooks</div><div class="v">${bad ? bad + " to check" : "OK"}</div><div class="c">${wait ? wait + " waiting · " : ""}on account and voided are not errors</div></div>` +
+    (rd && rd.net ? `<div class="card kpi"><div class="l">Net sales</div><div class="v">${m2(rd.net.total)}</div><div class="c">invoices − credits issued this day · <a class="lnk" href="#" data-gotab="sales">Sales tab</a></div></div>` : "") +
+    `<div class="card kpi ${nOther ? "warn" : ""}"><div class="l">Changes to other days</div><div class="v">${nOther}</div><div class="c">corrected or voided today, dated another day</div></div>` +
+    `</div>`;
+  // 계좌 × 방법 × 지점
+  const bam = (T.by_account_method || []).filter(Boolean);
+  const accs = []; const byAcc = {};
+  bam.forEach(x => { if(!byAcc[x.account_id]){ byAcc[x.account_id] = []; accs.push(x.account_id); } byAcc[x.account_id].push(x); });
+  h += `<div class="card rccard"><div class="hd">By account <span class="sub">payment date ${esc(fmtDY(day))} · voided and opening left out · refunds are negative</span><span class="sp"></span><button class="csvb" data-csv="macct">CSV</button></div><div class="body">` +
+    (bam.length ? `<table class="rct"><thead><tr><th>Account</th><th>Method</th><th>Branch</th><th class="r">Payments</th><th class="r">Amount</th></tr></thead><tbody>` +
+      accs.map(id => { const xs = byAcc[id], a = xs[0], tot = xs.reduce((s, x) => s + Number(x.amount || 0), 0), n = xs.reduce((s, x) => s + Number(x.count || 0), 0);
+        return `<tr class="grp acc"><td colspan="3">${esc(a.account || "—")}<span class="sub">${esc(a.account_code || "")}${a.qbo_id ? " · QBO " + esc(a.qbo_id) : ""}</span></td><td class="r">${n}</td><td class="r">${mz(tot)}</td></tr>` +
+          xs.map(x => `<tr><td></td><td>${esc(METH[x.method] || x.method)}</td><td>${esc(brName(x.branch))}</td><td class="r">${Number(x.count) || 0}</td><td class="r">${mz(x.amount)}</td></tr>`).join(""); }).join("") +
+      `<tr class="tot"><td colspan="3">Money received</td><td class="r">${Number(A.count) || 0}</td><td class="r">${m2(A.amount)}</td></tr></tbody></table>`
+      : `<div class="dim">No payments dated ${esc(fmtDY(day))}.</div>`) + `</div></div>`;
+  // 카드 · 데빗 — 지점 × 브랜드
+  const brs = [...new Set(cards.map(c => c.branch))].sort((a, b) => brOrder(a) - brOrder(b));
+  const bk = ["visa", "mc", "amex", "debit", "unknown"].filter(k => cards.some(c => c.brand === k) || k !== "unknown");
+  const cell = (b, k) => cards.filter(c => c.branch === b && c.brand === k).reduce((s, c) => s + Number(c.amount || 0), 0);
+  h += `<div class="card rccard"><div class="hd">Cards and debit by branch <span class="sub">for the Bank Feed transfer · brand from the reference</span><span class="sp"></span><button class="csvb" data-csv="mcards">CSV</button></div><div class="body">` +
+    (cards.length ? `<table class="rct pivot"><thead><tr><th>Branch</th>${bk.map(k => `<th class="r">${esc(BRAND[k])}</th>`).join("")}<th class="r">Total</th></tr></thead><tbody>` +
+      brs.map(b => `<tr><td>${esc(brName(b))}</td>${bk.map(k => `<td class="r">${mz(cell(b, k))}</td>`).join("")}<td class="r"><b>${m2(bk.reduce((s, k) => s + cell(b, k), 0))}</b></td></tr>`).join("") +
+      (brs.length > 1 ? `<tr class="tot"><td>All</td>${bk.map(k => `<td class="r">${mz(brs.reduce((s, b) => s + cell(b, k), 0))}</td>`).join("")}<td class="r">${m2(cardTot)}</td></tr>` : "") + `</tbody></table>`
+      : `<div class="dim">No card or debit payments.</div>`) + `</div></div>`;
+  // 기록자 · Term / COD
+  const rec = (T.by_recorder || []).filter(Boolean), trm = (T.by_terms || []).filter(Boolean);
+  h += `<div class="card rccard"><div class="hd">Who recorded <span class="sub">a corrected payment counts under the person who first entered it · term = customer has payment terms</span><span class="sp"></span><button class="csvb" data-csv="mrec">CSV</button></div><div class="body">` +
+    (rec.length ? `<table class="rct"><thead><tr><th>Recorded by</th><th class="r">Payments</th><th class="r">Term customers</th><th class="r">COD customers</th><th class="r">Total</th></tr></thead><tbody>` +
+      rec.map(x => `<tr><td>${esc(x.recorded_by || "—")}</td><td class="r">${Number(x.count) || 0}</td><td class="r">${mz(x.term_amount)}</td><td class="r">${mz(x.cod_amount)}</td><td class="r">${mz(x.amount)}</td></tr>`).join("") +
+      `<tr class="tot"><td>All</td><td class="r">${Number(A.count) || 0}</td>${["term", "cod"].map(k => { const t = trm.find(x => x.customer_terms === k); return `<td class="r">${t ? m2(t.amount) : m2(0)}</td>`; }).join("")}<td class="r">${m2(A.amount)}</td></tr></tbody></table>`
+      : `<div class="dim">No payments.</div>`) + `</div></div>`;
+  // 결제 목록
+  const byId = {}; rows.forEach(r => { byId[r.payment_id] = r; });
+  const olds = {}; rows.forEach(r => { if(r.replaced_by && byId[r.replaced_by]) olds[r.replaced_by] = (olds[r.replaced_by] || []).concat([r]); });
+  const shown = new Set(); Object.values(olds).forEach(xs => xs.forEach(x => shown.add(x.payment_id)));
+  const main = rows.filter(r => !shown.has(r.payment_id));
+  const sum = xs => xs.reduce((s, r) => s + (r.counted ? Number(r.amount || 0) : 0), 0);
+  const withOld = r => payRow(r) + (olds[r.payment_id] || []).map(o => payRow(o, "old")).join("");
+  const grp = (label, xs, sub) => xs.length ? `<tr class="grp"><td colspan="8">${esc(label)}<span class="sub">${xs.length} · ${m2(sum(xs))}${sub ? " · " + sub : ""}</span></td></tr>` + xs.map(withOld).join("") : "";
+  let body = "";
+  const live = main.filter(r => !r.voided && !r.opening);
+  const brSet = [...new Set(live.filter(r => !isWeb(r)).map(r => r.branch))].sort((a, b) => brOrder(a) - brOrder(b));
+  brSet.forEach(b => {
+    const inB = live.filter(r => !isWeb(r) && r.branch === b);
+    body += `<tr class="grp acc"><td colspan="8">${esc(brName(b))}<span class="sub">${inB.length} · ${m2(sum(inB))}</span></td></tr>`;
+    PM_GROUPS.forEach(([k, label]) => { body += grp(label, inB.filter(r => pmKey(r) === k)); });
+  });
+  body += grp("Web — Shopify · PayPal", live.filter(isWeb), "branch = the invoice's warehouse");
+  body += grp("Opening — not in the totals", main.filter(r => r.opening && !r.voided));
+  const vd = main.filter(r => r.voided);
+  body += vd.length ? `<tr class="grp"><td colspan="8">Voided — not in the totals<span class="sub">${vd.length} · ${m2(vd.reduce((s, r) => s + Number(r.amount || 0), 0))}</span></td></tr>` + vd.map(r => {
+    const pc = poc.find(x => x.old_id === r.payment_id);
+    return payRow(r, "off") + (pc ? `<tr class="off"><td colspan="8"><div class="chg">new payment dated <b>${esc(fmtDY(pc.new_paid_on))}</b> — <a class="lnk" href="#${esc(pc.new_paid_on)}/money">open that day</a></div></td></tr>` : "");
+  }).join("") : "";
+  h += `<div class="card rccard"><div class="hd">Payments <span class="sub">${rows.length} lines · dated ${esc(fmtDY(day))} · in the order of Justin's sheet</span><span class="sp"></span><button class="csvb" data-csv="mrows">CSV</button></div><div class="body">` +
+    (rows.length ? `<table class="rct"><thead><tr><th>Payment</th><th>Customer</th><th class="r">Amount</th><th>Account</th><th>Branch</th><th>Applied to</th><th>Recorded by</th><th>QuickBooks</th></tr></thead><tbody>${body}</tbody></table>` +
+      `<div class="s2" style="margin-top:8px">A corrected payment shows its old line dimmed underneath. "from invoice" = a web payment counted under its invoice's warehouse. On account and voided lines are not QuickBooks errors.</div>`
+      : `<div class="dim">No payments dated ${esc(fmtDY(day))}.</div>`) + `</div></div>`;
+  // 다른 날에 닿는 정정 · Void · 이 날로 들어오고 나간 Paid on 정정
+  const chg = [];
+  cmt.forEach(x => chg.push({ what: "Corrected", at: x.at, by: x.by, cust: x.customer, dates: x.old_paid_on === x.new_paid_on ? fmtDY(x.new_paid_on) : fmtDY(x.old_paid_on) + " → " + fmtDY(x.new_paid_on), amt: x.old_amount === x.new_amount ? m2(x.new_amount) : m2(x.old_amount) + " → " + m2(x.new_amount), ch: chgText(x.changes), why: x.reason, id: x.new_id, day: x.new_paid_on }));
+  vmt.forEach(x => chg.push({ what: "Voided", at: x.at, by: x.by, cust: x.customer, dates: fmtDY(x.paid_on), amt: m2(x.amount), ch: esc((METH[x.method] || x.method) + (x.reference ? " " + x.reference : "")), why: x.void_note, id: x.payment_id, day: x.paid_on }));
+  poc.forEach(x => chg.push({ what: x.side === "old" ? "Moved out of this day" : "Moved into this day", at: x.at, by: x.by, cust: x.customer, dates: fmtDY(x.old_paid_on) + " → " + fmtDY(x.new_paid_on), amt: x.old_amount === x.new_amount ? m2(x.new_amount) : m2(x.old_amount) + " → " + m2(x.new_amount), ch: chgText(x.changes), why: x.reason, id: x.new_id, day: x.side === "old" ? x.new_paid_on : x.old_paid_on }));
+  h += `<div class="card rccard"><div class="hd">Changes that touch other days <span class="sub">done on ${esc(fmtDY(day))} (Toronto) to payments dated another day · and payment-date moves in or out of this day</span><span class="sp"></span><button class="csvb" data-csv="mchg">CSV</button></div><div class="body">` +
+    (chg.length ? `<table class="rct"><thead><tr><th>What</th><th>When</th><th>By</th><th>Customer</th><th>Payment date</th><th class="r">Amount</th><th>Changed</th><th>Reason</th></tr></thead><tbody>` +
+      chg.map(c => `<tr><td class="nw"><a class="lnk" href="so-payments.html?pay=${encodeURIComponent(c.id)}">${esc(c.what)}</a></td><td class="nw">${c.at ? esc(torAt(c.at)) : "—"}</td><td class="nw">${esc(c.by || "—")}</td><td>${esc(c.cust || "")}</td>` +
+        `<td class="nw">${esc(c.dates)}${c.day && c.day !== day ? ` <a class="lnk" href="#${esc(c.day)}/money" title="Open that day">›</a>` : ""}</td><td class="r nw">${c.amt}</td><td><div class="chg" style="margin:0">${c.ch || "—"}</div></td><td>${c.why ? esc(c.why) : `<span class="dim">—</span>`}</td></tr>`).join("") + `</tbody></table>`
+      : `<div class="dim">None — nothing done on this day changed another day's money.</div>`) + `</div></div>`;
+  const nt = (d.notes || []).filter(x => x && typeof x === "object");
+  if(nt.length) h += `<div class="card rccard"><div class="hd">About these numbers</div><div class="body"><ul class="rcnotes">${nt.map(x => `<li>${esc(x.text || x.code)}</li>`).join("")}</ul></div></div>`;
+  $("box").innerHTML = h;
+}
+function csvMoney(k){
+  if(!pd) return;
+  const T = pd.totals || {}, day = pd.date || $("day").value, rows = (pd.rows || []).filter(Boolean);
+  if(k === "macct") csvDownload("accounts", ["account", "account_code", "qbo_account_id", "method", "branch", "payments", "amount"], (T.by_account_method || []).map(x => [x.account, x.account_code, x.qbo_id, METH[x.method] || x.method, brName(x.branch), x.count, x.amount]));
+  else if(k === "mcards") csvDownload("cards", ["branch", "brand", "payments", "amount"], (T.cards || []).map(x => [brName(x.branch), BRAND[x.brand] || x.brand, x.count, x.amount]));
+  else if(k === "mrec") csvDownload("recorded-by", ["recorded_by", "payments", "term_amount", "cod_amount", "amount"], (T.by_recorder || []).map(x => [x.recorded_by, x.count, x.term_amount, x.cod_amount, x.amount]));
+  else if(k === "mrows") csvDownload("payments", ["paid_on", "kind", "status", "counted", "method", "brand", "reference", "customer", "customer_terms", "amount", "account", "account_code", "branch", "payment_branch", "attached", "on_account", "invoices", "older_amount", "orders", "recorded_by", "first_recorded_by", "qbo_state", "qbo_why", "corrected_from", "replaced_by", "changes", "reason", "voided_by", "payment_id"],
+    rows.map(r => [day, r.kind, r.status, r.counted, METH[r.method] || r.method, r.brand ? BRAND[r.brand] : "", r.reference, r.customer, r.customer_terms, r.amount, (r.account || {}).name, (r.account || {}).code, brName(r.branch), brName(r.payment_branch), r.attached, r.on_account,
+      (r.allocs || []).map(a => `${a.number} ${Number(a.amount).toFixed(2)}`).join(" | "), r.older_amount, (r.targets || []).join(" | "), r.recorded_by, r.original_recorded_by, (r.qbo || {}).state, (r.qbo || {}).why, r.corrected_from, r.replaced_by,
+      r.changes ? JSON.stringify(r.changes) : (r.replaced_changes ? JSON.stringify(r.replaced_changes) : ""), r.reason, r.voided_by, r.payment_id]));
+  else if(k === "mchg"){
+    const out = [];
+    (pd.corrections_made_today || []).forEach(x => out.push(["corrected", x.at, x.by, x.customer, x.old_paid_on, x.new_paid_on, x.old_amount, x.new_amount, JSON.stringify(x.changes || {}), x.reason, x.new_id]));
+    (pd.voids_made_today || []).forEach(x => out.push(["voided", x.at, x.by, x.customer, x.paid_on, x.paid_on, x.amount, x.amount, (x.method || "") + " " + (x.reference || ""), x.void_note, x.payment_id]));
+    (pd.paid_on_corrections || []).forEach(x => out.push([x.side === "old" ? "moved_out" : "moved_in", x.at, x.by, x.customer, x.old_paid_on, x.new_paid_on, x.old_amount, x.new_amount, JSON.stringify(x.changes || {}), x.reason, x.new_id]));
+    csvDownload("changes-other-days", ["what", "at", "by", "customer", "old_paid_on", "new_paid_on", "old_amount", "new_amount", "changed", "reason", "payment_id"], out);
+  }
+}
+
 /* CSV — 받은 숫자 그대로 · 한 문서 한 줄 · 결제는 한 칸에 이어 쓴다 */
 function csvDownload(name, head, rows){
   const q = v => { if(v === null || v === undefined) return ""; const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   const text = [head.map(q).join(","), ...rows.map(r => r.map(q).join(","))].join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["\ufeff" + text], { type: "text/csv;charset=utf-8" }));
-  a.download = `asung-recon-${name}-${(rd && rd.date) || $("day").value}.csv`;
+  a.download = `asung-recon-${name}-${$("day").value}.csv`;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 function csvClick(k){
@@ -339,11 +546,12 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("buildTag").textContent = RC_BUILD;
   if(!imsAuth.canView("recon")){   // 판정 1598 — 창구도 막지만 먼저 안내
     $("box").innerHTML = `<div class="card rcmsg"><b>Daily Reconciliation is not switched on for you</b>Ask an admin to turn on the 'recon' permission in Staff — admins need it switched on too.</div>`;
-    document.querySelector(".rctop .noprint").hidden = true;
+    document.querySelector(".rctop .noprint").hidden = true; $("tabs").hidden = true;
     return;
   }
-  const want = /^#\d{4}-\d{2}-\d{2}$/.test(location.hash) ? location.hash.slice(1) : addD(todayTO(), -1);
-  $("day").value = want; $("day").max = todayTO();
+  const H0 = parseHash();   // rc v2 — #<날> 또는 #<날>/money
+  if(H0) tab = H0.t;
+  $("day").value = H0 ? H0.d : addD(todayTO(), -1); $("day").max = todayTO();
   $("day").onchange = () => load();
   $("prevD").onclick = () => { $("day").value = addD($("day").value || todayTO(), -1); load(); };
   $("nextD").onclick = () => { const nx = addD($("day").value || todayTO(), 1); if(nx <= todayTO()){ $("day").value = nx; load(); } };
@@ -351,8 +559,17 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
   $("reload").onclick = () => load();
   $("print").onclick = () => window.print();
   $("sortSeg").onclick = e => { const a = e.target.closest("[data-sort]"); if(!a) return; e.preventDefault(); sortBy = a.dataset.sort; $("sortSeg").querySelectorAll("a").forEach(x => x.classList.toggle("cur", x === a)); if(rd) render(); };
-  $("box").onclick = e => { const b = e.target.closest("[data-csv]"); if(b) csvClick(b.dataset.csv); };
-  window.addEventListener("hashchange", () => { if(/^#\d{4}-\d{2}-\d{2}$/.test(location.hash) && location.hash.slice(1) !== $("day").value){ $("day").value = location.hash.slice(1); load(); } });
+  $("box").onclick = e => {   // rc v2 — 입금 CSV(m…) · 탭 건너뛰기 링크
+    const g = e.target.closest("[data-gotab]"); if(g){ e.preventDefault(); setTab(g.dataset.gotab); return; }
+    const b = e.target.closest("[data-csv]"); if(!b) return;
+    if(/^m/.test(b.dataset.csv)) csvMoney(b.dataset.csv); else csvClick(b.dataset.csv);
+  };
+  $("tabs").onclick = e => { const a = e.target.closest("[data-tab]"); if(!a) return; e.preventDefault(); setTab(a.dataset.tab); };
+  window.addEventListener("hashchange", () => {   // rc v2 — 날이 바뀌면 다시 읽고 · 탭만 바뀌면 다시 그린다
+    const H = parseHash(); if(!H) return;
+    const dayChanged = H.d !== $("day").value; tab = H.t;
+    if(dayChanged){ $("day").value = H.d; load(); } else draw();
+  });
   load();
 });
 </script>
