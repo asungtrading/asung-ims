@@ -91,6 +91,11 @@
   .tkhits button:hover{background:var(--ims-hover)}
   .tklink{display:flex;gap:8px;align-items:center}
   .tkmeta{font-size:12px;color:var(--muted);margin-top:10px}
+  .tkwho{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+  .tkwho .wc{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 10px;font-size:13px;background:var(--ims-surface);color:var(--ink)}
+  .tkwho .wc.ro{padding-right:10px}
+  .tkwho .wc button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;line-height:1;padding:2px 5px;cursor:pointer;border-radius:999px}
+  .tkwho .wc button:hover{background:var(--ims-hover);color:var(--bad)}
   .tkerr{color:var(--bad);font-size:13px;margin-top:8px}
   .tkok{color:var(--good);font-size:13px;margin-top:8px}
   .tkcat{display:flex;gap:6px;align-items:center;margin-bottom:6px}
@@ -195,7 +200,8 @@
         <label for="tkName">Title</label><input type="text" id="tkName" maxlength="200" placeholder="What needs doing">
         <label for="tkDate">Date</label>
         <div class="row"><input type="date" id="tkDate" style="width:auto"><label style="color:var(--ink)"><input type="checkbox" id="tkAllDay" checked> All day</label><input type="time" id="tkTime" hidden></div>
-        <label for="tkWhoSel">Assigned to</label><select id="tkWhoSel"></select>
+        <label for="tkWhoAdd">Assigned to</label>
+        <div><div class="tkwho" id="tkWhoList"></div><select id="tkWhoAdd" style="width:auto"></select><div class="tkmeta" id="tkWhoNote" style="margin-top:4px"></div></div>
         <label for="tkCat">Category</label>
         <div class="row"><select id="tkCat" style="flex:1"></select><button class="pobtn" id="tkCatEdit" hidden>Edit list</button></div>
         <label for="tkLinkKind">Linked to</label>
@@ -263,7 +269,7 @@
      · Not paid 칸은 빨간 테두리(Caleb 11-16) — Overdue 는 빨간 테두리 + 붉은 바탕으로 갈린다 */
 /* [db v5 · 2026-11-17 · 대화 Claude · 판정 1302] Day 보기 맨 위에 「그날 매출」 — analytics 열쇠가 있는 사람만(imsAuth.canView('analytics') · 창구 an_daily(그날, 그날) 의 an_gate 가 한 번 더 막는다)
      · 순매출 · 오더 · 평균 · 지난해 같은 날 · 원가 권한이면 GP % · 운임 등 더한 세금 전 합계 · 지점 고르기는 판매 지점만 넘긴다(그 밖이면 전체) */
-const DB_BUILD = "2026-11-23 · db v6";   // 대화 Claude — db v6(판정 1567 · asung-wms cal-dep-1 20261123200000): 공급처 선급금 — 달 칸에 「Deposit sent」(cal_month.deposit_days · 아직 안 붙인 몫이 있으면 unapplied) · 「Paid by deposit」(deposit_applied_days · 현금 Paid out 과 따로 — 돈을 두 번 세지 않는다) · 그날 목록 kind deposit(보낸 선급금) · paid 목록의 kind deposit 줄 = 「by deposit DEP-…」(누르면 그 인보이스 · 비용 청구서) · Day 보기에 Supplier deposits sent · 열쇠 = purchasing(창구가 거른다)
+const DB_BUILD = "2026-11-25 · db v7";   // 대화 Claude — db v7(cal-3 · 판정 1636 ~ 1639 · asung-wms 20261125152255): Task 담당 여럿 — 창의 담당 칸 = 이름 칩 + 「+ Add a person…」(cal_task_save assignee_ids · 1 명 이상 · 상한 = cal_task_staff.max_assignees) · 칩의 × = 남 빼기는 can.remove_others(만든 사람 ∨ manager) 일 때만, 아니면 나 · 이번에 더한 사람만(1637) · 달력 · Day 보기의 「내 것」 = t.mine · 칸 꼬리 = 나 아닌 담당(둘까지 + 「+N」) · Day 보기는 담당 모두 · 저장 알림 = mails 의 queued 이름들 · 「손에서 떠남」 = !mine ∧ 만든 사람 아님 · 완료한 사람(done by) 그대로 ← db v6(판정 1567 · asung-wms cal-dep-1 20261123200000): 공급처 선급금 — 달 칸에 「Deposit sent」(cal_month.deposit_days · 아직 안 붙인 몫이 있으면 unapplied) · 「Paid by deposit」(deposit_applied_days · 현금 Paid out 과 따로 — 돈을 두 번 세지 않는다) · 그날 목록 kind deposit(보낸 선급금) · paid 목록의 kind deposit 줄 = 「by deposit DEP-…」(누르면 그 인보이스 · 비용 청구서) · Day 보기에 Supplier deposits sent · 열쇠 = purchasing(창구가 거른다)
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
@@ -272,6 +278,11 @@ let view = "month";      // month | week | day(판정 1300 — 열 때 늘 month
 let whId = "";
 let lastData = null, seq = 0;
 let tasks = [], taskMe = null, staff = null, cats = null, tkWho = "all", editing = null, picked = null;
+let staffMax = 20, who = [];   // db v7 — 상한(cal_task_staff.max_assignees) · 창에서 고른 담당 [{id, name, fresh}]
+// db v7 — 담당 여럿(cal-3): 새 열쇠 assignees · mine · 옛 열쇠 assignee 로도 선다
+const tkPeople = t => (t.assignees && t.assignees.length) ? t.assignees : (t.assignee ? [t.assignee] : []);
+const isMine = t => typeof t.mine === "boolean" ? t.mine : !!(taskMe && t.assignee && t.assignee.id === taskMe.id);
+const shortNames = l => l.length <= 2 ? l.map(x => x.name).join(", ") : l.slice(0, 2).map(x => x.name).join(", ") + " +" + (l.length - 2);
 
 const pad = n => String(n).padStart(2, "0");
 const ymd = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
@@ -377,7 +388,7 @@ function renderCal(d, from, to){
   (d.paid_days || []).forEach(x => slot(x.date).paid.push(x));
   (d.deposit_days || []).forEach(x => slot(x.date).dep.push(x));            // db v6 — 보낸 선급금(날 × 통화)
   (d.deposit_applied_days || []).forEach(x => slot(x.date).depAp.push(x));  // db v6 — 적용한 선급금(현금 paid 와 따로)
-  const shown = tasks.filter(t => tkWho === "all" || !taskMe || t.assignee.id === taskMe.id);
+  const shown = tasks.filter(t => tkWho === "all" || !taskMe || isMine(t));
   shown.forEach(t => { const s = slot(t.date); (s.tk = s.tk || []).push(t); });
 
   const today = d.as_of;
@@ -391,7 +402,8 @@ function renderCal(d, from, to){
       s.tk.sort((a, b) => (a.status === b.status ? 0 : a.status === "open" ? -1 : 1) || (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
       s.tk.forEach(t => {
         const cls = t.status === "done" ? " done" : t.overdue ? " over" : "";
-        const who = taskMe && t.assignee.id === taskMe.id ? "" : t.assignee.name;
+        const others = tkPeople(t).filter(x => !(taskMe && x.id === taskMe.id));
+        const who = others.length ? (isMine(t) ? "with " : "") + shortNames(others) : "";
         c += `<button class="tk${cls}" data-task="${esc(t.id)}" title="${esc(t.title)}${t.category ? " · " + esc(t.category.name) : ""}">` +
           `<span class="bx"></span><span class="tx"><span class="tt">${t.all_day ? "" : esc(t.start_time) + " "}${esc(t.title)}</span>` +
           (who || t.link ? `<span class="tw">${esc(who || "")}${who && t.link ? " · " : ""}${t.link ? esc(t.link.label || "") : ""}</span>` : "") +
@@ -578,14 +590,14 @@ async function renderDay(d, k, my){
   }
 
   // Task
-  const tl = tasks.filter(t => t.date === k && (tkWho === "all" || !taskMe || t.assignee.id === taskMe.id))
+  const tl = tasks.filter(t => t.date === k && (tkWho === "all" || !taskMe || isMine(t)))
     .sort((a, b) => (a.status === b.status ? 0 : a.status === "open" ? -1 : 1) || (a.all_day === b.all_day ? 0 : a.all_day ? -1 : 1) || String(a.start_time || "").localeCompare(String(b.start_time || "")));
   h += sec("Tasks", tl.length ? tl.length + "" : "", tl.length
       ? `<div class="tkl">${tl.map(t => {
           const cls = t.status === "done" ? " done" : t.overdue ? " over" : "";
           return `<button class="tk${cls}" data-task="${esc(t.id)}"><span class="bx"></span><span class="tx">` +
             `<span class="tt">${t.all_day ? "" : esc(t.start_time) + " "}${esc(t.title)}</span>` +
-            `<span class="tw">${esc(t.assignee.name)}${t.category ? " · " + esc(t.category.name) : ""}${t.link ? " · " + esc(t.link.label || "") : ""}${t.created_by.id !== t.assignee.id ? " · from " + esc(t.created_by.name) : ""}</span>` +
+            `<span class="tw">${esc(tkPeople(t).map(x => x.name).join(", "))}${t.category ? " · " + esc(t.category.name) : ""}${t.link ? " · " + esc(t.link.label || "") : ""}${tkPeople(t).some(x => x.id === t.created_by.id) ? "" : " · from " + esc(t.created_by.name)}</span>` +
             (t.notes ? `<span class="nt">${esc(t.notes)}</span>` : "") + `</span></button>`;
         }).join("")}</div>`
       : `<div class="empty">No tasks.</div>`,
@@ -643,6 +655,7 @@ async function ensureLists(){
     const { data, error } = await sb.rpc("cal_task_staff");
     if(error) throw error;
     staff = data.staff || [];
+    if(data.max_assignees) staffMax = Number(data.max_assignees) || staffMax;   // db v7
   }
   if(!cats){
     const { data, error } = await sb.rpc("cal_task_categories", { p_all: false });
@@ -652,16 +665,33 @@ async function ensureLists(){
 }
 function fillSelects(t){
   const meId = taskMe && taskMe.id;
-  const wantWho = t ? t.assignee.id : meId;
-  const whoList = staff.slice();
-  if(t && !whoList.some(x => x.id === t.assignee.id)) whoList.push({ id: t.assignee.id, name: t.assignee.name + " (inactive)" });
-  $("tkWhoSel").innerHTML = whoList.map(x => `<option value="${esc(x.id)}">${esc(x.name)}${x.id === meId ? " (me)" : ""}</option>`).join("");
-  $("tkWhoSel").value = wantWho || "";
+  // db v7 — 담당 칩: 지금 담당(새 Task 면 나) · 목록에 없는 사람은 (inactive)
+  who = t ? tkPeople(t).map(x => ({ id: x.id, name: staff.some(z => z.id === x.id) ? x.name : x.name + " (inactive)", fresh: false }))
+          : (meId ? [{ id: meId, name: (staff.find(z => z.id === meId) || {}).name || (taskMe.name || "me"), fresh: true }] : []);
+  renderWho(t && !t.can.edit);
   const list = (cats.categories || []).slice();
   if(t && t.category && !list.some(c => c.id === t.category.id)) list.push({ id: t.category.id, name: t.category.name + " (off)" });
   $("tkCat").innerHTML = `<option value="">—</option>` + list.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
   $("tkCat").value = t && t.category ? t.category.id : "";
   $("tkCatEdit").hidden = !cats.can_edit;
+}
+function renderWho(ro){   // db v7 — 칩 · × · 더하기 · 안내(판정 1637 · 1639)
+  const meId = taskMe && taskMe.id;
+  const canRemoveOthers = !editing || !!editing.can.remove_others;
+  const removable = x => !ro && who.length > 1 && (canRemoveOthers || x.fresh || x.id === meId);
+  $("tkWhoList").innerHTML = who.map((x, i) => removable(x)
+      ? `<span class="wc">${esc(x.name)}${x.id === meId ? " (me)" : ""}<button type="button" data-rm="${i}" title="Take ${esc(x.name)} off this task">×</button></span>`
+      : `<span class="wc ro">${esc(x.name)}${x.id === meId ? " (me)" : ""}</span>`).join("");
+  $("tkWhoList").querySelectorAll("[data-rm]").forEach(b => b.onclick = () => { who.splice(Number(b.dataset.rm), 1); renderWho(ro); });
+  const left = staff.filter(z => !who.some(x => x.id === z.id));
+  const full = who.length >= staffMax;
+  $("tkWhoAdd").hidden = !!ro;
+  $("tkWhoAdd").disabled = !!ro || full || !left.length;
+  $("tkWhoAdd").innerHTML = `<option value="">${full ? "Up to " + staffMax + " people" : left.length ? "+ Add a person…" : "Everyone is on it"}</option>` +
+    left.map(z => `<option value="${esc(z.id)}">${esc(z.name)}${z.id === meId ? " (me)" : ""}</option>`).join("");
+  $("tkWhoNote").textContent = ro ? "" : who.length > 1
+    ? "Anyone on it can mark it done — it is done for everyone." + (canRemoveOthers ? "" : " You can add people or take yourself off.")
+    : "";
 }
 function showPicked(){
   const kind = $("tkLinkKind").value;
@@ -721,7 +751,7 @@ async function openTask(id, dateFor){
   $("tkLinkKind").value = t && t.link ? t.link.kind : "";
   picked = t && t.link ? { kind: t.link.kind, id: t.link.id, label: t.link.label } : null;
   $("tkLinkQ").value = ""; showPicked();
-  ["tkName","tkDate","tkAllDay","tkTime","tkWhoSel","tkCat","tkLinkKind","tkLinkQ","tkNotes"].forEach(x => $(x).disabled = !!ro);
+  ["tkName","tkDate","tkAllDay","tkTime","tkCat","tkLinkKind","tkLinkQ","tkNotes"].forEach(x => $(x).disabled = !!ro);
   $("tkSave").hidden = !!ro;
   $("tkDel").hidden = !(t && t.can.delete);
   $("tkStatus").hidden = !(t && t.can.complete);
@@ -734,19 +764,22 @@ async function saveTask(){
   const p = {
     title: $("tkName").value.trim(), date: $("tkDate").value, all_day: $("tkAllDay").checked,
     start_time: $("tkAllDay").checked ? null : ($("tkTime").value || null),
-    assignee_id: $("tkWhoSel").value || null, category_id: $("tkCat").value || null,
+    assignee_ids: who.map(x => x.id), category_id: $("tkCat").value || null,
     notes: $("tkNotes").value.trim() || null,
     link_kind: picked ? picked.kind : null, link_id: picked ? picked.id : null
   };
   if(editing) p.id = editing.id;
+  if(!who.length){ tkMsg("Pick at least one person."); return; }
+  if(who.length > staffMax){ tkMsg(`A task can have up to ${staffMax} people.`); return; }
   $("tkSave").disabled = true; tkMsg("");
   const { data, error } = await sb.rpc("cal_task_save", { p });
   $("tkSave").disabled = false;
   if(error){ tkMsg(error.message); return; }
-  const mail = data.mail && data.mail.queued ? ` · emailed ${data.mail.to || data.assignee.name}` : "";
-  const handed = taskMe && !taskMe.sees_all && data.assignee.id !== taskMe.id && data.created_by.id !== taskMe.id;
+  const sent = Array.isArray(data.mails) ? data.mails.filter(m => m.queued).map(m => m.name) : [];
+  const mail = sent.length ? ` · emailed ${sent.join(", ")}` : data.mail && data.mail.queued ? ` · emailed ${data.mail.to || ""}` : "";
+  const handed = taskMe && !taskMe.sees_all && !isMine(data) && data.created_by.id !== taskMe.id;
   $("tkModal").hidden = true;
-  toast(handed ? `Saved and handed to ${data.assignee.name} — it is no longer on your calendar${mail}` : `Saved${mail}`);
+  toast(handed ? `Saved and handed to ${shortNames(tkPeople(data))} — it is no longer on your calendar${mail}` : `Saved${mail}`);
   load();
 }
 async function setStatus(){
@@ -815,6 +848,11 @@ imsAuth.start({ changePw: true }, async (client, meData) => {
     const { error } = await sb.rpc("cal_task_category_save", { p: { name } });
     if(error){ $("catMsg").innerHTML = `<div class="tkerr">${esc(error.message)}</div>`; return; }
     $("catNew").value = ""; cats = null; openCats();
+  };
+  $("tkWhoAdd").onchange = e => {   // db v7 — 담당 더하기
+    const z = staff.find(x => x.id === e.target.value);
+    if(z && !who.some(x => x.id === z.id) && who.length < staffMax) who.push({ id: z.id, name: z.name, fresh: true });
+    renderWho(false);
   };
   $("tkWho").onchange = e => { tkWho = e.target.value; if(view === "day") renderDay(lastData, ymd(cur), seq); else renderCal(lastData, range().from, range().to); };
 
