@@ -144,7 +144,14 @@
     <button data-t="recv">Receiving <span class="badge" id="recvBadge" style="display:none">0</span></button>
     <button data-t="packing">Finalized</button>
     <button data-t="trace">Trace</button>
+    <button data-t="putback">Put back <span class="badge" id="pbBadge" style="display:none">0</span></button>
   </div>
+
+    <!-- wa v1.19 — Put back -->
+    <div class="view" id="v-putback">
+      <div class="sect-h">Put back <span style="font-weight:400;color:var(--mut);font-size:12.5px">— items the office took off packed orders · still in the box until someone puts them back on the shelf and marks Done · Ship &amp; invoice waits for these</span></div>
+      <div class="card"><div id="pbList"><div class="loading"><div class="spin"></div>Loading…</div></div></div>
+    </div>
 
     <!-- Status -->
     <div class="view active" id="v-overview">
@@ -298,7 +305,7 @@
 /* inv-basis-4 (2026-09-29 · wa v1.14) — 판정 88 ⑧ · 93 · 98 (inv_basis_2 20260929195458): Receiving 탭(배지 · 「waiting for a decision」 · 「Rejected — still on a shelf」) · Review 모달 · Stats 차이 카드가 off_invoice 를 off_po 옆에 본다(글자 「Off-invoice」 · 옛 off_po 행은 옛 이름) ·
    수량 = received − expected(줄 있는 off_invoice = 오피스 확정이 만든 인보이스 초과 · 줄 없는 행 = PO 밖 품목 · expected 0) · Health 151 off_invoice_undecided 는 RPC 반환(title · hint)을 그대로 그린다 — 화면 글자 없음 · 판매 · 트랜스퍼 · PO 옛 행 표시는 그대로
    ⭐ 판정 99(inv-basis-5 · 2026-09-29 밤): off_invoice 결정은 둘(accepted_free · accepted_billed) — 거절 없음 · Health 161 없음 ⇒ 「Rejected — still on a shelf」 · Review 의 rejected 글자 · Stats 의 rejected 카드는 옛 off_po 행에만 */
-const WK_BUILD="2026-11-08 · wa v1.18a";   // 대화 Claude — Caleb 「finalized에서 ship & invoice로 전진했으니 빠지는 것은 당연하지만 팩킹리스트는 프린트가 막히는게 걸림돌」: Finalized 는 기다리는 오더(packed)만이 기본 · 「Include shipped & invoiced」 를 켤 때만 닫힌 오더를 읽어 꼬리표와 함께(끄면 조회도 안 한다) ← wa v1.18: 동료 요청(Caleb 11-08 「이전처럼 계속 기록이 남아 있었으면」): Finalized 탭이 so status packed 만 읽어 오피스가 Ship & invoice 하면(fulfilled · shipped) 오더가 사라지고 팩킹 리스트를 다시 뽑을 길이 없었다 → 기간 안의 fulfilled · shipped 오더도 함께(packed_at 이 기간 안 · 최근 500 · 총수는 count-head 로 캡션) · 줄에 Fulfilled / Shipped 꼬리표 · 재출력(🖨 · PDF · CSV)은 상태를 안 보던 그대로 · 닫힌 오더는 팩 줄 임베드를 빼서 가볍게(실제 팩 수 괄호는 안 보임) · 트랜스퍼(도착하면 빠짐)는 그대로 · DB 무변 ← wa v1.17: 대화 Claude — Found at packing 칩이 이름을 이미 말하니 아래 줄에서 이름을 뺀다(Caleb 「이름이 두번 나오는 것은 지금 수정하자」) · Adjusted · Resolved by hand 는 아래 줄에 누가 그대로 ← wa v1.16 rep-close-2(판정 58 묶음 3) — Reports: 닫힌 신고에 닫힌 방법 칩(Found at packing — 누가 found N in 칸 · Adjusted — ADJ-… · Resolved by hand) · Not enough stock 합계 갈라 보기 · Mark resolved = 창구 wms_report_resolve(rep-close-1 · 이미 닫힌 것 거부) ← pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
+const WK_BUILD="2026-11-26 · wa v1.19";   // 대화 Claude — wa v1.19(판정 1683 · 1684 · 1691 · asung-wms so-rm-4b): 탭 「Put back」 + 배지(열린 수) — wms_put_back_list(전부 · 열린 것 먼저 · 200) · 닫힌 줄은 어떻게(창고 Done · 오피스 대신 · 오더 되돌림 · 빼기 되돌림) · 누가 · 언제 · 메모 · 열린 줄은 골라 Done(wms_manage · wms_put_back_done) ← Caleb 「finalized에서 ship & invoice로 전진했으니 빠지는 것은 당연하지만 팩킹리스트는 프린트가 막히는게 걸림돌」: Finalized 는 기다리는 오더(packed)만이 기본 · 「Include shipped & invoiced」 를 켤 때만 닫힌 오더를 읽어 꼬리표와 함께(끄면 조회도 안 한다) ← wa v1.18: 동료 요청(Caleb 11-08 「이전처럼 계속 기록이 남아 있었으면」): Finalized 탭이 so status packed 만 읽어 오피스가 Ship & invoice 하면(fulfilled · shipped) 오더가 사라지고 팩킹 리스트를 다시 뽑을 길이 없었다 → 기간 안의 fulfilled · shipped 오더도 함께(packed_at 이 기간 안 · 최근 500 · 총수는 count-head 로 캡션) · 줄에 Fulfilled / Shipped 꼬리표 · 재출력(🖨 · PDF · CSV)은 상태를 안 보던 그대로 · 닫힌 오더는 팩 줄 임베드를 빼서 가볍게(실제 팩 수 괄호는 안 보임) · 트랜스퍼(도착하면 빠짐)는 그대로 · DB 무변 ← wa v1.17: 대화 Claude — Found at packing 칩이 이름을 이미 말하니 아래 줄에서 이름을 뺀다(Caleb 「이름이 두번 나오는 것은 지금 수정하자」) · Adjusted · Resolved by hand 는 아래 줄에 누가 그대로 ← wa v1.16 rep-close-2(판정 58 묶음 3) — Reports: 닫힌 신고에 닫힌 방법 칩(Found at packing — 누가 found N in 칸 · Adjusted — ADJ-… · Resolved by hand) · Not enough stock 합계 갈라 보기 · Mark resolved = 창구 wms_report_resolve(rep-close-1 · 이미 닫힌 것 거부) ← pick-bin(판정 124) — Reports 의 Wrong location 에 계획 칸 → 찾은 칸 · 수량(칸 셋 · ⑪ 앞 절반) · inv-basis-4 — Off-invoice 옆에(위 머리 주석) · tf-2d — Finalized 탭 트랜스퍼 줄의 마무리 기록을 판매와 같은 칸(fulfillment_type · units)까지 읽는다(TRF-00002 「no finalize record」 결함) · tf-2c(판정 87 훑기) — Stats 입고 줄 수를 문서 줄 id 로(트랜스퍼 입고 줄이 null 하나로 접히던 것) · Receiving 탭에 트랜스퍼 입고 번호 · tf-2b(판정 83 · 85-1 · 86) — 트랜스퍼 갈래(Status · Rollback · Trace · Finalized(운송 중 · 재출력) · 재출력 라벨)
 const STATUS_LABEL={ draft:"Draft", confirmed:"Confirmed", at_wms:"Released to WMS", picking:"Working", packed:"Finalized", shipped:"Shipped", fulfilled:"Fulfilled", cancelled:"Cancelled" };   // 판정 17
 let sb=null, me=null, whById={}, staffName={};
 let finPeriodKey="week", finCustom={from:null,to:null};
@@ -812,6 +819,7 @@ function start(){
     if(t==="health")loadHealth();
     if(t==="trace")loadTrace();
     if(t==="recv")loadRecv();
+    if(t==="putback")loadPutBack();   // wa v1.19
   };
   periodBar("discPeriod",discPeriodKey,discCustom,(k,c)=>{discPeriodKey=k;loadDisc();});
   periodBar("repPeriod",repPeriodKey,repCustom,(k,c)=>{repPeriodKey=k;loadReports();});
@@ -824,6 +832,7 @@ function start(){
   refreshReportBadge();
   refreshHealthBadge();
   refreshRecvBadge();
+  refreshPbBadge(); setInterval(refreshPbBadge, 60000);   // wa v1.19
   // keep freshness chips honest while Status tab is open
   setInterval(()=>{ if(document.getElementById("v-overview").classList.contains("active")) loadOverview(); }, 60000);
 }
@@ -2148,6 +2157,53 @@ function countNotPlaced(rows){
     lines++; units+=q;
   });
   return {lines,units};
+}
+/* ---------- wa v1.19 — Put back(판정 1683 · 1684 · 1691) ---------- */
+async function refreshPbBadge(){
+  try{
+    const {data}=await sb.rpc("wms_put_back_list",{p_open_only:true});
+    const n=(data&&data.open_count)||0, b=document.getElementById("pbBadge");
+    if(n>0){ b.textContent=n; b.style.display=""; } else b.style.display="none";
+  }catch(e){}
+}
+async function loadPutBack(){
+  const box=document.getElementById("pbList");
+  const {data,error}=await sb.rpc("wms_put_back_list",{p_open_only:false,p_limit:200});
+  if(error){ box.innerHTML=`<div style="padding:14px;color:var(--danger)">${esc(error.message)}</div>`; return; }
+  const rows=(data&&data.rows)||[];
+  if(!rows.length){ box.innerHTML='<div style="padding:14px;color:var(--mut)">Nothing has been taken off yet.</div>'; return; }
+  const RS={customer_removed:"customer took it off",not_wanted:"not wanted",other:"other"};
+  const HOW={put_back:"put back by the warehouse",office:"confirmed from the office",rolled_back:"order rolled back — box unpacked",undone:"take-off undone"};
+  const ts=v=>esc(String(v||"").slice(0,16).replace("T"," "));
+  box.innerHTML=`<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="text-align:left;color:var(--mut);font-size:11.5px"><th style="padding:6px"></th><th style="padding:6px">Order</th><th style="padding:6px">Warehouse</th><th style="padding:6px">From box</th><th style="padding:6px">To bin</th><th style="padding:6px">SKU</th><th style="padding:6px;text-align:right">Qty</th><th style="padding:6px">Why</th><th style="padding:6px">Taken off</th><th style="padding:6px">Status</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr style="border-top:1px solid var(--line);${r.open?"":"color:var(--mut)"}">
+      <td style="padding:6px">${r.open?`<input type="checkbox" data-pb="${esc(r.id)}">`:""}</td>
+      <td style="padding:6px;font-family:var(--mono)">${esc(r.so_number||"")}${r.customer_name?`<div style="font-family:inherit;font-size:11px;color:var(--mut)">${esc(r.customer_name)}</div>`:""}</td>
+      <td style="padding:6px">${esc(r.warehouse||"")}</td>
+      <td style="padding:6px;font-family:var(--mono)">${r.unit_label?esc(r.unit_label):'<span style="color:var(--mut)">not in a box</span>'}</td>
+      <td style="padding:6px;font-family:var(--mono)">${esc(r.bin||"—")}</td>
+      <td style="padding:6px"><span style="font-family:var(--mono)">${esc(r.sku||"")}</span><div style="font-size:11px;color:var(--mut)">${esc(r.product_name||"")}${r.combo_sku?` · combo ${esc(r.combo_sku)}`:""}</div></td>
+      <td style="padding:6px;text-align:right;font-weight:700">${esc(r.qty)}${Number(r.qty_base)!==Number(r.qty)?`<div style="font-size:11px;font-weight:400">${esc(r.qty_base)} ea</div>`:""}</td>
+      <td style="padding:6px">${esc(RS[r.reason]||r.reason||"")}${r.note?`<div style="font-size:11px;color:var(--mut)">${esc(r.note)}</div>`:""}</td>
+      <td style="padding:6px;font-size:12px">${esc(r.created_by_name||"")}<div style="font-size:11px;color:var(--mut)">${ts(r.created_at)}</div></td>
+      <td style="padding:6px;font-size:12px">${r.open?'<b style="color:var(--danger)">open — still in the box</b>':`${esc(HOW[r.done_how]||r.done_how||"")}<div style="font-size:11px;color:var(--mut)">${esc(r.done_by_name||"")} · ${ts(r.done_at)}${r.done_note?` · ${esc(r.done_note)}`:""}</div>`}</td></tr>`).join("")}</tbody></table></div>
+    ${rows.some(r=>r.open)?`<div style="display:flex;gap:8px;align-items:center;padding:10px 6px">
+      <input id="pbNote" placeholder="note (optional)" maxlength="500" style="flex:1;max-width:320px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font:inherit">
+      <button id="pbDone" style="border:0;background:var(--ok,#16a34a);color:#fff;border-radius:10px;padding:8px 14px;font:inherit;font-weight:800;cursor:pointer">✓ Done — put back</button>
+      <span style="font-size:11.5px;color:var(--mut)">only after they are out of the box and on the shelf</span></div>`:""}`;
+  const btn=document.getElementById("pbDone"); if(!btn) return;
+  btn.onclick=async()=>{
+    const ids=Array.from(box.querySelectorAll("[data-pb]:checked")).map(c=>c.dataset.pb);
+    if(!ids.length){ toast("Tick the lines that were put back",true); return; }
+    const note=(document.getElementById("pbNote").value||"").trim();
+    btn.disabled=true;
+    const {data:d,error:e}=await sb.rpc("wms_put_back_done",{p_ids:ids,p_note:note||null});
+    btn.disabled=false;
+    if(e){ toast(e.message,true); loadPutBack(); return; }
+    toast(`${d.done} put back`);
+    loadPutBack(); refreshPbBadge();
+  };
 }
 async function refreshRecvBadge(){
   try{
