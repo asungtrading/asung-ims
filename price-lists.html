@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en" data-ims-mode="ims">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Price Lists · Asung IMS</title>
+<link rel="stylesheet" href="ims-ui.css">
+<style>
+  /* 이 화면에만 — 공통은 ims-ui.css · 고정 색 없음(다크 모드는 공통 변수) */
+  .plwrap{max-width:1300px;margin:0 auto;padding:18px;display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;align-items:start}
+  @media (max-width:900px){ .plwrap{grid-template-columns:1fr} }
+  .plbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px}
+  .plbar h2{margin:0;font-size:17px}
+  .pllist div.it{padding:9px 14px;border-top:1px solid var(--line);cursor:pointer}
+  .pllist div.it.cur{background:var(--hover,rgba(0,0,0,.04))}
+  .pllist .sub{font-size:11.5px;color:var(--muted)}
+  .pltbl td,.pltbl th{font-size:13px}
+  .mono{font-family:var(--mono)}
+  .plmsg{margin-top:8px;font-size:12.5px;line-height:1.5}
+  .pobox textarea{width:100%;min-height:170px;font-family:var(--mono);font-size:12.5px;border:1px solid var(--line);border-radius:10px;padding:8px;background:transparent;color:inherit}
+  .pobox input[type=text]{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit;font-size:13px;background:transparent;color:inherit}
+  tr.err td{color:var(--bad)}
+  tr.past td,tr.offl td{color:var(--muted)}
+  .vs{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand">ASUNG IMS</span>
+  <span class="dim" style="font-size:10.5px" id="buildTag"></span>
+  <span class="sp"></span>
+  <span class="who" id="who"></span>
+  <button title="Main menu">☰ Menu</button>
+  <button id="logoutBtn">Sign Out</button>
+</header>
+
+<div class="plwrap">
+  <div class="card">
+    <div class="plbar"><h2>Price lists</h2><span class="sp"></span><button class="pobtn go" id="newBtn" hidden>New</button></div>
+    <div id="list" class="pllist"><div class="msg">Loading…</div></div>
+    <div class="cnote" style="padding:10px 14px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)">
+      A price list holds agreed prices per SKU. Put it on customers (Customers → Price list). Its prices win over the tier for the SKUs on the list; order discounts and coupons still apply. Product sales (deals) and the customer discount % do not.
+    </div>
+  </div>
+  <div id="detail"><div class="card"><div class="msg">Pick a price list.</div></div></div>
+</div>
+
+<div class="pomodal" id="modal" hidden><div class="pobox" id="modalBox" style="max-width:900px"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ims-config.js"></script>
+<script src="ims-ui.js"></script>
+<script src="ims-auth.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   Price Lists — 손님 합의 가격표(cp-1a · cp-1b · 판정 1693 ~ 1707 · asung-wms 20261126190200 · 20261126193200)
+   창구(전부 rpc · 표 넷은 REST 권한 0): price_list_list · price_list_detail · price_list_history_list(읽기 = sales 보기 ∨ master 쓰기)
+     price_list_save · price_list_lines_paste · price_list_line_set · price_list_product_off · customer_price_list_set(쓰기 = master)
+   ⭐ 쓰기는 읽은 list.version 을 p_old 로 · 반환 list 로 갈아 끼운다 · flagged = 새로 「다시 매기기 권함」 이 선 초안 수(0 이면 말 안 함)
+   ⭐ 붙여 넣기: 미리 보기(p_commit false) → 빨간 줄이 있으면 Save 막음(서버도 has_errors) · 열 = SKU · 가격 · 시작일(YYYY-MM-DD · 비우면 오늘) · 메모 · 탭 · 쉼표
+   ⭐ 끈 줄은 없는 줄(1703) — 가장 늦은 줄을 끄면 앞 줄이 다시 유효 · SKU 빼기 = price_list_product_off
+   ───────────────────────────────────────────────────────────── */
+const PL_BUILD = "2026-11-26 · pl v1";   // 대화 Claude — pl v1(cp-1 화면 계약 · 판정 1693 ~ 1707): 새 화면 — 목록 · 상세(머리 · 손님 · SKU 묶음 줄 current 앞 · 나머지 펼침 · vs Wholesale %) · New · Edit · Paste lines(미리 보기 → Save) · 줄 값 · 메모 고치기 · 끄기 · SKU 빼기 · 기록
+console.log("price-lists.html build:", PL_BUILD);
+
+let sb = null, canEdit = false, lists = [], cur = null, curId = null;
+const $ = (id) => document.getElementById(id);
+function modalOpen(html){ $("modalBox").innerHTML = html; $("modal").hidden = false; }
+function modalClose(){ $("modal").hidden = true; $("modalBox").innerHTML = ""; }
+document.addEventListener("keydown", e => { if(e.key === "Escape") modalClose(); });
+const money = v => (v === null || v === undefined || v === "") ? "" : Number(v).toFixed(2);
+const pct = (p, ref) => (ref && Number(ref) > 0) ? ((Number(p) / Number(ref) - 1) * 100) : null;
+const flagLine = d => d && Number(d.flagged) ? ` — ${d.flagged} draft order(s) are flagged to reprice` : "";
+
+/* ── 목록 ── */
+async function loadList(){
+  const { data, error } = await sb.rpc("price_list_list");
+  if(error){ $("list").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return false; }
+  canEdit = !!data.can_edit; lists = data.lists || [];
+  $("newBtn").hidden = !canEdit;
+  $("list").innerHTML = lists.length ? lists.map(l => `<div class="it${l.id === curId ? " cur" : ""}" data-id="${esc(l.id)}">
+      <b>${esc(l.name)}</b>${l.is_active ? "" : ' <span class="chip">off</span>'}
+      <div class="sub">${esc(l.currency_code)} · ${esc(l.sku_count)} SKU(s) · ${esc(l.customer_count)} customer(s)</div></div>`).join("")
+    : `<div class="msg">No price lists yet.${canEdit ? " Press New." : ""}</div>`;
+  $("list").querySelectorAll("[data-id]").forEach(d => d.onclick = () => openDetail(d.dataset.id));
+  return true;
+}
+
+/* ── 상세 ── */
+async function openDetail(id){
+  curId = id;
+  history.replaceState(null, "", "?id=" + encodeURIComponent(id));
+  $("list").querySelectorAll("[data-id]").forEach(d => d.classList.toggle("cur", d.dataset.id === id));
+  $("detail").innerHTML = '<div class="card"><div class="msg">Loading…</div></div>';
+  const { data, error } = await sb.rpc("price_list_detail", { p_list_id: id });
+  if(error){ $("detail").innerHTML = `<div class="card"><div class="msg err">${esc(error.message)}</div></div>`; return; }
+  cur = data; canEdit = !!data.can_edit;
+  renderDetail();
+}
+function renderDetail(){
+  const L = cur.list, cs = cur.customers || [], lines = cur.lines || [];
+  const by = new Map();
+  lines.forEach(x => { if(!by.has(x.product_id)) by.set(x.product_id, []); by.get(x.product_id).push(x); });
+  const groups = [...by.values()].map(g => {
+    const head = g.find(x => x.state === "current") || g.find(x => x.state === "future") || g[0];
+    return { head, rest: g.filter(x => x !== head) };
+  }).sort((a, b) => String(a.head.sku).localeCompare(String(b.head.sku)));
+  const ST = { current: "in use", future: "starts later", past: "replaced", off: "off" };
+  const lineRow = (x, isRest) => {
+    const v = pct(x.price, x.ref_price);
+    return `<tr class="${x.state === "past" ? "past" : x.state === "off" ? "offl" : ""}">
+      <td class="mono">${isRest ? "" : esc(x.sku)}</td>
+      <td>${isRest ? "" : esc(x.product || "")}${!isRest && !x.product_active ? ' <span class="chip bad">inactive</span>' : ""}${!isRest && x.sellable === false ? ' <span class="chip warn">not for sale</span>' : ""}</td>
+      <td>${esc(x.date_from)}</td>
+      <td class="num"><b>${money(x.price)}</b>${v !== null ? `<div class="vs">${v >= 0 ? "+" : ""}${v.toFixed(1)}% vs ${esc(cur.ref_tier || "tier")} ${money(x.ref_price)}</div>` : ""}</td>
+      <td>${esc(ST[x.state] || x.state)}</td>
+      <td style="font-size:12px">${esc(x.note || "")}</td>
+      <td style="white-space:nowrap">${canEdit && x.is_active ? `<button class="xbtn" data-ed="${esc(x.line_id)}">✎</button> <button class="xbtn" data-off="${esc(x.line_id)}" title="Turn this line off — an earlier line of the SKU takes over">Off</button>` : ""}
+        ${canEdit && !x.is_active ? `<button class="xbtn" data-on="${esc(x.line_id)}">On</button>` : ""}
+        ${!isRest ? `<button class="xbtn" data-hist="${esc(x.product_id)}" title="Price history of this SKU on the list">History</button>` : ""}
+        ${!isRest && canEdit ? `<button class="xbtn" data-pout="${esc(x.product_id)}" title="Take this SKU off the list — turns every line of it off">Take off</button>` : ""}</td></tr>`;
+  };
+  $("detail").innerHTML = `
+    <div class="card">
+      <div class="plbar"><h2>${esc(L.name)}</h2><span class="chip">${esc(L.currency_code)}</span>${L.is_active ? "" : '<span class="chip bad">off</span>'}
+        <span class="sp"></span>${canEdit ? '<button class="pobtn" id="edBtn">Edit</button> <button class="pobtn go" id="pasteBtn">Paste lines…</button>' : ""}</div>
+      <div style="padding:0 14px 10px;font-size:12.5px;color:var(--muted)">${L.note ? esc(L.note) + " · " : ""}${esc(L.sku_count)} SKU(s) · changed ${esc(String(L.updated_at || "").slice(0, 16).replace("T", " "))}${L.updated_by_name ? " by " + esc(L.updated_by_name) : ""}</div>
+    </div>
+    <div class="card">
+      <div class="plbar"><h2 style="font-size:15px">Customers on this list</h2></div>
+      ${cs.length ? `<table class="pltbl"><thead><tr><th>Customer</th><th>Currency</th><th>Tier</th><th>Active</th></tr></thead><tbody>
+        ${cs.map(c => `<tr><td><a class="lk" href="customers.html?id=${encodeURIComponent(c.id)}">${esc(c.name)}</a></td><td>${esc(c.currency_code)}</td><td>${esc(c.price_tier || "")}</td><td>${c.is_active ? "yes" : '<span class="dim">no</span>'}</td></tr>`).join("")}</tbody></table>`
+        : '<div class="msg">No customer uses this list yet — open a customer and set its Price list.</div>'}
+    </div>
+    <div class="card">
+      <div class="plbar"><h2 style="font-size:15px">Prices</h2><span class="dim" style="font-size:12px">each SKU shows the line in use first · ▸ earlier or later lines · today ${esc(cur.today || "")}</span></div>
+      ${groups.length ? `<div style="overflow:auto"><table class="pltbl"><thead><tr><th>SKU</th><th>Product</th><th>From</th><th class="num">Price</th><th>State</th><th>Note</th><th></th></tr></thead><tbody>
+        ${groups.map(g => lineRow(g.head, false) + (g.rest.length ? `<tr><td></td><td colspan="6"><details><summary class="dim" style="font-size:12px;cursor:pointer">${g.rest.length} other line(s)</summary><table class="pltbl"><tbody>${g.rest.map(x => lineRow(x, true)).join("")}</tbody></table></details></td></tr>` : "")).join("")}
+      </tbody></table></div>` : `<div class="msg">No prices yet.${canEdit ? " Press Paste lines… to add them from a spreadsheet." : ""}</div>`}
+      <div id="dMsg" class="plmsg" style="padding:0 14px 12px"></div>
+    </div>`;
+  if($("edBtn")) $("edBtn").onclick = () => openForm(L);
+  if($("pasteBtn")) $("pasteBtn").onclick = openPaste;
+  const D = $("detail");
+  D.querySelectorAll("[data-ed]").forEach(b => b.onclick = () => openLineEdit(lines.find(x => x.line_id === b.dataset.ed)));
+  D.querySelectorAll("[data-off]").forEach(b => b.onclick = () => setLine(b.dataset.off, { is_active: false }, "Line turned off"));
+  D.querySelectorAll("[data-on]").forEach(b => b.onclick = () => setLine(b.dataset.on, { is_active: true }, "Line turned on"));
+  D.querySelectorAll("[data-hist]").forEach(b => b.onclick = () => openHistory(b.dataset.hist));
+  D.querySelectorAll("[data-pout]").forEach(b => b.onclick = () => productOff(b.dataset.pout));
+}
+function after(d, text){
+  if(d && d.list) cur.list = d.list;
+  openDetail(curId).then(() => { const m = $("dMsg"); if(m){ m.className = "plmsg on"; m.textContent = text + flagLine(d) + "."; } });
+  loadList();
+}
+
+/* ── 머리 만들기 · 고치기 ── */
+function openForm(L){
+  modalOpen(`<h4>${L ? "Edit price list" : "New price list"}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Name</label><input type="text" id="fName" maxlength="120" value="${esc(L ? L.name : "")}" style="width:100%"></div>
+      <div class="frow"><label>Currency</label><input type="text" id="fCur" maxlength="3" value="${esc(L ? L.currency_code : "CAD")}" style="width:90px"></div>
+      <div class="frow"><label>Note</label><input type="text" id="fNote" maxlength="500" value="${esc(L && L.note || "")}" style="width:100%"></div>
+      ${L ? `<div class="frow"><label>Active</label><label><input type="checkbox" id="fAct"${L.is_active ? " checked" : ""}> on</label></div>` : ""}
+      <div class="cnote" style="font-size:12px;color:var(--muted)">Currency must match the customers it goes on. Currency cannot change and the list cannot be turned off while customers use it.</div>
+      <div id="fMsg" class="plmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="fCancel">Cancel</button><button class="pobtn go" id="fSave">Save</button></div>`);
+  $("fCancel").onclick = modalClose;
+  $("fSave").onclick = async () => {
+    const p = { name: $("fName").value.trim(), currency_code: $("fCur").value.trim().toUpperCase(), note: $("fNote").value.trim() || null };
+    if(L){ p.id = L.id; p.is_active = $("fAct").checked; }
+    $("fSave").disabled = true;
+    const { data, error } = await sb.rpc("price_list_save", L ? { p_list: p, p_old: L.version } : { p_list: p });
+    if(error){ $("fMsg").className = "plmsg err"; $("fMsg").textContent = error.message; $("fSave").disabled = false; return; }
+    modalClose();
+    await loadList();
+    if(data && data.list) openDetail(data.list.id);
+  };
+}
+
+/* ── 붙여 넣기 ── */
+function parsePaste(text){
+  return text.split(/\r?\n/).map(r => r.trim()).filter(Boolean).map(r => {
+    const c = r.includes("\t") ? r.split("\t") : r.split(",");
+    return { sku: (c[0] || "").trim(), price: (c[1] || "").trim(), date_from: (c[2] || "").trim(), note: c.slice(3).join(",").trim() };
+  });
+}
+function openPaste(){
+  const L = cur.list;
+  modalOpen(`<h4>Paste lines — ${esc(L.name)}</h4>
+    <div class="pbody">
+      <div style="font-size:12.5px;margin-bottom:6px">One row per SKU: <b>SKU · price · start date (YYYY-MM-DD, blank = today) · note</b> — copy the columns from the spreadsheet (tabs) or type them with commas. A later start date adds a new price from that day; the old one stays in history.</div>
+      <textarea id="pText" placeholder="TGI18727	17.59	2026-12-01	new agreed price"></textarea>
+      <div id="pOut" style="margin-top:8px"></div>
+      <div id="pMsg" class="plmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="pCancel">Cancel</button><button class="pobtn" id="pPrev">Check</button><button class="pobtn go" id="pSave" disabled>Save</button></div>`);
+  let key = null;
+  $("pCancel").onclick = modalClose;
+  $("pText").oninput = () => { key = null; $("pSave").disabled = true; };
+  const run = async (commit) => {
+    const rows = parsePaste($("pText").value);
+    if(!rows.length){ $("pMsg").className = "plmsg err"; $("pMsg").textContent = "Paste at least one row."; return; }
+    if(commit && key !== $("pText").value){ $("pMsg").className = "plmsg err"; $("pMsg").textContent = "Check again first — the text changed."; return; }
+    ["pPrev", "pSave"].forEach(i => $(i).disabled = true);
+    const args = { p_list_id: L.id, p_lines: rows, p_commit: commit };
+    if(commit) args.p_old = cur.list.version;
+    const { data, error } = await sb.rpc("price_list_lines_paste", args);
+    $("pPrev").disabled = false;
+    if(error){ $("pMsg").className = "plmsg err"; $("pMsg").textContent = error.message; return; }
+    if(commit && data.saved){ modalClose(); after(data, `Saved ${data.summary.insert} new · ${data.summary.update} changed`); return; }
+    const S = data.summary || {};
+    const STL = { new: "new", changed: "changed", same: "no change", error: "error" };
+    $("pOut").innerHTML = `<div style="font-size:12.5px;margin-bottom:4px">${esc(S.total)} row(s) · <b>${esc(S.new)}</b> new · <b>${esc(S.changed)}</b> changed · ${esc(S.same)} same · <span class="${S.errors ? "off" : ""}">${esc(S.errors)} error(s)</span></div>
+      <div style="max-height:320px;overflow:auto"><table class="pltbl"><thead><tr><th class="num">#</th><th>SKU</th><th>Product</th><th>From</th><th class="num">Was</th><th class="num">Price</th><th>Result</th><th>Note</th></tr></thead><tbody>
+      ${(data.rows || []).map(x => `<tr class="${x.status === "error" ? "err" : ""}"><td class="num">${esc(x.n)}</td><td class="mono">${esc(x.sku || "")}</td><td>${esc(x.product || "")}</td><td>${esc(x.date_from || x.given_date || "")}</td>
+        <td class="num">${money(x.old_price)}</td><td class="num"><b>${money(x.price) || esc(x.given_price || "")}</b></td><td>${esc(STL[x.status] || x.status)}${x.message ? `<div style="font-size:11.5px">${esc(x.message)}</div>` : ""}</td><td style="font-size:12px">${esc(x.note || "")}</td></tr>`).join("")}
+      </tbody></table></div>`;
+    if(S.errors){ $("pMsg").className = "plmsg err"; $("pMsg").textContent = "Fix the red rows and check again — nothing is saved while any row has an error."; key = null; }
+    else if(!(Number(S.new) + Number(S.changed))){ $("pMsg").className = "plmsg"; $("pMsg").textContent = "Nothing to change."; key = null; }
+    else { $("pMsg").className = "plmsg on"; $("pMsg").textContent = "Looks right — press Save."; key = $("pText").value; $("pSave").disabled = false; }
+  };
+  $("pPrev").onclick = () => run(false);
+  $("pSave").onclick = () => run(true);
+}
+
+/* ── 줄 하나 ── */
+function openLineEdit(x){
+  modalOpen(`<h4>${esc(x.sku)} — from ${esc(x.date_from)}</h4>
+    <div class="pbody">
+      <div class="frow"><label>Price</label><input type="text" id="lPrice" value="${esc(x.price)}" style="width:120px"></div>
+      <div class="frow"><label>Note</label><input type="text" id="lNote" maxlength="500" value="${esc(x.note || "")}" style="width:100%"></div>
+      <div class="cnote" style="font-size:12px;color:var(--muted)">The SKU and start date cannot change — paste a new line with a new start date for a price that changes on a day.</div>
+      <div id="lMsg" class="plmsg"></div>
+    </div>
+    <div class="pfoot"><span class="sp"></span><button class="pobtn" id="lCancel">Cancel</button><button class="pobtn go" id="lSave">Save</button></div>`);
+  $("lCancel").onclick = modalClose;
+  $("lSave").onclick = async () => {
+    const patch = {};
+    if($("lPrice").value.trim() !== String(x.price)) patch.price = $("lPrice").value.trim();
+    if(($("lNote").value.trim() || null) !== (x.note || null)) patch.note = $("lNote").value.trim();
+    if(!Object.keys(patch).length){ modalClose(); return; }
+    $("lSave").disabled = true;
+    const { data, error } = await sb.rpc("price_list_line_set", { p_line_id: x.line_id, p_patch: patch, p_old: cur.list.version });
+    if(error){ $("lMsg").className = "plmsg err"; $("lMsg").textContent = error.message; $("lSave").disabled = false; return; }
+    modalClose(); after(data, "Saved");
+  };
+}
+async function setLine(id, patch, text){
+  const { data, error } = await sb.rpc("price_list_line_set", { p_line_id: id, p_patch: patch, p_old: cur.list.version });
+  if(error){ alert(error.message); return; }
+  after(data, text);
+}
+async function productOff(pid){
+  const g = (cur.lines || []).find(x => x.product_id === pid);
+  if(!confirm(`Take ${g ? g.sku : "this SKU"} off the list? Every line of it is turned off — the customer pays the tier price for it again.`)) return;
+  const { data, error } = await sb.rpc("price_list_product_off", { p_list_id: cur.list.id, p_product_id: pid, p_old: cur.list.version });
+  if(error){ alert(error.message); return; }
+  after(data, `${g ? g.sku : "SKU"} taken off (${data.lines_off} line(s))`);
+}
+async function openHistory(pid){
+  const g = (cur.lines || []).find(x => x.product_id === pid);
+  modalOpen(`<h4>History — ${esc(g ? g.sku : "")}</h4><div class="pbody" id="hBody">Loading…</div><div class="pfoot"><span class="sp"></span><button class="pobtn" id="hClose">Close</button></div>`);
+  $("hClose").onclick = modalClose;
+  const { data, error } = await sb.rpc("price_list_history_list", { p_list_id: cur.list.id, p_product_id: pid, p_limit: 200 });
+  if(error){ $("hBody").innerHTML = `<div class="msg err">${esc(error.message)}</div>`; return; }
+  const rows = data.rows || [];
+  $("hBody").innerHTML = rows.length ? `<table class="pltbl"><thead><tr><th>When</th><th>From date</th><th class="num">Old</th><th class="num">New</th><th>By</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${esc(String(r.changed_at || "").slice(0, 16).replace("T", " "))}</td><td>${esc(r.date_from)}</td><td class="num">${r.old_price === null ? '<span class="dim">—</span>' : money(r.old_price)}</td><td class="num">${r.new_price === null ? '<span class="dim">off</span>' : money(r.new_price)}</td><td>${esc(r.changed_by_name || "")}${r.via ? ` <span class="dim">· ${esc(r.via)}</span>` : ""}</td></tr>`).join("")}</tbody></table>`
+    : '<div class="msg">No changes recorded.</div>';
+}
+
+/* ── 시작 ── */
+imsAuth.start({ changePw: true }, async (client, me) => {
+  sb = client;
+  imsHeader(me);
+  $("buildTag").textContent = PL_BUILD;
+  $("newBtn").onclick = () => openForm(null);
+  if(await loadList()){
+    const id0 = new URLSearchParams(location.search).get("id");
+    if(id0) openDetail(id0);
+  }
+});
+</script>
+</body>
+</html>
