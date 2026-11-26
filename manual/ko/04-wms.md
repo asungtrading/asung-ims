@@ -267,6 +267,36 @@ IMS 가 Freightcom 에서 운임을 받아 오고, 고른 운송사를 예약하
 
 <!-- SCREENSHOT: wms-freightcom-1 · Freight 칸: 요율 표 · 고른 요율 · 예약 줄 -->
 
+<a id="wms-put-back"></a>
+## Put back — 오피스가 뺀 물건
+<!-- screen: wms-fulfillment.html · BUILD 2026-11-26 · fu v1.12 ; wms-admin.html · BUILD 2026-11-26 · wa v1.19 -->
+<!-- who: warehouse -->
+
+**무엇인가**
+팩된(**Finalized**) 오더에서 고객이 일부를 원하지 않으면 오피스가 그 물건을 오더에서 뺍니다(**Take off…** — [팩된 오더에서 물건 빼기(Take off)](01-sales.md#sales-take-off)). 물건은 아직 박스 안에 있으므로 창고에 **Put back** 할 일이 생깁니다: 박스에서 꺼내 선반에 돌려놓기
+
+**언제**
+띠가 보이면 바로. 그 오더의 Put back 이 모두 끝나기 전에는 오피스가 **Ship & invoice** 를 할 수 없습니다.
+
+**어떻게**
+1. **WMS Fulfillment** 맨 위 주황 띠 **📦 Put back (n)** 에 내 창고의 열린 할 일이 나옵니다 — "taken off orders by the office — take them out of the box and put them back on the shelf"(오피스가 오더에서 뺀 것 · 박스에서 꺼내 선반에 돌려놓는다). 눌러서 목록을 엽니다.
+2. 줄마다 **Order** · **From box**(박스에 담기지 않았으면 "not in a box") · **To bin** · SKU · 수량(세트면 낱개도) · 사유 · 뺀 사람이 나옵니다.
+3. 그 박스에서 꺼내 그 bin 에 둡니다.
+4. 돌려놓은 줄을 체크하고, 필요하면 메모를 적고 **✓ Done — put back** 을 누릅니다 — "only after they are out of the box and on the shelf"(박스에서 꺼내 선반에 둔 뒤에만)
+- 다른 사람이 그중 하나를 먼저 Done 했으면 아무것도 저장되지 않고 목록을 다시 읽습니다.
+
+**WMS Admin — Put back 탭**
+- **Put back** 탭(열린 수 배지)에 열린 할 일이 먼저, 그 뒤 닫힌 것이 나옵니다: 어떻게 닫혔나 · 누가 · 언제 · 메모
+- 닫히는 길: 창고가 Done · 오피스 매니저가 확인 후 대신(메모 필수) · 오더를 WMS 에서 되돌림("order rolled back — box unpacked") · 오피스가 빼기를 되돌림(Undo)
+- 매니저는 여기서도 열린 줄을 체크해 Done 할 수 있습니다.
+
+**알아 둘 것**
+- Put back 은 재고 수를 바꾸지 않습니다 — 물건은 장부에서 빠진 적이 없고 자기 선반으로 돌아갈 뿐입니다.
+- Put back 이 열린 동안 오피스가 그 빼기를 **Undo** 하면 할 일은 저절로 닫힙니다 — 물건은 박스에 그대로 둡니다.
+- 뺀 것이 있는 오더도 **↩ Undo Finalize** 가 됩니다: 열린 Put back 은 닫히고, 오더는 뺀 것 없이 다시 팩합니다.
+
+<!-- SCREENSHOT: wms-put-back-1 · WMS Fulfillment 의 Put back 띠: From box · To bin · Done -->
+
 <a id="wms-receiving"></a>
 ## PO · 트랜스퍼 받기
 <!-- screen: wms-receiver.html · BUILD 2026-11-02 · rc v2.1 -->
@@ -396,11 +426,11 @@ IMS 가 Freightcom 에서 운임을 받아 오고, 고른 운송사를 예약하
 
 <a id="wms-admin"></a>
 ## WMS Admin
-<!-- screen: wms-admin.html · BUILD 2026-10-05 · wa v1.17 -->
+<!-- screen: wms-admin.html · BUILD 2026-11-26 · wa v1.19 -->
 <!-- who: manager -->
 
 **무엇인가**
-**WMS Admin** 은 창고 매니저 화면입니다. 탭이 아홉입니다: **Status** · **Health** · **Discrepancy** · **Receiving** · **Reports** · **Rollback** · **Finalized** · **Stats** · **Trace**. 매니저 이상이 엽니다.
+**WMS Admin** 은 창고 매니저 화면입니다. 탭이 열입니다: **Status** · **Health** · **Discrepancy** · **Receiving** · **Reports** · **Rollback** · **Finalized** · **Stats** · **Trace** · **Put back**. 매니저 이상이 엽니다.
 
 **Rollback — 오더를 한 단계 되돌리기**
 "There is no one-click void — undo one stage at a time and check the goods on the shelf at each step."(한 번에 지우는 길은 없다 · 한 단계씩 되돌리며 단계마다 선반의 물건을 확인한다)
@@ -409,6 +439,7 @@ IMS 가 Freightcom 에서 운임을 받아 오고, 고른 운송사를 예약하
 3. 창마다 무엇이 지워지는지 적혀 있습니다 — 예: "Undo split for … Deletes ALL batches for this order … The order returns to Released to WMS — the office can recall it from there" OK 를 누릅니다.
 4. 오더가 **Released to WMS** 가 될 때까지 되풀이합니다. 그다음 오피스가 **Recall from WMS** 를 누릅니다([오더 되돌리기](01-sales.md#sales-undo)).
 - "On a pallet — Undo Fulfillment first."(팔레트에 있다 · 먼저 Undo Fulfillment) · "Finalized — undo finalize first."
+- 오피스가 물건을 뺀 오더도 되돌릴 수 있습니다: 열린 Put back 은 닫히고("order rolled back — box unpacked") 뺀 것은 그대로입니다.
 - 일부 창고만 맡은 사람은 그 창고의 오더만 보고 되돌립니다.
 
 **Reports — 작업자가 알린 문제**
@@ -428,6 +459,7 @@ IMS 가 Freightcom 에서 운임을 받아 오고, 고른 운송사를 예약하
 - **Health** — 늘 맞아야 하는 검사. "a red card means the rule broke and needs review" — IMS 관리자에게 알립니다.
 - **Stats** — **Today** · **This week** · **This month** · **All** 의 묶음 · 시간 · 실수
 - **Trace** — 누가 언제 어디서 그 오더를 다뤘나
+- **Put back** — 오피스가 팩된 오더에서 뺀 물건 · 돌려놓을 때까지 박스 안 — [Put back](#wms-put-back)
 
 <!-- SCREENSHOT: wms-admin-1 · Rollback: Current stage 와 Undo 단추 -->
 

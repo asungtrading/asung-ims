@@ -482,7 +482,7 @@ Service lines — final-sale items and the lines of a service order — are not 
 
 <a id="sales-ship-invoice"></a>
 ## Ship & invoice
-<!-- screen: so.html · BUILD 2026-11-12 · so shipto v1 -->
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
 <!-- who: office -->
 
 **What it is**
@@ -522,18 +522,56 @@ As soon as a **Finalized** order is ready to go. Usually the warehouse has alrea
 **Good to know**
 - Packed less than ordered: "the rest goes to a backorder order" (see [When an item is short](04-wms.md#wms-pick-short)).
 - **Put back to the shelf**: a combo ships whole or not at all. If a combo cannot go complete, the list shows the extra components to put back in their bins.
+- Items taken off with **Take off…** must be out of the box first — **Ship & invoice** waits until the warehouse marks their put back done.
 - Payments already taken for an order attach themselves to its invoice.
 - If something in the window changes after **Preview**, press **Preview** again.
 - The Freight box also shows the Freightcom pickup and delivery status — see [Freightcom — quote, book and label](04-wms.md#wms-freightcom). After the order ships, the order still shows the delivery status under **Carrier**. All bookings: [Freightcom — shipment board](#sales-freightcom).
 
-**Watch out — the customer wants to take items off a packed order**
-1. Ship & invoice the order as usual. The invoice shows the packed quantity.
-2. Managers and above: make a credit note from that invoice for the quantity taken off. For each line set **Back to stock** to **to bin** and keep the bin where the goods sit. For **Reason** choose **Other** and write in **Note** that the customer took it off before shipping. See [Credit notes](#sales-credits).
-3. The goods never left the warehouse — leave them on the shelf.
-- Example: 30 packed, the customer takes off 5 → invoice 30 · credit note 5 · shipped 25. The stock matches what really left, and the customer gets two documents: the invoice and the credit note.
-- If the customer's **Final invoice emails** is automatic, the invoice is emailed first. Tell the customer in advance.
+**The customer wants to take items off before shipping**
+Press **Take off…** first — see [Take items off a packed order](#sales-take-off). It is saved at once, and **Ship & invoice** shows it under **Taken off before shipping**. Items that have already shipped come back with a credit note — see [Credit notes](#sales-credits).
 
 <!-- SCREENSHOT: sales-ship-invoice-1 · Ship & invoice window with freight, carrier, tracking and "Other packed orders for …" open -->
+
+<a id="sales-take-off"></a>
+## Take items off a packed order
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
+<!-- who: sales -->
+
+**What it is**
+The customer no longer wants some items on an order the warehouse has already packed (**Finalized**). **Take off…** takes them off the order **right away**: the quantity comes off the order, the stock is freed for other orders, and the warehouse gets a **Put back** task to take them out of the box. You can send the customer a proforma without those items now, and ship and invoice later.
+
+**When**
+Only on a **Finalized** order. Before the warehouse starts (**Confirmed**), change the quantity on the order instead. While the warehouse is still picking or packing, it is refused.
+
+**How**
+1. Open the **Finalized** order and press **Take off…** — or, in the **Ship & invoice** window, press **Take off…** next to "Customer wants something off SO-…?".
+2. On each line, type **Take off now** — up to what is left (**Ordered** minus **Taken off**).
+3. Choose a **Reason**: **Customer took it off**, **Not wanted** or **Other — write a note** (Other needs a **Note**).
+4. Press **Preview**. It shows what goes back to the shelf (from which box to which bin), prices that change because the quantity changes, and the stock freed for other orders. "Preview ready — nothing has been saved yet."
+5. Press **Take off now**. It is saved at once.
+6. The warehouse takes the items out of the box and marks them done — see [Put back](04-wms.md#wms-put-back).
+
+**Ship & invoice afterwards**
+- The **Ship & invoice** preview lists **Taken off before shipping**: SKU, how many, the line, why, who and when, and whether the put back is still open.
+- While a put back is open, **Ship & invoice** waits: "Preview ready — Ship & invoice waits: items taken off are still in the box (see below). The proforma can still be printed or emailed." The box **Waiting for the warehouse — SO-…** lists what is still in the box.
+- Managers and above: when the warehouse has told you the items are out of the box, press **Confirm put back…** and write who checked the box and what was found (required).
+- The invoice, the Ship Ready (proforma) and the printed sales order show under the line "Ordered 30 · removed at customer's request 5". A line taken off completely is listed at the end under **Removed at customer's request**.
+- The order total counts ordered minus taken off.
+
+**Undo**
+- In **Taken off before shipping**, press **Undo** to put a take-off back on the order — only while its put back is still open, starting from the last take-off on that line. A preview comes first.
+- Undo is refused when the warehouse already put the items back (make a new order instead), when another order has taken the stock, or when the warehouse undid the Finalize.
+
+**Good to know**
+- A line can be taken off more than once (2 today, 1 tomorrow).
+- A combo comes off whole, on its combo line.
+- Prices: a quantity discount that no longer applies goes away — the same as changing the quantity.
+- The last item on an order cannot be taken off — undo the order in WMS, then cancel it.
+- A web order with money taken in Shopify (card paid or authorized) cannot be taken off: ship it in full, then issue a credit note for the items taken off — the card refund goes out from the credit. A web order with nothing paid in Shopify (for example an asung.ca order on account) can be taken off; IMS marks it **Paid** in Shopify only after the Shopify order has been brought down.
+- If the warehouse undoes the Finalize, the take-offs stay; the warehouse packs ordered minus taken off again.
+
+**Example**
+30 ordered and packed, the customer takes off 5 → the order and the invoice show 25, with "Ordered 30 · removed at customer's request 5" · the warehouse puts 5 back on the shelf · no credit note.
 
 <a id="sales-change-ship-to"></a>
 ## Change the ship-to of a packed order
@@ -818,10 +856,7 @@ When the sale is more than 60 days old, IMS shows a notice and suggests a 20% fe
 The same **Restocking fee** box is in **Credit with a reference number…** too. There the notice counts the 60 days from the **Invoice date** you type.
 
 **Goods taken off before shipping**
-This is the second step of [the customer wants to take items off a packed order](#sales-ship-invoice).
-1. Make the credit from that invoice for the quantity taken off — 30 packed, 5 taken off → credit 5.
-2. **Back to stock**: **to bin**, keep the bin where the goods sit.
-3. **Reason**: **Other** · **Note**: "Removed by the customer before shipping".
+No credit note any more — use **Take off…** before **Ship & invoice**: see [Take items off a packed order](#sales-take-off). A credit note is only for goods that have already shipped (returns, damage), or for a web order with money taken in Shopify that had to ship in full.
 
 **A sale with no IMS invoice**
 For an invoice from before IMS, press **Credit with a reference number…** in the new credit window.
@@ -1117,7 +1152,7 @@ Cancelling closes an order for good and keeps it on record. It is for a confirme
 
 <a id="sales-statuses"></a>
 ## What each status means
-<!-- screen: so.html · BUILD 2026-10-26 · so ovd v1 -->
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
 <!-- who: all -->
 
 **Status — badge and filter**
@@ -1134,7 +1169,7 @@ The badge is the coloured label on an order. The filter is the **Status** list o
 | Fulfilled (green) | Fulfilled | Done. |
 | Cancelled (red) | Cancelled | Closed without shipping. A merged order shows "merged". |
 
-Other filters: **Open** (everything not finished), **Working** (the warehouse has started picking), **Draft — reprice suggested**, **Waiting for pickup**, **All**.
+Other filters: **Open** — the default, at the top: everything not finished, leaving out orders waiting on a backorder (**Backorder** or **Backorder ended**) · **Open — with backorders** (everything not finished) · **Working** (the warehouse has started picking), **Draft — reprice suggested**, **Waiting for pickup**, **All**.
 
 **Customer** — type part of a name in **Customer — pick one** and pick the customer from the list. The list then shows only that customer's orders, together with the other filters. **↓ CSV** follows it too.
 

@@ -267,6 +267,36 @@ IMS gets freight prices from Freightcom, books the carrier you pick, and saves t
 
 <!-- SCREENSHOT: wms-freightcom-1 · Freight box with the rate list, one rate picked and the Book row -->
 
+<a id="wms-put-back"></a>
+## Put back — items the office took off
+<!-- screen: wms-fulfillment.html · BUILD 2026-11-26 · fu v1.12 ; wms-admin.html · BUILD 2026-11-26 · wa v1.19 -->
+<!-- who: warehouse -->
+
+**What it is**
+When a customer no longer wants some items on a packed (**Finalized**) order, the office takes them off the order (**Take off…** — see [Take items off a packed order](01-sales.md#sales-take-off)). The items are still in the box, so the warehouse gets a **Put back** task: take them out of the box and put them back on the shelf.
+
+**When**
+As soon as the band shows up. The office cannot **Ship & invoice** that order until every put back on it is done.
+
+**How**
+1. At the top of **WMS Fulfillment**, the orange band **📦 Put back (n)** shows the open tasks for your warehouse — "taken off orders by the office — take them out of the box and put them back on the shelf". Click it to open the list.
+2. Each row shows the **Order**, **From box** ("not in a box" when the goods were not boxed), **To bin**, the SKU, how many (single units too, for a set), the reason and who took it off.
+3. Take the items out of that box and put them in that bin.
+4. Tick the rows you put back, add a note if you want, and press **✓ Done — put back** — "only after they are out of the box and on the shelf".
+- If someone else marked one of them done first, nothing is saved — the list loads again.
+
+**WMS Admin — Put back tab**
+- The **Put back** tab (with a count badge) lists open tasks first, then closed ones: how each was closed, who, when and the note.
+- How a task closes: done by the warehouse · confirmed by an office manager (with a note) · the order was undone in WMS ("order rolled back — box unpacked") · the office undid the take-off.
+- Managers can tick open rows and mark them done here too.
+
+**Good to know**
+- Put back does not change the stock count — the goods never left the books; they only go back to their shelf.
+- If the office presses **Undo** on a take-off while its put back is still open, the task closes by itself — leave the goods in the box.
+- **↩ Undo Finalize** still works on an order with take-offs: its open put backs close, and the order is packed again without the items taken off.
+
+<!-- SCREENSHOT: wms-put-back-1 · Put back band open on WMS Fulfillment with From box, To bin and Done -->
+
 <a id="wms-receiving"></a>
 ## Receive a PO or a transfer
 <!-- screen: wms-receiver.html · BUILD 2026-11-02 · rc v2.1 -->
@@ -396,11 +426,11 @@ On a phone or tablet, a **📷 Camera** button shows next to the scan box (not o
 
 <a id="wms-admin"></a>
 ## WMS Admin
-<!-- screen: wms-admin.html · BUILD 2026-10-05 · wa v1.17 -->
+<!-- screen: wms-admin.html · BUILD 2026-11-26 · wa v1.19 -->
 <!-- who: manager -->
 
 **What it is**
-**WMS Admin** is the warehouse manager's screen. It has nine tabs: **Status**, **Health**, **Discrepancy**, **Receiving**, **Reports**, **Rollback**, **Finalized**, **Stats** and **Trace**. Managers and above open it.
+**WMS Admin** is the warehouse manager's screen. It has ten tabs: **Status**, **Health**, **Discrepancy**, **Receiving**, **Reports**, **Rollback**, **Finalized**, **Stats**, **Trace** and **Put back**. Managers and above open it.
 
 **Rollback — take an order back one stage**
 "There is no one-click void — undo one stage at a time and check the goods on the shelf at each step."
@@ -409,6 +439,7 @@ On a phone or tablet, a **📷 Camera** button shows next to the scan box (not o
 3. Each window lists what it removes — for example "Undo split for … Deletes ALL batches for this order … The order returns to Released to WMS — the office can recall it from there". Press OK.
 4. Repeat until the order is at **Released to WMS**. The office then presses **Recall from WMS** (see [Take an order back](01-sales.md#sales-undo)).
 - "On a pallet — Undo Fulfillment first." · "Finalized — undo finalize first."
+- An order with items taken off by the office can still be undone: its open put backs close ("order rolled back — box unpacked") and the take-offs stay.
 - If your access is limited to some warehouses, you only see and roll back their orders.
 
 **Reports — problems the workers flagged**
@@ -428,6 +459,7 @@ On a phone or tablet, a **📷 Camera** button shows next to the scan box (not o
 - **Health** — checks that must always hold. "a red card means the rule broke and needs review" — tell the IMS administrator.
 - **Stats** — batches, times and mistakes for **Today**, **This week**, **This month** or **All**.
 - **Trace** — who worked on an order, when and where.
+- **Put back** — items the office took off packed orders, still in the box until put back — see [Put back](#wms-put-back).
 
 <!-- SCREENSHOT: wms-admin-1 · Rollback with Current stage and the Undo buttons -->
 

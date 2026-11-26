@@ -144,7 +144,7 @@ PO(구매 오더)는 공급처 하나에 주문하는 것입니다. **Draft**(�
 
 <a id="purch-invoice"></a>
 ## 공급처 인보이스 넣기
-<!-- screen: invoices.html · BUILD 2026-10-22 · inv printed v2 ; po.html · BUILD 2026-10-25 · po csv v1 -->
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a ; po.html · BUILD 2026-10-25 · po csv v1 -->
 <!-- who: accounting, office -->
 
 **무엇인가**
@@ -176,6 +176,17 @@ PO(구매 오더)는 공급처 하나에 주문하는 것입니다. **Draft**(�
 - **Tax by rule** — 인보이스 줄에는 Tax 칸이 없습니다. 세금은 세금 규칙마다 할인 뒤 소계에 한 번 매기고(공급처 인보이스가 찍는 모양과 같다) 머리 아래 한 줄로 보입니다.
 - 인보이스가 QuickBooks Bill 로 갈 때 charge · other 줄은 [QuickBooks matching — 공급처 인보이스 줄](07-settings.md#set-qbo-supplier-lines)에서 정한 계정으로 가고, 다른 데서 정산하는 줄(not payable)은 빠집니다.
 - 창고 쪽: [PO · 트랜스퍼 받기](04-wms.md#wms-receiving)
+- 라인의 **Qty diff**: 입고에서 정리된 차이는 회색 "settled at receiving (RCV-…, 사유)" — 크레딧이 필요 없습니다. 아직 남은 몫만 빨강이고, 크레딧을 받아야 할 모자람은 "… credit due" 로 나옵니다.
+
+**확정된 인보이스의 머리 고치기**
+번호나 날짜를 잘못 넣은 확정 공급처 인보이스 — 예: 공급처의 진짜 인보이스가 오기 전에 입고하며 우리가 넣은 번호
+1. 인보이스를 열고 **More ▾** › **Edit invoice details…** 를 누릅니다. 구매(purchasing) 쓰기와 QuickBooks 쓰기 권한이 둘 다 있어야 합니다.
+2. **Invoice number** · **Document date** · **Due date** · **Note** 를 고칩니다. **Due date** 를 비우면 결제 조건으로 셉니다.
+3. **Why**(필수)를 적고 **Check** 를 누릅니다. 바뀔 것을 읽고 **Save** 를 누릅니다.
+- "Only the number, document date, due date and note change — amounts, lines, exchange rate and cost stay as they are."(번호 · 문서 날짜 · 기한 · 메모만 · 금액 · 라인 · 환율 · 원가는 그대로)
+- "The number and date can be changed only until the bill goes to QuickBooks; after that only the due date and note."(번호 · 날짜는 Bill 이 QuickBooks 로 가기 전까지만 · 그 뒤는 기한 · 메모만) QuickBooks 로 간 뒤 바꾼 기한은 QuickBooks 에서 **Send** 할 일감으로 기다립니다.
+- 창 아래 **Earlier changes** 에 지난 고침 10 개 — 누가 · 언제 · 왜
+- 크레딧 노트 · 비용 청구서 · 초안에는 이 창이 없습니다 — 초안은 평소처럼 고칩니다.
 
 <!-- SCREENSHOT: purch-invoice-1 · Confirm 뒤 글: PO-99001 은 청구분을 갖고 나머지는 PO-99001a 로 -->
 
@@ -232,7 +243,7 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 
 <a id="purch-receipts"></a>
 ## 오피스 입고
-<!-- screen: receiving.html · BUILD 2026-11-01 · rcv sup v1 -->
+<!-- screen: receiving.html · BUILD 2026-11-26 · rcv subst v1 -->
 <!-- who: office -->
 
 **무엇인가**
@@ -252,7 +263,10 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
   - **Split shipment** — 나머지가 이 PO 로 아직 온다(열린 채)
   - **Supplier was out of stock** — 나머지는 오지 않는다
   - **Lost or damaged in transit** — 오지 않는다 · 크레딧을 청구한다
-  - **We counted it wrong** — 더 받을 것이 없다
+  - **We counted it wrong** — 더 받을 것이 없다(크레딧 없음)
+  - **Substituted** — 공급처가 다른 것을 대신 보냈다(크레딧 없음) — 메모에 무엇인지 적는다
+  - **Something else** — 오지 않는다 · 메모에 적는다
+- **Substituted** · **We counted it wrong** 은 크레딧을 기대하지 않는다는 뜻입니다: 인보이스 **Qty diff** 에 정리됨으로 나오고 **Create a credit note** 가 빼 줍니다. 그 라인에 **Not received** 크레딧이 이미 있으면 IMS 가 거부합니다 — 그 크레딧을 먼저 취소하거나 크레딧을 받을 까닭으로 닫습니다.
 - **인보이스보다 많거나 PO 에 없는 물건** — 물건은 이미 선반에 있습니다. **Decide** 를 누릅니다: **Accepted — free, into stock at no cost**(무상 · 원가 0) 또는 **Accepted — billed, into stock at the invoice price**(청구 · 인보이스 가격). 공급처 반품은 따로 하는 일입니다.
 
 **알아 둘 것**
@@ -264,23 +278,29 @@ PO 와 비용 빌 맨 아래에 **Documents** 구역이 있습니다. 공급처 
 
 <a id="purch-credits"></a>
 ## 공급처 크레딧
-<!-- screen: invoices.html · BUILD 2026-11-11 · inv tax v4 -->
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a -->
 <!-- who: accounting, office -->
 
 **무엇인가**
 공급처 크레딧 노트는 우리가 줄 돈을 줄입니다 — 오지 않은 물건이나 틀린 가격
 
 **어떻게**
-1. 공급처 인보이스를 열고 **Create a credit note** 를 누릅니다. "Lines start at the difference between what this invoice billed and what actually arrived."(줄은 이 인보이스가 청구한 것과 실제 온 것의 차이로 시작한다)
-2. 창에서 **Credit date** 와, 알면 **Printed total** 을 적습니다. **Number** 는 "assigned when created"(만들 때 매김)입니다. **Check** 를 누르고 **Create** 를 누릅니다.
-3. 새 초안에서 라인을 확인하고 까닭을 고릅니다: **Not received** · **Price difference**
-4. **Confirm** 을 누릅니다.
+1. 공급처 인보이스를 열고 **Create a credit note** 를 누릅니다. 창이 열리자마자 미리 보기가 나옵니다 — 아직 아무것도 저장되지 않습니다. "Lines start at what is still owed as not received."(줄은 아직 받지 못한 몫으로 시작한다)
+2. 입고에서 크레딧 없이 정리된 라인 · 아직 오는 라인 · 아직 안 받은 라인 · 이미 크레딧된 라인은 회색으로 까닭과 함께 나오고 빠집니다.
+3. 남은 것이 없으면 크게 알려 줍니다: **Nothing to credit — settled at receiving** · **Nothing to credit yet** — 창을 닫습니다. 가격 차이 크레딧이면 초안을 만들어 라인을 손으로 넣습니다.
+4. **Credit date** 와, 알면 **Printed total** 을 적습니다. **Number** 는 "assigned when created"(만들 때 매김)입니다. **Create draft** 를 누릅니다.
+5. 새 초안에서 라인을 확인하고 까닭을 고릅니다: **Not received** · **Price difference** · **Add a line** 으로 손으로 더합니다.
+6. **Confirm** 을 누릅니다.
 - 공급처가 자기 크레딧 노트를 보내오면 그 번호를 **Supplier ref** 에 적습니다.
 
 **알아 둘 것**
 - 확정한 크레딧은 재고 원가를 바꿀 수 있습니다. IMS 가 얼마인지("Stock cost changed on … lines"), 무엇이 물건 도착을 기다리는지 알려 줍니다.
 - 크레딧 노트는 지울 수 없습니다. 취소합니다([취소 · 되살리기 · 지우기](#purch-undo)).
 - 필터 **Credit due only** 는 아직 다 쓰지 않은 크레딧을 보여 줍니다.
+- 같은 인보이스의 다른 초안 크레딧은 셈에 넣지 않습니다 — **Create draft** 를 또 누르면 같은 라인으로 시작합니다. 이미 있는 초안을 엽니다. 확정은 그중 하나만 됩니다.
+- 입고에서 정리된 라인에도 **Price difference** 크레딧은 됩니다.
+- 취소된 크레딧은 번호를 그대로 둡니다 · 다음 것은 "-2"
+- 인보이스 목록의 **Balance** 는 크레딧이 확정된 뒤에만 빼 줍니다(초안은 "on confirm").
 
 <a id="purch-payments"></a>
 ## 공급처 결제
@@ -384,6 +404,25 @@ PO 는 "A marker only — it does not move money."(표시일 뿐 · 돈을 옮�
 - 선급금은 **A/P** · **Overdue** 에 들지 않습니다. 갚을 돈이 0 인 공급처에도 선급금으로 기다리는 돈이 있을 수 있습니다.
 - 일부만 선급금으로 덮이고 현금으로는 아직 안 낸 Bill 은 PO · 달력 꼬리표에 아직 unpaid 로 보일 수 있습니다.
 
+<a id="purch-exchange-rate"></a>
+## 공급처 인보이스의 환율
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a ; payments.html · BUILD 2026-11-09 · pay rate v1 -->
+<!-- who: accounting -->
+
+**무엇인가**
+USD 인보이스에는 서로 다른 환율이 둘 있고, 그것이 정상입니다.
+- **인보이스 환율**이 물건의 원가를 정합니다. 창고가 그 인보이스로 받는 순간 그때 인보이스에 적힌 환율로 원가가 굳습니다. IMS 는 그날 환율을 저절로 가져오지 않습니다 — **물건을 받기 전에 인보이스 환율을 맞춥니다.**
+- **결제 환율**은 돈을 산 날의 MTFX 환율입니다 — 결제나 공급처 선급금에 적습니다.
+- 둘의 차이는 환차손익이고 QuickBooks 가 처리합니다. 결제 환율을 Bill 환율에 맞추지 않습니다.
+
+**환율 적는 법**
+- 늘 1 USD 당 CAD — 곱합니다. 나누지 않습니다. 예: 1 USD = 1.3850 CAD → 1.3850 (0.7220 이 아님)
+
+**알아 둘 것**
+- 나중에 문서 날짜를 고쳐도(**Edit invoice details…**) 환율 · 원가는 바뀌지 않습니다.
+- QuickBooks 로 이미 간 Bill 의 환율은 IMS 가 다시 보내지 않습니다.
+- 기준 환율을 무엇으로 할지, 선급한 오더의 원가 환율은 회계사에게 확인할 거리입니다.
+
 <a id="purch-undo"></a>
 ## 취소 · 되살리기 · 지우기
 <!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; invoices.html · BUILD 2026-11-11 · inv tax v4 ; charges.html · BUILD 2026-11-09 · chg kind v1 -->
@@ -410,6 +449,7 @@ PO 는 "A marker only — it does not move money."(표시일 뿐 · 돈을 옮�
 - **Delete** — 한 번도 확정하지 않은 인보이스: "The number becomes free for this supplier again."(그 번호를 이 공급처에 다시 쓸 수 있다) 크레딧 노트는 지울 수 없습니다.
 - 서류(PDF)를 올린 초안 비용 · PO · 인보이스는 지금은 서류를 빼도 지울 수 없습니다 — 대신 **Cancel** 합니다. 취소한 비용의 번호는 같은 청구처에 다시 쓸 수 없습니다.
 - 창고가 그 인보이스로 받기 시작한 뒤에는 다시 열거나 취소할 수 없습니다 — 크레딧 노트를 씁니다.
+- 취소한 크레딧 노트의 **Restore** 는 거부될 수 있습니다: **Not received** 라인이 입고에서 크레딧 없이 정리된 라인(**Substituted** · **We counted it wrong**)에 있을 때, 또는 확정으로 돌아가면 아직 모자란 것보다 많이 크레딧하게 될 때(예: 그사이 다른 크레딧이 채웠다). IMS 가 크레딧 · 라인 · 입고 번호를 알려 줍니다.
 
 **결제**
 - **Delete** 만 — [공급처 결제](#purch-payments)

@@ -144,7 +144,7 @@ A purchase order (PO) is what we order from one supplier. It starts as a **Draft
 
 <a id="purch-invoice"></a>
 ## Record the supplier's invoice
-<!-- screen: invoices.html · BUILD 2026-10-22 · inv printed v2 ; po.html · BUILD 2026-10-25 · po csv v1 -->
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a ; po.html · BUILD 2026-10-25 · po csv v1 -->
 <!-- who: accounting, office -->
 
 **What it is**
@@ -176,6 +176,17 @@ If the **Printed total** is empty, or does not match our calculation, IMS says s
 - **Tax by rule** — the invoice lines have no Tax column. Tax is worked out once per tax rule on that rule's subtotal after the discount, the way supplier invoices print it, and shown in one line under the header.
 - When the invoice goes to QuickBooks as a Bill, charge and other lines go to the accounts set in [QuickBooks matching — Supplier invoice lines](07-settings.md#set-qbo-supplier-lines), and lines settled elsewhere (not payable) are left out.
 - The warehouse side: [Receive a PO or a transfer](04-wms.md#wms-receiving).
+- **Qty diff** on a line: a difference settled at receiving shows grey — "settled at receiving (RCV-…, reason)" — and needs no credit. Only what is still open shows red; a short that should be credited shows "… credit due".
+
+**Edit the details of a confirmed invoice**
+For a confirmed supplier invoice whose number or date was typed wrong — for example the number we typed at receiving, before the supplier's real invoice arrived.
+1. Open the invoice and press **More ▾** › **Edit invoice details…**. You need both purchasing and QuickBooks edit access.
+2. Change the **Invoice number**, **Document date**, **Due date** or **Note**. Leave **Due date** empty to work it out from the payment term.
+3. Type **Why** (required) and press **Check**. Read what will change, then **Save**.
+- "Only the number, document date, due date and note change — amounts, lines, exchange rate and cost stay as they are."
+- "The number and date can be changed only until the bill goes to QuickBooks; after that only the due date and note." A due date changed after the bill went to QuickBooks waits as a job to **Send** in QuickBooks.
+- **Earlier changes** under the form lists the last 10 changes — who, when and why.
+- Credit notes, charges and drafts do not have this window — a draft is edited as usual.
 
 <!-- SCREENSHOT: purch-invoice-1 · the message after Confirm: PO-99001 keeps what is billed, the rest moved to PO-99001a -->
 
@@ -232,7 +243,7 @@ A charge is a bill from someone other than the supplier — freight, duty, broke
 
 <a id="purch-receipts"></a>
 ## Receipts in the office
-<!-- screen: receiving.html · BUILD 2026-11-01 · rcv sup v1 -->
+<!-- screen: receiving.html · BUILD 2026-11-26 · rcv subst v1 -->
 <!-- who: office -->
 
 **What it is**
@@ -252,7 +263,10 @@ A charge is a bill from someone other than the supplier — freight, duty, broke
   - **Split shipment** — the rest is still coming on this PO (it stays open)
   - **Supplier was out of stock** — the rest is not coming
   - **Lost or damaged in transit** — not coming, claim a credit
-  - **We counted it wrong** — nothing more to receive
+  - **We counted it wrong** — nothing more to receive (no credit)
+  - **Substituted** — the supplier sent something else instead (no credit) — say what in the note
+  - **Something else** — not coming, say what in the note
+- **Substituted** and **We counted it wrong** mean no credit is expected: the invoice's **Qty diff** shows them as settled, and **Create a credit note** leaves them out. If a credit note with **Not received** already exists on that line, IMS refuses — cancel that credit first, or choose a reason that expects a credit.
 - **More than the invoice, or not on the PO** — the goods are already on a shelf. Press **Decide**: **Accepted — free, into stock at no cost** or **Accepted — billed, into stock at the invoice price**. A return to the supplier is separate work.
 
 **Good to know**
@@ -264,23 +278,29 @@ A charge is a bill from someone other than the supplier — freight, duty, broke
 
 <a id="purch-credits"></a>
 ## Supplier credits
-<!-- screen: invoices.html · BUILD 2026-11-11 · inv tax v4 -->
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a -->
 <!-- who: accounting, office -->
 
 **What it is**
 A supplier credit note lowers what we owe — for goods that did not come or a price that was wrong.
 
 **How**
-1. Open the supplier's invoice and press **Create a credit note**. "Lines start at the difference between what this invoice billed and what actually arrived."
-2. In the window, set the **Credit date** and, if you know it, the **Printed total**. The **Number** is "assigned when created". Press **Check**, then **Create**.
-3. On the new draft, check each line and choose the reason: **Not received** or **Price difference**.
-4. Press **Confirm**.
+1. Open the supplier's invoice and press **Create a credit note**. The window shows a preview at once — nothing is saved yet. "Lines start at what is still owed as not received."
+2. Lines settled at receiving with no credit, still coming, not received yet, or already credited are listed grey with the reason, and left out.
+3. If nothing is left, it says so in large letters: **Nothing to credit — settled at receiving** or **Nothing to credit yet**. Close the window — or, for a price difference, create the draft and add the line yourself.
+4. Set the **Credit date** and, if you know it, the **Printed total**. The **Number** is "assigned when created". Press **Create draft**.
+5. On the new draft, check each line and choose the reason: **Not received** or **Price difference**. **Add a line** adds one by hand.
+6. Press **Confirm**.
 - When the supplier sends their own credit note, type its number in **Supplier ref**.
 
 **Good to know**
 - A confirmed credit can change the cost of the stock. IMS says how much ("Stock cost changed on … lines"), and what waits for the goods to arrive.
 - A credit note cannot be deleted. Cancel it instead (see [Cancel, restore or delete](#purch-undo)).
 - The filter **Credit due only** shows credits not used up yet.
+- Another draft credit on the same invoice is not taken into account — a second **Create draft** starts with the same lines. Open the draft you already have instead. Only one of them can be confirmed.
+- A **Price difference** credit is allowed on a line settled at receiving.
+- A cancelled credit keeps its number; the next one gets "-2".
+- On the invoice list, **Balance** counts a credit as applied only once it is confirmed ("on confirm" for a draft).
 
 <a id="purch-payments"></a>
 ## Pay suppliers
@@ -384,6 +404,25 @@ The PO is "A marker only — it does not move money." Leave it empty when the PO
 - Deposits are not part of **A/P** or **Overdue**. A supplier can show 0 owed and still have money waiting in deposits.
 - A bill partly covered by a deposit and not paid in cash yet may still show as unpaid in the PO and calendar tags.
 
+<a id="purch-exchange-rate"></a>
+## Exchange rates on supplier invoices
+<!-- screen: invoices.html · BUILD 2026-11-26 · inv cred v2a ; payments.html · BUILD 2026-11-09 · pay rate v1 -->
+<!-- who: accounting -->
+
+**What it is**
+A USD invoice carries two rates that are not the same, and that is normal.
+- **The invoice rate** sets the cost of the goods. The cost is fixed at the moment the warehouse receives against the invoice, using the rate on the invoice then. IMS does not fetch the day's rate by itself — **set the invoice rate before the goods are received**.
+- **The payment rate** is the MTFX rate of the day the money was bought — on the payment or the supplier deposit.
+- The gap between the two is an exchange gain or loss, and QuickBooks books it. Do not change the payment rate to match the bill.
+
+**How to type a rate**
+- Always CAD per 1 USD — multiply, never divide. For example 1 USD = 1.3850 CAD → type 1.3850, not 0.7220.
+
+**Good to know**
+- Changing the document date later (**Edit invoice details…**) does not change the rate or the cost.
+- Once a bill has gone to QuickBooks, IMS does not send its rate again.
+- Which rate to use as the standard rate, and the cost rate for an order paid in advance, are questions for the accountant.
+
 <a id="purch-undo"></a>
 ## Cancel, restore or delete
 <!-- screen: po.html · BUILD 2026-11-01 · po sup v1 ; invoices.html · BUILD 2026-11-11 · inv tax v4 ; charges.html · BUILD 2026-11-09 · chg kind v1 -->
@@ -409,6 +448,7 @@ The PO is "A marker only — it does not move money." Leave it empty when the PO
 - **Cancel**: "It stays on the list with a cancelled tag and drops out of the money." **Restore** brings it back.
 - **Delete** — an invoice never confirmed: "The number becomes free for this supplier again." A credit note cannot be deleted.
 - After the warehouse has received against an invoice, it cannot be reopened or cancelled — use a credit note.
+- **Restore** of a cancelled credit note is refused when one of its **Not received** lines is on a line that was settled at receiving with no credit (**Substituted** or **We counted it wrong**), or when going back to confirmed would credit more than is still missing — for example because another credit covered it meanwhile. IMS names the credit, the line and the receipt.
 - A draft charge, PO or invoice that has a document (PDF) added cannot be deleted for now, even after you remove the document — **Cancel** it instead. A cancelled charge's number cannot be used again for the same biller.
 
 **Payments**

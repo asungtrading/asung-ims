@@ -482,7 +482,7 @@ Customer A 의 SO-99001 이 제품 X 를 30 주문했습니다. 창고에 남은
 
 <a id="sales-ship-invoice"></a>
 ## Ship & invoice(출고 + 인보이스)
-<!-- screen: so.html · BUILD 2026-11-12 · so shipto v1 -->
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
 <!-- who: office -->
 
 **무엇인가**
@@ -522,18 +522,56 @@ Customer A 의 SO-99001 이 제품 X 를 30 주문했습니다. 창고에 남은
 **알아 둘 것**
 - 주문보다 덜 팩됐으면: "the rest goes to a backorder order"(나머지는 백오더 오더로 · [물건이 모자랄 때](04-wms.md#wms-pick-short))
 - **Put back to the shelf**(선반에 돌려놓기): 콤보는 통째로 나가거나 안 나갑니다. 콤보가 다 갖춰지지 않으면 남는 구성품을 bin 에 돌려놓으라는 목록이 나옵니다.
+- **Take off…** 로 뺀 물건은 먼저 박스에서 나와야 합니다 — 창고가 Put back 을 Done 할 때까지 **Ship & invoice** 는 기다립니다.
 - 오더에 이미 받은 결제는 그 인보이스에 저절로 붙습니다.
 - **Preview** 뒤에 창의 무엇을 바꾸면 **Preview** 를 다시 누릅니다.
 - **Freight** 칸에는 Freightcom 픽업과 배송 상태도 나옵니다 — [Freightcom — 견적 · 예약 · 라벨](04-wms.md#wms-freightcom). 출고한 뒤에도 오더의 **Carrier** 아래에 배송 상태가 나옵니다. 모든 예약은 [Freightcom — 쉽먼트 보드](#sales-freightcom).
 
-**조심할 것 — 팩된 오더에서 고객이 일부를 빼 달라고 할 때**
-1. 오더를 평소대로 Ship & invoice 합니다. 인보이스에는 팩된 수량 그대로 실립니다.
-2. 매니저 이상: 그 인보이스에서 뺀 수량만큼 크레딧 노트를 만듭니다. 라인마다 **Back to stock** 을 **to bin** 으로 두고, 물건이 있는 bin 을 그대로 둡니다. **Reason** 은 **Other** 를 고르고 **Note** 에 「출고 전에 고객이 뺐다」고 적습니다. [크레딧 노트](#sales-credits)
-3. 뺀 물건은 창고를 떠나지 않았습니다 — 선반에 그대로 둡니다.
-- 예: 30 팩 · 고객이 5 를 뺌 → 인보이스 30 · 크레딧 노트 5 · 실제 출고 25. 재고는 실제로 나간 수량과 맞고, 고객은 인보이스와 크레딧 노트 두 장을 받습니다.
-- 고객의 **Final invoice emails** 가 자동이면 인보이스가 먼저 메일로 나갑니다. 고객에게 미리 알립니다.
+**출고 전에 고객이 일부를 빼 달라고 할 때**
+먼저 **Take off…** 를 누릅니다 — [팩된 오더에서 물건 빼기(Take off)](#sales-take-off). 바로 저장되고, **Ship & invoice** 에는 **Taken off before shipping** 으로 나옵니다. 이미 출고한 물건은 크레딧 노트로 돌려받습니다 — [크레딧 노트](#sales-credits)
 
 <!-- SCREENSHOT: sales-ship-invoice-1 · Ship & invoice 창: 운임 · 운송사 · 송장 · "Other packed orders for …" 펼친 모습 -->
+
+<a id="sales-take-off"></a>
+## 팩된 오더에서 물건 빼기(Take off)
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
+<!-- who: sales -->
+
+**무엇인가**
+창고가 이미 팩한(**Finalized**) 오더에서 고객이 일부를 원하지 않을 때. **Take off…** 는 그 물건을 **바로** 오더에서 뺍니다: 수량이 오더에서 빠지고, 재고가 다른 오더에 풀리고, 창고에 박스에서 꺼내라는 **Put back** 할 일이 생깁니다. 뺀 상태의 proforma 를 지금 고객에게 보내고, Ship & invoice 는 나중에 합니다.
+
+**언제**
+**Finalized** 오더에서만. 창고가 시작하기 전(**Confirmed**)이면 오더 수량을 고칩니다. 창고가 픽 · 팩 중이면 거부됩니다.
+
+**어떻게**
+1. **Finalized** 오더를 열고 **Take off…** 를 누릅니다 — 또는 **Ship & invoice** 창의 "Customer wants something off SO-…?" 옆 **Take off…**
+2. 라인마다 **Take off now** 에 뺄 수를 적습니다 — 남은 만큼까지(**Ordered** − **Taken off**)
+3. **Reason** 을 고릅니다: **Customer took it off**(고객이 뺐다) · **Not wanted**(원하지 않음) · **Other — write a note**(그 밖 — **Note** 필수)
+4. **Preview** 를 누릅니다. 선반에 돌려놓을 것(어느 박스에서 어느 bin 으로) · 수량이 바뀌어 달라지는 가격 · 다른 오더에 풀리는 재고가 나옵니다. "Preview ready — nothing has been saved yet."(아직 저장 안 됨)
+5. **Take off now** 를 누릅니다. 바로 저장됩니다.
+6. 창고가 박스에서 꺼내 선반에 두고 Done 을 누릅니다 — [Put back](04-wms.md#wms-put-back)
+
+**그 뒤 Ship & invoice**
+- **Ship & invoice** 미리 보기에 **Taken off before shipping**(출고 전에 뺀 것)이 나옵니다: SKU · 수량 · 라인 · 사유 · 누가 · 언제 · Put back 이 아직 열렸는지
+- Put back 이 열려 있으면 **Ship & invoice** 는 기다립니다: "Preview ready — Ship & invoice waits: items taken off are still in the box (see below). The proforma can still be printed or emailed."(뺀 물건이 아직 박스에 있다 · proforma 는 인쇄 · 메일 가능) **Waiting for the warehouse — SO-…** 상자에 아직 박스에 있는 것이 나옵니다.
+- 매니저 이상: 창고가 박스에서 꺼냈다고 확인해 주면 **Confirm put back…** 을 누르고 누가 박스를 확인했고 무엇을 찾았는지 적습니다(필수).
+- 인보이스 · Ship Ready(proforma) · 인쇄한 sales order 의 그 라인 아래에 "Ordered 30 · removed at customer's request 5" 가 찍힙니다. 통째로 뺀 라인은 끝에 **Removed at customer's request** 표로 나옵니다.
+- 오더 합계는 주문 − 뺀 것으로 셉니다.
+
+**되돌리기(Undo)**
+- **Taken off before shipping** 에서 **Undo** 를 누르면 그 빼기가 오더로 돌아갑니다 — 그 Put back 이 아직 열려 있을 때만 · 그 라인의 마지막 빼기부터 · 미리 보기가 먼저 나옵니다.
+- 창고가 이미 선반에 돌려놓았으면(새 오더로) · 다른 오더가 그 재고를 잡았으면 · 창고가 Finalize 를 되돌렸으면 거부됩니다.
+
+**알아 둘 것**
+- 한 라인을 여러 번 뺄 수 있습니다(오늘 2 · 내일 1).
+- 콤보는 콤보 라인에서 통째로 빠집니다.
+- 가격: 수량이 줄어 조건을 잃은 수량 할인은 사라집니다 — 오더 수량을 고칠 때와 같습니다.
+- 오더의 마지막 물건은 뺄 수 없습니다 — WMS 에서 되돌린 뒤 오더를 취소합니다.
+- Shopify 에 돈이 잡힌 웹 오더(카드 결제 · 승인)는 뺄 수 없습니다: 통째로 Ship & invoice 하고, 뺀 것만큼 크레딧 노트를 냅니다 — 카드 환불은 크레딧에서 나갑니다. Shopify 에 낸 돈이 없는 웹 오더(예: asung.ca 외상)는 뺄 수 있습니다 · Shopify 오더 수량이 줄어든 뒤에야 IMS 가 Shopify 에 **Paid** 를 보냅니다.
+- 창고가 Finalize 를 되돌려도 뺀 것은 그대로입니다 · 창고는 주문 − 뺀 것을 다시 팩합니다.
+
+**예**
+30 주문 · 30 팩 · 고객이 5 를 뺌 → 오더와 인보이스는 25(그 아래 "Ordered 30 · removed at customer's request 5") · 창고가 5 를 선반에 돌려놓음 · 크레딧 노트 없음
 
 <a id="sales-change-ship-to"></a>
 ## 팩된 오더의 배송지 바꾸기
@@ -818,10 +856,7 @@ Customer A 가 계정에 $500.00 을 냅니다. 다음 인보이스 99001 은 $1
 **Credit with a reference number…** 창에도 같은 **Restocking fee** 칸이 있습니다. 거기서는 적은 **Invoice date** 로 60 일을 셉니다.
 
 **출고 전에 뺀 물건**
-[팩된 오더에서 고객이 일부를 빼 달라고 할 때](#sales-ship-invoice)의 두 번째 걸음입니다.
-1. 그 인보이스에서 뺀 수량만큼 크레딧을 만듭니다 — 30 팩 · 5 뺌 → 크레딧 5
-2. **Back to stock**: **to bin** · 물건이 있는 bin 을 그대로 둡니다.
-3. **Reason**: **Other** · **Note**: 「출고 전에 고객이 뺐다」
+이제 크레딧 노트를 쓰지 않습니다 — **Ship & invoice** 전에 **Take off…**: [팩된 오더에서 물건 빼기(Take off)](#sales-take-off). 크레딧 노트는 이미 나간 물건(반품 · 파손)이나, Shopify 에 돈이 잡혀 통째로 내보낸 웹 오더에만 씁니다.
 
 **IMS 인보이스가 없는 판매**
 IMS 이전의 인보이스라면 새 크레딧 창에서 **Credit with a reference number…** 를 누릅니다.
@@ -1117,7 +1152,7 @@ IMS 는 웹 오더로 새 고객을 만들기 직전에 같은 사람일 수 있
 
 <a id="sales-statuses"></a>
 ## 상태의 뜻
-<!-- screen: so.html · BUILD 2026-10-26 · so ovd v1 -->
+<!-- screen: so.html · BUILD 2026-11-26 · so rm v3b -->
 <!-- who: all -->
 
 **상태 — 배지와 필터**
@@ -1134,7 +1169,7 @@ IMS 는 웹 오더로 새 고객을 만들기 직전에 같은 사람일 수 있
 | Fulfilled(초록) | Fulfilled | 끝 |
 | Cancelled(빨강) | Cancelled | 나가지 않고 닫혔다 · 합쳐진 오더는 "merged" |
 
-다른 필터: **Open**(끝나지 않은 것 전부) · **Working**(창고가 픽을 시작함) · **Draft — reprice suggested** · **Waiting for pickup** · **All**
+다른 필터: **Open** — 기본 · 맨 위: 끝나지 않은 것 가운데 백오더를 기다리는 오더(**Backorder** · **Backorder ended**)를 뺀 것 · **Open — with backorders**(끝나지 않은 것 전부) · **Working**(창고가 픽을 시작함) · **Draft — reprice suggested** · **Waiting for pickup** · **All**
 
 **Customer** — **Customer — pick one** 칸에 이름 일부를 적고 목록에서 고객을 고릅니다. 그 고객의 오더만 남고, 다른 필터와 함께 걸립니다. **↓ CSV** 도 그대로 따릅니다.
 
