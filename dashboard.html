@@ -215,6 +215,8 @@
           <div class="tkhits" id="tkHits" hidden></div>
         </div>
         <label for="tkNotes">Notes</label><textarea id="tkNotes" maxlength="4000"></textarea>
+        <label for="tkNotify">Email</label>
+        <label style="color:var(--ink);font-weight:400"><input type="checkbox" id="tkNotify" checked> Email the people newly added <span class="tkmeta">— untick to add them quietly; it still shows on their calendar and My tasks (in WMS too)</span></label>
       </div>
       <div class="tkmeta" id="tkMeta"></div>
       <div id="tkMsg"></div>
@@ -269,7 +271,7 @@
      · Not paid 칸은 빨간 테두리(Caleb 11-16) — Overdue 는 빨간 테두리 + 붉은 바탕으로 갈린다 */
 /* [db v5 · 2026-11-17 · 대화 Claude · 판정 1302] Day 보기 맨 위에 「그날 매출」 — analytics 열쇠가 있는 사람만(imsAuth.canView('analytics') · 창구 an_daily(그날, 그날) 의 an_gate 가 한 번 더 막는다)
      · 순매출 · 오더 · 평균 · 지난해 같은 날 · 원가 권한이면 GP % · 운임 등 더한 세금 전 합계 · 지점 고르기는 판매 지점만 넘긴다(그 밖이면 전체) */
-const DB_BUILD = "2026-11-25 · db v7";   // 대화 Claude — db v7(cal-3 · 판정 1636 ~ 1639 · asung-wms 20261125152255): Task 담당 여럿 — 창의 담당 칸 = 이름 칩 + 「+ Add a person…」(cal_task_save assignee_ids · 1 명 이상 · 상한 = cal_task_staff.max_assignees) · 칩의 × = 남 빼기는 can.remove_others(만든 사람 ∨ manager) 일 때만, 아니면 나 · 이번에 더한 사람만(1637) · 달력 · Day 보기의 「내 것」 = t.mine · 칸 꼬리 = 나 아닌 담당(둘까지 + 「+N」) · Day 보기는 담당 모두 · 저장 알림 = mails 의 queued 이름들 · 「손에서 떠남」 = !mine ∧ 만든 사람 아님 · 완료한 사람(done by) 그대로 ← db v6(판정 1567 · asung-wms cal-dep-1 20261123200000): 공급처 선급금 — 달 칸에 「Deposit sent」(cal_month.deposit_days · 아직 안 붙인 몫이 있으면 unapplied) · 「Paid by deposit」(deposit_applied_days · 현금 Paid out 과 따로 — 돈을 두 번 세지 않는다) · 그날 목록 kind deposit(보낸 선급금) · paid 목록의 kind deposit 줄 = 「by deposit DEP-…」(누르면 그 인보이스 · 비용 청구서) · Day 보기에 Supplier deposits sent · 열쇠 = purchasing(창구가 거른다)
+const DB_BUILD = "2026-11-26 · db v8";   // 대화 Claude — db v8(판정 1710 · asung-wms task-mail-1 20261126194000): Task 창 Notes 아래 「Email the people」 체크(기본 켬 · 창을 열 때마다 켬 · 그 저장 한 번에만) — 끄면 cal_task_save p.notify = false(새로 더해진 담당에게 맡김 메일 없음 · 담당 · 달력 · My tasks 는 그대로) · 켜면 notify 를 보내지 않는다(옛과 같음) · 저장 알림 「not emailed」(mail.skipped notify_off) ← db v7(cal-3 · 판정 1636 ~ 1639 · asung-wms 20261125152255): Task 담당 여럿 — 창의 담당 칸 = 이름 칩 + 「+ Add a person…」(cal_task_save assignee_ids · 1 명 이상 · 상한 = cal_task_staff.max_assignees) · 칩의 × = 남 빼기는 can.remove_others(만든 사람 ∨ manager) 일 때만, 아니면 나 · 이번에 더한 사람만(1637) · 달력 · Day 보기의 「내 것」 = t.mine · 칸 꼬리 = 나 아닌 담당(둘까지 + 「+N」) · Day 보기는 담당 모두 · 저장 알림 = mails 의 queued 이름들 · 「손에서 떠남」 = !mine ∧ 만든 사람 아님 · 완료한 사람(done by) 그대로 ← db v6(판정 1567 · asung-wms cal-dep-1 20261123200000): 공급처 선급금 — 달 칸에 「Deposit sent」(cal_month.deposit_days · 아직 안 붙인 몫이 있으면 unapplied) · 「Paid by deposit」(deposit_applied_days · 현금 Paid out 과 따로 — 돈을 두 번 세지 않는다) · 그날 목록 kind deposit(보낸 선급금) · paid 목록의 kind deposit 줄 = 「by deposit DEP-…」(누르면 그 인보이스 · 비용 청구서) · Day 보기에 Supplier deposits sent · 열쇠 = purchasing(창구가 거른다)
 console.log("dashboard.html build:", DB_BUILD);
 
 let sb = null, me = null, canAR = false, canAP = false;
@@ -747,11 +749,12 @@ async function openTask(id, dateFor){
   $("tkTime").value = t && t.start_time ? t.start_time : "";
   $("tkTime").hidden = $("tkAllDay").checked;
   $("tkNotes").value = t ? (t.notes || "") : "";
+  $("tkNotify").checked = true;   // db v8 · 1710 — 저장 한 번에만
   fillSelects(t);
   $("tkLinkKind").value = t && t.link ? t.link.kind : "";
   picked = t && t.link ? { kind: t.link.kind, id: t.link.id, label: t.link.label } : null;
   $("tkLinkQ").value = ""; showPicked();
-  ["tkName","tkDate","tkAllDay","tkTime","tkCat","tkLinkKind","tkLinkQ","tkNotes"].forEach(x => $(x).disabled = !!ro);
+  ["tkName","tkDate","tkAllDay","tkTime","tkCat","tkLinkKind","tkLinkQ","tkNotes","tkNotify"].forEach(x => $(x).disabled = !!ro);
   $("tkSave").hidden = !!ro;
   $("tkDel").hidden = !(t && t.can.delete);
   $("tkStatus").hidden = !(t && t.can.complete);
@@ -769,6 +772,7 @@ async function saveTask(){
     link_kind: picked ? picked.kind : null, link_id: picked ? picked.id : null
   };
   if(editing) p.id = editing.id;
+  if(!$("tkNotify").checked) p.notify = false;   // db v8 · 1710
   if(!who.length){ tkMsg("Pick at least one person."); return; }
   if(who.length > staffMax){ tkMsg(`A task can have up to ${staffMax} people.`); return; }
   $("tkSave").disabled = true; tkMsg("");
@@ -776,7 +780,7 @@ async function saveTask(){
   $("tkSave").disabled = false;
   if(error){ tkMsg(error.message); return; }
   const sent = Array.isArray(data.mails) ? data.mails.filter(m => m.queued).map(m => m.name) : [];
-  const mail = sent.length ? ` · emailed ${sent.join(", ")}` : data.mail && data.mail.queued ? ` · emailed ${data.mail.to || ""}` : "";
+  const mail = sent.length ? ` · emailed ${sent.join(", ")}` : data.mail && data.mail.queued ? ` · emailed ${data.mail.to || ""}` : (data.mail && data.mail.skipped === "notify_off" ? " · not emailed" : "");
   const handed = taskMe && !taskMe.sees_all && !isMine(data) && data.created_by.id !== taskMe.id;
   $("tkModal").hidden = true;
   toast(handed ? `Saved and handed to ${shortNames(tkPeople(data))} — it is no longer on your calendar${mail}` : `Saved${mail}`);
